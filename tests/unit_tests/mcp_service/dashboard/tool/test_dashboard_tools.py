@@ -489,6 +489,78 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
     assert result.data["filter_state"]["activeTabs"][0] == _wrapped("TAB-1")
 
 
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_permalink_key_includes_filter_state(
+    mock_info, mcp_server
+):
+    """When permalink_key is provided without explicit select_columns, filter_state
+    must be present in the response."""
+    dashboard = Mock()
+    dashboard.id = 42
+    dashboard.dashboard_title = "Sales Dashboard"
+    dashboard.slug = "sales"
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = None
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_by = None
+    dashboard.changed_by = None
+    dashboard.uuid = "dashboard-uuid-42"
+    dashboard.url = "/dashboard/42"
+    dashboard.thumbnail_url = None
+    dashboard.created_on_humanized = None
+    dashboard.changed_on_humanized = None
+    dashboard.slices = []
+    dashboard.owners = []
+    dashboard.tags = []
+    dashboard.roles = []
+    dashboard.charts = []
+    mock_info.return_value = dashboard
+
+    permalink_value = {
+        "dashboardId": "42",
+        "state": {
+            "dataMask": {},
+            "activeTabs": ["TAB-A"],
+        },
+    }
+
+    with (
+        patch(
+            "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch.object(
+            get_dashboard_info_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch.object(
+            get_dashboard_info_module,
+            "_get_permalink_state",
+            return_value=permalink_value,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            # No explicit select_columns — tool should use its default which
+            # includes filter_state when permalink_key is supplied.
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {"request": {"identifier": 42, "permalink_key": "some-key"}},
+            )
+
+    assert "filter_state" in result.data
+    assert result.data["is_permalink_state"] is True
+    assert result.data["permalink_key"] == "some-key"
+
+
 def test_refresh_request_user_for_permalink_access(
     app,
 ):
@@ -1349,7 +1421,8 @@ class TestDashboardSortableColumns:
 
         # Check list_dashboards docstring for sortable columns documentation
         assert list_dashboards.__doc__ is not None
-        assert "Sortable columns for order_column:" in list_dashboards.__doc__
+        assert "Sortable columns for" in list_dashboards.__doc__
+        assert "order_column" in list_dashboards.__doc__
         for col in SORTABLE_DASHBOARD_COLUMNS:
             assert col in list_dashboards.__doc__
 

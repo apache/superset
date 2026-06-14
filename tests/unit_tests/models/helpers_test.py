@@ -32,6 +32,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import GenericDataType
+from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
     from superset.jinja_context import BaseTemplateProcessor
@@ -98,6 +99,125 @@ def test_values_for_column(database: Database) -> None:
         return_value=pd.DataFrame({"column_values": [1, np.nan]}),
     ):
         assert table.values_for_column("a") == [1, None]
+
+
+def test_values_for_column_passes_catalog_and_schema(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that `values_for_column` forwards the dataset's catalog and schema
+    to `database.get_sqla_engine()` so that engine params are adjusted with
+    the correct schema context (e.g. for MySQL, Snowflake, Presto).
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+
+    connection = engine.raw_connection()
+    connection.execute("CREATE TABLE t (a INTEGER, b TEXT)")
+    connection.execute("INSERT INTO t VALUES (1, 'Alice')")
+    connection.commit()
+
+    # Track the catalog/schema values passed to get_sqla_engine
+    captured_kwargs: dict[str, str | None] = {}
+
+    @contextmanager
+    def mock_get_sqla_engine(catalog=None, schema=None, **kwargs):
+        captured_kwargs["catalog"] = catalog
+        captured_kwargs["schema"] = schema
+        yield engine
+
+    mocker.patch.object(
+        database,
+        "get_sqla_engine",
+        new=mock_get_sqla_engine,
+    )
+
+    table = SqlaTable(
+        database=database,
+        catalog="my_catalog",
+        schema="my_schema",
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    assert captured_kwargs["catalog"] == "my_catalog"
+    assert captured_kwargs["schema"] == "my_schema"
+
+
+def test_values_for_column_passes_none_catalog_and_schema(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that `values_for_column` forwards None catalog/schema when the
+    dataset has no catalog or schema set.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+
+    connection = engine.raw_connection()
+    connection.execute("CREATE TABLE t (a INTEGER, b TEXT)")
+    connection.execute("INSERT INTO t VALUES (1, 'Alice')")
+    connection.commit()
+
+    captured_kwargs: dict[str, str | None] = {}
+
+    @contextmanager
+    def mock_get_sqla_engine(catalog=None, schema=None, **kwargs):
+        captured_kwargs["catalog"] = catalog
+        captured_kwargs["schema"] = schema
+        yield engine
+
+    mocker.patch.object(
+        database,
+        "get_sqla_engine",
+        new=mock_get_sqla_engine,
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    assert captured_kwargs["catalog"] is None
+    assert captured_kwargs["schema"] is None
 
 
 def test_values_for_column_with_rls(database: Database) -> None:
@@ -2531,3 +2651,199 @@ def test_filter_by_verbose_name_resolves_to_column(
     assert "WHERE" in sql, f"Expected WHERE clause, got SQL: {sql}"
     assert "country_code" in sql, f"Expected filter on 'country_code', got SQL: {sql}"
     assert "'US'" in sql, f"Expected filter value 'US', got SQL: {sql}"
+
+
+def test_format_time_humanized_activates_non_english_locale(
+    mocker: MockerFixture,
+) -> None:
+    """Regression for #28331: `_format_time_humanized` must call
+    `humanize.i18n.activate(locale)` before formatting when the user's locale
+    is not English. The original report described last-modified strings on
+    the chart editor header always rendering in English regardless of the
+    user's language setting.
+    """
+    from datetime import datetime, timedelta
+
+    from superset.models.helpers import AuditMixinNullable
+
+    mocker.patch(
+        "superset.models.helpers.get_locale",
+        return_value="es",  # Spanish
+    )
+    mock_activate = mocker.patch("superset.models.helpers.humanize.i18n.activate")
+    mock_deactivate = mocker.patch("superset.models.helpers.humanize.i18n.deactivate")
+
+    # Detached instance — we only need the method, not a session-bound row.
+    instance = AuditMixinNullable()
+    result = instance._format_time_humanized(datetime.now() - timedelta(hours=2))
+
+    mock_activate.assert_called_once_with("es")
+    mock_deactivate.assert_called_once()
+    assert isinstance(result, str), f"expected str, got {type(result).__name__}"
+    assert result, "_format_time_humanized returned empty string"
+
+
+def test_format_time_humanized_skips_activation_for_english(
+    mocker: MockerFixture,
+) -> None:
+    """Companion to the #28331 regression: for English, humanize already
+    defaults to English, so the i18n.activate call is intentionally skipped
+    as a perf optimization. This pins that fast-path so a future refactor
+    doesn't accidentally start calling activate('en') unconditionally."""
+    from datetime import datetime, timedelta
+
+    from superset.models.helpers import AuditMixinNullable
+
+    mocker.patch(
+        "superset.models.helpers.get_locale",
+        return_value="en",
+    )
+    mock_activate = mocker.patch("superset.models.helpers.humanize.i18n.activate")
+
+    instance = AuditMixinNullable()
+    instance._format_time_humanized(datetime.now() - timedelta(hours=2))
+
+    mock_activate.assert_not_called()
+
+
+# -----------------------------------------------------------------------------
+# _process_sql_expression denylist gate (adhoc expression validation)
+# -----------------------------------------------------------------------------
+
+
+def _patch_disallowed(
+    mocker: MockerFixture,
+    functions: dict[str, set[str]] | None = None,
+    tables: dict[str, set[str]] | None = None,
+) -> None:
+    """Inject the engine-keyed denylists into the live Flask app config that
+    `_process_sql_expression` consults via `app.config[...]`."""
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": functions or {},
+            "DISALLOWED_SQL_TABLES": tables or {},
+        },
+        clear=False,
+    )
+
+
+def test_process_sql_expression_rejects_disallowed_function(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Adhoc expressions are user-controlled SQL incorporated into the final
+    query via `literal_column(...)`. A function name on the operator's
+    DISALLOWED_SQL_FUNCTIONS list must be rejected at validation time,
+    before the rendered SQL is handed to the database."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLFunctionException
+
+    _patch_disallowed(mocker, functions={"postgresql": {"version"}})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        table._process_sql_expression(
+            expression="version()",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+
+
+def test_process_sql_expression_rejects_disallowed_function_in_aggregate(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """A denylisted function wrapped in a legitimate aggregate
+    (`MAX(version())`) must still be rejected: the wrapper is the obvious
+    bypass attempt."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLFunctionException
+
+    _patch_disallowed(mocker, functions={"postgresql": {"version"}})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        table._process_sql_expression(
+            expression="MAX(version())",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_process_sql_expression_rejects_disallowed_table(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Adhoc subqueries that reference a denylisted table must be rejected,
+    and the raised exception must carry only the tables actually found in
+    the expression (matching the canonical execution-time gate in
+    `superset.sql_lab._validate_query`). The branch is only reachable when
+    `ALLOW_ADHOC_SUBQUERY=True`; otherwise `validate_adhoc_subquery` rejects
+    the subquery first."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLTableException
+
+    _patch_disallowed(
+        mocker, tables={"postgresql": {"pg_authid", "pg_shadow", "pg_stat_activity"}}
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLTableException) as exc_info:
+        table._process_sql_expression(
+            expression="(SELECT id FROM pg_authid)",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+    # Assert on substring (set repr ordering): only the offending table is
+    # echoed back to the user, not the full operator denylist.
+    message = exc_info.value.error.message
+    assert "pg_authid" in message
+    assert "pg_shadow" not in message
+    assert "pg_stat_activity" not in message
+
+
+def test_process_sql_expression_allows_benign_expression(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Negative control: a benign aggregate over a regular column must pass
+    even when denylists are configured."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    _patch_disallowed(
+        mocker,
+        functions={"postgresql": {"version"}},
+        tables={"postgresql": {"pg_authid"}},
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    result = table._process_sql_expression(
+        expression="SUM(amount)",
+        database_id=database.id,
+        engine="postgresql",
+        schema="",
+        template_processor=None,
+    )
+    assert result is not None
+    assert "SUM" in result.upper()
+
+
+def test_process_sql_expression_no_gate_when_denylists_empty(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """When neither DISALLOWED_SQL_FUNCTIONS nor DISALLOWED_SQL_TABLES has an
+    entry for the engine, the new gate must not run an extra parse: any
+    SQL that passes the pre-existing `sanitize_clause` validation is
+    accepted."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    _patch_disallowed(mocker, functions={}, tables={})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    result = table._process_sql_expression(
+        expression="version()",
+        database_id=database.id,
+        engine="postgresql",
+        schema="",
+        template_processor=None,
+    )
+    assert result is not None

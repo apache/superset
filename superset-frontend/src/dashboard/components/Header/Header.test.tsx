@@ -31,6 +31,20 @@ import { DASHBOARD_HEADER_ID } from '../../util/constants';
 import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
+const mockHistoryReplace = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    replace: mockHistoryReplace,
+  }),
+  useLocation: jest.fn(() => ({
+    pathname: '/dashboard',
+    search: '?standalone=1',
+    hash: '',
+    state: undefined,
+  })),
+}));
+
 const initialState = {
   dashboardInfo: {
     id: 1,
@@ -223,6 +237,13 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  const { useLocation } = jest.requireMock('react-router-dom');
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '?standalone=1',
+    hash: '',
+    state: undefined,
+  });
 
   (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
     showModal: false,
@@ -576,6 +597,35 @@ test('should fave', async () => {
   expect(saveFaveStar).toHaveBeenCalledTimes(1);
 });
 
+// FaveStar.onClick passes the *prior* isStarred value to saveFaveStar — the
+// reducer flips it. So favoriting (unstarred → starred) sends `false`, and
+// unfavoriting (starred → unstarred) sends `true`.
+test('should call saveFaveStar with false when favoriting from the header', () => {
+  setup();
+  const header = screen.getByTestId('dashboard-header-container');
+
+  userEvent.click(within(header).getByRole('img', { name: 'unstarred' }));
+  expect(saveFaveStar).toHaveBeenCalledTimes(1);
+  expect(saveFaveStar).toHaveBeenCalledWith(
+    initialState.dashboardInfo.id,
+    false,
+  );
+});
+
+test('should call saveFaveStar with true when unfavoriting from the header', () => {
+  setup({
+    dashboardState: { ...initialState.dashboardState, isStarred: true },
+  });
+  const header = screen.getByTestId('dashboard-header-container');
+
+  userEvent.click(within(header).getByRole('img', { name: 'starred' }));
+  expect(saveFaveStar).toHaveBeenCalledTimes(1);
+  expect(saveFaveStar).toHaveBeenCalledWith(
+    initialState.dashboardInfo.id,
+    true,
+  );
+});
+
 test('should toggle the edit mode', () => {
   const canEditState = {
     dashboardInfo: {
@@ -588,6 +638,21 @@ test('should toggle the edit mode', () => {
   expect(screen.queryByText('Edit dashboard')).toBeInTheDocument();
   userEvent.click(editDashboard);
   expect(logEvent).toHaveBeenCalled();
+});
+
+test('should NOT render the Edit dashboard button when embedded', () => {
+  // Embedded (Embedded SDK) dashboards authenticate with a guest token and so
+  // have no userId. The Edit button must be hidden even with edit permission,
+  // since the embedded context cannot handle entering/exiting edit mode.
+  const embeddedCanEditState = {
+    dashboardInfo: {
+      ...initialState.dashboardInfo,
+      dash_edit_perm: true,
+      userId: undefined,
+    },
+  };
+  setup(embeddedCanEditState);
+  expect(screen.queryByTestId('edit-dashboard-button')).not.toBeInTheDocument();
 });
 
 test('should render the dropdown icon', () => {
@@ -611,7 +676,7 @@ test('should refresh the charts', async () => {
 });
 
 test('auto-refresh uses onRefresh with skipped filters and toggles refresh state', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   onRefresh.mockResolvedValue(undefined);
 
   const originalRequestAnimationFrame = window.requestAnimationFrame;
@@ -983,4 +1048,74 @@ test('should sync theme ref when navigating between dashboards', async () => {
   await waitFor(() => {
     expect(setUnsavedChanges).toHaveBeenCalledTimes(0);
   });
+});
+
+test('should not duplicate subdirectory prefix when toggling fullscreen', async () => {
+  const { useLocation } = jest.requireMock('react-router-dom');
+  // Simulate React Router with basename=/pcs: useLocation returns path relative to basename
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '?standalone=1',
+    hash: '',
+    state: undefined,
+  });
+  // Simulate browser URL including the subdirectory prefix
+  window.history.pushState({}, 'Test page', '/pcs/dashboard?standalone=1');
+
+  setup();
+  await openActionsDropdown();
+  userEvent.click(screen.getByText('Exit fullscreen'));
+
+  // history.replace must be called with the Router-relative path, not window.location.pathname.
+  // If the subdirectory prefix (/pcs) were included, React Router would prepend it again,
+  // producing /pcs/pcs/dashboard (the bug). The path must start with /dashboard, not /pcs/.
+  expect(mockHistoryReplace).toHaveBeenCalledWith(
+    expect.not.stringMatching(/^\/pcs\//),
+  );
+  expect(mockHistoryReplace).toHaveBeenCalledWith(
+    expect.stringMatching(/^\/dashboard(\?|$)/),
+  );
+});
+
+test('should not duplicate subdirectory prefix when entering fullscreen', async () => {
+  const { useLocation } = jest.requireMock('react-router-dom');
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '',
+    hash: '',
+    state: undefined,
+  });
+  window.history.pushState({}, 'Test page', '/pcs/dashboard');
+
+  setup();
+  await openActionsDropdown();
+  userEvent.click(screen.getByText('Enter fullscreen'));
+
+  expect(mockHistoryReplace).toHaveBeenCalledWith(
+    expect.not.stringMatching(/^\/pcs\//),
+  );
+  expect(mockHistoryReplace).toHaveBeenCalledWith(
+    expect.stringMatching(/^\/dashboard\?standalone=1$/),
+  );
+});
+
+test('share URL should use browser-absolute pathname to preserve subdirectory prefix', () => {
+  const { useLocation } = jest.requireMock('react-router-dom');
+  // Router returns path without the subdirectory prefix
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '',
+    hash: '',
+    state: undefined,
+  });
+  // Browser URL includes the full prefix
+  window.history.pushState({}, 'Test page', '/pcs/dashboard');
+
+  const { container } = setup();
+  // The share/embed URL must use window.location.pathname so that shared links
+  // include the subdirectory prefix and work outside the React Router context.
+  const emailLink = container.querySelector('[data-test="share-by-email"]');
+  if (emailLink) {
+    expect(emailLink.getAttribute('href')).toMatch(/\/pcs\/dashboard/);
+  }
 });

@@ -36,6 +36,7 @@ class UpdateTemporaryCacheCommand(BaseCommand, ABC):
 
     @transaction(on_error=partial(on_error, reraise=TemporaryCacheUpdateFailedError))
     def run(self) -> Optional[str]:
+        self.validate()
         return self.update(self._parameters)
 
     def validate(self) -> None:

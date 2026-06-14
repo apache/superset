@@ -85,8 +85,31 @@ async def list_dashboards(
     including title, slug, URL, and last modified time. Use select_columns to
     request additional fields.
 
-    Sortable columns for order_column: id, dashboard_title, slug, published,
-    changed_on, created_on
+    **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
+    Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
+    keyword arguments — they will be rejected. Use the ``request`` wrapper::
+
+        # Correct usage
+        list_dashboards(request={"search": "sales", "page": 1, "page_size": 10})
+        list_dashboards(request={"filters": [{"col": "dashboard_title", "opr": "sw", "value": "exec"}]})
+        list_dashboards()  # no arguments returns first page with defaults
+
+        # Wrong — causes pydantic validation errors
+        list_dashboards(search="sales", page=1)  # DO NOT DO THIS
+
+    Valid filter columns for ``filters[].col``:
+        ``dashboard_title``, ``published``, ``favorite``,
+        ``created_by_fk``, ``changed_by_fk``
+
+    Sortable columns for ``order_column``:
+        ``id``, ``dashboard_title``, ``slug``, ``published``,
+        ``changed_on``, ``created_on``
+
+    To filter by a person (e.g. "dashboards Maxime is working on"), do NOT pass
+    the name as the search parameter — search matches titles and slugs only.
+    Instead, call find_users to resolve the name to a user ID, then pass it as
+    a filter: filters=[{"col": "created_by_fk", "opr": "eq", "value": <id>}]
+    (or "changed_by_fk" for "last modified by").
     """
     request = request or _DEFAULT_LIST_DASHBOARDS_REQUEST.model_copy(deep=True)
     await ctx.info(
