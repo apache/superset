@@ -109,7 +109,7 @@ def cache_dashboard_thumbnail(
             window_size=window_size,
             thumb_size=thumb_size,
             force=force,
-            cache_key=cache_key,
+            cache_key=resolved_cache_key,
         )
 
 

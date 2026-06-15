@@ -246,8 +246,10 @@ class TestShouldTriggerTask:
     @patch("superset.utils.screenshots.app")
     def test_trigger_on_expired_error(self, mock_app):
         """Test that expired ERROR status triggers task."""
-        # Set TTL to 300 seconds
-        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        mock_app.config = {
+            "THUMBNAIL_COMPUTING_CACHE_TTL": 300,
+            "THUMBNAIL_ERROR_CACHE_TTL": 300,
+        }
 
         # Create payload with ERROR status from 400 seconds ago (expired)
         old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
@@ -260,8 +262,10 @@ class TestShouldTriggerTask:
     @patch("superset.utils.screenshots.app")
     def test_no_trigger_on_fresh_error(self, mock_app):
         """Test that fresh ERROR status does not trigger task."""
-        # Set TTL to 300 seconds
-        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        mock_app.config = {
+            "THUMBNAIL_COMPUTING_CACHE_TTL": 300,
+            "THUMBNAIL_ERROR_CACHE_TTL": 300,
+        }
 
         # Create payload with ERROR status from 100 seconds ago (fresh)
         fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
