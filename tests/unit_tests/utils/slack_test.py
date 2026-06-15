@@ -345,7 +345,9 @@ class TestShouldUseV2Api:
         mock_client = mocker.Mock()
         mock_client.conversations_list.side_effect = SlackApiError(
             message=error_code or "unknown",
-            response={"ok": False, "error": error_code} if error_code else {"ok": False},
+            response={"ok": False, "error": error_code}
+            if error_code
+            else {"ok": False},
         )
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
         logger_mock = mocker.patch("superset.utils.slack.logger")

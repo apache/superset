@@ -233,11 +233,14 @@ def should_use_v2_api() -> bool:
         # scope. We still fall back to v1 in both cases so a transient probe
         # failure doesn't break sends — operators get an actionable log either
         # way.
+        # `response` is normally a SlackResponse whose payload lives in `.data`,
+        # but the SDK (and our tests) can also hand back a plain dict. Read the
+        # error code in either shape so the scope-missing branch isn't missed.
         response = getattr(ex, "response", None)
-        error_code = ""
-        if response is not None:
-            data = getattr(response, "data", None) or {}
-            error_code = data.get("error", "") if isinstance(data, dict) else ""
+        data = getattr(response, "data", None)
+        if not isinstance(data, dict):
+            data = response if isinstance(response, dict) else {}
+        error_code = data.get("error", "")
         if error_code in _SCOPE_MISSING_ERROR_CODES:
             # The DeprecationWarning fires once per process, but the actionable
             # log line fires every send so operators see it in their report logs.
