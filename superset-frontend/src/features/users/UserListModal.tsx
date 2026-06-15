@@ -196,6 +196,7 @@ function UserListModal({
               <Select
                 name="roles"
                 mode="multiple"
+                autoClearSearchValue
                 placeholder={t('Select roles')}
                 options={roles.map(role => ({
                   value: role.id,
@@ -215,6 +216,7 @@ function UserListModal({
               <Select
                 name="groups"
                 mode="multiple"
+                autoClearSearchValue
                 placeholder={t('Select groups')}
                 options={groups.map(group => ({
                   value: group.id,

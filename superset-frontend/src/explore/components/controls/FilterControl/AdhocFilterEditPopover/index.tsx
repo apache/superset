@@ -433,6 +433,7 @@ export default class AdhocFilterEditPopover extends Component<
               }
               value={selectedLayers}
               mode="multiple"
+              autoClearSearchValue
             />
           </LayerSelectContainer>
         )}

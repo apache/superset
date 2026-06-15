@@ -113,6 +113,7 @@ const AccessSection = ({
           ariaLabel={t('Owners')}
           disabled={isLoading}
           mode="multiple"
+          autoClearSearchValue
           onChange={onChangeOwners}
           options={(input, page, pageSize) =>
             loadAccessOptions('owners', input, page, pageSize)
@@ -138,6 +139,7 @@ const AccessSection = ({
             ariaLabel={t('Roles')}
             disabled={isLoading}
             mode="multiple"
+            autoClearSearchValue
             onChange={onChangeRoles}
             options={(input, page, pageSize) =>
               loadAccessOptions('roles', input, page, pageSize)
@@ -161,6 +163,7 @@ const AccessSection = ({
             data-test="dashboard-tags-select"
             ariaLabel="Tags"
             mode="multiple"
+            autoClearSearchValue
             value={tagsAsSelectValues}
             options={loadTags}
             onChange={onChangeTags}

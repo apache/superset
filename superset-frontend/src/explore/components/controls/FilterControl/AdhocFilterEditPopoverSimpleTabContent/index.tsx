@@ -388,6 +388,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   const comparatorSelectProps = {
     allowClear: true,
     allowNewOptions: true,
+    autoClearSearchValue: true,
     ariaLabel: t('Comparator option'),
     mode:
       operatorId && MULTI_OPERATORS.has(operatorId as Operators)

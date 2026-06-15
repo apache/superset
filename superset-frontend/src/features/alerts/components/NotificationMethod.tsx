@@ -548,6 +548,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                       <Select
                         ariaLabel={t('Select channels')}
                         mode="multiple"
+                        autoClearSearchValue
                         name="recipients"
                         value={slackRecipients}
                         options={slackOptions}
