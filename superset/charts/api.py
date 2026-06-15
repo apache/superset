@@ -58,6 +58,7 @@ from superset.charts.schemas import (
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.delete import DeleteChartCommand
 from superset.commands.chart.exceptions import (
+    ChartAccessDeniedError,
     ChartCreateFailedError,
     ChartDeleteFailedError,
     ChartForbiddenError,
@@ -86,6 +87,7 @@ from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
+from superset.utils.core import sanitize_cookie_token
 from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
@@ -363,7 +365,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateChartCommand(item).run()
-            return self.response(201, id=new_model.id, result=item)
+            return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardsForbiddenError as ex:
             return self.response(ex.status, message=ex.message)
         except ChartInvalidError as ex:
@@ -440,6 +442,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             response = self.response_404()
         except ChartForbiddenError:
             response = self.response_403()
+        except DashboardsForbiddenError as ex:
+            response = self.response(ex.status, message=ex.message)
         except TagForbiddenError as ex:
             response = self.response(403, message=str(ex))
         except ChartInvalidError as ex:
@@ -879,7 +883,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
@@ -972,7 +976,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             AddFavoriteChartCommand(pk).run()
         except ChartNotFoundError:
             return self.response_404()
-        except ChartForbiddenError:
+        except (ChartAccessDeniedError, ChartForbiddenError):
             return self.response_403()
 
         return self.response(200, result="OK")
@@ -1017,11 +1021,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             DelFavoriteChartCommand(pk).run()
         except ChartNotFoundError:
-            self.response_404()
-        except ChartForbiddenError:
-            self.response_403()
+            return self.response_404()
+        except (ChartAccessDeniedError, ChartForbiddenError):
+            return self.response_403()
 
         return self.response(200, result="OK")
+
+    def _pre_related_check(self, column_name: str) -> Optional[Response]:
+        """Restrict the owners related field to users with write access."""
+        if (
+            column_name == "owners"
+            and not security_manager.can_access_all_datasources()
+        ):
+            return self.response_403()
+        return None
 
     @expose("/warm_up_cache", methods=("PUT",))
     @protect()

@@ -107,7 +107,9 @@ def test_get_data_csv(mock_df_to_escaped_csv, processor, mock_query_context):
 
     mock_df_to_escaped_csv.return_value = "col1,col2\n1,a\n2,b\n3,c\n"
     result = processor.get_data(df, coltypes)
-    assert result == "col1,col2\n1,a\n2,b\n3,c\n"
+    # CSV output is encoded to bytes using the CSV_EXPORT encoding so dashboard
+    # chart exports honor the configured encoding (e.g. the utf-8-sig BOM).
+    assert result == "col1,col2\n1,a\n2,b\n3,c\n".encode("utf-8-sig")
     mock_df_to_escaped_csv.assert_called_once_with(
         df, index=False, encoding="utf-8-sig"
     )
@@ -183,7 +185,7 @@ def test_get_data_empty_dataframe_csv(
     mock_query_context.result_format = ChartDataResultFormat.CSV
     mock_df_to_escaped_csv.return_value = "col1,col2\n"
     result = processor.get_data(df, coltypes)
-    assert result == "col1,col2\n"
+    assert result == "col1,col2\n".encode("utf-8-sig")
     mock_df_to_escaped_csv.assert_called_once_with(
         df, index=False, encoding="utf-8-sig"
     )
@@ -925,6 +927,101 @@ def test_processing_time_offsets_falls_back_to_config_row_limit(processor):
     assert len(captured) == 1
     assert captured[0]["row_limit"] == 4242
     assert captured[0]["row_offset"] == 0
+
+
+def test_processing_time_offsets_updates_temporal_filter_with_adhoc_x_axis(processor):
+    """Offset query's TEMPORAL_RANGE filter must be shifted when the X-axis is
+    an adhoc Custom SQL column whose label differs from the underlying time
+    column. Previously the filter was matched against the X-axis label, which
+    never equals the dataset column, so the filter stayed at the original
+    range and the offset query AND'd both ranges together (empty intersection).
+    """
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    processor._qc_datasource.processing_time_offsets = (
+        ExploreMixin.processing_time_offsets.__get__(processor._qc_datasource)
+    )
+
+    df = pd.DataFrame(
+        {
+            "wedding_date_cast": pd.to_datetime(["2025-01-01", "2025-02-01"]),
+            "SUM(revenue)": [110, 120],
+        }
+    )
+
+    adhoc_x_axis = {
+        "label": "wedding_date_cast",
+        "sqlExpression": "CAST(wedding_date AS TIMESTAMP)",
+        "expressionType": "SQL",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity=None,
+        columns=[adhoc_x_axis],
+        metrics=["SUM(revenue)"],
+        is_timeseries=True,
+        row_limit=10000,
+        time_offsets=["1 year ago"],
+        filters=[
+            {
+                "col": "wedding_date",
+                "op": "TEMPORAL_RANGE",
+                "val": "2025-01-01 : 2026-06-01",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame()
+        result.query = "SELECT 1"
+        return result
+
+    processor._qc_datasource.query = fake_query
+    processor._qc_datasource.normalize_df = MagicMock(return_value=pd.DataFrame())
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("2025-01-01"), pd.Timestamp("2026-06-01")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            processor._qc_datasource,
+            "get_time_grain",
+            return_value="P1M",
+        ),
+        patch.object(
+            processor._qc_datasource,
+            "join_offset_dfs",
+            return_value=df,
+        ),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        processor._qc_datasource.processing_time_offsets(
+            df, query_object, None, None, False
+        )
+
+    assert len(captured) == 1
+    temporal_filters = [
+        flt for flt in captured[0]["filter"] if flt.get("op") == "TEMPORAL_RANGE"
+    ]
+    assert len(temporal_filters) == 1
+    val = temporal_filters[0]["val"]
+    assert "2024-01-01" in val, f"Expected shifted-from-dttm in val, got: {val!r}"
+    assert "2025-06-01" in val, f"Expected shifted-to-dttm in val, got: {val!r}"
 
 
 def test_ensure_totals_available_updates_cache_values():
@@ -1726,3 +1823,37 @@ def test_get_df_payload_no_warning_when_not_memory_limited() -> None:
                     result = processor.get_df_payload(query_obj, force_cached=False)
 
     assert result["warning"] is None
+
+
+def test_raise_for_access_evaluates_access_before_validate():
+    """
+    Access must be evaluated before the queries are validated, because query
+    validation renders the request's filter expressions. When access is denied,
+    no query is validated (so caller-supplied input is never rendered).
+    """
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.utils.core import DatasourceType
+
+    query = MagicMock()
+    query_context = MagicMock()
+    query_context.queries = [query]
+    query_context.datasource.type = DatasourceType.TABLE
+
+    processor = QueryContextProcessor(query_context)
+
+    denied = SupersetSecurityException(
+        SupersetError(
+            message="denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access",
+        side_effect=denied,
+    ):
+        with pytest.raises(SupersetSecurityException):
+            processor.raise_for_access()
+
+    query.validate.assert_not_called()

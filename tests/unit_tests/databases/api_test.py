@@ -40,7 +40,7 @@ from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
-from superset.sql.parse import Table
+from superset.sql.parse import Partition, Table
 from superset.superset_typing import OAuth2State
 from superset.utils import json
 from superset.utils.oauth2 import encode_oauth2_state
@@ -1858,6 +1858,43 @@ def test_columnar_metadata_validation(
     assert response.json == {"message": {"file": ["Field may not be null."]}}
 
 
+def test_metadata_file_too_large(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """
+    The metadata endpoint rejects an oversized file with a 413 before the
+    reader parses it, so the size limit cannot be bypassed by hitting
+    ``upload_metadata`` instead of ``upload``.
+    """
+    file_metadata = mocker.patch.object(CSVReader, "file_metadata")
+    mocker.patch.dict(current_app.config, {"UPLOAD_MAX_FILE_SIZE_BYTES": 4})
+    response = client.post(
+        "/api/v1/database/upload_metadata/",
+        data={"type": "csv", "file": create_csv_file()},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 413
+    assert (
+        response.json["errors"][0]["message"]
+        == "Database upload file exceeds the maximum allowed size."
+    )
+    file_metadata.assert_not_called()
+
+
+def test_metadata_within_size_limit(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """A file under ``UPLOAD_MAX_FILE_SIZE_BYTES`` passes the metadata endpoint."""
+    _ = mocker.patch.object(CSVReader, "file_metadata")
+    mocker.patch.dict(current_app.config, {"UPLOAD_MAX_FILE_SIZE_BYTES": 1024 * 1024})
+    response = client.post(
+        "/api/v1/database/upload_metadata/",
+        data={"type": "csv", "file": create_csv_file()},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+
+
 def test_table_metadata_happy_path(
     mocker: MockerFixture,
     client: Any,
@@ -1867,27 +1904,34 @@ def test_table_metadata_happy_path(
     Test the `table_metadata` endpoint.
     """
     database = mocker.MagicMock()
+    # Non-ODPS backend: partition detection short-circuits to (False, []).
+    database.backend = "postgresql"
     database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
     mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    no_partition = Partition(False, ())
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t")
     assert response.json == {"hello": "world"}
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t"),
+        no_partition,
     )
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t&schema=s")
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", "s"),
+        no_partition,
     )
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t&catalog=c")
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", None, "c"),
+        no_partition,
     )
 
     response = client.get(
@@ -1896,6 +1940,7 @@ def test_table_metadata_happy_path(
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", "s", "c"),
+        no_partition,
     )
 
 
@@ -1941,6 +1986,7 @@ def test_table_metadata_slashes(
     Test the `table_metadata` endpoint with names that have slashes.
     """
     database = mocker.MagicMock()
+    database.backend = "postgresql"
     database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
     mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
@@ -1949,6 +1995,7 @@ def test_table_metadata_slashes(
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("foo/bar"),
+        Partition(False, ()),
     )
 
 

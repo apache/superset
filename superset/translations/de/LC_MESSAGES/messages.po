@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1259,6 +1259,10 @@ msgid "Add new formatter"
 msgstr "Neuen Formatierer hinzufügen"
 
 #, fuzzy
+msgid "Add numbered column"
+msgstr ", um berechnete Spalten hinzuzufügen"
+
+#, fuzzy
 msgid "Add or edit display controls"
 msgstr "Hinzufügen und Bearbeiten von Filtern"
 
@@ -1831,7 +1835,7 @@ msgstr "Beim Abrufen von Schemawerten ist ein Fehler aufgetreten: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Beim Abrufen verfügbarer CSS-Vorlagen ist ein Fehler aufgetreten"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Beim Abrufen von Schemawerten ist ein Fehler aufgetreten: %s"
 
@@ -1906,7 +1910,7 @@ msgstr "Beim Parsen des Schlüssels ist ein Fehler aufgetreten."
 msgid "An error occurred while pruning logs "
 msgstr "Beim Kürzen von Protokollen ist ein Fehler aufgetreten "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Bei der Darstellung dieser Visualisierung ist ein Fehler aufgetreten: %s"
 
@@ -2469,7 +2473,7 @@ msgstr "Datenbankport"
 msgid "Base height"
 msgstr "Diagrammhöhe"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Kartenstil der Basisebene. Siehe Mapbox-Dokumentation: %s"
 
@@ -3320,7 +3324,7 @@ msgstr "Wählen Sie die Benachrichtigungsmethode und die Empfänger."
 
 #, fuzzy, python-format
 msgid "Choose numbers between %(min)s and %(max)s"
-msgstr "Die Breite des Bildes muss zwischen %(min)spx und %(max)spx liegen."
+msgstr "Die Werte müssen zwischen %(min)s und %(max)s liegen."
 
 msgid "Choose one of the available databases from the panel on the left."
 msgstr ""
@@ -4313,6 +4317,13 @@ msgstr ""
 "Benutzerdefinierte SQL-Ad-hoc-Metriken sind für diesen Datasatz nicht "
 "aktiviert"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Benutzerdefinierte SQL-Felder dürfen keine Unterabfragen enthalten."
+
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Benutzerdefinierte SQL-Felder dürfen keine Unterabfragen enthalten."
 
@@ -4711,6 +4722,9 @@ msgstr "Datenbankeinstellungen aktualisiert"
 
 msgid "Database type does not support file uploads."
 msgstr "Der Datenbanktyp unterstützt keine Datei-Uploads."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Datenbank-Upload fehlgeschlagen"
@@ -5807,7 +5821,7 @@ msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Dauer in ms (100,40008 => 100ms 400μs 80ns)"
 
 #, fuzzy
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Dauer in ms (66000 => 1m 6s)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -9528,7 +9542,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Keine Tabellenspalten"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Noch keine %s"
 
@@ -9620,6 +9634,10 @@ msgstr "Nicht definiert"
 
 msgid "Not equal to (≠)"
 msgstr "Ist nicht gleich (≠)"
+
+#, fuzzy
+msgid "Not found"
+msgstr "Diagramm nicht gefunden"
 
 msgid "Not in"
 msgstr "Nicht in"
@@ -10721,6 +10739,12 @@ msgstr "Veraltet"
 msgid "Proportional"
 msgstr "Proportional"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Veröffentlicht"
 
@@ -10983,9 +11007,6 @@ msgstr "Vorfilter"
 #, fuzzy
 msgid "Registration date"
 msgstr "Startdatum"
-
-msgid "Registration hash"
-msgstr ""
 
 msgid "Registration successful"
 msgstr ""
@@ -11501,6 +11522,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -15892,6 +15919,9 @@ msgstr "Geben Sie einen Wert ein"
 msgid "Type is required"
 msgstr "Typ ist erforderlich"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -16058,6 +16088,12 @@ msgstr "Aktion rückgängig machen"
 
 msgid "Undo?"
 msgstr "Rückgängig machen?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+"Unerwarteter Fehler aufgetreten, bitte überprüfen Sie Ihre Protokolle auf"
+" Details"
 
 msgid "Unexpected error"
 msgstr "Unerwarteter Fehler"
@@ -17056,6 +17092,10 @@ msgstr "Ob die Min- und Max-Werte der X-Achse angezeigt werden sollen"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Ob die Min- und Max-Werte der Y-Achse angezeigt werden sollen"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Ob die Trendlinie angezeigt werden soll"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Ob die numerischen Werte innerhalb der Zellen angezeigt werden sollen"
 
@@ -17757,6 +17797,10 @@ msgstr ""
 
 msgid "`operation` property of post processing object undefined"
 msgstr "'operation'-Eigenschaft des Nachbearbeitungsobjekts undefiniert"
+
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
 
 msgid "`prophet` package not installed"
 msgstr "Paket 'prophet' nicht installiert"
@@ -18693,25 +18737,8 @@ msgstr ""
 msgid "zoom area"
 msgstr "Zoombereich"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
+msgid "© Layer attribution"
 msgstr ""
 
-msgid "© Layer attribution"
+msgid "№"
 msgstr ""

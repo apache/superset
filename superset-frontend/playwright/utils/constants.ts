@@ -65,9 +65,12 @@ export const TIMEOUT = {
   UI_TRANSITION: 5000, // 5s ceiling for Ant Design animations (~300-500ms actual)
 
   /**
-   * SQL query execution (query → backend processing → results)
+   * SQL query execution (query → backend processing → results).
+   * 30s matches Playwright's default test timeout — cold-start CI on the
+   * /app/prefix variant has been observed running trivial SELECTs in
+   * ~25s before results render, which exceeded the previous 15s budget.
    */
-  QUERY_EXECUTION: 15000, // 15s for SQL queries that may take longer than default expect timeout
+  QUERY_EXECUTION: 30000, // 30s for SQL queries
 
   /**
    * Extended test timeout for multi-step tests (page load + query execution + assertions).

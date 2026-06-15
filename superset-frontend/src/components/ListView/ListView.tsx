@@ -33,7 +33,6 @@ import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
   Button,
   Tooltip,
-  Checkbox,
   Icons,
   EmptyState,
   Loading,
@@ -179,21 +178,6 @@ const BulkSelectWrapper = styled(Alert)`
   `}
 `;
 
-const bulkSelectColumnConfig = {
-  Cell: ({ row }: any) => (
-    <Checkbox {...row.getToggleRowSelectedProps()} id={row.id} />
-  ),
-  Header: ({ getToggleAllRowsSelectedProps }: any) => (
-    <Checkbox
-      {...getToggleAllRowsSelectedProps()}
-      id="header-toggle-all"
-      data-test="header-toggle-all"
-    />
-  ),
-  id: 'selection',
-  size: 'sm',
-};
-
 const ViewModeContainer = styled.div`
   ${({ theme }) => `
     padding-right: ${theme.sizeUnit * 4}px;
@@ -329,6 +313,8 @@ export interface ListViewProps<T extends object = any> {
     clearFilters: () => void;
     clearFilterById: (id: string) => void;
   }>;
+  /** Optional expandable row configuration, passed through to antd Table. */
+  expandable?: Record<string, unknown>;
 }
 
 export function ListView<T extends object = any>({
@@ -356,6 +342,7 @@ export function ListView<T extends object = any>({
   enableBulkTag = false,
   bulkTagResourceName,
   filtersRef,
+  expandable,
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
@@ -375,8 +362,6 @@ export function ListView<T extends object = any>({
     state: { pageIndex, pageSize, internalFilters, sortBy, viewMode },
     query,
   } = useListViewState({
-    bulkSelectColumnConfig,
-    bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
     columns,
     count,
     data,
@@ -527,6 +512,7 @@ export function ListView<T extends object = any>({
                       {bulkActions.map(action => (
                         <Button
                           data-test="bulk-select-action"
+                          data-test-action-key={action.key}
                           key={action.key}
                           buttonStyle={action.type}
                           cta
@@ -610,6 +596,7 @@ export function ListView<T extends object = any>({
                   loading={loading && rows.length > 0}
                   highlightRowId={highlightRowId}
                   columnsForWrapText={columnsForWrapText}
+                  expandable={expandable}
                   bulkSelectEnabled={bulkSelectEnabled}
                   selectedFlatRows={selectedFlatRows}
                   toggleRowSelected={(rowId, value) => {
