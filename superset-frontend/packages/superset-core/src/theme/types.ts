@@ -248,6 +248,11 @@ export interface SupersetSpecificTokens {
   buttonPaddingInlineSM?: number;
   buttonFontSize?: number;
   buttonBorderRadius?: number;
+
+  // Dashboard tile tokens (opt-in, defaults to no border/shadow)
+  dashboardTileBorder?: string;
+  dashboardTileBorderRadius?: number;
+  dashboardTileBoxShadow?: string;
 }
 
 /**

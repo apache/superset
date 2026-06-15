@@ -321,9 +321,9 @@ const StyledDashboardContent = styled.div<{
       padding: ${theme.sizeUnit * 4}px;
       box-sizing: border-box;
       overflow-y: visible;
-      border: 1px solid ${theme.colorBorder};
-      border-radius: ${theme.borderRadius}px;
-      box-shadow: ${theme.boxShadowTertiary};
+      border: ${theme.dashboardTileBorder ?? 'none'};
+      border-radius: ${theme.dashboardTileBorderRadius ?? 0}px;
+      box-shadow: ${theme.dashboardTileBoxShadow ?? 'none'};
 
       // transitionable traits to show filter relevance
       transition:
@@ -339,8 +339,8 @@ const StyledDashboardContent = styled.div<{
       }
 
       &.fade-out {
-        border-radius: ${theme.borderRadius}px;
-        box-shadow: ${theme.boxShadowTertiary};
+        border-radius: ${theme.dashboardTileBorderRadius ?? 0}px;
+        box-shadow: ${theme.dashboardTileBoxShadow ?? 'none'};
       }
 
       & .missing-chart-container {
