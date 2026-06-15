@@ -1455,11 +1455,18 @@ class ChartDataQueryObjectSchema(Schema):
     )
 
     @post_load
-    def rename_deprecated_groupby(
+    def rename_deprecated_fields(
         self, data: dict[str, Any], **kwargs: Any
     ) -> dict[str, Any]:
-        if groupby := data.pop("groupby", None):
-            data["columns"] = groupby
+        _renames = (
+            ("groupby", "columns"),
+            ("granularity_sqla", "granularity"),
+            ("timeseries_limit", "series_limit"),
+            ("timeseries_limit_metric", "series_limit_metric"),
+        )
+        for old, new in _renames:
+            if value := data.pop(old, None):
+                data[new] = value
         return data
 
 
