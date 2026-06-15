@@ -61,8 +61,8 @@ test('triggers onUndo via keyCode fallback for non-Latin layouts', () => {
   const onUndo = jest.fn();
   const onRedo = jest.fn();
   render(<UndoRedoKeyListeners onUndo={onUndo} onRedo={onRedo} />);
-  // event.key is a non-'z' glyph (e.g. non-Latin layout), but keyCode is 90 (Z)
-  fireEvent.keyDown(document.body, { key: 'я', keyCode: 90, ctrlKey: true });
+  // event.key is a non-'z' glyph (e.g. non-Latin layout), but code is KeyZ
+  fireEvent.keyDown(document.body, { key: 'я', code: 'KeyZ', ctrlKey: true });
   expect(onUndo).toHaveBeenCalledTimes(1);
   expect(onRedo).not.toHaveBeenCalled();
 });
@@ -71,8 +71,8 @@ test('triggers onRedo via keyCode fallback for non-Latin layouts', () => {
   const onUndo = jest.fn();
   const onRedo = jest.fn();
   render(<UndoRedoKeyListeners onUndo={onUndo} onRedo={onRedo} />);
-  // event.key is a non-'y' glyph, but keyCode is 89 (Y)
-  fireEvent.keyDown(document.body, { key: 'н', keyCode: 89, ctrlKey: true });
+  // event.key is a non-'y' glyph, but code is KeyY
+  fireEvent.keyDown(document.body, { key: 'н', code: 'KeyY', ctrlKey: true });
   expect(onRedo).toHaveBeenCalledTimes(1);
   expect(onUndo).not.toHaveBeenCalled();
 });

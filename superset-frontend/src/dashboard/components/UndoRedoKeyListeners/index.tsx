@@ -30,10 +30,10 @@ function UndoRedoKeyListeners({ onUndo, onRedo }: UndoRedoKeyListenersProps) {
       const controlOrCommand = event.ctrlKey || event.metaKey;
       if (controlOrCommand) {
         const key = event.key.toLowerCase();
-        // Fall back to keyCode (90 = Z, 89 = Y) so undo/redo still work on
+        // Fall back to event.code (the physical key) so undo/redo still work on
         // non-Latin keyboard layouts where event.key is a different glyph.
-        const isZ = key === 'z' || event.keyCode === 90;
-        const isY = key === 'y' || event.keyCode === 89;
+        const isZ = key === 'z' || event.code === 'KeyZ';
+        const isY = key === 'y' || event.code === 'KeyY';
         const isUndo = isZ && !event.shiftKey;
         const isRedo = isY || (isZ && event.shiftKey);
         const isEditingMarkdown = document?.querySelector(
