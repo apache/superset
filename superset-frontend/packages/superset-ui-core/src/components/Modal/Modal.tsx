@@ -90,6 +90,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         margin-bottom: ${theme.sizeUnit * 4}px;
         margin-top: ${theme.sizeUnit * 4}px;
         padding: 0;
+        overflow: hidden;
       }
 
       .ant-modal-header {
