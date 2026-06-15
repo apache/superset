@@ -586,11 +586,9 @@ def test_properties_roundtrip():
 class TestGetCurrentUser:
     """Tests for get_current_user."""
 
-    @patch("superset.tasks.utils.g")
-    def test_returns_none_when_g_has_no_user_attribute(self, mock_g: MagicMock) -> None:
+    def test_returns_none_when_g_has_no_user_attribute(self) -> None:
         """Return None when g has no 'user' attribute."""
-        mock_g_spec = MagicMock(spec=[])
-        with patch("superset.tasks.utils.g", mock_g_spec):
+        with patch("superset.tasks.utils.g", MagicMock(spec=[])):
             assert get_current_user() is None
 
     @patch("superset.tasks.utils.g")
