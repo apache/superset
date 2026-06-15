@@ -300,6 +300,7 @@ export const exportChart = async ({
       url: url ? ensureAppRoot(url) : url,
       payload,
       exportType: resultFormat,
+      exportSource: 'chart',
     });
   } else {
     // SupersetClient.postForm calls getUrl({ endpoint }) internally, which prepends

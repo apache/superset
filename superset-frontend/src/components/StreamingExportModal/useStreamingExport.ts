@@ -31,6 +31,8 @@ interface StreamingExportPayload {
   [key: string]: any;
 }
 
+type StreamingExportSource = 'chart' | 'sqllab';
+
 interface StreamingExportParams {
   /**
    * The API endpoint URL for the export request.
@@ -46,6 +48,7 @@ interface StreamingExportParams {
   payload: StreamingExportPayload;
   filename?: string;
   exportType: 'csv' | 'xlsx';
+  exportSource?: StreamingExportSource;
   expectedRows?: number;
 }
 
@@ -95,6 +98,7 @@ const createFetchRequest = async (
   payload: StreamingExportPayload,
   filename: string | undefined,
   _exportType: string,
+  exportSource: StreamingExportSource | undefined,
   expectedRows: number | undefined,
   signal: AbortSignal,
 ): Promise<RequestInit> => {
@@ -102,10 +106,19 @@ const createFetchRequest = async (
     'Content-Type': 'application/x-www-form-urlencoded',
   };
 
-  // Get CSRF token using SupersetClient
-  const csrfToken = await SupersetClient.getCSRFToken();
-  if (csrfToken) {
-    headers['X-CSRFToken'] = csrfToken;
+  const guestToken = SupersetClient.getGuestToken();
+  const isGuestTokenChartExport =
+    Boolean(guestToken) &&
+    exportSource === 'chart' &&
+    !('client_id' in payload);
+
+  // Embedded guest sessions cannot fetch CSRF tokens. Guest chart exports are
+  // safe because chart data is CSRF-exempt and auth is carried by guest_token.
+  if (!isGuestTokenChartExport) {
+    const csrfToken = await SupersetClient.getCSRFToken();
+    if (csrfToken) {
+      headers['X-CSRFToken'] = csrfToken;
+    }
   }
 
   const formParams: Record<string, string> = {};
@@ -118,8 +131,7 @@ const createFetchRequest = async (
     formParams.expected_rows = expectedRows.toString();
   }
 
-  const guestToken = SupersetClient.getGuestToken();
-  if (guestToken) {
+  if (guestToken && isGuestTokenChartExport) {
     formParams.guest_token = guestToken;
   }
 
@@ -185,7 +197,8 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
 
   const executeExport = useCallback(
     async (params: StreamingExportParams) => {
-      const { url, payload, filename, exportType, expectedRows } = params;
+      const { url, payload, filename, exportType, exportSource, expectedRows } =
+        params;
       if (isExportingRef.current) {
         return;
       }
@@ -210,6 +223,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           payload,
           filename,
           exportType,
+          exportSource,
           expectedRows,
           abortControllerRef.current.signal,
         );
