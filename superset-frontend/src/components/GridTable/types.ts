@@ -59,4 +59,12 @@ export interface TableProps<RecordType> {
   usePagination?: boolean;
 
   striped?: boolean;
+
+  /**
+   * Called when the sort state changes, with it translated to a query
+   * `orderby` (`[[columnId, isAscending]]`) so the consumer can re-request
+   * server-sorted data. Only the primary sort column is included, matching the
+   * chart data API's single-column sort constraint.
+   */
+  onServerSort?: (orderby: [string, boolean][]) => void;
 }

@@ -21,7 +21,7 @@ import logging
 from datetime import datetime
 from typing import Any, Callable, TYPE_CHECKING
 
-from flask import current_app as app, g, make_response, request, Response
+from flask import current_app as app, g, jsonify, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -73,6 +73,53 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
 
 logger = logging.getLogger(__name__)
+
+
+def validate_sort_params(
+    orderby: list[Any],
+) -> Response | None:
+    """
+    Validate sort parameters before a query is executed.
+
+    Every ``orderby`` entry must have a boolean sort direction. Multiple sort
+    columns are supported.
+
+    Returns a Flask ``Response`` (HTTP 400) when validation fails, or ``None``
+    when the parameters are valid. Callers must return a non-``None`` result
+    immediately, before constructing ``ChartDataCommand``.
+    """
+    if not orderby:
+        return None
+
+    for column_name, is_ascending in orderby:
+        if not isinstance(is_ascending, bool):
+            return make_response(
+                jsonify(
+                    {
+                        "message": _(
+                            "Sort direction for column '%(column)s' must be a boolean",
+                            column=column_name,
+                        ),
+                        "errors": [
+                            {
+                                "error_type": "SORT_DIRECTION_INVALID",
+                                "message": _(
+                                    "Expected bool for sort direction, got %(type)s",
+                                    type=type(is_ascending).__name__,
+                                ),
+                                "level": "error",
+                                "extra": {
+                                    "column": column_name,
+                                    "direction_value": is_ascending,
+                                },
+                            }
+                        ],
+                    }
+                ),
+                400,
+            )
+
+    return None
 
 
 class ChartDataRestApi(ChartRestApi):
@@ -343,6 +390,16 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             query_context = self._create_query_context_from_form(json_body)
+            # Validate sort parameters before executing the query so bad sort
+            # directions are rejected early, before the query builder runs.
+            orderby = (
+                json_body.get("queries", [{}])[0].get("orderby", [])
+                if isinstance(json_body, dict) and json_body.get("queries")
+                else []
+            )
+            sort_error = validate_sort_params(orderby)
+            if sort_error is not None:
+                return sort_error
             command = ChartDataCommand(query_context)
             command.validate()
         except DatasourceNotFound:

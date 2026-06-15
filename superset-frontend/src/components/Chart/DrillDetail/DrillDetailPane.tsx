@@ -45,6 +45,9 @@ import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import Table, {
   ColumnsType,
+  ETableAction,
+  SorterResult,
+  SortOrder,
   TableSize,
 } from '@superset-ui/core/components/Table';
 import { RootState } from 'src/dashboard/types';
@@ -94,6 +97,8 @@ export default function DrillDetailPane({
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [sortColumn, setSortColumn] = useState<string | undefined>();
+  const [sortOrder, setSortOrder] = useState<SortOrder>(null);
   const lastPageIndex = useRef(pageIndex);
   const [filters, setFilters] = useState(initialFilters);
   const [isLoading, setIsLoading] = useState(false);
@@ -147,6 +152,10 @@ export default function DrillDetailPane({
       resultsPage?.colNames.map((column, index) => ({
         key: column,
         dataIndex: column,
+        // Server-side sort: antd only renders the indicator and fires onChange;
+        // the sorted page is fetched from the server (see `orderby`).
+        sorter: true,
+        sortOrder: sortColumn === column ? sortOrder : null,
         title:
           resultsPage?.colTypes[index] === GenericDataType.Temporal ? (
             <HeaderWithRadioGroup
@@ -197,6 +206,8 @@ export default function DrillDetailPane({
       resultsPage?.colTypes,
       timeFormatting,
       dataset?.verbose_map,
+      sortColumn,
+      sortOrder,
     ],
   );
 
@@ -211,6 +222,15 @@ export default function DrillDetailPane({
         ),
       ) || [],
     [resultsPage?.colNames, resultsPage?.data],
+  );
+
+  // Server-side sort clause. Drill detail is a raw, paginated query, so sorting
+  // must happen on the server to order the full dataset across pages rather than
+  // just the current page.
+  const orderby = useMemo<[string, boolean][]>(
+    () =>
+      sortColumn && sortOrder ? [[sortColumn, sortOrder === 'ascend']] : [],
+    [sortColumn, sortOrder],
   );
 
   // Clear cache on reload button click
@@ -306,7 +326,10 @@ export default function DrillDetailPane({
   useEffect(() => {
     if (!responseError && !isLoading && !resultsPages.has(pageIndex)) {
       setIsLoading(true);
-      const jsonPayload = getDrillPayload(formData, filters) ?? {};
+      const jsonPayload = {
+        ...getDrillPayload(formData, filters),
+        ...(orderby.length > 0 && { orderby }),
+      };
       const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / pageSize);
       getDatasourceSamples(
         datasourceType as DatasourceType,
@@ -348,6 +371,7 @@ export default function DrillDetailPane({
     filters,
     formData,
     isLoading,
+    orderby,
     pageIndex,
     pageSize,
     responseError,
@@ -389,7 +413,22 @@ export default function DrillDetailPane({
           recordCount={resultsPage?.total}
           usePagination
           loading={isLoading}
-          onChange={pagination => {
+          onChange={(pagination, _filters, sorter, extra) => {
+            if (extra?.action === ETableAction.Sort) {
+              const nextSorter = (
+                Array.isArray(sorter) ? sorter[0] : sorter
+              ) as SorterResult<DataType>;
+              const column = nextSorter?.columnKey as string | undefined;
+              const order = nextSorter?.order ?? null;
+              // antd cycles ascend -> descend -> unsorted; clear when unsorted.
+              setSortColumn(order ? column : undefined);
+              setSortOrder(order);
+              // Cached pages reflect the previous sort, so drop them and restart
+              // from the first page with the new ordering.
+              setResultsPages(new Map());
+              setPageIndex(0);
+              return;
+            }
             const newPageSize = pagination.pageSize ?? pageSize;
             if (newPageSize !== pageSize) {
               setPageSize(newPageSize);

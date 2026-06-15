@@ -83,6 +83,22 @@ class SamplesPayloadSchema(Schema):
         metadata={"description": "Extra parameters to add to the query."},
         allow_none=True,
     )
+    orderby = fields.List(
+        fields.Tuple(
+            (
+                fields.Raw(allow_none=False),
+                fields.Boolean(),
+            )
+        ),
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": "Expects a list of lists where the first element is the "
+            "column name to sort by, and the second element is a boolean "
+            "(true = ascending).",
+            "example": [("my_col_1", False), ("my_col_2", True)],
+        },
+    )
 
     @pre_load
     # pylint: disable=unused-argument
