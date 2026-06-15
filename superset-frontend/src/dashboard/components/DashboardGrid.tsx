@@ -53,6 +53,7 @@ export interface DashboardGridProps {
 
 interface DashboardGridState {
   isResizing: boolean;
+  rowGuideTop: number | null;
 }
 
 interface DropProps {
@@ -131,6 +132,21 @@ const GridColumnGuide = styled.div`
   `};
 `;
 
+const GridRowGuide = styled.div`
+  ${({ theme }) => css`
+    &.grid-row-guide {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: ${addAlpha(theme.colorPrimary, 0.4)};
+      box-shadow: 0 0 0 1px ${addAlpha(theme.colorPrimary, 0.6)};
+      pointer-events: none;
+      z-index: 10;
+    }
+  `};
+`;
+
 class DashboardGrid extends PureComponent<
   DashboardGridProps,
   DashboardGridState
@@ -141,6 +157,7 @@ class DashboardGrid extends PureComponent<
     super(props);
     this.state = {
       isResizing: false,
+      rowGuideTop: null,
     };
     this.grid = null;
     this.handleResizeStart = this.handleResizeStart.bind(this);
@@ -170,16 +187,19 @@ class DashboardGrid extends PureComponent<
   handleResizeStart(): void {
     this.setState(() => ({
       isResizing: true,
+      rowGuideTop: null,
     }));
   }
 
   handleResize(
     _event: MouseEvent | TouchEvent,
     _direction: string,
-    _elementRef: HTMLElement,
+    elementRef: HTMLElement,
     _delta: { width: number; height: number },
   ): void {
-    // no-op: resize position is tracked via getRowGuidePosition
+    this.setState(() => ({
+      rowGuideTop: this.getRowGuidePosition(elementRef),
+    }));
   }
 
   handleResizeStop(
@@ -197,6 +217,7 @@ class DashboardGrid extends PureComponent<
 
     this.setState(() => ({
       isResizing: false,
+      rowGuideTop: null,
     }));
   }
 
@@ -234,7 +255,7 @@ class DashboardGrid extends PureComponent<
       (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
 
     const columnWidth = columnPlusGutterWidth - GRID_GUTTER_SIZE;
-    const { isResizing } = this.state;
+    const { isResizing, rowGuideTop } = this.state;
 
     const shouldDisplayEmptyState = gridComponent?.children?.length === 0;
     const shouldDisplayTopLevelTabEmptyState =
@@ -381,6 +402,12 @@ class DashboardGrid extends PureComponent<
                     }}
                   />
                 ))}
+            {isResizing && rowGuideTop !== null && (
+              <GridRowGuide
+                className="grid-row-guide"
+                style={{ top: rowGuideTop }}
+              />
+            )}
           </GridContent>
         </div>
       </>
