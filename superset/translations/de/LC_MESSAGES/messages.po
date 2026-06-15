@@ -73,6 +73,7 @@ msgstr ""
 "\n"
 "Dieser Filter wurde vom Kontext des Dashboards geerbt.\n"
 "Er wird beim Speichern des Diagramms nicht gespeichert.\n"
+"              "
 
 #, python-format
 msgid ""
@@ -88,6 +89,7 @@ msgstr ""
 "werden: %(text)s</p>\n"
 "<p>Bitte überprüfen Sie Ihr Dashboard/Ihr Diagramm auf Fehler.</p>\n"
 "<p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
+"            "
 
 msgid " (excluded)"
 msgstr " (ausgeschlossen)"
