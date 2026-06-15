@@ -254,6 +254,15 @@ export const computeGeoJsonIconOptionsFromFormData = (
   iconSizeUnits: fd.icon_size_unit,
 });
 
+// Free-form SelectControls can yield string values, and legacy charts may have
+// null persisted for these fields, so coerce to a number (falling back to the
+// provided default for null/undefined/NaN input, while preserving an explicit 0)
+// before handing them to deck.gl's numeric layer props.
+const toNumber = (value: unknown, fallback: number) => {
+  const num = Number(value ?? fallback);
+  return Number.isFinite(num) ? num : fallback;
+};
+
 export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   formData,
   onContextMenu,
@@ -264,13 +273,6 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   emitCrossFilters,
 }) {
   const fd = formData;
-  // Free-form SelectControls can yield string values, so coerce to a number
-  // (falling back to the provided default for empty/NaN input) before handing
-  // them to deck.gl's numeric layer props.
-  const toNumber = (value: unknown, fallback: number) => {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : fallback;
-  };
   const fc = fd.fill_color_picker ?? PRIMARY_COLOR;
   const sc = fd.stroke_color_picker ?? PRIMARY_COLOR;
   const fillColor = [fc.r, fc.g, fc.b, 255 * fc.a];
