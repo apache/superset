@@ -46,6 +46,7 @@ export function GridTable<RecordType extends object>({
   enableActions,
   size = GridSize.Middle,
   striped,
+  themeOverrides,
 }: TableProps<RecordType>) {
   const theme = useTheme();
   const isExternalFilterPresent = useCallback(
@@ -200,6 +201,7 @@ export function GridTable<RecordType extends object>({
         components={gridComponents}
         gridOptions={gridOptions}
         onCellKeyDown={onKeyDown}
+        themeOverrides={themeOverrides}
       />
     </div>
   );

@@ -31,4 +31,5 @@ export interface FilterableTableProps {
   striped?: boolean;
   expandedColumns?: string[];
   allowHTML?: boolean;
+  themeOverrides?: Record<string, any>;
 }
