@@ -18,7 +18,7 @@
  */
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
-import { useHistory } from 'react-router-dom';
+import { useRouter } from '@tanstack/react-router';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
@@ -128,7 +128,7 @@ const selectActiveFilters = createSelector(
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const history = useHistory();
+  const router = useRouter();
   const dashboardPageId = useMemo(() => nanoid(), []);
   const hasDashboardInfoInitiated = useSelector<RootState, boolean>(
     ({ dashboardInfo }) =>
@@ -267,14 +267,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
           // Rewrite the URL to drop matched filters in a single step, keeping
           // only unmatched ones (and prettifying their encoding). Going
-          // through react-router's history keeps `history.location.search` in
+          // through the router's history keeps its location.search in
           // sync so `publishDataMask` doesn't re-emit the original `f=`.
           const matchedCount =
             risonFilters.length - injectionResult.unmatchedFilters.length;
           if (matchedCount > 0) {
             updateUrlWithUnmatchedFilters(
               injectionResult.unmatchedFilters,
-              history,
+              router.history,
             );
           }
           if (injectionResult.unmatchedFilters.length > 0) {
@@ -289,7 +289,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
         dispatch(
           hydrateDashboard({
-            history,
+            history: router.history,
             dashboard: dashboard!,
             charts: charts!,
             activeTabs: activeTabs ?? null,

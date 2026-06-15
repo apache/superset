@@ -19,7 +19,7 @@
 import { memo, useMemo } from 'react';
 import { useTruncation } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import CrossLinksTooltip from './CrossLinksTooltip';
 
 export type CrossLinkProps = {

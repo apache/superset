@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MemoryRouter } from 'react-router-dom';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -25,7 +25,7 @@ import {
   fireEvent,
 } from 'spec/helpers/testing-library';
 import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { TanstackRouterAdapter } from 'src/router/queryParamAdapter';
 import { TaskStatus, TaskScope } from 'src/features/tasks/types';
 import TaskList from 'src/pages/TaskList';
 
@@ -189,11 +189,11 @@ fetchMock.post(
 
 const renderTaskList = (props = {}, userProp = mockUser) =>
   render(
-    <MemoryRouter>
-      <QueryParamProvider adapter={ReactRouter5Adapter}>
+    <StandaloneRouter>
+      <QueryParamProvider adapter={TanstackRouterAdapter}>
         <TaskList {...props} user={userProp} />
       </QueryParamProvider>
-    </MemoryRouter>,
+    </StandaloneRouter>,
     { useRedux: true },
   );
 

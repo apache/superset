@@ -16,152 +16,143 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook, act } from '@testing-library/react';
-import { Router } from 'react-router-dom';
-import { createMemoryHistory } from 'history';
+import { ReactNode } from 'react';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useRouter } from '@tanstack/react-router';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import { useUnsavedChangesPrompt } from '.';
 
-let history = createMemoryHistory({
-  initialEntries: ['/dashboard'],
-});
-
-beforeEach(() => {
-  history = createMemoryHistory({ initialEntries: ['/dashboard'] });
-});
-
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <Router history={history}>{children}</Router>
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <StandaloneRouter initialEntries={['/dashboard']}>
+    {children}
+  </StandaloneRouter>
 );
 
-test('should not show modal initially', () => {
-  const { result } = renderHook(
-    () =>
-      useUnsavedChangesPrompt({
+const setup = async ({ onSave = jest.fn() }: { onSave?: jest.Mock } = {}) => {
+  const utils = renderHook(
+    () => ({
+      prompt: useUnsavedChangesPrompt({
         hasUnsavedChanges: true,
-        onSave: jest.fn(),
+        onSave,
       }),
+      router: useRouter(),
+    }),
     { wrapper },
   );
+  // the router mounts asynchronously before rendering its children
+  await waitFor(() => expect(utils.result.current).toBeTruthy());
+  return utils;
+};
 
-  expect(result.current.showModal).toBe(false);
+test('should not show modal initially', async () => {
+  const { result } = await setup();
+
+  expect(result.current.prompt.showModal).toBe(false);
 });
 
-test('should block navigation and show modal if there are unsaved changes', () => {
-  const { result } = renderHook(
-    () =>
-      useUnsavedChangesPrompt({
-        hasUnsavedChanges: true,
-        onSave: jest.fn(),
-      }),
-    { wrapper },
-  );
+test('should block navigation and show modal if there are unsaved changes', async () => {
+  const { result } = await setup();
 
-  act(() => {
-    history.push('/another-page');
+  await act(async () => {
+    result.current.router.history.push('/another-page');
   });
 
-  expect(result.current.showModal).toBe(true);
+  await waitFor(() => expect(result.current.prompt.showModal).toBe(true));
+  expect(result.current.router.state.location.pathname).toBe('/dashboard');
 });
 
 test('should trigger onSave and hide modal on handleSaveAndCloseModal', async () => {
   const onSave = jest.fn().mockResolvedValue(undefined);
+  const { result } = await setup({ onSave });
 
-  const { result } = renderHook(
-    () =>
-      useUnsavedChangesPrompt({
-        hasUnsavedChanges: true,
-        onSave,
-      }),
-    { wrapper },
-  );
-
-  await result.current.handleSaveAndCloseModal();
+  await act(async () => {
+    await result.current.prompt.handleSaveAndCloseModal();
+  });
 
   expect(onSave).toHaveBeenCalled();
-  expect(result.current.showModal).toBe(false);
+  expect(result.current.prompt.showModal).toBe(false);
 });
 
 test('should trigger manual save and not show modal again', async () => {
   const onSave = jest.fn().mockResolvedValue(undefined);
+  const { result } = await setup({ onSave });
 
-  const { result } = renderHook(
-    () =>
-      useUnsavedChangesPrompt({
-        hasUnsavedChanges: true,
-        onSave,
-      }),
-    { wrapper },
-  );
-
-  result.current.triggerManualSave();
+  act(() => {
+    result.current.prompt.triggerManualSave();
+  });
 
   expect(onSave).toHaveBeenCalled();
-  expect(result.current.showModal).toBe(false);
+  expect(result.current.prompt.showModal).toBe(false);
 });
 
-test('should close modal when handleConfirmNavigation is called', () => {
-  const onSave = jest.fn();
-
-  const { result } = renderHook(
-    () =>
-      useUnsavedChangesPrompt({
-        hasUnsavedChanges: true,
-        onSave,
-      }),
-    { wrapper },
-  );
+test('should close modal when handleConfirmNavigation is called', async () => {
+  const { result } = await setup();
 
   // First, trigger navigation to show the modal
-  act(() => {
-    history.push('/another-page');
+  await act(async () => {
+    result.current.router.history.push('/another-page');
   });
 
-  expect(result.current.showModal).toBe(true);
+  await waitFor(() => expect(result.current.prompt.showModal).toBe(true));
 
   // Then call handleConfirmNavigation to discard changes
-  act(() => {
-    result.current.handleConfirmNavigation();
+  await act(async () => {
+    result.current.prompt.handleConfirmNavigation();
   });
 
-  expect(result.current.showModal).toBe(false);
+  expect(result.current.prompt.showModal).toBe(false);
 });
 
-test('should preserve pathname, search, and state when confirming navigation', () => {
-  const onSave = jest.fn();
-  const history = createMemoryHistory();
-  const wrapper = ({ children }: any) => (
-    <Router history={history}>{children}</Router>
-  );
+test('should preserve pathname, search, and state when confirming navigation', async () => {
+  const { result } = await setup();
 
   const locationState = { fromDashboard: true, dashboardId: 123 };
   const pathname = '/another-page';
   const search = '?slice_id=42&foo=bar';
 
-  const { result } = renderHook(
-    () => useUnsavedChangesPrompt({ hasUnsavedChanges: true, onSave }),
-    { wrapper },
-  );
-
-  const pushSpy = jest.spyOn(history, 'push');
-
-  // Simulate a blocked navigation (the hook sets up history.block internally)
-  act(() => {
-    history.push({ pathname, search }, locationState);
+  // Simulate a blocked navigation (the hook sets up a blocker internally)
+  await act(async () => {
+    result.current.router.history.push(`${pathname}${search}`, locationState);
   });
 
   // Modal should now be visible
-  expect(result.current.showModal).toBe(true);
+  await waitFor(() => expect(result.current.prompt.showModal).toBe(true));
 
   // Confirm navigation
-  act(() => {
-    result.current.handleConfirmNavigation();
+  await act(async () => {
+    result.current.prompt.handleConfirmNavigation();
   });
 
   // Modal should close
-  expect(result.current.showModal).toBe(false);
+  expect(result.current.prompt.showModal).toBe(false);
 
-  // Verify correct call with pathname, search, and state preserved
-  expect(pushSpy).toHaveBeenCalledWith({ pathname, search }, locationState);
+  // Verify the blocked navigation resumed with pathname, search, and state
+  await waitFor(() =>
+    expect(result.current.router.state.location.pathname).toBe(pathname),
+  );
+  expect(result.current.router.state.location.search).toEqual({
+    slice_id: '42',
+    foo: 'bar',
+  });
+  expect(result.current.router.state.location.state).toMatchObject(
+    locationState,
+  );
+});
 
-  pushSpy.mockRestore();
+test('should discard the blocked navigation when modal is dismissed', async () => {
+  const { result } = await setup();
+
+  await act(async () => {
+    result.current.router.history.push('/another-page');
+  });
+
+  await waitFor(() => expect(result.current.prompt.showModal).toBe(true));
+
+  // Dismiss the modal without confirming
+  await act(async () => {
+    result.current.prompt.setShowModal(false);
+  });
+
+  expect(result.current.prompt.showModal).toBe(false);
+  expect(result.current.router.state.location.pathname).toBe('/dashboard');
 });

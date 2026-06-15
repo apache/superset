@@ -18,7 +18,7 @@
  */
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useHistory } from 'react-router-dom';
+import { useParams, Link, useRouter } from '@tanstack/react-router';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/theme';
@@ -68,7 +68,7 @@ function AnnotationList({
   addDangerToast,
   addSuccessToast,
 }: AnnotationListProps) {
-  const { annotationLayerId }: any = useParams();
+  const { annotationLayerId }: any = useParams({ strict: false });
   const {
     state: {
       loading,
@@ -247,14 +247,8 @@ function AnnotationList({
     },
   });
 
-  let hasHistory = true;
-
-  try {
-    useHistory();
-  } catch (err) {
-    // If error is thrown, we know not to use <Link> in render
-    hasHistory = false;
-  }
+  // If no router context exists, we know not to use <Link> in render
+  const hasRouter = Boolean(useRouter({ warn: false }));
 
   const emptyState = {
     title: t('No annotation yet'),
@@ -277,7 +271,7 @@ function AnnotationList({
           <StyledHeader>
             <span>{t('Annotation Layer %s', annotationLayerName)}</span>
             <span>
-              {hasHistory ? (
+              {hasRouter ? (
                 <Link to="/annotationlayer/list/">{t('Back to all')}</Link>
               ) : (
                 <Typography.Link href="/annotationlayer/list/">

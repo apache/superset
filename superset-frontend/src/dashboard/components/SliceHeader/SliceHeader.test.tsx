@@ -16,10 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Router } from 'react-router-dom';
-import { createMemoryHistory } from 'history';
+import { createMemoryHistory } from '@tanstack/react-router';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import { getExtensionsRegistry, VizType } from '@superset-ui/core';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import SliceHeader from '.';
@@ -283,12 +288,12 @@ test('Should render click to edit prompt and run onExploreChart on click', async
     initialEntries: ['/superset/dashboard/1/'],
   });
   render(
-    <Router history={history}>
+    <StandaloneRouter history={history}>
       <SliceHeader {...props} />
-    </Router>,
+    </StandaloneRouter>,
     { useRedux: true, initialState },
   );
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  userEvent.hover(await screen.findByText('Vaccine Candidates per Phase'));
   expect(
     await screen.findByText('Click to edit Vaccine Candidates per Phase.'),
   ).toBeInTheDocument();
@@ -297,7 +302,8 @@ test('Should render click to edit prompt and run onExploreChart on click', async
   ).toBeInTheDocument();
 
   userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
-  expect(history.location.pathname).toMatch('/explore');
+  // TanStack router commits navigation asynchronously.
+  await waitFor(() => expect(history.location.pathname).toMatch('/explore'));
 });
 
 test('Display cmd button in tooltip if running on MacOS', async () => {
@@ -317,18 +323,18 @@ test('Display cmd button in tooltip if running on MacOS', async () => {
   ).toBeInTheDocument();
 });
 
-test('Should not render click to edit prompt and run onExploreChart on click if supersetCanExplore=false', () => {
+test('Should not render click to edit prompt and run onExploreChart on click if supersetCanExplore=false', async () => {
   const props = createProps({ supersetCanExplore: false });
   const history = createMemoryHistory({
     initialEntries: ['/superset/dashboard/1/'],
   });
   render(
-    <Router history={history}>
+    <StandaloneRouter history={history}>
       <SliceHeader {...props} />
-    </Router>,
+    </StandaloneRouter>,
     { useRedux: true, initialState },
   );
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  userEvent.hover(await screen.findByText('Vaccine Candidates per Phase'));
   expect(
     screen.queryByText(
       'Click to edit Vaccine Candidates per Phase in a new tab',
@@ -339,18 +345,18 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
   expect(history.location.pathname).toMatch('/superset/dashboard');
 });
 
-test('Should not render click to edit prompt and run onExploreChart on click if in edit mode', () => {
+test('Should not render click to edit prompt and run onExploreChart on click if in edit mode', async () => {
   const props = createProps({ editMode: true });
   const history = createMemoryHistory({
     initialEntries: ['/superset/dashboard/1/'],
   });
   render(
-    <Router history={history}>
+    <StandaloneRouter history={history}>
       <SliceHeader {...props} />
-    </Router>,
+    </StandaloneRouter>,
     { useRedux: true, initialState },
   );
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  userEvent.hover(await screen.findByText('Vaccine Candidates per Phase'));
   expect(
     screen.queryByText(
       'Click to edit Vaccine Candidates per Phase in a new tab',

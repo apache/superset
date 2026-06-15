@@ -25,7 +25,8 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';
-import { Link, useHistory } from 'react-router-dom';
+import { Link, useRouter } from '@tanstack/react-router';
+import { pushAppHref } from 'src/router/navigation';
 import rison from 'rison';
 import {
   createErrorHandler,
@@ -146,7 +147,7 @@ function SavedQueryList({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
-  const history = useHistory();
+  const router = useRouter();
 
   const openSavedQueryImportModal = () => {
     showImportModal(true);
@@ -223,9 +224,9 @@ function SavedQueryList({
     name: t('Query'),
     buttonStyle: 'primary',
     onClick: () => {
-      // React Router's basename already includes the application root; passing
+      // The router's basepath already includes the application root; passing
       // a relative path ensures correct navigation under subdirectory deployments.
-      history.push('/sqllab?new=true');
+      pushAppHref(router, '/sqllab?new=true');
     },
   });
 
@@ -247,9 +248,9 @@ function SavedQueryList({
     if (openInNewWindow) {
       window.open(makeUrl(`/sqllab?savedQueryId=${id}`));
     } else {
-      // React Router's basename already includes the application root; passing
+      // The router's basepath already includes the application root; passing
       // a relative path ensures correct navigation under subdirectory deployments.
-      history.push(`/sqllab?savedQueryId=${id}`);
+      pushAppHref(router, `/sqllab?savedQueryId=${id}`);
     }
   };
 
@@ -342,7 +343,11 @@ function SavedQueryList({
           row: {
             original: { id, label },
           },
-        }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
+        }: any) => (
+          <Link to="/sqllab" search={{ savedQueryId: String(id) }}>
+            {label}
+          </Link>
+        ),
         id: 'label',
       },
       {

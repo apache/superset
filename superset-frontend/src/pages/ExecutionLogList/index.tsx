@@ -24,7 +24,7 @@ import {
   fDuration,
 } from '@superset-ui/core/utils/dates';
 import { useEffect, useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from '@tanstack/react-router';
 import { Label, Tooltip } from '@superset-ui/core/components';
 import { ListView } from 'src/components';
 import SubMenu from 'src/features/home/SubMenu';
@@ -65,7 +65,7 @@ function ExecutionLog({
   addSuccessToast,
   isReportEnabled,
 }: ExecutionLogProps) {
-  const { alertId }: any = useParams();
+  const { alertId }: any = useParams({ strict: false });
   const {
     state: { loading, resourceCount: logCount, resourceCollection: logs },
     fetchData,

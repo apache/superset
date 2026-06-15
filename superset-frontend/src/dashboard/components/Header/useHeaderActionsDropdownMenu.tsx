@@ -19,7 +19,8 @@
 import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useLocation, useRouter } from '@tanstack/react-router';
+import { replaceAppHref } from 'src/router/navigation';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
 import { isEmpty } from 'lodash';
@@ -74,7 +75,7 @@ export const useHeaderActionsMenu = ({
 ] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const { canExportImage } = usePermissions();
-  const history = useHistory();
+  const router = useRouter();
   const location = useLocation();
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
@@ -102,7 +103,7 @@ export const useHeaderActionsMenu = ({
         case MenuKeys.ToggleFullscreen: {
           const isCurrentlyStandalone =
             Number(getUrlParam(URL_PARAMS.standalone)) === 1;
-          // Use location.pathname from React Router (relative to basename) rather than
+          // Use location.pathname from the router (relative to basepath) rather than
           // window.location.pathname to avoid duplicating the subdirectory prefix when
           // history.replace prepends it again.
           const url = getDashboardUrl({
@@ -111,7 +112,7 @@ export const useHeaderActionsMenu = ({
             hash: window.location.hash,
             standalone: isCurrentlyStandalone ? null : 1,
           });
-          history.replace(url);
+          replaceAppHref(router, url);
           break;
         }
         case MenuKeys.ManageEmbedded:
@@ -128,7 +129,7 @@ export const useHeaderActionsMenu = ({
       showPropertiesModal,
       showRefreshModal,
       manageEmbedded,
-      history,
+      router,
       location,
     ],
   );

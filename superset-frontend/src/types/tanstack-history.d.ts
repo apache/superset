@@ -17,15 +17,11 @@
  * under the License.
  */
 
-import { useEffect } from 'react';
-import { useLocation } from '@tanstack/react-router';
-
-export const ScrollToTop = () => {
-  const pathname = useLocation({ select: location => location.pathname });
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-
-  return null;
-};
+// Superset passes app-level objects through navigation state (e.g.
+// SQL Lab's `requestedQuery`, explore's `saveAction`). TanStack types
+// history state as a closed interface; open it up for arbitrary keys.
+declare module '@tanstack/history' {
+  interface HistoryState {
+    [key: string]: unknown;
+  }
+}

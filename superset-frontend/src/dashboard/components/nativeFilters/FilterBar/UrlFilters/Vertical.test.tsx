@@ -24,9 +24,15 @@
  *  - the chip list must react to URL changes (back/forward navigation or
  *    a programmatic history.replace), not snapshot the URL at mount.
  */
-import { createMemoryHistory } from 'history';
-import { Router } from 'react-router-dom';
-import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
+import { createMemoryHistory } from '@tanstack/react-router';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { REMOVE_DATA_MASK, UPDATE_DATA_MASK } from 'src/dataMask/actions';
 import { RISON_UNMATCHED_DATAMASK_ID } from 'src/dashboard/util/risonFilters';
 import UrlFiltersVertical from './Vertical';
@@ -39,7 +45,7 @@ jest.mock('react-redux', () => ({
 
 const seedUrl = (search: string) => {
   // jsdom doesn't navigate, so set both window.location (read by
-  // getRisonFilterParam) and react-router's in-memory history.
+  // getRisonFilterParam) and the router's in-memory history.
   window.history.replaceState({}, '', `/superset/dashboard/1/${search}`);
 };
 
@@ -49,9 +55,9 @@ const renderAt = (search: string) => {
     initialEntries: [`/superset/dashboard/1/${search}`],
   });
   const utils = render(
-    <Router history={history}>
+    <StandaloneRouter history={history}>
       <UrlFiltersVertical />
-    </Router>,
+    </StandaloneRouter>,
     { useRedux: true },
   );
   return { ...utils, history };
@@ -120,7 +126,7 @@ test('removing the last chip dispatches removeDataMask, not an empty update', as
   expect(updateCalls).toHaveLength(0);
 });
 
-test('chip list re-renders when the URL changes (popstate/programmatic nav)', () => {
+test('chip list re-renders when the URL changes (popstate/programmatic nav)', async () => {
   const { history } = renderAt('?f=(region:EMEA)');
 
   expect(screen.getByText('region')).toBeInTheDocument();
@@ -133,7 +139,8 @@ test('chip list re-renders when the URL changes (popstate/programmatic nav)', ()
     history.replace('/superset/dashboard/1/?f=(priority:high)');
   });
 
-  expect(screen.getByText('priority')).toBeInTheDocument();
+  // The router commits location updates asynchronously.
+  await waitFor(() => expect(screen.getByText('priority')).toBeInTheDocument());
   expect(screen.getByText('high')).toBeInTheDocument();
   expect(screen.queryByText('region')).not.toBeInTheDocument();
 });

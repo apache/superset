@@ -19,8 +19,8 @@
 import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
-import { MemoryRouter } from 'react-router-dom';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
+import { TanstackRouterAdapter } from 'src/router/queryParamAdapter';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { ReactNode } from 'react';
@@ -206,11 +206,11 @@ test('redirects to first page when page index is invalid', async () => {
 const factory = (overrides?: Partial<ListViewProps>) => {
   const props = { ...mockedPropsComprehensive, ...overrides };
   return render(
-    <MemoryRouter>
-      <QueryParamProvider adapter={ReactRouter5Adapter}>
+    <StandaloneRouter initialEntries={['/']}>
+      <QueryParamProvider adapter={TanstackRouterAdapter}>
         <ListView {...props} />
       </QueryParamProvider>
-    </MemoryRouter>,
+    </StandaloneRouter>,
     { store: mockStore() },
   );
 };

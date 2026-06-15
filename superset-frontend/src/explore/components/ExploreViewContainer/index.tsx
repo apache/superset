@@ -47,7 +47,7 @@ import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
-import { useHistory } from 'react-router-dom';
+import { useRouter } from '@tanstack/react-router';
 import { Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
@@ -387,7 +387,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     getSidebarWidths(LocalStorageKeys.DatasourceWidth),
   );
   const tabId = useTabId();
-  const history = useHistory();
+  const router = useRouter();
 
   const theme = useTheme();
 
@@ -477,7 +477,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         props.force,
         title,
         tabId,
-        history,
+        router.history,
       );
     },
     [
@@ -488,7 +488,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       props.standalone,
       props.force,
       tabId,
-      history,
+      router,
     ],
   );
 

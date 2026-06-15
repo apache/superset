@@ -353,10 +353,10 @@ test('updateUrlWithUnmatchedFilters goes through history when supplied', () => {
   );
 
   expect(replace).toHaveBeenCalledTimes(1);
-  const call = replace.mock.calls[0][0];
-  expect(call.pathname).toBe('/superset/dashboard/1/');
-  expect(call.search).toContain('f=');
-  expect(call.search).toContain('region');
+  const href = replace.mock.calls[0][0];
+  expect(href).toMatch(/^\/superset\/dashboard\/1\/\?/);
+  expect(href).toContain('f=');
+  expect(href).toContain('region');
 
   // Restore.
   window.history.replaceState({}, '', originalLocation);
@@ -370,7 +370,7 @@ test('updateUrlWithUnmatchedFilters drops f= when no unmatched remain', () => {
   updateUrlWithUnmatchedFilters([], { replace });
 
   expect(replace).toHaveBeenCalledTimes(1);
-  expect(replace.mock.calls[0][0].search).toBe('');
+  expect(replace.mock.calls[0][0]).toBe('/superset/dashboard/1/');
 
   window.history.replaceState({}, '', originalLocation);
 });
@@ -382,16 +382,20 @@ test('updateUrlWithUnmatchedFilters cleanup is observable by history readers', (
   // history.location.search stale, causing publishDataMask to re-append
   // the original f= on the next interaction.
   //
-  // Stand in for react-router's history with a fake whose `.location`
+  // Stand in for the router's history with a fake whose `.location`
   // updates synchronously when .replace is called — same contract as
-  // react-router-dom's history.replace.
+  // the router history's replace.
   const fakeHistory = {
     location: {
       pathname: '/superset/dashboard/1/',
       search: '?f=(country:USA)',
     },
-    replace(next: { pathname: string; search: string }) {
-      this.location = next;
+    replace(href: string) {
+      const [pathname, search = ''] = href.split('?');
+      this.location = {
+        pathname,
+        search: search ? `?${search}` : '',
+      };
     },
   };
   const originalLocation = window.location.href;

@@ -20,7 +20,13 @@ import 'src/public-path';
 
 import { lazy, Suspense, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { BrowserRouter as Router, Route } from 'react-router-dom';
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  RouterProvider,
+} from '@tanstack/react-router';
+import { parseSearch, stringifySearch } from 'src/router/searchParams';
 import { Global } from '@emotion/react';
 import { t } from '@apache-superset/core/translation';
 import { makeApi } from '@superset-ui/core';
@@ -116,13 +122,29 @@ const EmbeddedRoute = () => (
   </EmbeddedContextProviders>
 );
 
-const EmbeddedApp = () => (
-  <Router basename={applicationRoot()}>
-    {/* todo (embedded) remove this line after uuids are deployed */}
-    <Route path="/dashboard/:idOrSlug/embedded/" component={EmbeddedRoute} />
-    <Route path="/embedded/:uuid/" component={EmbeddedRoute} />
-  </Router>
-);
+const embeddedRootRoute = createRootRoute();
+const embeddedRouter = createRouter({
+  routeTree: embeddedRootRoute.addChildren([
+    // todo (embedded) remove this route after uuids are deployed
+    createRoute({
+      getParentRoute: () => embeddedRootRoute,
+      path: '/dashboard/$idOrSlug/embedded',
+      component: EmbeddedRoute,
+    }),
+    createRoute({
+      getParentRoute: () => embeddedRootRoute,
+      path: '/embedded/$uuid',
+      component: EmbeddedRoute,
+    }),
+  ]),
+  basepath: applicationRoot() || undefined,
+  parseSearch,
+  stringifySearch,
+  trailingSlash: 'preserve',
+  defaultPreload: false,
+});
+
+const EmbeddedApp = () => <RouterProvider router={embeddedRouter} />;
 
 const appMountPoint = document.getElementById('app')!;
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from '@tanstack/react-router';
 import { t } from '@apache-superset/core/translation';
 import { Loading } from '@superset-ui/core/components';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
@@ -41,7 +41,7 @@ interface FileHandlerProps {
 }
 
 const FileHandler = ({ addDangerToast, addSuccessToast }: FileHandlerProps) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadType, setUploadType] = useState<
     'csv' | 'excel' | 'columnar' | null
@@ -59,13 +59,13 @@ const FileHandler = ({ addDangerToast, addSuccessToast }: FileHandlerProps) => {
             'File handling is not supported in this browser. Please use a modern browser like Chrome or Edge.',
           ),
         );
-        history.push('/superset/welcome/');
+        navigate({ to: '/superset/welcome/' });
         return;
       }
 
       launchQueue.setConsumer(async (launchParams: FileLaunchParams) => {
         if (!launchParams.files || launchParams.files.length === 0) {
-          history.push('/superset/welcome/');
+          navigate({ to: '/superset/welcome/' });
           return;
         }
 
@@ -92,7 +92,7 @@ const FileHandler = ({ addDangerToast, addSuccessToast }: FileHandlerProps) => {
                 'Unsupported file type. Please use CSV, Excel, or Columnar files.',
               ),
             );
-            history.push('/superset/welcome/');
+            navigate({ to: '/superset/welcome/' });
             return;
           }
 
@@ -103,19 +103,19 @@ const FileHandler = ({ addDangerToast, addSuccessToast }: FileHandlerProps) => {
         } catch (error) {
           console.error('Error handling file launch:', error);
           addDangerToast(t('Failed to open file. Please try again.'));
-          history.push('/superset/welcome/');
+          navigate({ to: '/superset/welcome/' });
         }
       });
     };
 
     handleFileLaunch();
-  }, [history, addDangerToast]);
+  }, [navigate, addDangerToast]);
 
   const handleModalClose = () => {
     setShowModal(false);
     setUploadFile(null);
     setUploadType(null);
-    history.push('/superset/welcome/');
+    navigate({ to: '/superset/welcome/' });
   };
 
   if (!uploadFile || !uploadType) {

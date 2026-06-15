@@ -18,8 +18,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useHistory } from 'react-router-dom';
-import type { Location, Action } from 'history';
+import { useRouter, type HistoryLocation } from '@tanstack/react-router';
 import { t } from '@apache-superset/core/translation';
 import {
   getLabelsColorMap,
@@ -136,7 +135,7 @@ export default function ExplorePage() {
   const fetchGeneration = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
   const dispatch = useDispatch();
-  const history = useHistory();
+  const router = useRouter();
 
   const loadExploreData = useCallback(
     (
@@ -291,29 +290,36 @@ export default function ExplorePage() {
 
   // Initial fetch on mount
   useEffect(() => {
-    loadExploreData(history.location);
+    loadExploreData(router.history.location);
     getLabelsColorMap().source = LabelsColorMapSource.Explore;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Re-fetch on navigation or post-save.
-  // PUSH/POP: full reload (unmount + re-fetch).
+  // PUSH/BACK/FORWARD/GO: full reload (unmount + re-fetch).
   // REPLACE with saveAction state: re-fetch without unmount (keeps chart visible).
   // Other REPLACE: ignored (URL sync from updateHistory).
   useEffect(() => {
-    const unlisten = history.listen((loc: Location, action: Action) => {
-      const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
-        | SaveActionType
-        | undefined;
-      if (action === 'PUSH' || action === 'POP') {
-        setIsLoaded(false);
-        loadExploreData(loc, saveAction);
-      } else if (saveAction) {
-        loadExploreData(loc, saveAction);
-      }
-    });
-    return unlisten;
-  }, [history, loadExploreData]);
+    const unsubscribe = router.history.subscribe(
+      ({
+        location: loc,
+        action,
+      }: {
+        location: HistoryLocation;
+        action: { type: string };
+      }) => {
+        const saveAction = (loc.state as Record<string, unknown>)
+          ?.saveAction as SaveActionType | undefined;
+        if (action.type !== 'REPLACE') {
+          setIsLoaded(false);
+          loadExploreData(loc, saveAction);
+        } else if (saveAction) {
+          loadExploreData(loc, saveAction);
+        }
+      },
+    );
+    return unsubscribe;
+  }, [router, loadExploreData]);
 
   if (!isLoaded) {
     return <Loading />;

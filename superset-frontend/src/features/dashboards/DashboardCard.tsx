@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
-import { Link, useHistory } from 'react-router-dom';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link, useRouter } from '@tanstack/react-router';
+import { pushAppHref } from 'src/router/navigation';
+import { parseSearch } from 'src/router/searchParams';
 import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
@@ -53,6 +55,20 @@ interface DashboardCardProps {
   onDelete: (dashboard: Dashboard) => void;
 }
 
+// Backend-provided dashboard URLs may carry a query string; split it out
+// so the router preserves it via the raw search codec.
+function CardLink({ to, children }: { to: string; children?: ReactNode }) {
+  const [pathname, queryString] = to.split('?');
+  return (
+    <Link
+      to={pathname}
+      {...(queryString ? { search: parseSearch(queryString) } : {})}
+    >
+      {children}
+    </Link>
+  );
+}
+
 function DashboardCard({
   dashboard,
   hasPerm,
@@ -65,7 +81,7 @@ function DashboardCard({
   handleBulkDashboardExport,
   onDelete,
 }: DashboardCardProps) {
-  const history = useHistory();
+  const router = useRouter();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
@@ -154,7 +170,7 @@ function DashboardCard({
     <CardStyles
       onClick={() => {
         if (!bulkSelectEnabled) {
-          history.push(dashboard.url);
+          pushAppHref(router, dashboard.url);
         }
       }}
     >
@@ -170,7 +186,7 @@ function DashboardCard({
           ) : null
         }
         url={bulkSelectEnabled ? undefined : dashboard.url}
-        linkComponent={Link}
+        linkComponent={CardLink}
         imgURL={thumbnailUrl}
         imgFallbackURL={assetUrl(
           '/static/assets/images/dashboard-card-fallback.svg',

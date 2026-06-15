@@ -25,7 +25,8 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, useLocation } from '@tanstack/react-router';
+import { parseSearch } from 'src/router/searchParams';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { useUiConfig } from 'src/components/UiConfigContext';
@@ -244,12 +245,19 @@ export function Menu({
     isFrontendRoute,
   }: MenuObjectProps): MenuItem => {
     if (url && isFrontendRoute) {
+      // Menu URLs come from backend data and may carry a query string.
+      const [pathname, queryString] = url.split('?');
       return {
         key: label,
         label: (
-          <NavLink role="button" to={url} activeClassName="is-active">
+          <Link
+            role="button"
+            to={pathname}
+            search={queryString ? parseSearch(queryString) : undefined}
+            activeProps={{ className: 'is-active' }}
+          >
             {label}
-          </NavLink>
+          </Link>
         ),
       };
     }
@@ -266,12 +274,20 @@ export function Menu({
       if (typeof child === 'string' && child === '-' && label !== 'Data') {
         childItems.push({ type: 'divider', key: `divider-${index1}` });
       } else if (typeof child !== 'string') {
+        const [childPathname, childQueryString] = (child.url || '').split('?');
         childItems.push({
           key: `${child.label}`,
           label: child.isFrontendRoute ? (
-            <NavLink to={child.url || ''} exact activeClassName="is-active">
+            <Link
+              to={childPathname}
+              search={
+                childQueryString ? parseSearch(childQueryString) : undefined
+              }
+              activeOptions={{ exact: true }}
+              activeProps={{ className: 'is-active' }}
+            >
               {child.label}
-            </NavLink>
+            </Link>
           ) : (
             <Typography.Link href={child.url}>{child.label}</Typography.Link>
           ),

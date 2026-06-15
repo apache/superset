@@ -25,14 +25,6 @@ import DatasetPanelComponent from 'src/features/datasets/AddDataset/DatasetPanel
 import RightPanel from 'src/features/datasets/AddDataset/RightPanel';
 import Footer from 'src/features/datasets/AddDataset/Footer';
 
-const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({
-    push: mockHistoryPush,
-  }),
-}));
-
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasetLayout', () => {
   test('renders nothing when no components are passed in', () => {

@@ -21,10 +21,10 @@ import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
+import { TanstackRouterAdapter } from 'src/router/queryParamAdapter';
 import DashboardListComponent from 'src/pages/DashboardList';
 import handleResourceExport from 'src/utils/export';
 
@@ -260,11 +260,11 @@ export const renderDashboardList = (
 
   return render(
     <Provider store={store}>
-      <MemoryRouter>
-        <QueryParamProvider adapter={ReactRouter5Adapter}>
+      <StandaloneRouter initialEntries={['/']}>
+        <QueryParamProvider adapter={TanstackRouterAdapter}>
           <DashboardList user={user} {...props} />
         </QueryParamProvider>
-      </MemoryRouter>
+      </StandaloneRouter>
     </Provider>,
   );
 };

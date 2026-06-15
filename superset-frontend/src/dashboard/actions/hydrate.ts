@@ -21,7 +21,7 @@ import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import type { History } from 'history';
+import type { RouterHistory } from '@tanstack/react-router';
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
@@ -92,7 +92,7 @@ interface HydrateDashboardData extends Dashboard {
 }
 
 interface HydrateDashboardParams {
-  history: History;
+  history: RouterHistory;
   dashboard: HydrateDashboardData;
   charts: HydrateChartData[];
   dataMask: DataMaskStateWithId;
@@ -278,9 +278,10 @@ export const hydrateDashboard =
       // Removes the focused_chart parameter from the URL
       const params = new URLSearchParams(window.location.search);
       params.delete(URL_PARAMS.dashboardFocusedChart.name);
-      history.replace({
-        search: params.toString(),
-      });
+      const paramString = params.toString();
+      history.replace(
+        `${history.location.pathname}${paramString ? `?${paramString}` : ''}`,
+      );
     }
 
     // find direct link component and path from root

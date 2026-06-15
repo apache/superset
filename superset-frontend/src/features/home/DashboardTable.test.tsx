@@ -23,8 +23,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
-import { createMemoryHistory } from 'history';
-import { Router } from 'react-router-dom';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import { configureStore } from '@reduxjs/toolkit';
 import fetchMock from 'fetch-mock';
 import * as hooks from 'src/views/CRUD/hooks';
@@ -105,7 +104,6 @@ const defaultProps = {
   otherTabTitle: 'Examples',
 };
 
-const history = createMemoryHistory();
 const store = configureStore({
   reducer: {
     dashboards: (state = { dashboards: [] }) => state,
@@ -156,9 +154,9 @@ beforeEach(() => {
 
 test('renders loading state initially', () => {
   render(
-    <Router history={history}>
+    <StandaloneRouter initialEntries={['/']}>
       <DashboardTable {...defaultProps} />
-    </Router>,
+    </StandaloneRouter>,
     { store },
   );
   expect(screen.getByRole('img', { name: 'empty' })).toBeInTheDocument();
@@ -166,9 +164,9 @@ test('renders loading state initially', () => {
 
 test('renders empty state when no dashboards', async () => {
   render(
-    <Router history={history}>
+    <StandaloneRouter initialEntries={['/']}>
       <DashboardTable {...defaultProps} />
-    </Router>,
+    </StandaloneRouter>,
     { store },
   );
 
@@ -194,9 +192,9 @@ test('renders dashboard cards when data is loaded', async () => {
   }));
 
   render(
-    <Router history={history}>
+    <StandaloneRouter initialEntries={['/']}>
       <DashboardTable {...defaultProps} mine={mockDashboards} />
-    </Router>,
+    </StandaloneRouter>,
     { store },
   );
 
@@ -214,9 +212,9 @@ test('switches to Mine tab correctly', async () => {
   };
 
   render(
-    <Router history={history}>
+    <StandaloneRouter initialEntries={['/']}>
       <DashboardTable {...props} />
-    </Router>,
+    </StandaloneRouter>,
     { store },
   );
 
@@ -235,9 +233,9 @@ test('handles create dashboard button click', async () => {
   } as Location);
 
   render(
-    <Router history={history}>
+    <StandaloneRouter initialEntries={['/']}>
       <DashboardTable {...defaultProps} />
-    </Router>,
+    </StandaloneRouter>,
     { store },
   );
 
@@ -255,9 +253,9 @@ test('switches to Other tab when available', async () => {
   };
 
   render(
-    <Router history={history}>
+    <StandaloneRouter initialEntries={['/']}>
       <DashboardTable {...props} />
-    </Router>,
+    </StandaloneRouter>,
     { store },
   );
 
@@ -299,9 +297,9 @@ test('handles bulk dashboard export with correct ID and shows spinner', async ()
   }));
 
   render(
-    <Router history={history}>
+    <StandaloneRouter initialEntries={['/']}>
       <DashboardTable {...props} />
-    </Router>,
+    </StandaloneRouter>,
     { store },
   );
 
@@ -362,9 +360,9 @@ test('handles dashboard deletion confirmation', async () => {
   }));
 
   render(
-    <Router history={history}>
+    <StandaloneRouter initialEntries={['/']}>
       <DashboardTable {...props} />
-    </Router>,
+    </StandaloneRouter>,
     { store },
   );
 
@@ -434,9 +432,9 @@ test('passes correct parameters to handleDashboardDelete for Other tab', async (
   };
 
   render(
-    <Router history={history}>
+    <StandaloneRouter initialEntries={['/']}>
       <DashboardTable {...props} />
-    </Router>,
+    </StandaloneRouter>,
     { store },
   );
 

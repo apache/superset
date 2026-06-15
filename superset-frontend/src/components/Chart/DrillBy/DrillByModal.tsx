@@ -32,7 +32,7 @@ import {
 import { Alert } from '@apache-superset/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import {
   Button,
   Modal,
@@ -78,7 +78,7 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
   const dispatch = useDispatch();
   const { addDangerToast } = useToasts();
   const theme = useTheme();
-  const [url, setUrl] = useState('');
+  const [formDataKey, setFormDataKey] = useState('');
   const dashboardPageId = useContext(DashboardPageIdContext);
   const onEditChartClick = useCallback(() => {
     dispatch(
@@ -97,9 +97,7 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
     if (isEmbedded()) return;
     postFormData(Number(datasource_id), datasource_type, formData, 0)
       .then(key => {
-        setUrl(
-          `/explore/?form_data_key=${key}&dashboard_page_id=${dashboardPageId}`,
-        );
+        setFormDataKey(key);
       })
       .catch(() => {
         addDangerToast(t('Failed to generate chart edit URL'));
@@ -111,7 +109,7 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
     datasource_type,
     formData,
   ]);
-  const isEditDisabled = !url || !canExplore;
+  const isEditDisabled = !formDataKey || !canExplore;
 
   return (
     <>
@@ -133,7 +131,11 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
                 text-decoration: none;
               }
             `}
-            to={url}
+            to="/explore/"
+            search={{
+              form_data_key: formDataKey,
+              dashboard_page_id: dashboardPageId,
+            }}
           >
             {t('Edit chart')}
           </Link>

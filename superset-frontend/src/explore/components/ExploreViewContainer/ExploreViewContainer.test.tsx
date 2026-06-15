@@ -26,8 +26,10 @@ import {
   VizType,
 } from '@superset-ui/core';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
-import { Router, Route } from 'react-router-dom';
-import { createMemoryHistory } from 'history';
+import {
+  createMemoryHistory,
+  type RouterHistory,
+} from '@tanstack/react-router';
 import {
   render,
   screen,
@@ -39,6 +41,17 @@ import { Store } from '@reduxjs/toolkit';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import ExploreViewContainer from '.';
+
+// The component syncs the explore URL through `useRouter().history`;
+// back it with a spy-able in-memory history per test.
+let mockRouterHistory: RouterHistory | undefined;
+
+jest.mock('@tanstack/react-router', () => ({
+  ...jest.requireActual('@tanstack/react-router'),
+  useRouter: () => ({
+    history: mockRouterHistory,
+  }),
+}));
 
 jest.doMock('@superset-ui/core', () => ({
   __esModule: true,
@@ -136,7 +149,7 @@ const renderWithRouter = ({
   overridePathname?: string;
   initialState?: object;
   store?: Store;
-  history?: ReturnType<typeof createMemoryHistory>;
+  history?: RouterHistory;
 } = {}) => {
   const path = overridePathname ?? defaultPath;
   jest.spyOn(window, 'location', 'get').mockReturnValue({
@@ -146,14 +159,15 @@ const renderWithRouter = ({
   const history =
     existingHistory ??
     createMemoryHistory({ initialEntries: [`${path}${search}`] });
-  const result = render(
-    <Router history={history}>
-      <Route path={path}>
-        <ExploreViewContainer />
-      </Route>
-    </Router>,
-    { useRedux: true, useDnd: true, initialState, store },
-  );
+  mockRouterHistory = history;
+  const result = render(<ExploreViewContainer />, {
+    useRedux: true,
+    useDnd: true,
+    initialState,
+    store,
+    useRouter: true,
+    initialEntries: [`${path}${search}`],
+  });
   return { ...result, history };
 };
 

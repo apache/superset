@@ -56,7 +56,7 @@ import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModal
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 
 // Extended Datasource interface with all properties used in this component
 interface ExtendedDatasource extends Datasource {
@@ -415,10 +415,8 @@ class DatasourceControl extends PureComponent<
         key: VIEW_IN_SQL_LAB,
         label: (
           <Link
-            to={{
-              pathname: '/sqllab',
-              state: { requestedQuery },
-            }}
+            to="/sqllab"
+            state={{ requestedQuery }}
             onClick={preventRouterLinkWhileMetaClicked}
           >
             {t('View in SQL Lab')}
@@ -472,10 +470,8 @@ class DatasourceControl extends PureComponent<
         key: VIEW_IN_SQL_LAB,
         label: (
           <Link
-            to={{
-              pathname: '/sqllab',
-              state: { requestedQuery },
-            }}
+            to="/sqllab"
+            state={{ requestedQuery }}
             onClick={preventRouterLinkWhileMetaClicked}
           >
             {t('View in SQL Lab')}

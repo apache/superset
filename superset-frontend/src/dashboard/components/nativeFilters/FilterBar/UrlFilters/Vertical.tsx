@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useLocation, useRouter } from '@tanstack/react-router';
 import { QueryObjectFilterClause } from '@superset-ui/core';
 import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
 import {
@@ -38,8 +38,8 @@ import UrlFiltersVerticalCollapse from './VerticalCollapse';
 
 const UrlFiltersVertical = () => {
   const dispatch = useDispatch();
-  const history = useHistory();
-  const location = useLocation();
+  const router = useRouter();
+  const searchStr = useLocation({ select: location => location.searchStr });
   const [urlFilters, setUrlFilters] = useState<UrlFilterIndicator[]>(() =>
     getUrlFilterIndicators(),
   );
@@ -48,7 +48,7 @@ const UrlFiltersVertical = () => {
   // programmatic history.replace).
   useEffect(() => {
     setUrlFilters(getUrlFilterIndicators());
-  }, [location.search]);
+  }, [searchStr]);
 
   const handleRemoveFilter = useCallback(
     (filterToRemove: UrlFilterIndicator) => {
@@ -61,7 +61,7 @@ const UrlFiltersVertical = () => {
         f => getUrlFilterIdentity(f) !== removeId,
       );
 
-      updateUrlWithUnmatchedFilters(remaining, history);
+      updateUrlWithUnmatchedFilters(remaining, router.history);
       setUrlFilters(prev =>
         prev.filter(f => getUrlFilterIdentity(f.filter) !== removeId),
       );
@@ -78,7 +78,7 @@ const UrlFiltersVertical = () => {
         );
       }
     },
-    [dispatch, history],
+    [dispatch, router],
   );
 
   if (!urlFilters.length) {

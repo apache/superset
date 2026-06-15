@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MemoryRouter } from 'react-router-dom';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import { render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -32,11 +32,11 @@ const setup = (
   overridesInitialState?: RootState,
 ) =>
   render(
-    <MemoryRouter initialEntries={[url]}>
+    <StandaloneRouter initialEntries={[url]}>
       <LocationProvider>
         <PopEditorTab />
       </LocationProvider>
-    </MemoryRouter>,
+    </StandaloneRouter>,
     {
       useRedux: true,
       initialState: overridesInitialState || initialState,

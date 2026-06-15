@@ -29,10 +29,12 @@ import { RootState } from 'src/dashboard/types';
 import ViewQuery, { ViewQueryProps } from './ViewQuery';
 
 const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({
-    push: mockHistoryPush,
+jest.mock('@tanstack/react-router', () => ({
+  ...jest.requireActual('@tanstack/react-router'),
+  useRouter: () => ({
+    history: {
+      push: mockHistoryPush,
+    },
   }),
 }));
 
@@ -162,13 +164,10 @@ test('navigates to SQL Lab when View in SQL Lab button is clicked', () => {
   const viewInSQLLabButton = screen.getByText('View in SQL Lab');
   fireEvent.click(viewInSQLLabButton);
 
-  expect(mockHistoryPush).toHaveBeenCalledWith({
-    pathname: '/sqllab',
-    state: {
-      requestedQuery: {
-        datasourceKey: mockProps.datasource,
-        sql: mockProps.sql,
-      },
+  expect(mockHistoryPush).toHaveBeenCalledWith('/sqllab', {
+    requestedQuery: {
+      datasourceKey: mockProps.datasource,
+      sql: mockProps.sql,
     },
   });
 });

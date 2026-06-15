@@ -18,7 +18,8 @@
  */
 
 import { useCallback, useContext, useMemo } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useRouter } from '@tanstack/react-router';
+import { pushAppHref } from 'src/router/navigation';
 import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
@@ -98,7 +99,7 @@ export default function DrillDetailModal({
   dataset,
 }: DrillDetailModalProps) {
   const theme = useTheme();
-  const history = useHistory();
+  const router = useRouter();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
@@ -114,8 +115,8 @@ export default function DrillDetailModal({
   );
 
   const exploreChart = useCallback(() => {
-    history.push(exploreUrl);
-  }, [exploreUrl, history]);
+    pushAppHref(router, exploreUrl);
+  }, [exploreUrl, router]);
 
   return (
     <Modal

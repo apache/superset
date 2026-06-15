@@ -25,9 +25,9 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { MemoryRouter } from 'react-router-dom';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { TanstackRouterAdapter } from 'src/router/queryParamAdapter';
 
 import React from 'react';
 import CssTemplatesListComponent from 'src/pages/CssTemplateList';
@@ -81,11 +81,11 @@ fetchMock.get(templatesRelatedEndpoint, {
 
 const renderCssTemplatesList = (props = {}) =>
   render(
-    <MemoryRouter>
-      <QueryParamProvider adapter={ReactRouter5Adapter}>
+    <StandaloneRouter>
+      <QueryParamProvider adapter={TanstackRouterAdapter}>
         <CssTemplatesList user={mockUser} {...props} />
       </QueryParamProvider>
-    </MemoryRouter>,
+    </StandaloneRouter>,
     {
       useRedux: true,
       store,

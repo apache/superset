@@ -23,12 +23,12 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { MemoryRouter, Route } from 'react-router-dom';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import FileHandler from './index';
 
 const mockAddDangerToast = jest.fn();
 const mockAddSuccessToast = jest.fn();
-const mockHistoryPush = jest.fn();
+const mockNavigate = jest.fn();
 
 jest.setTimeout(60000);
 
@@ -82,12 +82,10 @@ jest.mock('src/features/databases/UploadDataModel', () => ({
   ),
 }));
 
-// Mock react-router-dom's useHistory
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({
-    push: mockHistoryPush,
-  }),
+// Mock @tanstack/react-router's useNavigate
+jest.mock('@tanstack/react-router', () => ({
+  ...jest.requireActual('@tanstack/react-router'),
+  useNavigate: () => mockNavigate,
 }));
 
 // Mock the File API
@@ -189,11 +187,9 @@ afterEach(async () => {
 
 test('shows error when launchQueue is not supported', async () => {
   render(
-    <MemoryRouter initialEntries={['/superset/file-handler']}>
-      <Route path="/superset/file-handler">
-        <FileHandler />
-      </Route>
-    </MemoryRouter>,
+    <StandaloneRouter initialEntries={['/superset/file-handler']}>
+      <FileHandler />
+    </StandaloneRouter>,
     { useRedux: true },
   );
 
@@ -201,7 +197,7 @@ test('shows error when launchQueue is not supported', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'File handling is not supported in this browser. Please use a modern browser like Chrome or Edge.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/superset/welcome/' });
   });
 });
 
@@ -209,11 +205,9 @@ test('redirects when no files are provided', async () => {
   const { triggerConsumer } = setupLaunchQueue();
 
   render(
-    <MemoryRouter initialEntries={['/superset/file-handler']}>
-      <Route path="/superset/file-handler">
-        <FileHandler />
-      </Route>
-    </MemoryRouter>,
+    <StandaloneRouter initialEntries={['/superset/file-handler']}>
+      <FileHandler />
+    </StandaloneRouter>,
     { useRedux: true },
   );
 
@@ -221,7 +215,7 @@ test('redirects when no files are provided', async () => {
   await triggerConsumer({ files: [] });
 
   await waitFor(() => {
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/superset/welcome/' });
   });
 });
 
@@ -231,11 +225,9 @@ test.skip('handles CSV file correctly', async () => {
   setupLaunchQueue(fileHandle);
 
   render(
-    <MemoryRouter initialEntries={['/superset/file-handler']}>
-      <Route path="/superset/file-handler">
-        <FileHandler />
-      </Route>
-    </MemoryRouter>,
+    <StandaloneRouter initialEntries={['/superset/file-handler']}>
+      <FileHandler />
+    </StandaloneRouter>,
     { useRedux: true },
   );
 
@@ -252,11 +244,9 @@ test('handles Excel (.xls) file correctly', async () => {
   setupLaunchQueue(fileHandle);
 
   render(
-    <MemoryRouter initialEntries={['/superset/file-handler']}>
-      <Route path="/superset/file-handler">
-        <FileHandler />
-      </Route>
-    </MemoryRouter>,
+    <StandaloneRouter initialEntries={['/superset/file-handler']}>
+      <FileHandler />
+    </StandaloneRouter>,
     { useRedux: true },
   );
 
@@ -271,11 +261,9 @@ test('handles Excel (.xlsx) file correctly', async () => {
   const { triggerConsumer } = setupLaunchQueue();
 
   render(
-    <MemoryRouter initialEntries={['/superset/file-handler']}>
-      <Route path="/superset/file-handler">
-        <FileHandler />
-      </Route>
-    </MemoryRouter>,
+    <StandaloneRouter initialEntries={['/superset/file-handler']}>
+      <FileHandler />
+    </StandaloneRouter>,
     { useRedux: true },
   );
 
@@ -292,11 +280,9 @@ test('handles Parquet file correctly', async () => {
   setupLaunchQueue(fileHandle);
 
   render(
-    <MemoryRouter initialEntries={['/superset/file-handler']}>
-      <Route path="/superset/file-handler">
-        <FileHandler />
-      </Route>
-    </MemoryRouter>,
+    <StandaloneRouter initialEntries={['/superset/file-handler']}>
+      <FileHandler />
+    </StandaloneRouter>,
     { useRedux: true },
   );
 
@@ -310,11 +296,9 @@ test('shows error for unsupported file type', async () => {
   const { triggerConsumer } = setupLaunchQueue();
 
   render(
-    <MemoryRouter initialEntries={['/superset/file-handler']}>
-      <Route path="/superset/file-handler">
-        <FileHandler />
-      </Route>
-    </MemoryRouter>,
+    <StandaloneRouter initialEntries={['/superset/file-handler']}>
+      <FileHandler />
+    </StandaloneRouter>,
     { useRedux: true },
   );
 
@@ -326,7 +310,7 @@ test('shows error for unsupported file type', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'Unsupported file type. Please use CSV, Excel, or Columnar files.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/superset/welcome/' });
   });
 });
 
@@ -335,11 +319,9 @@ test('handles file with uppercase extension', async () => {
   setupLaunchQueue(fileHandle);
 
   render(
-    <MemoryRouter initialEntries={['/superset/file-handler']}>
-      <Route path="/superset/file-handler">
-        <FileHandler />
-      </Route>
-    </MemoryRouter>,
+    <StandaloneRouter initialEntries={['/superset/file-handler']}>
+      <FileHandler />
+    </StandaloneRouter>,
     { useRedux: true },
   );
 
@@ -352,11 +334,9 @@ test('handles errors during file processing', async () => {
   const { triggerConsumer } = setupLaunchQueue();
 
   render(
-    <MemoryRouter initialEntries={['/superset/file-handler']}>
-      <Route path="/superset/file-handler">
-        <FileHandler />
-      </Route>
-    </MemoryRouter>,
+    <StandaloneRouter initialEntries={['/superset/file-handler']}>
+      <FileHandler />
+    </StandaloneRouter>,
     { useRedux: true },
   );
 
@@ -378,7 +358,7 @@ test('handles errors during file processing', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
       'Failed to open file. Please try again.',
     );
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/superset/welcome/' });
   });
 });
 
@@ -387,11 +367,9 @@ test('modal close redirects to welcome page', async () => {
   setupLaunchQueue(fileHandle);
 
   render(
-    <MemoryRouter initialEntries={['/superset/file-handler']}>
-      <Route path="/superset/file-handler">
-        <FileHandler />
-      </Route>
-    </MemoryRouter>,
+    <StandaloneRouter initialEntries={['/superset/file-handler']}>
+      <FileHandler />
+    </StandaloneRouter>,
     { useRedux: true },
   );
 
@@ -402,7 +380,7 @@ test('modal close redirects to welcome page', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   await waitFor(() => {
-    expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/superset/welcome/' });
   });
 });
 
@@ -410,11 +388,9 @@ test('shows loading state while waiting for file', () => {
   setupLaunchQueue();
 
   render(
-    <MemoryRouter initialEntries={['/superset/file-handler']}>
-      <Route path="/superset/file-handler">
-        <FileHandler />
-      </Route>
-    </MemoryRouter>,
+    <StandaloneRouter initialEntries={['/superset/file-handler']}>
+      <FileHandler />
+    </StandaloneRouter>,
     { useRedux: true },
   );
 

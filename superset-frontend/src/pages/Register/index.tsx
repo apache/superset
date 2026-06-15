@@ -31,7 +31,7 @@ import {
 import { useState } from 'react';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ReactCAPTCHA from 'react-google-recaptcha';
-import { useParams } from 'react-router-dom';
+import { useParams } from '@tanstack/react-router';
 
 interface RegisterForm {
   username: string;
@@ -68,7 +68,9 @@ export default function Login() {
   const [form] = Form.useForm<RegisterForm>();
   const [loading, setLoading] = useState(false);
   const [captchaResponse, setCaptchaResponse] = useState<string | null>(null);
-  const { activationHash } = useParams<{ activationHash?: string }>();
+  const { activationHash } = useParams({ strict: false }) as {
+    activationHash?: string;
+  };
 
   const bootstrapData = getBootstrapData();
 

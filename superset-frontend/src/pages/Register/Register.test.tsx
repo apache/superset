@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import { MemoryRouter } from 'react-router-dom';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import Register from './index';
 
 jest.mock('src/utils/getBootstrapData', () => ({
@@ -38,9 +38,9 @@ jest.mock('react-google-recaptcha', () => ({
 
 const renderRegister = () =>
   render(
-    <MemoryRouter>
+    <StandaloneRouter>
       <Register />
-    </MemoryRouter>,
+    </StandaloneRouter>,
   );
 
 test('should render register form elements', () => {

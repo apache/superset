@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';

@@ -18,7 +18,7 @@
  */
 
 import { styled } from '@apache-superset/core/theme';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import type { TagType } from 'src/types/TagType';
 import { Tag as AntdTag } from '@superset-ui/core/components/Tag';
 import { Tooltip } from '@superset-ui/core/components/Tooltip';
@@ -82,7 +82,8 @@ const SupersetTag = ({
             {' '}
             {id ? (
               <Link
-                to={`/superset/all_entities/?id=${id}`}
+                to="/superset/all_entities/"
+                search={{ id: String(id) }}
                 target="_blank"
                 rel="noreferrer"
               >

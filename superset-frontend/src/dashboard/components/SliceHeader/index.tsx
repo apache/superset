@@ -45,7 +45,7 @@ import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import RowCountLabel from 'src/components/RowCountLabel';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -245,7 +245,11 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     const renderExploreLink = (title: string) => (
       <Link
-        to={exploreUrl}
+        to="/explore/"
+        search={{
+          dashboard_page_id: dashboardPageId,
+          slice_id: String(slice.slice_id),
+        }}
         css={(theme: SupersetTheme) => css`
           color: ${theme.colorText};
           text-decoration: none;

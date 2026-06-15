@@ -20,7 +20,7 @@
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { EmptyState } from '@superset-ui/core/components';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 
 const StyledContainer = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 8}px
