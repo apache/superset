@@ -53,6 +53,7 @@ import { apiPost, apiPut } from '../../helpers/api/requests';
 import { apiPostDashboard, apiDeleteDashboard } from '../../helpers/api/dashboard';
 import { apiDeleteChart } from '../../helpers/api/chart';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
+import { EMBEDDED } from '../../utils/constants';
 
 const SUPERSET_DOMAIN = (() => {
   const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
@@ -273,13 +274,18 @@ test.describe('Embedded Pivot Table collapse state (#33406)', () => {
     await embeddedPage.waitForChartRendered();
 
     const rowLabels = embeddedPage.iframe.locator('.pvtRowLabel');
-    await expect.poll(() => rowLabels.count()).toBeGreaterThan(1);
+    await expect
+      .poll(() => rowLabels.count(), { timeout: EMBEDDED.CHART_RENDER })
+      .toBeGreaterThan(1);
     const expandedCount = await rowLabels.count();
 
-    // Collapse the first top-level row group via its [-] toggle.
-    await embeddedPage.iframe.locator('.toggle').first().click();
+    // Collapse the first top-level row group via its [-] toggle. Scope to
+    // `.pvtTable` so we never match a stray `toggle` class elsewhere in the DOM.
+    await embeddedPage.iframe.locator('.pvtTable .toggle').first().click();
     await expect
-      .poll(() => embeddedPage.iframe.locator('.pvtRowLabel').count())
+      .poll(() => embeddedPage.iframe.locator('.pvtRowLabel').count(), {
+        timeout: EMBEDDED.CHART_RENDER,
+      })
       .toBeLessThan(expandedCount);
     const collapsedCount = await embeddedPage.iframe
       .locator('.pvtRowLabel')
