@@ -19,8 +19,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from superset.utils.screenshots import ScreenshotCachePayload
-
 
 @pytest.fixture
 def mock_thumbnail_cache():
@@ -36,268 +34,77 @@ def mock_dashboard():
     return dashboard
 
 
-@pytest.fixture
-def mock_screenshot():
+def _make_screenshot_mock(cache_key: str = "test_cache_key") -> MagicMock:
     screenshot = MagicMock()
-    screenshot.get_cache_key.return_value = "test_cache_key"
+    screenshot.get_cache_key.return_value = cache_key
     return screenshot
 
 
-@patch("superset.tasks.thumbnails.get_executor")
-@patch("superset.tasks.thumbnails.security_manager")
-@patch("superset.tasks.thumbnails.override_user")
-@patch("superset.tasks.thumbnails.get_url_path")
-@patch("superset.tasks.thumbnails.DashboardScreenshot")
-def test_cache_dashboard_thumbnail_skips_when_already_computing(
-    mock_screenshot_cls,
-    mock_get_url_path,
-    mock_override_user,
-    mock_security_manager,
-    mock_get_executor,
-    mock_dashboard,
-    mock_thumbnail_cache,
-):
-    """Task should skip when another task is already computing the same thumbnail."""
-    from superset.tasks.thumbnails import cache_dashboard_thumbnail
+# ---------------------------------------------------------------------------
+# Helpers shared across tests
+# ---------------------------------------------------------------------------
 
-    # Set up a COMPUTING payload that is NOT stale
-    computing_payload = ScreenshotCachePayload()
-    computing_payload.computing()
-
-    mock_screenshot = MagicMock()
-    mock_screenshot.get_cache_key.return_value = "test_cache_key"
-    mock_screenshot.get_from_cache_key.return_value = computing_payload
-    mock_screenshot_cls.return_value = mock_screenshot
-
-    with patch("superset.models.dashboard.Dashboard.get", return_value=mock_dashboard):
-        cache_dashboard_thumbnail(
-            current_user="admin",
-            dashboard_id=1,
-            force=True,
-            cache_key="test_cache_key",
-        )
-
-    # compute_and_cache should NOT be called since another task is computing
-    mock_screenshot.compute_and_cache.assert_not_called()
+_COMMON_PATCHES = [
+    "superset.tasks.thumbnails.get_executor",
+    "superset.tasks.thumbnails.security_manager",
+    "superset.tasks.thumbnails.override_user",
+    "superset.tasks.thumbnails.get_url_path",
+    "superset.tasks.thumbnails.DashboardScreenshot",
+]
 
 
-@patch("superset.tasks.thumbnails.get_executor")
-@patch("superset.tasks.thumbnails.security_manager")
-@patch("superset.tasks.thumbnails.override_user")
-@patch("superset.tasks.thumbnails.get_url_path")
-@patch("superset.tasks.thumbnails.DashboardScreenshot")
-def test_cache_dashboard_thumbnail_proceeds_when_computing_is_stale(
-    mock_screenshot_cls,
-    mock_get_url_path,
-    mock_override_user,
-    mock_security_manager,
-    mock_get_executor,
-    mock_dashboard,
-    mock_thumbnail_cache,
-):
-    """Task should proceed when computing status is stale (stuck task)."""
-    from superset.tasks.thumbnails import cache_dashboard_thumbnail
-
-    # Set up a COMPUTING payload that IS stale
-    computing_payload = ScreenshotCachePayload()
-    computing_payload.computing()
-    computing_payload.is_computing_stale = MagicMock(return_value=True)
-
-    mock_screenshot = MagicMock()
-    mock_screenshot.get_cache_key.return_value = "test_cache_key"
-    mock_screenshot.get_from_cache_key.return_value = computing_payload
-    mock_screenshot_cls.return_value = mock_screenshot
-
-    mock_get_executor.return_value = (None, "admin")
-    mock_security_manager.find_user.return_value = MagicMock()
-
-    with patch("superset.models.dashboard.Dashboard.get", return_value=mock_dashboard):
-        cache_dashboard_thumbnail(
-            current_user="admin",
-            dashboard_id=1,
-            force=True,
-            cache_key="test_cache_key",
-        )
-
-    # compute_and_cache SHOULD be called since the computing status is stale
-    mock_screenshot.compute_and_cache.assert_called_once()
+def _apply_patches(fn):
+    """Stack the five common patches onto a test function."""
+    for p in reversed(_COMMON_PATCHES):
+        fn = patch(p)(fn)
+    return fn
 
 
-@patch("superset.tasks.thumbnails.get_executor")
-@patch("superset.tasks.thumbnails.security_manager")
-@patch("superset.tasks.thumbnails.override_user")
-@patch("superset.tasks.thumbnails.get_url_path")
-@patch("superset.tasks.thumbnails.DashboardScreenshot")
-def test_cache_dashboard_thumbnail_proceeds_when_no_existing_cache(
-    mock_screenshot_cls,
-    mock_get_url_path,
-    mock_override_user,
-    mock_security_manager,
-    mock_get_executor,
-    mock_dashboard,
-    mock_thumbnail_cache,
-):
-    """Task should proceed when there's no existing cache entry."""
-    from superset.tasks.thumbnails import cache_dashboard_thumbnail
-
-    mock_screenshot = MagicMock()
-    mock_screenshot.get_cache_key.return_value = "test_cache_key"
-    mock_screenshot.get_from_cache_key.return_value = None
-    mock_screenshot_cls.return_value = mock_screenshot
-
-    mock_get_executor.return_value = (None, "admin")
-    mock_security_manager.find_user.return_value = MagicMock()
-
-    with patch("superset.models.dashboard.Dashboard.get", return_value=mock_dashboard):
-        cache_dashboard_thumbnail(
-            current_user="admin",
-            dashboard_id=1,
-            force=False,
-            cache_key="test_cache_key",
-        )
-
-    mock_screenshot.compute_and_cache.assert_called_once()
-
-
-@patch("superset.tasks.thumbnails.get_executor")
-@patch("superset.tasks.thumbnails.security_manager")
-@patch("superset.tasks.thumbnails.override_user")
-@patch("superset.tasks.thumbnails.get_url_path")
-@patch("superset.tasks.thumbnails.DashboardScreenshot")
-def test_cache_dashboard_thumbnail_proceeds_when_status_is_pending(
-    mock_screenshot_cls,
-    mock_get_url_path,
-    mock_override_user,
-    mock_security_manager,
-    mock_get_executor,
-    mock_dashboard,
-    mock_thumbnail_cache,
-):
-    """Task should proceed when cache status is PENDING."""
-    from superset.tasks.thumbnails import cache_dashboard_thumbnail
-
-    pending_payload = ScreenshotCachePayload()
-
-    mock_screenshot = MagicMock()
-    mock_screenshot.get_cache_key.return_value = "test_cache_key"
-    mock_screenshot.get_from_cache_key.return_value = pending_payload
-    mock_screenshot_cls.return_value = mock_screenshot
-
-    mock_get_executor.return_value = (None, "admin")
-    mock_security_manager.find_user.return_value = MagicMock()
-
-    with patch("superset.models.dashboard.Dashboard.get", return_value=mock_dashboard):
-        cache_dashboard_thumbnail(
-            current_user="admin",
-            dashboard_id=1,
-            force=False,
-            cache_key="test_cache_key",
-        )
-
-    mock_screenshot.compute_and_cache.assert_called_once()
-
-
-@patch("superset.tasks.thumbnails.get_executor")
-@patch("superset.tasks.thumbnails.security_manager")
-@patch("superset.tasks.thumbnails.override_user")
-@patch("superset.tasks.thumbnails.get_url_path")
-@patch("superset.tasks.thumbnails.DashboardScreenshot")
-def test_cache_dashboard_thumbnail_proceeds_when_status_is_error(
-    mock_screenshot_cls,
-    mock_get_url_path,
-    mock_override_user,
-    mock_security_manager,
-    mock_get_executor,
-    mock_dashboard,
-    mock_thumbnail_cache,
-):
-    """Task should proceed when cache status is ERROR."""
-    from superset.tasks.thumbnails import cache_dashboard_thumbnail
-
-    error_payload = ScreenshotCachePayload()
-    error_payload.error()
-
-    mock_screenshot = MagicMock()
-    mock_screenshot.get_cache_key.return_value = "test_cache_key"
-    mock_screenshot.get_from_cache_key.return_value = error_payload
-    mock_screenshot_cls.return_value = mock_screenshot
-
-    mock_get_executor.return_value = (None, "admin")
-    mock_security_manager.find_user.return_value = MagicMock()
-
-    with patch("superset.models.dashboard.Dashboard.get", return_value=mock_dashboard):
-        cache_dashboard_thumbnail(
-            current_user="admin",
-            dashboard_id=1,
-            force=False,
-            cache_key="test_cache_key",
-        )
-
-    mock_screenshot.compute_and_cache.assert_called_once()
-
-
-@patch("superset.tasks.thumbnails.get_executor")
-@patch("superset.tasks.thumbnails.security_manager")
-@patch("superset.tasks.thumbnails.override_user")
-@patch("superset.tasks.thumbnails.get_url_path")
-@patch("superset.tasks.thumbnails.DashboardScreenshot")
-def test_task_does_not_skip_when_api_enqueued_but_no_prior_computing(
-    mock_screenshot_cls,
-    mock_get_url_path,
-    mock_override_user,
-    mock_security_manager,
-    mock_get_executor,
-    mock_dashboard,
-    mock_thumbnail_cache,
-):
-    """Task must not skip itself when the cache has no COMPUTING marker.
-
-    Previously the API wrote COMPUTING to cache before enqueuing the task,
-    causing the task's dedup guard to treat the marker as a concurrent run
-    and exit before generating any image.  The API no longer writes COMPUTING;
-    the task (via compute_and_cache) owns that transition.
-    """
-    from superset.tasks.thumbnails import cache_dashboard_thumbnail
-
-    mock_screenshot = MagicMock()
-    mock_screenshot.get_cache_key.return_value = "test_cache_key"
-    # No COMPUTING in cache — this is the state left by the API after enqueueing
-    mock_screenshot.get_from_cache_key.return_value = None
-    mock_screenshot_cls.return_value = mock_screenshot
-
-    mock_get_executor.return_value = (None, "admin")
-    mock_security_manager.find_user.return_value = MagicMock()
-
-    with patch("superset.models.dashboard.Dashboard.get", return_value=mock_dashboard):
-        cache_dashboard_thumbnail(
-            current_user="admin",
-            dashboard_id=1,
-            force=False,
-            cache_key="test_cache_key",
-        )
-
-    mock_screenshot.compute_and_cache.assert_called_once()
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
 
 
 @patch("superset.tasks.thumbnails.thumbnail_cache", None)
 def test_cache_dashboard_thumbnail_skips_when_no_cache():
-    """Task should skip when no thumbnail cache is configured."""
+    """Task exits early when no thumbnail cache is configured."""
     from superset.tasks.thumbnails import cache_dashboard_thumbnail
 
-    result = cache_dashboard_thumbnail(
-        current_user="admin",
-        dashboard_id=1,
-        force=True,
-    )
+    result = cache_dashboard_thumbnail(current_user="admin", dashboard_id=1, force=True)
 
     assert result is None
 
 
-@patch("superset.tasks.thumbnails.get_executor")
-@patch("superset.tasks.thumbnails.security_manager")
-@patch("superset.tasks.thumbnails.override_user")
-@patch("superset.tasks.thumbnails.get_url_path")
-@patch("superset.tasks.thumbnails.DashboardScreenshot")
+@_apply_patches
+def test_cache_dashboard_thumbnail_always_delegates_to_compute_and_cache(
+    mock_screenshot_cls,
+    mock_get_url_path,
+    mock_override_user,
+    mock_security_manager,
+    mock_get_executor,
+    mock_dashboard,
+    mock_thumbnail_cache,
+):
+    """Task always calls compute_and_cache; dedup lives inside compute_and_cache."""
+    from superset.tasks.thumbnails import cache_dashboard_thumbnail
+
+    mock_screenshot = _make_screenshot_mock()
+    mock_screenshot_cls.return_value = mock_screenshot
+    mock_get_executor.return_value = (None, "admin")
+    mock_security_manager.find_user.return_value = MagicMock()
+
+    with patch("superset.models.dashboard.Dashboard.get", return_value=mock_dashboard):
+        cache_dashboard_thumbnail(
+            current_user="admin",
+            dashboard_id=1,
+            force=False,
+            cache_key="test_cache_key",
+        )
+
+    mock_screenshot.compute_and_cache.assert_called_once()
+
+
+@_apply_patches
 def test_cache_dashboard_thumbnail_resolves_cache_key_when_not_provided(
     mock_screenshot_cls,
     mock_get_url_path,
@@ -307,14 +114,11 @@ def test_cache_dashboard_thumbnail_resolves_cache_key_when_not_provided(
     mock_dashboard,
     mock_thumbnail_cache,
 ):
-    """Task should resolve cache_key from screenshot when not explicitly provided."""
+    """Task resolves cache_key from the screenshot object when none is given."""
     from superset.tasks.thumbnails import cache_dashboard_thumbnail
 
-    mock_screenshot = MagicMock()
-    mock_screenshot.get_cache_key.return_value = "resolved_cache_key"
-    mock_screenshot.get_from_cache_key.return_value = None
+    mock_screenshot = _make_screenshot_mock("resolved_cache_key")
     mock_screenshot_cls.return_value = mock_screenshot
-
     mock_get_executor.return_value = (None, "admin")
     mock_security_manager.find_user.return_value = MagicMock()
 
@@ -326,6 +130,5 @@ def test_cache_dashboard_thumbnail_resolves_cache_key_when_not_provided(
             cache_key=None,
         )
 
-    # Should resolve cache key from screenshot object
     mock_screenshot.get_cache_key.assert_called_once()
-    mock_screenshot.get_from_cache_key.assert_called_once_with("resolved_cache_key")
+    mock_screenshot.compute_and_cache.assert_called_once()

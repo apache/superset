@@ -1130,6 +1130,9 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
+# How long to treat a COMPUTING cache entry as an active lease before considering
+# the worker stuck.  Should exceed the task soft_time_limit (300 s) by a margin.
+THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
 
 # Cache warmup user — must be set explicitly before enabling the cache-warmup
 # Celery task. Intentionally defaults to None so operators pick a dedicated
