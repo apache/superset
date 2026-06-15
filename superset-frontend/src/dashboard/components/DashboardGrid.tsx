@@ -125,6 +125,23 @@ const GridColumnGuide = styled.div`
   `};
 `;
 
+const BOTTOM_RESIZE_DIRECTION = 'bottom';
+
+const GridRowGuide = styled.div`
+  ${({ theme }) => css`
+    &.grid-row-guide {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: ${addAlpha(theme.colorPrimary, 0.5)};
+      box-shadow: 0 0 0 1px ${addAlpha(theme.colorPrimary, 0.5)};
+      pointer-events: none;
+      z-index: 10;
+    }
+  `};
+`;
+
 function DashboardGrid({
   depth,
   editMode,
@@ -140,6 +157,7 @@ function DashboardGrid({
 }: DashboardGridProps) {
   const theme = useTheme();
   const [isResizing, setIsResizing] = useState(false);
+  const [rowGuideTop, setRowGuideTop] = useState<number | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
 
   const setGridRef = useCallback((ref: HTMLDivElement | null): void => {
@@ -148,18 +166,35 @@ function DashboardGrid({
 
   const handleResizeStart = useCallback((): void => {
     setIsResizing(true);
+    setRowGuideTop(null);
   }, []);
+
+  const getRowGuidePosition = useCallback(
+    (resizeRef: HTMLElement | null): number | null => {
+      if (resizeRef && gridRef.current) {
+        return (
+          resizeRef.getBoundingClientRect().bottom -
+          gridRef.current.getBoundingClientRect().top -
+          2
+        );
+      }
+      return null;
+    },
+    [],
+  );
 
   const handleResize = useCallback(
     (
       _event: MouseEvent | TouchEvent,
-      _direction: string,
-      _elementRef: HTMLElement,
+      direction: string,
+      elementRef: HTMLElement,
       _delta: { width: number; height: number },
     ): void => {
-      // no-op: resize position tracking not implemented
+      if (direction.toLowerCase().includes(BOTTOM_RESIZE_DIRECTION)) {
+        setRowGuideTop(getRowGuidePosition(elementRef));
+      }
     },
-    [],
+    [getRowGuidePosition],
   );
 
   const handleResizeStop = useCallback(
@@ -177,6 +212,7 @@ function DashboardGrid({
       });
 
       setIsResizing(false);
+      setRowGuideTop(null);
     },
     [resizeComponent],
   );
@@ -350,6 +386,12 @@ function DashboardGrid({
                   }}
                 />
               ))}
+            {isResizing && rowGuideTop !== null && (
+              <GridRowGuide
+                className="grid-row-guide"
+                style={{ top: rowGuideTop }}
+              />
+            )}
         </GridContent>
       </div>
     </>
