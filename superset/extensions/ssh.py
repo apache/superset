@@ -83,7 +83,7 @@ class SSHManager:
             port=server.local_bind_port,
         )
 
-    def _verify_host_key(self, ssh_tunnel: "SSHTunnel") -> None:
+    def _verify_host_key(self, ssh_tunnel: "SSHTunnel") -> "paramiko.PKey | None":
         """
         Opt-in defense-in-depth: verify the SSH server's host key before opening the
         tunnel, to resist man-in-the-middle attacks (paramiko's ``Transport`` does no
@@ -99,6 +99,10 @@ class SSHManager:
           enabled, fail closed and raise.
         - If no expected key is set and strict checking is disabled, do nothing,
           preserving existing (unverified) behavior.
+
+        :returns: the parsed expected host key when one is configured (so the caller
+            can pin it on the tunnel's own connection), or ``None`` when no key is
+            configured.
         """
         expected_raw = ssh_tunnel.server_host_key
 
@@ -110,7 +114,7 @@ class SSHManager:
                         "expected server host key is configured for this tunnel."
                     )
                 )
-            return
+            return None
 
         try:
             expected_key = _parse_authorized_key(expected_raw)
@@ -158,6 +162,8 @@ class SSHManager:
                 )
             )
 
+        return expected_key
+
     def create_tunnel(
         self,
         ssh_tunnel: "SSHTunnel",
@@ -171,8 +177,10 @@ class SSHManager:
         if not port:
             raise SSHTunnelDatabasePortError()
 
-        # Opt-in host-key verification runs before the tunnel is opened.
-        self._verify_host_key(ssh_tunnel)
+        # Opt-in host-key verification runs before the tunnel is opened. It returns
+        # the parsed expected key (or None) so we can also pin it on the tunnel's own
+        # connection below.
+        expected_host_key = self._verify_host_key(ssh_tunnel)
 
         params = {
             "ssh_address_or_host": (ssh_tunnel.server_address, ssh_tunnel.server_port),
@@ -181,6 +189,14 @@ class SSHManager:
             "local_bind_address": (self.local_bind_address,),
             "debug_level": logging.getLogger("flask_appbuilder").level,
         }
+
+        if expected_host_key is not None:
+            # Pin the expected key on the tunnel's own connection, so paramiko verifies
+            # the host that actually carries traffic on the same transport. The probe
+            # above and the tunnel open separate connections, so verifying only the
+            # probe would leave a TOCTOU gap (DNS re-resolution, selective
+            # interception); pinning here closes it.
+            params["ssh_host_key"] = expected_host_key
 
         if ssh_tunnel.password:
             params["ssh_password"] = ssh_tunnel.password

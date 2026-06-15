@@ -82,7 +82,7 @@ def test_verify_host_key_match(
     transport = mock_transport_cls.return_value
     transport.get_remote_server_key.return_value = server_key
 
-    manager._verify_host_key(tunnel)  # should not raise
+    result = manager._verify_host_key(tunnel)  # should not raise
 
     # The TCP connect is bounded by an explicit timeout, and the resulting
     # socket is handed to Transport.
@@ -92,6 +92,8 @@ def test_verify_host_key_match(
     mock_transport_cls.assert_called_once_with(mock_create_connection.return_value)
     transport.start_client.assert_called_once()
     transport.close.assert_called_once()
+    # The parsed expected key is returned so the caller can pin it on the tunnel.
+    assert result == server_key
 
 
 @patch("superset.extensions.ssh.socket.create_connection")
@@ -136,7 +138,7 @@ def test_verify_host_key_unset_non_strict_skips(mock_transport_cls: Mock) -> Non
     manager = _make_manager(strict=False)
     tunnel = _ssh_tunnel(None)
 
-    manager._verify_host_key(tunnel)  # should not raise
+    assert manager._verify_host_key(tunnel) is None  # should not raise
 
     mock_transport_cls.assert_not_called()
 
@@ -198,6 +200,49 @@ def test_verify_host_key_unknown_key_type_raises() -> None:
 
     with pytest.raises(SSHTunnelHostKeyVerificationError):
         manager._verify_host_key(tunnel)
+
+
+@patch("superset.extensions.ssh.sshtunnel.open_tunnel")
+@patch("superset.extensions.ssh.socket.create_connection")
+@patch("superset.extensions.ssh.paramiko.Transport")
+def test_create_tunnel_pins_verified_host_key(
+    mock_transport_cls: Mock,
+    mock_create_connection: Mock,
+    mock_open_tunnel: Mock,
+) -> None:
+    # When an expected host key is configured and verified, it is also pinned on the
+    # tunnel's own connection (``ssh_host_key``) so paramiko verifies the host that
+    # actually carries traffic on the same transport — closing the probe-vs-tunnel
+    # TOCTOU gap rather than trusting only the pre-flight probe.
+    server_key = paramiko.RSAKey.generate(2048)
+    manager = _make_manager(strict=False)
+    tunnel = _ssh_tunnel(_authorized_key(server_key))
+    tunnel.username = "user"
+    tunnel.password = None
+    tunnel.private_key = None
+
+    mock_transport_cls.return_value.get_remote_server_key.return_value = server_key
+
+    manager.create_tunnel(tunnel, "postgresql://u:p@db:5432/ex")
+
+    _, kwargs = mock_open_tunnel.call_args
+    assert kwargs["ssh_host_key"] == server_key
+
+
+@patch("superset.extensions.ssh.sshtunnel.open_tunnel")
+def test_create_tunnel_without_host_key_does_not_pin(mock_open_tunnel: Mock) -> None:
+    # No expected key configured (non-strict): nothing is pinned, preserving the
+    # prior behavior.
+    manager = _make_manager(strict=False)
+    tunnel = _ssh_tunnel(None)
+    tunnel.username = "user"
+    tunnel.password = None
+    tunnel.private_key = None
+
+    manager.create_tunnel(tunnel, "postgresql://u:p@db:5432/ex")
+
+    _, kwargs = mock_open_tunnel.call_args
+    assert "ssh_host_key" not in kwargs
 
 
 def test_ssh_tunnel_schema_round_trips_server_host_key() -> None:
