@@ -39,13 +39,13 @@ logger = logging.getLogger(__name__)
 class TestEmailSmtp(SupersetTestCase):
     SMTP_CONFIG_KEYS = ("SMTP_SSL", "SMTP_SSL_SERVER_AUTH", "SMTP_STARTTLS")
 
-    def setUp(self):
+    def setUp(self) -> None:
         self._original_smtp_config = {
             key: current_app.config[key] for key in self.SMTP_CONFIG_KEYS
         }
         current_app.config["SMTP_SSL"] = False
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         current_app.config.update(self._original_smtp_config)
         super().tearDown()
 
