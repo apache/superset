@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from typing import cast, TYPE_CHECKING
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_mock import MockerFixture
@@ -2501,6 +2501,207 @@ def test_adhoc_column_to_sqla_skips_probe_when_not_forced(
         _, generic_type = table.adhoc_column_to_sqla(adhoc_col)
 
     assert generic_type is None
+
+
+def _normalize_df_datasource(column: object) -> MagicMock:
+    """Bind ``ExploreMixin.normalize_df`` to a minimal datasource exposing a
+    single temporal ``column`` via ``get_column``."""
+    from superset.models.helpers import ExploreMixin
+
+    datasource = MagicMock()
+    datasource.offset = 0
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = [column]
+    datasource.get_column = lambda name: {"ts": column}.get(name)
+    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+    return datasource
+
+
+def _raw_query_object() -> MagicMock:
+    """A query object for a raw/unaggregated query: ``columns`` holds the plain
+    physical column name (no base-axis adhoc wrapper, no granularity)."""
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = None
+    query_object.time_shift = None
+    return query_object
+
+
+def test_normalize_df_applies_python_date_format_to_unaggregated_columns() -> None:
+    """A temporal column selected in a raw/unaggregated query is a plain column
+    name rather than a base-axis adhoc column, so it is excluded from
+    ``get_base_axis_labels``. It must still receive its ``python_date_format``,
+    so an ``epoch_s`` column is converted to datetimes the same way it is for
+    aggregated charts."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch seconds
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_df_applies_epoch_ms_to_unaggregated_columns() -> None:
+    """``epoch_ms`` is a separate conversion branch from ``epoch_s``; an
+    unaggregated column declaring it must also be converted to datetimes."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_ms",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch milliseconds
+    df = pd.DataFrame({"ts": [1577836800000, 1609459200000, 1640995200000]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_df_handles_dict_shaped_columns() -> None:
+    """Some datasources expose columns as dicts rather than objects. The raw
+    temporal-column lookup must read is_dttm and python_date_format from either
+    shape, the same way the base-axis path already does."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = {"column_name": "ts", "is_dttm": True, "python_date_format": "epoch_s"}
+    datasource = _normalize_df_datasource(ts_col)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_leaves_unconfigured_integer_dttm_columns_untouched() -> None:
+    """A column flagged temporal but with no ``python_date_format`` must not be
+    coerced: a plain integer column would otherwise be reinterpreted as
+    nanoseconds since the epoch (1577836800 -> 1970-01-01 00:00:01.5...). Only
+    columns that declare a format are normalized."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    int_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(int_col)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200, 1640995200]
+
+
+def test_normalize_df_without_get_column_is_a_noop() -> None:
+    """Not every datasource exposes ``get_column``; for those, the temporal
+    lookup must short-circuit instead of raising, leaving the data untouched."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.models.helpers import ExploreMixin
+
+    class _NoGetColumnDatasource:
+        offset = 0
+        enforce_numerical_metrics = False
+        columns: list[object] = []
+
+    datasource = _NoGetColumnDatasource()
+    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())  # type: ignore[attr-defined]
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200]
+
+
+def test_normalize_df_normalizes_base_axis_temporal_columns() -> None:
+    """The aggregated path: a base-axis temporal column is normalized, and the
+    raw-column pass does not re-add it (it is already collected)."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = [
+        {"label": "ts", "sqlExpression": "ts", "columnType": "BASE_AXIS"}
+    ]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_normalizes_legacy_time_column() -> None:
+    """The legacy ``__timestamp`` column is normalized using the granularity
+    column's python_date_format."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.utils.core import DTTM_ALIAS
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = []
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    df = pd.DataFrame({DTTM_ALIAS: [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result[DTTM_ALIAS])
+    assert result[DTTM_ALIAS][0].strftime("%Y-%m-%d") == "2020-01-01"
 
 
 def test_adhoc_column_to_sqla_returns_type_from_column_metadata(

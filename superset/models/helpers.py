@@ -117,6 +117,7 @@ from superset.utils.core import (
     GenericDataType,
     get_base_axis_labels,
     get_column_name,
+    get_column_names,
     get_metric_names,
     get_non_base_axis_columns,
     get_user_id,
@@ -1564,6 +1565,48 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         return self.query(qry)
 
+    def _python_date_format(self, column: str | None) -> str | None:
+        """Return the column's configured ``python_date_format`` (e.g. ``epoch_s``
+        or a strftime pattern), or ``None`` if the column declares no format.
+        Reads from either a column object or a dict, matching ``_is_dttm``."""
+        if not hasattr(self, "get_column") or not (col := self.get_column(column)):
+            return None
+        fmt = (
+            col.get("python_date_format")
+            if isinstance(col, dict)
+            else getattr(col, "python_date_format", None)
+        )
+        return str(fmt) if fmt else None
+
+    def _collect_dttm_labels(self, query_object: QueryObject) -> tuple[str | None, ...]:
+        """Labels of the columns whose values should be normalized to datetimes:
+        base-axis / granularity columns (aggregated charts), plus raw/unaggregated
+        temporal columns that declare a ``python_date_format``. The raw columns
+        are gated on the declared format rather than ``is_dttm`` alone so a plain
+        integer column is not misread as nanosecond timestamps."""
+
+        def _is_dttm(label: str | None) -> bool:
+            if not hasattr(self, "get_column") or not (col := self.get_column(label)):
+                return False
+            return bool(col.get("is_dttm") if isinstance(col, dict) else col.is_dttm)
+
+        base_labels = [
+            label
+            for label in [
+                *get_base_axis_labels(query_object.columns),
+                query_object.granularity,
+            ]
+            if _is_dttm(label)
+        ]
+        raw_labels = [
+            label
+            for label in get_column_names(query_object.columns)
+            if label not in base_labels
+            and _is_dttm(label)
+            and self._python_date_format(label)
+        ]
+        return (*base_labels, *raw_labels)
+
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         """
         Normalize the dataframe by converting datetime columns and ensuring
@@ -1573,34 +1616,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param query_object: The query object with metadata about columns
         :return: Normalized dataframe
         """
-
-        def _get_timestamp_format(column: str | None) -> str | None:
-            if not hasattr(self, "get_column"):
-                return None
-            column_obj = self.get_column(column)
-            if (
-                column_obj
-                and hasattr(column_obj, "python_date_format")
-                and (formatter := column_obj.python_date_format)
-            ):
-                return str(formatter)
-            return None
-
-        # Collect datetime columns
-        labels = tuple(
-            label
-            for label in [
-                *get_base_axis_labels(query_object.columns),
-                query_object.granularity,
-            ]
-            if hasattr(self, "get_column")
-            and (col := self.get_column(label))
-            and (col.get("is_dttm") if isinstance(col, dict) else col.is_dttm)
-        )
+        labels = self._collect_dttm_labels(query_object)
 
         dttm_cols = [
             DateColumn(
-                timestamp_format=_get_timestamp_format(label),
+                timestamp_format=self._python_date_format(label),
                 offset=self.offset,
                 time_shift=query_object.time_shift,
                 col_label=label,
@@ -1612,7 +1632,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if DTTM_ALIAS in df:
             dttm_cols.append(
                 DateColumn.get_legacy_time_column(
-                    timestamp_format=_get_timestamp_format(query_object.granularity),
+                    timestamp_format=self._python_date_format(query_object.granularity),
                     offset=self.offset,
                     time_shift=query_object.time_shift,
                 )
