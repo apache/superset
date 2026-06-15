@@ -64,10 +64,10 @@ function DashboardCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const digest = dashboard.changed_on_utc || dashboard.changed_on;
   const thumbnailUrl =
-    isFeatureEnabled(FeatureFlag.Thumbnails) && dashboard.id
-      ? dashboard.thumbnail_url ||
-        `/api/v1/dashboard/${dashboard.id}/thumbnail/${encodeURIComponent(dashboard.changed_on_utc || dashboard.changed_on || 'default')}/`
+    isFeatureEnabled(FeatureFlag.Thumbnails) && dashboard.id && digest
+      ? `/api/v1/dashboard/${dashboard.id}/thumbnail/${encodeURIComponent(digest)}/`
       : '';
 
   const menuItems: MenuItem[] = [];
