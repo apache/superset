@@ -229,6 +229,7 @@ const ResultSet = ({
     }
     if (typeof theme.sqlLabGridRowHeight === 'number') {
       overrides.rowHeight = theme.sqlLabGridRowHeight;
+      overrides.headerHeight = theme.sqlLabGridRowHeight;
     }
     if (typeof theme.sqlLabGridBorderRadius === 'number') {
       overrides.borderRadius = theme.sqlLabGridBorderRadius;
