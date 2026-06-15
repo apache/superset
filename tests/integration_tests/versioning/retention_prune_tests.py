@@ -273,8 +273,13 @@ class TestDashboardVersionRetention(SupersetTestCase):
                 with patch.object(version_history_retention.time, "sleep"):
                     stats = _prune_old_versions_impl(retention_days=30)
 
-            assert len(calls) == 2, (
-                f"Expected 2 _run_prune_pass calls (1 failure + 1 retry), "
+            # At least 2 passes: the first conflicts (call 1) and is
+            # retried (call 2). There may be more when the backlog spans
+            # multiple id-ordered windows (the prune batches by
+            # _MAX_PRUNE_BATCH), but exactly one conflict was injected, so
+            # the retry counter must read 1 regardless of batch count.
+            assert len(calls) >= 2, (
+                f"Expected >= 2 _run_prune_pass calls (>= 1 failure + retry), "
                 f"got {len(calls)}"
             )
             assert stats.get("retried") == 1, stats
