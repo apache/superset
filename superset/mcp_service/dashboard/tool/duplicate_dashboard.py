@@ -32,6 +32,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.schemas import (
+    _sanitize_dashboard_info_for_llm_context,
     DashboardInfo,
     DuplicateDashboardRequest,
     DuplicateDashboardResponse,
@@ -44,9 +45,25 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
+def _positions_reference_charts(positions: dict[str, Any]) -> bool:
+    """Return whether a layout maps any chart into the dashboard.
+
+    ``DashboardDAO.set_dash_metadata`` rebuilds the new dashboard's slice
+    list solely from the chart IDs found in ``positions``, so a layout
+    with no ``CHART`` entries yields an empty dashboard regardless of the
+    source's ``slices`` relationship.
+    """
+    return any(
+        isinstance(value, dict)
+        and value.get("type") == "CHART"
+        and value.get("meta", {}).get("chartId")
+        for value in positions.values()
+    )
+
+
 def _build_copy_payload(
     source: Any, dashboard_title: str, duplicate_slices: bool
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], bool]:
     """Build the data payload expected by ``CopyDashboardCommand``.
 
     Mirrors what the frontend "Save as" flow sends to the
@@ -56,6 +73,9 @@ def _build_copy_payload(
     ``json_metadata``, and ``DashboardDAO.copy_dashboard`` reads
     ``positions`` from it to remap chart IDs when ``duplicate_slices``
     is enabled.
+
+    Returns the payload and a flag indicating whether the layout maps any
+    chart, so the caller can refuse to produce a silently empty copy.
     """
     try:
         metadata = json.loads(source.json_metadata or "{}")
@@ -73,12 +93,13 @@ def _build_copy_payload(
 
     metadata["positions"] = positions
 
-    return {
+    payload = {
         "dashboard_title": dashboard_title,
         "css": source.css,
         "duplicate_slices": duplicate_slices,
         "json_metadata": json.dumps(metadata),
     }
+    return payload, _positions_reference_charts(positions)
 
 
 def _serialize_new_dashboard(dashboard: Any) -> tuple[DashboardInfo, str]:
@@ -115,7 +136,7 @@ def _serialize_new_dashboard(dashboard: Any) -> tuple[DashboardInfo, str]:
             is not None
         ],
     )
-    return info, dashboard_url
+    return _sanitize_dashboard_info_for_llm_context(info), dashboard_url
 
 
 @tool(
@@ -184,9 +205,24 @@ async def duplicate_dashboard(
                     ),
                 )
 
-        data = _build_copy_payload(
+        data, layout_has_charts = _build_copy_payload(
             source, request.dashboard_title, request.duplicate_slices
         )
+
+        if getattr(source, "slices", None) and not layout_has_charts:
+            await ctx.warning(
+                "Source layout maps no charts; refusing to duplicate to "
+                "avoid an empty copy: dashboard_id=%s" % (request.dashboard_id,)
+            )
+            return DuplicateDashboardResponse(
+                error=(
+                    f"Dashboard '{request.dashboard_id}' has charts but its "
+                    "saved layout is missing or invalid, so duplicating it "
+                    "would produce a dashboard with no charts. Open and "
+                    "re-save the source dashboard to repair its layout, then "
+                    "try again."
+                ),
+            )
 
         with event_logger.log_context(action="mcp.duplicate_dashboard.copy"):
             new_dashboard = CopyDashboardCommand(source, data).run()
@@ -219,10 +255,12 @@ async def duplicate_dashboard(
             dashboard_url = (
                 f"{get_superset_base_url()}/superset/dashboard/{new_dashboard.id}/"
             )
-            info = DashboardInfo(
-                id=new_dashboard.id,
-                dashboard_title=request.dashboard_title,
-                url=dashboard_url,
+            info = _sanitize_dashboard_info_for_llm_context(
+                DashboardInfo(
+                    id=new_dashboard.id,
+                    dashboard_title=request.dashboard_title,
+                    url=dashboard_url,
+                )
             )
 
         logger.info(

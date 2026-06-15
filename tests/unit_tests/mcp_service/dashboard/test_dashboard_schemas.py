@@ -844,25 +844,30 @@ class TestDuplicateDashboardRequestTitleSanitization:
     """XSS / sanitization behavior for DuplicateDashboardRequest.dashboard_title."""
 
     def test_plain_title_passes_without_warning(self) -> None:
+        """A clean title is accepted unchanged with no sanitization warning."""
         req = DuplicateDashboardRequest(dashboard_id=1, dashboard_title="Regional Copy")
         assert req.dashboard_title == "Regional Copy"
         assert req.sanitization_warnings == []
 
     def test_title_accepts_aliases(self) -> None:
+        """The title can be supplied via the ``name``/``title`` aliases."""
         req = DuplicateDashboardRequest(dashboard_id="my-slug", name="From Name")
         assert req.dashboard_title == "From Name"
 
     def test_script_only_title_is_rejected(self) -> None:
+        """A title that sanitizes to nothing (XSS-only) is rejected."""
         with pytest.raises(ValidationError, match="removed entirely by sanitization"):
             DuplicateDashboardRequest(
                 dashboard_id=1, dashboard_title="<script>alert(1)</script>"
             )
 
     def test_empty_title_is_rejected(self) -> None:
+        """An empty title is rejected at the schema layer."""
         with pytest.raises(ValidationError):
             DuplicateDashboardRequest(dashboard_id=1, dashboard_title="")
 
     def test_partial_strip_emits_warning(self) -> None:
+        """A partially stripped title is kept but flagged with a warning."""
         req = DuplicateDashboardRequest(
             dashboard_id=1, dashboard_title="Q1 <b>Review</b>"
         )
@@ -884,6 +889,7 @@ class TestDuplicateDashboardResponse:
     """Serialization and error sanitization for DuplicateDashboardResponse."""
 
     def test_defaults(self) -> None:
+        """An empty response has null payload fields and no flags set."""
         resp = DuplicateDashboardResponse()
         assert resp.dashboard is None
         assert resp.dashboard_url is None
@@ -892,9 +898,11 @@ class TestDuplicateDashboardResponse:
         assert resp.warnings == []
 
     def test_error_is_wrapped_for_llm_context(self) -> None:
+        """Error text is wrapped in LLM-context delimiters before exposure."""
         resp = DuplicateDashboardResponse(error="Dashboard 'x' not found.")
         assert resp.error == _wrapped("Dashboard 'x' not found.")
 
     def test_none_error_is_not_wrapped(self) -> None:
+        """A null error stays null rather than being wrapped."""
         resp = DuplicateDashboardResponse(dashboard_url="http://host/d/1/")
         assert resp.error is None
