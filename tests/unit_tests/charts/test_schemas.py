@@ -213,6 +213,33 @@ def test_chart_data_query_object_schema_time_grain_sqla_validation(
     assert result["extras"]["time_grain_sqla"] is None
 
 
+def test_chart_data_query_object_schema_groupby_renamed_to_columns(
+    app_context: None,
+) -> None:
+    """groupby is renamed to columns by the schema post_load hook."""
+    schema = ChartDataQueryObjectSchema()
+
+    # groupby alone → becomes columns
+    result = schema.load({"groupby": ["country_name"]})
+    assert result.get("columns") == ["country_name"]
+    assert "groupby" not in result
+
+    # groupby overwrites columns when both are provided
+    result = schema.load({"groupby": ["region"], "columns": ["country_name"]})
+    assert result.get("columns") == ["region"]
+    assert "groupby" not in result
+
+    # empty groupby is discarded; existing columns is preserved
+    result = schema.load({"groupby": [], "columns": ["country_name"]})
+    assert result.get("columns") == ["country_name"]
+    assert "groupby" not in result
+
+    # no groupby → columns passes through unchanged
+    result = schema.load({"columns": ["country_name"]})
+    assert result.get("columns") == ["country_name"]
+    assert "groupby" not in result
+
+
 @pytest.mark.parametrize(
     "app",
     [{"TIME_GRAIN_ADDONS": {"PT10M": "10 minutes"}}],

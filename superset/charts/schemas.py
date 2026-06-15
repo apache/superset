@@ -1454,6 +1454,14 @@ class ChartDataQueryObjectSchema(Schema):
         allow_none=True,
     )
 
+    @post_load
+    def rename_deprecated_groupby(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        if groupby := data.pop("groupby", None):
+            data["columns"] = groupby
+        return data
+
 
 class ChartDataQueryContextSchema(Schema):
     query_context_factory: QueryContextFactory | None = None
