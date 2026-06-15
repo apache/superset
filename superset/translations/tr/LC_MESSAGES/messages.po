@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-06-05 13:45-0700\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -4367,6 +4367,9 @@ msgid "Database settings updated"
 msgstr "Veritabanı ayarları güncellendi"
 
 msgid "Database type does not support file uploads."
+msgstr ""
+
+msgid "Database upload file exceeds the maximum allowed size."
 msgstr ""
 
 #, fuzzy

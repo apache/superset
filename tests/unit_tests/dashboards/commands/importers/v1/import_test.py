@@ -245,6 +245,55 @@ def test_import_existing_dashboard_with_permission(
     mock_can_access_dashboard.assert_called_once_with(dashboard)
 
 
+def test_import_existing_dashboard_does_not_add_importer_as_owner(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Importing an existing dashboard must NOT add the importer as an owner.
+    Regression test for GitHub issue #36244.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        result = import_dashboard(dashboard_config, overwrite=True)
+
+    assert admin not in result.owners
+
+
+def test_import_new_dashboard_adds_importer_as_owner(
+    mocker: MockerFixture,
+    session_with_schema: Session,
+) -> None:
+    """
+    Importing a new dashboard (UUID not in DB) should add the importer as owner.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    user = User(
+        first_name="Bob",
+        last_name="Smith",
+        email="bsmith@example.org",
+        username="bob",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(user):
+        result = import_dashboard(dashboard_config)
+
+    assert user in result.owners
+
+
 def test_import_tag_logic_for_dashboards(session_with_schema: Session):
     contents = {
         "tags.yaml": yaml.dump(
