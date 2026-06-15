@@ -162,6 +162,10 @@ async def duplicate_dashboard(
             try:
                 source = DashboardDAO.get_by_id_or_slug(str(request.dashboard_id))
             except DashboardNotFoundError:
+                await ctx.warning(
+                    "Dashboard not found for duplication: dashboard_id=%s"
+                    % (request.dashboard_id,)
+                )
                 return DuplicateDashboardResponse(
                     error=(
                         f"Dashboard '{request.dashboard_id}' not found. "
@@ -169,6 +173,10 @@ async def duplicate_dashboard(
                     ),
                 )
             except DashboardAccessDeniedError:
+                await ctx.warning(
+                    "Dashboard access denied for duplication: dashboard_id=%s"
+                    % (request.dashboard_id,)
+                )
                 return DuplicateDashboardResponse(
                     error=(
                         f"You don't have access to dashboard "
