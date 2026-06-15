@@ -264,6 +264,13 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   emitCrossFilters,
 }) {
   const fd = formData;
+  // Free-form SelectControls can yield string values, so coerce to a number
+  // (falling back to the provided default for empty/NaN input) before handing
+  // them to deck.gl's numeric layer props.
+  const toNumber = (value: unknown, fallback: number) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+  };
   const fc = fd.fill_color_picker ?? PRIMARY_COLOR;
   const sc = fd.stroke_color_picker ?? PRIMARY_COLOR;
   const fillColor = [fc.r, fc.g, fc.b, 255 * fc.a];
@@ -330,9 +337,9 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
     getLineWidth: fd.line_width || 1,
     // Use deck.gl defaults as fallbacks for backward compatibility with existing charts.
     // New charts will get control panel defaults (point_radius=10, units='pixels', scale=1).
-    getPointRadius: fd.point_radius ?? 1,
+    getPointRadius: toNumber(fd.point_radius, 1),
     pointRadiusUnits: fd.point_radius_units ?? 'meters',
-    pointRadiusScale: fd.point_radius_scale ?? 1,
+    pointRadiusScale: toNumber(fd.point_radius_scale, 1),
     lineWidthUnits: fd.line_width_unit,
     pointType,
     ...labelOpts,

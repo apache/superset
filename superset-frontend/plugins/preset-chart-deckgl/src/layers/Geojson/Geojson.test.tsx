@@ -351,6 +351,21 @@ test('getLayer uses control panel defaults for new charts', () => {
   expect(props.pointRadiusScale).toBe(1);
 });
 
+test('getLayer coerces free-form string radius values to numbers', () => {
+  // Free-form SelectControls can store user-typed values as strings
+  const stringFormData = {
+    ...baseFormData,
+    point_radius: '3',
+    point_radius_scale: '0.25',
+  };
+
+  const layer = getLayer({ formData: stringFormData, ...baseLayerArgs });
+  const { props } = layer;
+
+  expect(props.getPointRadius).toBe(3);
+  expect(props.pointRadiusScale).toBe(0.25);
+});
+
 type ControlConfig = {
   default?: unknown;
   validators?: unknown[];
