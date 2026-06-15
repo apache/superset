@@ -343,10 +343,6 @@ class WebDriverPlaywright(WebDriverProxy):
                     "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
                 ]
                 logger.debug(
-                    "Wait %i seconds for chart animation", selenium_animation_wait
-                )
-                page.wait_for_timeout(selenium_animation_wait * 1000)
-                logger.debug(
                     "Taking a PNG screenshot of url %s as user %s",
                     url,
                     user.username if user else "None",
@@ -444,6 +440,12 @@ class WebDriverPlaywright(WebDriverProxy):
                                 self._screenshot_load_wait,
                             )
                             raise
+                        if selenium_animation_wait > 0:
+                            logger.debug(
+                                "Wait %i seconds for chart animation",
+                                selenium_animation_wait,
+                            )
+                            page.wait_for_timeout(selenium_animation_wait * 1000)
                         img = WebDriverPlaywright._get_screenshot(
                             page, element, element_name
                         )
@@ -467,6 +469,12 @@ class WebDriverPlaywright(WebDriverProxy):
                             self._screenshot_load_wait,
                         )
                         raise
+                    if selenium_animation_wait > 0:
+                        logger.debug(
+                            "Wait %i seconds for chart animation",
+                            selenium_animation_wait,
+                        )
+                        page.wait_for_timeout(selenium_animation_wait * 1000)
                     img = WebDriverPlaywright._get_screenshot(
                         page, element, element_name
                     )
