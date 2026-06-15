@@ -756,6 +756,25 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return uri, connect_args
 
     @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: dict[str, Any],
+    ) -> str | None:
+        """
+        Return the default dataset encoded in a ``bigquery://project/dataset`` URI.
+
+        The BigQuery SQLAlchemy driver uses the URL ``database`` component as the
+        default dataset, but only when ``host`` (the project) is also present.
+        The triple-slash form ``bigquery:///project`` puts the project in
+        ``database`` with no host, so we guard against misidentifying it as a
+        dataset.
+        """
+        if sqlalchemy_uri.host and sqlalchemy_uri.database:
+            return sqlalchemy_uri.database
+        return None
+
+    @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
         return True
 

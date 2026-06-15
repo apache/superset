@@ -497,6 +497,44 @@ def test_adjust_engine_params_schema_as_dataset() -> None:
     assert uri.database == "my_dataset"
 
 
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test that get_schema_from_engine_params returns the dataset from
+    bigquery://project/dataset URIs and None for all other URL forms.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    # Standard form: project in host, dataset in database
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(
+            make_url("bigquery://project/my_dataset"), {}
+        )
+        == "my_dataset"
+    )
+
+    # Project-only URI — no default dataset configured
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(
+            make_url("bigquery://project"), {}
+        )
+        is None
+    )
+
+    # Triple-slash form — database component is the project, not a dataset
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(
+            make_url("bigquery:///my_project"), {}
+        )
+        is None
+    )
+
+    # Bare URI — no project, no dataset
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(make_url("bigquery://"), {})
+        is None
+    )
+
+
 def test_get_materialized_view_names() -> None:
     """
     Test get_materialized_view_names method.
