@@ -32,7 +32,7 @@ The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list re
 /api/v1/dashboard/{id}/thumbnail/{changed_on_utc}/
 ```
 
-The thumbnail endpoint returns a 302 redirect to the cached image regardless of whether the digest is exact, so `changed_on_utc` serves as an effective cache-busting key.
+The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
 
 ### Webhook alerts/reports block private/internal hosts by default
 
