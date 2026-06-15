@@ -169,32 +169,31 @@ function Markdown({
   const prevComponentWidthRef = useRef(component.meta.width);
   const prevColumnWidthRef = useRef(columnWidth);
 
-  // getDerivedStateFromProps equivalent: handle undo/redo and external code changes
+  // getDerivedStateFromProps equivalent for undo/redo. Run during render
+  // (not in an effect) so the new markdownSource is applied before the commit,
+  // avoiding a one-frame flash of the old content. React bails out of the
+  // intermediate render without committing it.
+  const isUndoRedo =
+    undoLength !== prevUndoLengthRef.current ||
+    redoLength !== prevRedoLengthRef.current;
+  if (isUndoRedo) {
+    setMarkdownSource(component.meta.code as string);
+    setHasError(false);
+    prevUndoLengthRef.current = undoLength;
+    prevRedoLengthRef.current = redoLength;
+  }
+
+  // Sync external code changes (not from undo/redo) while in preview mode.
   useEffect(() => {
-    // user click undo or redo?
     if (
-      undoLength !== prevUndoLengthRef.current ||
-      redoLength !== prevRedoLengthRef.current
-    ) {
-      setMarkdownSource(component.meta.code as string);
-      setHasError(false);
-      prevUndoLengthRef.current = undoLength;
-      prevRedoLengthRef.current = redoLength;
-    } else if (
+      !isUndoRedo &&
       !hasError &&
       editorMode === 'preview' &&
       component.meta.code !== markdownSource
     ) {
       setMarkdownSource(component.meta.code as string);
     }
-  }, [
-    undoLength,
-    redoLength,
-    component.meta.code,
-    hasError,
-    editorMode,
-    markdownSource,
-  ]);
+  }, [isUndoRedo, component.meta.code, hasError, editorMode, markdownSource]);
 
   // componentDidMount equivalent: log render event
   useEffect(() => {
@@ -346,29 +345,17 @@ function Markdown({
 
   const renderPreviewMode = useMemo(
     () => (
-      <ErrorBoundary
-        key={hasError ? 'markdown-error' : 'markdown-ok'}
-        onError={handleRenderError}
-        showMessage={false}
-      >
-        <SafeMarkdown
-          source={
-            hasError
-              ? MARKDOWN_ERROR_MESSAGE
-              : markdownSource || MARKDOWN_PLACE_HOLDER
-          }
-          htmlSanitization={htmlSanitization}
-          htmlSchemaOverrides={htmlSchemaOverrides}
-        />
-      </ErrorBoundary>
+      <SafeMarkdown
+        source={
+          hasError
+            ? MARKDOWN_ERROR_MESSAGE
+            : markdownSource || MARKDOWN_PLACE_HOLDER
+        }
+        htmlSanitization={htmlSanitization}
+        htmlSchemaOverrides={htmlSchemaOverrides}
+      />
     ),
-    [
-      hasError,
-      markdownSource,
-      htmlSanitization,
-      htmlSchemaOverrides,
-      handleRenderError,
-    ],
+    [hasError, markdownSource, htmlSanitization, htmlSchemaOverrides],
   );
 
   // inherit the size of parent columns
@@ -443,7 +430,13 @@ function Markdown({
                     <DeleteComponentButton onDelete={handleDeleteComponent} />
                   </HoverMenu>
                 )}
-                {editMode && isEditing ? renderEditMode : renderPreviewMode}
+                <ErrorBoundary
+                  key={hasError ? 'markdown-error' : 'markdown-ok'}
+                  onError={handleRenderError}
+                  showMessage={false}
+                >
+                  {editMode && isEditing ? renderEditMode : renderPreviewMode}
+                </ErrorBoundary>
               </div>
             </ResizableContainer>
           </MarkdownStyles>

@@ -170,6 +170,15 @@ function WithPopoverMenu({
     [editMode, shouldFocusFunc, isFocused, disableClick, onChangeFocus],
   );
 
+  // Keep the latest handleClick in a ref so the document listeners can be
+  // registered via a stable wrapper. This keeps the listener effect dependent
+  // only on focus/editMode transitions, instead of thrashing (remove + re-add)
+  // every time handleClick's identity changes.
+  const handleClickRef = useRef(handleClick);
+  useEffect(() => {
+    handleClickRef.current = handleClick;
+  }, [handleClick]);
+
   // Handle prop-driven focus changes and add/remove document listeners
   useEffect(() => {
     if (editMode && isFocusedProp && !isFocused) {
@@ -179,18 +188,20 @@ function WithPopoverMenu({
     }
   }, [editMode, isFocusedProp, isFocused]);
 
-  // Add/remove document event listeners based on focus state
+  // Add/remove document event listeners only on focus/editMode transitions.
   useEffect(() => {
     if (isFocused && editMode) {
-      document.addEventListener('click', handleClick);
-      document.addEventListener('drag', handleClick);
-    }
+      const listener = (event: Event) => handleClickRef.current(event);
+      document.addEventListener('click', listener);
+      document.addEventListener('drag', listener);
 
-    return () => {
-      document.removeEventListener('click', handleClick);
-      document.removeEventListener('drag', handleClick);
-    };
-  }, [isFocused, editMode, handleClick]);
+      return () => {
+        document.removeEventListener('click', listener);
+        document.removeEventListener('drag', listener);
+      };
+    }
+    return undefined;
+  }, [isFocused, editMode]);
 
   return (
     <WithPopoverMenuStyles

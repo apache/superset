@@ -272,6 +272,16 @@ function Dashboard({
     }
   }, [actions]);
 
+  // Refs that always point at the latest closures so the mount-only effect's
+  // listeners/cleanup never invoke a stale `actions` closure when `actions`
+  // identity changes.
+  const onVisibilityChangeRef = useRef(onVisibilityChange);
+  const actionsRef = useRef(actions);
+  useEffect(() => {
+    onVisibilityChangeRef.current = onVisibilityChange;
+    actionsRef.current = actions;
+  });
+
   // componentDidMount equivalent
   useEffect(() => {
     const bootstrapData = getBootstrapData();
@@ -296,16 +306,18 @@ function Dashboard({
         ts: new Date().getTime(),
       };
     }
-    document.addEventListener('visibilitychange', onVisibilityChange);
+    const handleVisibilityChange = () => onVisibilityChangeRef.current();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // componentWillUnmount equivalent
     return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       onBeforeUnload(false); // Remove beforeunload listener on unmount
-      actions.clearDataMaskState();
-      actions.clearAllChartStates();
+      actionsRef.current.clearDataMaskState();
+      actionsRef.current.clearAllChartStates();
     };
-    // Only run on mount/unmount - intentionally excluding deps that would cause re-runs
+    // Only run on mount/unmount - listeners/cleanup go through refs to avoid
+    // capturing stale closures.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

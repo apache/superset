@@ -218,6 +218,18 @@ function SliceAdder({
     [showOnlyMyCharts, userId],
   );
 
+  // Refs so the debounced search reads the latest sortBy/userIdForFetch at
+  // fire time without recreating the debounce (which would drop a pending,
+  // armed-but-not-yet-fired search when sortBy/showOnlyMyCharts change).
+  const sortByRef = useRef(sortBy);
+  const userIdForFetchRef = useRef(userIdForFetch);
+  useEffect(() => {
+    sortByRef.current = sortBy;
+  }, [sortBy]);
+  useEffect(() => {
+    userIdForFetchRef.current = userIdForFetch;
+  }, [userIdForFetch]);
+
   // componentDidMount
   useEffect(() => {
     slicesRequestRef.current = fetchSlices(userIdForFetch(), '', sortBy);
@@ -251,13 +263,25 @@ function SliceAdder({
     setSearchTerm(term);
   }, []);
 
+  const fetchSlicesRef = useRef(fetchSlices);
+  useEffect(() => {
+    fetchSlicesRef.current = fetchSlices;
+  }, [fetchSlices]);
+
+  // Create the debounce once (stable identity) so a pending search isn't
+  // dropped when sortBy/userIdForFetch change mid-typing. The debounced
+  // function reads the latest values from refs at fire time.
   const handleChange = useMemo(
     () =>
       debounce((value: string) => {
         searchUpdated(value);
-        slicesRequestRef.current = fetchSlices(userIdForFetch(), value, sortBy);
+        slicesRequestRef.current = fetchSlicesRef.current(
+          userIdForFetchRef.current(),
+          value,
+          sortByRef.current,
+        );
       }, 300),
-    [fetchSlices, searchUpdated, sortBy, userIdForFetch],
+    [searchUpdated],
   );
 
   useEffect(
