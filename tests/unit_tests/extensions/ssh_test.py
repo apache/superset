@@ -30,7 +30,13 @@ from cryptography.hazmat.primitives.serialization import (
     NoEncryption,
     PrivateFormat,
 )
-from paramiko import Ed25519Key, PasswordRequiredException, RSAKey, SSHException
+from paramiko import (
+    ECDSAKey,
+    Ed25519Key,
+    PasswordRequiredException,
+    RSAKey,
+    SSHException,
+)
 
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelHostKeyVerificationError,
@@ -189,7 +195,7 @@ def test_create_tunnel_accepts_ecdsa_private_key() -> None:
         )
 
     assert mock_open.called, "open_tunnel was never invoked — ECDSA key parsing aborted"
-    assert mock_open.call_args.kwargs["ssh_pkey"] is not None
+    assert isinstance(mock_open.call_args.kwargs["ssh_pkey"], ECDSAKey)
 
 
 def test_create_tunnel_passphrase_protected_key_without_password() -> None:
