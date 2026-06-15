@@ -135,6 +135,53 @@ def test_chart_data_query_object_schema_time_grain_sqla_validation(
     assert result["extras"]["time_grain_sqla"] is None
 
 
+def test_chart_data_query_object_schema_deprecated_fields_renamed(
+    app_context: None,
+) -> None:
+    """Deprecated query object fields are renamed to their canonical names."""
+    schema = ChartDataQueryObjectSchema()
+
+    # groupby alone → becomes columns
+    result = schema.load({"groupby": ["country_name"]})
+    assert result.get("columns") == ["country_name"]
+    assert "groupby" not in result
+
+    # groupby overwrites columns when both are provided
+    result = schema.load({"groupby": ["region"], "columns": ["country_name"]})
+    assert result.get("columns") == ["region"]
+    assert "groupby" not in result
+
+    # empty groupby is discarded; existing columns is preserved
+    result = schema.load({"groupby": [], "columns": ["country_name"]})
+    assert result.get("columns") == ["country_name"]
+    assert "groupby" not in result
+
+    # null groupby is discarded; existing columns is preserved (allow_none=True)
+    result = schema.load({"groupby": None, "columns": ["country_name"]})
+    assert result.get("columns") == ["country_name"]
+    assert "groupby" not in result
+
+    # no groupby → columns passes through unchanged
+    result = schema.load({"columns": ["country_name"]})
+    assert result.get("columns") == ["country_name"]
+    assert "groupby" not in result
+
+    # granularity_sqla → granularity
+    result = schema.load({"granularity_sqla": "ds"})
+    assert result.get("granularity") == "ds"
+    assert "granularity_sqla" not in result
+
+    # timeseries_limit → series_limit
+    result = schema.load({"timeseries_limit": 5})
+    assert result.get("series_limit") == 5
+    assert "timeseries_limit" not in result
+
+    # timeseries_limit_metric → series_limit_metric
+    result = schema.load({"timeseries_limit_metric": "count"})
+    assert result.get("series_limit_metric") == "count"
+    assert "timeseries_limit_metric" not in result
+
+
 @pytest.mark.parametrize(
     "app",
     [{"TIME_GRAIN_ADDONS": {"PT10M": "10 minutes"}}],
