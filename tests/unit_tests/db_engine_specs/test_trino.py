@@ -343,6 +343,124 @@ def test_get_extra_table_metadata(mocker: MockerFixture) -> None:
     assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
 
 
+def test_get_extra_table_metadata_iceberg_unpartitioned(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Iceberg ``$partitions`` metadata fields must not be treated as partition
+    columns, so an unpartitioned Iceberg table yields no partition metadata and
+    no latest-partition query.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = mocker.MagicMock()
+    db_mock.get_indexes = Mock(
+        return_value=[
+            {
+                "name": "partition",
+                "column_names": ["data", "file_count", "record_count", "total_size"],
+            }
+        ]
+    )
+    db_mock.get_extra = Mock(return_value={})
+    db_mock.has_view = Mock(return_value=None)
+    db_mock.get_df = Mock()
+    result = TrinoEngineSpec.get_extra_table_metadata(
+        db_mock,
+        Table("test_table", "test_schema"),
+    )
+    assert "partitions" not in result
+    db_mock.get_df.assert_not_called()
+
+
+def test_get_extra_table_metadata_iceberg_partitioned(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A genuinely partitioned Iceberg table exposes a ``partition`` ROW column
+    alongside the metadata fields. Since the real partition columns are nested
+    in the ROW and not directly queryable here, the partition block is skipped
+    rather than generating an invalid latest-partition query.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = mocker.MagicMock()
+    db_mock.get_indexes = Mock(
+        return_value=[
+            {
+                "name": "partition",
+                "column_names": [
+                    "partition",
+                    "record_count",
+                    "file_count",
+                    "total_size",
+                    "data",
+                ],
+            }
+        ]
+    )
+    db_mock.get_extra = Mock(return_value={})
+    db_mock.has_view = Mock(return_value=None)
+    db_mock.get_df = Mock()
+    result = TrinoEngineSpec.get_extra_table_metadata(
+        db_mock,
+        Table("test_table", "test_schema"),
+    )
+    assert "partitions" not in result
+    db_mock.get_df.assert_not_called()
+
+
+def test_filter_iceberg_partition_indexes() -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    # Iceberg metadata-only partition index is dropped entirely.
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(
+            [
+                {
+                    "name": "partition",
+                    "column_names": [
+                        "data",
+                        "file_count",
+                        "record_count",
+                        "total_size",
+                    ],
+                }
+            ]
+        )
+        == []
+    )
+
+    # Hive partition index (no Iceberg signature) is returned unchanged.
+    hive_indexes = [{"name": "partition", "column_names": ["ds", "hour"]}]
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(hive_indexes) == hive_indexes
+    )
+
+    # A Hive partition column that happens to be named ``data`` is preserved
+    # because the Iceberg signature columns are absent.
+    data_indexes = [{"name": "partition", "column_names": ["data"]}]
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(data_indexes) == data_indexes
+    )
+
+    # A real partition key alongside coincidental signature-named columns is
+    # preserved untouched: not every column is an Iceberg metadata field.
+    mixed_indexes = [
+        {
+            "name": "partition",
+            "column_names": ["ds", "record_count", "file_count", "total_size"],
+        }
+    ]
+    assert (
+        TrinoEngineSpec._filter_iceberg_partition_indexes(mixed_indexes)
+        == mixed_indexes
+    )
+
+    # Empty / falsy input yields an empty list.
+    assert TrinoEngineSpec._filter_iceberg_partition_indexes(None) == []
+
+
 @patch("sqlalchemy.engine.Engine.connect")
 def test_cancel_query_success(engine_mock: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
