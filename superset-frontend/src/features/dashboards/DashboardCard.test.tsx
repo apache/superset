@@ -31,7 +31,7 @@ const mockDashboard = {
   certification_details: 'Certified on 2022-01-01',
   published: true,
   url: '/dashboard/1',
-  thumbnail_url: '/thumbnails/1.png',
+  changed_on_utc: '2024-01-01T00:00:00',
   changed_on_delta_humanized: '2 days ago',
   owners: [
     { id: 1, name: 'Alice', first_name: 'Alice', last_name: 'Doe' },
@@ -100,46 +100,81 @@ test('Renders the modified date', () => {
   expect(modifiedDateElement).toBeInTheDocument();
 });
 
-test('constructs thumbnail URL from dashboard id and changed_on_utc when thumbnail_url is empty', () => {
-  const originalFetch = global.fetch;
-  const mockFetch = jest.fn().mockResolvedValue({
-    blob: () => Promise.resolve(new Blob([''], { type: 'image/png' })),
+describe('thumbnail URL construction', () => {
+  let fetchSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+      blob: () => Promise.resolve(new Blob([''], { type: 'image/png' })),
+    } as Response);
   });
-  global.fetch = mockFetch;
 
-  render(
-    <MemoryRouter>
-      <DashboardCard
-        dashboard={{
-          id: 2,
-          thumbnail_url: '',
-          changed_by_name: '',
-          changed_by: '',
-          dashboard_title: 'No Thumb Dashboard',
-          published: false,
-          url: '/dashboard/2',
-          owners: [],
-          changed_on_utc: '2024-01-01T00:00:00',
-        }}
-        hasPerm={() => true}
-        bulkSelectEnabled={false}
-        loading={false}
-        showThumbnails
-        saveFavoriteStatus={() => {}}
-        favoriteStatus={false}
-        handleBulkDashboardExport={() => {}}
-        onDelete={() => {}}
-      />
-    </MemoryRouter>,
-  );
+  afterEach(() => {
+    fetchSpy.mockRestore();
+  });
 
-  expect(screen.getByText('No Thumb Dashboard')).toBeInTheDocument();
-  // When thumbnail_url is empty, the component constructs the URL directly
-  // from dashboard.id and dashboard.changed_on_utc instead of fetching
-  // via SupersetClient.get.
-  expect(mockFetch).toHaveBeenCalledWith(
-    '/api/v1/dashboard/2/thumbnail/2024-01-01T00%3A00%3A00/',
-  );
+  const renderCard = (dashboard: object) =>
+    render(
+      <MemoryRouter>
+        <DashboardCard
+          dashboard={dashboard as any}
+          hasPerm={() => true}
+          bulkSelectEnabled={false}
+          loading={false}
+          showThumbnails
+          saveFavoriteStatus={() => {}}
+          favoriteStatus={false}
+          handleBulkDashboardExport={() => {}}
+          onDelete={() => {}}
+        />
+      </MemoryRouter>,
+    );
 
-  global.fetch = originalFetch;
+  test('constructs thumbnail URL from dashboard id and changed_on_utc', () => {
+    renderCard({
+      id: 2,
+      changed_by_name: '',
+      changed_by: '',
+      dashboard_title: 'UTC Dashboard',
+      published: false,
+      url: '/dashboard/2',
+      owners: [],
+      changed_on_utc: '2024-01-01T00:00:00',
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/v1/dashboard/2/thumbnail/2024-01-01T00%3A00%3A00/',
+    );
+  });
+
+  test('falls back to changed_on when changed_on_utc is absent', () => {
+    renderCard({
+      id: 3,
+      changed_by_name: '',
+      changed_by: '',
+      dashboard_title: 'Fallback Dashboard',
+      published: false,
+      url: '/dashboard/3',
+      owners: [],
+      changed_on: '2024-06-01T12:00:00',
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/v1/dashboard/3/thumbnail/2024-06-01T12%3A00%3A00/',
+    );
+  });
+
+  test('renders no thumbnail when both changed_on_utc and changed_on are absent', () => {
+    renderCard({
+      id: 4,
+      changed_by_name: '',
+      changed_by: '',
+      dashboard_title: 'No Timestamp Dashboard',
+      published: false,
+      url: '/dashboard/4',
+      owners: [],
+    });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });

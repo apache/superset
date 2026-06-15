@@ -197,6 +197,22 @@ class TestThumbnails(SupersetTestCase):
     # SHA-256 hash of "foo_bar" (default HASH_ALGORITHM is sha256)
     digest_hash = "4928cae8b37b3d1113f5e01e60c967df6c2b9e826dc7d91488d23a62fec715ba"
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_dashboard_list_omits_thumbnail_url(self):
+        """
+        Thumbnails: dashboard list response must not include thumbnail_url
+        """
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get(DASHBOARD_URL)
+        resp = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert len(resp["result"]) > 0
+        for dashboard in resp["result"]:
+            assert "thumbnail_url" not in dashboard, (
+                "thumbnail_url should not appear in list responses; "
+                "it is only available on the detail endpoint"
+            )
+
     def _get_id_and_thumbnail_url(self, url: str) -> tuple[int, str]:
         rv = self.client.get(url)
         resp = json.loads(rv.data.decode("utf-8"))

@@ -64,7 +64,7 @@ export interface Dashboard {
   id: number;
   published: boolean;
   url: string;
-  thumbnail_url?: string;
+  thumbnail_url?: string | null;
   owners: Owner[];
   loading?: boolean;
 }
