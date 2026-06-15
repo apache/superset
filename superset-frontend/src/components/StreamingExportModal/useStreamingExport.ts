@@ -112,6 +112,8 @@ const createFetchRequest = async (
     exportSource === 'chart' &&
     !('client_id' in payload);
 
+  // Embedded guest sessions cannot fetch CSRF tokens. Guest chart exports are
+  // safe because chart data is CSRF-exempt and auth is carried by guest_token.
   if (!isGuestTokenChartExport) {
     const csrfToken = await SupersetClient.getCSRFToken();
     if (csrfToken) {
