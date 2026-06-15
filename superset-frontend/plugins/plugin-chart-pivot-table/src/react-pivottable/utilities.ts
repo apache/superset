@@ -92,6 +92,29 @@ const numberFormat = function (optsIn?: NumberFormatOptions): Formatter {
   };
 };
 
+/**
+ * Safely converts any value to a number for aggregation purposes
+ * Handles null/undefined, strings, and non-numeric values
+ */
+function toAggregationNumber(value: unknown): number {
+  if (value == null) return 0;
+  if (typeof value === 'number') {
+    return Number.isNaN(value) ? 0 : value;
+  }
+  if (typeof value === 'string') {
+    const num = parseFloat(value.trim());
+    return Number.isNaN(num) ? 0 : num;
+  }
+  return 0;
+}
+
+type DataFunction = (key: string[], context: never[]) => unknown;
+
+interface GroupNode {
+  auto_agg_sum: number;
+  [childKey: string]: GroupNode | number;
+}
+
 const rx = /(\d+)|(\D+)/g;
 const rd = /\d/;
 const rz = /^0/;
@@ -166,6 +189,125 @@ const naturalSort: SortFunction = (as, bs) => {
   }
   return aArr.length - bArr.length;
 };
+
+/**
+ * Precomputes aggregate sums for all group levels using safe numeric conversion
+ */
+function buildGroupAggregates(
+  keys: string[][],
+  dataFunc: DataFunction,
+): GroupNode {
+  const root: GroupNode = { auto_agg_sum: 0 } as GroupNode;
+
+  const terminalKeys = keys.filter(
+    key =>
+      !keys.some(
+        ancestorKey =>
+          ancestorKey.length > key.length &&
+          key.every((segment, idx) => ancestorKey[idx] === segment),
+      ),
+  );
+  for (const key of terminalKeys) {
+    let current: GroupNode = root;
+
+    for (let i = 0; i < key.length - 1; i += 1) {
+      const segment = key[i];
+
+      if (!current[segment]) {
+        current[segment] = { auto_agg_sum: 0 } as GroupNode;
+      }
+
+      const childNode = current[segment] as GroupNode;
+      childNode.auto_agg_sum += toAggregationNumber(dataFunc(key, []));
+      current = childNode;
+    }
+  }
+
+  return root;
+}
+
+/**
+ * Creates a comparator function for hierarchical keys with subtotal awareness
+ */
+function createHierarchicalComparator(
+  groups: GroupNode,
+  top: boolean | undefined,
+  asc: boolean,
+  dataFunc: DataFunction,
+): (a: string[], b: string[]) => number {
+  const hierarchyMultiplier = top ? 1 : -1;
+  const valueMultiplier = asc ? 1 : -1;
+
+  return (a: string[], b: string[]) => {
+    const minLen = Math.min(a.length, b.length);
+    let currentGroup: GroupNode = groups;
+    let diffIndex = -1;
+
+    for (let i = 0; i < minLen; i += 1) {
+      if (a[i] !== b[i]) {
+        diffIndex = i;
+        break;
+      }
+      currentGroup = currentGroup[a[i]] as GroupNode;
+    }
+
+    if (diffIndex === -1 && a.length !== b.length) {
+      return (a.length < b.length ? -1 : 1) * hierarchyMultiplier;
+    }
+
+    const isLastLevelComparison =
+      diffIndex === -1 ||
+      (diffIndex === a.length - 1 && diffIndex === b.length - 1);
+
+    if (isLastLevelComparison) {
+      const valA = dataFunc(a, []) as string | number | null;
+      const valB = dataFunc(b, []) as string | number | null;
+
+      const result = naturalSort(valA, valB) * valueMultiplier;
+
+      if (result === 0) {
+        const lastA = a[a.length - 1] ?? '';
+        const lastB = b[b.length - 1] ?? '';
+        return lastA.localeCompare(lastB) * valueMultiplier;
+      }
+      return result;
+    }
+
+    const segmentA = a[diffIndex];
+    const segmentB = b[diffIndex];
+
+    const nodeA = currentGroup[segmentA] as GroupNode | undefined;
+    const nodeB = currentGroup[segmentB] as GroupNode | undefined;
+
+    const sumA = nodeA?.auto_agg_sum ?? 0;
+    const sumB = nodeB?.auto_agg_sum ?? 0;
+
+    if (sumA === sumB) {
+      return segmentA.localeCompare(segmentB) * valueMultiplier;
+    }
+    return (sumA > sumB ? 1 : -1) * valueMultiplier;
+  };
+}
+
+/**
+ * @param keys Hierarchical keys to sort ([[row1, row2], [row1, row3], ...])
+ * @param dataFunc Function to retrieve aggregate value (may return string/number/null)
+ * @param top true = subtotals at top/left, false = subtotals at bottom/right
+ * @param asc true = ascending sort, false = descending sort
+ *
+ * @see https://github.com/apache/superset/issues/20564
+ */
+export function groupingValueSort(
+  keys: string[][],
+  dataFunc: DataFunction,
+  top: boolean | undefined,
+  asc: boolean,
+): void {
+  const groups = buildGroupAggregates(keys, dataFunc);
+
+  const comparator = createHierarchicalComparator(groups, top, asc, dataFunc);
+  keys.sort(comparator);
+}
 
 const sortAs = function (order: (string | number)[]): SortFunction {
   const mapping: Record<string | number, number> = {};
@@ -897,7 +1039,8 @@ class PivotData {
       this.sorted = true;
       const rows = this.props.rows as string[];
       const cols = this.props.cols as string[];
-      const v = (r: string[], c: string[]) => this.getAggregator(r, c).value();
+      const vr = (r: string[], c: string[]) => this.getAggregator(r, c).value();
+      const vc = (c: string[], r: string[]) => this.getAggregator(r, c).value();
       switch (this.props.rowOrder) {
         case 'key_z_to_a':
           this.rowKeys.sort(
@@ -905,10 +1048,20 @@ class PivotData {
           );
           break;
         case 'value_a_to_z':
-          this.rowKeys.sort((a, b) => naturalSort(v(a, []), v(b, [])));
+          groupingValueSort(
+            this.rowKeys,
+            vr,
+            this.subtotals.rowPartialOnTop,
+            true,
+          );
           break;
         case 'value_z_to_a':
-          this.rowKeys.sort((a, b) => -naturalSort(v(a, []), v(b, [])));
+          groupingValueSort(
+            this.rowKeys,
+            vr,
+            this.subtotals.rowPartialOnTop,
+            false,
+          );
           break;
         default:
           this.rowKeys.sort(this.arrSort(rows, this.subtotals.rowPartialOnTop));
@@ -920,10 +1073,20 @@ class PivotData {
           );
           break;
         case 'value_a_to_z':
-          this.colKeys.sort((a, b) => naturalSort(v([], a), v([], b)));
+          groupingValueSort(
+            this.colKeys,
+            vc,
+            this.subtotals.colPartialOnTop,
+            true,
+          );
           break;
         case 'value_z_to_a':
-          this.colKeys.sort((a, b) => -naturalSort(v([], a), v([], b)));
+          groupingValueSort(
+            this.colKeys,
+            vc,
+            this.subtotals.colPartialOnTop,
+            false,
+          );
           break;
         default:
           this.colKeys.sort(this.arrSort(cols, this.subtotals.colPartialOnTop));

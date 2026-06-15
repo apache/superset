@@ -289,7 +289,10 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 #  as key material. Do note that AesEngine allows for queryability over the
 #  encrypted fields.
 #
-#  To change the default engine you need to define your own adapter:
+#  To switch the engine used by the default adapter, prefer the
+#  ``SQLALCHEMY_ENCRYPTED_FIELD_ENGINE`` knob below (e.g. "aes-gcm"). Defining a
+#  custom adapter, as shown next, is only needed for behaviour the built-in
+#  engines do not cover:
 #
 # e.g.:
 #
@@ -313,6 +316,16 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
+
+# Encryption engine used by the default SQLAlchemyUtilsAdapter for app-encrypted
+# fields. Options:
+#   "aes"     - AES-CBC (historical default; unauthenticated, queryable)
+#   "aes-gcm" - AES-GCM (authenticated encryption; recommended for NEW installs)
+# WARNING: changing this on a database that already holds encrypted secrets
+# (database passwords, SSH tunnel credentials, OAuth tokens, ...) will make
+# those values undecryptable unless they are re-encrypted first. See the
+# authenticated-encryption SIP/migration before switching an existing install.
+SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
 
 # Extends the default SQLGlot dialects with additional dialects
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
@@ -362,6 +375,26 @@ RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") == "production"
 RATELIMIT_APPLICATION = "50 per second"
 AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
+
+# When enabled, users whose account is flagged with ``password_must_change``
+# (e.g. accounts provisioned by an administrator) are redirected to the
+# password-reset page until they set a new password. Off by default.
+ENABLE_FORCE_PASSWORD_CHANGE = False
+
+# Password complexity policy, enforced (via Flask-AppBuilder) across
+# self-registration, the user edit/reset forms, and the User REST API.
+# The Superset validator requires a minimum length and rejects common
+# passwords; tune via AUTH_PASSWORD_MIN_LENGTH / AUTH_PASSWORD_COMMON_BLOCKLIST,
+# or replace FAB_PASSWORD_COMPLEXITY_VALIDATOR with your own callable.
+from superset.security.password_complexity import (  # noqa: E402
+    validate_password_complexity as _validate_password_complexity,
+)
+
+FAB_PASSWORD_COMPLEXITY_ENABLED = True
+FAB_PASSWORD_COMPLEXITY_VALIDATOR = _validate_password_complexity
+AUTH_PASSWORD_MIN_LENGTH = 8
+AUTH_PASSWORD_COMMON_BLOCKLIST: list[str] = []
+
 # A storage location conforming to the scheme in storage-scheme. See the limits
 # library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
 # RATELIMIT_STORAGE_URI = "redis://host:port"
@@ -459,6 +492,7 @@ LANGUAGES = {
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
+    "ro": {"flag": "ro", "name": "Romanian"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -504,6 +538,10 @@ D3_FORMAT: D3Format = {}
 # Enable CORS and set map url in origins option.
 # Add also map url in connect-src of TALISMAN_CONFIG variable
 DECKGL_BASE_MAP: list[list[str, str]] = None
+
+# Default map renderer for map visualizations that support multiple providers.
+# Set to "mapbox" only in deployments that also configure MAPBOX_API_KEY.
+DEFAULT_MAP_RENDERER = os.environ.get("DEFAULT_MAP_RENDERER", "maplibre")
 
 
 # Override the default d3 locale for time format
@@ -2048,6 +2086,21 @@ REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports
 ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
 
+# When True, webhook alert/report dispatch is permitted to call private/internal
+# IP addresses (RFC-1918, loopback, link-local). Intended for deployments where
+# the webhook target is on an internal network (a chatops bridge, an internal
+# Mattermost/Rocket.Chat, an automation server, etc.). Leave False (the default)
+# in any internet-facing deployment.
+ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS: bool = False
+
+# When True, Impala's cancel_query HTTP call is permitted to target hosts in
+# private/internal IP ranges (RFC-1918, loopback, link-local). Intended for
+# operators whose Impala cluster runs on an internal network. Leave False (the
+# default) in any deployment where untrusted users can create Impala database
+# connections, so a maliciously-configured impala:// URL cannot be used to
+# trigger outbound requests to internal targets via the cancel endpoint.
+IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS: bool = False
+
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 
@@ -2337,12 +2390,20 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 
-# Define a list of allowed URLs for dataset data imports (v1).
+# Define a list of allowed URL patterns (regex) for dataset data imports (v1).
 # Simple example to only allow URLs that belong to certain domains:
-# ALLOWED_IMPORT_URL_DOMAINS = [
+# DATASET_IMPORT_ALLOWED_DATA_URLS = [
 #     r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"
 # ]
+# Local file:// URIs used for bundled example data are always permitted
+# regardless of this setting.
 DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
+
+# When True, dataset import is permitted to fetch data from private/internal
+# IP addresses (RFC-1918, loopback, link-local). Intended for air-gapped or
+# on-premises deployments where the data source is on an internal network.
+# Leave False (the default) in any internet-facing deployment.
+DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS: bool = False
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
@@ -2425,6 +2486,19 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 # Return False from the callable to return a HTTP 400 to the user.
 
 GUEST_TOKEN_VALIDATOR_HOOK = None
+
+# Enables coarse-grained, runtime revocation of outstanding guest tokens.
+#
+# When True, every minted guest token carries a revocation version, and tokens
+# whose version is below the current expected version (stored in the metadata
+# database) are rejected at validation time. Bump the expected version with the
+# `superset revoke-guest-tokens` CLI command to invalidate all outstanding guest
+# tokens (e.g. after a token leak, or when a user's access or RLS rules change).
+#
+# This is opt-in and backward compatible: the default expected version is 0 and
+# tokens minted before this feature (which carry no version claim) are treated as
+# version 0, so nothing is revoked until an admin explicitly bumps the version.
+GUEST_TOKEN_REVOCATION_ENABLED = False
 
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,

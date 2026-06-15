@@ -21,6 +21,7 @@ import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
+from superset.dashboards.permalink.schemas import DashboardPermalinkStateSchema
 from superset.dashboards.schemas import (
     DashboardCopySchema,
     DashboardDatasetSchema,
@@ -162,3 +163,33 @@ def test_dashboard_copy_css_rejects_dangerous_constructs() -> None:
             }
         )
     assert "css" in exc_info.value.messages
+
+
+def test_permalink_state_schema_accepts_null_in_active_tabs() -> None:
+    """Regression test for #40934.
+
+    Legacy v5 dashboard exports persist ``null`` entries inside
+    ``activeTabs`` (one ``None`` per tab level that has no active child).
+    The permalink schema must accept those entries instead of rejecting
+    the whole payload with ``'activeTabs': {N: ['Field may not be null.']}``.
+    """
+    schema = DashboardPermalinkStateSchema()
+    loaded = schema.load({"activeTabs": ["TAB-abc", None, "TAB-xyz", None]})
+    assert loaded["activeTabs"] == ["TAB-abc", None, "TAB-xyz", None]
+
+
+def test_permalink_state_schema_still_accepts_null_active_tabs_list() -> None:
+    """A ``None`` for the whole ``activeTabs`` list (not just entries) must
+    keep working — this was the only ``allow_none`` path before #40934."""
+    schema = DashboardPermalinkStateSchema()
+    loaded = schema.load({"activeTabs": None})
+    assert loaded["activeTabs"] is None
+
+
+def test_permalink_state_schema_still_rejects_non_string_entries() -> None:
+    """Allowing ``None`` entries should NOT widen the type to ``Any`` —
+    non-string entries like ``int`` or ``dict`` must still be rejected."""
+    schema = DashboardPermalinkStateSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"activeTabs": ["TAB-abc", 42]})
+    assert "activeTabs" in exc_info.value.messages
