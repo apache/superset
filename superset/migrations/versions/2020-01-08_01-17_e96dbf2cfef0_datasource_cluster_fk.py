@@ -51,7 +51,7 @@ def upgrade():
     statement = datasources.update().values(
         cluster_id=sa.select(clusters.c.id)
         .where(datasources.c.cluster_name == clusters.c.cluster_name)
-        .as_scalar()
+        .scalar_subquery()
     )
     bind.execute(statement)
 
@@ -93,7 +93,7 @@ def downgrade():
     statement = datasources.update().values(
         cluster_name=sa.select(clusters.c.cluster_name)
         .where(datasources.c.cluster_id == clusters.c.id)
-        .as_scalar()
+        .scalar_subquery()
     )
     bind.execute(statement)
 
