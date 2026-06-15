@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -3324,7 +3324,7 @@ msgstr "Wählen Sie die Benachrichtigungsmethode und die Empfänger."
 
 #, fuzzy, python-format
 msgid "Choose numbers between %(min)s and %(max)s"
-msgstr "Die Breite des Bildes muss zwischen %(min)spx und %(max)spx liegen."
+msgstr "Die Werte müssen zwischen %(min)s und %(max)s liegen."
 
 msgid "Choose one of the available databases from the panel on the left."
 msgstr ""
@@ -4722,6 +4722,9 @@ msgstr "Datenbankeinstellungen aktualisiert"
 
 msgid "Database type does not support file uploads."
 msgstr "Der Datenbanktyp unterstützt keine Datei-Uploads."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Datenbank-Upload fehlgeschlagen"
@@ -17795,6 +17798,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "'operation'-Eigenschaft des Nachbearbeitungsobjekts undefiniert"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "Paket 'prophet' nicht installiert"
 
@@ -18681,10 +18688,6 @@ msgstr "Wert aufsteigend"
 
 msgid "value descending"
 msgstr "Wert absteigend"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Tabellenname"
 
 msgid "var"
 msgstr "var"

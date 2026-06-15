@@ -291,6 +291,12 @@ a > span > svg {
 .footer__social-links img {
   height: 24px;
   width: 24px;
+  /* The brand SVGs ship in their native colors (e.g. Slack's dark aubergine,
+     X's near-black), which disappear on the dark footer. Render them all as
+     uniform white silhouettes. The icons are single-path glyphs whose
+     counters (the LinkedIn "in", Slack gaps, Reddit face) are transparent
+     cut-outs, so they stay legible against the footer background. */
+  filter: brightness(0) invert(1);
 }
 
 .footer__ci-services {

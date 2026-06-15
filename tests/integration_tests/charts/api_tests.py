@@ -556,6 +556,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Slice).get(data.get("id"))
+        # uuid should be returned in the response
+        assert "uuid" in data
+        assert str(model.uuid) == str(data["uuid"])
         db.session.delete(model)
         db.session.commit()
 
@@ -1765,7 +1768,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert rv.content_type == "application/json"
+        assert rv.content_type == "application/json; charset=utf-8"
         if slice:
             assert data["slice_id"] == slice.id
 

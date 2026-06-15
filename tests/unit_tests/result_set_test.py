@@ -25,7 +25,11 @@ from numpy.core.multiarray import array
 from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.result_set import stringify_values, SupersetResultSet
+from superset.result_set import (
+    stringify_extension_columns,
+    stringify_values,
+    SupersetResultSet,
+)
 from superset.superset_typing import DbapiResult
 from superset.utils import json as superset_json
 
@@ -385,3 +389,64 @@ def test_array_data_type_preserved() -> None:
     assert df["arr"].iloc[0] == [1, 2, 3]
     assert isinstance(df["arr"].iloc[0], list)
     assert df["arr"].iloc[2] is None
+
+
+def test_uuid_column_is_stringified() -> None:
+    """
+    UUID columns must render as readable strings, not raw bytes.
+
+    PyArrow >= 21 infers Python ``uuid.UUID`` values as the canonical ``uuid``
+    extension type (16-byte binary) instead of raising while building the array.
+    That bypasses the stringification fallback, so without explicit handling the
+    values surface in the results grid as garbled bytes / ``[bytes]``.
+    ``SupersetResultSet`` must stringify any Arrow extension type.
+
+    Regression test for the pyarrow 20 -> 24 upgrade.
+    """
+    import uuid
+
+    ids = [
+        uuid.UUID("f4787a4f-2541-4f8a-9b5e-1e2d3c4b5a6f"),
+        uuid.UUID("00000000-0000-0000-0000-000000000000"),
+    ]
+    data = [(ids[0],), (ids[1],)]
+    description = [("uuid", "uuid", None, None, None, None, True)]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+
+    df = result_set.to_pandas_df()
+    assert df["uuid"].tolist() == [str(i) for i in ids]
+    # values are readable UUID strings, not raw bytes
+    assert all(value is None or isinstance(value, str) for value in df["uuid"].tolist())
+
+
+def test_stringify_extension_columns() -> None:
+    """
+    ``stringify_extension_columns`` converts Arrow extension columns (e.g. the
+    canonical ``uuid`` type) to readable strings while leaving plain binary and
+    other columns untouched. This is the shared helper used by both
+    ``SupersetResultSet`` and the semantic-layers mapper.
+    """
+    import uuid
+
+    import pyarrow as pa
+
+    first = uuid.UUID("f4787a4f-2541-4f8a-9b5e-1e2d3c4b5a6f")
+    uuid_col = pa.ExtensionArray.from_storage(
+        pa.uuid(), pa.array([first.bytes, None], pa.binary(16))
+    )
+    table = pa.table(
+        {
+            "id": uuid_col,
+            "blob": pa.array([b"\x89PNG", None], pa.binary()),
+            "n": pa.array([1, 2]),
+        }
+    )
+
+    result = stringify_extension_columns(table)
+
+    # uuid extension -> readable string column
+    assert pa.types.is_string(result.schema.field("id").type)
+    assert result.column("id").to_pylist() == [str(first), None]
+    # plain binary BLOBs and other types are left untouched
+    assert pa.types.is_binary(result.schema.field("blob").type)
+    assert pa.types.is_integer(result.schema.field("n").type)
