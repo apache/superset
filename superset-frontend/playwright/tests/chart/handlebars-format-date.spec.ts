@@ -59,9 +59,12 @@ testWithAssets(
       metrics: ['count'],
       adhoc_filters: [],
       row_limit: 5,
+      // Note: HTML_SANITIZATION (on by default) strips non-allowlisted
+      // attributes such as `class`, so the rendered markup is plain
+      // <ul>/<li> elements. The assertions below target `li` directly.
       handlebarsTemplate:
-        "<ul class='data-list'>{{#each data}}" +
-        "<li class='hb-item'>{{formatDate 'DD.MM.YYYY' ds}}</li>" +
+        '<ul>{{#each data}}' +
+        "<li>{{formatDate 'DD.MM.YYYY' ds}}</li>" +
         '{{/each}}</ul>',
       styleTemplate: '',
     };
@@ -94,9 +97,8 @@ testWithAssets(
     });
 
     // At least one list item should contain a DD.MM.YYYY formatted date.
-    await expect(panel.locator('li.hb-item').first()).toHaveText(
-      /\d{2}\.\d{2}\.\d{4}/,
-      { timeout: TIMEOUT.API_RESPONSE },
-    );
+    await expect(panel.locator('li').first()).toHaveText(/\d{2}\.\d{2}\.\d{4}/, {
+      timeout: TIMEOUT.API_RESPONSE,
+    });
   },
 );

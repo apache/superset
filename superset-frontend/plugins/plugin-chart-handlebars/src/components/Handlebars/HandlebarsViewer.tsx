@@ -128,6 +128,9 @@ Handlebars.registerHelper('formatDate', (formatString, date, localeString) => {
   const instance = dayjs(date ?? new Date());
   // Handlebars always passes its options object as the final argument, so a
   // locale is only present when the caller supplied an explicit string.
+  // Note: `extendedDayjs` only loads the `en` locale, so passing a non-English
+  // locale here quietly falls back to English unless that locale bundle has
+  // been imported elsewhere; dayjs's instance `.locale()` is a no-op otherwise.
   return typeof localeString === 'string'
     ? instance.locale(localeString).format(format)
     : instance.format(format);
