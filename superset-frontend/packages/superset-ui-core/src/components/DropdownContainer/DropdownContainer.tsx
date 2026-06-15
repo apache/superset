@@ -235,7 +235,10 @@ export const DropdownContainer = forwardRef(
       overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
 
     // Always show button when items exist to prevent layout shifts
-    // and ensure consistent UI even when no items are overflowing
+    // and ensure consistent UI even when no items are overflowing.
+    // When items exist but nothing overflows, the button is rendered
+    // disabled (not hidden) with a 0 badge so the container width stays
+    // constant across overflow state changes.
     const shouldShowButton = items.length > 0 || !!dropdownContent;
 
     const popoverContent = useMemo(

@@ -57,6 +57,8 @@ test('renders dropdown button when items exist even when not overflowing', () =>
   expect(screen.getByText('More')).toBeInTheDocument();
   // Badge should show 0 when nothing is overflowing
   expect(screen.getByText('0')).toBeInTheDocument();
+  // Button is disabled when there is nothing to open, so it can't reveal an empty popover
+  expect(screen.getByTestId('dropdown-container-btn')).toBeDisabled();
 });
 
 test('does not render a dropdown button when no items', () => {
