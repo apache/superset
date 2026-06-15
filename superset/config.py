@@ -1506,6 +1506,18 @@ ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
     os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
 )
 
+# Retention window (days) for entity version history. Version rows
+# whose owning ``version_transaction.issued_at`` is older than this
+# value are pruned by the ``version_history.prune_old_versions``
+# Celery beat task (registered below in ``CeleryConfig.beat_schedule``).
+# Only the live row (``end_transaction_id IS NULL``) is preserved
+# unconditionally; baseline rows (``operation_type=0``) and any
+# historical row age out alongside the rest. ``0`` disables pruning.
+# Read from environment variable of the same name.
+SUPERSET_VERSION_HISTORY_RETENTION_DAYS: int = int(
+    os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "30")
+)
+
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
@@ -1569,6 +1581,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "reports.prune_log": {
             "task": "reports.prune_log",
             "schedule": crontab(minute=0, hour=0),
+        },
+        # Entity version-history retention. Daily at 03:00; the task
+        # itself short-circuits when SUPERSET_VERSION_HISTORY_RETENTION_DAYS
+        # is 0 (disabled).
+        "version_history.prune_old_versions": {
+            "task": "version_history.prune_old_versions",
+            "schedule": crontab(minute=0, hour=3),
         },
         # Uncomment to enable pruning of the query table
         # "prune_query": {

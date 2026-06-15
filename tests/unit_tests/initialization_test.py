@@ -16,6 +16,7 @@
 # under the License.
 
 import os
+from typing import Any
 from unittest.mock import MagicMock, patch, PropertyMock
 
 from sqlalchemy.exc import OperationalError
@@ -372,3 +373,121 @@ class TestCreateAppRoot:
 
         assert isinstance(app.wsgi_app, AppRootMiddleware)
         assert app.wsgi_app.app_root == "/from-param"
+
+
+class TestRetentionBeatWarning:
+    """Cover ``_warn_if_retention_beat_missing`` — the startup check that
+    surfaces a missing ``version_history.prune_old_versions`` beat entry.
+    (The ``ENABLE_VERSIONING_CAPTURE`` kill-switch branch of
+    ``init_versioning`` is covered by ``TestInitVersioning`` above.)
+
+    Operators who redefine ``CeleryConfig`` instead of subclassing or
+    merging the default silently lose the retention task; this pins that
+    the misconfiguration is logged at startup rather than discovered when
+    disk fills."""
+
+    def _initializer(self, config: dict[str, Any]) -> SupersetAppInitializer:
+        """Build a ``SupersetAppInitializer`` against a minimal mock app
+        whose only meaningful attribute is the config dict;
+        ``_warn_if_retention_beat_missing`` only reads from ``self.config``."""
+        app = MagicMock()
+        app.config = config
+        return SupersetAppInitializer(app)
+
+    @patch("superset.initialization.logger")
+    def test_warn_when_celery_beat_schedule_missing_retention_entry(
+        self, mock_logger
+    ):
+        """When ``CELERY_CONFIG.beat_schedule`` is present but lacks the
+        ``version_history.prune_old_versions`` entry, the helper emits
+        a WARNING. This is the silent-failure mode the v4 CD review
+        called out: capture writes rows; the prune never fires."""
+
+        class _PartialCeleryConfig:
+            beat_schedule = {"reports.scheduler": {"task": "reports.scheduler"}}
+
+        initializer = self._initializer({"CELERY_CONFIG": _PartialCeleryConfig})
+        initializer._warn_if_retention_beat_missing()
+
+        assert any(
+            "version_history.prune_old_versions" in str(call)
+            for call in mock_logger.warning.call_args_list
+        ), (
+            "Expected a WARNING naming the missing retention entry; "
+            f"got {mock_logger.warning.call_args_list}"
+        )
+
+    @patch("superset.initialization.logger")
+    def test_no_warn_when_celery_beat_schedule_includes_retention_entry(
+        self, mock_logger
+    ):
+        """When the default ``CeleryConfig`` (or any class with the
+        entry) is in play, no warning fires. The happy path."""
+
+        class _CompleteCeleryConfig:
+            beat_schedule = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer = self._initializer({"CELERY_CONFIG": _CompleteCeleryConfig})
+        initializer._warn_if_retention_beat_missing()
+
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.initialization.logger")
+    def test_no_warn_when_celery_config_is_none(self, mock_logger):
+        """``CELERY_CONFIG = None`` is the documented "disable Celery
+        entirely" path. The warn-log MUST NOT fire — the operator made
+        a deliberate choice; complaining about a missing retention entry
+        on a Celery-disabled deployment trains operators to ignore the
+        warning."""
+        initializer = self._initializer({"CELERY_CONFIG": None})
+        initializer._warn_if_retention_beat_missing()
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.initialization.logger")
+    def test_dict_form_celery_config_with_entry_does_not_warn(self, mock_logger):
+        """Celery accepts a dict-shaped config via
+        ``config_from_object``. The warn-log MUST discriminate by
+        ``isinstance(dict)`` so an operator who supplies a dict with the
+        entry doesn't see a false-positive warning."""
+        initializer = self._initializer(
+            {
+                "CELERY_CONFIG": {
+                    "broker_url": "redis://localhost",
+                    "beat_schedule": {
+                        "version_history.prune_old_versions": {
+                            "task": "version_history.prune_old_versions",
+                        },
+                    },
+                },
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.initialization.logger")
+    def test_dict_form_celery_config_without_entry_warns(self, mock_logger):
+        """The dict-shape symmetry of the previous test: a dict without
+        the entry MUST emit the warning, same as a class without it."""
+        initializer = self._initializer(
+            {
+                "CELERY_CONFIG": {
+                    "broker_url": "redis://localhost",
+                    "beat_schedule": {
+                        "reports.scheduler": {"task": "reports.scheduler"},
+                    },
+                },
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        assert any(
+            "version_history.prune_old_versions" in str(call)
+            for call in mock_logger.warning.call_args_list
+        ), (
+            "Expected a WARNING for dict-form CELERY_CONFIG missing the "
+            f"entry; got {mock_logger.warning.call_args_list}"
+        )
