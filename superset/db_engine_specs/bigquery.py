@@ -137,6 +137,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     allows_hidden_cc_in_orderby = True
 
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+    supports_dynamic_schema = True
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
@@ -594,10 +595,40 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         catalog: str | None = None,
         schema: str | None = None,
     ) -> tuple[URL, dict[str, Any]]:
-        if catalog:
-            uri = uri.set(host=catalog, database="")
+        if not uri.host:
+            # Triple-slash form (e.g., bigquery:///project): project is in database.
+            default_catalog = uri.database
+            default_schema = None
+        else:
+            # Standard forms: bigquery://project, bigquery://project/dataset
+            default_catalog = uri.host
+            default_schema = uri.database or None  # coerce empty string to None
+
+        uri = uri.set(
+            host=catalog or default_catalog,
+            database=schema or default_schema,
+        )
 
         return uri, connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: dict[str, Any],
+    ) -> str | None:
+        """
+        Return the default dataset encoded in a ``bigquery://project/dataset`` URI.
+
+        The BigQuery SQLAlchemy driver uses the URL ``database`` component as the
+        default dataset, but only when ``host`` (the project) is also present.
+        The triple-slash form ``bigquery:///project`` puts the project in
+        ``database`` with no host, so we guard against misidentifying it as a
+        dataset.
+        """
+        if sqlalchemy_uri.host and sqlalchemy_uri.database:
+            return sqlalchemy_uri.database
+        return None
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
