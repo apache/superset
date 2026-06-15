@@ -239,13 +239,6 @@ export interface SupersetSpecificTokens {
   buttonSecondaryActiveBorderColor?: string;
 
   /**
-   * When false, the Select dropdown uses a subtle background hover
-   * instead of a bold outline ring on the active option.
-   * Defaults to true (outline shown).
-   */
-  selectOptionActiveOutline?: boolean;
-
-  /**
    * SQL Lab grid customization tokens.
    * Control the appearance of the AG Grid result table in SQL Lab.
    */
