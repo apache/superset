@@ -48,12 +48,6 @@ export interface View {
   name: string;
   /** Optional description of the view, for display in contribution manifests. */
   description?: string;
-  /**
-   * Optional icon identifier for the view, used in admin pickers and manifest
-   * listings. Static — set once at registerView() time.
-   * Dynamic icon states (e.g. notification badge) are the extension's concern.
-   */
-  icon?: string;
 }
 
 /**
@@ -62,7 +56,7 @@ export interface View {
  * The view provider function is called when the UI renders the location,
  * and should return a React element to display.
  *
- * @param view The view descriptor (id, name, and optional icon/description).
+ * @param view The view descriptor (id, name, and optional description).
  * @param location The location where this view should appear (e.g. "sqllab.panels").
  * @param provider A function that returns the React element to render.
  * @returns A Disposable that unregisters the view when disposed.

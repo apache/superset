@@ -260,8 +260,6 @@ export interface ExtensionModule {
  * by registering commands, views, menus, and editors as module-level side effects.
  */
 export interface Extension {
-  /** List of other extensions that this extension depends on */
-  dependencies: string[];
   /** Human-readable description of the extension */
   description: string;
   /** Unique identifier for the extension */

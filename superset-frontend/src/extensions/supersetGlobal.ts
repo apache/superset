@@ -31,10 +31,7 @@ import type {
   chat,
   commands,
   core,
-  dashboard,
-  dataset,
   editors,
-  explore,
   extensions,
   menus,
   navigation,
@@ -48,10 +45,7 @@ export interface SupersetGlobal {
   core: typeof core;
   chat: typeof chat;
   commands: typeof commands;
-  dashboard: typeof dashboard;
-  dataset: typeof dataset;
   editors: typeof editors;
-  explore: typeof explore;
   extensions: typeof extensions;
   menus: typeof menus;
   navigation: typeof navigation;

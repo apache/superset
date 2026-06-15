@@ -18,12 +18,12 @@
  */
 
 /**
- * @fileoverview Navigation namespace for Superset extensions (P3).
+ * @fileoverview Navigation namespace for Superset extensions.
  *
  * Exposes the current application surface so extensions can react to route
  * changes without polling. Entity-level context (chart, dashboard, dataset)
- * is intentionally not included here — use the surface-specific namespace
- * (`explore`, `dashboard`, `dataset`) to retrieve entity payloads.
+ * is intentionally not included here — surface-specific namespaces that
+ * resolve entity payloads are introduced in later phases.
  */
 
 import { Event } from '../common';
@@ -32,13 +32,12 @@ import { Event } from '../common';
  * The set of top-level application surfaces.
  *
  * `'explore'`, `'dashboard'` and `'dataset'` are the single-entity
- * editing/viewing surfaces where `explore.getCurrentChart()` /
- * `dashboard.getCurrentDashboard()` / `dataset.getCurrentDataset()` resolve to a
- * concrete entity. `'chart_list'`, `'dashboard_list'` and `'dataset_list'` are
- * the browse/list surfaces, distinct from those because no single entity is
- * active. `'sqllab'` is the SQL editor where `sqlLab.getCurrentTab()` resolves;
- * `'query_history'` and `'saved_queries'` are the related SQL Lab browse pages,
- * which are not the editor. `'other'` covers any route not explicitly enumerated.
+ * editing/viewing surfaces. `'chart_list'`, `'dashboard_list'` and
+ * `'dataset_list'` are the browse/list surfaces, distinct from those because no
+ * single entity is active. `'sqllab'` is the SQL editor where
+ * `sqlLab.getCurrentTab()` resolves; `'query_history'` and `'saved_queries'`
+ * are the related SQL Lab browse pages, which are not the editor. `'other'`
+ * covers any route not explicitly enumerated.
  */
 export type PageType =
   | 'dashboard'
@@ -60,7 +59,7 @@ export type PageType =
  * ```typescript
  * const pageType = navigation.getPageType();
  * if (pageType === 'dashboard') {
- *   const ctx = dashboard.getCurrentDashboard();
+ *   // react to being on a dashboard surface
  * }
  * ```
  */
@@ -68,13 +67,12 @@ export declare function getPageType(): PageType;
 
 /**
  * Event fired whenever the user navigates to a different surface.
- * Use the surface-specific namespace to read entity context after the event.
  *
  * @example
  * ```typescript
  * const sub = navigation.onDidChangePage(pageType => {
  *   if (pageType === 'dashboard') {
- *     const ctx = dashboard.getCurrentDashboard();
+ *     // react to navigating onto a dashboard surface
  *   }
  * });
  * // later:
