@@ -195,6 +195,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     allows_hidden_cc_in_orderby = True
 
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+    supports_dynamic_schema = True
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
