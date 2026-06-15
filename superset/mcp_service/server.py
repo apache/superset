@@ -509,6 +509,27 @@ def _fix_call_tool_arguments(tool: Any) -> Any:
     return tool
 
 
+def _fix_search_tool_query(tool: Any) -> Any:
+    """Fix anyOf schema in search_tools ``query`` for MCP bridge compatibility.
+
+    The optional ``query: str | None`` parameter emits an ``anyOf`` JSON
+    Schema with no top-level ``type``. Some MCP bridges (mcp-remote,
+    Claude Desktop) don't handle ``anyOf`` and strip it, leaving the field
+    typeless — the same failure mode ``_fix_call_tool_arguments`` guards
+    against. Replaces the ``anyOf`` with a flat ``type: string``.
+
+    Only the advertised schema changes; FastMCP validates calls against
+    the function signature, so omitting ``query`` remains valid.
+    """
+    if "query" in (props := (tool.parameters or {}).get("properties", {})):
+        props["query"] = {
+            "default": None,
+            "description": "Natural language query. Omit to list all available tools.",
+            "type": "string",
+        }
+    return tool
+
+
 def _normalize_call_tool_arguments(
     arguments: dict[str, Any] | None,
     tool_schema: dict[str, Any] | None,
@@ -619,7 +640,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     )
 
 
-def _create_search_transform(
+def _create_search_transform(  # noqa: C901
     *,
     strategy: str,
     kwargs: dict[str, Any],
@@ -627,6 +648,32 @@ def _create_search_transform(
 ) -> Any:
     """Create the configured search transform with tool-permission filtering."""
     from fastmcp.server.context import Context
+    from fastmcp.tools.tool import Tool
+
+    def _make_optional_query_search_tool(transform: Any) -> Any:
+        """Create search tool with optional query — returns all tools when omitted."""
+
+        async def search_tools(
+            query: Annotated[
+                str | None,
+                "Natural language query. Omit to list all available tools.",
+            ] = None,
+            ctx: Context = None,
+        ) -> str | list[dict[str, Any]]:
+            """Search for tools using natural language.
+
+            Returns matching tool definitions ranked by relevance.
+            If no query is provided, returns all available tools.
+            """
+            hidden = await transform._get_visible_tools(ctx)
+            if not query:
+                results = hidden
+            else:
+                results = await transform._search(hidden, query)
+            return await transform._render_results(results)
+
+        tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
+        return _fix_search_tool_query(tool)
 
     if strategy == "regex":
         from fastmcp.server.transforms.search import RegexSearchTransform
@@ -643,6 +690,10 @@ def _create_search_transform(
                 """Build the normalized ``call_tool`` proxy for regex search."""
                 return make_normalizing_call_tool(self)
 
+            def _make_search_tool(self) -> Any:
+                """Build the optional-query ``search_tools`` for regex search."""
+                return _make_optional_query_search_tool(self)
+
         return _FixedRegexSearchTransform(**kwargs)
 
     from fastmcp.server.transforms.search import BM25SearchTransform
@@ -658,6 +709,10 @@ def _create_search_transform(
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""
             return make_normalizing_call_tool(self)
+
+        def _make_search_tool(self) -> Any:
+            """Build the optional-query ``search_tools`` for BM25 search."""
+            return _make_optional_query_search_tool(self)
 
     return _FixedBM25SearchTransform(**kwargs)
 
