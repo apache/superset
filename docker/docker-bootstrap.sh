@@ -81,10 +81,12 @@ case "${1}" in
   app)
     echo "Starting web app (using development server)..."
 
-    # Always run in Flask debug mode here: this is the dev compose entrypoint,
-    # and Superset's Talisman selector keys off app.debug to serve the dev CSP
-    # (which permits 'unsafe-eval' required by React Refresh / HMR).
-    export FLASK_DEBUG=1
+    # Default to Flask debug mode in this dev compose entrypoint so the Talisman
+    # dev CSP (which permits 'unsafe-eval' required by React Refresh / HMR) is
+    # served. Operators can still set FLASK_DEBUG=false in docker/.env-local
+    # to exercise the production-like CSP and error handling.
+    : "${FLASK_DEBUG:=1}"
+    export FLASK_DEBUG
 
     # Werkzeug's interactive debugger (/console) is a separate, security-sensitive
     # feature and must be opted into explicitly via SUPERSET_DEBUG_ENABLED=true.
