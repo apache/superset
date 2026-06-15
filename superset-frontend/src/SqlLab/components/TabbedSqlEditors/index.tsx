@@ -25,6 +25,7 @@ import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { Logger } from 'src/logger/LogUtils';
 import { EmptyState, Tooltip } from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -176,14 +177,16 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       key: qe.id,
       label: <SqlEditorTabHeader queryEditor={qe} />,
       children: (
-        <SqlEditor
-          queryEditor={qe}
-          defaultQueryLimit={this.props.defaultQueryLimit}
-          maxRow={this.props.maxRow}
-          displayLimit={this.props.displayLimit}
-          saveQueryWarning={this.props.saveQueryWarning}
-          scheduleQueryWarning={this.props.scheduleQueryWarning}
-        />
+        <ErrorBoundary>
+          <SqlEditor
+            queryEditor={qe}
+            defaultQueryLimit={this.props.defaultQueryLimit}
+            maxRow={this.props.maxRow}
+            displayLimit={this.props.displayLimit}
+            saveQueryWarning={this.props.saveQueryWarning}
+            scheduleQueryWarning={this.props.scheduleQueryWarning}
+          />
+        </ErrorBoundary>
       ),
     }));
 

@@ -25,7 +25,7 @@ jobs:
       python: ${{ steps.check.outputs.python }}
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - name: Check for file changes
@@ -50,11 +50,6 @@ jobs:
     services:
       postgres:
         image: postgres:17-alpine
-        # Authenticated pulls use our higher Docker Hub rate limit. Empty on
-        # fork PRs (secrets unavailable) -> runner falls back to anonymous.
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -64,9 +59,6 @@ jobs:
           - 15432:5432
       presto:
         image: starburstdata/presto:350-e.6
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -76,14 +68,11 @@ jobs:
           - 15433:8080
       redis:
         image: redis:7-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         ports:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           submodules: recursive
@@ -101,7 +90,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: python,presto
           verbose: true
@@ -125,11 +114,6 @@ jobs:
     services:
       postgres:
         image: postgres:17-alpine
-        # Authenticated pulls use our higher Docker Hub rate limit. Empty on
-        # fork PRs (secrets unavailable) -> runner falls back to anonymous.
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -139,14 +123,11 @@ jobs:
           - 15432:5432
       redis:
         image: redis:7-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         ports:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           submodules: recursive
@@ -171,7 +152,7 @@ jobs:
           pip install -e .[hive]
           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: python,hive
           verbose: true

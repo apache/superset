@@ -82,6 +82,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Map'),
+      expanded: true,
       controlSetRows: [
         [mapProvider],
         [mapboxStyle],

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -4599,6 +4599,9 @@ msgstr "تنظیمات پایگاه داده به‌روزرسانی شدند"
 
 msgid "Database type does not support file uploads."
 msgstr "نوع پایگاه داده از بارگذاری فایل پشتیبانی نمی‌کند."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "بارگذاری فایل پایگاه داده ناموفق بود"
@@ -17343,6 +17346,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "خصوصیت `operation` از شیء پس از پردازش تعریف نشده است"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "بسته `prophet` نصب نشده است"
 
@@ -18228,10 +18235,6 @@ msgstr "مقدار صعودی"
 
 msgid "value descending"
 msgstr "مقدار نزولی"
-
-#, fuzzy
-msgid "valuename"
-msgstr "نام جدول"
 
 msgid "var"
 msgstr "متغیر"
