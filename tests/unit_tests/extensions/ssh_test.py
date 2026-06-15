@@ -121,7 +121,7 @@ def test_verify_host_key_mismatch_raises(
 def test_verify_host_key_connect_failure_raises(
     mock_create_connection: Mock,
 ) -> None:
-    # A bounded TCP connect failure surfaces as a host-key verification error.
+    """A bounded TCP connect failure surfaces as a host-key verification error."""
     manager = _make_manager(strict=False)
     server_key = paramiko.RSAKey.generate(2048)
     tunnel = _ssh_tunnel(_authorized_key(server_key))
@@ -134,7 +134,7 @@ def test_verify_host_key_connect_failure_raises(
 
 @patch("superset.extensions.ssh.paramiko.Transport")
 def test_verify_host_key_unset_non_strict_skips(mock_transport_cls: Mock) -> None:
-    # Back-compat: no expected key + strict checking off => no verification at all.
+    """Back-compat: no expected key + strict checking off => no verification at all."""
     manager = _make_manager(strict=False)
     tunnel = _ssh_tunnel(None)
 
@@ -145,7 +145,7 @@ def test_verify_host_key_unset_non_strict_skips(mock_transport_cls: Mock) -> Non
 
 @patch("superset.extensions.ssh.paramiko.Transport")
 def test_verify_host_key_unset_strict_raises(mock_transport_cls: Mock) -> None:
-    # Fail-closed: no expected key + strict checking on => reject.
+    """Fail-closed: no expected key + strict checking on => reject."""
     manager = _make_manager(strict=True)
     tunnel = _ssh_tunnel(None)
 
@@ -210,10 +210,13 @@ def test_create_tunnel_pins_verified_host_key(
     mock_create_connection: Mock,
     mock_open_tunnel: Mock,
 ) -> None:
-    # When an expected host key is configured and verified, it is also pinned on the
-    # tunnel's own connection (``ssh_host_key``) so paramiko verifies the host that
-    # actually carries traffic on the same transport — closing the probe-vs-tunnel
-    # TOCTOU gap rather than trusting only the pre-flight probe.
+    """A verified expected key is also pinned on the tunnel's own connection.
+
+    When an expected host key is configured and verified, it is also pinned on the
+    tunnel's own connection (``ssh_host_key``) so paramiko verifies the host that
+    actually carries traffic on the same transport — closing the probe-vs-tunnel
+    TOCTOU gap rather than trusting only the pre-flight probe.
+    """
     server_key = paramiko.RSAKey.generate(2048)
     manager = _make_manager(strict=False)
     tunnel = _ssh_tunnel(_authorized_key(server_key))
@@ -246,7 +249,7 @@ def test_create_tunnel_without_host_key_does_not_pin(mock_open_tunnel: Mock) -> 
 
 
 def test_ssh_tunnel_schema_round_trips_server_host_key() -> None:
-    # The schema accepts and preserves the public host key field.
+    """The schema accepts and preserves the public host key field."""
     from superset.databases.schemas import DatabaseSSHTunnel
 
     server_key = paramiko.RSAKey.generate(2048)

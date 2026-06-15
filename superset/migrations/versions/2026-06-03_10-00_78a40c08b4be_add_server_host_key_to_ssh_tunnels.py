@@ -38,6 +38,7 @@ down_revision = "b7c9d1e2f3a4"
 
 
 def upgrade() -> None:
+    """Add the nullable ``server_host_key`` column to ``ssh_tunnels``."""
     add_columns(
         "ssh_tunnels",
         sa.Column("server_host_key", sa.Text(), nullable=True),
@@ -45,4 +46,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Drop the ``server_host_key`` column from ``ssh_tunnels``."""
     drop_columns("ssh_tunnels", "server_host_key")

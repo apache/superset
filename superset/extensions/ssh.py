@@ -54,7 +54,9 @@ def _parse_authorized_key(authorized_key: str) -> paramiko.PKey:
         raise ValueError("Host key must be in 'ssh-<type> <base64>' form")
     key_type, key_b64 = fields[0], fields[1]
     try:
-        key_bytes = base64.b64decode(key_b64)
+        # validate=True so malformed characters raise instead of being silently
+        # dropped, which could otherwise pin an unintended key value.
+        key_bytes = base64.b64decode(key_b64, validate=True)
     except (binascii.Error, ValueError) as ex:
         raise ValueError("Host key base64 payload could not be decoded") from ex
     try:
