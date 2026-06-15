@@ -182,10 +182,9 @@ def current_version_number(model_cls: type[Model], entity_id: int) -> int | None
     version rows yet.
 
     Note: this index is *unstable under retention pruning*. The scheduled
-    :func:`prune_old_versions` task drops shadow rows whose owning
-    ``version_transaction`` is older than
-    :envvar:`SUPERSET_VERSION_HISTORY_RETENTION_DAYS`, so the same integer
-    can refer to different rows before and after a prune cycle. Use
+    retention task (sc-111099) drops shadow rows older than the configured
+    retention window, so the same integer can refer to different rows
+    before and after a prune cycle. Use
     :func:`current_live_transaction_id` for a stable identifier.
     """
     count = _get_version_count(model_cls, entity_id)
@@ -382,10 +381,10 @@ def resolve_version_uuid(
     transaction in Python because there's no portable SQL form for a
     UUIDv5 derivation across PostgreSQL / MySQL / SQLite (Postgres has
     ``uuid_generate_v5``; the other two do not). The iteration count is
-    bounded by ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` worth of
-    edits — the retention task ages older shadow rows out — so the
+    bounded by the configured retention window worth of edits — the
+    retention task (sc-111099) ages older shadow rows out — so the
     practical N is at most a few hundred. If retention is ever
-    disabled (``= 0``) on a heavily-edited entity, this loop is the
+    disabled on a heavily-edited entity, this loop is the
     place to revisit.
 
     Pass *entity* to skip the ``find_active_by_uuid`` lookup; see

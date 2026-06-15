@@ -196,7 +196,8 @@ The array is empty for baseline (`operation_type=0`) transactions. `kind` enumer
 | Key | Default | Purpose |
 |---|---|---|
 | `ENABLE_VERSIONING_CAPTURE` | `True` | Master switch for the two before-flush listeners that drive version capture. Default-on; set to `False` in `superset_config.py` (or via the env var of the same name) for an operational kill-switch — when a versioning-induced save-path regression needs a 30-second recovery (restart workers, capture stops) instead of revert + redeploy. Existing shadow tables stay; `/versions/` endpoints continue to work read-only against captured history. New deployments leave it on. |
-| `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Versions older than this many days are pruned by a nightly Celery beat task (`superset.tasks.version_history_retention.prune_old_versions`). Each entity's live row (`end_transaction_id IS NULL`) is always preserved; closed historical rows including the baseline age out with the rest. Set to `0` to disable retention entirely. |
+
+The `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` config key and its nightly retention Celery beat task ship separately in sc-111099 (version-history retention).
 
 **Impact on external integrations:**
 
