@@ -1,0 +1,1 @@
+{"parameters":[{"description":"The report schedule pk","in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}

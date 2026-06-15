@@ -363,6 +363,42 @@ describe('Polygon buildQuery', () => {
       expect(query.filters).toEqual([]);
     });
 
+    test('should include cross_filter_column in query columns when set', () => {
+      const formDataWithCrossFilter = {
+        ...baseFormData,
+        cross_filter_column: 'sa3_name',
+      };
+
+      const queryContext = buildQuery(formDataWithCrossFilter);
+      const [query] = queryContext.queries;
+
+      expect(query.columns).toContain('sa3_name');
+    });
+
+    test('should not duplicate cross_filter_column when it overlaps with another column', () => {
+      const formDataWithOverlap = {
+        ...baseFormData,
+        js_columns: ['sa3_name', 'extra_col'],
+        cross_filter_column: 'sa3_name',
+      };
+
+      const queryContext = buildQuery(formDataWithOverlap);
+      const [query] = queryContext.queries;
+
+      const sa3Count = query.columns?.filter(
+        (col: unknown) => col === 'sa3_name',
+      ).length;
+      expect(sa3Count).toBe(1);
+    });
+
+    test('should not add cross_filter_column to query columns when unset', () => {
+      const queryContext = buildQuery(baseFormData);
+      const [query] = queryContext.queries;
+
+      // Only the geometry column should be present; the control was not set.
+      expect(query.columns).toEqual(['polygon_geom']);
+    });
+
     test('should build comprehensive query when multiple form data fields are specified', () => {
       const complexFormData = {
         ...baseFormData,

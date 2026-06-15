@@ -701,6 +701,30 @@ test('does not show screenshot width when csv is selected', async () => {
   expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });
 
+test('clearing the chart selection resets the combobox value', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test chart/i);
+  const chartCombobox = screen.getByRole('combobox', {
+    name: /Chart: Test Chart/i,
+  });
+  const chartSelectRoot = chartCombobox.closest('.ant-select');
+  expect(chartSelectRoot).toBeInTheDocument();
+  await userEvent.click(
+    within(chartSelectRoot as HTMLElement).getByLabelText('close-circle'),
+  );
+  await waitFor(() => {
+    expect(
+      within(chartSelectRoot as HTMLElement).queryByText(/test chart/i),
+    ).not.toBeInTheDocument();
+    expect(
+      within(chartSelectRoot as HTMLElement).getByText(/select chart to use/i),
+    ).toBeInTheDocument();
+  });
+});
+
 test('shows screenshot width when PDF is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,

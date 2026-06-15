@@ -20,7 +20,6 @@ import urllib.request
 from typing import Any, Optional, Union
 from urllib.error import URLError
 
-import numpy as np
 import pandas as pd
 
 from superset.utils import json
@@ -32,11 +31,14 @@ negative_number_re = re.compile(r"^-[0-9.]+$")
 
 # This regex will match if the string starts with:
 #
-#     1. one of -, @, +, |, =, %
+#     1. one of -, @, +, |, =, %, a tab, or a carriage return
 #     2. two double quotes immediately followed by one of -, @, +, |, =, %
 #     3. one or more spaces immediately followed by one of -, @, +, |, =, %
 #
-problematic_chars_re = re.compile(r'^(?:"{2}|\s{1,})(?=[\-@+|=%])|^[\-@+|=%]')
+# A leading tab or carriage return is treated as dangerous on its own because
+# some spreadsheet software trims that leading whitespace and then evaluates
+# the remaining cell content as a formula.
+problematic_chars_re = re.compile(r'^(?:"{2}|\s{1,})(?=[\-@+|=%])|^[\-@+|=%\t\r]')
 
 
 def escape_value(value: str) -> str:
@@ -71,12 +73,18 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # Escape csv headers
     df = df.rename(columns=escape_values)
 
-    # Escape csv values
+    # Escape csv values. Iterate by index label (via ``items``) rather than by
+    # positional offset so the escaped value is written back to the correct row
+    # even when the DataFrame has a non-default index (e.g. the flattened
+    # MultiIndex produced by pivot_table_v2 post-processing). Pairing positional
+    # indices with the label-based ``.at`` accessor would otherwise create
+    # phantom rows and corrupt the output. Only string cells are reassigned, so
+    # the dtype of mixed object columns (e.g. nullable integers) is preserved.
     for name, column in df.items():
-        if column.dtype == np.dtype(object):
-            for idx, value in enumerate(column.values):
+        if pd.api.types.is_string_dtype(column.dtype):
+            for label, value in column.items():
                 if isinstance(value, str):
-                    df.at[idx, name] = escape_value(value)
+                    df.at[label, name] = escape_value(value)
 
     return df.to_csv(escapechar="\\", **kwargs)
 

@@ -19,13 +19,13 @@
 import React, {
   ReactElement,
   useCallback,
+  useDeferredValue,
   useMemo,
   useState,
   Dispatch,
   SetStateAction,
 } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -213,10 +213,7 @@ export const useExploreAdditionalActionsMenu = (
   const dispatch = useDispatch();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [dashboardSearchTerm, setDashboardSearchTerm] = useState('');
-  const debouncedDashboardSearchTerm = useDebounceValue(
-    dashboardSearchTerm,
-    300,
-  );
+  const deferredDashboardSearchTerm = useDeferredValue(dashboardSearchTerm);
   const chart = useSelector<ExploreState, ChartState | undefined>(state =>
     state.explore ? state.charts?.[getChartKey(state.explore)] : undefined,
   );
@@ -304,7 +301,7 @@ export const useExploreAdditionalActionsMenu = (
   const dashboardMenuItems = useDashboardsMenuItems({
     chartId: slice?.slice_id,
     dashboards,
-    searchTerm: debouncedDashboardSearchTerm,
+    searchTerm: deferredDashboardSearchTerm,
   });
 
   const showDashboardSearch = (dashboards?.length ?? 0) > SEARCH_THRESHOLD;
@@ -1054,7 +1051,7 @@ export const useExploreAdditionalActionsMenu = (
     dashboards,
     dashboardMenuItems,
     dashboardSearchTerm,
-    debouncedDashboardSearchTerm,
+    deferredDashboardSearchTerm,
     datasource,
     dispatch,
     exportCSV,

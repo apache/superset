@@ -80,7 +80,7 @@ interface FilterScopeMap {
   [key: string]: FilterScopeMapEntry;
 }
 
-interface FilterScopeSelectorProps {
+export interface FilterScopeSelectorProps {
   dashboardFilters: Record<number, DashboardFilter>;
   layout: DashboardLayout;
   updateDashboardFiltersScope: (

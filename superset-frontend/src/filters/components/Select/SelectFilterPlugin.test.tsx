@@ -37,7 +37,7 @@ import {
   PluginFilterSelectQueryFormData,
 } from './types';
 
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
 
 const selectMultipleProps = {
   formData: {
@@ -1286,7 +1286,7 @@ test('resets dependent filter to first item when value does not exist in data', 
 });
 
 test('renders text input instead of dropdown when operatorType is ILIKE contains', () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const props = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Contains },
@@ -1316,7 +1316,7 @@ test('renders text input instead of dropdown when operatorType is ILIKE contains
 });
 
 test('renders text input with starts-with placeholder', () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const props = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.StartsWith },
@@ -1345,7 +1345,7 @@ test('renders text input with starts-with placeholder', () => {
 });
 
 test('typing in LIKE input calls setDataMask with ILIKE Contains payload', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const props = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Contains },
@@ -1391,7 +1391,7 @@ test('typing in LIKE input calls setDataMask with ILIKE Contains payload', async
 });
 
 test('typing in LIKE input with inverse selection calls setDataMask with NOT ILIKE payload', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const props = buildSelectFilterProps({
     formData: {
@@ -1440,7 +1440,7 @@ test('typing in LIKE input with inverse selection calls setDataMask with NOT ILI
 });
 
 test('clear-all resets LIKE input value and calls setDataMask with empty state', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const likeProps = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Contains },
@@ -1506,7 +1506,7 @@ test('clear-all resets LIKE input value and calls setDataMask with empty state',
 });
 
 test('pending LIKE debounce still applies after rerender recreates updateDataMask', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const likeProps = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Contains },
@@ -1573,7 +1573,7 @@ test('pending LIKE debounce still applies after rerender recreates updateDataMas
 });
 
 test('pending LIKE debounce is canceled when operatorType switches back to Exact', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const likeProps = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Contains },
@@ -1628,7 +1628,7 @@ test('pending LIKE debounce is canceled when operatorType switches back to Exact
 });
 
 test('renders standard Select dropdown when operatorType is Exact', () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
   const props = buildSelectFilterProps({
     formData: { operatorType: SelectFilterOperatorType.Exact },

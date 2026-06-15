@@ -251,23 +251,16 @@ test('handles special characters in dataset name from URL parameter', async () =
     status: 200,
   });
 
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: {
-      ...originalLocation,
-      search: '?dataset=flights%C3%86%20test',
-    },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dataset=flights%C3%86%20test',
+  } as Location);
 
   await renderComponent();
 
   expect(await screen.findByText('flightsÆ test')).toBeInTheDocument();
 
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-  });
+  locationSpy.mockRestore();
 });
 
 test('pre-selects the dataset from URL parameter and shows it in dropdown', async () => {
@@ -288,20 +281,16 @@ test('pre-selects the dataset from URL parameter and shows it in dropdown', asyn
     status: 200,
   });
 
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: { ...originalLocation, search: '?dataset=flights' },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dataset=flights',
+  } as Location);
 
   await renderComponent();
 
   expect(await screen.findByText('flights')).toBeInTheDocument();
 
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-  });
+  locationSpy.mockRestore();
 });
 
 test('shows loading spinner when dataset parameter is present in URL', async () => {
@@ -329,11 +318,10 @@ test('shows loading spinner when dataset parameter is present in URL', async () 
     })),
   );
 
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: { ...originalLocation, search: '?dataset=flights' },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dataset=flights',
+  } as Location);
 
   render(
     <ChartCreation
@@ -356,10 +344,7 @@ test('shows loading spinner when dataset parameter is present in URL', async () 
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-  });
+  locationSpy.mockRestore();
 });
 
 test('shows only exact match when loading dataset from URL, not partial matches', async () => {
@@ -406,19 +391,15 @@ test('shows only exact match when loading dataset from URL, not partial matches'
     };
   });
 
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: { ...originalLocation, search: '?dataset=flights' },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dataset=flights',
+  } as Location);
 
   await renderComponent();
 
   await screen.findByText('flights');
   expect(screen.queryByText('flights_delayed')).not.toBeInTheDocument();
 
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-  });
+  locationSpy.mockRestore();
 });

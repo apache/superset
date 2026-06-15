@@ -27,6 +27,7 @@ import {
   RefObject,
 } from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
+import { VizType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { debounce } from 'lodash';
@@ -495,7 +496,9 @@ const Chart = (props: ChartProps) => {
       const resultType = isPivot ? 'post_processed' : 'full';
 
       let actualRowCount: number | undefined;
-      const isTableViz = (formData as JsonObject)?.viz_type === 'table';
+      const vizType = (formData as JsonObject)?.viz_type;
+      const isTableViz =
+        vizType === VizType.Table || vizType === VizType.TableAgGrid;
 
       if (
         isTableViz &&

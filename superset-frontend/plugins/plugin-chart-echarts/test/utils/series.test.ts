@@ -1402,7 +1402,7 @@ test('getAxisType with forced categorical', () => {
 
 test('getAxisType treats numeric as category for bar charts', () => {
   expect(
-    getAxisType(
+    (getAxisType as (...args: unknown[]) => AxisType)(
       false,
       false,
       GenericDataType.Numeric,
@@ -1410,13 +1410,29 @@ test('getAxisType treats numeric as category for bar charts', () => {
     ),
   ).toEqual(AxisType.Category);
   expect(
-    getAxisType(
+    (getAxisType as (...args: unknown[]) => AxisType)(
       false,
       false,
       GenericDataType.Numeric,
       EchartsTimeseriesSeriesType.Line,
     ),
   ).toEqual(AxisType.Value);
+});
+
+test('getAxisType does not coerce Numeric x-axis to Time regardless of values', () => {
+  // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation:
+  // getAxisType only considers the coltype reported by the query, never the
+  // actual values. Numeric coltype must stay on a Value axis so a future
+  // change that introduces implicit temporal coercion is surfaced here.
+  expect(getAxisType(false, false, GenericDataType.Numeric)).toEqual(
+    AxisType.Value,
+  );
+  expect(getAxisType(false, false, GenericDataType.Temporal)).toEqual(
+    AxisType.Time,
+  );
+  expect(getAxisType(false, false, GenericDataType.String)).toEqual(
+    AxisType.Category,
+  );
 });
 
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {

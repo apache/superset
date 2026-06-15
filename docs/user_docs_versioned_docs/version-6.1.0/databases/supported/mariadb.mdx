@@ -1,0 +1,31 @@
+---
+title: MariaDB
+sidebar_label: MariaDB
+description: "MariaDB is a community-developed fork of MySQL."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"mariadb","engine_name":"MariaDB","module":"mariadb","documentation":{"description":"MariaDB is a community-developed fork of MySQL.","logo":"mariadb.png","homepage_url":"https://mariadb.org/","pypi_packages":["mysqlclient","mysqlclient"],"connection_string":"mysql://{username}:{password}@{host}/{database}","default_port":3306,"parameters":{"username":"Database username","password":"Database password","host":"localhost, 127.0.0.1, IP address, or hostname","database":"Database name"},"host_examples":[{"platform":"Localhost","host":"localhost or 127.0.0.1"},{"platform":"Docker on Linux","host":"172.18.0.1"},{"platform":"Docker on macOS","host":"docker.for.mac.host.internal"},{"platform":"On-premise","host":"IP address or hostname"}],"drivers":[{"name":"mysqlclient","pypi_package":"mysqlclient","connection_string":"mysql://{username}:{password}@{host}/{database}","is_recommended":true,"notes":"Recommended driver. May fail with caching_sha2_password auth."},{"name":"mysql-connector-python","pypi_package":"mysql-connector-python","connection_string":"mysql+mysqlconnector://{username}:{password}@{host}/{database}","is_recommended":false,"notes":"Required for newer MySQL databases using caching_sha2_password authentication."}],"categories":["TRADITIONAL_RDBMS","OPEN_SOURCE"],"notes":"Uses the MySQL driver. Fully compatible with MySQL connector."},"time_grains":{"SECOND":true,"FIVE_SECONDS":false,"THIRTY_SECONDS":false,"MINUTE":true,"FIVE_MINUTES":false,"TEN_MINUTES":false,"FIFTEEN_MINUTES":false,"THIRTY_MINUTES":false,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":false,"WEEK_STARTING_MONDAY":true,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":59,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":true,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":true,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="MariaDB" database={databaseInfo} />

@@ -24,7 +24,7 @@ import {
   ExplorePageState,
 } from 'src/explore/types';
 import { getChartKey } from 'src/explore/exploreUtils';
-import { getControlsState } from 'src/explore/store';
+import { getControlsState, handleDeprecatedControls } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
   Currency,
@@ -77,6 +77,12 @@ export const hydrateExplore =
     const fallbackSlice = sliceId ? sliceEntities?.slices?.[sliceId] : null;
     const initialSlice = slice ?? fallbackSlice;
     const initialFormData = form_data ?? initialSlice?.form_data;
+    const isCachedFormData = getUrlParam(URL_PARAMS.formDataKey) !== null;
+    const [primarySliceNameSource, fallbackSliceNameSource] = isCachedFormData
+      ? [initialFormData, initialSlice]
+      : [initialSlice, initialFormData];
+    const initialSliceName =
+      primarySliceNameSource?.slice_name ?? fallbackSliceNameSource?.slice_name;
     if (!initialFormData.viz_type) {
       const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
       initialFormData.viz_type =
@@ -115,6 +121,12 @@ export const hydrateExplore =
           metric.currency!,
         ]),
     );
+
+    // Normalize deprecated controls (e.g., migrate old per-axis matrixify
+    // flags to matrixify_enable) before form_data is stored in Redux state.
+    // getControlsState also calls this on its own copy, but state.form_data
+    // must reflect the same migration so the two stay consistent.
+    handleDeprecatedControls(initialFormData);
 
     const initialExploreState = {
       form_data: initialFormData,
@@ -177,6 +189,7 @@ export const hydrateExplore =
       // because `bootstrapData.controls` is undefined.
       controls: initialControls,
       form_data: initialFormData,
+      sliceName: initialSliceName,
       slice: initialSlice,
       controlsTransferred: explore.controlsTransferred,
       standalone: getUrlParam(URL_PARAMS.standalone),

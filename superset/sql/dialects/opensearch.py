@@ -19,9 +19,7 @@
 OpenSearch SQL dialect.
 
 OpenSearch SQL is syntactically close to MySQL but accepts both backticks and
-double-quotes as identifier delimiters. Treating ``"`` as an identifier (rather
-than a string delimiter, as MySQL does) is what keeps mixed-case column names
-from being emitted as string literals after a SQLGlot round-trip.
+double-quotes as identifier delimiters.
 """
 
 from __future__ import annotations
@@ -31,4 +29,4 @@ from sqlglot.dialects.mysql import MySQL
 
 class OpenSearch(MySQL):
     class Tokenizer(MySQL.Tokenizer):
-        IDENTIFIERS = ['"', "`"]
+        IDENTIFIERS = ["`", '"']

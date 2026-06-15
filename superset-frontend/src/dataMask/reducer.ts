@@ -66,7 +66,7 @@ interface DashboardMetadata {
   chart_customization_config?: ChartCustomization[];
 }
 
-interface HydrateDashboardAction {
+export interface HydrateDataMaskAction {
   type: typeof HYDRATE_DASHBOARD;
   data: {
     dashboardInfo: {
@@ -199,7 +199,7 @@ function updateDataMaskForFilterChanges(
 const dataMaskReducer = produce(
   (
     draft: DataMaskStateWithId,
-    action: AnyDataMaskAction | HydrateDashboardAction | HydrateExplore,
+    action: AnyDataMaskAction | HydrateDataMaskAction | HydrateExplore,
   ) => {
     const cleanState: DataMaskStateWithId = {};
     switch (action.type) {
@@ -213,7 +213,7 @@ const dataMaskReducer = produce(
         };
         return draft;
       case HYDRATE_DASHBOARD: {
-        const hydrateDashboardAction = action as HydrateDashboardAction;
+        const hydrateDashboardAction = action as HydrateDataMaskAction;
         const metadata = hydrateDashboardAction.data.dashboardInfo?.metadata;
         const loadedDataMask = hydrateDashboardAction.data.dataMask;
 

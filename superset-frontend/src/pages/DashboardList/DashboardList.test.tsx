@@ -20,7 +20,7 @@ import fetchMock from 'fetch-mock';
 import { isFeatureEnabled } from '@superset-ui/core';
 import {
   screen,
-  selectOption,
+  selectPillOption,
   waitFor,
   fireEvent,
 } from 'spec/helpers/testing-library';
@@ -200,7 +200,7 @@ test('selecting Status filter encodes published=true in API call', async () => {
     ).toBeInTheDocument();
   });
 
-  await selectOption('Published', 'Status');
+  await selectPillOption('Published', 'Status');
 
   await waitFor(() => {
     const latest = getLatestDashboardApiCall();
@@ -242,7 +242,7 @@ test('selecting Owner filter encodes rel_m_m owner in API call', async () => {
     ).toBeInTheDocument();
   });
 
-  await selectOption('Admin User', 'Owner');
+  await selectPillOption('Admin User', 'Owner');
 
   await waitFor(() => {
     const latest = getLatestDashboardApiCall();
@@ -287,7 +287,7 @@ test('selecting Modified by filter encodes rel_o_m changed_by in API call', asyn
     ).toBeInTheDocument();
   });
 
-  await selectOption('Admin User', 'Modified by');
+  await selectPillOption('Admin User', 'Modified by');
 
   await waitFor(() => {
     const latest = getLatestDashboardApiCall();

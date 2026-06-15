@@ -43,13 +43,13 @@ import {
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 
-interface EditorInstance {
+export interface EditorInstance {
   resize?: (force: boolean) => void;
   getSession?: () => { setUseWrapMode: (wrap: boolean) => void };
   focus?: () => void;
 }
 
-interface MarkdownOwnProps {
+export interface MarkdownOwnProps {
   id: string;
   parentId: string;
   component: LayoutItem;
@@ -71,7 +71,7 @@ interface MarkdownOwnProps {
   updateComponents: (components: Record<string, LayoutItem>) => void;
 }
 
-interface MarkdownStateProps {
+export interface MarkdownStateProps {
   logEvent: (eventName: string, eventData: JsonObject) => void;
   addDangerToast: (msg: string) => void;
   undoLength: number;
@@ -80,9 +80,9 @@ interface MarkdownStateProps {
   htmlSchemaOverrides?: JsonObject;
 }
 
-type MarkdownProps = MarkdownOwnProps & MarkdownStateProps;
+export type MarkdownProps = MarkdownOwnProps & MarkdownStateProps;
 
-interface MarkdownState {
+export interface MarkdownState {
   isFocused: boolean;
   markdownSource: string;
   editor: EditorInstance | null;

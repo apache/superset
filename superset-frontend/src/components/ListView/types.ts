@@ -26,6 +26,10 @@ export interface SortColumn {
 export interface SelectOption {
   label: ReactNode;
   value: any;
+  // Plain-text representation of the option. Callers should set this when
+  // `label` is a ReactNode so that the option can be serialized (e.g. into
+  // URL filter state) without losing the human-readable name.
+  title?: string;
   [key: string]: unknown;
 }
 
