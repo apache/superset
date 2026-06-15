@@ -236,6 +236,49 @@ def test_cache_dashboard_thumbnail_proceeds_when_status_is_error(
     mock_screenshot.compute_and_cache.assert_called_once()
 
 
+@patch("superset.tasks.thumbnails.get_executor")
+@patch("superset.tasks.thumbnails.security_manager")
+@patch("superset.tasks.thumbnails.override_user")
+@patch("superset.tasks.thumbnails.get_url_path")
+@patch("superset.tasks.thumbnails.DashboardScreenshot")
+def test_task_does_not_skip_when_api_enqueued_but_no_prior_computing(
+    mock_screenshot_cls,
+    mock_get_url_path,
+    mock_override_user,
+    mock_security_manager,
+    mock_get_executor,
+    mock_dashboard,
+    mock_thumbnail_cache,
+):
+    """Task must not skip itself when the cache has no COMPUTING marker.
+
+    Previously the API wrote COMPUTING to cache before enqueuing the task,
+    causing the task's dedup guard to treat the marker as a concurrent run
+    and exit before generating any image.  The API no longer writes COMPUTING;
+    the task (via compute_and_cache) owns that transition.
+    """
+    from superset.tasks.thumbnails import cache_dashboard_thumbnail
+
+    mock_screenshot = MagicMock()
+    mock_screenshot.get_cache_key.return_value = "test_cache_key"
+    # No COMPUTING in cache — this is the state left by the API after enqueueing
+    mock_screenshot.get_from_cache_key.return_value = None
+    mock_screenshot_cls.return_value = mock_screenshot
+
+    mock_get_executor.return_value = (None, "admin")
+    mock_security_manager.find_user.return_value = MagicMock()
+
+    with patch("superset.models.dashboard.Dashboard.get", return_value=mock_dashboard):
+        cache_dashboard_thumbnail(
+            current_user="admin",
+            dashboard_id=1,
+            force=False,
+            cache_key="test_cache_key",
+        )
+
+    mock_screenshot.compute_and_cache.assert_called_once()
+
+
 @patch("superset.tasks.thumbnails.thumbnail_cache", None)
 def test_cache_dashboard_thumbnail_skips_when_no_cache():
     """Task should skip when no thumbnail cache is configured."""

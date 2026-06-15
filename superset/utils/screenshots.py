@@ -291,6 +291,7 @@ class BaseScreenshot:
         thumb_size = thumb_size or self.thumb_size
         logger.info("Processing url for thumbnail: %s", cache_key)
         cache_payload.computing()
+        self.cache.set(cache_key, cache_payload.to_dict())
         image = None
         # Assuming all sorts of things can go wrong with Selenium
         try:

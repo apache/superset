@@ -149,38 +149,33 @@ class TestCacheOnlyOnSuccess:
         assert cached_value["status"] == "Updated"
         assert cached_value["image"] is not None
 
-    def test_no_intermediate_cache_during_computing(
+    def test_computing_status_written_to_cache_early(
         self, mocker: MockerFixture, screenshot_obj, mock_user
     ):
-        """Test that cache is not saved during COMPUTING state."""
+        """compute_and_cache writes COMPUTING to cache before taking the screenshot
+        so concurrent tasks can detect it and avoid duplicate work."""
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         BaseScreenshot.cache = MockCache()
 
-        # Mock get_screenshot to check cache state during execution
         def check_cache_during_screenshot(*args, **kwargs):
-            # At this point, we're in COMPUTING state
-            # Cache should NOT be set yet
             cache_key = screenshot_obj.get_cache_key()
             cached_value = BaseScreenshot.cache.get(cache_key)
-            # Cache should be empty during screenshot generation
-            assert cached_value is None, (
-                "Cache should not be saved during COMPUTING state"
+            assert cached_value is not None, (
+                "Cache should be set to COMPUTING before screenshot starts"
             )
+            assert cached_value["status"] == "Computing"
             return b"image_data"
 
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
             side_effect=check_cache_during_screenshot,
         )
-        # Mock resize to avoid PIL errors with fake image data
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image_data"
         )
 
-        # Execute compute_and_cache
         screenshot_obj.compute_and_cache(user=mock_user, force=True)
 
-        # After completion, cache should be set with UPDATED status
         cache_key = screenshot_obj.get_cache_key()
         cached_value = BaseScreenshot.cache.get(cache_key)
         assert cached_value is not None
