@@ -448,7 +448,8 @@ def test_adjust_engine_params_catalog_as_host() -> None:
         {},
         catalog="other-project",
     )[0]
-    assert str(uri) == "bigquery://other-project/"
+    assert uri.host == "other-project"
+    assert not uri.database  # no dataset when only catalog is overridden
 
 
 def test_adjust_engine_params_schema_as_dataset() -> None:
