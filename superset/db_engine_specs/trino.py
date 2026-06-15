@@ -31,7 +31,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
 
-from superset import db
+from superset import cache_manager, db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.base import (
@@ -682,6 +682,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             return []
 
     @classmethod
+    @cache_manager.data_cache.memoize(timeout=60)
     def latest_partition(
         cls,
         database: Database,
@@ -693,7 +694,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         Return the latest partition for a table.
 
         Iceberg "$partitions" metadata fields are filtered out first, so we
-        never build a latest-partition query against them.
+        never build a latest-partition query against them. Memoized like the
+        base implementation so the index lookup is not repeated on cache hits.
 
         :param database: the database the query will be run against
         :param table: the table instance
