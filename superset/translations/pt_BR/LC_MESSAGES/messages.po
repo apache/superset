@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -4789,6 +4789,9 @@ msgstr "Configurações do banco de dados atualizadas"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "O banco de dados não é compatível com subconsultas"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 #, fuzzy
 msgid "Database upload file failed"
@@ -18753,10 +18756,6 @@ msgstr "valor crescente"
 
 msgid "value descending"
 msgstr "valor decrescente"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Nome da Tabela"
 
 msgid "var"
 msgstr "var"

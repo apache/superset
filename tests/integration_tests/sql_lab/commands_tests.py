@@ -112,6 +112,35 @@ class TestQueryEstimationCommand(SupersetTestCase):
             result = command.run()
             assert result == payload
 
+    @patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=True)
+    def test_apply_sql_security_rls_does_not_pollute_session(
+        self, mock_is_feature_enabled: Mock
+    ) -> None:
+        """Regression test for the RLS schema-resolution probe Query.
+
+        ``_apply_sql_security`` builds a transient ``Query`` so the engine spec
+        can resolve the effective per-query schema. Because the ``database``
+        backref cascades ``all, delete-orphan``, that transient joins the
+        session; if it isn't expunged, the very next ``apply_rls`` call issues
+        its own ``db.session`` query, autoflush fires, and the probe — whose
+        ``client_id`` column is ``nullable=False`` — raises ``IntegrityError``.
+        A mocked session (as in the unit tests) hides this entirely, so exercise
+        the real session and real ``apply_rls`` here with ``RLS_IN_SQLLAB`` on.
+        """
+        database = get_example_database()
+        params = {"database_id": database.id, "sql": "SELECT * FROM some_table"}
+        schema = EstimateQueryCostSchema()
+        data: EstimateQueryCostSchema = schema.dump(params)
+        command = estimate.QueryEstimationCommand(data)
+        command._database = database
+
+        with override_user(self.get_user("admin")):
+            # Must not raise IntegrityError from an autoflushed probe Query.
+            command._apply_sql_security("SELECT * FROM some_table")
+
+        # And no transient probe Query may be left pending in the session.
+        assert not any(isinstance(obj, Query) for obj in db.session.new)
+
 
 class TestSqlResultExportCommand(SupersetTestCase):
     @pytest.fixture

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -4654,6 +4654,9 @@ msgstr "Mise à jour des paramètres de la base de données"
 
 msgid "Database type does not support file uploads."
 msgstr "La base de données ne prend pas en charge le chargement de fichiers"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Le chargement de fichier dans la base a échoué"
@@ -18861,10 +18864,6 @@ msgstr "valeurs croissantes"
 #, fuzzy
 msgid "value descending"
 msgstr "valeurs décroissantes"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Nom du tableau"
 
 msgid "var"
 msgstr "var"

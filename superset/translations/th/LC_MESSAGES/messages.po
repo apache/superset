@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -8011,6 +8011,9 @@ msgstr "อัปเดตการตั้งค่าฐานข้อมู
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "ประเภทฐานข้อมูลนี้ไม่รองรับการอัปโหลดไฟล์"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -31703,12 +31706,6 @@ msgstr "ค่าจากน้อยไปมาก"
 #, fuzzy
 msgid "value descending"
 msgstr "ค่าจากมากไปน้อย"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# fr, ja, lv, mi, ru, sk, uk]
-#, fuzzy
-msgid "valuename"
-msgstr "ชื่อตาราง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]

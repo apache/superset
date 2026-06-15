@@ -223,3 +223,49 @@ def test_send_http_only_https_check(monkeypatch, mock_header_data) -> None:
 
     with pytest.raises(NotificationParamException, match="HTTPS is required by config"):
         webhook_notification.send()
+
+
+def test_send_treats_redirect_as_failure(monkeypatch, mock_header_data) -> None:
+    """
+    A 3xx response is a failure: redirects are not followed
+    (allow_redirects=False), so the request never reached the final target and
+    must not be reported as success.
+    """
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    content = NotificationContent(
+        name="test alert", header_data=mock_header_data, description="Test description"
+    )
+    webhook_notification = WebhookNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.WEBHOOK,
+            recipient_config_json='{"target": "https://example.com/webhook"}',
+        ),
+        content=content,
+    )
+
+    class MockCurrentApp:
+        config = {
+            "ALERT_REPORTS_WEBHOOK_HTTPS_ONLY": True,
+            "ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS": True,
+        }
+
+    class MockResponse:
+        status_code = 302
+        text = ""
+
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.current_app", MockCurrentApp
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        lambda flag: True,
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.requests.post",
+        lambda *args, **kwargs: MockResponse(),
+    )
+
+    with pytest.raises(NotificationParamException, match="redirect"):
+        webhook_notification.send()

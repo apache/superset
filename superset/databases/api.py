@@ -1718,6 +1718,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            413:
+              description: Payload too large, file exceeds the maximum allowed size
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             500:
               $ref: '#/components/responses/500'
         """
@@ -1727,6 +1736,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             parameters = UploadFileMetadataPostSchema().load(request_form)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        UploadCommand.validate_file_size(parameters["file"])
         if parameters["type"] == UploadFileType.CSV.value:
             metadata = CSVReader(parameters).file_metadata(parameters["file"])
         elif parameters["type"] == UploadFileType.EXCEL.value:
@@ -1777,6 +1787,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            413:
+              description: Payload too large, file exceeds the maximum allowed size
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             422:
               $ref: '#/components/responses/422'
             500:
