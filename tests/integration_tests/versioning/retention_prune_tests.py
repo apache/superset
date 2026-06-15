@@ -133,6 +133,87 @@ class TestDashboardVersionRetention(SupersetTestCase):
             dashboard.dashboard_title = original_title
             db.session.commit()
 
+    def test_retention_preserves_live_child_and_m2m_rows(self) -> None:
+        """Regression for the live-row preservation BLOCKER.
+
+        A parent-only edit leaves the dashboard's chart associations (the
+        M2M ``dashboard_slices_version`` rows) live but anchored at an
+        *older* transaction than the dashboard's current live row. The
+        prune must preserve that older transaction too — if it scans only
+        parent shadows for live rows, it deletes the still-live
+        association and the surviving version silently loses its slices.
+
+        The parent-only ``test_retention_prunes_old_rows`` cannot catch
+        this: it asserts on the dashboard parent shadow alone, which is
+        exactly the blind spot the bug lived in.
+        """
+        from datetime import datetime, timedelta
+
+        import sqlalchemy as sa
+        from sqlalchemy_continuum import version_class, versioning_manager
+
+        from superset.extensions import db as _db
+        from superset.tasks.version_history_retention import _prune_old_versions_impl
+
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert dashboard is not None
+        assert dashboard.slices, "fixture dashboard must have slices for this test"
+        dashboard_id = dashboard.id
+        original_title = dashboard.dashboard_title
+
+        m2m = version_class(Dashboard).__table__.metadata.tables[
+            "dashboard_slices_version"
+        ]
+
+        def _live_m2m_count() -> int:
+            with _db.engine.begin() as conn:
+                return conn.execute(
+                    sa.select(sa.func.count())
+                    .select_from(m2m)
+                    .where(m2m.c.dashboard_id == dashboard_id)
+                    .where(m2m.c.end_transaction_id.is_(None))
+                ).scalar_one()
+
+        try:
+            # Baseline capture synthesizes the live M2M association rows at
+            # the baseline tx. A parent-only edit then opens a newer parent
+            # live row while the association rows stay live at the older tx.
+            dashboard.dashboard_title = "USA Births Names (parent-only edit)"
+            db.session.commit()
+
+            live_before = _live_m2m_count()
+            assert live_before >= 1, (
+                "expected live dashboard_slices_version rows before prune"
+            )
+
+            # Backdate every transaction so the whole chain is older than
+            # the window — including the tx anchoring the live association.
+            tx_table = versioning_manager.transaction_cls.__table__
+            with _db.engine.begin() as conn:
+                conn.execute(
+                    sa.update(tx_table).values(
+                        issued_at=datetime.utcnow() - timedelta(days=100)
+                    )
+                )
+
+            _prune_old_versions_impl(retention_days=30)
+
+            # The live association rows must survive: their anchoring tx is
+            # preserved because they are live, even though it predates the
+            # dashboard's current live parent row.
+            assert _live_m2m_count() == live_before, (
+                "prune deleted live dashboard_slices_version rows — the "
+                "surviving version lost its slices (preservation BLOCKER)"
+            )
+        finally:
+            dashboard.dashboard_title = original_title
+            db.session.commit()
+
     def test_retention_retries_on_serialization_failure(self) -> None:
         """A transient ``OperationalError`` from the SERIALIZABLE pass
         triggers an inline retry; the prune completes on the second

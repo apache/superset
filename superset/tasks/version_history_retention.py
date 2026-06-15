@@ -21,7 +21,8 @@ owned by ``version_transaction`` rows whose ``issued_at`` is older
 than ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` (default 30, env
 overridable, ``0`` to disable).
 
-One preservation rule, applied per parent shadow:
+One preservation rule, applied across every shadow table (parent,
+child, and the M2M association):
 
 * **Live** (``end_transaction_id IS NULL``) — never pruned.
 
@@ -31,11 +32,11 @@ entity that hasn't been edited within the window has only its live
 row remaining; the historical chain (including the synthetic
 baseline) ages out.
 
-If a transaction's parent shadow includes the live row, the whole
-transaction is preserved (along with its child shadows and
-``version_changes`` rows). Otherwise, all of the transaction's shadow
-rows are deleted and the ``version_transaction`` row itself is
-dropped — its ``version_changes`` rows cascade via the FK.
+If any shadow row anchored at a transaction is live (in a parent,
+child, or M2M shadow), the whole transaction is preserved (along with
+its other shadow rows and ``version_changes`` rows). Otherwise, all of
+the transaction's shadow rows are deleted and the ``version_transaction``
+row itself is dropped — its ``version_changes`` rows cascade via the FK.
 
 Registered via ``CELERYBEAT_SCHEDULE`` in ``superset/config.py``.
 Idempotent: a second run prunes nothing.
@@ -130,14 +131,52 @@ def _resolve_shadow_tables(tx_table: sa.Table) -> ShadowTables:
     )
 
 
-def _candidate_transaction_ids(
+@dataclass(frozen=True)
+class _PruneWindow:
+    """One id-ordered window of prune candidates.
+
+    ``prunable`` is the subset of the window's candidate transactions
+    that are safe to delete. ``candidate_count`` and ``max_candidate_id``
+    drive the batch loop in :func:`_prune_old_versions_impl`: the loop
+    stops when a window returns fewer than ``_MAX_PRUNE_BATCH``
+    candidates, and otherwise advances ``after_id`` to
+    ``max_candidate_id`` to fetch the next window.
+    """
+
+    prunable: list[int]
+    candidate_count: int
+    max_candidate_id: int
+
+
+def _resolve_prune_window(
     conn: sa.engine.Connection,
     cutoff: datetime,
-    parent_tables: list[sa.Table],
-) -> list[int]:
-    """Find ``version_transaction.id`` values that are eligible to
-    prune: ``issued_at < cutoff`` AND not currently the live row of
-    any versioned entity.
+    shadow_tables: list[sa.Table],
+    after_id: int,
+    batch_size: int,
+) -> _PruneWindow:
+    """Resolve one id-ordered window of ``version_transaction`` rows
+    eligible to prune: ``issued_at < cutoff`` AND ``id > after_id``,
+    ordered by ``id`` and capped at *batch_size*. From that window,
+    ``prunable`` excludes any transaction still serving as the live row
+    (``end_transaction_id IS NULL``) of any versioned entity in *any*
+    shadow table — parent, child, or M2M.
+
+    A child (``table_columns_version`` / ``sql_metrics_version``) or the
+    M2M association (``dashboard_slices_version``) is versioned on a
+    validity lifecycle independent of its parent: after a parent-only
+    edit, an unchanged child stays live anchored at an *older*
+    transaction than the parent's current live row. That older
+    transaction must be preserved too — otherwise
+    :func:`_delete_for_transactions` would drop the still-live
+    child/association row and silently strip the surviving version of its
+    columns / metrics / slices. Scanning every shadow for live rows (not
+    just parents) is what prevents that corruption.
+
+    Windowing by ``id`` (rather than materializing the whole backlog)
+    keeps per-pass memory and lock/transaction-hold time bounded. Live
+    rows older than the cutoff are never deleted but are skipped via the
+    ``after_id`` watermark, so the batch loop still terminates.
     """
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import versioning_manager
@@ -146,40 +185,66 @@ def _candidate_transaction_ids(
     candidate_ids = [
         row[0]
         for row in conn.execute(
-            sa.select(tx_table.c.id).where(tx_table.c.issued_at < cutoff)
+            sa.select(tx_table.c.id)
+            .where(tx_table.c.issued_at < cutoff)
+            .where(tx_table.c.id > after_id)
+            .order_by(tx_table.c.id)
+            .limit(batch_size)
         )
     ]
     if not candidate_ids:
-        return []
+        return _PruneWindow(prunable=[], candidate_count=0, max_candidate_id=after_id)
 
-    # Build the set of transaction ids whose parent shadow includes a
-    # live row (``end_transaction_id IS NULL``). Those transactions
-    # represent the current state of an entity and must be preserved
-    # regardless of age. Chunked over candidate_ids to keep the bind-
-    # parameter count inside SQLite's ``SQLITE_MAX_VARIABLE_NUMBER``
-    # floor (see ``_TX_ID_CHUNK_SIZE`` below).
+    # The select is ordered by ``id`` ascending, so the last element is
+    # the watermark for the next window.
+    max_candidate_id = candidate_ids[-1]
+
+    # Build the set of transaction ids that still anchor a live row
+    # (``end_transaction_id IS NULL``) in some shadow table. Those
+    # transactions represent the current state of an entity (or one of
+    # its children / associations) and must be preserved regardless of
+    # age. Chunked over the candidates to keep the bind-parameter count
+    # inside SQLite's ``SQLITE_MAX_VARIABLE_NUMBER`` floor (see
+    # ``_TX_ID_CHUNK_SIZE`` below). Ids already confirmed live by an
+    # earlier table are skipped before probing the next one.
     preserved_ids: set[int] = set()
-    for ptbl in parent_tables:
-        for chunk in _chunked(candidate_ids, _TX_ID_CHUNK_SIZE):
+    for stbl in shadow_tables:
+        remaining = [tx_id for tx_id in candidate_ids if tx_id not in preserved_ids]
+        if not remaining:
+            break
+        for chunk in _chunked(remaining, _TX_ID_CHUNK_SIZE):
             for row in conn.execute(
-                sa.select(ptbl.c.transaction_id)
-                .where(ptbl.c.transaction_id.in_(chunk))
-                .where(ptbl.c.end_transaction_id.is_(None))
+                sa.select(stbl.c.transaction_id)
+                .where(stbl.c.transaction_id.in_(chunk))
+                .where(stbl.c.end_transaction_id.is_(None))
                 .distinct()
             ):
                 preserved_ids.add(row[0])
 
-    return [tx_id for tx_id in candidate_ids if tx_id not in preserved_ids]
+    prunable = [tx_id for tx_id in candidate_ids if tx_id not in preserved_ids]
+    return _PruneWindow(
+        prunable=prunable,
+        candidate_count=len(candidate_ids),
+        max_candidate_id=max_candidate_id,
+    )
 
 
 # SQLite's ``SQLITE_MAX_VARIABLE_NUMBER`` defaults to 999 (lifted to
 # 32766 in 3.32+ but the older limit can still apply in shipped
 # builds). Postgres + MySQL handle tens of thousands of bind params
 # without complaint, so the chunk size is dictated by the SQLite floor.
-# 500 leaves headroom for the ``transaction_id`` + ``end_transaction_id``
-# OR-pair (each ``tx_id`` is bound twice in the DELETE) plus a margin
-# for any other bound params in the surrounding statement.
+# 500 keeps each single-column DELETE / SELECT (see ``_delete_for_transactions``,
+# which splits the create/close predicates into two statements) well inside
+# that floor, with margin for any other bound params in the surrounding
+# statement.
 _TX_ID_CHUNK_SIZE = 500
+
+# Maximum ``version_transaction`` rows resolved + pruned per SERIALIZABLE
+# pass. The prune loops over id-ordered windows of this size (see
+# ``_prune_old_versions_impl``) so memory and lock/transaction-hold time
+# stay bounded per pass instead of scaling with the full backlog on the
+# first run after deploy.
+_MAX_PRUNE_BATCH = 1000
 
 
 def _delete_for_transactions(
@@ -220,15 +285,18 @@ def _delete_for_transactions(
     total = 0
     for tbl in tables:
         for chunk in _chunked(tx_ids, _TX_ID_CHUNK_SIZE):
-            result = conn.execute(
-                sa.delete(tbl).where(
-                    sa.or_(
-                        tbl.c.transaction_id.in_(chunk),
-                        tbl.c.end_transaction_id.in_(chunk),
-                    )
-                )
-            )
-            total += result.rowcount or 0
+            # Two single-column DELETEs rather than one ``OR`` of both
+            # columns. The OR form binds every id twice (once for
+            # ``transaction_id``, once for ``end_transaction_id``), so a
+            # full chunk would bind ``2 * _TX_ID_CHUNK_SIZE`` params and
+            # overflow SQLite's ``SQLITE_MAX_VARIABLE_NUMBER`` floor. Each
+            # single-column statement binds at most ``_TX_ID_CHUNK_SIZE``.
+            # A row whose create- and close-tx are both pruned is removed
+            # by the first matching DELETE; the second finds nothing, so
+            # there is no double count.
+            for col in (tbl.c.transaction_id, tbl.c.end_transaction_id):
+                result = conn.execute(sa.delete(tbl).where(col.in_(chunk)))
+                total += result.rowcount or 0
     return total
 
 
@@ -264,10 +332,23 @@ _RETRY_BACKOFF_FACTOR = 4
 _METRIC_PREFIX = "superset.versioning.retention"
 
 
-def _run_prune_pass(cutoff: datetime, tables: ShadowTables) -> dict[str, Any]:
-    """One SERIALIZABLE pass of the prune. Caller wraps in the retry
-    loop so a serialization conflict re-opens a fresh connection +
-    transaction from a clean snapshot."""
+def _run_prune_pass(
+    cutoff: datetime, tables: ShadowTables, after_id: int = 0
+) -> dict[str, Any]:
+    """One SERIALIZABLE pass over a single id-ordered window of candidate
+    transactions starting after ``after_id``. The caller wraps this in
+    the retry loop (serialization conflict → fresh connection from a
+    clean snapshot) and the batch loop (advance ``after_id`` until the
+    backlog drains). The returned ``candidate_count`` / ``max_candidate_id``
+    drive that batch loop."""
+    # Scan every shadow (parent + child + M2M) for live rows, not just
+    # parents: children and the M2M association live on independent
+    # validity lifecycles and may anchor a still-live row at an older
+    # transaction than the parent's current live row.
+    live_bearing_tables = [*tables.parent, *tables.child]
+    if tables.m2m is not None:
+        live_bearing_tables.append(tables.m2m)
+
     # The Celery task runs outside the request-bound DB session, so we
     # use a fresh connection rather than ``db.session`` to avoid stepping
     # on web-request state.
@@ -275,9 +356,10 @@ def _run_prune_pass(cutoff: datetime, tables: ShadowTables) -> dict[str, Any]:
         db.engine.connect().execution_options(isolation_level="SERIALIZABLE") as conn,
         conn.begin(),
     ):
-        tx_ids = _candidate_transaction_ids(conn, cutoff, tables.parent)
-        if not tx_ids:
-            return {"pruned_transactions": 0, "cutoff": cutoff.isoformat()}
+        window = _resolve_prune_window(
+            conn, cutoff, live_bearing_tables, after_id, _MAX_PRUNE_BATCH
+        )
+        tx_ids = window.prunable
 
         parent_rows = _delete_for_transactions(conn, tables.parent, tx_ids)
         child_rows = _delete_for_transactions(conn, tables.child, tx_ids)
@@ -304,11 +386,51 @@ def _run_prune_pass(cutoff: datetime, tables: ShadowTables) -> dict[str, Any]:
 
     return {
         "cutoff": cutoff.isoformat(),
+        "candidate_count": window.candidate_count,
+        "max_candidate_id": window.max_candidate_id,
         "pruned_transactions": tx_rows,
         "pruned_parent_shadows": parent_rows,
         "pruned_child_shadows": child_rows,
         "pruned_m2m_shadows": m2m_rows,
     }
+
+
+def _run_pass_with_retry(
+    cutoff: datetime, tables: ShadowTables, after_id: int
+) -> tuple[dict[str, Any], int]:
+    """Run one window pass, retrying on serialization conflict. Returns
+    ``(stats, retries_used)``; re-raises the ``OperationalError`` if all
+    ``_MAX_RETRY_ATTEMPTS`` attempts conflict.
+
+    Postgres surfaces conflicts as ``SerializationFailure`` (a subclass
+    of ``sqlalchemy.exc.OperationalError``). Without the inline retry a
+    single conflict pushes the next attempt 24h out (daily Celery beat),
+    so under sustained write pressure the prune could silently fail for
+    days in a row.
+    """
+    for attempt in range(1, _MAX_RETRY_ATTEMPTS + 1):
+        try:
+            return _run_prune_pass(cutoff, tables, after_id), attempt - 1
+        except OperationalError as exc:
+            stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.retried")
+            if attempt == _MAX_RETRY_ATTEMPTS:
+                logger.warning(
+                    "version_history_retention: gave up after %d attempts: %s",
+                    _MAX_RETRY_ATTEMPTS,
+                    exc,
+                )
+                raise
+            backoff = _RETRY_BACKOFF_BASE_SECONDS * (
+                _RETRY_BACKOFF_FACTOR ** (attempt - 1)
+            )
+            logger.info(
+                "version_history_retention: attempt %d hit %s; retrying in %.2fs",
+                attempt,
+                type(exc).__name__,
+                backoff,
+            )
+            time.sleep(backoff)
+    raise AssertionError("retention retry loop exited without result")
 
 
 def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
@@ -358,42 +480,36 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
 
     cutoff = datetime.utcnow() - timedelta(days=retention_days)
 
-    for attempt in range(1, _MAX_RETRY_ATTEMPTS + 1):
-        try:
-            stats = _run_prune_pass(cutoff, tables)
-        except OperationalError as exc:
-            stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.retried")
-            if attempt == _MAX_RETRY_ATTEMPTS:
-                logger.warning(
-                    "version_history_retention: gave up after %d attempts: %s",
-                    _MAX_RETRY_ATTEMPTS,
-                    exc,
-                )
-                raise
-            backoff = _RETRY_BACKOFF_BASE_SECONDS * (
-                _RETRY_BACKOFF_FACTOR ** (attempt - 1)
-            )
-            logger.info(
-                "version_history_retention: attempt %d hit %s; retrying in %.2fs",
-                attempt,
-                type(exc).__name__,
-                backoff,
-            )
-            time.sleep(backoff)
-            continue
-        if attempt > 1:
-            stats["retried"] = attempt - 1
-        stats_logger_manager.instance.gauge(
-            f"{_METRIC_PREFIX}.pruned_transactions",
-            stats.get("pruned_transactions", 0),
-        )
-        logger.info("version_history_retention: %s", stats)
-        return stats
+    # Drain the backlog one bounded, id-ordered window at a time. Each
+    # window is its own retried SERIALIZABLE pass, so memory and
+    # lock/transaction-hold time stay bounded per pass even on the first
+    # run after deploy. The loop stops once a window returns fewer than a
+    # full batch of candidates (nothing left older than the cutoff).
+    totals = {
+        "pruned_transactions": 0,
+        "pruned_parent_shadows": 0,
+        "pruned_child_shadows": 0,
+        "pruned_m2m_shadows": 0,
+    }
+    total_retried = 0
+    after_id = 0
+    while True:
+        pass_stats, retries = _run_pass_with_retry(cutoff, tables, after_id)
+        total_retried += retries
+        for key in totals:
+            totals[key] += pass_stats.get(key, 0)
+        if pass_stats.get("candidate_count", 0) < _MAX_PRUNE_BATCH:
+            break
+        after_id = pass_stats.get("max_candidate_id", after_id)
 
-    # The loop above always returns or re-raises; this is the type checker's
-    # placate-line. If it ever fires, the loop's exit condition has been
-    # changed incorrectly.
-    raise AssertionError("retention retry loop exited without result")
+    stats: dict[str, Any] = {"cutoff": cutoff.isoformat(), **totals}
+    if total_retried:
+        stats["retried"] = total_retried
+    stats_logger_manager.instance.gauge(
+        f"{_METRIC_PREFIX}.pruned_transactions", stats["pruned_transactions"]
+    )
+    logger.info("version_history_retention: %s", stats)
+    return stats
 
 
 @celery_app.task(name="version_history.prune_old_versions")
