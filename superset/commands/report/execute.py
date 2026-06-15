@@ -358,6 +358,11 @@ class BaseReportState:
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
         ).run()
+        # Commit the permalink immediately so Playwright's separate DB connection
+        # can resolve the URL. CreateDashboardPermalinkCommand only flushes when
+        # called inside an outer @transaction(), leaving the row invisible to
+        # other connections until we explicitly commit here.
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         return get_url_path(
             "Superset.dashboard_permalink",
