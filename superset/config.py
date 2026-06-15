@@ -895,6 +895,15 @@ SSH_TUNNEL_TIMEOUT_SEC = 10.0
 #: Timeout (seconds) for transport socket (``socket.settimeout``)
 SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
 
+#: Opt-in defense-in-depth: when enabled, every SSH tunnel must declare an expected
+#: server host key (``server_host_key`` on the tunnel) and the SSH server's presented
+#: host key is verified against it before the tunnel is opened. A mismatch, or a
+#: missing expected key while this flag is enabled, fails closed and the tunnel is
+#: rejected. When disabled (the default), tunnels without a ``server_host_key`` open
+#: without host-key verification, preserving existing behavior; tunnels that do set a
+#: ``server_host_key`` are still verified regardless of this flag.
+SSH_TUNNEL_STRICT_HOST_KEY_CHECKING: bool = False
+
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
