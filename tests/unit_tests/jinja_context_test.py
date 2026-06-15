@@ -25,6 +25,7 @@ from flask import current_app
 from flask_appbuilder.security.sqla.models import Role
 from freezegun import freeze_time
 from jinja2 import DebugUndefined
+from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
@@ -990,6 +991,40 @@ def test_metric_macro_expansion(mocker: MockerFixture) -> None:
 
     processor = get_template_processor(database=database)
     assert processor.process_template("{{ metric('c') }}") == "42"
+
+
+def test_metric_macro_does_not_expose_environment(mocker: MockerFixture) -> None:
+    """
+    A template must not be able to read the template environment through the
+    ``metric`` macro's bound arguments.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    processor = get_template_processor(database=database)
+    # Attribute access on the macro's partial is denied, so a reference to its
+    # bound args resolves to an undefined and any further use raises instead of
+    # yielding the environment object.
+    with pytest.raises(SecurityError):
+        processor.process_template("{{ metric.args[1] }}")
+    with pytest.raises(SecurityError):
+        processor.process_template(
+            "{{ metric.args[1].template_class.environment_class() }}"
+        )
+
+
+def test_supersetsandboxedenvironment_denies_unsafe_attributes() -> None:
+    """is_safe_attribute denies env/template class attrs and all attrs on partials."""
+    from functools import partial
+
+    from superset.jinja_context import SupersetSandboxedEnvironment
+
+    env = SupersetSandboxedEnvironment()
+    assert env.is_safe_attribute(env, "environment_class", None) is False
+    assert env.is_safe_attribute(env, "template_class", None) is False
+    macro = partial(lambda value: value, 1)
+    assert env.is_safe_attribute(macro, "args", macro.args) is False
+    assert env.is_safe_attribute(macro, "func", macro.func) is False
 
 
 def test_metric_macro_recursive_compound(mocker: MockerFixture) -> None:

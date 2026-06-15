@@ -75,6 +75,13 @@ def _suppress_third_party_warnings() -> None:
         category=FutureWarning,
         module=r"google\..*",
     )
+    # authlib.jose deprecation warning is suppressed at package init time
+    # (superset/mcp_service/__init__.py), but add it here too for any late
+    # imports that may occur after tool execution begins.
+    warnings.filterwarnings(
+        "ignore",
+        message=r"authlib\.jose module is deprecated",
+    )
 
 
 class FastMCPValidationFilter(logging.Filter):

@@ -122,6 +122,7 @@ FRONTEND_CONF_KEYS = (
     "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
     "TABLE_VIZ_MAX_ROW_SERVER",
     "MAPBOX_API_KEY",
+    "DEFAULT_MAP_RENDERER",
     "CSV_STREAMING_ROW_THRESHOLD",
 )
 
@@ -141,7 +142,9 @@ def get_error_msg() -> str:
 
 
 def json_success(json_msg: str, status: int = 200) -> FlaskResponse:
-    return Response(json_msg, status=status, mimetype="application/json")
+    return Response(
+        json_msg, status=status, content_type="application/json; charset=utf-8"
+    )
 
 
 def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskResponse:
@@ -214,7 +217,7 @@ class BaseSupersetView(BaseView):
         return Response(
             json.dumps(obj, default=json.json_int_dttm_ser, ignore_nan=True),
             status=status,
-            mimetype="application/json",
+            content_type="application/json; charset=utf-8",
         )
 
     def render_app_template(
