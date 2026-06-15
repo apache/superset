@@ -711,3 +711,33 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             show_first=show_first,
             indexes=cls._filter_iceberg_partition_indexes(indexes),
         )
+
+    @classmethod
+    def latest_sub_partition(
+        cls,
+        database: Database,
+        table: Table,
+        indexes: list[dict[str, Any]] | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        """
+        Return the latest sub-partition value for a table.
+
+        Iceberg "$partitions" metadata fields are filtered out first, so the
+        ``latest_sub_partition`` macro never builds a query against them.
+
+        :param database: the database the query will be run against
+        :param table: the table instance
+        :param indexes: the indexes associated with the table
+        :param kwargs: filtering criteria on the partition list
+        :returns: the latest sub-partition value
+        """
+        if indexes is None:
+            indexes = database.get_indexes(table)
+
+        return super().latest_sub_partition(
+            database,
+            table,
+            indexes=cls._filter_iceberg_partition_indexes(indexes),
+            **kwargs,
+        )

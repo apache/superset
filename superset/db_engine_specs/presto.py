@@ -636,6 +636,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         cls,
         database: Database,
         table: Table,
+        indexes: list[dict[str, Any]] | None = None,
         **kwargs: Any,
     ) -> Any:
         """Returns the latest (max) partition value for a table
@@ -660,7 +661,15 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         >>> latest_sub_partition('sub_partition_table', event_type='click')
         '2018-01-01'
         """
-        indexes = database.get_indexes(table)
+        if indexes is None:
+            indexes = database.get_indexes(table)
+
+        if not indexes:
+            raise SupersetTemplateException(
+                f"Error getting partition for {table}. "
+                "Verify that this table has a partition."
+            )
+
         part_fields = indexes[0]["column_names"]
         for k in kwargs.keys():  # pylint: disable=consider-iterating-dictionary
             if k not in k in part_fields:  # pylint: disable=comparison-with-itself

@@ -410,6 +410,34 @@ def test_get_extra_table_metadata_iceberg_partitioned(
     db_mock.get_df.assert_not_called()
 
 
+def test_latest_sub_partition_iceberg(mocker: MockerFixture) -> None:
+    """
+    The ``latest_sub_partition`` macro must not query Iceberg ``$partitions``
+    metadata fields: with no real partition keys it raises instead of building
+    SQL.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.exceptions import SupersetTemplateException
+
+    db_mock = mocker.MagicMock()
+    db_mock.get_indexes = Mock(
+        return_value=[
+            {
+                "name": "partition",
+                "column_names": ["data", "file_count", "record_count", "total_size"],
+            }
+        ]
+    )
+    db_mock.get_df = Mock()
+    with pytest.raises(SupersetTemplateException):
+        TrinoEngineSpec.latest_sub_partition(
+            db_mock,
+            Table("test_table", "test_schema"),
+            record_count="1",
+        )
+    db_mock.get_df.assert_not_called()
+
+
 def test_filter_iceberg_partition_indexes() -> None:
     """
     Iceberg ``$partitions`` metadata indexes are dropped while real partition
