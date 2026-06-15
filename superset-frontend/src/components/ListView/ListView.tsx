@@ -313,6 +313,8 @@ export interface ListViewProps<T extends object = any> {
     clearFilters: () => void;
     clearFilterById: (id: string) => void;
   }>;
+  /** Optional expandable row configuration, passed through to antd Table. */
+  expandable?: Record<string, unknown>;
 }
 
 export function ListView<T extends object = any>({
@@ -340,6 +342,7 @@ export function ListView<T extends object = any>({
   enableBulkTag = false,
   bulkTagResourceName,
   filtersRef,
+  expandable,
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
@@ -593,6 +596,7 @@ export function ListView<T extends object = any>({
                   loading={loading && rows.length > 0}
                   highlightRowId={highlightRowId}
                   columnsForWrapText={columnsForWrapText}
+                  expandable={expandable}
                   bulkSelectEnabled={bulkSelectEnabled}
                   selectedFlatRows={selectedFlatRows}
                   toggleRowSelected={(rowId, value) => {
