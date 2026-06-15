@@ -17,7 +17,7 @@
  * under the License.
  */
 
-// Reset module state between tests so currentPageType is re-initialized.
+// Reset module state between tests so currentPage is re-initialized.
 beforeEach(() => {
   jest.resetModules();
   Object.defineProperty(window, 'location', {
@@ -31,21 +31,24 @@ async function importNavigation() {
   return mod;
 }
 
-test('getPageType returns "other" for unknown pathname', async () => {
-  const { navigation } = await importNavigation();
-  expect(navigation.getPageType()).toBe('other');
+test('getPage falls back to "home" for the welcome page and unknown pathnames', async () => {
+  const { navigation, notifyPageChange } = await importNavigation();
+  // The default pathname ('/') is not enumerated and falls back to home.
+  expect(navigation.getPage()).toBe('home');
+  notifyPageChange('/superset/welcome/');
+  expect(navigation.getPage()).toBe('home');
 });
 
-test('getPageType derives page type from window.location.pathname', async () => {
+test('getPage derives the page from window.location.pathname', async () => {
   window.location.pathname = '/superset/dashboard/42/';
   const { navigation } = await importNavigation();
-  expect(navigation.getPageType()).toBe('dashboard');
+  expect(navigation.getPage()).toBe('dashboard');
 });
 
 test('notifyPageChange updates the current page type', async () => {
   const { navigation, notifyPageChange } = await importNavigation();
   notifyPageChange('/explore/?form_data={}');
-  expect(navigation.getPageType()).toBe('explore');
+  expect(navigation.getPage()).toBe('explore');
 });
 
 test('notifyPageChange fires listeners on page type change', async () => {
@@ -82,40 +85,40 @@ test('onDidChangePage listener is removed after dispose', async () => {
 test('sqllab path is matched with and without trailing slash', async () => {
   const { notifyPageChange, navigation } = await importNavigation();
   notifyPageChange('/sqllab');
-  expect(navigation.getPageType()).toBe('sqllab');
+  expect(navigation.getPage()).toBe('sqllab');
   notifyPageChange('/explore/');
   notifyPageChange('/sqllab/');
-  expect(navigation.getPageType()).toBe('sqllab');
+  expect(navigation.getPage()).toBe('sqllab');
 });
 
 test('chart and dashboard list pages get their own page types', async () => {
   const { notifyPageChange, navigation } = await importNavigation();
   notifyPageChange('/chart/list/');
-  expect(navigation.getPageType()).toBe('chart_list');
+  expect(navigation.getPage()).toBe('chart_list');
   notifyPageChange('/dashboard/list/');
-  expect(navigation.getPageType()).toBe('dashboard_list');
+  expect(navigation.getPage()).toBe('dashboard_list');
 });
 
 test('dataset list and single-dataset pages get distinct page types', async () => {
   const { notifyPageChange, navigation } = await importNavigation();
   notifyPageChange('/tablemodelview/list/');
-  expect(navigation.getPageType()).toBe('dataset_list');
+  expect(navigation.getPage()).toBe('dataset_list');
   notifyPageChange('/dataset/42');
-  expect(navigation.getPageType()).toBe('dataset');
+  expect(navigation.getPage()).toBe('dataset');
 });
 
 test('sqllab editor, query history, and saved queries get distinct page types', async () => {
   const { notifyPageChange, navigation } = await importNavigation();
   notifyPageChange('/sqllab/');
-  expect(navigation.getPageType()).toBe('sqllab');
+  expect(navigation.getPage()).toBe('sqllab');
   notifyPageChange('/sqllab/history/');
-  expect(navigation.getPageType()).toBe('query_history');
+  expect(navigation.getPage()).toBe('query_history');
   notifyPageChange('/savedqueryview/list/');
-  expect(navigation.getPageType()).toBe('saved_queries');
+  expect(navigation.getPage()).toBe('saved_queries');
 });
 
 test('chart/add resolves to explore, not chart_list', async () => {
   const { notifyPageChange, navigation } = await importNavigation();
   notifyPageChange('/chart/add');
-  expect(navigation.getPageType()).toBe('explore');
+  expect(navigation.getPage()).toBe('explore');
 });

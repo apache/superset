@@ -29,7 +29,7 @@ afterEach(() => {
   disposables.length = 0;
   // Reset host-owned state shared across tests in this module.
   chat.close();
-  chat.setMode('floating');
+  chat.setDisplayMode('floating');
 });
 
 test('getChat returns undefined when no chat is registered', () => {
@@ -156,7 +156,7 @@ test('a disposed event subscription stops receiving notifications', () => {
   expect(registered).not.toHaveBeenCalled();
 });
 
-test('open and close toggle the panel and fire once with the active descriptor', () => {
+test('open and close toggle the panel and fire once', () => {
   const opened = jest.fn();
   const closed = jest.fn();
   disposables.push(chat.onDidOpen(opened), chat.onDidClose(closed));
@@ -172,14 +172,12 @@ test('open and close toggle the panel and fire once with the active descriptor',
 
   expect(chat.isOpen()).toBe(true);
   expect(opened).toHaveBeenCalledTimes(1);
-  expect(opened).toHaveBeenCalledWith(descriptor);
 
   chat.close();
   chat.close();
 
   expect(chat.isOpen()).toBe(false);
   expect(closed).toHaveBeenCalledTimes(1);
-  expect(closed).toHaveBeenCalledWith(descriptor);
 });
 
 test('open is a no-op while no chat is registered', () => {
@@ -213,7 +211,6 @@ test('a takeover by a different id closes the displaced chat panel', () => {
   // The incoming chat must not mount into an open state it never requested.
   expect(chat.isOpen()).toBe(false);
   expect(closed).toHaveBeenCalledTimes(1);
-  expect(closed).toHaveBeenCalledWith(first);
 });
 
 test('a same-id replacement keeps the open state', () => {
@@ -250,7 +247,6 @@ test('disposing the active chat while open closes it; the fallback starts closed
   expect(chat.getChat()?.id).toBe('first.chat');
   expect(chat.isOpen()).toBe(false);
   expect(closed).toHaveBeenCalledTimes(1);
-  expect(closed).toHaveBeenCalledWith(second);
 });
 
 test('disposing an inactive registration leaves the open state untouched', () => {
@@ -293,18 +289,18 @@ test('disposing the last chat while open resets the open state', () => {
   expect(chat.isOpen()).toBe(false);
 });
 
-test('mode defaults to floating and setMode fires only on change', () => {
+test('mode defaults to floating and setDisplayMode fires only on change', () => {
   const modeChanged = jest.fn();
-  disposables.push(chat.onDidChangeMode(modeChanged));
+  disposables.push(chat.onDidChangeDisplayMode(modeChanged));
 
-  expect(chat.getMode()).toBe('floating');
+  expect(chat.getDisplayMode()).toBe('floating');
 
   // Setting the current mode is a no-op.
-  chat.setMode('floating');
+  chat.setDisplayMode('floating');
   expect(modeChanged).not.toHaveBeenCalled();
 
-  chat.setMode('panel');
-  expect(chat.getMode()).toBe('panel');
+  chat.setDisplayMode('panel');
+  expect(chat.getDisplayMode()).toBe('panel');
   expect(modeChanged).toHaveBeenCalledWith('panel');
 });
 

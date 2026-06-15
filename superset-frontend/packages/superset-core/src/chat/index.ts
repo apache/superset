@@ -49,7 +49,7 @@ export interface Chat {
   description?: string;
 }
 
-export type ChatMode = 'floating' | 'panel';
+export type DisplayMode = 'floating' | 'panel';
 
 /**
  * Registers a chat provider. The host applies singleton resolution — only one
@@ -131,43 +131,42 @@ export declare function close(): void;
 export declare function isOpen(): boolean;
 
 /**
- * Event fired when the chat panel opens, with the descriptor of the chat
- * whose panel opened. Listen to this rather than assuming your own chat is
- * the one affected — another registration may hold the active slot.
+ * Event fired when the chat panel opens. Also fired by the host's own
+ * controls, not only by an extension's open() call.
  */
-export declare const onDidOpen: Event<Chat>;
+export declare const onDidOpen: Event<void>;
 
 /**
- * Event fired when the chat panel closes, with the descriptor of the chat
- * whose panel closed. Also fired when the host closes the panel itself, e.g.
- * because the active chat was disposed or displaced by a different chat.
+ * Event fired when the chat panel closes. Also fired when the host closes the
+ * panel itself, e.g. because the active chat was disposed or displaced by a
+ * different chat.
  */
-export declare const onDidClose: Event<Chat>;
+export declare const onDidClose: Event<void>;
 
 /**
  * Returns the current display mode.
  *
- * @returns The current ChatMode.
+ * @returns The current DisplayMode.
  */
-export declare function getMode(): ChatMode;
+export declare function getDisplayMode(): DisplayMode;
 
 /**
  * Sets the display mode.
  *
  * The mode is host-global and applies to whichever chat is active, regardless
  * of which extension calls it. Hosts may also change the mode through their
- * own controls — use onDidChangeMode to observe all changes rather than
- * assuming the last setMode() call won.
+ * own controls — use onDidChangeDisplayMode to observe all changes rather than
+ * assuming the last setDisplayMode() call won.
  *
- * @param mode The display mode to switch to.
+ * @param displayMode The display mode to switch to.
  */
-export declare function setMode(mode: ChatMode): void;
+export declare function setDisplayMode(displayMode: DisplayMode): void;
 
 /**
  * Event fired when the display mode changes, whether triggered by an
- * extension via setMode() or by host-provided controls.
+ * extension via setDisplayMode() or by host-provided controls.
  */
-export declare const onDidChangeMode: Event<ChatMode>;
+export declare const onDidChangeDisplayMode: Event<DisplayMode>;
 
 /**
  * Event fired when the panel is resized in panel mode.

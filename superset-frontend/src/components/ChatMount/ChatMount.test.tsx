@@ -28,7 +28,7 @@ afterEach(() => {
     disposables.length = 0;
     // Reset host-owned state shared across tests in this module.
     chat.close();
-    chat.setMode('floating');
+    chat.setDisplayMode('floating');
   });
 });
 
@@ -157,7 +157,7 @@ test('panel mode docks the open panel and hides the trigger', () => {
   render(<ChatMount />);
 
   act(() => {
-    chat.setMode('panel');
+    chat.setDisplayMode('panel');
     chat.open();
   });
 

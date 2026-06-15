@@ -44,7 +44,7 @@ import { Disposable } from '../models';
 import { createEmitter, createEventEmitter } from '../utils';
 
 type Chat = chatApi.Chat;
-type ChatMode = chatApi.ChatMode;
+type DisplayMode = chatApi.DisplayMode;
 
 /** A registered chat: its descriptor plus the host-mountable providers. */
 export interface RegisteredChat {
@@ -52,7 +52,7 @@ export interface RegisteredChat {
   chat: Chat;
   /** Renders the collapsed bubble. Hidden by the host in panel mode. */
   trigger: () => ReactElement;
-  /** Renders the chat panel, mounted per the current {@link ChatMode}. */
+  /** Renders the chat panel, mounted per the current {@link DisplayMode}. */
   panel: () => ReactElement;
   /**
    * Unique per registration (a same-id re-registration gets a new one). The
@@ -74,7 +74,7 @@ export interface ChatSnapshot {
   /** Whether the active chat's panel is open. */
   open: boolean;
   /** The current display mode. */
-  mode: ChatMode;
+  mode: DisplayMode;
   /** The active registration, or undefined when none is registered. */
   active: RegisteredChat | undefined;
 }
@@ -87,10 +87,10 @@ let nextRegistrationId = 1;
 
 const registerEmitter = createEventEmitter<Chat>();
 const unregisterEmitter = createEventEmitter<Chat>();
-const openEmitter = createEventEmitter<Chat>();
-const closeEmitter = createEventEmitter<Chat>();
+const openEmitter = createEventEmitter<void>();
+const closeEmitter = createEventEmitter<void>();
 const resizePanelEmitter = createEventEmitter<{ width: number }>();
-const modeEmitter = createEmitter<ChatMode>('floating');
+const modeEmitter = createEmitter<DisplayMode>('floating');
 
 /**
  * Host-internal: resolves the active chat with its providers.
@@ -128,10 +128,10 @@ export const subscribeToChatState = (listener: () => void): (() => void) => {
 
 export const getChatSnapshot = (): ChatSnapshot => snapshot;
 
-/** Closes the panel and fires `onDidClose` with the chat that was closed. */
-const closePanel = (closedChat: Chat) => {
+/** Closes the panel and fires `onDidClose`. */
+const closePanel = () => {
   panelOpen = false;
-  closeEmitter.fire(closedChat);
+  closeEmitter.fire();
 };
 
 const registerChat: typeof chatApi.registerChat = (
@@ -162,7 +162,7 @@ const registerChat: typeof chatApi.registerChat = (
   // incoming chat never mounts already-open; a same-id replacement is an
   // upgrade in place and keeps the open state.
   if (panelOpen && previousActive && previousActive.chat.id !== chat.id) {
-    closePanel(previousActive.chat);
+    closePanel();
   }
   notifyState();
 
@@ -179,7 +179,7 @@ const registerChat: typeof chatApi.registerChat = (
     // starts closed. Disposing an inactive registration leaves the open
     // state of the active chat untouched.
     if (panelOpen && wasActive) {
-      closePanel(chat);
+      closePanel();
     }
     notifyState();
   });
@@ -197,25 +197,27 @@ const open: typeof chatApi.open = (): void => {
   // would otherwise leak `open` into a future, unrelated registration.
   if (panelOpen || !active) return;
   panelOpen = true;
-  openEmitter.fire(active.chat);
+  openEmitter.fire();
   notifyState();
 };
 
 const close: typeof chatApi.close = (): void => {
   const active = getActiveChat();
   if (!panelOpen || !active) return;
-  closePanel(active.chat);
+  closePanel();
   notifyState();
 };
 
 const isOpen: typeof chatApi.isOpen = (): boolean => panelOpen;
 
-const getMode: typeof chatApi.getMode = (): ChatMode =>
+const getDisplayMode: typeof chatApi.getDisplayMode = (): DisplayMode =>
   modeEmitter.getCurrent();
 
-const setMode: typeof chatApi.setMode = (mode: ChatMode): void => {
-  if (mode === modeEmitter.getCurrent()) return;
-  modeEmitter.fire(mode);
+const setDisplayMode: typeof chatApi.setDisplayMode = (
+  displayMode: DisplayMode,
+): void => {
+  if (displayMode === modeEmitter.getCurrent()) return;
+  modeEmitter.fire(displayMode);
   notifyState();
 };
 
@@ -229,9 +231,9 @@ export const chat: typeof chatApi = {
   isOpen,
   onDidOpen: openEmitter.event,
   onDidClose: closeEmitter.event,
-  getMode,
-  setMode,
-  onDidChangeMode: modeEmitter.event,
+  getDisplayMode,
+  setDisplayMode,
+  onDidChangeDisplayMode: modeEmitter.event,
   // The host fires this from its panel resizer; until that chrome exists the
   // event is exposed but never fires.
   onDidResizePanel: resizePanelEmitter.event,

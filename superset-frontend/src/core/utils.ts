@@ -21,6 +21,57 @@ import { AnyAction } from 'redux';
 import { listenerMiddleware, RootState, store } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
 
+type Listener<T> = (e: T) => unknown;
+
+/** A stateless event emitter exposing a VS Code-style `event` subscriber. */
+export interface EventEmitter<T> {
+  /** Notifies every current subscriber with `value`. */
+  fire(value: T): void;
+  /** The public {@link core.Event} used to subscribe to this emitter. */
+  event: core.Event<T>;
+}
+
+/** A stateful emitter that also retains the last fired value. */
+export interface Emitter<T> extends EventEmitter<T> {
+  /** Returns the value last passed to {@link fire} (or the initial value). */
+  getCurrent(): T;
+}
+
+/**
+ * Creates a stateless event emitter. Listeners registered via `event` receive
+ * every subsequent `fire`; a returned Disposable removes the listener.
+ */
+export function createEventEmitter<T>(): EventEmitter<T> {
+  const listeners = new Set<Listener<T>>();
+  const event: core.Event<T> = (listener, thisArgs) => {
+    const bound = thisArgs ? listener.bind(thisArgs) : listener;
+    listeners.add(bound);
+    return { dispose: () => listeners.delete(bound) };
+  };
+  return {
+    fire: value => listeners.forEach(fn => fn(value)),
+    event,
+  };
+}
+
+/**
+ * Creates a stateful emitter seeded with `initial`. Behaves like
+ * {@link createEventEmitter} but also tracks the last fired value, readable
+ * via `getCurrent` — useful for state that is both observed and queried.
+ */
+export function createEmitter<T>(initial: T): Emitter<T> {
+  const { fire, event } = createEventEmitter<T>();
+  let current = initial;
+  return {
+    fire: value => {
+      current = value;
+      fire(value);
+    },
+    event,
+    getCurrent: () => current,
+  };
+}
+
 export function createActionListener<V>(
   predicate: AnyListenerPredicate<RootState>,
   listener: (v: V) => void,

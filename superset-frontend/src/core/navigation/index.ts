@@ -27,11 +27,11 @@
 import type { navigation as navigationApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 
-type PageType = navigationApi.PageType;
+type Page = navigationApi.Page;
 
-const listeners = new Set<(pageType: PageType) => void>();
+const listeners = new Set<(page: Page) => void>();
 
-function derivePageType(pathname: string): PageType {
+function derivePage(pathname: string): Page {
   if (pathname.startsWith('/superset/dashboard/')) return 'dashboard';
   if (pathname.startsWith('/dashboard/list')) return 'dashboard_list';
   if (pathname.startsWith('/explore/')) return 'explore';
@@ -44,31 +44,31 @@ function derivePageType(pathname: string): PageType {
     return 'sqllab';
   if (pathname.startsWith('/tablemodelview/list')) return 'dataset_list';
   if (pathname.startsWith('/dataset/')) return 'dataset';
-  if (pathname.startsWith('/superset/welcome/')) return 'home';
-  return 'other';
+  // The welcome page and any route not explicitly enumerated fall back to home.
+  return 'home';
 }
 
-let currentPageType: PageType | undefined;
+let currentPage: Page | undefined;
 
-function getOrInitPageType(): PageType {
-  if (currentPageType === undefined) {
-    currentPageType = derivePageType(window.location.pathname);
+function getOrInitPage(): Page {
+  if (currentPage === undefined) {
+    currentPage = derivePage(window.location.pathname);
   }
-  return currentPageType;
+  return currentPage;
 }
 
 /** Called by ExtensionsStartup whenever the React Router location changes. */
 export const notifyPageChange = (pathname: string): void => {
-  const next = derivePageType(pathname);
-  if (next === getOrInitPageType()) return;
-  currentPageType = next;
+  const next = derivePage(pathname);
+  if (next === getOrInitPage()) return;
+  currentPage = next;
   listeners.forEach(fn => fn(next));
 };
 
-const getPageType: typeof navigationApi.getPageType = () => getOrInitPageType();
+const getPage: typeof navigationApi.getPage = () => getOrInitPage();
 
 const onDidChangePage: typeof navigationApi.onDidChangePage = (
-  listener: (pageType: PageType) => void,
+  listener: (page: Page) => void,
   thisArgs?: any,
 ): Disposable => {
   const bound = thisArgs ? listener.bind(thisArgs) : listener;
@@ -77,6 +77,6 @@ const onDidChangePage: typeof navigationApi.onDidChangePage = (
 };
 
 export const navigation: typeof navigationApi = {
-  getPageType,
+  getPage,
   onDidChangePage,
 };

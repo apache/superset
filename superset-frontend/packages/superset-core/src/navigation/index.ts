@@ -36,10 +36,10 @@ import { Event } from '../common';
  * `'dataset_list'` are the browse/list surfaces, distinct from those because no
  * single entity is active. `'sqllab'` is the SQL editor where
  * `sqlLab.getCurrentTab()` resolves; `'query_history'` and `'saved_queries'`
- * are the related SQL Lab browse pages, which are not the editor. `'other'`
- * covers any route not explicitly enumerated.
+ * are the related SQL Lab browse pages, which are not the editor. `'home'` is
+ * the welcome surface and the fallback for any route not explicitly enumerated.
  */
-export type PageType =
+export type Page =
   | 'dashboard'
   | 'dashboard_list'
   | 'explore'
@@ -49,29 +49,28 @@ export type PageType =
   | 'saved_queries'
   | 'dataset'
   | 'dataset_list'
-  | 'home'
-  | 'other';
+  | 'home';
 
 /**
- * Returns the current page surface type.
+ * Returns the current page surface.
  *
  * @example
  * ```typescript
- * const pageType = navigation.getPageType();
- * if (pageType === 'dashboard') {
+ * const page = navigation.getPage();
+ * if (page === 'dashboard') {
  *   // react to being on a dashboard surface
  * }
  * ```
  */
-export declare function getPageType(): PageType;
+export declare function getPage(): Page;
 
 /**
  * Event fired whenever the user navigates to a different surface.
  *
  * @example
  * ```typescript
- * const sub = navigation.onDidChangePage(pageType => {
- *   if (pageType === 'dashboard') {
+ * const sub = navigation.onDidChangePage(page => {
+ *   if (page === 'dashboard') {
  *     // react to navigating onto a dashboard surface
  *   }
  * });
@@ -79,4 +78,4 @@ export declare function getPageType(): PageType;
  * sub.dispose();
  * ```
  */
-export declare const onDidChangePage: Event<PageType>;
+export declare const onDidChangePage: Event<Page>;
