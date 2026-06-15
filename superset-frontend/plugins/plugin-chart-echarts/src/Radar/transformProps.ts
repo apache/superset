@@ -47,7 +47,7 @@ import {
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
-import { LegendOrientation, Refs } from '../types';
+import { Refs } from '../types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { findGlobalMax, renderNormalizedTooltip } from './utils';
 
@@ -126,7 +126,7 @@ export default function transformProps(
     ...DEFAULT_RADAR_FORM_DATA,
     ...formData,
   };
-  const { setDataMask = () => { }, onContextMenu } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const denormalizedSeriesValues: SeriesNormalizedMap = {};
@@ -331,10 +331,16 @@ export default function transformProps(
     type: legendType,
   });
 
+  const chartPadding = getChartPadding(
+    showLegend,
+    legendOrientation,
+    effectiveLegendMargin,
+  );
+
   const series: RadarSeriesOption[] = [
     {
       type: 'radar',
-      ...getChartPadding(showLegend, legendOrientation, effectiveLegendMargin),
+      ...chartPadding,
       animation: false,
       emphasis: {
         label: {
@@ -360,25 +366,12 @@ export default function transformProps(
       metricsWithCustomBounds,
     );
 
-  const resolvedMargin = showLegend ? Number(legendMargin ?? 0) : 0;
-
-  const offsetX = width ? (resolvedMargin / width) * 50 : 0;
-  const offsetY = height ? (resolvedMargin / height) * 50 : 0;
-
-  let centerX = 50;
-  let centerY = 50
-
-  if (legendOrientation === LegendOrientation.Left) {
-    centerX += offsetX;
-  } else if (legendOrientation === LegendOrientation.Right) {
-    centerX += offsetX
-  }
-
-  if (legendOrientation === LegendOrientation.Top) {
-    centerY += offsetY;
-  } else if (legendOrientation === LegendOrientation.Bottom) {
-    centerY += offsetY;
-  }
+  const centerX = width
+    ? ((width + chartPadding.left - chartPadding.right) / 2 / width) * 100
+    : 50;
+  const centerY = height
+    ? ((height + chartPadding.top - chartPadding.bottom) / 2 / height) * 100
+    : 50;
 
   const radarCenter: [string, string] = [`${centerX}%`, `${centerY}%`];
 
