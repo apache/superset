@@ -411,6 +411,10 @@ def test_get_extra_table_metadata_iceberg_partitioned(
 
 
 def test_filter_iceberg_partition_indexes() -> None:
+    """
+    Iceberg ``$partitions`` metadata indexes are dropped while real partition
+    indexes (and any index sharing only some metadata names) pass through.
+    """
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
     # Iceberg metadata-only partition index is dropped entirely.
