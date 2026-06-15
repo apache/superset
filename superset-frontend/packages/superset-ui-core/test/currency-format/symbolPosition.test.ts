@@ -38,6 +38,12 @@ test('resolveSymbolPosition derives the position from the locale when unset', ()
   expect(resolveSymbolPosition('EUR', undefined, 'de-DE')).toEqual('suffix');
 });
 
+test('resolveSymbolPosition returns the same result on repeated calls (cached)', () => {
+  // The second call hits the memoized (locale, currencyCode) entry.
+  expect(resolveSymbolPosition('EUR', undefined, 'fr-FR')).toEqual('suffix');
+  expect(resolveSymbolPosition('EUR', undefined, 'fr-FR')).toEqual('suffix');
+});
+
 test('resolveSymbolPosition falls back to prefix for unknown currencies', () => {
   expect(resolveSymbolPosition('INVALID_CODE', undefined, 'en-US')).toEqual(
     'prefix',

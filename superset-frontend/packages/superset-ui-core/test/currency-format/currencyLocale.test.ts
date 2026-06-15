@@ -45,3 +45,21 @@ test('setCurrencyLocale ignores empty values', () => {
   setCurrencyLocale('');
   expect(getCurrencyLocale()).toEqual('de-DE');
 });
+
+test('setCurrencyLocale canonicalizes underscore-formatted locales to BCP-47', () => {
+  // Superset bootstrap can emit underscore tags like `pt_BR`/`zh_TW`.
+  setCurrencyLocale('pt_BR');
+  expect(getCurrencyLocale()).toEqual('pt-BR');
+  // BRL is a prefix in pt-BR; the placement must resolve instead of throwing
+  // and falling back.
+  expect(resolveSymbolPosition('BRL')).toEqual('prefix');
+
+  setCurrencyLocale('zh_TW');
+  expect(getCurrencyLocale()).toEqual('zh-TW');
+});
+
+test('setCurrencyLocale keeps the previous locale for invalid tags', () => {
+  setCurrencyLocale('fr-FR');
+  setCurrencyLocale('not a locale!');
+  expect(getCurrencyLocale()).toEqual('fr-FR');
+});

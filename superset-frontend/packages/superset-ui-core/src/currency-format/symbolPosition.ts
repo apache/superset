@@ -29,6 +29,13 @@ const NUMERIC_PART_TYPES = new Set<Intl.NumberFormatPartTypes>([
 ]);
 
 /**
+ * Memoize resolved positions by `(locale, currencyCode)`. `format` runs on a
+ * hot per-value path (every currency cell of every chart), so avoid rebuilding
+ * an `Intl.NumberFormat` and re-parsing the locale for repeated values.
+ */
+const positionCache = new Map<string, SymbolPosition>();
+
+/**
  * Resolve where the currency symbol should be placed relative to the value.
  *
  * An explicit `prefix`/`suffix` is always honored. When the position is unset,
@@ -47,6 +54,11 @@ export function resolveSymbolPosition(
   }
 
   if (currencyCode) {
+    const cacheKey = `${locale}|${currencyCode}`;
+    const cached = positionCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
     try {
       const parts = new Intl.NumberFormat(locale, {
         style: 'currency',
@@ -57,7 +69,9 @@ export function resolveSymbolPosition(
         NUMERIC_PART_TYPES.has(part.type),
       );
       if (currencyIndex !== -1 && valueIndex !== -1) {
-        return currencyIndex < valueIndex ? 'prefix' : 'suffix';
+        const position = currencyIndex < valueIndex ? 'prefix' : 'suffix';
+        positionCache.set(cacheKey, position);
+        return position;
       }
     } catch {
       // Unknown currency or locale — fall back to the default below.

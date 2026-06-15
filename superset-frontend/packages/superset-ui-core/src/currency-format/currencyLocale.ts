@@ -27,10 +27,22 @@ let currencyLocale: string = DEFAULT_CURRENCY_LOCALE;
  * Called once at application bootstrap with the deployment locale so that
  * currency formatting follows the conventions of that locale (e.g. EUR is a
  * suffix in `fr-FR`/`de-DE` but a prefix in `en-US`).
+ *
+ * Superset's bootstrap locale can be underscore-formatted (e.g. `zh_TW`,
+ * `pt_BR`), but `Intl.NumberFormat` expects BCP-47 tags with hyphens. The
+ * value is canonicalized before storing so symbol resolution does not throw
+ * and silently fall back. Empty or invalid tags leave the locale unchanged.
  */
 export function setCurrencyLocale(locale?: string): void {
-  if (locale) {
-    currencyLocale = locale;
+  if (!locale) {
+    return;
+  }
+  try {
+    // getCanonicalLocales throws on a malformed tag and otherwise returns a
+    // non-empty list, so the first entry is always a valid canonical tag here.
+    [currencyLocale] = Intl.getCanonicalLocales(locale.replace(/_/g, '-'));
+  } catch {
+    // Invalid locale tag — keep the previously configured locale.
   }
 }
 
