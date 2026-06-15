@@ -30,6 +30,7 @@ import {
   QueryFormData,
   SetDataMaskHook,
   SqlaFormData,
+  getMapProviderMapStyle,
 } from '@superset-ui/core';
 
 import {
@@ -46,6 +47,7 @@ import { Point } from '../../types';
 import { GetLayerType } from '../../factory';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 import { BLACK_COLOR, PRIMARY_COLOR } from '../../utilities/controls';
+import { getMapboxApiKey } from '../../utils/mapbox';
 
 type ProcessedFeature = Feature<Geometry, GeoJsonProperties> & {
   properties: JsonObject;
@@ -357,9 +359,19 @@ export type DeckGLGeoJsonProps = {
   emitCrossFilters?: boolean;
 };
 
-export function getPoints(data: Point[]) {
+export function getPoints(data?: Point[]) {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
   return data.reduce((acc: Array<any>, feature: any) => {
-    const bounds = geojsonExtent(feature);
+    let bounds;
+    try {
+      bounds = geojsonExtent(feature);
+    } catch {
+      return acc;
+    }
+
     if (bounds) {
       return [...acc, [bounds[0], bounds[1]], [bounds[2], bounds[3]]];
     }
@@ -382,13 +394,13 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
 
   const viewport: Viewport = useMemo(() => {
     if (formData.autozoom) {
-      const points = getPoints(payload.data.features) || [];
+      const points = getPoints(payload?.data?.features);
 
       if (points.length) {
         return fitViewport(props.viewport, {
           width,
           height,
-          points: getPoints(payload.data.features) || [],
+          points,
         });
       }
     }
@@ -412,12 +424,21 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
     emitCrossFilters: props.emitCrossFilters,
   });
 
+  const selectedMap = getMapProviderMapStyle({
+    mapProvider: formData.map_renderer,
+    maplibreStyle: formData.maplibre_style,
+    mapboxStyle: formData.mapbox_style,
+    legacyMapStyle: formData.map_style,
+  });
+
   return (
     <DeckGLContainerStyledWrapper
       ref={containerRef}
       viewport={viewport}
       layers={[layer]}
-      mapStyle={formData.map_style}
+      mapProvider={selectedMap.mapProvider}
+      mapStyle={selectedMap.mapStyle}
+      mapboxApiKey={getMapboxApiKey()}
       setControlValue={setControlValue}
       height={height}
       width={width}

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen \n"
 "Language: zh\n"
@@ -4603,6 +4603,9 @@ msgstr "数据库设置已更新"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "数据库不支持子查询"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 #, fuzzy
 msgid "Database upload file failed"
@@ -17196,6 +17199,10 @@ msgstr "如果分组被使用 `count` 表示 COUNT(*)。数值列将与聚合器
 msgid "`operation` property of post processing object undefined"
 msgstr "后处理必须指定操作类型（`operation`）"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "未安装程序包 `prophet`"
 
@@ -18139,10 +18146,6 @@ msgstr "升序"
 
 msgid "value descending"
 msgstr "降序"
-
-#, fuzzy
-msgid "valuename"
-msgstr "表名"
 
 #, fuzzy
 msgid "var"

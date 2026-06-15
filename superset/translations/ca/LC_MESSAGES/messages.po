@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -4654,6 +4654,9 @@ msgstr "Configuració de base de dades actualitzada"
 
 msgid "Database type does not support file uploads."
 msgstr "El tipus de base de dades no suporta pujades de fitxers."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "La pujada de fitxer de base de dades ha fallat"
@@ -17420,6 +17423,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Propietat `operation` de l'objecte de post processament indefinida"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "Paquet `prophet` no instal·lat"
 
@@ -18299,10 +18306,6 @@ msgstr "valor ascendent"
 
 msgid "value descending"
 msgstr "valor descendent"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Nom de taula"
 
 msgid "var"
 msgstr "var"

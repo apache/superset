@@ -725,6 +725,9 @@ class TestDatasetApi(SupersetTestCase):
         assert model.database_id == table_data["database"]
         # normalize_columns should default to False
         assert model.normalize_columns is False
+        # uuid should be returned in the response
+        assert "uuid" in data
+        assert str(model.uuid) == str(data["uuid"])
 
         # Assert that columns were created
         columns = (

@@ -425,6 +425,7 @@ const ResultSet = ({
                     url: makeUrl('/api/v1/sqllab/export_streaming/'),
                     payload: { client_id: query.id },
                     exportType: 'csv',
+                    exportSource: 'sqllab',
                     expectedRows: rows,
                   });
                 } else {

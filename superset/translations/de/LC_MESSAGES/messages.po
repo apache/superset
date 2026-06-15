@@ -4388,6 +4388,9 @@ msgstr "Datenbankeinstellungen aktualisiert"
 msgid "Database type does not support file uploads."
 msgstr "Der Datenbanktyp unterstützt keine Datei-Uploads."
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr "Datenbank-Upload fehlgeschlagen"
 
@@ -16451,6 +16454,10 @@ msgstr ""
 
 msgid "`operation` property of post processing object undefined"
 msgstr "'operation'-Eigenschaft des Nachbearbeitungsobjekts undefiniert"
+
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
 
 msgid "`prophet` package not installed"
 msgstr "Paket 'prophet' nicht installiert"

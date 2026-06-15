@@ -1858,6 +1858,43 @@ def test_columnar_metadata_validation(
     assert response.json == {"message": {"file": ["Field may not be null."]}}
 
 
+def test_metadata_file_too_large(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """
+    The metadata endpoint rejects an oversized file with a 413 before the
+    reader parses it, so the size limit cannot be bypassed by hitting
+    ``upload_metadata`` instead of ``upload``.
+    """
+    file_metadata = mocker.patch.object(CSVReader, "file_metadata")
+    mocker.patch.dict(current_app.config, {"UPLOAD_MAX_FILE_SIZE_BYTES": 4})
+    response = client.post(
+        "/api/v1/database/upload_metadata/",
+        data={"type": "csv", "file": create_csv_file()},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 413
+    assert (
+        response.json["errors"][0]["message"]
+        == "Database upload file exceeds the maximum allowed size."
+    )
+    file_metadata.assert_not_called()
+
+
+def test_metadata_within_size_limit(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """A file under ``UPLOAD_MAX_FILE_SIZE_BYTES`` passes the metadata endpoint."""
+    _ = mocker.patch.object(CSVReader, "file_metadata")
+    mocker.patch.dict(current_app.config, {"UPLOAD_MAX_FILE_SIZE_BYTES": 1024 * 1024})
+    response = client.post(
+        "/api/v1/database/upload_metadata/",
+        data={"type": "csv", "file": create_csv_file()},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+
+
 def test_table_metadata_happy_path(
     mocker: MockerFixture,
     client: Any,

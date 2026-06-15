@@ -20,6 +20,7 @@ Unit tests for update_chart MCP tool
 """
 
 import importlib
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -582,7 +583,7 @@ class TestBuildUpdatePayload:
         assert result == {"slice_name": "New Name"}
 
     def test_error_when_no_config_and_no_name(self):
-        """Returns GenerateChartResponse error when neither config nor chart_name."""
+        """Returns error when neither config, chart_name, nor dataset_id is provided."""
         request = UpdateChartRequest(identifier=1)
         chart = Mock()
 
@@ -594,6 +595,7 @@ class TestBuildUpdatePayload:
         assert result.error.error_type == "ValidationError"
         assert "config" in result.error.message.lower()
         assert "chart_name" in result.error.message.lower()
+        assert "dataset_id" in result.error.message.lower()
 
     def test_config_update_uses_request_chart_name(self):
         """When config and chart_name are both provided, uses chart_name."""
@@ -1344,3 +1346,292 @@ class TestUpdateChartSqlMetric:
         assert "<UNTRUSTED-CONTENT>" in m["sqlExpression"]
         assert "<UNTRUSTED-CONTENT>" in m["label"]
         assert "<UNTRUSTED-CONTENT>" not in m["optionName"]
+
+
+class TestBuildUpdatePayloadDatasetId:
+    """Tests for dataset_id support in _build_update_payload."""
+
+    def test_dataset_only_update_returns_datasource_fields(self) -> None:
+        """dataset_id alone produces a payload with datasource_id + datasource_type."""
+        request = UpdateChartRequest(identifier=1, dataset_id=42)
+        chart = Mock()
+        chart.datasource_id = 10
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result == {"datasource_id": 42, "datasource_type": "table"}
+
+    def test_dataset_and_name_update(self) -> None:
+        """dataset_id + chart_name: payload includes datasource fields
+        and slice_name."""
+        request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
+        chart = Mock()
+        chart.datasource_id = 10
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result == {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "Renamed",
+        }
+
+    def test_dataset_and_config_update_includes_datasource(self):
+        """dataset_id + config: payload includes datasource_id and datasource_type."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config, dataset_id=99)
+        chart = Mock()
+        chart.datasource_id = 10
+        chart.slice_name = "Old Name"
+
+        result = _build_update_payload(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert result["datasource_id"] == 99
+        assert result["datasource_type"] == "table"
+        assert "params" in result
+        assert "viz_type" in result
+
+    def test_config_without_dataset_does_not_include_datasource(self):
+        """When dataset_id is None, payload must NOT include datasource_id."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock()
+        chart.datasource_id = 10
+        chart.slice_name = "Old Name"
+
+        result = _build_update_payload(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert "datasource_id" not in result
+        assert "datasource_type" not in result
+
+
+class TestBuildPreviewFormDataDatasetId:
+    """Tests for dataset_id support in _build_preview_form_data."""
+
+    def test_dataset_only_update_sets_datasource_field(self):
+        """dataset_id alone updates the datasource field in merged form_data."""
+        request = UpdateChartRequest(identifier=1, dataset_id=55)
+        chart = Mock()
+        chart.datasource_id = 10
+        chart.slice_name = "Chart"
+        chart.id = 1
+        chart.params = None
+
+        result = _build_preview_form_data(request, chart)
+
+        assert isinstance(result, dict)
+        assert result["datasource"] == "55__table"
+
+    def test_config_and_dataset_uses_new_dataset(self):
+        """config + dataset_id: datasource field reflects the new dataset."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config, dataset_id=77)
+        chart = Mock()
+        chart.datasource_id = 10
+        chart.slice_name = "Chart"
+        chart.id = 1
+        chart.params = None
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert result["datasource"] == "77__table"
+
+    def test_no_dataset_keeps_existing_datasource(self):
+        """When dataset_id is None, datasource reflects the existing chart dataset."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock()
+        chart.datasource_id = 10
+        chart.slice_name = "Chart"
+        chart.id = 1
+        chart.params = None
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert result["datasource"] == "10__table"
+
+
+class TestUpdateChartDatasetIdIntegration:
+    """Integration test verifying dataset_id is plumbed into UpdateChartCommand."""
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.commands.chart.update.UpdateChartCommand",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.mcp_service.chart.tool.update_chart._validate_update_against_dataset",
+        return_value=None,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_dataset_id_passed_to_update_command(
+        self,
+        mock_db_session: Any,
+        mock_find_by_id: Mock,
+        mock_validate: Mock,
+        mock_update_cmd_cls: Mock,
+        mock_check_access: Mock,
+        mcp_server: Any,
+    ) -> None:
+        """dataset_id in request is forwarded to UpdateChartCommand payload."""
+        mock_chart = Mock()
+        mock_chart.id = 55
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Old Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "uuid-55"
+        mock_find_by_id.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="old_dataset",
+            warnings=[],
+        )
+
+        updated_chart = Mock()
+        updated_chart.id = 55
+        updated_chart.slice_name = "Old Chart"
+        updated_chart.viz_type = "table"
+        updated_chart.uuid = "uuid-55"
+        mock_update_cmd_cls.return_value.run.return_value = updated_chart
+
+        request = {
+            "identifier": 55,
+            "dataset_id": 1041,
+            "generate_preview": False,
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is True
+
+            call_args = mock_update_cmd_cls.call_args
+            payload = call_args[0][1]
+            assert payload.get("datasource_id") == 1041
+            assert payload.get("datasource_type") == "table"
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_dataset_only_rebind_invalid_dataset_returns_error(
+        self,
+        mock_db_session: Any,
+        mock_chart_find: Mock,
+        mock_dataset_find: Mock,
+        mock_check_access: Mock,
+        mcp_server: Any,
+    ) -> None:
+        """dataset_id pointing to a non-existent dataset returns
+        DatasetNotAccessible."""
+        mock_chart = Mock()
+        mock_chart.id = 55
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Old Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "uuid-55"
+        mock_chart_find.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="old_dataset",
+            warnings=[],
+        )
+
+        # Target dataset does not exist
+        mock_dataset_find.return_value = None
+
+        request = {
+            "identifier": 55,
+            "dataset_id": 9999,
+            "generate_preview": False,
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is False
+            error_type = result.structured_content["error"]["error_type"]
+            assert error_type == "DatasetNotAccessible"
+            assert "9999" in result.structured_content["error"]["details"]
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_dataset_only_rebind_invalid_dataset_preview_returns_error(
+        self,
+        mock_db_session: Any,
+        mock_chart_find: Mock,
+        mock_dataset_find: Mock,
+        mock_check_access: Mock,
+        mcp_server: Any,
+    ) -> None:
+        """dataset_id pointing to a non-existent dataset returns error in
+        preview path."""
+        mock_chart = Mock()
+        mock_chart.id = 55
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Old Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "uuid-55"
+        mock_chart.params = None
+        mock_chart_find.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="old_dataset",
+            warnings=[],
+        )
+
+        # Target dataset does not exist
+        mock_dataset_find.return_value = None
+
+        request = {
+            "identifier": 55,
+            "dataset_id": 9999,
+            "generate_preview": True,
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is False
+            error_type = result.structured_content["error"]["error_type"]
+            assert error_type == "DatasetNotAccessible"
+            assert "9999" in result.structured_content["error"]["details"]
