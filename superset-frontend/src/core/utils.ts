@@ -27,12 +27,12 @@ type Listener<T> = (e: T) => unknown;
 export interface EventEmitter<T> {
   /** Notifies every current subscriber with `value`. */
   fire(value: T): void;
-  /** The public {@link core.Event} used to subscribe to this emitter. */
-  event: core.Event<T>;
+  /** Registers a listener; returns a Disposable that removes it. */
+  subscribe: core.Event<T>;
 }
 
-/** A stateful emitter that also retains the last fired value. */
-export interface Emitter<T> extends EventEmitter<T> {
+/** An event emitter that also retains the last fired value. */
+export interface ValueEventEmitter<T> extends EventEmitter<T> {
   /** Returns the value last passed to {@link fire} (or the initial value). */
   getCurrent(): T;
 }
@@ -43,31 +43,31 @@ export interface Emitter<T> extends EventEmitter<T> {
  */
 export function createEventEmitter<T>(): EventEmitter<T> {
   const listeners = new Set<Listener<T>>();
-  const event: core.Event<T> = (listener, thisArgs) => {
+  const subscribe: core.Event<T> = (listener, thisArgs) => {
     const bound = thisArgs ? listener.bind(thisArgs) : listener;
     listeners.add(bound);
     return { dispose: () => listeners.delete(bound) };
   };
   return {
     fire: value => listeners.forEach(fn => fn(value)),
-    event,
+    subscribe,
   };
 }
 
 /**
- * Creates a stateful emitter seeded with `initial`. Behaves like
+ * Creates a value event emitter seeded with `initial`. Behaves like
  * {@link createEventEmitter} but also tracks the last fired value, readable
  * via `getCurrent` — useful for state that is both observed and queried.
  */
-export function createEmitter<T>(initial: T): Emitter<T> {
-  const { fire, event } = createEventEmitter<T>();
+export function createValueEventEmitter<T>(initial: T): ValueEventEmitter<T> {
+  const { fire, subscribe } = createEventEmitter<T>();
   let current = initial;
   return {
     fire: value => {
       current = value;
       fire(value);
     },
-    event,
+    subscribe,
     getCurrent: () => current,
   };
 }

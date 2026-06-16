@@ -29,6 +29,7 @@ import type { views as viewsApi } from '@apache-superset/core';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import { Disposable } from '../models';
+import { createEventEmitter } from '../utils';
 
 type View = viewsApi.View;
 type ViewRegisteredEvent = viewsApi.ViewRegisteredEvent;
@@ -47,19 +48,19 @@ const subscribe = (listener: () => void) => {
   return () => syncListeners.delete(listener);
 };
 
-const registerListeners = new Set<(e: ViewRegisteredEvent) => void>();
-const unregisterListeners = new Set<(e: ViewUnregisteredEvent) => void>();
+const registerEmitter = createEventEmitter<ViewRegisteredEvent>();
+const unregisterEmitter = createEventEmitter<ViewUnregisteredEvent>();
 
 const viewsCache = new Map<string, View[] | undefined>();
 const notifyRegister = (event: ViewRegisteredEvent) => {
   viewsCache.clear();
   syncListeners.forEach(l => l());
-  registerListeners.forEach(l => l(event));
+  registerEmitter.fire(event);
 };
 const notifyUnregister = (event: ViewUnregisteredEvent) => {
   viewsCache.clear();
   syncListeners.forEach(l => l());
-  unregisterListeners.forEach(l => l(event));
+  unregisterEmitter.fire(event);
 };
 
 const registerView: typeof viewsApi.registerView = (
@@ -116,17 +117,11 @@ export const useViews = (location: string): View[] | undefined =>
 
 export const onDidRegisterView: typeof viewsApi.onDidRegisterView = (
   listener: (e: ViewRegisteredEvent) => void,
-): Disposable => {
-  registerListeners.add(listener);
-  return new Disposable(() => registerListeners.delete(listener));
-};
+): Disposable => registerEmitter.subscribe(listener);
 
 export const onDidUnregisterView: typeof viewsApi.onDidUnregisterView = (
   listener: (e: ViewUnregisteredEvent) => void,
-): Disposable => {
-  unregisterListeners.add(listener);
-  return new Disposable(() => unregisterListeners.delete(listener));
-};
+): Disposable => unregisterEmitter.subscribe(listener);
 
 export const views: typeof viewsApi = {
   registerView,

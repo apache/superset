@@ -41,7 +41,7 @@
 import { ReactElement } from 'react';
 import type { chat as chatApi } from '@apache-superset/core';
 import { Disposable } from '../models';
-import { createEmitter, createEventEmitter } from '../utils';
+import { createValueEventEmitter, createEventEmitter } from '../utils';
 
 type Chat = chatApi.Chat;
 type DisplayMode = chatApi.DisplayMode;
@@ -90,7 +90,7 @@ const unregisterEmitter = createEventEmitter<Chat>();
 const openEmitter = createEventEmitter<void>();
 const closeEmitter = createEventEmitter<void>();
 const resizePanelEmitter = createEventEmitter<{ width: number }>();
-const modeEmitter = createEmitter<DisplayMode>('floating');
+const modeEmitter = createValueEventEmitter<DisplayMode>('floating');
 
 /**
  * Host-internal: resolves the active chat with its providers.
@@ -224,17 +224,17 @@ const setDisplayMode: typeof chatApi.setDisplayMode = (
 export const chat: typeof chatApi = {
   registerChat,
   getChat,
-  onDidRegisterChat: registerEmitter.event,
-  onDidUnregisterChat: unregisterEmitter.event,
+  onDidRegisterChat: registerEmitter.subscribe,
+  onDidUnregisterChat: unregisterEmitter.subscribe,
   open,
   close,
   isOpen,
-  onDidOpen: openEmitter.event,
-  onDidClose: closeEmitter.event,
+  onDidOpen: openEmitter.subscribe,
+  onDidClose: closeEmitter.subscribe,
   getDisplayMode,
   setDisplayMode,
-  onDidChangeDisplayMode: modeEmitter.event,
+  onDidChangeDisplayMode: modeEmitter.subscribe,
   // The host fires this from its panel resizer; until that chrome exists the
   // event is exposed but never fires.
-  onDidResizePanel: resizePanelEmitter.event,
+  onDidResizePanel: resizePanelEmitter.subscribe,
 };
