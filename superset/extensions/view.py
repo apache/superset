@@ -32,4 +32,3 @@ class ExtensionsView(BaseSupersetView):
     @permission_name("read")
     def list(self) -> FlaskResponse:
         return super().render_app_template()
-    
