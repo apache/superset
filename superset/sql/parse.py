@@ -639,10 +639,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "LO_CREATE",
             "LOWRITE",
             "LO_UNLINK",
-            # PostgreSQL sequence mutators. `SELECT setval('seq', N)` looks
-            # like a read but changes sequence state for every subsequent
-            # `nextval` caller.
+            # PostgreSQL sequence mutators. `SELECT setval('seq', N)` and
+            # `SELECT nextval('seq')` look like reads but change sequence state
+            # for every subsequent caller. (`currval` only reads the session's
+            # last value, so it is intentionally not listed.)
             "SETVAL",
+            "NEXTVAL",
         }
     )
 
@@ -659,7 +661,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "COPY",  # server-side file ingest into a table
             "GRANT",
             "REVOKE",
-            "SET",  # SET ROLE / SET SESSION AUTHORIZATION change effective user
+            # Only the command-fallback forms (e.g. SET ROLE / SET SESSION
+            # AUTHORIZATION, which change the effective user) reach here as an
+            # exp.Command. Structured `SET search_path = ...` /
+            # `SET statement_timeout = ...` parse as exp.Set and are NOT matched
+            # by this command-name path.
+            "SET",
             "RESET",  # RESET ROLE / RESET ALL reverts SET; same class as SET
             "REFRESH",  # REFRESH MATERIALIZED VIEW
             "REINDEX",

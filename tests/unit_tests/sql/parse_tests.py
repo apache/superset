@@ -1460,10 +1460,13 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
         ("SELECT lowrite(12345, decode('00', 'hex'))", True),
         # lo_unlink deletes a large object outright.
         ("SELECT lo_unlink(12345)", True),
-        # PostgreSQL sequence mutator. setval() looks like a read but
-        # advances sequence state for every subsequent nextval caller.
+        # PostgreSQL sequence mutators. setval()/nextval() look like reads but
+        # advance sequence state for every subsequent caller.
         ("SELECT setval('public.my_seq', 1000)", True),
         ("SELECT SETVAL('public.my_seq', 1)", True),
+        ("SELECT nextval('public.my_seq')", True),
+        # currval() only reads the session's last value, so it is not mutating.
+        ("SELECT currval('public.my_seq')", False),
         # Read-side large-object functions are intentionally NOT classified
         # as mutating here. They are still blocked via the function denylist
         # (see DISALLOWED_SQL_FUNCTIONS) but they do not write state.
