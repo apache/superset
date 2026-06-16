@@ -572,14 +572,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   return (
     <FilterPluginStyle height={height} width={width}>
-      {inverseSelection && (
-        <style>{`
-          .inverse-select-dropdown .ant-select-item {
-            margin-right: 14px !important;
-            border-radius: 4px !important;
-          }
-        `}</style>
-      )}
       <FormItem
         validateStatus={filterState.validateStatus}
         extra={formItemExtra}
@@ -646,8 +638,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               sortComparator={sortComparator}
               onOpenChange={setFilterActive}
               className="select-container"
-              dropdownClassName={inverseSelection ? "inverse-select-dropdown" : undefined}
-              popupClassName={inverseSelection ? "inverse-select-dropdown" : undefined}
             />
           )}
         </StyledSpace>
