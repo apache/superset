@@ -4648,6 +4648,9 @@ msgstr "Não foi possível gravar a sua query"
 msgid "Database type does not support file uploads."
 msgstr "Origem de dados %(name)s já existe"
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 #, fuzzy
 msgid "Database upload file failed"
 msgstr "Camadas de anotação"

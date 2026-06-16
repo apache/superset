@@ -4560,6 +4560,9 @@ msgstr "데이터베이스를 업데이트할 수 없습니다."
 msgid "Database type does not support file uploads."
 msgstr ""
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr ""
 

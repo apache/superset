@@ -49,7 +49,10 @@ import {
 } from '@apache-superset/core/theme';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
-import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
+import {
+  canUserEditDashboard,
+  isUserAdmin,
+} from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType, ChartStatusType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -126,10 +129,15 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   canOverwriteSlice(): boolean {
     const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
-    return (
+    const canEditSlice = Boolean(
       this.props.slice?.editors?.some((editor: { id: number } | number) =>
         userSubjects.includes(typeof editor === 'number' ? editor : editor.id),
-      ) && !this.props.slice?.is_managed_externally
+      ),
+    );
+
+    return (
+      (isUserAdmin(this.props.user) || canEditSlice) &&
+      !this.props.slice?.is_managed_externally
     );
   }
 
@@ -623,7 +631,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
                       "This chart is managed externally and can't be overwritten in Superset.",
                     )
                   : t(
-                      'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+                      'Must be a chart editor to overwrite this chart. Save as a new chart instead.',
                     )}
               </Typography.Text>
             </div>

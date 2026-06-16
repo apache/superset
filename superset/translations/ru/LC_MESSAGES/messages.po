@@ -4572,6 +4572,9 @@ msgstr "Настройки базы данных обновлены"
 msgid "Database type does not support file uploads."
 msgstr "База данных не поддерживает загрузку файлов"
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr "Произошла ошибка при загрузке файла в базу данных"
 

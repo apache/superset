@@ -4650,6 +4650,9 @@ msgstr "Nastavenie databáza aktualizované"
 msgid "Database type does not support file uploads."
 msgstr "Typ databáza nepodporuje nahrávanie súborov."
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr "Nahranie súboru do databáza zlyhalo"
 

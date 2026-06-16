@@ -4625,6 +4625,9 @@ msgstr "数据库设置已更新"
 msgid "Database type does not support file uploads."
 msgstr "数据库不支持子查询"
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 #, fuzzy
 msgid "Database upload file failed"
 msgstr "选择将要上传文件的数据库"

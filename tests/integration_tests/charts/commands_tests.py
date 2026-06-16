@@ -25,6 +25,7 @@ from flask import g  # noqa: F401
 from superset import db, security_manager
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
     ChartNotFoundError,
     WarmUpCacheChartNotFoundError,
 )
@@ -456,6 +457,43 @@ class TestChartsUpdateCommand(SupersetTestCase):
         assert chart.query_context == query_context
         assert len(chart.editors) == 1
         assert user_is_editor(admin, chart)
+
+    @patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_query_context_update_requires_chart_access(
+        self, mock_sm_g, mock_core_g, mock_update_g, mock_find_by_id
+    ) -> None:
+        """
+        A query_context-only update relaxes the ownership requirement but must
+        still require access to the chart. We bypass the DAO ``ChartFilter``
+        base filter (by patching ``find_by_id`` to return the chart directly)
+        so the request reaches the new explicit ``raise_for_access`` check, and
+        assert that a non-owner with no access to the chart's datasource is
+        rejected with ``ChartForbiddenError``. This deterministically exercises
+        the new branch and would fail on master, where the check is absent.
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        pk = chart.id
+        admin = security_manager.find_user(username="admin")
+        chart.owners = [admin]
+        db.session.commit()
+
+        # Return the chart directly, bypassing ChartFilter, so the command's
+        # own raise_for_access gate is what denies the request.
+        mock_find_by_id.return_value = chart
+
+        # gamma has no access to the energy datasource and does not own the chart
+        gamma = security_manager.find_user(username="gamma")
+        mock_core_g.user = mock_sm_g.user = mock_update_g.user = gamma
+        json_obj = {
+            "query_context_generation": True,
+            "query_context": json.dumps({"foo": "bar"}),
+        }
+        with pytest.raises(ChartForbiddenError):
+            UpdateChartCommand(pk, json_obj).run()
 
     @patch("superset.commands.chart.update.g")
     @patch("superset.utils.core.g")

@@ -4678,6 +4678,9 @@ msgstr "تم تحديث إعدادات قاعدة البيانات"
 msgid "Database type does not support file uploads."
 msgstr "قاعدة البيانات لا تدعم الاستعلامات الفرعية"
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 #, fuzzy
 msgid "Database upload file failed"
 msgstr "حدد قاعدة بيانات لتحميل الملف إليها"

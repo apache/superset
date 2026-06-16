@@ -4379,6 +4379,9 @@ msgstr "Veritabanı ayarları güncellendi"
 msgid "Database type does not support file uploads."
 msgstr ""
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 #, fuzzy
 msgid "Database upload file failed"
 msgstr "Veriseti silme işlemi gerçekleşmedi."

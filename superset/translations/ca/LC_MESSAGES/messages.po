@@ -4673,6 +4673,9 @@ msgstr "Configuració de base de dades actualitzada"
 msgid "Database type does not support file uploads."
 msgstr "El tipus de base de dades no suporta pujades de fitxers."
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr "La pujada de fitxer de base de dades ha fallat"
 

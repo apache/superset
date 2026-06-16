@@ -327,7 +327,7 @@ def import_dashboard(  # noqa: C901
     if dashboard.id is None:
         db.session.flush()
 
-    if user := get_user():
+    if not existing and user:
         from superset.subjects.utils import get_user_subject
 
         subj = get_user_subject(user.id)

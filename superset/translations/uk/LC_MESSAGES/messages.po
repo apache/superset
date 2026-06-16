@@ -4564,6 +4564,9 @@ msgstr "Параметри бази даних оновлено"
 msgid "Database type does not support file uploads."
 msgstr "База даних не підтримує підвантаження файлів."
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr "Не вдалося вивантажити файл до бази даних"
 

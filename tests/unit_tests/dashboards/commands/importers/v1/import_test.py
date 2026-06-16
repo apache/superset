@@ -32,6 +32,8 @@ from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.v1.utils import import_tag
 from superset.extensions import feature_flag_manager
 from superset.models.dashboard import Dashboard
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.tags.models import TaggedObject
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import dashboard_config
@@ -168,12 +170,12 @@ def test_import_existing_dashboard_without_access_permission(
     mock_can_access_dashboard.assert_called_once_with(dashboard)
 
 
-def test_import_existing_dashboard_without_owner_permission(
+def test_import_existing_dashboard_without_editor_permission(
     mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """
-    Test importing a dashboard when a user doesn't have ownership and is not an Admin.
+    Test importing a dashboard when a user isn't an editor and is not an Admin.
     """
     mock_can_access = mocker.patch.object(
         security_manager, "can_access", return_value=True
@@ -243,6 +245,67 @@ def test_import_existing_dashboard_with_permission(
     # Assert that the can write to dashboard was checked
     mock_can_access.assert_called_once_with("can_write", "Dashboard")
     mock_can_access_dashboard.assert_called_once_with(dashboard)
+
+
+def test_import_existing_dashboard_does_not_add_importer_as_editor(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Importing an existing dashboard must NOT add the importer as an editor.
+    Regression test for GitHub issue #36244.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+    subject = Subject(label="Alice Doe", type=SubjectType.USER, user_id=admin.id)
+    get_user_subject = mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        return_value=subject,
+    )
+
+    with override_user(admin):
+        result = import_dashboard(dashboard_config, overwrite=True)
+
+    get_user_subject.assert_not_called()
+    assert subject not in result.editors
+
+
+def test_import_new_dashboard_adds_importer_as_editor(
+    mocker: MockerFixture,
+    session_with_schema: Session,
+) -> None:
+    """
+    Importing a new dashboard (UUID not in DB) should add the importer as editor.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    user = User(
+        first_name="Bob",
+        last_name="Smith",
+        email="bsmith@example.org",
+        username="bob",
+        roles=[Role(name="Gamma")],
+    )
+    subject = Subject(label="Bob Smith", type=SubjectType.USER, user_id=user.id)
+    get_user_subject = mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        return_value=subject,
+    )
+
+    with override_user(user):
+        result = import_dashboard(dashboard_config)
+
+    get_user_subject.assert_called_once_with(user.id)
+    assert subject in result.editors
 
 
 def test_import_tag_logic_for_dashboards(session_with_schema: Session):

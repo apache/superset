@@ -4624,6 +4624,9 @@ msgstr "تنظیمات پایگاه داده به‌روزرسانی شدند"
 msgid "Database type does not support file uploads."
 msgstr "نوع پایگاه داده از بارگذاری فایل پشتیبانی نمی‌کند."
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr "بارگذاری فایل پایگاه داده ناموفق بود"
 

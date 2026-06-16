@@ -4595,6 +4595,9 @@ msgstr "La tua query non può essere salvata"
 msgid "Database type does not support file uploads."
 msgstr "Sorgente dati e tipo di grafico"
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 #, fuzzy
 msgid "Database upload file failed"
 msgstr "La tua query non può essere salvata"

@@ -4678,6 +4678,9 @@ msgstr "Nastavitve podatkovne baze posodobljene"
 msgid "Database type does not support file uploads."
 msgstr "Tip podatkovne baze ne podpira nalaganje datotek."
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr "Nalaganje datoteke v podatkovno bazo ni uspelo"
 

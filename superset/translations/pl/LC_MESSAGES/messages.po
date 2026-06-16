@@ -4821,6 +4821,9 @@ msgstr "Ustawienia bazy danych zaktualizowane"
 msgid "Database type does not support file uploads."
 msgstr "Typ bazy danych nie obsługuje przesyłania plików."
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 #, fuzzy
 msgid "Database upload file failed"
 msgstr "Nie udało się przesłać pliku do bazy danych"

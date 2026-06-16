@@ -204,8 +204,14 @@ export type TabOverride = 'data' | 'customize' | 'matrixify' | boolean;
  * these configs will be passed to the UI component for control as props.
  *
  * - type: the control type, referencing a React component of the same name
- * - label: the label as shown in the control's header
- * - description: shown in the info tooltip of the control's header
+ * - label: the label as shown in the control's header. When the value involves
+ *   `t()`/`tn()`, prefer the arrow-function form (`label: () => t('Foo')`) so
+ *   the lookup runs at render time rather than at module load — eager
+ *   `label: t('Foo')` captures the fallback language before i18n initializes
+ *   and does not update on runtime language change. The
+ *   `i18n-strings/no-eager-t-in-config` lint rule autofixes this.
+ * - description: shown in the info tooltip of the control's header. Same
+ *   lazy-form guidance as `label`.
  * - default: the default value when opening a new chart, or changing visualization type
  * - renderTrigger: a bool that defines whether the visualization should be re-rendered
  *    when changed. This should `true` for controls that only affect the rendering (client side)

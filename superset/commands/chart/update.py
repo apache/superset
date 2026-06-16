@@ -124,15 +124,22 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         if not self._model:
             raise ChartNotFoundError()
 
-        # Check and update editorship; when only updating query context we ignore
-        # editorship so the update can be performed by report workers
+        # Check and update editorship; when only updating query context we relax
+        # editorship so report workers can save context. We still require chart
+        # access so users cannot rewrite query context for charts they cannot access.
         if not is_query_context_update(self._properties):
             try:
                 security_manager.raise_for_editorship(self._model)
+                compute_subjects(self._model, self._properties, exceptions)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
-
-            compute_subjects(self._model, self._properties, exceptions)
+            except ValidationError as ex:
+                exceptions.append(ex)
+        else:
+            try:
+                security_manager.raise_for_access(chart=self._model)
+            except SupersetSecurityException as ex:
+                raise ChartForbiddenError() from ex
 
         # validate tags
         try:

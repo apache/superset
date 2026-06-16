@@ -33,6 +33,16 @@ def _editorship_exc() -> SupersetSecurityException:
     )
 
 
+def _access_exc() -> SupersetSecurityException:
+    return SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.CHART_SECURITY_ACCESS_ERROR,
+            message="User does not have access to this chart",
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
 def test_update_chart_editorship_enforced_for_regular_update(
     mocker: MockerFixture,
 ) -> None:
@@ -54,12 +64,15 @@ def test_update_chart_editorship_enforced_for_regular_update(
 def test_update_chart_query_context_skips_editorship_check(
     mocker: MockerFixture,
 ) -> None:
-    """Query-context-only updates skip editorship so report workers can save context."""
+    """Query-context-only updates skip editorship but still require chart access."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
     find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
     raise_for_editorship = mocker.patch(
         "superset.commands.chart.update.security_manager.raise_for_editorship",
         side_effect=_editorship_exc(),
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
     )
 
     UpdateChartCommand(
@@ -68,6 +81,50 @@ def test_update_chart_query_context_skips_editorship_check(
 
     find_by_id.assert_called_once_with(1)
     raise_for_editorship.assert_not_called()
+    raise_for_access.assert_called_once_with(chart=find_by_id.return_value)
+
+
+def test_update_chart_query_context_requires_chart_access(
+    mocker: MockerFixture,
+) -> None:
+    """A query-context-only update by someone without access to the chart is
+    rejected, even though the editorship check is relaxed for this path."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
+        side_effect=_access_exc(),
+    )
+
+    with pytest.raises(ChartForbiddenError):
+        UpdateChartCommand(
+            1, {"query_context": "{}", "query_context_generation": True}
+        ).validate()
+
+
+def test_update_chart_query_context_non_editor_with_access_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A non-editor who has access to the chart (e.g. an alpha user with
+    datasource access, or a report worker) can perform a query-context-only
+    backfill: editorship is relaxed and ``raise_for_access`` does not deny."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    raise_for_editorship = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+        side_effect=_editorship_exc(),
+    )
+    # access check passes (no exception) -> the non-editor is permitted
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
+    )
+
+    UpdateChartCommand(
+        1, {"query_context": "{}", "query_context_generation": True}
+    ).validate()
+
+    raise_for_editorship.assert_not_called()
+    raise_for_access.assert_called_once_with(chart=find_by_id.return_value)
 
 
 def test_update_chart_editor_can_perform_regular_update(

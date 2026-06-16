@@ -4816,6 +4816,9 @@ msgstr "Configurações do banco de dados atualizadas"
 msgid "Database type does not support file uploads."
 msgstr "O banco de dados não é compatível com subconsultas"
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 #, fuzzy
 msgid "Database upload file failed"
 msgstr "Selecione um banco de dados para enviar o arquivo"

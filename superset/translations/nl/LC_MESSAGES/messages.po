@@ -4710,6 +4710,9 @@ msgstr "Database instellingen bijgewerkt"
 msgid "Database type does not support file uploads."
 msgstr "Database ondersteunt geen subquery’s"
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 #, fuzzy
 msgid "Database upload file failed"
 msgstr "Selecteer een database om het bestand naar te uploaden"

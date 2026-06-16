@@ -4848,6 +4848,9 @@ msgstr "Configuración de la base de datos actualizada"
 msgid "Database type does not support file uploads."
 msgstr "El tipo de base de datos no admite subidas de archivos."
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr "La subida de la base de datos ha fallado"
 

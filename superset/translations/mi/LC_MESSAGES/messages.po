@@ -4604,6 +4604,9 @@ msgstr "Kua whakahouhia ngā tautuhinga pātengi raraunga"
 msgid "Database type does not support file uploads."
 msgstr "Karekau e tautoko te momo pātengi raraunga i ngā tukuake kōnae."
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr "I rahua te tukuake kōnae pātengi raraunga"
 

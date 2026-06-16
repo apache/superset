@@ -4222,6 +4222,9 @@ msgstr ""
 msgid "Database type does not support file uploads."
 msgstr ""
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr ""
 

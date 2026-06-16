@@ -4749,6 +4749,9 @@ msgstr "Datenbankeinstellungen aktualisiert"
 msgid "Database type does not support file uploads."
 msgstr "Der Datenbanktyp unterstützt keine Datei-Uploads."
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr "Datenbank-Upload fehlgeschlagen"
 
