@@ -369,7 +369,7 @@ const CustomModal = ({
         resizable || draggable ? (
           <Draggable
             disabled={!draggable || dragDisabled}
-            bounds={bounds}
+            bounds={bounds ?? false}
             onStart={(event, uiData) => onDragStart(event, uiData)}
             {...draggableConfig}
           >

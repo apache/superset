@@ -271,6 +271,19 @@ def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # no
                 log_params,
             )
         db.session.commit()
+        # Eagerly reload query attributes so no lazy-load triggers a new
+        # metadata DB connection during the (potentially long) cursor
+        # execution. With NullPool each lazy-load opens a fresh connection
+        # that stays idle for the query duration; if the query runs longer
+        # than the DB's idle_in_transaction_session_timeout the connection
+        # is killed, leaving the query stuck in "running" state forever.
+        db.session.expire_on_commit = False
+        try:
+            db.session.refresh(query)
+            _ = query.database
+            db.session.commit()
+        finally:
+            db.session.expire_on_commit = True
         with event_logger.log_context(
             action="execute_sql",
             database=database,

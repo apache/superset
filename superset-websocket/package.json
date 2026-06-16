@@ -19,7 +19,7 @@
   "dependencies": {
     "cookie": "^1.1.1",
     "hot-shots": "^15.0.0",
-    "ioredis": "^5.11.0",
+    "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.18.1",
     "winston": "^3.19.0",
@@ -31,10 +31,10 @@
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.24",
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.2",
     "@types/ws": "^8.18.1",
-    "@typescript-eslint/eslint-plugin": "^8.60.0",
-    "@typescript-eslint/parser": "^8.60.0",
+    "@typescript-eslint/eslint-plugin": "^8.60.1",
+    "@typescript-eslint/parser": "^8.61.0",
     "eslint": "^10.4.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-lodash": "^8.0.0",
@@ -45,10 +45,10 @@
     "ts-node": "^10.9.2",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.60.0"
+    "typescript-eslint": "^8.60.1"
   },
   "engines": {
-    "node": "^22.22.0",
-    "npm": "^10.8.2"
+    "node": "^24.16.0",
+    "npm": "^11.13.0"
   }
 }

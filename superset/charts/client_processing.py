@@ -35,6 +35,7 @@ from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.extensions import event_logger
+from superset.utils import csv
 from superset.utils.core import (
     extract_dataframe_dtypes,
     get_column_names,
@@ -388,11 +389,13 @@ def apply_client_processing(  # noqa: C901
         if query["result_format"] == ChartDataResultFormat.JSON:
             query["data"] = processed_df.to_dict()
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            buf = StringIO()
-            # Apply CSV_EXPORT config for consistent CSV formatting
-            csv_export_config = current_app.config["CSV_EXPORT"]
-            processed_df.to_csv(buf, index=show_default_index, **csv_export_config)
-            buf.seek(0)
-            query["data"] = buf.getvalue()
+            # Route through the formula-escaping CSV writer, consistent with the
+            # other CSV export paths (viz, query context, SQL Lab export), while
+            # applying CSV_EXPORT config for consistent CSV formatting.
+            query["data"] = csv.df_to_escaped_csv(
+                processed_df,
+                index=show_default_index,
+                **current_app.config["CSV_EXPORT"],
+            )
 
     return result

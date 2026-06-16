@@ -36,7 +36,7 @@
  */
 
 import { ReactElement } from 'react';
-import { Disposable } from '../common';
+import { Disposable, Event } from '../common';
 
 /**
  * Represents a contributed view in the application.
@@ -88,3 +88,33 @@ export declare function registerView(
  * ```
  */
 export declare function getViews(location: string): View[] | undefined;
+
+/**
+ * Event fired when a view is registered.
+ */
+export interface ViewRegisteredEvent {
+  /** The descriptor of the view that was registered. */
+  view: View;
+  /** The location where the view was registered. */
+  location: string;
+}
+
+/**
+ * Event fired when a view is unregistered.
+ */
+export interface ViewUnregisteredEvent {
+  /** The descriptor of the view that was unregistered. */
+  view: View;
+  /** The location where the view was registered. */
+  location: string;
+}
+
+/**
+ * Event fired when a view is registered.
+ */
+export declare const onDidRegisterView: Event<ViewRegisteredEvent>;
+
+/**
+ * Event fired when a view is unregistered.
+ */
+export declare const onDidUnregisterView: Event<ViewUnregisteredEvent>;
