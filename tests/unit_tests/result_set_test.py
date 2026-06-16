@@ -463,7 +463,9 @@ def test_stringify_values_dict_and_list_produce_valid_json() -> None:
     data = np.array(
         [
             {"key": "value", "nested": {"a": 1}},
-            [1, 2, 3],
+            # List with string elements: str() gives ['a', 'b'] (single-quoted, invalid JSON)
+            # while json.dumps gives ["a", "b"] (double-quoted, valid JSON).
+            ["a", "b"],
             {"items": [1, 2, 3], "d": "Hello, World!"},
             None,
         ],
@@ -473,7 +475,7 @@ def test_stringify_values_dict_and_list_produce_valid_json() -> None:
 
     # Must be valid JSON strings (double-quoted), not Python repr (single-quoted)
     assert result[0] == '{"key": "value", "nested": {"a": 1}}'
-    assert result[1] == "[1, 2, 3]"
+    assert result[1] == '["a", "b"]'
     assert result[2] == '{"items": [1, 2, 3], "d": "Hello, World!"}'
     assert result[3] is None
 
@@ -481,7 +483,7 @@ def test_stringify_values_dict_and_list_produce_valid_json() -> None:
     parsed = superset_json.loads(result[0])
     assert parsed == {"key": "value", "nested": {"a": 1}}
     parsed = superset_json.loads(result[1])
-    assert parsed == [1, 2, 3]
+    assert parsed == ["a", "b"]
 
 
 def test_clickhouse_json_column_in_pa_table_is_valid_json() -> None:
@@ -518,3 +520,23 @@ def test_clickhouse_json_column_in_pa_table_is_valid_json() -> None:
     assert parsed0 == {"a": {"b": 42}, "c": [1, 2, 3], "d": "Hello, World!"}
     parsed1 = superset_json.loads(val1)
     assert parsed1 == {"e": 5}
+
+
+def test_stringify_values_non_serializable_dict_falls_back_to_str() -> None:
+    """
+    When a dict/list contains a value that json.dumps cannot serialize (e.g. bytes),
+    stringify_values must fall back to str() rather than raising TypeError and crashing
+    the result-set construction path.
+    """
+
+    class _Unserializable:
+        def __repr__(self) -> str:
+            return "unserializable"
+
+    data = np.array(
+        [{"key": _Unserializable()}],
+        dtype=object,
+    )
+    # Must not raise — falls back to str()
+    result = stringify_values(data)
+    assert result[0] == str({"key": _Unserializable()})
