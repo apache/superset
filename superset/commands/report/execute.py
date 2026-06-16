@@ -578,11 +578,11 @@ class BaseReportState:
         :param chart_url: HTTP(S) chart data endpoint URL.
         :param auth_cookies: Authentication cookies to attach to the request.
         :param request_payload: Prepared chart data request payload.
-        :return: Response body bytes, or None when auth cookies or content are missing.
+        :return: Response body bytes, or None when response content is missing.
         :raises URLError: If the URL scheme is unsupported or the response fails.
         """
         if not auth_cookies:
-            return None
+            raise URLError("Missing authentication cookies for chart data request")
 
         cookie_str = ";".join([f"{key}={val}" for key, val in auth_cookies.items()])
         request_body = urllib.parse.urlencode(
