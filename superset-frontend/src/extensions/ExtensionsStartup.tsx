@@ -20,6 +20,8 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { logging } from '@apache-superset/core/utils';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+// eslint-disable-next-line no-restricted-syntax
+import * as supersetCore from '@apache-superset/core';
 import {
   authentication,
   chat,
@@ -36,8 +38,7 @@ import { notifyPageChange } from 'src/core/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
 import ExtensionsLoader from './ExtensionsLoader';
-// Side-effect import: brings the `window.superset` global augmentation into scope.
-import 'src/extensions/supersetGlobal';
+import 'src/extensions/Namespaces';
 
 const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   children,
@@ -78,6 +79,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
     // Namespaces are listed explicitly — do not spread the core package here,
     // as that would leak un-contracted symbols onto window.superset.
     window.superset = {
+      ...supersetCore,
       authentication,
       chat,
       core,

@@ -26,10 +26,11 @@
 
 import type { navigation as navigationApi } from '@apache-superset/core';
 import { Disposable } from '../models';
+import { createEventEmitter } from '../utils';
 
 type Page = navigationApi.Page;
 
-const listeners = new Set<(page: Page) => void>();
+const pageChangeEmitter = createEventEmitter<Page>();
 
 function derivePage(pathname: string): Page {
   if (pathname.startsWith('/superset/dashboard/')) return 'dashboard';
@@ -62,7 +63,7 @@ export const notifyPageChange = (pathname: string): void => {
   const next = derivePage(pathname);
   if (next === getOrInitPage()) return;
   currentPage = next;
-  listeners.forEach(fn => fn(next));
+  pageChangeEmitter.fire(next);
 };
 
 const getPage: typeof navigationApi.getPage = () => getOrInitPage();
@@ -70,11 +71,7 @@ const getPage: typeof navigationApi.getPage = () => getOrInitPage();
 const onDidChangePage: typeof navigationApi.onDidChangePage = (
   listener: (page: Page) => void,
   thisArgs?: any,
-): Disposable => {
-  const bound = thisArgs ? listener.bind(thisArgs) : listener;
-  listeners.add(bound);
-  return new Disposable(() => listeners.delete(bound));
-};
+): Disposable => pageChangeEmitter.subscribe(listener, thisArgs);
 
 export const navigation: typeof navigationApi = {
   getPage,

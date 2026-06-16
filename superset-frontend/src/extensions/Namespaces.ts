@@ -40,7 +40,7 @@ import type {
 } from 'src/core';
 
 /** The host namespaces exposed to extensions on `window.superset`. */
-export interface SupersetGlobal {
+export interface Namespaces {
   authentication: typeof authentication;
   core: typeof core;
   chat: typeof chat;
@@ -55,6 +55,6 @@ export interface SupersetGlobal {
 
 declare global {
   interface Window {
-    superset: SupersetGlobal;
+    superset: Namespaces;
   }
 }
