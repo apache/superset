@@ -1,0 +1,39 @@
+---
+id: dashboards
+title: "Dashboards"
+description: "Dashboards"
+custom_edit_url: null
+---
+
+Create, read, update, and delete dashboards.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `DELETE` | [Bulk delete dashboards](./bulk-delete-dashboards) | `/api/v1/dashboard/` |
+| `GET` | [Get a list of dashboards](./get-a-list-of-dashboards) | `/api/v1/dashboard/` |
+| `POST` | [Create a new dashboard](./create-a-new-dashboard) | `/api/v1/dashboard/` |
+| `GET` | [Get metadata information about this API resource (dashboard--info)](./get-metadata-information-about-this-api-resource-dashboard-info) | `/api/v1/dashboard/_info` |
+| `GET` | [Get a dashboard detail information](./get-a-dashboard-detail-information) | `/api/v1/dashboard/{id_or_slug}` |
+| `GET` | [Get a dashboard's chart definitions.](./get-a-dashboards-chart-definitions) | `/api/v1/dashboard/{id_or_slug}/charts` |
+| `POST` | [Create a copy of an existing dashboard](./create-a-copy-of-an-existing-dashboard) | `/api/v1/dashboard/{id_or_slug}/copy/` |
+| `GET` | [Get dashboard's datasets](./get-dashboards-datasets) | `/api/v1/dashboard/{id_or_slug}/datasets` |
+| `DELETE` | [Delete a dashboard's embedded configuration](./delete-a-dashboards-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
+| `GET` | [Get the dashboard's embedded configuration](./get-the-dashboards-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
+| `POST` | [Set a dashboard's embedded configuration](./set-a-dashboards-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
+| `PUT` | [Update dashboard by id_or_slug embedded](./update-dashboard-by-id-or-slug-embedded) | `/api/v1/dashboard/{id_or_slug}/embedded` |
+| `GET` | [Get dashboard's tabs](./get-dashboards-tabs) | `/api/v1/dashboard/{id_or_slug}/tabs` |
+| `DELETE` | [Delete a dashboard](./delete-a-dashboard) | `/api/v1/dashboard/{pk}` |
+| `PUT` | [Update a dashboard](./update-a-dashboard) | `/api/v1/dashboard/{pk}` |
+| `POST` | [Compute and cache a screenshot (dashboard-pk-cache-dashboard-screenshot)](./compute-and-cache-a-screenshot-dashboard-pk-cache-dashboard-screenshot) | `/api/v1/dashboard/{pk}/cache_dashboard_screenshot/` |
+| `PUT` | [Update chart customizations configuration for a dashboard.](./update-chart-customizations-configuration-for-a-dashboard) | `/api/v1/dashboard/{pk}/chart_customizations` |
+| `PUT` | [Update colors configuration for a dashboard.](./update-colors-configuration-for-a-dashboard) | `/api/v1/dashboard/{pk}/colors` |
+| `GET` | [Export dashboard as example bundle](./export-dashboard-as-example-bundle) | `/api/v1/dashboard/{pk}/export_as_example/` |
+| `DELETE` | [Remove the dashboard from the user favorite list](./remove-the-dashboard-from-the-user-favorite-list) | `/api/v1/dashboard/{pk}/favorites/` |
+| `POST` | [Mark the dashboard as favorite for the current user](./mark-the-dashboard-as-favorite-for-the-current-user) | `/api/v1/dashboard/{pk}/favorites/` |
+| `PUT` | [Update native filters configuration for a dashboard.](./update-native-filters-configuration-for-a-dashboard) | `/api/v1/dashboard/{pk}/filters` |
+| `GET` | [Get a computed screenshot from cache (dashboard-pk-screenshot-digest)](./get-a-computed-screenshot-from-cache-dashboard-pk-screenshot-digest) | `/api/v1/dashboard/{pk}/screenshot/{digest}/` |
+| `GET` | [Get dashboard's thumbnail](./get-dashboards-thumbnail) | `/api/v1/dashboard/{pk}/thumbnail/{digest}/` |
+| `GET` | [Download multiple dashboards as YAML files](./download-multiple-dashboards-as-yaml-files) | `/api/v1/dashboard/export/` |
+| `GET` | [Check favorited dashboards for current user](./check-favorited-dashboards-for-current-user) | `/api/v1/dashboard/favorite_status/` |
+| `POST` | [Import dashboard(s) with associated charts/datasets/databases](./import-dashboard-s-with-associated-charts-datasets-databases) | `/api/v1/dashboard/import/` |
+| `GET` | [Get related fields data (dashboard-related-column-name)](./get-related-fields-data-dashboard-related-column-name) | `/api/v1/dashboard/related/{column_name}` |

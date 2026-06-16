@@ -1,0 +1,1 @@
+{"schema":{"properties":{"dashboard_title":{"maxLength":500,"nullable":true,"type":"string"},"id":{"type":"integer"}},"type":"object","title":"ChartDataRestApi.get_list.Dashboard"},"schemaType":"response"}

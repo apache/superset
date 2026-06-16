@@ -194,7 +194,7 @@ test('renders all required column headers', async () => {
   });
 
   const table = screen.getByTestId('listview-table');
-  const columnHeaders = table.querySelectorAll('[role="columnheader"]');
+  const columnHeaders = within(table).getAllByRole('columnheader');
 
   // All the table headers with default feature flags on
   const expectedHeaders = [
@@ -267,9 +267,10 @@ test('sorts table when clicking column headers', async () => {
       .filter(
         call =>
           call.url.includes('order_column') &&
-          call.url.includes('last_saved_at'),
+          call.url.includes('changed_on_delta_humanized'),
       );
-    expect(lastModifiedSortCalls).toHaveLength(1);
+    const latestCall = lastModifiedSortCalls.at(-1);
+    expect(latestCall?.url).toContain('order_direction:asc');
   });
 });
 

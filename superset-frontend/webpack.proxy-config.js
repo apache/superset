@@ -21,6 +21,7 @@ const { ZSTDDecompress } = require('simple-zstd');
 
 const yargs = require('yargs');
 const { hideBin } = require('yargs/helpers');
+
 const parsedArgs = yargs(hideBin(process.argv)).parse();
 
 const parsedEnvArg = () => {

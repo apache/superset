@@ -58,7 +58,11 @@ class QueryDAO(BaseDAO[Query]):
 
     @staticmethod
     def stop_query(client_id: str) -> None:
-        query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
+        query = (
+            db.session.query(Query)
+            .filter(Query.client_id == client_id, Query.user_id == get_user_id())
+            .one_or_none()
+        )
         if not query:
             raise QueryNotFoundException(f"Query with client_id {client_id} not found")
 

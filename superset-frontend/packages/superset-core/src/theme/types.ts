@@ -508,6 +508,12 @@ export interface ThemeContextType {
   clearLocalOverrides: () => void;
   getCurrentCrudThemeId: () => string | null;
   hasDevOverride: () => boolean;
+  /**
+   * True when an explicit theme config override is active (e.g. supplied via
+   * the Embedded SDK). Such an override takes precedence over a
+   * dashboard-level theme.
+   */
+  hasThemeConfigOverride: boolean;
   canSetMode: () => boolean;
   canSetTheme: () => boolean;
   canDetectOSPreference: () => boolean;
