@@ -183,6 +183,82 @@ def test_model_list_tool_rejects_only_user_directory_select_columns():
         tool.run_tool(select_columns=["created_by", "owners"])
 
 
+def test_model_list_tool_rejects_columns_not_in_all_columns():
+    """Columns absent from all_columns are silently dropped from columns_loaded."""
+    captured: dict = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, columns=None, **kwargs):
+            captured["columns"] = columns
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        all_columns=["id", "name"],  # "password" intentionally absent
+    )
+
+    result = tool.run_tool(select_columns=["id", "password", "name"])
+
+    assert result.columns_requested == ["id", "name"]
+    assert result.columns_loaded == ["id", "name"]
+    assert "password" not in (captured.get("columns") or [])
+
+
+def test_model_list_tool_rejects_only_excluded_columns_raises():
+    """When all requested columns are outside all_columns, ValueError is raised."""
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        all_columns=["id", "name"],  # "password"/"sqlalchemy_uri" absent
+    )
+
+    with pytest.raises(ValueError, match="contains no valid columns"):
+        tool.run_tool(select_columns=["password", "sqlalchemy_uri"])
+
+
+def test_model_list_tool_without_explicit_all_columns_allows_non_default_columns():
+    """Without an explicit all_columns, select_columns is not restricted to
+    default_columns — only USER_DIRECTORY_FIELDS are filtered out."""
+    captured: dict = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, columns=None, **kwargs):
+            captured["columns"] = columns
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        # all_columns intentionally not passed
+    )
+
+    result = tool.run_tool(select_columns=["id", "description"])
+
+    assert "description" in result.columns_requested
+    assert "description" in (captured.get("columns") or [])
+
+
 def test_model_list_tool_rejects_private_order_column():
     tool = ModelListCore(
         dao_class=DummyDAO,

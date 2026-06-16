@@ -76,7 +76,7 @@ from superset.datasets.schemas import (
 from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
-from superset.utils.core import parse_boolean_string
+from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -357,7 +357,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         try:
             new_model = CreateDatasetCommand(item).run()
-            return self.response(201, id=new_model.id, result=item, data=new_model.data)
+            return self.response(
+                201,
+                id=new_model.id,
+                result=item,
+                data=new_model.data,
+                uuid=new_model.uuid,
+            )
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
@@ -570,7 +576,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
