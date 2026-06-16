@@ -60,6 +60,7 @@ import type { Column, SequentialScheme } from '@superset-ui/core';
 import {
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
+  isDefined,
   legacyValidateInteger,
   validateNonEmpty,
 } from '@superset-ui/core';
@@ -80,7 +81,25 @@ interface Datasource {
 interface ControlState {
   datasource?: Datasource;
   controls?: Record<string, { value?: unknown }>;
+  form_data?: {
+    dashboardId?: number;
+    dashboard_time_grain_sqla?: unknown;
+    dashboard_granularity_sqla?: unknown;
+    [key: string]: unknown;
+  };
 }
+
+// Shown next to time controls in Explore when the value was overridden by the
+// dashboard the chart was opened from (see getFormDataWithDashboardContext).
+const DASHBOARD_TIME_GRAIN_ALERT = t(
+  'The time grain is determined by the related dashboard. ' +
+    'Open this chart outside of the dashboard to change it.',
+);
+
+const DASHBOARD_TIME_COLUMN_ALERT = t(
+  'The time column is determined by the related dashboard. ' +
+    'Open this chart outside of the dashboard to change it.',
+);
 
 interface ControlConfig {
   includeTime?: boolean;
@@ -324,7 +343,11 @@ export const controls = {
     optionRenderer: (c: Column) => <StyledColumnOption column={c} showType />,
     valueKey: 'column_name',
     mapStateToProps: (state: ControlState) => {
-      const props: { choices?: Column[]; default?: string | null } = {};
+      const props: {
+        choices?: Column[];
+        default?: string | null;
+        warning?: string | null;
+      } = {};
       if (state.datasource) {
         props.choices = state.datasource.granularity_sqla;
         props.default = null;
@@ -334,6 +357,12 @@ export const controls = {
           props.default = props.choices[0].column_name;
         }
       }
+      const { dashboardId, dashboard_granularity_sqla } =
+        state.form_data ?? {};
+      props.warning =
+        dashboardId && isDefined(dashboard_granularity_sqla)
+          ? DASHBOARD_TIME_COLUMN_ALERT
+          : null;
       return props;
     },
   },
@@ -349,9 +378,16 @@ export const controls = {
         'The options here are defined on a per database ' +
         'engine basis in the Superset source code.',
     ),
-    mapStateToProps: (state: ControlState) => ({
-      choices: state.datasource ? state.datasource.time_grain_sqla : null,
-    }),
+    mapStateToProps: (state: ControlState) => {
+      const { dashboardId, dashboard_time_grain_sqla } = state.form_data ?? {};
+      return {
+        choices: state.datasource ? state.datasource.time_grain_sqla : null,
+        warning:
+          dashboardId && isDefined(dashboard_time_grain_sqla)
+            ? DASHBOARD_TIME_GRAIN_ALERT
+            : null,
+      };
+    },
   },
 
   time_range: {

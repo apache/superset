@@ -154,6 +154,8 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
   shared_label_colors: ['boy', 'girl'],
   own_color_scheme: 'supersetColors',
   dashboard_color_scheme: 'd3Category20b',
+  dashboard_time_grain_sqla: 'P1D',
+  dashboard_granularity_sqla: 'ds',
   extra_filters: [
     {
       col: '__time_range',

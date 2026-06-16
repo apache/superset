@@ -243,6 +243,21 @@ export const getFormDataWithDashboardContext = (
   const dashboardColorScheme = dashboardContextFormData.color_scheme;
   const appliedColorScheme = dashboardColorScheme || ownColorScheme;
 
+  // Track time controls overridden by the dashboard so Explore can flag them
+  // with a warning icon (see time_grain_sqla / granularity_sqla controls).
+  const dashboardTimeGrain =
+    filterBoxData.time_grain_sqla ?? nativeFiltersData.time_grain_sqla;
+  const dashboardTimeColumn =
+    filterBoxData.granularity_sqla ?? nativeFiltersData.granularity_sqla;
+  const dashboardTimeOverrides: JsonObject = {
+    ...(isDefined(dashboardTimeGrain) && {
+      dashboard_time_grain_sqla: dashboardTimeGrain,
+    }),
+    ...(isDefined(dashboardTimeColumn) && {
+      dashboard_granularity_sqla: dashboardTimeColumn,
+    }),
+  };
+
   const deckGLProperties: JsonObject = {};
 
   if (
@@ -301,5 +316,6 @@ export const getFormDataWithDashboardContext = (
     color_scheme: appliedColorScheme,
     dashboard_color_scheme: dashboardColorScheme,
     ...deckGLProperties,
+    ...dashboardTimeOverrides,
   };
 };
