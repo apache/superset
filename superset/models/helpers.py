@@ -1228,9 +1228,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # error doesn't echo the operator's full denylist. Honors
                     # schema-qualified denylist entries (e.g.
                     # ``information_schema.tables``) and resolves unqualified
-                    # references against the query schema.
+                    # references against the effective schema, falling back to
+                    # the database default when none was supplied (e.g. a
+                    # virtual dataset with no schema) so a qualified entry
+                    # cannot be bypassed by an unqualified reference.
+                    effective_schema = schema or self.database.get_default_schema(
+                        self.catalog
+                    )
                     found_tables = parsed.get_disallowed_tables(
-                        disallowed_tables, schema
+                        disallowed_tables, effective_schema
                     )
                     if found_tables:
                         raise SupersetDisallowedSQLTableException(found_tables)
@@ -1465,9 +1471,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # canonical execution-time gate so the user-facing error doesn't
             # echo the operator's full denylist. Honors schema-qualified
             # denylist entries (e.g. ``information_schema.tables``) and resolves
-            # unqualified references against the query schema.
+            # unqualified references against the effective schema, falling back
+            # to the database default when the datasource has none (e.g. a
+            # virtual dataset) so a qualified entry cannot be bypassed by an
+            # unqualified reference.
+            effective_schema = self.schema or self.database.get_default_schema(
+                self.catalog
+            )
             found_tables = parsed_script.get_disallowed_tables(
-                disallowed_tables, self.schema
+                disallowed_tables, effective_schema
             )
             if found_tables:
                 raise SupersetDisallowedSQLTableException(found_tables)

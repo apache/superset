@@ -28,7 +28,7 @@ assists people when migrating to a new version.
 
 `DISALLOWED_SQL_FUNCTIONS` and `DISALLOWED_SQL_TABLES` now ship with additional default entries, so SQL Lab and chart-data queries that reference them are rejected where they were previously allowed:
 
-- PostgreSQL large-object routines (`lo_from_bytea`, `lo_export`, `lo_import`, `lo_put`, `lo_create`, `lowrite`, `lo_get`, `lo_unlink`), which read and write bytes on the database server's filesystem.
+- PostgreSQL large-object routines (`lo_from_bytea`, `lo_export`, `lo_import`, `lo_put`, `lo_create`, `lo_creat`, `lowrite`, `lo_get`, `loread`, `lo_unlink`), which read and write bytes on the database server's filesystem.
 - The SQL-standard `information_schema` views (`tables`, `columns`, `routines`, `views`, the privilege/grant views, etc.), which expose table, column, privilege, and view-definition metadata across the whole database.
 
 Deployments that legitimately query these (for example tooling that introspects `information_schema`) can restore the previous behavior by overriding `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` in `superset_config.py` to drop the entries they need.

@@ -436,10 +436,12 @@ def execute_sql_statements(  # noqa: C901
     if disallowed_tables:
         # Report only the denylisted tables actually referenced in the query,
         # honoring schema-qualified entries (e.g. ``information_schema.tables``).
-        # Resolve the effective default schema so an unqualified reference that
-        # the connection resolves to it at runtime (e.g. Postgres ``public``)
-        # still matches a qualified entry, even when no schema was selected.
-        effective_schema = query.schema or database.get_default_schema(query.catalog)
+        # Resolve the effective default schema through the same query-aware path
+        # the RLS gate uses below, so an unqualified reference matches a
+        # qualified entry against the schema the engine actually resolves it to
+        # at runtime (engines without dynamic-schema support ignore the
+        # request's selected schema), instead of a schema that may never apply.
+        effective_schema = database.get_default_schema_for_query(query)
         found_tables = parsed_script.get_disallowed_tables(
             disallowed_tables, effective_schema
         )
