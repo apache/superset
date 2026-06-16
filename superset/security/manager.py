@@ -4169,7 +4169,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             resolver = current_app.config.get("EXTRA_OWNERS_RESOLVER")
             if resolver and not g.user.is_anonymous:
                 extra_owners = resolver(orig_resource)
-                if any(u.id == g.user.id for u in extra_owners):
+                user_id = g.user.id
+                if any(
+                    (u.id if hasattr(u, "id") else u.get("id")) == user_id
+                    for u in extra_owners
+                ):
                     return
 
             raise SupersetSecurityException(
