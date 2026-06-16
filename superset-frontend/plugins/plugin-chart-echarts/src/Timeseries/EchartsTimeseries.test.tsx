@@ -447,3 +447,51 @@ test('emits cross-filter on the category value for a horizontal categorical bar'
     ]);
   }
 });
+
+// Test for issue #41102: the context-menu ("Add cross-filter") path must also
+// use the category value, not the metric, for a horizontal categorical bar.
+test('context menu cross-filter uses the category value for a horizontal categorical bar', async () => {
+  const onContextMenuMock = jest.fn();
+
+  const propsWithHorizontalXAxis: TimeseriesChartTransformedProps = {
+    ...defaultProps,
+    emitCrossFilters: true,
+    onContextMenu: onContextMenuMock,
+    groupby: [], // No dimensions
+    xAxis: {
+      label: 'category_column',
+      type: AxisType.Category, // Categorical X-axis
+    },
+  };
+
+  render(<EchartsTimeseries {...propsWithHorizontalXAxis} />);
+
+  const lastCall = mockEchart.mock.calls.at(-1);
+  expect(lastCall).toBeDefined();
+  const [props] = lastCall as [EchartsProps];
+
+  const contextMenuHandler = props.eventHandlers?.contextmenu;
+  expect(contextMenuHandler).toBeDefined();
+  if (contextMenuHandler) {
+    await contextMenuHandler({
+      seriesName: 'Sales', // This is the metric name
+      data: [100, 'Product A'], // Horizontal: value first, category second
+      name: 'Product A',
+      event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+    });
+
+    await waitFor(() => {
+      expect(onContextMenuMock).toHaveBeenCalled();
+    });
+
+    // The cross-filter must use the category ('Product A'), not the metric (100)
+    const { crossFilter } = onContextMenuMock.mock.calls[0][2];
+    expect(crossFilter.dataMask.extraFormData.filters).toEqual([
+      {
+        col: 'category_column',
+        op: 'IN',
+        val: ['Product A'],
+      },
+    ]);
+  }
+});
