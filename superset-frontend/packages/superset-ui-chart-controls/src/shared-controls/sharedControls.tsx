@@ -180,6 +180,13 @@ const granularity: SharedControlConfig<'SelectControl'> = {
   sortComparator: () => 0, // Disable frontend sorting to preserve backend order
 };
 
+// Surfaced on the Time Grain header when the value is inherited from the
+// dashboard the chart was opened from (see getFormDataWithDashboardContext).
+const DASHBOARD_TIME_GRAIN_ALERT = t(
+  'The time grain is determined by the related dashboard. ' +
+    'Open this chart outside of the dashboard to change it.',
+);
+
 const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   label: TIME_FILTER_LABELS.time_grain_sqla,
@@ -201,8 +208,12 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
       'grain is the time interval represented by a ' +
       'single point on the chart.',
   ),
-  mapStateToProps: ({ datasource }) => ({
+  mapStateToProps: ({ datasource, form_data }) => ({
     choices: (datasource as Dataset)?.time_grain_sqla || [],
+    warning:
+      form_data?.dashboardId && isDefined(form_data?.dashboard_time_grain_sqla)
+        ? DASHBOARD_TIME_GRAIN_ALERT
+        : null,
   }),
   visibility: displayTimeRelatedControls,
   sortComparator: () => 0, // Disable frontend sorting to preserve backend order
