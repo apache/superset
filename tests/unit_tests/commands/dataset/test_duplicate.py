@@ -102,8 +102,9 @@ def test_duplicate_dataset_access_check_passes_through() -> None:
                     # Confirm access check was called with the base dataset
                     mock_access.assert_called_once_with(datasource=mock_dataset)
 
+
 def test_duplicate_dataset_copies_catalog_and_schema() -> None:
-    """DuplicateDatasetCommand.run() must copy catalog and schema from the base dataset."""
+    """DuplicateDatasetCommand.run() must copy catalog and schema from the source."""
     from superset.commands.dataset.duplicate import DuplicateDatasetCommand
 
     mock_base_dataset = MagicMock()
@@ -136,9 +137,7 @@ def test_duplicate_dataset_copies_catalog_and_schema() -> None:
                     "superset.commands.dataset.duplicate.DuplicateDatasetCommand.populate_owners",
                     return_value=[],
                 ):
-                    with patch(
-                        "superset.commands.dataset.duplicate.db"
-                    ) as mock_db:
+                    with patch("superset.commands.dataset.duplicate.db") as mock_db:
                         with patch("superset.db"):
                             mock_db.session.query.return_value.get.return_value = (
                                 mock_database
