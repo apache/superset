@@ -37,22 +37,19 @@ test('Render a FilterInput', async () => {
 
 test('FilterInput does not steal focus when another input already has focus', () => {
   const onChangeHandler = jest.fn();
-
-  // Create a plain DOM input, focus it before mounting FilterInput
   const otherInput = document.createElement('input');
   document.body.appendChild(otherInput);
-  otherInput.focus();
-  expect(document.activeElement).toBe(otherInput);
+  try {
+    otherInput.focus();
+    expect(document.activeElement).toBe(otherInput);
 
-  // Mount FilterInput with shouldFocus=true while the other input is focused
-  const { container } = render(
-    <FilterInput onChangeHandler={onChangeHandler} shouldFocus />,
-  );
-  const filterInput = container.querySelector('input') as HTMLInputElement;
+    render(<FilterInput onChangeHandler={onChangeHandler} shouldFocus />);
+    const filterInput = screen.getByPlaceholderText('Search');
 
-  // FilterInput should not have stolen focus from the already-focused input
-  expect(document.activeElement).not.toBe(filterInput);
-  expect(document.activeElement).toBe(otherInput);
-
-  document.body.removeChild(otherInput);
+    // FilterInput should not have stolen focus from the already-focused input
+    expect(document.activeElement).not.toBe(filterInput);
+    expect(document.activeElement).toBe(otherInput);
+  } finally {
+    document.body.removeChild(otherInput);
+  }
 });

@@ -109,13 +109,14 @@ export const FilterInput = ({
 
   useEffect(() => {
     if (inputRef.current && shouldFocus) {
+      // Skip auto-focus if any meaningful element already has focus (e.g. user
+      // is typing in another control when this pane remounts after a data refresh)
       const activeEl = document.activeElement;
-      const isInputFocused =
-        activeEl &&
-        (activeEl.tagName === 'INPUT' ||
-          activeEl.tagName === 'TEXTAREA' ||
-          (activeEl as HTMLElement).isContentEditable);
-      if (!isInputFocused) {
+      const noElementFocused =
+        activeEl === null ||
+        activeEl === document.body ||
+        activeEl === document.documentElement;
+      if (noElementFocused) {
         inputRef.current.focus();
       }
     }
