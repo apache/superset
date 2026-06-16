@@ -514,7 +514,12 @@ class BaseReportState:
         result_format: ChartDataResultFormat,
     ) -> dict[str, Any]:
         """
-        Build the same POST payload shape used by frontend exports.
+        Build the POST payload used for chart data exports.
+
+        :param result_format: Desired table-like chart data format.
+        :return: Query context updated with export result format/type and pagination.
+        :raises ReportScheduleExecuteUnexpectedError: If the chart query context is
+            missing or invalid.
         """
         try:
             query_context = json.loads(self._report_schedule.chart.query_context)
@@ -567,6 +572,15 @@ class BaseReportState:
         auth_cookies: Optional[dict[str, str]],
         request_payload: dict[str, Any],
     ) -> Optional[bytes]:
+        """
+        POST a chart data request using report executor authentication.
+
+        :param chart_url: HTTP(S) chart data endpoint URL.
+        :param auth_cookies: Authentication cookies to attach to the request.
+        :param request_payload: Prepared chart data request payload.
+        :return: Response body bytes, or None when auth cookies or content are missing.
+        :raises URLError: If the URL scheme is unsupported or the response fails.
+        """
         if not auth_cookies:
             return None
 
@@ -574,7 +588,11 @@ class BaseReportState:
         request_body = urllib.parse.urlencode(
             {"form_data": json.dumps(request_payload)}
         ).encode("utf-8")
-        request = urllib.request.Request(
+        parsed_url = urllib.parse.urlparse(chart_url)
+        if parsed_url.scheme not in {"http", "https"}:
+            raise URLError(f"Unsupported chart data URL scheme: {parsed_url.scheme}")
+
+        request = urllib.request.Request(  # noqa: S310
             chart_url,
             data=request_body,
             headers={
@@ -583,10 +601,10 @@ class BaseReportState:
             },
             method="POST",
         )
-        response = urllib.request.build_opener().open(request)
-        content = response.read()
-        if response.getcode() != 200:
-            raise URLError(response.getcode())
+        with urllib.request.build_opener().open(request) as response:  # noqa: S310
+            content = response.read()
+            if response.getcode() != 200:
+                raise URLError(response.getcode())
         return content or None
 
     def _get_csv_data(self) -> bytes:
