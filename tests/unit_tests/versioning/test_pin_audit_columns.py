@@ -53,13 +53,13 @@ def _make_dummy_mapped_class() -> tuple[Any, sa.engine.Engine]:
         onupdate_calls["count"] += 1
         return 9999  # the value onupdate would write if it fires
 
-    class Parent(Base):
+    class Parent(Base):  # type: ignore[valid-type, misc]
         __tablename__ = "parent"
         id = sa.Column(sa.Integer, primary_key=True)
         description = sa.Column(sa.Text)
         changed_by_fk = sa.Column(sa.Integer, onupdate=_bump_counter)
 
-    Parent._onupdate_calls = onupdate_calls  # type: ignore[attr-defined]
+    Parent._onupdate_calls = onupdate_calls
     engine = sa.create_engine("sqlite://")
     Base.metadata.create_all(engine)
     return Parent, engine

@@ -144,7 +144,7 @@ def _read_pre_state(
     Returns ``None`` if the row is missing (shouldn't happen for a dirty
     existing object, but defensive against race conditions).
     """
-    table = model_cls.__table__  # type: ignore[attr-defined]
+    table = model_cls.__table__
     result = read_row_outside_flush(session, table, entity_id)
     if result is None:
         return None

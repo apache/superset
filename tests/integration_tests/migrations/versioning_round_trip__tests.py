@@ -124,11 +124,11 @@ def _run_migration(
         ctx = MigrationContext.configure(conn)
         ops = Operations(ctx)
         original_op = migration_module.op
-        migration_module.op = ops  # type: ignore[attr-defined]
+        migration_module.op = ops
         try:
             getattr(migration_module, direction)()
         finally:
-            migration_module.op = original_op  # type: ignore[attr-defined]
+            migration_module.op = original_op
 
 
 def _shape(engine: sa.engine.Engine) -> dict[str, Any]:

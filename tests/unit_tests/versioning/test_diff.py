@@ -816,9 +816,7 @@ def test_dashboard_json_metadata_audit_keys_suppress_view_time_noise() -> None:
     assert "shared_label_colors" in DASHBOARD_JSON_METADATA_AUDIT_KEYS
 
     pre = _json.dumps({"refresh_frequency": 0, "shared_label_colors": []})
-    post = _json.dumps(
-        {"refresh_frequency": 0, "shared_label_colors": ["boy", "girl"]}
-    )
+    post = _json.dumps({"refresh_frequency": 0, "shared_label_colors": ["boy", "girl"]})
     assert (
         diff_json_field(
             "json_metadata",

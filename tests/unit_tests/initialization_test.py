@@ -16,6 +16,7 @@
 # under the License.
 
 import os
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sqlalchemy.exc import OperationalError
@@ -271,7 +272,7 @@ class TestInitVersioning:
     (The retention beat-schedule warning check moved to
     sc-111099-version-history-retention.)"""
 
-    def _initializer(self, config: dict) -> SupersetAppInitializer:
+    def _initializer(self, config: dict[str, Any]) -> SupersetAppInitializer:
         """Build a ``SupersetAppInitializer`` against a minimal mock app
         whose only meaningful attribute is the config dict. The method
         under test (the kill-switch branch of `init_versioning`) only

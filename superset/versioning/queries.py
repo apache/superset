@@ -157,9 +157,7 @@ def _entity_kind_for(model_cls: type[Model]) -> str | None:
 def find_active_by_uuid(model_cls: type[Model], entity_uuid: UUID) -> Any | None:
     """Return the live entity matching *entity_uuid*, or None if not found."""
     return (
-        db.session.query(model_cls)
-        .filter(model_cls.uuid == entity_uuid)  # type: ignore[attr-defined]
-        .one_or_none()
+        db.session.query(model_cls).filter(model_cls.uuid == entity_uuid).one_or_none()
     )
 
 
