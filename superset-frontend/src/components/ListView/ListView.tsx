@@ -242,6 +242,7 @@ export interface ListViewProps<T extends object = any> {
     name: ReactNode;
     onSelect: (rows: any[]) => any;
     type?: 'primary' | 'secondary' | 'danger';
+    hidden?: (rows: any[]) => boolean;
   }>;
   bulkSelectEnabled?: boolean;
   disableBulkSelect?: () => void;
@@ -412,21 +413,28 @@ export function ListView<T extends object = any>({
                         {t('Deselect all')}
                       </span>
                       <div className="divider" />
-                      {bulkActions.map(action => (
-                        <Button
-                          data-test="bulk-select-action"
-                          key={action.key}
-                          buttonStyle={action.type}
-                          cta
-                          onClick={() =>
-                            action.onSelect(
-                              selectedFlatRows.map(r => r.original),
-                            )
-                          }
-                        >
-                          {action.name}
-                        </Button>
-                      ))}
+                      {bulkActions
+                        .filter(
+                          action =>
+                            !action.hidden?.(
+                              selectedFlatRows.map((r: any) => r.original),
+                            ),
+                        )
+                        .map(action => (
+                          <Button
+                            data-test="bulk-select-action"
+                            key={action.key}
+                            buttonStyle={action.type}
+                            cta
+                            onClick={() =>
+                              action.onSelect(
+                                selectedFlatRows.map(r => r.original),
+                              )
+                            }
+                          >
+                            {action.name}
+                          </Button>
+                        ))}
                       {enableBulkTag && (
                         <span
                           data-test="bulk-select-tag-btn"

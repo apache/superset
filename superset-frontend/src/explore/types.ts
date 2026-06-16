@@ -86,6 +86,7 @@ export interface ExplorePageInitialData {
     created_on_humanized: string;
     changed_on_humanized: string;
     owners: string[];
+    extra_owners?: { id: number; first_name: string; last_name: string }[];
     created_by?: string;
     changed_by?: string;
     dashboards?: {
