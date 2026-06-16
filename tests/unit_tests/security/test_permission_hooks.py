@@ -128,23 +128,23 @@ def test_raise_for_access_no_bypass_without_config(app_context: None, monkeypatc
 
 
 def test_ownership_check_allows_non_owner(sample_chart, sample_user, monkeypatch):
-    """EXTRA_OWNERSHIP_CHECKS returning True allows a non-owner to pass."""
+    """EXTRA_OWNERS_RESOLVER returning the user allows a non-owner to pass."""
     from flask import current_app, g
 
     from superset import security_manager
 
-    check_mock = Mock(return_value=True)
-    monkeypatch.setitem(current_app.config, "EXTRA_OWNERSHIP_CHECKS", check_mock)
+    resolver_mock = Mock(return_value=[sample_user])
+    monkeypatch.setitem(current_app.config, "EXTRA_OWNERS_RESOLVER", resolver_mock)
     monkeypatch.setattr(g, "user", sample_user, raising=False)
 
     security_manager.raise_for_ownership(sample_chart)
-    check_mock.assert_called_once()
+    resolver_mock.assert_called_once()
 
 
-def test_owner_auto_add_skip_prevents_auto_add(
+def test_owner_auto_add_skipped_with_resolver(
     sample_user, app_context: None, monkeypatch
 ):
-    """EXTRA_OWNER_AUTO_ADD_SKIP returning True prevents auto-adding current user."""
+    """When EXTRA_OWNERS_RESOLVER is set, current user is NOT auto-added."""
     from flask import current_app, g
     from flask_appbuilder.security.sqla.models import User
 
@@ -159,22 +159,23 @@ def test_owner_auto_add_skip_prevents_auto_add(
     db.session.add(other_user)
     db.session.flush()
 
-    skip_mock = Mock(return_value=True)
-    monkeypatch.setitem(current_app.config, "EXTRA_OWNER_AUTO_ADD_SKIP", skip_mock)
+    resolver = Mock(return_value=[])
+    monkeypatch.setitem(current_app.config, "EXTRA_OWNERS_RESOLVER", resolver)
     monkeypatch.setattr(g, "user", sample_user, raising=False)
 
     try:
         owners = populate_owner_list([other_user.id], default_to_user=False)
-        assert len(owners) == 1
-        assert owners[0].id == other_user.id
-        skip_mock.assert_called_once()
+        owner_ids = [o.id for o in owners]
+        # Only the explicitly passed owner — current user NOT auto-added
+        assert owner_ids == [other_user.id]
+        assert sample_user.id not in owner_ids
     finally:
         db.session.delete(other_user)
         db.session.flush()
 
 
-def test_owner_auto_add_without_skip(sample_user, app_context: None, monkeypatch):
-    """Without EXTRA_OWNER_AUTO_ADD_SKIP, current user is auto-added."""
+def test_owner_auto_add_without_resolver(sample_user, app_context: None, monkeypatch):
+    """Without EXTRA_OWNERS_RESOLVER, current user IS auto-added."""
     from flask import current_app, g
     from flask_appbuilder.security.sqla.models import User
 
@@ -189,12 +190,13 @@ def test_owner_auto_add_without_skip(sample_user, app_context: None, monkeypatch
     db.session.add(other_user)
     db.session.flush()
 
-    monkeypatch.setitem(current_app.config, "EXTRA_OWNER_AUTO_ADD_SKIP", None)
+    monkeypatch.setitem(current_app.config, "EXTRA_OWNERS_RESOLVER", None)
     monkeypatch.setattr(g, "user", sample_user, raising=False)
 
     try:
         owners = populate_owner_list([other_user.id], default_to_user=False)
         owner_ids = [o.id for o in owners]
+        # Both the passed owner AND current user auto-added
         assert sample_user.id in owner_ids
         assert other_user.id in owner_ids
     finally:
