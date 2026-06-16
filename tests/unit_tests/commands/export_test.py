@@ -83,6 +83,14 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
         ("queries/example/metric.yaml", lambda: "<SAVED QUERY CONTENTS>"),
     ]
 
+    ExportTagsCommand = mocker.patch(  # noqa: N806
+        "superset.commands.export.assets.ExportTagsCommand.export"
+    )
+
+    ExportTagsCommand.return_value = [
+        ("tags.yaml", lambda: "<TAGS CONTENTS>"),
+    ]
+
     with freeze_time("2022-01-01T00:00:00Z"):
         command = ExportAssetsCommand()
         output = [(file[0], file[1]()) for file in list(command.run())]
@@ -96,6 +104,7 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
         ("charts/pie.yaml", "<CHART CONTENTS>"),
         ("dashboards/sales.yaml", "<DASHBOARD CONTENTS>"),
         ("queries/example/metric.yaml", "<SAVED QUERY CONTENTS>"),
+        ("tags.yaml", "<TAGS CONTENTS>"),
     ]
 
 

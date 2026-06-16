@@ -69,6 +69,12 @@ def test_common_bootstrap_payload_handles_none_locale(
     mock_cached.assert_called_once_with(1, None)
 
 
+def test_default_map_renderer_is_exposed_to_frontend_config() -> None:
+    from superset.views.base import FRONTEND_CONF_KEYS
+
+    assert "DEFAULT_MAP_RENDERER" in FRONTEND_CONF_KEYS
+
+
 def _extract_language(
     locale_str: str | None,
     languages: dict[str, dict[str, object]] | None = None,

@@ -87,7 +87,7 @@ class QueryContext:
         self,
         df: pd.DataFrame,
         coltypes: list[GenericDataType],
-    ) -> str | list[dict[str, Any]]:
+    ) -> str | bytes | list[dict[str, Any]]:
         return self._processor.get_data(df, coltypes)
 
     def get_payload(

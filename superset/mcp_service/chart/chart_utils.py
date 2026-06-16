@@ -859,6 +859,9 @@ def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
         if config.time_format:
             form_data["time_format"] = config.time_format
 
+        if config.aggregation is not None:
+            form_data["aggregation"] = config.aggregation
+
     _add_adhoc_filters(form_data, config.filters)
 
     return form_data
