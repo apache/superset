@@ -396,3 +396,54 @@ test('does not emit cross-filter when no dimensions and time-based X-axis', asyn
     expect(setDataMaskMock).not.toHaveBeenCalled();
   }
 });
+
+// Test for issue #41102: horizontal bar cross-filter must use the category
+// value, not the metric. For horizontal bars the data tuple is value-first
+// (e.g. [100, 'Product A']), so relying on data[0] emitted the metric value.
+test('emits cross-filter on the category value for a horizontal categorical bar', async () => {
+  const setDataMaskMock = jest.fn();
+
+  const propsWithHorizontalXAxis: TimeseriesChartTransformedProps = {
+    ...defaultProps,
+    emitCrossFilters: true,
+    setDataMask: setDataMaskMock,
+    groupby: [], // No dimensions
+    xAxis: {
+      label: 'category_column',
+      type: AxisType.Category, // Categorical X-axis
+    },
+  };
+
+  render(<EchartsTimeseries {...propsWithHorizontalXAxis} />);
+
+  const lastCall = mockEchart.mock.calls.at(-1);
+  expect(lastCall).toBeDefined();
+  const [props] = lastCall as [EchartsProps];
+
+  const clickHandler = props.eventHandlers?.click;
+  if (clickHandler) {
+    clickHandler({
+      seriesName: 'Sales', // This is the metric name
+      data: [100, 'Product A'], // Horizontal: value first, category second
+      name: 'Product A',
+      dataIndex: 0,
+    });
+
+    await waitFor(
+      () => {
+        expect(setDataMaskMock).toHaveBeenCalled();
+      },
+      { timeout: 500 },
+    );
+
+    // Must filter on the category ('Product A'), not the metric value (100)
+    const dataMaskCall = setDataMaskMock.mock.calls[0][0];
+    expect(dataMaskCall.extraFormData.filters).toEqual([
+      {
+        col: 'category_column',
+        op: 'IN',
+        val: ['Product A'],
+      },
+    ]);
+  }
+});
