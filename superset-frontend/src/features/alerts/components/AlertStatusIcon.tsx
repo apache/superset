@@ -35,7 +35,12 @@ function getStatusColor(
     case AlertState.Success:
       return theme.colorSuccessText;
     case AlertState.Noop:
-      return theme.colorSuccessText;
+      // "Not triggered" is the default state for a report/alert that has not
+      // run yet (and for an alert that ran without its condition matching).
+      // Neither is a success, so use a neutral color instead of the green
+      // success color, which previously made an unexecuted report look like it
+      // had succeeded. See issue #29622.
+      return theme.colorTextSecondary;
     case AlertState.Grace:
       return theme.colorErrorText;
     default:
@@ -79,8 +84,10 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Error;
       break;
     case AlertState.Noop:
-      lastStateConfig.icon = Icons.CheckOutlined;
-      lastStateConfig.label = t('Nothing triggered');
+      lastStateConfig.icon = Icons.CalendarOutlined;
+      lastStateConfig.label = isReportEnabled
+        ? t('Report not yet run')
+        : t('Nothing triggered');
       lastStateConfig.status = AlertState.Noop;
       break;
     case AlertState.Grace:
@@ -89,8 +96,10 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Grace;
       break;
     default:
-      lastStateConfig.icon = Icons.CheckOutlined;
-      lastStateConfig.label = t('Nothing triggered');
+      lastStateConfig.icon = Icons.CalendarOutlined;
+      lastStateConfig.label = isReportEnabled
+        ? t('Report not yet run')
+        : t('Nothing triggered');
       lastStateConfig.status = AlertState.Noop;
   }
   const Icon = lastStateConfig.icon;
