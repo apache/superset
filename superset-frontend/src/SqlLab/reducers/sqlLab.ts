@@ -611,11 +611,11 @@ export default function sqlLabReducer(
       const normalizedId =
         unsavedQueryEditor?.id === actionId
           ? actionId
-          : ((getFromArr(
-              state.queryEditors,
-              actionId,
-              'tabViewId',
-            ) as QueryEditor | undefined)?.id ?? actionId);
+          : ((
+              getFromArr(state.queryEditors, actionId, 'tabViewId') as
+                | QueryEditor
+                | undefined
+            )?.id ?? actionId);
       if (
         unsavedQueryEditor?.id === normalizedId &&
         unsavedQueryEditor.sql === action.sql
