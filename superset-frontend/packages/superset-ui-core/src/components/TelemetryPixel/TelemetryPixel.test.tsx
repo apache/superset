@@ -46,3 +46,19 @@ test('should NOT render the pixel link when FF is off', () => {
   const image = document.querySelector('img[src*="scarf.sh"]');
   expect(image).not.toBeInTheDocument();
 });
+
+test('should NOT render the pixel link when disabled at runtime', () => {
+  process.env.SCARF_ANALYTICS = 'true';
+  render(<TelemetryPixel enabled={false} />);
+
+  const image = document.querySelector('img[src*="scarf.sh"]');
+  expect(image).not.toBeInTheDocument();
+});
+
+test('should render the pixel link when enabled at runtime', () => {
+  process.env.SCARF_ANALYTICS = 'true';
+  render(<TelemetryPixel enabled />);
+
+  const image = document.querySelector('img[src*="scarf.sh"]');
+  expect(image).toBeInTheDocument();
+});

@@ -129,6 +129,14 @@ def test_menu_data_exposes_build_details_when_config_opts_in() -> None:
     assert navbar_right["build_number"] == "build-42"
 
 
+def test_scarf_analytics_is_exposed_to_frontend_config() -> None:
+    # Exposed at runtime so pre-built images can opt out via the SCARF_ANALYTICS
+    # config/env var (the webpack build-time flag cannot be changed there).
+    from superset.views.base import FRONTEND_CONF_KEYS
+
+    assert "SCARF_ANALYTICS" in FRONTEND_CONF_KEYS
+
+
 def _extract_language(
     locale_str: str | None,
     languages: dict[str, dict[str, object]] | None = None,

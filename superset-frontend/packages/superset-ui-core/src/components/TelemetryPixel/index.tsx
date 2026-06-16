@@ -23,17 +23,25 @@ interface TelemetryPixelProps {
   version?: string;
   sha?: string;
   build?: string;
+  enabled?: boolean;
 }
 
 /**
  * Renders a telemetry pixel component to capture anonymous, aggregated telemetry via Scarf.
- * This can be disabled by setting the SCARF_ANALYTICS environment variable to false.
+ *
+ * Telemetry can be disabled in two ways:
+ * - At build time, by setting the SCARF_ANALYTICS environment variable to `false`
+ *   (inlined by webpack; only effective when building the frontend yourself).
+ * - At runtime, by passing `enabled={false}`, which the app derives from the
+ *   `SCARF_ANALYTICS` backend config exposed via the bootstrap payload. This is
+ *   what allows opting out in pre-built images, where the build-time flag is fixed.
  *
  * @component
  * @param {TelemetryPixelProps} props - The props for the TelemetryPixel component.
  * @param {string} props.version - The version of  Superset that's currently in use.
  * @param {string} props.sha - The SHA of Superset that's currently in use.
  * @param {string} props.build - The build of Superset that's currently in use.
+ * @param {boolean} props.enabled - Runtime opt-out switch; when false the pixel is not rendered.
  * @returns {JSX.Element | null} The rendered TelemetryPixel component.
  */
 
@@ -43,9 +51,11 @@ export const TelemetryPixel = ({
   version = 'unknownVersion',
   sha = 'unknownSHA',
   build = 'unknownBuild',
+  enabled = true,
 }: TelemetryPixelProps): ReactElement | null => {
   const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${PIXEL_ID}/${version}/${sha}/${build}`;
-  return process.env.SCARF_ANALYTICS === 'false' ? null : (
+  const disabled = !enabled || process.env.SCARF_ANALYTICS === 'false';
+  return disabled ? null : (
     <img
       referrerPolicy="no-referrer-when-downgrade"
       src={pixelPath}
