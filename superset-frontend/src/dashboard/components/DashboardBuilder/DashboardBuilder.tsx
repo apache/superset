@@ -321,9 +321,6 @@ const StyledDashboardContent = styled.div<{
       padding: ${theme.sizeUnit * 4}px;
       box-sizing: border-box;
       overflow-y: visible;
-      border: ${theme.dashboardTileBorder ?? 'none'};
-      border-radius: ${theme.dashboardTileBorderRadius ?? 0}px;
-      box-shadow: ${theme.dashboardTileBoxShadow ?? 'none'};
 
       // transitionable traits to show filter relevance
       transition:
@@ -339,7 +336,8 @@ const StyledDashboardContent = styled.div<{
       }
 
       &.fade-out {
-        border-radius: ${theme.dashboardTileBorderRadius ?? 0}px;
+        border: ${theme.dashboardTileBorder ?? `1px solid ${theme.colorBorderSecondary}`};
+        border-radius: ${theme.dashboardTileBorderRadius ?? theme.borderRadius}px;
         box-shadow: ${theme.dashboardTileBoxShadow ?? 'none'};
       }
 
