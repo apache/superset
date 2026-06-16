@@ -25,7 +25,19 @@ import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
+import { UNSAVED_CHART_ID } from 'src/explore/constants';
+import { api } from 'src/hooks/apiResources/queryApi';
 import { OAuth2RedirectMessage } from '.';
+
+jest.mock('src/hooks/apiResources/queryApi', () => ({
+  api: {
+    util: {
+      invalidateTags: jest
+        .fn()
+        .mockReturnValue({ type: 'mock/invalidateTags' }),
+    },
+  },
+}));
 
 // Mock the Redux store
 const mockStore = createStore(() => ({
@@ -39,6 +51,19 @@ const mockStore = createStore(() => ({
   },
   charts: { '1': {}, '2': {} },
   dashboardInfo: { id: 'dashboard-id' },
+}));
+
+const mockStoreUnsavedChart = createStore(() => ({
+  sqlLab: {
+    queries: {},
+    queryEditors: [],
+    tabHistory: [],
+  },
+  explore: {
+    slice: null,
+  },
+  charts: {},
+  dashboardInfo: {},
 }));
 
 // Mock actions
@@ -101,8 +126,8 @@ const defaultProps = {
   source: 'sqllab' as ErrorSource,
 };
 
-const setup = (overrides = {}) => (
-  <Provider store={mockStore}>
+const setup = (overrides = {}, store = mockStore) => (
+  <Provider store={store}>
     <OAuth2RedirectMessage {...defaultProps} {...overrides} />;
   </Provider>
 );
@@ -179,5 +204,37 @@ describe('OAuth2RedirectMessage Component', () => {
     simulateBroadcastMessage({ tabId: 'someOtherTab' });
 
     expect(reRunQuery).not.toHaveBeenCalled();
+  });
+
+  test('dispatches triggerQuery with UNSAVED_CHART_ID for explore source when no saved chart exists', async () => {
+    render(setup({ source: 'explore' as ErrorSource }, mockStoreUnsavedChart));
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(triggerQuery).toHaveBeenCalledWith(true, UNSAVED_CHART_ID);
+    });
+  });
+
+  test('dispatches triggerQuery with chart ID for explore source when a saved chart exists', async () => {
+    render(setup({ source: 'explore' as ErrorSource }));
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(triggerQuery).toHaveBeenCalledWith(true, 123);
+    });
+  });
+
+  test('dispatches invalidateTags for Schemas when source is crud', async () => {
+    render(setup({ source: 'crud' as ErrorSource }));
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(api.util.invalidateTags).toHaveBeenCalledWith([
+        { type: 'Schemas', id: 'LIST' },
+      ]);
+    });
   });
 });

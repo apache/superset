@@ -25,6 +25,8 @@ import { RootState } from 'src/dashboard/types';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
+import { UNSAVED_CHART_ID } from 'src/explore/constants';
+import { api } from 'src/hooks/apiResources/queryApi';
 import { t } from '@apache-superset/core/translation';
 import { QueryResponse } from '@superset-ui/core';
 
@@ -106,10 +108,12 @@ export function OAuth2RedirectMessage({
       }
       if (source === 'sqllab' && query) {
         dispatch(reRunQuery(query));
-      } else if (source === 'explore' && chartId) {
-        dispatch(triggerQuery(true, chartId));
+      } else if (source === 'explore') {
+        dispatch(triggerQuery(true, chartId ?? UNSAVED_CHART_ID));
       } else if (source === 'dashboard') {
         dispatch(onRefresh(chartList.map(Number), true, 0, dashboardId));
+      } else if (source === 'crud') {
+        dispatch(api.util.invalidateTags([{ type: 'Schemas', id: 'LIST' }]));
       }
     };
 
