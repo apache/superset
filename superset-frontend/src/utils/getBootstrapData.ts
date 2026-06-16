@@ -43,7 +43,12 @@ const normalizePathWithFallback = (
 // history.pushState in navigationUtils), so enforce the documented
 // "/segment(/segment)*" shape at the source: a value that doesn't conform
 // degrades to a root deployment rather than reaching those sinks.
-const APP_ROOT_PATH_RE = /^(?:\/[\w~.%-]+)*$/;
+// Each segment must begin with a non-dot character so a "." or ".." segment
+// (e.g. "/app/..") is rejected — otherwise browser path normalization would
+// collapse `ensureAppRoot('/foo')` → `/app/../foo` → `/foo`, silently
+// defeating subdirectory containment. Dots are still allowed inside a
+// segment (e.g. "/foo.bar").
+const APP_ROOT_PATH_RE = /^(?:\/[\w~%-]+(?:\.[\w~%-]+)*)*$/;
 
 const sanitizeAppRoot = (root: string): string =>
   APP_ROOT_PATH_RE.test(root) ? root : '';

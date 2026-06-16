@@ -42,6 +42,26 @@ describe('SupersetClient applies the application root exactly once', () => {
     );
   });
 
+  // A trailing slash on the configured appRoot is stripped at construction
+  // (SupersetClientClass `appRoot.replace(/\/$/, '')`). Without it, a root of
+  // '/superset/' produced 'https://host/superset//foo', and the dedupe block's
+  // `startsWith('/superset//')` check silently failed to dedupe a pre-prefixed
+  // endpoint. This pins both behaviours against regression.
+  test('trailing-slash appRoot is normalised to a single root segment', () => {
+    const client = new SupersetClientClass({
+      protocol: 'https:',
+      host: 'config_host',
+      appRoot: '/superset/',
+    });
+    expect(client.getUrl({ endpoint: '/api/v1/chart' })).toBe(
+      'https://config_host/superset/api/v1/chart',
+    );
+    // and a pre-prefixed endpoint is still deduped, not doubled
+    expect(client.getUrl({ endpoint: '/superset/api/v1/chart' })).toBe(
+      'https://config_host/superset/api/v1/chart',
+    );
+  });
+
   // Runtime safety net: if a caller pre-prefixes the endpoint (e.g. by wrapping
   // with ensureAppRoot before calling), getUrl strips the duplicate. The L2
   // static invariant still flags the pattern at the call site — this guards

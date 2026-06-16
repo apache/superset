@@ -115,6 +115,8 @@ describe('getBootstrapData and helpers', () => {
       ['protocol-relative URL', '//evil.example.com/app/'],
       ['absolute URL', 'https://evil.example.com/app/'],
       ['embedded quote', "/my'app/"],
+      ['path traversal', '/app/..'],
+      ['double-dot segment', '/legit/../etc'],
     ])(
       'should degrade a non-path application_root to root deployment (%s)',
       async (_label, applicationRootValue) => {
