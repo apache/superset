@@ -502,7 +502,12 @@ def test_teardown_without_app_context():
     The task_postrun signal can fire after the app context is torn down,
     so teardown() must check has_app_context() before calling db.session.remove().
     """
-    from superset.tasks.celery_app import teardown
+    # Guard: if superset.tasks.celery_app hasn't been imported yet, its module-level
+    # `flask_app = create_app()` would spin up a second Flask app and corrupt the
+    # Flask-AppBuilder view-registry singleton used by the rest of the test suite.
+    # Patching create_app to return the already-created test app prevents that.
+    with mock.patch("superset.create_app", return_value=app):
+        from superset.tasks.celery_app import teardown
 
     with (
         mock.patch("superset.tasks.celery_app.has_app_context", return_value=False),
@@ -514,7 +519,8 @@ def test_teardown_without_app_context():
 
 def test_teardown_with_app_context():
     """Test teardown calls db.session.remove() inside app context."""
-    from superset.tasks.celery_app import teardown
+    with mock.patch("superset.create_app", return_value=app):
+        from superset.tasks.celery_app import teardown
 
     with (
         mock.patch("superset.tasks.celery_app.has_app_context", return_value=True),
