@@ -359,7 +359,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 
   const loadSchemaOptions = useMemo(
     () =>
-      (input = '', page: number, pageSize: number) => {
+      (_input = '', _page: number, _pageSize: number) => {
         if (!currentDatabaseId) {
           return Promise.resolve({ data: [], totalCount: 0 });
         }
@@ -563,7 +563,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
   }, [show]);
 
-  const validateUpload = (_: any, value: string) => {
+  const validateUpload = (_: any, _value: string) => {
     if (fileList.length === 0) {
       return Promise.reject(t('Uploading a file is required'));
     }

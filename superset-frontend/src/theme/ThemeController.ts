@@ -352,7 +352,7 @@ export class ThemeController {
    * @throws {Error} If the user does not have permission to update the theme mode
    */
   public setThemeMode(mode: ThemeMode): void {
-    this.validateModeUpdatePermission(mode);
+    this.validateModeUpdatePermission();
 
     if (
       this.currentMode === mode &&
@@ -537,7 +537,7 @@ export class ThemeController {
 
     let newMode: ThemeMode;
     try {
-      this.validateModeUpdatePermission(this.currentMode);
+      this.validateModeUpdatePermission();
       const hasRequiredTheme = this.isValidThemeMode(this.currentMode);
       newMode = hasRequiredTheme
         ? this.currentMode
@@ -845,10 +845,9 @@ export class ThemeController {
 
   /**
    * Validates permission to update mode.
-   * @param newMode - The new mode to validate
    * @throws {Error} If the user does not have permission to update the theme mode
    */
-  private validateModeUpdatePermission(newMode: ThemeMode): void {
+  private validateModeUpdatePermission(): void {
     // Check if user can set a new theme mode (dark theme must exist)
     if (!this.canSetMode())
       throw new Error(

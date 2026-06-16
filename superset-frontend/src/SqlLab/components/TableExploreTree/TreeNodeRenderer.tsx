@@ -101,7 +101,6 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
 const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   node,
   style,
-  manuallyOpenedNodes,
   loadingNodes,
   searchTerm,
   catalog,

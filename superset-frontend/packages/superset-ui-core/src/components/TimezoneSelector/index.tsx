@@ -66,7 +66,7 @@ function findMatchingTimezone(
 export default function TimezoneSelector({
   onTimezoneChange,
   timezone,
-  minWidth = MIN_SELECT_WIDTH,
+  minWidth: _minWidth = MIN_SELECT_WIDTH,
   placeholder,
   ...rest
 }: TimezoneSelectorProps) {

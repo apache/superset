@@ -289,9 +289,7 @@ interface CollectionTabTitleProps {
 
 interface ColumnCollectionTableProps {
   columns: Column[];
-  datasource: DatasourceObject;
   onColumnsChange: (columns: Column[]) => void;
-  onDatasourceChange: (datasource: DatasourceObject) => void;
   editableColumnName?: boolean;
   showExpression?: boolean;
   allowAddItem?: boolean;
@@ -506,9 +504,7 @@ function FormContainer({ children }: FormContainerProps): JSX.Element {
 
 function ColumnCollectionTable({
   columns,
-  datasource,
   onColumnsChange,
-  onDatasourceChange,
   editableColumnName = false,
   showExpression = false,
   allowAddItem = false,
@@ -2468,9 +2464,7 @@ function DatasourceEditor({
               columns={databaseColumns}
               filterTerm={columnSearchTerm}
               filterFields={['column_name']}
-              datasource={datasource}
               onColumnsChange={cols => setColumns({ databaseColumns: cols })}
-              onDatasourceChange={onDatasourceChange}
             />
             {metadataLoading && <Loading />}
           </StyledTableTabWrapper>
@@ -2509,8 +2503,6 @@ function DatasourceEditor({
                     'as the alias in the SQL query.',
                 ),
               }}
-              onDatasourceChange={onDatasourceChange}
-              datasource={datasource}
               editableColumnName
               showExpression
               allowAddItem
