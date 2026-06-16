@@ -202,11 +202,13 @@ class TestDatasetVersionListApi(SupersetTestCase):
         rv = self._list_versions(table_uuid)
         assert rv.status_code == 403
 
-    def test_list_versions_denies_non_owner(self) -> None:
-        """T056 — Alpha has ``can_write`` on Dataset but isn't an owner of
-        the admin-owned fixture, so the row-level ownership check rejects.
-        Exercises the row-level branch specifically (the Gamma test above
-        only proves model-level denial via ``@protect()``)."""
+    def test_list_versions_allows_can_write_non_owner(self) -> None:
+        """T056 — viewing version history requires ``can_write`` (FR-013),
+        not ownership. Alpha has ``can_write`` on Dataset and
+        ``all_datasource_access``, so ``raise_for_access`` admits it even
+        though Alpha doesn't own the admin-owned fixture. Model-level
+        denial for a no-access principal is covered by the Gamma test
+        above (``@protect()``)."""
         _persist_fixture_state()
         table: SqlaTable = (
             db.session.query(SqlaTable)
@@ -218,7 +220,7 @@ class TestDatasetVersionListApi(SupersetTestCase):
 
         self.login(ALPHA_USERNAME)
         rv = self._list_versions(table_uuid)
-        assert rv.status_code == 403
+        assert rv.status_code == 200
 
     def test_list_versions_admin_sees_all_entities(self) -> None:
         """FR-013: workspace admin can list versions for any entity."""

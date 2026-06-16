@@ -247,9 +247,12 @@ class TestDashboardVersionListApi(SupersetTestCase):
         rv = self._list_versions("not-a-uuid")
         assert rv.status_code == 400
 
-    def test_list_versions_denies_non_owner(self) -> None:
-        """T056 — Alpha has ``can_write`` on Dashboard but doesn't own the
-        admin-owned fixture, so the row-level ownership check rejects."""
+    def test_list_versions_allows_can_write_non_owner(self) -> None:
+        """T056 — viewing version history requires ``can_write`` (FR-013),
+        not ownership. Alpha has ``can_write`` on Dashboard and
+        ``all_datasource_access``, so ``raise_for_access`` admits it even
+        though Alpha doesn't own the admin-owned fixture. (Model-level
+        denial for a no-access principal is covered by the Gamma test.)"""
         _persist_fixture_state()
         dashboard: Dashboard = (
             db.session.query(Dashboard)
@@ -261,7 +264,7 @@ class TestDashboardVersionListApi(SupersetTestCase):
 
         self.login(ALPHA_USERNAME)
         rv = self._list_versions(dashboard_uuid)
-        assert rv.status_code == 403
+        assert rv.status_code == 200
 
     def test_list_versions_admin_sees_all_entities(self) -> None:
         """FR-013: workspace admin can list versions for any entity."""

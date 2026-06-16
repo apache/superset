@@ -165,7 +165,13 @@ class VersioningFlaskPlugin(FlaskPlugin):
         from superset.utils.core import get_user_id
 
         user_id = get_user_id()
-        if user_id is None:
+        # get_user_id() returns an int in a real request, or None for a
+        # context-less save (CLI, Celery, import/export). Guard against any
+        # non-int so a bogus value never reaches the integer
+        # ``version_transaction.user_id`` column — notably a mocked ``g`` in
+        # tests, where ``g.user.id`` is a Mock rather than None and would
+        # otherwise blow up the flush with a SQL bind error.
+        if not isinstance(user_id, int):
             return {}
 
         remote_addr: str | None
