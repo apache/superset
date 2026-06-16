@@ -73,9 +73,16 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
                 obj[na_obj] = None
             else:
                 try:
-                    # for simple string conversions
-                    # this handles odd character types better
-                    obj[...] = obj.astype(str)
+                    val = obj.item()
+                    if isinstance(val, (dict, list)):
+                        # Use json.dumps to produce valid double-quoted JSON.
+                        # Python's str() gives single-quoted repr like {'a': 1}
+                        # which is not valid JSON and breaks the frontend cell viewer.
+                        obj[...] = stringify(val)
+                    else:
+                        # for simple string conversions
+                        # this handles odd character types better
+                        obj[...] = obj.astype(str)
                 except ValueError:
                     obj[...] = stringify(obj)
 
