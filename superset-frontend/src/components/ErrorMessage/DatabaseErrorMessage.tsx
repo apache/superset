@@ -99,6 +99,7 @@ export function DatabaseErrorMessage({
     <ErrorAlert
       errorType={t('%s Error', extra?.engine_name || t('DB engine'))}
       message={alertMessage}
+      messagePre
       description={alertDescription}
       type={level}
       descriptionDetails={body}

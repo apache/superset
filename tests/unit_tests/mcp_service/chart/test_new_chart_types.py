@@ -29,18 +29,23 @@ from pydantic import ValidationError
 
 from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
+    map_big_number_config,
     map_config_to_form_data,
     map_mixed_timeseries_config,
     map_pie_config,
     map_pivot_table_config,
+    map_table_config,
 )
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
+    BigNumberChartConfig,
     ColumnRef,
+    CurrencyFormat,
     FilterConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    TableChartConfig,
 )
 from superset.mcp_service.chart.validation.schema_validator import SchemaValidator
 
@@ -104,7 +109,7 @@ class TestPieChartConfigSchema:
         assert len(config.filters) == 1
 
     def test_pie_config_rejects_extra_fields(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="Unknown field"):
             PieChartConfig(
                 chart_type="pie",
                 dimension=ColumnRef(name="product"),
@@ -211,6 +216,18 @@ class TestMapPieConfig:
         assert result["adhoc_filters"][0]["subject"] == "region"
         assert result["adhoc_filters"][0]["operator"] == "=="
         assert result["adhoc_filters"][0]["comparator"] == "US"
+
+    def test_pie_form_data_color_scheme_override(self) -> None:
+        """Explicit color_scheme overrides the supersetColors default."""
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="product"),
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            color_scheme="googleCategory10c",
+        )
+        result = map_pie_config(config)
+
+        assert result["color_scheme"] == "googleCategory10c"
 
     def test_pie_form_data_custom_options(self) -> None:
         config = PieChartConfig(
@@ -324,7 +341,7 @@ class TestPivotTableChartConfigSchema:
             )
 
     def test_pivot_table_rejects_extra_fields(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="Unknown field"):
             PivotTableChartConfig(
                 chart_type="pivot_table",
                 rows=[ColumnRef(name="product")],
@@ -459,10 +476,10 @@ class TestMixedTimeseriesChartConfigSchema:
             time_grain="P1M",
             y=[ColumnRef(name="revenue", aggregate="SUM")],
             primary_kind="area",
-            group_by=ColumnRef(name="region"),
+            group_by=[ColumnRef(name="region")],
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
             secondary_kind="scatter",
-            group_by_secondary=ColumnRef(name="channel"),
+            group_by_secondary=[ColumnRef(name="channel")],
             show_legend=False,
             x_axis=AxisConfig(title="Date"),
             y_axis=AxisConfig(title="Revenue", format="$,.2f"),
@@ -473,9 +490,9 @@ class TestMixedTimeseriesChartConfigSchema:
         assert config.secondary_kind == "scatter"
         assert config.time_grain == "P1M"
         assert config.group_by is not None
-        assert config.group_by.name == "region"
+        assert config.group_by[0].name == "region"
         assert config.group_by_secondary is not None
-        assert config.group_by_secondary.name == "channel"
+        assert config.group_by_secondary[0].name == "channel"
 
     def test_mixed_timeseries_missing_y(self) -> None:
         with pytest.raises(ValidationError):
@@ -503,7 +520,7 @@ class TestMixedTimeseriesChartConfigSchema:
             )
 
     def test_mixed_timeseries_rejects_extra_fields(self) -> None:
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="Unknown field"):
             MixedTimeseriesChartConfig(
                 chart_type="mixed_timeseries",
                 x=ColumnRef(name="date"),
@@ -511,6 +528,25 @@ class TestMixedTimeseriesChartConfigSchema:
                 y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
                 unknown_field="bad",
             )
+
+    def test_mixed_timeseries_default_row_limit(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+        )
+        assert config.row_limit == 10000
+
+    def test_mixed_timeseries_custom_row_limit(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            row_limit=500,
+        )
+        assert config.row_limit == 500
 
 
 # ============================================================
@@ -587,9 +623,9 @@ class TestMapMixedTimeseriesConfig:
             chart_type="mixed_timeseries",
             x=ColumnRef(name="date"),
             y=[ColumnRef(name="revenue", aggregate="SUM")],
-            group_by=ColumnRef(name="region"),
+            group_by=[ColumnRef(name="region")],
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
-            group_by_secondary=ColumnRef(name="channel"),
+            group_by_secondary=[ColumnRef(name="channel")],
         )
         result = map_mixed_timeseries_config(config, dataset_id=1)
 
@@ -604,9 +640,9 @@ class TestMapMixedTimeseriesConfig:
             chart_type="mixed_timeseries",
             x=ColumnRef(name="date"),
             y=[ColumnRef(name="revenue", aggregate="SUM")],
-            group_by=ColumnRef(name="date"),  # same as x
+            group_by=[ColumnRef(name="date")],  # same as x
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
-            group_by_secondary=ColumnRef(name="date"),  # same as x
+            group_by_secondary=[ColumnRef(name="date")],  # same as x
         )
         result = map_mixed_timeseries_config(config, dataset_id=1)
 
@@ -635,6 +671,35 @@ class TestMapMixedTimeseriesConfig:
         assert result["yAxisTitleSecondary"] == "Orders"
         assert result["y_axis_format_secondary"] == ",d"
         assert result["logAxisSecondary"] is True
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_mixed_form_data_row_limit(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            row_limit=300,
+        )
+        result = map_mixed_timeseries_config(config, dataset_id=1)
+
+        assert result["row_limit"] == 300
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_mixed_form_data_default_row_limit(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+        )
+        result = map_mixed_timeseries_config(config, dataset_id=1)
+
+        assert result["row_limit"] == 10000
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
     def test_mixed_form_data_with_filters(self, mock_is_temporal) -> None:
@@ -927,3 +992,272 @@ class TestSchemaValidatorNewTypes:
         assert is_valid is False
         assert error is not None
         assert error.error_code == "INVALID_CHART_TYPE"
+
+
+# ============================================================
+# Chart Formatting Options Tests (sc-102806 follow-up)
+# ============================================================
+
+
+class TestPieFormattingOptions:
+    """number/date/currency format, color scheme, legend orientation on Pie."""
+
+    def test_currency_format_in_form_data(self) -> None:
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="product"),
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            currency_format=CurrencyFormat(symbol="USD", symbol_position="prefix"),
+        )
+        result = map_pie_config(config)
+
+        assert result["currency_format"] == {
+            "symbol": "USD",
+            "symbolPosition": "prefix",
+        }
+
+    def test_currency_format_omitted_when_unset(self) -> None:
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="product"),
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+        result = map_pie_config(config)
+
+        assert "currency_format" not in result
+
+    def test_legend_orientation_in_form_data(self) -> None:
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="product"),
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            legend_orientation="bottom",
+        )
+        result = map_pie_config(config)
+
+        assert result["legendOrientation"] == "bottom"
+
+    def test_default_legend_orientation_is_top(self) -> None:
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="product"),
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+        result = map_pie_config(config)
+
+        assert result["legendOrientation"] == "top"
+
+    def test_date_format_overridable(self) -> None:
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="ds"),
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            date_format="%Y-%m-%d",
+        )
+        result = map_pie_config(config)
+
+        assert result["date_format"] == "%Y-%m-%d"
+
+
+class TestPivotTableFormattingOptions:
+    """date/currency format on PivotTable."""
+
+    def test_currency_format_in_form_data(self) -> None:
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="region")],
+            metrics=[ColumnRef(name="revenue", aggregate="SUM")],
+            currency_format=CurrencyFormat(symbol="EUR", symbol_position="suffix"),
+        )
+        result = map_pivot_table_config(config)
+
+        assert result["currency_format"] == {
+            "symbol": "EUR",
+            "symbolPosition": "suffix",
+        }
+
+    def test_date_format_in_form_data(self) -> None:
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="ds")],
+            metrics=[ColumnRef(name="revenue", aggregate="SUM")],
+            date_format="%Y-%m",
+        )
+        result = map_pivot_table_config(config)
+
+        assert result["date_format"] == "%Y-%m"
+
+    def test_formatting_omitted_when_unset(self) -> None:
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="region")],
+            metrics=[ColumnRef(name="revenue", aggregate="SUM")],
+        )
+        result = map_pivot_table_config(config)
+
+        assert "currency_format" not in result
+        assert "date_format" not in result
+
+
+class TestMixedTimeseriesFormattingOptions:
+    """color scheme, currency format, legend orientation, data labels on Mixed."""
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_color_scheme_in_form_data(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            color_scheme="lyftColors",
+        )
+        result = map_mixed_timeseries_config(config)
+
+        assert result["color_scheme"] == "lyftColors"
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_currency_format_primary_and_secondary(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            currency_format=CurrencyFormat(symbol="USD"),
+            currency_format_secondary=CurrencyFormat(symbol="GBP"),
+        )
+        result = map_mixed_timeseries_config(config)
+
+        assert result["currency_format"] == {
+            "symbol": "USD",
+            "symbolPosition": "prefix",
+        }
+        assert result["currency_format_secondary"] == {
+            "symbol": "GBP",
+            "symbolPosition": "prefix",
+        }
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_legend_orientation_in_form_data(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            legend_orientation="left",
+        )
+        result = map_mixed_timeseries_config(config)
+
+        assert result["legendOrientation"] == "left"
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_show_value_data_labels(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+            show_value=True,
+        )
+        result = map_mixed_timeseries_config(config)
+
+        assert result["show_value"] is True
+
+
+class TestBigNumberFormattingOptions:
+    """color scheme, currency format, time format on BigNumber."""
+
+    def test_currency_format_in_form_data(self) -> None:
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            currency_format=CurrencyFormat(symbol="JPY", symbol_position="prefix"),
+        )
+        result = map_big_number_config(config)
+
+        assert result["currency_format"] == {
+            "symbol": "JPY",
+            "symbolPosition": "prefix",
+        }
+
+    def test_color_scheme_in_form_data(self) -> None:
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            color_scheme="d3Category10",
+        )
+        result = map_big_number_config(config)
+
+        assert result["color_scheme"] == "d3Category10"
+
+    def test_time_format_only_for_trendline(self) -> None:
+        # Without trendline, time_format is dropped because the trendline
+        # x-axis doesn't render.
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            time_format="%Y-%m-%d",
+        )
+        result = map_big_number_config(config)
+
+        assert "time_format" not in result
+
+    def test_time_format_with_trendline(self) -> None:
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="ds",
+            show_trendline=True,
+            time_format="%Y-%m-%d",
+        )
+        result = map_big_number_config(config)
+
+        assert result["time_format"] == "%Y-%m-%d"
+
+
+class TestTableFormattingOptions:
+    """color scheme on Table."""
+
+    def test_color_scheme_in_form_data(self) -> None:
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product"), ColumnRef(name="revenue")],
+            color_scheme="lyftColors",
+        )
+        result = map_table_config(config)
+
+        assert result["color_scheme"] == "lyftColors"
+
+    def test_color_scheme_omitted_when_unset(self) -> None:
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product"), ColumnRef(name="revenue")],
+        )
+        result = map_table_config(config)
+
+        assert "color_scheme" not in result
+
+
+class TestCurrencyFormatModel:
+    """CurrencyFormat schema validation."""
+
+    def test_default_symbol_position_is_prefix(self) -> None:
+        cf = CurrencyFormat(symbol="USD")
+        assert cf.symbol_position == "prefix"
+
+    def test_camel_case_alias_accepted(self) -> None:
+        cf = CurrencyFormat.model_validate(
+            {"symbol": "USD", "symbolPosition": "suffix"}
+        )
+        assert cf.symbol_position == "suffix"
+
+    def test_invalid_position_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            CurrencyFormat(symbol="USD", symbol_position="middle")
+
+    def test_to_form_data_shape(self) -> None:
+        cf = CurrencyFormat(symbol="EUR", symbol_position="suffix")
+        assert cf.to_form_data() == {"symbol": "EUR", "symbolPosition": "suffix"}

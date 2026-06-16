@@ -69,7 +69,7 @@ interface Datasource {
   [key: string]: unknown;
 }
 
-interface AdhocFilterControlProps {
+export interface AdhocFilterControlProps {
   label?: ReactNode;
   name?: string;
   sections?: string[];

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import { PropsWithoutRef, RefAttributes } from 'react';
 import { Link, LinkProps } from 'react-router-dom';
 import { isUrlExternal, parseUrl } from 'src/utils/urlUtils';
@@ -31,7 +31,7 @@ export const GenericLink = <S,>({
 }: PropsWithoutRef<LinkProps<S>> & RefAttributes<HTMLAnchorElement>) => {
   if (typeof to === 'string' && isUrlExternal(to)) {
     return (
-      <a data-test="external-link" href={parseUrl(to)} {...rest}>
+      <a data-test="external-link" href={sanitizeUrl(parseUrl(to))} {...rest}>
         {children}
       </a>
     );

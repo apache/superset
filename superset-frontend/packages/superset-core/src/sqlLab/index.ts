@@ -253,6 +253,22 @@ export interface QueryResult {
 export declare const getActivePanel: () => Panel;
 
 /**
+ * Switches the active panel in the SQL Lab south pane.
+ * Built-in panel IDs are 'Results' and 'History'.
+ * Pinned table panels use the table's ID as their panel ID.
+ *
+ * @param panelId The ID of the panel to activate
+ * @returns Promise that resolves when the panel is activated
+ *
+ * @example
+ * ```typescript
+ * // Focus the Results panel after running a query
+ * await setActivePanel('Results');
+ * ```
+ */
+export declare function setActivePanel(panelId: string): Promise<void>;
+
+/**
  * Gets the currently active tab in SQL Lab.
  *
  * @returns The current tab object, or undefined if no tab is active.

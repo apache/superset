@@ -155,6 +155,11 @@ export const StyledLineEditableTabs = styled(EditableTabs)`
 
   .ant-tabs-tab-btn {
     font-size: ${({ theme }) => theme.fontSize}px;
+
+    .editable-title textarea,
+    .editable-title input[type='text'] {
+      font-size: inherit;
+    }
   }
 
   .ant-tabs-tab-remove {

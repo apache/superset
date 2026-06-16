@@ -58,29 +58,45 @@ export const CopyButton = styled(Button)`
 export const CopyToClipboardButton = ({
   data,
   columns,
+  disabled = false,
 }: {
   data?: TabularDataRow[];
   columns?: string[];
-}) => (
-  <CopyToClipboard
-    text={
-      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
-    }
-    wrapped={false}
-    copyNode={
-      <Icons.CopyOutlined
-        iconSize="l"
-        aria-label={t('Copy')}
-        role="button"
-        css={css`
-          &.anticon > * {
-            line-height: 0;
-          }
-        `}
-      />
-    }
-  />
-);
+  disabled?: boolean;
+}) => {
+  const theme = useTheme();
+  return (
+    <CopyToClipboard
+      text={
+        !disabled && data && columns
+          ? prepareCopyToClipboardTabularData(data, columns)
+          : ''
+      }
+      disabled={disabled}
+      wrapped={false}
+      copyNode={
+        <span
+          role="button"
+          aria-label={t('Copy')}
+          aria-disabled={disabled}
+          tabIndex={disabled ? -1 : 0}
+        >
+          <Icons.CopyOutlined
+            iconColor={theme.colorIcon}
+            iconSize="l"
+            css={css`
+              opacity: ${disabled ? 0.3 : 1};
+              cursor: ${disabled ? 'not-allowed' : 'pointer'};
+              &.anticon > * {
+                line-height: 0;
+              }
+            `}
+          />
+        </span>
+      }
+    />
+  );
+};
 
 export const FilterInput = ({
   onChangeHandler,

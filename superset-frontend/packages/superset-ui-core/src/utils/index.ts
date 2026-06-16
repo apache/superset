@@ -17,6 +17,7 @@
  * under the License.
  */
 export { default as convertKeysToCamelCase } from './convertKeysToCamelCase';
+export { default as copyTextToClipboard } from './copy';
 export { default as ensureIsArray } from './ensureIsArray';
 export { default as ensureIsInt } from './ensureIsInt';
 export { default as isDefined } from './isDefined';
@@ -34,3 +35,4 @@ export * from './typedMemo';
 export * from './html';
 export * from './tooltip';
 export * from './merge';
+export * from './mapStyles';

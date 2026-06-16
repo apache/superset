@@ -30,6 +30,7 @@ const BINARY_OPERATORS = [
   '<=',
   'ILIKE',
   'LIKE',
+  'NOT ILIKE',
   'NOT LIKE',
   'REGEX',
   'TEMPORAL_RANGE',

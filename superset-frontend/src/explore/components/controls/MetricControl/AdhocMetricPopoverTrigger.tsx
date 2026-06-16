@@ -272,7 +272,7 @@ class AdhocMetricPopoverTrigger extends PureComponent<
           open={visible}
           onOpenChange={togglePopover}
           title={popoverTitle}
-          destroyTooltipOnHide
+          destroyOnHidden
         >
           {this.props.children}
         </ControlPopover>

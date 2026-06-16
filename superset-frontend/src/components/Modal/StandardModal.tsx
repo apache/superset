@@ -50,7 +50,7 @@ export const MODAL_LARGE_WIDTH = 900;
 
 const StyledModal = styled(Modal)`
   .ant-modal-body {
-    max-height: 60vh;
+    max-height: 80vh;
     height: auto;
     overflow-y: auto;
     padding: 0;
@@ -76,7 +76,7 @@ const StyledModal = styled(Modal)`
   .ant-collapse {
     border: none;
 
-    > .ant-collapse-item:first-child {
+    > .ant-collapse-item:first-of-type {
       border-top: none;
     }
 
@@ -130,6 +130,7 @@ export function StandardModal({
       show={show}
       width={`${width}px`}
       wrapProps={wrapProps}
+      centered={centered}
       title={
         icon ? (
           <ModalTitleWithIcon

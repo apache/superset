@@ -71,8 +71,8 @@ def calculate_dashboard_breakdown(
         dashboards_with_charts = (
             db.session.query(Dashboard).join(Dashboard.slices).distinct().count()
         )
-        dashboards_without_charts = (
-            base_counts.get("total_dashboards", 0) - dashboards_with_charts
+        dashboards_without_charts = max(
+            0, base_counts.get("total_dashboards", 0) - dashboards_with_charts
         )
 
         return DashboardBreakdown(

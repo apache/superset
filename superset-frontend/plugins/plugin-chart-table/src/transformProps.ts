@@ -29,6 +29,7 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   getTimeFormatterForGranularity,
+  isAdhocColumn,
   normalizeCurrency,
   NumberFormats,
   QueryMode,
@@ -129,13 +130,12 @@ const processComparisonTotals = (
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
         transformedTotals[`Main ${key}`] =
-          parseInt(transformedTotals[`Main ${key}`]?.toString() || '0', 10) +
-          parseInt(totalRecord[key]?.toString() || '0', 10);
+          parseFloat(transformedTotals[`Main ${key}`]?.toString() || '0') +
+          parseFloat(totalRecord[key]?.toString() || '0');
         transformedTotals[`# ${key}`] =
-          parseInt(transformedTotals[`# ${key}`]?.toString() || '0', 10) +
-          parseInt(
+          parseFloat(transformedTotals[`# ${key}`]?.toString() || '0') +
+          parseFloat(
             totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
-            10,
           );
         const { valueDifference, percentDifferenceNum } = calculateDifferences(
           transformedTotals[`Main ${key}`] as number,
@@ -532,6 +532,20 @@ const transformProps = (
     comparison_type,
     slice_id,
   } = formData;
+  // Build a mapping from column labels to original column names.
+  // When a user creates an adhoc column with a custom label (e.g. sqlExpression: "state",
+  // label: "State_Renamed"), the query result uses the label as the column name.
+  // Cross-filtering needs the original column name to work on the receiving chart.
+  const columnLabelToNameMap: Record<string, string> = {};
+  const formColumns = ensureIsArray(
+    queryMode === QueryMode.Raw ? formData.all_columns : formData.groupby,
+  );
+  formColumns.forEach(col => {
+    if (isAdhocColumn(col) && col.label && col.label !== col.sqlExpression) {
+      columnLabelToNameMap[col.label] = col.sqlExpression;
+    }
+  });
+
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
     queryMode === QueryMode.Aggregate &&
@@ -791,6 +805,7 @@ const transformProps = (
     hasServerPageLengthChanged,
     serverPageLength,
     slice_id,
+    columnLabelToNameMap,
   };
 };
 

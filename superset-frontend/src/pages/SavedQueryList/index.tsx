@@ -223,7 +223,9 @@ function SavedQueryList({
     name: t('Query'),
     buttonStyle: 'primary',
     onClick: () => {
-      history.push(makeUrl('/sqllab?new=true'));
+      // React Router's basename already includes the application root; passing
+      // a relative path ensures correct navigation under subdirectory deployments.
+      history.push('/sqllab?new=true');
     },
   });
 
@@ -245,7 +247,9 @@ function SavedQueryList({
     if (openInNewWindow) {
       window.open(makeUrl(`/sqllab?savedQueryId=${id}`));
     } else {
-      history.push(makeUrl(`/sqllab?savedQueryId=${id}`));
+      // React Router's basename already includes the application root; passing
+      // a relative path ensures correct navigation under subdirectory deployments.
+      history.push(`/sqllab?savedQueryId=${id}`);
     }
   };
 
@@ -338,9 +342,7 @@ function SavedQueryList({
           row: {
             original: { id, label },
           },
-        }: any) => (
-          <Link to={makeUrl(`/sqllab?savedQueryId=${id}`)}>{label}</Link>
-        ),
+        }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
         id: 'label',
       },
       {

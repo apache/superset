@@ -214,7 +214,7 @@ test('Refresh should work', async () => {
   expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(0);
 
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas: public',
+    name: 'Select schema: public',
   });
 
   await userEvent.click(select);
@@ -331,7 +331,7 @@ test('Should schema select display options', async () => {
   const props = createProps();
   render(<DatabaseSelector {...props} />, { useRedux: true, store });
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas: public',
+    name: 'Select schema: public',
   });
   expect(select).toBeInTheDocument();
   await userEvent.click(select);
@@ -379,7 +379,7 @@ test('Sends the correct schema when changing the schema', async () => {
   rerender(<DatabaseSelector {...props} />);
   expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas: public',
+    name: 'Select schema: public',
   });
   expect(select).toBeInTheDocument();
   await userEvent.click(select);

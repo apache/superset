@@ -489,6 +489,108 @@ test('popupTemplate returns tooltip HTML when country data exists', () => {
   expect(tooltipHtml).toContain('hoverinfo');
 });
 
+test('assigns fill colors from sequential scheme when colorBy is metric', () => {
+  WorldMap(container, {
+    ...baseProps,
+    colorBy: ColorBy.Metric,
+  });
+
+  const data = lastDatamapConfig?.data as Record<
+    string,
+    WorldMapDataEntry & { fillColor: string }
+  >;
+  expect(data).toHaveProperty('USA');
+  expect(data).toHaveProperty('CAN');
+  expect(data.USA).toMatchObject({
+    country: 'USA',
+    name: 'United States',
+    m1: 100,
+  });
+  // fillColor should be a valid color string from the sequential scale
+  expect(data.USA.fillColor).toMatch(/^(#|rgb)/);
+  expect(data.CAN.fillColor).toMatch(/^(#|rgb)/);
+});
+
+test('renders countries with null metric as no-data fill when colorBy is metric', () => {
+  WorldMap(container, {
+    ...baseProps,
+    colorBy: ColorBy.Metric,
+    data: [
+      {
+        country: 'USA',
+        name: 'United States',
+        m1: 100,
+        m2: 200,
+        code: 'US',
+        latitude: 37.0902,
+        longitude: -95.7129,
+      },
+      {
+        country: 'CAN',
+        name: 'Canada',
+        m1: null as unknown as number,
+        m2: 100,
+        code: 'CA',
+        latitude: 56.1304,
+        longitude: -106.3468,
+      },
+    ],
+  });
+
+  const data = lastDatamapConfig?.data as Record<
+    string,
+    WorldMapDataEntry & { fillColor: string }
+  >;
+  expect(data).toHaveProperty('USA');
+  expect(data).toHaveProperty('CAN');
+  expect(data.CAN.fillColor).toBe('#e0e0e0');
+});
+
+test('renders countries with zero metric using the color scale when colorBy is metric', () => {
+  WorldMap(container, {
+    ...baseProps,
+    colorBy: ColorBy.Metric,
+    data: [
+      {
+        country: 'USA',
+        name: 'United States',
+        m1: 100,
+        m2: 200,
+        code: 'US',
+        latitude: 37.0902,
+        longitude: -95.7129,
+      },
+      {
+        country: 'MEX',
+        name: 'Mexico',
+        m1: 0,
+        m2: 50,
+        code: 'MX',
+        latitude: 23.6345,
+        longitude: -102.5528,
+      },
+    ],
+  });
+
+  const data = lastDatamapConfig?.data as Record<
+    string,
+    WorldMapDataEntry & { fillColor: string }
+  >;
+  expect(data).toHaveProperty('MEX');
+  expect(data.MEX.fillColor).toMatch(/^(#|rgb)/);
+  expect(data.MEX.fillColor).not.toBe('#e0e0e0');
+});
+
+test('does not throw with empty data and metric coloring', () => {
+  expect(() => {
+    WorldMap(container, {
+      ...baseProps,
+      colorBy: ColorBy.Metric,
+      data: [],
+    });
+  }).not.toThrow();
+});
+
 test('popupTemplate handles null/undefined country data gracefully', () => {
   WorldMap(container, baseProps);
 

@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"schema":{"type":"string"},"table_name":{"type":"string"}},"type":"object","title":"Tables"},"schemaType":"response"}

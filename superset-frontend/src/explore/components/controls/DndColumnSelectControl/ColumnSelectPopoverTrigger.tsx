@@ -199,7 +199,7 @@ const ColumnSelectPopoverTriggerInner = ({
         open={visible}
         onOpenChange={handleTogglePopover}
         title={popoverTitle}
-        destroyTooltipOnHide
+        destroyOnHidden
       >
         {children}
       </ControlPopover>
