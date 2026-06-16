@@ -178,7 +178,7 @@ croniter==6.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-cryptography==46.0.7
+cryptography==48.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -780,7 +780,7 @@ pynacl==1.6.2
     # via
     #   -c requirements/base-constraint.txt
     #   paramiko
-pyopenssl==26.0.0
+pyopenssl==26.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   shillelagh
@@ -841,7 +841,6 @@ python-multipart==0.0.29
 pytz==2025.2
     # via
     #   -c requirements/base-constraint.txt
-    #   croniter
     #   flask-babel
     #   pandas
     #   trino
