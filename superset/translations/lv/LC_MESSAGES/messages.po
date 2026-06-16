@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -4571,6 +4571,9 @@ msgstr "Datubāzes iestatījumi atjaunināti"
 
 msgid "Database type does not support file uploads."
 msgstr "Datubāzes tips neatbalsta failu augšupielādi."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Datubāzes faila augšupielāde neizdevās"
@@ -17864,10 +17867,6 @@ msgstr "vērtība augošā secībā"
 
 msgid "value descending"
 msgstr "vērtība dilstošā secībā"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Tabulas nosaukums"
 
 msgid "var"
 msgstr "dispersija"
