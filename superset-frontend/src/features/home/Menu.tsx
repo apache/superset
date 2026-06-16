@@ -153,7 +153,7 @@ const StyledBrandWrapper = styled.div<{ margin?: string }>`
   `}
 `;
 
-const StyledBrandLink = styled(Typography.Link)`
+const StyledBrandLink = styled(GenericLink)`
   ${({ theme }) => css`
     align-items: center;
     display: flex;
@@ -294,7 +294,7 @@ export function Menu({
     if (theme.brandLogoUrl) {
       link = (
         <StyledBrandWrapper margin={theme.brandLogoMargin}>
-          <StyledBrandLink href={ensureAppRoot(theme.brandLogoHref)}>
+          <StyledBrandLink to={ensureAppRoot(theme.brandLogoHref)}>
             <StyledImage
               preview={false}
               src={ensureStaticPrefix(theme.brandLogoUrl)}
