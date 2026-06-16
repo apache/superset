@@ -445,6 +445,43 @@ def test_editorship_check_raises_forbidden(mocker: MockerFixture) -> None:
         cmd.validate()
 
 
+# --- Dashboard extra (activeTabs) validation on update ---
+
+
+def test_update_rejects_invalid_active_tab_ids(mocker: MockerFixture) -> None:
+    """On PUT, activeTabs must be validated against the model's dashboard layout.
+
+    The dashboard is not in the payload, so validation must fall back to the
+    existing model's dashboard; tab ids absent from position_json are rejected.
+    """
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    model.dashboard.position_json = '{"TAB-valid": {}}'
+    _setup_mocks(mocker, model)
+
+    cmd = UpdateReportScheduleCommand(
+        model_id=1,
+        data={"extra": {"dashboard": {"activeTabs": ["TAB-missing"]}}},
+    )
+    with pytest.raises(ReportScheduleInvalidError) as exc_info:
+        cmd.validate()
+    messages = _get_validation_messages(exc_info)
+    assert "extra" in messages
+    assert "invalid tab ids" in messages["extra"].lower()
+
+
+def test_update_accepts_valid_active_tab_ids(mocker: MockerFixture) -> None:
+    """A tab id present in the model dashboard's position_json passes validation."""
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    model.dashboard.position_json = '{"TAB-valid": {}}'
+    _setup_mocks(mocker, model)
+
+    cmd = UpdateReportScheduleCommand(
+        model_id=1,
+        data={"extra": {"dashboard": {"activeTabs": ["TAB-valid"]}}},
+    )
+    cmd.validate()  # should not raise
+
+
 # --- Database not found for alert ---
 
 

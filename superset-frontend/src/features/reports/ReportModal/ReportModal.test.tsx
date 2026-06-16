@@ -168,6 +168,31 @@ test('non-text chart shows screenshot width and message content', () => {
   expect(screen.getByText('Screenshot width')).toBeInTheDocument();
 });
 
+test('screenshot width input preserves a typed zero instead of dropping it', () => {
+  const lineChartProps = {
+    ...defaultProps,
+    dashboardId: undefined,
+    chart: { id: 1, sliceFormData: { viz_type: VizType.Line } },
+    chartName: 'My Line Chart',
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...lineChartProps} />, { useRedux: true });
+
+  const widthInput = screen.getByPlaceholderText(
+    'Input custom width in pixels',
+  );
+
+  // The old `|| null` / `|| ''` logic silently coerced a typed 0 to null, so the
+  // invalid width was swallowed instead of being submitted and surfaced by the
+  // server's min-width validation. The field must preserve the literal value.
+  userEvent.type(widthInput, '0');
+  expect(widthInput).toHaveDisplayValue('0');
+
+  // Clearing the field still yields an empty value (parsed NaN → null).
+  userEvent.clear(widthInput);
+  expect(widthInput).toHaveDisplayValue('');
+});
+
 test('dashboard report hides message content section', () => {
   const dashboardProps = {
     ...defaultProps,

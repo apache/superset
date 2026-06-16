@@ -296,11 +296,12 @@ function ReportModal({
         <Input
           type="number"
           name="custom_width"
-          value={currentReport?.custom_width || ''}
+          value={currentReport?.custom_width ?? ''}
           placeholder={t('Input custom width in pixels')}
           onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            const parsedWidth = parseInt(event.target.value, 10);
             setCurrentReport({
-              custom_width: parseInt(event.target.value, 10) || null,
+              custom_width: Number.isNaN(parsedWidth) ? null : parsedWidth,
             });
           }}
         />

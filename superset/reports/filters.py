@@ -21,6 +21,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, is_feature_enabled, security_manager
+from superset.daos.base import _escape_like
 from superset.reports.models import ReportSchedule
 from superset.views.base import BaseFilter
 
@@ -79,11 +80,13 @@ class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public
     def apply(self, query: Query, value: Any) -> Query:
         if not value:
             return query
-        ilike_value = f"%{value}%"
+        # ``value`` may arrive as a non-string (e.g. an int in the API ``filters``
+        # array); coerce it so escaping never raises on ``.replace``.
+        ilike_value = f"%{_escape_like(str(value))}%"
         return query.filter(
             or_(
-                ReportSchedule.name.ilike(ilike_value),
-                ReportSchedule.description.ilike(ilike_value),
-                ReportSchedule.sql.ilike(ilike_value),
+                ReportSchedule.name.ilike(ilike_value, escape="\\"),
+                ReportSchedule.description.ilike(ilike_value, escape="\\"),
+                ReportSchedule.sql.ilike(ilike_value, escape="\\"),
             )
         )

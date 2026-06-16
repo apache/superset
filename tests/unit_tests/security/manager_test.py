@@ -1227,6 +1227,182 @@ def test_query_context_modified_orderby(mocker: MockerFixture) -> None:
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_time_grain_native_filter(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test `query_context_modified` when a guest applies a Time Grain native filter.
+
+    Reproduces https://github.com/apache/superset/issues/32768.
+
+    On a chart that uses a generic x-axis, the selected time grain is baked into the
+    ``BASE_AXIS`` adhoc column as a ``timeGrain`` property (see
+    ``normalizeTimeColumn`` on the frontend, which copies ``extras.time_grain_sqla``
+    onto the column). A Time Grain native filter is a supported, read-only guest
+    interaction: it only changes the granularity at which the *same* dimension is
+    bucketed, never which metrics or columns are queried.
+
+    Previously, because the changed time grain travels inside the ``columns``
+    payload, the subset comparison treated the request as tampering and
+    ``query_context_modified`` returned ``True`` -- so guests hit "Guest user cannot
+    modify chart payload" whenever they picked a grain other than the chart default.
+
+    ``freeze_value`` now drops the guest-overridable ``timeGrain`` key before
+    comparing, so a pure time-grain change is no longer flagged as a modification.
+    This test guards that behavior.
+    """
+    # The chart was saved with a monthly grain on its x-axis column.
+    stored_axis_column: AdhocColumn = {
+        "label": "order_date",
+        "sqlExpression": "order_date",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+    # The guest picked a daily grain via the dashboard Time Grain native filter;
+    # `normalizeTimeColumn` rewrote the otherwise-identical column accordingly.
+    requested_axis_column: AdhocColumn = {
+        **stored_axis_column,
+        "timeGrain": "P1D",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+    }
+    query_context.slice_.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "columns": [stored_axis_column],
+                    "metrics": ["count"],
+                }
+            ],
+        }
+    )
+    # Native-filter data requests don't carry the mutated columns at the top level;
+    # the grain change only shows up inside the query's columns.
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=[requested_axis_column],
+            metrics=["count"],
+        ),
+    ]
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_time_grain_with_tampered_column(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that relaxing the time grain comparison does not open a tamper hole.
+
+    Only the ``timeGrain`` key is guest-overridable. A request that changes the
+    grain *and* also swaps a non-overridable attribute (here ``sqlExpression``,
+    which selects which column is queried) must still be flagged as tampering --
+    otherwise a guest could query an arbitrary column under cover of a Time Grain
+    filter.
+    """
+    stored_axis_column: AdhocColumn = {
+        "label": "order_date",
+        "sqlExpression": "order_date",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+    # Guest changes the grain (allowed) but also rewrites the SQL expression to a
+    # different column (not allowed) -- this must still read as a modification.
+    tampered_axis_column: AdhocColumn = {
+        **stored_axis_column,
+        "sqlExpression": "secret_column",
+        "timeGrain": "P1D",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+    }
+    query_context.slice_.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "columns": [stored_axis_column],
+                    "metrics": ["count"],
+                }
+            ],
+        }
+    )
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=[tampered_axis_column],
+            metrics=["count"],
+        ),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_time_grain_in_orderby(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test `query_context_modified` when the time grain travels inside `orderby`.
+
+    Each ``orderby`` entry is an ``(column, bool)`` tuple, so a temporal x-axis
+    adhoc column carrying the guest-overridable ``timeGrain`` is nested one level
+    deep rather than sitting at the top level. The overridable key must still be
+    stripped before comparing, otherwise sorting by the temporal axis would make
+    a pure time-grain change read as tampering.
+    """
+    stored_axis_column: AdhocColumn = {
+        "label": "order_date",
+        "sqlExpression": "order_date",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+    requested_axis_column: AdhocColumn = {
+        **stored_axis_column,
+        "timeGrain": "P1D",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+    }
+    query_context.slice_.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "orderby": [[stored_axis_column, True]],
+                    "metrics": ["count"],
+                }
+            ],
+        }
+    )
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+    }
+    query_context.queries = [
+        QueryObject(
+            orderby=[(requested_axis_column, True)],
+            metrics=["count"],
+        ),
+    ]
+
+    assert not query_context_modified(query_context)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.
