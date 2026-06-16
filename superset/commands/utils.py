@@ -58,11 +58,10 @@ def populate_owner_list(
     if not owner_ids and default_to_user:
         return [g.user]
     if not (security_manager.is_admin() or get_user_id() in owner_ids):
-        # make sure non-admins can't remove themselves as owner by mistake
-        skip = False
-        if skip_check := current_app.config.get("EXTRA_OWNER_AUTO_ADD_SKIP"):
-            skip = skip_check(get_user_id())
-        if not skip:
+        # Make sure non-admins can't remove themselves as owner by mistake.
+        # Skip auto-add when an EXTRA_OWNERS_RESOLVER is configured — the
+        # resolver handles access independently of the owners list.
+        if not current_app.config.get("EXTRA_OWNERS_RESOLVER"):
             owners.append(g.user)
     for owner_id in owner_ids:
         owner = security_manager.get_user_by_id(owner_id)

@@ -2510,25 +2510,16 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
     dashboards: Callable[[int], Query]
 
 
+# Extension hooks for deployments to plug in custom access logic.
+# Additional query filters for chart/dashboard list views.
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
-
-# Bypass hook for raise_for_access(). Return True to skip all permission checks
-# (including datasource). Receives keyword arguments matching raise_for_access().
+# Bypass raise_for_access for specific assets. Return True to skip checks.
 EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
-
-# Ownership bypass hook for raise_for_ownership(). Return True to allow edit/delete.
-# Receives (user_id, resource).
-EXTRA_OWNERSHIP_CHECKS: Callable[[int, Any], bool] | None = None
-
-# Skip auto-adding current user as owner on save. Return True to skip.
-# Receives user_id.
-EXTRA_OWNER_AUTO_ADD_SKIP: Callable[[int], bool] | None = None
-
-# Inject additional users into the owners/editors array in API responses.
-# Receives the resource (chart/dashboard model). Returns a list of user dicts
-# matching the owners schema (e.g. [{"id": 1, "first_name": "...", ...}]).
-# Used in Slice.data, ChartRestApi.get(), and DashboardRestApi.get().
-EXTRA_OWNERS_RESOLVER: Callable[[Any], list[dict[str, Any]]] | None = None
+# Resolve extra owners for a resource. Also used for ownership checks and
+# to skip auto-adding the current user to owners on create.
+EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
+# Post-create hook for charts/dashboards. Receives (model, asset_type).
+AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
 
 
 # The migrations that add catalog permissions might take a considerably long time

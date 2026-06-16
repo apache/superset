@@ -311,6 +311,7 @@ export interface ListViewProps<T extends object = any> {
     name: ReactNode;
     onSelect: (rows: any[]) => any;
     type?: 'primary' | 'secondary' | 'danger';
+    hidden?: (rows: any[]) => boolean;
   }>;
   bulkSelectEnabled?: boolean;
   disableBulkSelect?: () => void;
@@ -524,7 +525,16 @@ export function ListView<T extends object = any>({
                         {t('Deselect all')}
                       </span>
                       <div className="divider" />
-                      {bulkActions.map(action => (
+                      {bulkActions
+                        .filter(
+                          action =>
+                            !action.hidden?.(
+                              selectedFlatRows.map(
+                                (r: any) => r.original,
+                              ),
+                            ),
+                        )
+                        .map(action => (
                         <Button
                           data-test="bulk-select-action"
                           key={action.key}

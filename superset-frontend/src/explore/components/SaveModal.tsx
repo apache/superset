@@ -49,7 +49,10 @@ import {
 } from '@apache-superset/core/theme';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
-import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
+import {
+  canUserEditDashboard,
+  isUserAdmin,
+} from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType, ChartStatusType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -72,6 +75,7 @@ interface SaveModalProps extends RouteComponentProps {
   alert?: string;
   sliceName?: string;
   slice?: Record<string, any>;
+  can_overwrite?: boolean;
   datasource?: Record<string, any>;
   dashboardId: '' | number | null;
   isVisible: boolean;
@@ -125,7 +129,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   canOverwriteSlice(): boolean {
     return (
-      this.props.slice?.owners?.includes(this.props.user.userId) &&
+      (this.props.can_overwrite ||
+        isUserAdmin(this.props.user) ||
+        this.props.slice?.owners?.includes(this.props.user.userId)) &&
       !this.props.slice?.is_managed_externally
     );
   }
@@ -815,6 +821,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 interface StateProps {
   datasource: any;
   slice: any;
+  can_overwrite: boolean;
   user: UserWithPermissionsAndRoles;
   dashboards: any;
   alert: any;
@@ -829,6 +836,7 @@ function mapStateToProps({
   return {
     datasource: explore.datasource,
     slice: explore.slice,
+    can_overwrite: explore.can_overwrite,
     user,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,

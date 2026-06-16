@@ -3748,10 +3748,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:
-            # Extension hook: allow edit/delete if an external system grants access
-            if ownership_check := current_app.config.get("EXTRA_OWNERSHIP_CHECKS"):
-                user_id = g.user.id if not g.user.is_anonymous else None
-                if user_id and ownership_check(user_id, orig_resource):
+            # Extension hook: check if the user is an extra owner
+            resolver = current_app.config.get("EXTRA_OWNERS_RESOLVER")
+            if resolver and not g.user.is_anonymous:
+                extra_owners = resolver(orig_resource)
+                if any(u.id == g.user.id for u in extra_owners):
                     return
 
             raise SupersetSecurityException(
