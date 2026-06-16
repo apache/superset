@@ -445,6 +445,9 @@ def _execute_sql_statements(
                 log_query_fn=_make_log_query_fn(database),
                 check_stopped_fn=_make_check_stopped_fn(query),
                 execute_fn=_make_execute_fn(query, db_engine_spec),
+                # `blocks` is a single un-split block when the engine runs multiple
+                # statements as one; otherwise each block is an individual statement.
+                is_split=not db_engine_spec.run_multiple_statements_as_one,
             )
         except SoftTimeLimitExceeded as ex:
             query.status = QueryStatus.TIMED_OUT

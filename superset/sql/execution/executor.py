@@ -101,6 +101,7 @@ def execute_sql_with_cursor(
     log_query_fn: Any | None = None,
     check_stopped_fn: Any | None = None,
     execute_fn: Any | None = None,
+    is_split: bool = True,
 ) -> list[tuple[str, SupersetResultSet | None, float, int]]:
     """
     Execute SQL statements with a cursor and return all result sets.
@@ -119,6 +120,10 @@ def execute_sql_with_cursor(
     :param execute_fn: Optional custom execute function. If not provided, uses
         database.db_engine_spec.execute(cursor, sql, database). Custom function
         should accept (cursor, sql) and handle execution.
+    :param is_split: Whether `statements` are individual split-out statements (True)
+        or a single un-split block (False, e.g. when the engine spec runs multiple
+        statements as one). Passed to the SQL mutator so `MUTATE_AFTER_SPLIT` can
+        decide whether to fire.
     :returns: List of (statement_sql, result_set, execution_time_ms, rowcount) tuples
         Returns empty list if stopped. Raises exception on error (fail-fast).
     """
@@ -140,7 +145,7 @@ def execute_sql_with_cursor(
         # Apply SQL mutation
         stmt_sql = database.mutate_sql_based_on_config(
             statement,
-            is_split=True,
+            is_split=is_split,
         )
 
         # Log query

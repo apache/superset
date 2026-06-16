@@ -262,6 +262,44 @@ def test_table_column_database() -> None:
     assert TableColumn(database=database).database is database
 
 
+@pytest.mark.parametrize(
+    "is_split,mutate_after_split,expect_mutated",
+    [
+        # A split-out statement is mutated only when the mutator is meant to run
+        # after the split, and an un-split block only when it runs before.
+        (True, True, True),
+        (True, False, False),
+        (False, False, True),
+        (False, True, False),
+    ],
+)
+def test_mutate_sql_based_on_config_respects_is_split(
+    app_context: None,
+    mocker: MockerFixture,
+    is_split: bool,
+    mutate_after_split: bool,
+    expect_mutated: bool,
+) -> None:
+    """
+    `mutate_sql_based_on_config` fires `SQL_QUERY_MUTATOR` only when the call
+    site's `is_split` matches the `MUTATE_AFTER_SPLIT` config. Regression guard
+    for issue #30169, where SQL Lab always passed the default `is_split=False`
+    and so never mutated when `MUTATE_AFTER_SPLIT=True`.
+    """
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": lambda sql, **kwargs: f"-- mutated\n{sql}",
+            "MUTATE_AFTER_SPLIT": mutate_after_split,
+        },
+    )
+
+    result = database.mutate_sql_based_on_config("SELECT 1", is_split=is_split)
+
+    assert result == ("-- mutated\nSELECT 1" if expect_mutated else "SELECT 1")
+
+
 def test_catalog_cache() -> None:
     """
     Test the catalog cache.

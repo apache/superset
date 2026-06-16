@@ -2005,6 +2005,9 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
 # An example use case is if data has role based access controls, and you want to apply
 # a SET ROLE statement alongside every user query. Changing this variable maintains
 # functionality for both the SQL_Lab and Charts.
+# This applies consistently in SQL Lab: with MUTATE_AFTER_SPLIT = True the mutator runs
+# on each individual statement, and with MUTATE_AFTER_SPLIT = False it runs once on the
+# un-split query block.
 MUTATE_AFTER_SPLIT = False
 
 
