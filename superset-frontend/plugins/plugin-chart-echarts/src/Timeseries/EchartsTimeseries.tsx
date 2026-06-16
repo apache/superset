@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
@@ -328,6 +328,26 @@ export default function EchartsTimeseries({
     },
   };
 
+  const handleXAxisLabelClick = useCallback(
+    (event: { value: string | number }) => {
+      if (canCrossFilterByXAxis) {
+        handleXAxisChange(event.value);
+      }
+    },
+    [canCrossFilterByXAxis, handleXAxisChange],
+  );
+
+  const queryEventHandlers = useMemo(
+    () => [
+      {
+        name: 'click',
+        query: 'xAxis.category',
+        handler: handleXAxisLabelClick,
+      },
+    ],
+    [handleXAxisLabelClick],
+  );
+
   const zrEventHandlers: EventHandlers = {
     dblclick: params => {
       // clear single click timer
@@ -369,6 +389,7 @@ export default function EchartsTimeseries({
         width={width}
         echartOptions={echartOptions}
         eventHandlers={eventHandlers}
+        queryEventHandlers={queryEventHandlers}
         zrEventHandlers={zrEventHandlers}
         selectedValues={selectedValues}
         vizType={formData.vizType}

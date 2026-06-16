@@ -132,6 +132,7 @@ function Echart(
     height,
     echartOptions,
     eventHandlers,
+    queryEventHandlers,
     zrEventHandlers,
     selectedValues = {},
     refs,
@@ -199,6 +200,11 @@ function Echart(
       Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.off(name);
         chartRef.current?.on(name, handler);
+      });
+
+      (queryEventHandlers || []).forEach(({ name, query, handler }) => {
+        chartRef.current?.off(name, handler);
+        chartRef.current?.on(name, query, handler);
       });
 
       Object.entries(zrEventHandlers || {}).forEach(([name, handler]) => {
@@ -336,7 +342,15 @@ function Echart(
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isDashboardRefreshing intentionally excluded to prevent extra setOption calls
-  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
+  }, [
+    didMount,
+    echartOptions,
+    eventHandlers,
+    queryEventHandlers,
+    zrEventHandlers,
+    theme,
+    vizType,
+  ]);
 
   // Clear tooltip on refresh start to avoid stale content (#39247)
   useEffect(() => {

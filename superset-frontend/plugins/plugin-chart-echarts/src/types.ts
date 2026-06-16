@@ -51,6 +51,7 @@ export interface EchartsProps {
   width: number;
   echartOptions: EChartsCoreOption;
   eventHandlers?: EventHandlers;
+  queryEventHandlers?: QueryEventHandlers;
   zrEventHandlers?: EventHandlers;
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
@@ -104,6 +105,12 @@ export type LegendFormData = {
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;
+
+export type QueryEventHandlers = {
+  name: string;
+  query: string;
+  handler: (props: any) => void;
+}[];
 
 export enum LabelPositionEnum {
   Top = 'top',
