@@ -76,6 +76,14 @@ def test_default_map_renderer_is_exposed_to_frontend_config() -> None:
     assert "DEFAULT_MAP_RENDERER" in FRONTEND_CONF_KEYS
 
 
+def test_scarf_analytics_is_exposed_to_frontend_config() -> None:
+    # Exposed at runtime so pre-built images can opt out via the SCARF_ANALYTICS
+    # config/env var (the webpack build-time flag cannot be changed there).
+    from superset.views.base import FRONTEND_CONF_KEYS
+
+    assert "SCARF_ANALYTICS" in FRONTEND_CONF_KEYS
+
+
 _FULL_METADATA = {
     "version_string": "4.0.0",
     "version_sha": "abcdef12",
