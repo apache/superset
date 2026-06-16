@@ -2064,7 +2064,7 @@ msgid "Are you sure you want to delete the selected roles?"
 msgstr "Möchten Sie die ausgewählten Rollen wirklich löschen?"
 
 msgid "Are you sure you want to delete the selected rules?"
-msgstr "Möchten Sie die ausgewählten Ebenen wirklich löschen?"
+msgstr "Möchten Sie die ausgewählten Regeln wirklich löschen?"
 
 msgid "Are you sure you want to delete the selected tags?"
 msgstr "Möchten Sie die ausgewählten Schlagwörter wirklich löschen?"
@@ -3111,7 +3111,7 @@ msgid "Choose numbers between %(min)s and %(max)s"
 msgstr "Wählen Sie Zahlen zwischen %(min)s und %(max)s"
 
 msgid "Choose one of the available databases from the panel on the left."
-msgstr "Wählen Sie einen der verfügbaren Datensätze aus dem Bereich auf der linken Seite."
+msgstr "Wählen Sie eine der verfügbaren Datenbanken aus dem Bereich auf der linken Seite."
 
 msgid "Choose one of the available databases on the left panel."
 msgstr "Wählen Sie eine der verfügbaren Datenbanken auf der linken Seite."
@@ -6909,7 +6909,7 @@ msgid "Height"
 msgstr "Höhe"
 
 msgid "Height of each row in pixels"
-msgstr "Die Breite jeder Zeile in Pixeln"
+msgstr "Die Höhe jeder Zeile in Pixeln"
 
 msgid "Height of the sparkline"
 msgstr "Höhe der Sparkline"
@@ -8860,7 +8860,7 @@ msgid "No temporal columns found"
 msgstr "Keine Zeitspalten gefunden"
 
 msgid "No time columns"
-msgstr "Nicht-Zeitspalten"
+msgstr "Keine Zeitspalten"
 
 msgid "No user registrations yet"
 msgstr "Noch keine Anmelderegistrierungen"
