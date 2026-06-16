@@ -2041,7 +2041,7 @@ def normalize_dttm_col(
 
         _process_datetime_column(df, _col)
 
-        if _col.timezone:
+        if _col.timezone and isinstance(_col.timezone, str):
             try:
                 tz = ZoneInfo(_col.timezone)
                 # Data is stored in UTC, convert to the dataset's configured timezone
