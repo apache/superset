@@ -263,8 +263,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
               label={`refresh-schema-${schema}`}
               tooltip={t('Force refresh table list')}
               icon={<Icons.SyncOutlined iconSize="m" />}
-              onClick={e => {
-                e.stopPropagation();
+              onClick={() => {
                 handleRefreshTables({
                   dbId: Number(_dbId),
                   catalog,
