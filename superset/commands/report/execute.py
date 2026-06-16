@@ -18,6 +18,7 @@ import logging
 import urllib.parse
 import urllib.request
 from collections.abc import Sequence
+from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 from urllib.error import URLError
@@ -601,7 +602,9 @@ class BaseReportState:
             },
             method="POST",
         )
-        with urllib.request.build_opener().open(request) as response:  # noqa: S310
+        with closing(
+            urllib.request.build_opener().open(request)  # noqa: S310
+        ) as response:
             content = response.read()
             if response.getcode() != 200:
                 raise URLError(response.getcode())
