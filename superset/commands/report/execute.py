@@ -15,9 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import urllib.parse
+import urllib.request
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
+from urllib.error import URLError
 from uuid import UUID
 
 import pandas as pd
@@ -75,7 +78,7 @@ from superset.reports.notifications.exceptions import (
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
-from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
+from superset.utils.csv import get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
@@ -506,9 +509,88 @@ class BaseReportState:
 
         return pdf
 
+    def _get_chart_data_request_payload(
+        self,
+        result_format: ChartDataResultFormat,
+    ) -> dict[str, Any]:
+        """
+        Build the same POST payload shape used by frontend exports.
+        """
+        try:
+            query_context = json.loads(self._report_schedule.chart.query_context)
+        except (TypeError, json.JSONDecodeError) as ex:
+            raise ReportScheduleExecuteUnexpectedError(
+                "Chart has no valid query context saved."
+            ) from ex
+
+        if not isinstance(query_context, dict):
+            raise ReportScheduleExecuteUnexpectedError(
+                "Chart has no valid query context saved."
+            )
+
+        result_type = ChartDataResultType.POST_PROCESSED.value
+        force = bool(self._report_schedule.force_screenshot)
+        query_context["result_format"] = result_format.value
+        query_context["result_type"] = result_type
+        query_context["force"] = force
+
+        form_data = query_context.get("form_data")
+        if isinstance(form_data, dict):
+            form_data["result_format"] = result_format.value
+            form_data["result_type"] = result_type
+            form_data["force"] = force
+
+            if form_data.get("server_pagination"):
+                row_limit = form_data.get("row_limit") or 0
+                queries = query_context.get("queries")
+                if isinstance(queries, list):
+                    data_query_updated = False
+                    download_queries = []
+                    for query in queries:
+                        if isinstance(query, dict) and query.get("is_rowcount"):
+                            continue
+                        if isinstance(query, dict) and not data_query_updated:
+                            query = {
+                                **query,
+                                "row_limit": row_limit,
+                                "row_offset": 0,
+                            }
+                            data_query_updated = True
+                        download_queries.append(query)
+                    query_context["queries"] = download_queries
+
+        return query_context
+
+    @staticmethod
+    def _post_chart_data(
+        chart_url: str,
+        auth_cookies: Optional[dict[str, str]],
+        request_payload: dict[str, Any],
+    ) -> Optional[bytes]:
+        if not auth_cookies:
+            return None
+
+        cookie_str = ";".join([f"{key}={val}" for key, val in auth_cookies.items()])
+        request_body = urllib.parse.urlencode(
+            {"form_data": json.dumps(request_payload)}
+        ).encode("utf-8")
+        request = urllib.request.Request(
+            chart_url,
+            data=request_body,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Cookie": cookie_str,
+            },
+            method="POST",
+        )
+        response = urllib.request.build_opener().open(request)
+        content = response.read()
+        if response.getcode() != 200:
+            raise URLError(response.getcode())
+        return content or None
+
     def _get_csv_data(self) -> bytes:
         start_time = datetime.utcnow()
-        url = self._get_url(result_format=ChartDataResultFormat.CSV)
         _, username = get_executor(
             executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
@@ -521,7 +603,15 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+            request_payload = self._get_chart_data_request_payload(
+                ChartDataResultFormat.CSV
+            )
+            url = get_url_path("ChartDataRestApi.data")
+            csv_data = self._post_chart_data(
+                chart_url=url,
+                auth_cookies=auth_cookies,
+                request_payload=request_payload,
+            )
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "CSV data generation from %s as user %s took %.2fs - execution_id: %s",
