@@ -141,7 +141,7 @@ flask-login==0.6.3
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
-flask-migrate==3.1.0
+flask-migrate==4.1.0
     # via apache-superset (pyproject.toml)
 flask-session==0.8.0
     # via apache-superset (pyproject.toml)
