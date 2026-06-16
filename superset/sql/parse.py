@@ -647,12 +647,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "ALTER",
             "DROP",
             "LOAD",  # LOAD '/path/lib.so' dlopens a shared library on the PG host
-            # SHOW reads server configuration (version, hba_file, ssl state,
-            # search_path, etc.). It does not mutate, but in a read-only
-            # context (`allow_dml=False`) it is information-disclosure
-            # equivalent to the read-side entries in DISALLOWED_SQL_FUNCTIONS
-            # which are also blocked. Treat as gated alongside the writers.
-            "SHOW",
+            # NOTE: `SHOW` is intentionally NOT included. It is a read (mutates
+            # nothing), so classifying it as mutating would be wrong for every
+            # is_mutating()/has_mutation() consumer (the commit decision, the
+            # "only SELECT allowed" validators, limit handling), not just the
+            # read-only gate. Gating information-disclosure reads such as
+            # `SHOW server_version` belongs in a denylist (DISALLOWED_SQL_FUNCTIONS
+            # already blocks version()/pg_read_file), not in the mutation check.
         }
     )
 

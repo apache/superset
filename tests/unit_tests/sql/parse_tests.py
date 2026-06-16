@@ -1143,12 +1143,11 @@ def test_split_kql(kql: str, expected: list[str]) -> None:
         ("postgresql", "DROP TABLE foo", True),
         ("postgresql", "EXPLAIN ANALYZE SELECT * FROM foo", False),
         ("postgresql", "EXPLAIN ANALYZE DELETE FROM foo", True),
-        # SHOW reads server configuration (version, hba_file, ssl,
-        # search_path, etc.). It is information-disclosure equivalent to
-        # the read-side entries already in DISALLOWED_SQL_FUNCTIONS
-        # (pg_read_file, version, current_setting) and is gated alongside
-        # the writers so it is rejected when allow_dml=False.
-        ("postgresql", "SHOW search_path", True),
+        # SHOW reads server configuration; it mutates nothing, so it is NOT
+        # classified as mutating (that would be wrong for the commit/limit/
+        # "only SELECT" consumers of has_mutation()). Gating disclosure reads
+        # belongs in DISALLOWED_SQL_FUNCTIONS, not the mutation check.
+        ("postgresql", "SHOW search_path", False),
         # SET search_path parses as exp.Set (a structured node), not
         # exp.Command, so the SET-in-mutating-commands rule does NOT
         # catch it. Pure GUC reads/writes stay non-mutating.
@@ -1570,14 +1569,13 @@ def test_is_mutating_function_names_scoped_to_postgres(engine: str, sql: str) ->
         ("REFRESH MATERIALIZED VIEW mv", True),
         ("REINDEX TABLE t", True),
         ("VACUUM t", True),
-        # SHOW commands disclose server configuration (version, hba_file,
-        # ssl, search_path, etc.). They are read-only but treated as gated
-        # so they are blocked by the same allow_dml=False gate that blocks
-        # the writers; this mirrors the existing read-side blocks in
-        # DISALLOWED_SQL_FUNCTIONS for pg_read_file, version(), etc.
-        ("SHOW search_path", True),
-        ("SHOW all", True),
-        ("SHOW server_version", True),
+        # SHOW commands are reads (they mutate nothing), so they are NOT
+        # classified as mutating. Gating information-disclosure reads such as
+        # SHOW server_version belongs in DISALLOWED_SQL_FUNCTIONS (which already
+        # blocks pg_read_file, version(), etc.), not in the mutation check.
+        ("SHOW search_path", False),
+        ("SHOW all", False),
+        ("SHOW server_version", False),
         # RESET reverts a prior SET (e.g. RESET ROLE backs out SET ROLE).
         ("RESET ROLE", True),
         # DDL head-tokens that sqlglot falls back to exp.Command for when the
