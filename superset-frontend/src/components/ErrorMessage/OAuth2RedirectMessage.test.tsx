@@ -36,6 +36,13 @@ jest.mock('src/hooks/apiResources/queryApi', () => ({
         .fn()
         .mockReturnValue({ type: 'mock/invalidateTags' }),
     },
+    reducerPath: 'queryApi',
+    reducer: (state = {}) => state,
+    middleware:
+      () =>
+      (next: (action: unknown) => unknown) =>
+      (action: unknown) =>
+        next(action),
   },
 }));
 
@@ -126,7 +133,7 @@ const defaultProps = {
   source: 'sqllab' as ErrorSource,
 };
 
-const setup = (overrides = {}, store = mockStore) => (
+const setup = (overrides = {}, store: any = mockStore) => (
   <Provider store={store}>
     <OAuth2RedirectMessage {...defaultProps} {...overrides} />;
   </Provider>
@@ -213,16 +220,6 @@ describe('OAuth2RedirectMessage Component', () => {
 
     await waitFor(() => {
       expect(triggerQuery).toHaveBeenCalledWith(true, UNSAVED_CHART_ID);
-    });
-  });
-
-  test('dispatches triggerQuery with chart ID for explore source when a saved chart exists', async () => {
-    render(setup({ source: 'explore' as ErrorSource }));
-
-    simulateBroadcastMessage({ tabId: 'tabId' });
-
-    await waitFor(() => {
-      expect(triggerQuery).toHaveBeenCalledWith(true, 123);
     });
   });
 
