@@ -17,8 +17,6 @@
 # isort:skip_file
 
 import logging
-import random
-import string
 import uuid as uuid_module
 from typing import Any, Optional, Callable
 from collections.abc import Iterator
@@ -48,14 +46,6 @@ logger = logging.getLogger(__name__)
 JSON_KEYS = {"position_json": "position", "json_metadata": "metadata"}
 DEFAULT_CHART_HEIGHT = 50
 DEFAULT_CHART_WIDTH = 4
-
-
-# No longer needed
-def suffix(length: int = 8) -> str:
-    return "".join(
-        random.SystemRandom().choice(string.ascii_uppercase + string.digits)
-        for _ in range(length)
-    )
 
 
 def get_default_position(title: str) -> dict[str, Any]:
