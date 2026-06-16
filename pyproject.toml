@@ -173,7 +173,7 @@ motherduck = ["apache-superset[duckdb]"]
 mysql = ["mysqlclient>=2.1.0, <3"]
 ocient = [
     "sqlalchemy-ocient>=1.0.0",
-    "pyocient>=1.0.15, <2",
+    "pyocient>=1.0.15, <4",
     "shapely",
     "geojson",
 ]
