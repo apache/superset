@@ -837,10 +837,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # on the dialect: other engines may expose read-only functions/UDFs with
         # the same names, and flagging those would wrongly block read-only
         # queries. Each parses as an `exp.Anonymous`, whose `.name` is the bare
-        # function identifier.
+        # function identifier. The walk is restricted to `exp.Anonymous` rather
+        # than the broader `exp.Func`, because for built-in function nodes (e.g.
+        # `exp.Upper`) `.name` returns the first argument's text, not the
+        # function name, so `SELECT upper('lo_export')` would otherwise be
+        # misclassified as mutating.
         if self._dialect == Dialects.POSTGRES and any(
             function.name.upper() in self._MUTATING_FUNCTION_NAMES
-            for function in self._parsed.find_all(exp.Func)
+            for function in self._parsed.find_all(exp.Anonymous)
         ):
             return True
 

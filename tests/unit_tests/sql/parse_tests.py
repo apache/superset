@@ -1477,6 +1477,13 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
         # as mutating even though sqlglot parses it as exp.Select.
         ("SELECT * INTO new_table FROM existing_table", True),
         ("SELECT col INTO TEMP new_table FROM existing_table", True),
+        # A built-in function whose first string argument happens to match a
+        # mutating name must NOT be flagged. sqlglot parses these into dedicated
+        # nodes (e.g. exp.Upper) whose `.name` is the argument text, not the
+        # function name, so the walk is restricted to exp.Anonymous to avoid a
+        # false positive on this read-only query.
+        ("SELECT upper('lo_export')", False),
+        ("SELECT length('setval')", False),
         # Plain SELECT must remain non-mutating.
         ("SELECT 1", False),
         ("SELECT * FROM users WHERE id = 1", False),
