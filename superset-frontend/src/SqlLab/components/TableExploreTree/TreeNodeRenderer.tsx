@@ -20,7 +20,6 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import type { NodeRendererProps } from 'react-arborist';
 import { Icons, Typography } from '@superset-ui/core/components';
-import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import copyTextToClipboard from 'src/utils/copy';
@@ -260,7 +259,10 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
             </div>
           )}
           <div className="action-hover">
-            <RefreshLabel
+            <ActionButton
+              label={`refresh-schema-${schema}`}
+              tooltip={t('Force refresh table list')}
+              icon={<Icons.SyncOutlined iconSize="m" />}
               onClick={e => {
                 e.stopPropagation();
                 handleRefreshTables({
@@ -269,7 +271,6 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                   schema,
                 });
               }}
-              tooltipContent={t('Force refresh table list')}
             />
             <ActionButton
               label={
