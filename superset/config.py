@@ -289,7 +289,10 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 #  as key material. Do note that AesEngine allows for queryability over the
 #  encrypted fields.
 #
-#  To change the default engine you need to define your own adapter:
+#  To switch the engine used by the default adapter, prefer the
+#  ``SQLALCHEMY_ENCRYPTED_FIELD_ENGINE`` knob below (e.g. "aes-gcm"). Defining a
+#  custom adapter, as shown next, is only needed for behaviour the built-in
+#  engines do not cover:
 #
 # e.g.:
 #
@@ -313,6 +316,16 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
+
+# Encryption engine used by the default SQLAlchemyUtilsAdapter for app-encrypted
+# fields. Options:
+#   "aes"     - AES-CBC (historical default; unauthenticated, queryable)
+#   "aes-gcm" - AES-GCM (authenticated encryption; recommended for NEW installs)
+# WARNING: changing this on a database that already holds encrypted secrets
+# (database passwords, SSH tunnel credentials, OAuth tokens, ...) will make
+# those values undecryptable unless they are re-encrypted first. See the
+# authenticated-encryption SIP/migration before switching an existing install.
+SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
 
 # Extends the default SQLGlot dialects with additional dialects
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
@@ -367,6 +380,21 @@ AUTH_RATE_LIMIT = "5 per second"
 # (e.g. accounts provisioned by an administrator) are redirected to the
 # password-reset page until they set a new password. Off by default.
 ENABLE_FORCE_PASSWORD_CHANGE = False
+
+# Password complexity policy, enforced (via Flask-AppBuilder) across
+# self-registration, the user edit/reset forms, and the User REST API.
+# The Superset validator requires a minimum length and rejects common
+# passwords; tune via AUTH_PASSWORD_MIN_LENGTH / AUTH_PASSWORD_COMMON_BLOCKLIST,
+# or replace FAB_PASSWORD_COMPLEXITY_VALIDATOR with your own callable.
+from superset.security.password_complexity import (  # noqa: E402
+    validate_password_complexity as _validate_password_complexity,
+)
+
+FAB_PASSWORD_COMPLEXITY_ENABLED = True
+FAB_PASSWORD_COMPLEXITY_VALIDATOR = _validate_password_complexity
+AUTH_PASSWORD_MIN_LENGTH = 8
+AUTH_PASSWORD_COMMON_BLOCKLIST: list[str] = []
+
 # A storage location conforming to the scheme in storage-scheme. See the limits
 # library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
 # RATELIMIT_STORAGE_URI = "redis://host:port"
@@ -866,6 +894,15 @@ SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
 SSH_TUNNEL_TIMEOUT_SEC = 10.0
 #: Timeout (seconds) for transport socket (``socket.settimeout``)
 SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
+
+#: Opt-in defense-in-depth: when enabled, every SSH tunnel must declare an expected
+#: server host key (``server_host_key`` on the tunnel) and the SSH server's presented
+#: host key is verified against it before the tunnel is opened. A mismatch, or a
+#: missing expected key while this flag is enabled, fails closed and the tunnel is
+#: rejected. When disabled (the default), tunnels without a ``server_host_key`` open
+#: without host-key verification, preserving existing behavior; tunnels that do set a
+#: ``server_host_key`` are still verified regardless of this flag.
+SSH_TUNNEL_STRICT_HOST_KEY_CHECKING: bool = False
 
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -2631,6 +2668,27 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 
 
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
+
+
+# Extra access query filters inject additional OR conditions into
+# ChartFilter and DashboardAccessFilter, enabling external systems
+# (e.g. folder permissions) to grant asset visibility.
+# The callable receives the current user ID and returns a subquery of asset IDs.
+class ExtraAccessQueryFilters(TypedDict, total=False):
+    charts: Callable[[int], Query]
+    dashboards: Callable[[int], Query]
+
+
+# Extension hooks for deployments to plug in custom access logic.
+# Additional query filters for chart/dashboard list views.
+EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
+# Bypass raise_for_access for specific assets. Return True to skip checks.
+EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
+# Resolve extra owners for a resource. Also used for ownership checks and
+# to skip auto-adding the current user to owners on create.
+EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
+# Post-create hook for charts/dashboards. Receives (model, asset_type).
+AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
 
 
 # The migrations that add catalog permissions might take a considerably long time
