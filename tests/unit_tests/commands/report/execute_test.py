@@ -18,6 +18,7 @@
 import json  # noqa: TID251
 from datetime import datetime, timedelta
 from unittest.mock import patch
+from urllib.error import URLError
 from uuid import UUID, uuid4
 
 import pytest
@@ -28,6 +29,7 @@ from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleCsvFailedError,
+    ReportScheduleExecuteUnexpectedError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
@@ -903,6 +905,127 @@ def create_report_schedule(
     schedule.custom_width = custom_width
     schedule.custom_height = custom_height
     return schedule
+
+
+def test_get_chart_data_request_payload_prepares_server_paginated_export(
+    mocker: MockerFixture,
+) -> None:
+    """Server-paginated exports should use the configured row limit."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.force_screenshot = True
+    report_state._report_schedule.chart.query_context = json.dumps(
+        {
+            "queries": [
+                {"row_limit": 25, "row_offset": 25},
+                {"is_rowcount": True, "row_limit": 1000, "row_offset": 0},
+                {"row_limit": 0, "row_offset": 0, "metrics": ["count"]},
+            ],
+            "form_data": {
+                "server_pagination": True,
+                "server_page_length": 25,
+                "row_limit": 1000,
+            },
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+
+    payload = report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+
+    assert payload["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    assert payload["force"] is True
+    assert payload["queries"][0]["row_limit"] == 1000
+    assert payload["queries"][0]["row_offset"] == 0
+    assert len(payload["queries"]) == 2
+    assert all(not query.get("is_rowcount") for query in payload["queries"])
+    assert payload["queries"][1]["metrics"] == ["count"]
+    assert payload["form_data"]["result_format"] == ChartDataResultFormat.CSV.value
+    assert (
+        payload["form_data"]["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    )
+    assert payload["form_data"]["force"] is True
+
+
+def test_get_chart_data_request_payload_preserves_non_paginated_queries(
+    mocker: MockerFixture,
+) -> None:
+    """Non-server-paginated exports should keep saved query limits intact."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.force_screenshot = False
+    report_state._report_schedule.chart.query_context = json.dumps(
+        {
+            "queries": [{"row_limit": 500, "row_offset": 50}],
+            "form_data": {
+                "server_pagination": False,
+                "row_limit": 1000,
+            },
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+
+    payload = report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+
+    assert payload["queries"] == [{"row_limit": 500, "row_offset": 50}]
+    assert payload["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    assert payload["form_data"]["result_format"] == ChartDataResultFormat.CSV.value
+    assert (
+        payload["form_data"]["result_type"] == ChartDataResultType.POST_PROCESSED.value
+    )
+    assert payload["form_data"]["force"] is False
+
+
+@pytest.mark.parametrize(
+    "query_context",
+    [
+        None,
+        "{invalid-json",
+        json.dumps(["not", "a", "dict"]),
+    ],
+)
+def test_get_chart_data_request_payload_rejects_invalid_query_context(
+    mocker: MockerFixture,
+    query_context: str | None,
+) -> None:
+    """Invalid saved query contexts should fail before sending the request."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.chart.query_context = query_context
+
+    with pytest.raises(
+        ReportScheduleExecuteUnexpectedError,
+        match="Chart has no valid query context saved.",
+    ):
+        report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+
+
+@pytest.mark.parametrize("auth_cookies", [None, {}])
+def test_post_chart_data_rejects_missing_auth_cookies(
+    auth_cookies: dict[str, str] | None,
+) -> None:
+    """Missing report executor auth should fail with an explicit error."""
+    with pytest.raises(
+        URLError,
+        match="Missing authentication cookies for chart data request",
+    ):
+        BaseReportState._post_chart_data(
+            chart_url="http://superset.example/api/v1/chart/data",
+            auth_cookies=auth_cookies,
+            request_payload={},
+        )
 
 
 def test_get_csv_data_posts_prepared_chart_data_payload(
