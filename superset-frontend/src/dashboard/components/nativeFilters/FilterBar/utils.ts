@@ -74,7 +74,9 @@ export const checkIsApplyDisabled = (
   const selectedExtraFormData = getOnlyExtraFormData(dataMaskSelected);
   const appliedExtraFormData = getOnlyExtraFormData(dataMaskApplied);
 
-  // Check for changes
+  // Check for changes. ignoreUndefined drops empty keys on both sides so that
+  // a filter present in Selected with a real value but absent (or undefined)
+  // in Applied is correctly detected as a change.
   const dataEqual = areObjectsEqual(
     selectedExtraFormData,
     appliedExtraFormData,
