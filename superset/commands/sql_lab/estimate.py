@@ -102,35 +102,19 @@ class QueryEstimationCommand(BaseCommand):
             db_engine_spec.engine,
             set(),
         )
-        if disallowed_tables:
-            # Honors schema-qualified denylist entries (e.g.
-            # ``information_schema.tables``) and reports only the tables
-            # actually referenced by the query. Resolve the effective default
-            # schema so an unqualified reference that the connection resolves to
-            # it at runtime (e.g. Postgres ``public``) still matches a qualified
-            # entry, even when the request omitted the schema.
-            effective_schema = self._schema or self._database.get_default_schema(
-                self._catalog or self._database.get_default_catalog()
-            )
-            found_tables = parsed_script.get_disallowed_tables(
-                disallowed_tables, effective_schema
-            )
-            if found_tables:
-                raise SupersetDisallowedSQLTableException(found_tables)
+        rls_enabled = is_feature_enabled("RLS_IN_SQLLAB")
 
-        if parsed_script.has_mutation() and not self._database.allow_dml:
-            raise SupersetDMLNotAllowedException()
-
-        if is_feature_enabled("RLS_IN_SQLLAB"):
-            # Resolve the default catalog/schema the same way the execution path
-            # does (``sql_lab.execute_sql_statements``) before injecting RLS.
-            # Crucially this goes through ``get_default_schema_for_query`` rather
-            # than the plain ``get_default_schema``, so engine-specific per-query
-            # security gates run too — e.g. ``PostgresEngineSpec`` rejects a query
-            # that sets ``search_path``. Resolving against the static default
-            # schema instead would both skip that gate and let unqualified tables
-            # dodge the RLS predicates the real query enforces, defeating the
-            # security parity this command exists to provide.
+        # Resolve the effective per-query schema once, the same way the execution
+        # path does (``sql_lab.execute_sql_statements``), but only when a control
+        # below actually needs it. Going through ``get_default_schema_for_query``
+        # rather than the static ``get_default_schema`` runs engine-specific
+        # per-query security gates too — e.g. ``PostgresEngineSpec`` rejects a
+        # query that sets ``search_path`` — and resolves unqualified references to
+        # the schema the engine uses at runtime, so both the denylist check and
+        # RLS injection match the execution path exactly.
+        catalog: str | None = None
+        effective_schema = ""
+        if disallowed_tables or rls_enabled:
             catalog = self._catalog or self._database.get_default_catalog()
             # Build a transient (unsaved) Query so the engine spec can resolve the
             # effective per-query schema exactly as the executor does. Mirror the
@@ -148,18 +132,29 @@ class QueryEstimationCommand(BaseCommand):
                 user_id=utils.get_user_id(),
             )
             db.session.expunge(probe_query)
-            # Always resolve through ``get_default_schema_for_query`` — even when
-            # the caller pinned a schema — so the engine's per-query security gate
-            # runs (e.g. ``PostgresEngineSpec`` rejects a query that sets
-            # ``search_path``), exactly as the executor does unconditionally. Only
-            # the resulting value falls back to the resolved default; an explicit
-            # schema still wins for the RLS predicate target.
             resolved_schema = self._database.get_default_schema_for_query(
                 probe_query, self._template_params
             )
-            schema = self._schema or resolved_schema or ""
+            # An explicit schema still wins for matching/RLS targeting; otherwise
+            # fall back to the runtime-resolved default.
+            effective_schema = self._schema or resolved_schema or ""
+
+        if disallowed_tables:
+            # Honors schema-qualified denylist entries (e.g.
+            # ``information_schema.tables``) and reports only the tables
+            # actually referenced by the query.
+            found_tables = parsed_script.get_disallowed_tables(
+                disallowed_tables, effective_schema
+            )
+            if found_tables:
+                raise SupersetDisallowedSQLTableException(found_tables)
+
+        if parsed_script.has_mutation() and not self._database.allow_dml:
+            raise SupersetDMLNotAllowedException()
+
+        if rls_enabled:
             for statement in parsed_script.statements:
-                apply_rls(self._database, catalog, schema, statement)
+                apply_rls(self._database, catalog, effective_schema, statement)
             return parsed_script.format()
 
         return sql

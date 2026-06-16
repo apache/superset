@@ -181,8 +181,16 @@ def test_apply_sql_security_allows_dml_when_enabled(mock_app: MagicMock) -> None
     assert command._apply_sql_security("INSERT INTO t VALUES (1)")
 
 
+@patch("superset.commands.sql_lab.estimate.Query")
+@patch("superset.commands.sql_lab.estimate.db")
+@patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=False)
 @patch("superset.commands.sql_lab.estimate.app")
-def test_apply_sql_security_blocks_disallowed_table(mock_app: MagicMock) -> None:
+def test_apply_sql_security_blocks_disallowed_table(
+    mock_app: MagicMock,
+    mock_is_feature_enabled: MagicMock,
+    mock_db: MagicMock,
+    mock_query: MagicMock,
+) -> None:
     mock_app.config = {
         "DISALLOWED_SQL_FUNCTIONS": {},
         "DISALLOWED_SQL_TABLES": {"postgresql": {"secrets"}},
@@ -190,8 +198,42 @@ def test_apply_sql_security_blocks_disallowed_table(mock_app: MagicMock) -> None
     from superset.exceptions import SupersetDisallowedSQLTableException
 
     command = _make_command_with_db("SELECT * FROM secrets", allow_dml=True)
+    cast(
+        MagicMock, command._database
+    ).get_default_schema_for_query.return_value = "public"
     with pytest.raises(SupersetDisallowedSQLTableException):
         command._apply_sql_security("SELECT * FROM secrets")
+
+
+@patch("superset.commands.sql_lab.estimate.Query")
+@patch("superset.commands.sql_lab.estimate.db")
+@patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=False)
+@patch("superset.commands.sql_lab.estimate.app")
+def test_apply_sql_security_denylist_runs_schema_gate(
+    mock_app: MagicMock,
+    mock_is_feature_enabled: MagicMock,
+    mock_db: MagicMock,
+    mock_query: MagicMock,
+) -> None:
+    """The denylist check resolves the effective schema through
+    ``get_default_schema_for_query`` (not the static ``get_default_schema``), so
+    the engine's per-query security gate — e.g. the Postgres ``search_path``
+    check — runs on the estimate path even with RLS disabled, matching
+    ``sql_lab.execute_sql_statements``."""
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {"postgresql": {"secrets"}},
+    }
+    command = _make_command_with_db(
+        "SET search_path = secret; SELECT * FROM t", allow_dml=True
+    )
+    database = cast(MagicMock, command._database)
+    database.get_default_schema_for_query.side_effect = _security_exception()
+
+    with pytest.raises(SupersetSecurityException):
+        command._apply_sql_security("SET search_path = secret; SELECT * FROM t")
+
+    database.get_default_schema_for_query.assert_called_once()
 
 
 @patch("superset.commands.sql_lab.estimate.app")
