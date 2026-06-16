@@ -76,13 +76,13 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
                     val = obj.item()
                     if isinstance(val, (dict, list)):
                         try:
-                            # Use json.dumps to produce valid double-quoted JSON.
-                            # Python's str() gives single-quoted repr like {'a': 1}
-                            # which is not valid JSON and breaks the frontend cell viewer.
+                            # Use json.dumps for valid double-quoted JSON.
+                            # str() gives single-quoted repr like {'a': 1}
+                            # which breaks the frontend cell viewer.
                             obj[...] = stringify(val)
                         except TypeError:
-                            # Non-JSON-serializable nested value (e.g. bytes, custom
-                            # objects): fall back to str() to preserve non-crashing behavior.
+                            # Non-JSON-serializable value (e.g. bytes, custom
+                            # objects): fall back to str() to avoid crashing.
                             obj[...] = str(val)
                     else:
                         # for simple string conversions
