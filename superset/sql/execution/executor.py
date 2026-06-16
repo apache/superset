@@ -436,9 +436,17 @@ class SQLExecutor:
             rendered_sql, self.database.db_engine_spec.engine
         )
 
-        # 4. Get catalog and schema
+        # 4. Get catalog and the effective per-query schema. Resolve the schema
+        # through the query-aware ``get_default_schema_for_query`` rather than the
+        # static ``get_default_schema``, the same way ``execute_sql_statements``
+        # and the estimate path do: it resolves an unqualified reference to the
+        # schema the engine actually uses at runtime (engines without
+        # dynamic-schema support ignore the request's selected schema) and runs
+        # engine-specific per-query security gates (e.g. ``PostgresEngineSpec``
+        # rejects a query that sets ``search_path``), so the denylist check and
+        # RLS injection match execution instead of a schema that may never apply.
         catalog = opts.catalog or self.database.get_default_catalog()
-        schema = opts.schema or self.database.get_default_schema(catalog)
+        schema = opts.schema or self._resolve_query_schema(sql, opts, catalog)
 
         # 5. Apply RLS to transformed script only
         self._apply_rls_to_script(transformed_script, catalog, schema)
@@ -702,6 +710,41 @@ class SQLExecutor:
                     found.add(func)
 
         return found if found else None
+
+    def _resolve_query_schema(
+        self, sql: str, opts: QueryOptions, catalog: str | None
+    ) -> str | None:
+        """
+        Resolve the effective per-query default schema through the query-aware
+        ``get_default_schema_for_query`` so the denylist check and RLS injection
+        match the schema the engine uses at runtime, and engine-specific
+        per-query security gates run on this path too.
+
+        :param sql: Original (pre-render) SQL the query will execute
+        :param opts: Query options (supplies schema, template params)
+        :param catalog: Resolved catalog
+        :returns: The runtime-resolved default schema, or None
+        """
+        from superset.models.sql_lab import Query as QueryModel
+
+        # Build a transient (unsaved) Query so the engine spec can resolve the
+        # effective schema exactly as execution does. Mirror the probe built in
+        # ``QueryEstimationCommand``/``SupersetSecurityManager.raise_for_access``:
+        # set a ``client_id`` (the column is ``nullable=False``) and expunge it so
+        # the ``database`` backref's ``cascade="all, delete-orphan"`` cannot
+        # autoflush this incomplete row into the session.
+        probe_query = QueryModel(
+            database=self.database,
+            sql=sql,
+            schema=opts.schema or None,
+            catalog=catalog,
+            client_id=utils.shortid()[:10],
+            user_id=utils.get_user_id(),
+        )
+        db.session.expunge(probe_query)
+        return self.database.get_default_schema_for_query(
+            probe_query, opts.template_params
+        )
 
     def _check_disallowed_tables(
         self, script: SQLScript, schema: str | None = None

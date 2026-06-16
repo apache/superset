@@ -3631,6 +3631,22 @@ def test_check_tables_present_schema_qualified(
             {"information_schema.tables", "pg_roles"},
             set(),
         ),
+        # A three-part (catalog.schema.table) denylist entry matches a
+        # fully-qualified reference, reported in its original form.
+        (
+            "trino",
+            "SELECT * FROM cat.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            {"cat.sys.sql_logins"},
+        ),
+        # ... but only when the catalog lines up: a different catalog does not
+        # match the three-part entry.
+        (
+            "trino",
+            "SELECT * FROM other.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            set(),
+        ),
     ],
 )
 def test_get_disallowed_tables(

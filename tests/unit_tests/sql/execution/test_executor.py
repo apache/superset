@@ -1374,8 +1374,10 @@ def test_execute_uses_default_catalog_and_schema(
     get_default_catalog_mock = mocker.patch.object(
         database, "get_default_catalog", return_value="main"
     )
+    # Schema is resolved through the query-aware ``get_default_schema_for_query``
+    # (so per-query engine gates run), not the static ``get_default_schema``.
     get_default_schema_mock = mocker.patch.object(
-        database, "get_default_schema", return_value="public"
+        database, "get_default_schema_for_query", return_value="public"
     )
     mocker.patch.dict(
         current_app.config,

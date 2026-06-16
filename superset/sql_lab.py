@@ -433,15 +433,22 @@ def execute_sql_statements(  # noqa: C901
         db_engine_spec.engine,
         set(),
     )
+    rls_enabled = is_feature_enabled("RLS_IN_SQLLAB")
+
+    # Resolve the effective per-query schema once and share it between the
+    # denylist check and RLS injection, but only when a control below needs it.
+    # Going through the query-aware ``get_default_schema_for_query`` (rather than
+    # the static ``get_default_schema``) resolves an unqualified reference to the
+    # schema the engine actually uses at runtime -- engines without dynamic-schema
+    # support ignore the request's selected schema -- so both controls match the
+    # execution path instead of a schema that may never apply.
+    effective_schema = ""
+    if disallowed_tables or rls_enabled:
+        effective_schema = database.get_default_schema_for_query(query)
+
     if disallowed_tables:
         # Report only the denylisted tables actually referenced in the query,
         # honoring schema-qualified entries (e.g. ``information_schema.tables``).
-        # Resolve the effective default schema through the same query-aware path
-        # the RLS gate uses below, so an unqualified reference matches a
-        # qualified entry against the schema the engine actually resolves it to
-        # at runtime (engines without dynamic-schema support ignore the
-        # request's selected schema), instead of a schema that may never apply.
-        effective_schema = database.get_default_schema_for_query(query)
         found_tables = parsed_script.get_disallowed_tables(
             disallowed_tables, effective_schema
         )
@@ -451,10 +458,9 @@ def execute_sql_statements(  # noqa: C901
     if parsed_script.has_mutation() and not database.allow_dml:
         raise SupersetDMLNotAllowedException()
 
-    if is_feature_enabled("RLS_IN_SQLLAB"):
-        default_schema = query.database.get_default_schema_for_query(query)
+    if rls_enabled:
         for statement in parsed_script.statements:
-            apply_rls(query.database, query.catalog, default_schema, statement)
+            apply_rls(query.database, query.catalog, effective_schema, statement)
 
     if query.select_as_cta:
         # CTAS is valid when the last statement is a SELECT, while CVAS is valid when
