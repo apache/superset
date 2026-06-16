@@ -21,7 +21,7 @@ from unittest.mock import MagicMock
 from markupsafe import Markup
 from sqlalchemy.orm import Session
 
-from superset.tags.models import get_tag, Tag, TagType
+from superset.tags.models import get_tag, Tag, TaggedObject, TagType
 
 
 def test_get_tag_returns_plain_string_not_markup() -> None:
@@ -260,4 +260,24 @@ def test_tag_name_type_after_database_operation() -> None:
     )
     assert added_tag.name.__class__ is str, (
         "Tag name should be exactly str type, not a subclass"
+    )
+
+
+def test_tagged_object_object_id_has_no_foreign_keys() -> None:
+    """
+    ``tagged_object.object_id`` is a polymorphic reference disambiguated by
+    ``object_type`` and must not carry a foreign key to any single table.
+
+    Declaring foreign keys to ``dashboards``, ``slices`` and ``saved_query`` on
+    the same column is unsatisfiable: a row would have to exist in all three
+    tables at once, so on a schema that enforces those constraints every tag
+    insert fails (e.g. tagging a dashboard violates the ``slices`` FK). This is
+    the regression behind issue #35941. The original migration (c82ee8a39623)
+    defined ``object_id`` without any FK, and this guards against the model
+    drifting back.
+    """
+    foreign_keys = TaggedObject.__table__.c.object_id.foreign_keys
+    assert foreign_keys == set(), (
+        "tagged_object.object_id must not declare foreign keys; it is a "
+        "polymorphic reference resolved via object_type"
     )
