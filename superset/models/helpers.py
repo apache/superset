@@ -1947,7 +1947,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if offset_metrics_df.empty:
                 offset_metrics_df = pd.DataFrame(
                     {
-                        col: [np.NaN]
+                        col: [np.nan]
                         for col in join_keys + list(metrics_mapping.values())
                     }
                 )
@@ -2982,7 +2982,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Column:
         label = label or tbl_column.column_name
         db_engine_spec = self.db_engine_spec
-        column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
+        column_spec = db_engine_spec.get_column_spec(
+            tbl_column.type, db_extra=self.db_extra
+        )
         type_ = column_spec.sqla_type if column_spec else None
         if expression := tbl_column.expression:
             if template_processor:
@@ -3136,7 +3138,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for orig_col, ascending in orderby:  # noqa: B007
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
-                col = cast(AdhocMetric, col)
+                # process a copy, as the dict is shared with `QueryObject.orderby`
+                # and `QueryContext.cache_values`; writing the processed expression
+                # back would change the cache key of a rehydrated query context
+                col = cast(AdhocMetric, dict(col))
                 if col.get("sqlExpression"):
                     col["sqlExpression"] = self._process_orderby_expression(
                         expression=col["sqlExpression"],

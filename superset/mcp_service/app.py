@@ -162,6 +162,7 @@ Alerts & Reports:
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
+- create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
@@ -327,7 +328,16 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="xy", kind="scatter": Scatter plot for correlation analysis
 - chart_type="big_number": Big Number display (single metric, header only)
 - chart_type="big_number", show_trendline=True,
-  temporal_column="<date_col>": Big Number with trendline
+  temporal_column="<date_col>", aggregation="sum": Big Number with trendline
+  (aggregation controls how the value is computed from trendline data points;
+   default when omitted is "LAST_VALUE" — most recent point only.
+   Use aggregation="sum" for all-time totals, "mean" for averages, "max"/"min" for extremes.
+   DIAGNOSIS: if a Big Number with Trendline shows wrong values, check
+   form_data["aggregation"] — missing/LAST_VALUE means the chart shows only the last data
+   point, not a total. Fix by calling update_chart with a complete Big Number config:
+   chart_type="big_number", metric=<metric>, show_trendline=True,
+   temporal_column=<date_col>, aggregation="sum". update_chart requires the full
+   config — omitting chart_type or metric causes a validation error.)
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
@@ -413,7 +423,7 @@ Input format:
 {_feature_availability}Permission Awareness:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
-- Write tools (generate_chart, generate_dashboard, update_chart, create_virtual_dataset,
+- Write tools (generate_chart, generate_dashboard, update_chart, create_dataset, create_virtual_dataset,
   save_sql_query, add_chart_to_existing_dashboard, update_chart_preview) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
@@ -622,9 +632,9 @@ def create_mcp_app(
 # Create default MCP instance for backward compatibility
 mcp = create_mcp_app()
 
-# Initialize MCP dependency injection BEFORE importing tools/prompts
-# This replaces the abstract @tool and @prompt decorators in superset_core.api.mcp
-# with concrete implementations that can register with the mcp instance
+# Initialize MCP dependency injection BEFORE importing tools/prompts.
+# Replaces the stub @tool/@prompt decorators in superset_core.mcp.decorators
+# with concrete implementations bound to this mcp instance.
 from superset.core.mcp.core_mcp_injection import (  # noqa: E402
     initialize_core_mcp_dependencies,
 )
@@ -648,6 +658,7 @@ warnings.filterwarnings(
     category=FutureWarning,
     module=r"google\..*",
 )
+
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
@@ -689,6 +700,7 @@ from superset.mcp_service.database.tool import (  # noqa: F401, E402
     list_databases,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    create_dataset,
     create_virtual_dataset,
     get_dataset_info,
     list_datasets,
@@ -826,8 +838,9 @@ def init_fastmcp_server(
     Returns:
         The global FastMCP instance configured with the provided settings
     """
-    # Read branding from Flask config's APP_NAME
-    from superset.mcp_service.flask_singleton import app as flask_app
+    # circular import: flask_singleton imports from superset.extensions which
+    # re-enters mcp_service during startup; must stay lazy inside the function.
+    from superset.mcp_service.flask_singleton import app as flask_app  # noqa: PLC0415
 
     # Derive branding from Superset's APP_NAME config (defaults to "Superset")
     app_name = flask_app.config.get("APP_NAME", "Superset")

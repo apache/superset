@@ -257,7 +257,7 @@ class QueryContextProcessor:
 
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]
-    ) -> str | list[dict[str, Any]]:
+    ) -> str | bytes | list[dict[str, Any]]:
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -269,6 +269,11 @@ class QueryContextProcessor:
             if self._query_context.result_format == ChartDataResultFormat.CSV:
                 result = csv.df_to_escaped_csv(
                     df, index=include_index, **current_app.config["CSV_EXPORT"]
+                )
+                # Encode using the configured CSV_EXPORT encoding (default utf-8)
+                # so dashboard chart exports honor the same encoding as SQL Lab.
+                result = result.encode(
+                    current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel.apply_column_types(df, coltypes)
