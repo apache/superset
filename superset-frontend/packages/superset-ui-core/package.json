@@ -43,7 +43,7 @@
     "d3-time": "^3.1.0",
     "d3-time-format": "^4.1.0",
     "dayjs": "^1.11.21",
-    "dompurify": "^3.4.8",
+    "dompurify": "^3.4.9",
     "fetch-retry": "^6.0.0",
     "handlebars": "^4.7.9",
     "jed": "^1.1.1",
