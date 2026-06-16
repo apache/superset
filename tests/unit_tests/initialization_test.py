@@ -395,9 +395,7 @@ class TestRetentionBeatWarning:
         return SupersetAppInitializer(app)
 
     @patch("superset.initialization.logger")
-    def test_warn_when_celery_beat_schedule_missing_retention_entry(
-        self, mock_logger
-    ):
+    def test_warn_when_celery_beat_schedule_missing_retention_entry(self, mock_logger):
         """When ``CELERY_CONFIG.beat_schedule`` is present but lacks the
         ``version_history.prune_old_versions`` entry, the helper emits
         a WARNING. This is the silent-failure mode the v4 CD review

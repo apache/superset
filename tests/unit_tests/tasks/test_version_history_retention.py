@@ -30,6 +30,7 @@ alerting.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -39,7 +40,7 @@ from superset.tasks import version_history_retention
 
 
 @pytest.fixture(name="stats")
-def _stats_fixture() -> MagicMock:
+def _stats_fixture() -> Iterator[MagicMock]:
     """Patch the shared stats logger so every test can assert on
     emissions without standing up the real statsd backend."""
     with patch.object(
