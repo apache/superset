@@ -1085,6 +1085,24 @@ test('setThemeConfig sets complete theme configuration', () => {
   expect(controller.canSetMode()).toBe(true);
 });
 
+test('setThemeConfig flags an active theme config override', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: {}, dark: {} }),
+  );
+
+  const controller = createController({ defaultTheme: { token: {} } });
+
+  // No override until setThemeConfig is called (e.g. from the Embedded SDK).
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+});
+
 test('setThemeConfig handles theme_default only', () => {
   mockGetBootstrapData.mockReturnValue(
     createMockBootstrapData({

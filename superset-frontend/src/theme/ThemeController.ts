@@ -99,6 +99,11 @@ export class ThemeController {
 
   private dashboardCrudTheme: AnyThemeConfig | null = null;
 
+  // Tracks whether an explicit theme config override has been applied via
+  // setThemeConfig (e.g. from the Embedded SDK). When set, it must take
+  // precedence over a dashboard-level theme.
+  private themeConfigOverride = false;
+
   // Track loaded font URLs to avoid duplicate injections
   private loadedFontUrls: Set<string> = new Set();
 
@@ -468,6 +473,15 @@ export class ThemeController {
   }
 
   /**
+   * Checks if an explicit theme config override has been applied via
+   * setThemeConfig (e.g. from the Embedded SDK). When true, this override
+   * takes precedence over any dashboard-level theme.
+   */
+  public hasThemeConfigOverride(): boolean {
+    return this.themeConfigOverride;
+  }
+
+  /**
    * Gets the applied theme ID (for UI display purposes).
    */
   public getAppliedThemeId(): number | null {
@@ -512,6 +526,7 @@ export class ThemeController {
   public setThemeConfig(config: SupersetThemeConfig): void {
     this.defaultTheme = config.theme_default;
     this.darkTheme = config.theme_dark || null;
+    this.themeConfigOverride = true;
 
     let newMode: ThemeMode;
     try {
