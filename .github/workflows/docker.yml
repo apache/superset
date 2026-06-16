@@ -18,9 +18,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   changes:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
@@ -30,7 +30,7 @@ jobs:
       docker: ${{ steps.check.outputs.docker }}
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - name: Check for file changes
@@ -41,6 +41,7 @@ jobs:
 
   setup_matrix:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     outputs:
       matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
     steps:
@@ -58,6 +59,7 @@ jobs:
       needs.changes.outputs.frontend == 'true' ||
       needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     strategy:
       matrix:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
@@ -68,9 +70,8 @@ jobs:
       IMAGE_TAG: apache/superset:GHA-${{ matrix.build_preset }}-${{ github.run_id }}
 
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
 
@@ -141,9 +142,10 @@ jobs:
     needs: changes
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - name: Setup Docker Environment

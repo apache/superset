@@ -87,6 +87,7 @@ from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
+from superset.utils.core import sanitize_cookie_token
 from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
@@ -366,7 +367,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateChartCommand(item).run()
-            return self.response(201, id=new_model.id, result=item)
+            return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardsForbiddenError as ex:
             return self.response(ex.status, message=ex.message)
         except ChartInvalidError as ex:
@@ -884,7 +885,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 

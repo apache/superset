@@ -21,8 +21,9 @@ import logging
 import re
 import time
 from collections import defaultdict
+from math import ceil
 from types import SimpleNamespace
-from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
@@ -51,9 +52,10 @@ from flask_appbuilder.security.views import (
 from flask_babel import lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, inspect, or_
+from sqlalchemy import and_, func as sa_func, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import eagerload
+from sqlalchemy.orm import eagerload, joinedload
+from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
@@ -65,6 +67,9 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.security.guest_token import (
+    DEFAULT_GUEST_TOKEN_REVOCATION_VERSION,
+    get_current_guest_token_revocation_version,
+    GUEST_TOKEN_REVOCATION_CLAIM,
     GuestToken,
     GuestTokenResources,
     GuestTokenResourceType,
@@ -82,6 +87,7 @@ from superset.utils.core import (
     get_username,
     RowLevelSecurityFilterType,
 )
+from superset.utils.decorators import transaction
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
 
@@ -336,11 +342,182 @@ PermissionModelView.include_route_methods = {RouteMethod.LIST}
 ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
 
 
+# Keys on an adhoc column/metric that a guest may legitimately change through a
+# supported native filter, and which therefore must not count as payload
+# tampering. The time grain of a temporal x-axis is baked into its `BASE_AXIS`
+# column by `normalizeTimeColumn` on the frontend (it copies
+# `extras.time_grain_sqla` onto the column), so a Time Grain filter alters the
+# column payload without changing which data is queried.
+GUEST_OVERRIDABLE_VALUE_KEYS = frozenset({"timeGrain"})
+
+
+def _strip_overridable_keys(value: Any) -> Any:
+    """
+    Recursively drop guest-overridable keys from a value.
+
+    Adhoc columns/metrics can be nested inside sequences (e.g. an ``orderby``
+    entry is a ``(column, bool)`` tuple), so the overridable keys must be
+    stripped at every level rather than only from a top-level dict.
+    """
+    if isinstance(value, dict):
+        return {
+            key: _strip_overridable_keys(val)
+            for key, val in value.items()
+            if key not in GUEST_OVERRIDABLE_VALUE_KEYS
+        }
+    if isinstance(value, (list, tuple)):
+        return [_strip_overridable_keys(item) for item in value]
+    return value
+
+
 def freeze_value(value: Any) -> str:
     """
     Used to compare column and metric sets.
+
+    Guest-overridable keys (e.g. the time grain baked into a temporal x-axis
+    column) are dropped so that legitimate native-filter changes don't read as
+    payload tampering.
     """
-    return json.dumps(value, sort_keys=True)
+    return json.dumps(_strip_overridable_keys(value), sort_keys=True)
+
+
+def _native_filter_allowed_targets(
+    query_context: "QueryContext", form_data: dict[str, Any]
+) -> Optional[tuple[set[str], set[str]]]:
+    """
+    Return ``(allowed_columns, allowed_metrics)`` a native-filter data request
+    may read, or ``None`` when the request cannot be tied to a native filter on
+    the requesting dashboard (in which case the caller must fail closed).
+
+    ``allowed_columns`` are the target column(s) of the filter identified by
+    ``native_filter_id`` that point at the request's datasource. ``allowed_metrics``
+    are the saved-metric name(s) the filter is configured to sort its values by
+    (``controlValues.sortMetric``), which a legitimate value lookup sends.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+    from superset.models.dashboard import Dashboard
+
+    native_filter_id = form_data.get("native_filter_id")
+    dashboard_id = form_data.get("dashboardId")
+    if not native_filter_id or not dashboard_id:
+        return None
+
+    dashboard = (
+        db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+    )
+    if dashboard is None or not dashboard.json_metadata:
+        return None
+    try:
+        metadata = json.loads(dashboard.json_metadata)
+    except (TypeError, ValueError):
+        return None
+
+    datasource = getattr(query_context, "datasource", None)
+    datasource_id = datasource.data.get("id") if datasource else None
+
+    allowed_columns: set[str] = set()
+    allowed_metrics: set[str] = set()
+    for fltr in metadata.get("native_filter_configuration", []):
+        if fltr.get("id") != native_filter_id:
+            continue
+        for target in fltr.get("targets", []):
+            column = target.get("column")
+            if (
+                target.get("datasetId") == datasource_id
+                and isinstance(column, dict)
+                and column.get("name")
+            ):
+                allowed_columns.add(column["name"])
+        # The filter may be configured to sort its values by a saved metric; a
+        # legitimate value lookup then sends that metric name.
+        sort_metric = (fltr.get("controlValues") or {}).get("sortMetric") or fltr.get(
+            "sortMetric"
+        )
+        if isinstance(sort_metric, str):
+            allowed_metrics.add(sort_metric)
+        # Filter ids are unique, so the matching filter is the only one.
+        break
+
+    return allowed_columns, allowed_metrics
+
+
+def _native_filter_term_allowed(
+    term: Any, allowed_columns: set[str], allowed_metrics: set[str]
+) -> bool:
+    """
+    Whether a value-returning term (metric or order-by expression) is allowed on
+    a native-filter request: a plain reference to a target column or the
+    configured sort metric, or a simple aggregate over a target column. Free-form
+    SQL terms and other saved metrics cannot be validated and are not allowed.
+    """
+    if isinstance(term, str):
+        return term in allowed_columns or term in allowed_metrics
+    if isinstance(term, dict) and term.get("expressionType") == "SIMPLE":
+        return (term.get("column") or {}).get("column_name") in allowed_columns
+    return False
+
+
+def _native_filter_query_modified(
+    query: Any, allowed_columns: set[str], allowed_metrics: set[str]
+) -> bool:
+    """Whether a single query in a native-filter request reads beyond its targets."""
+    # Columns and group-by may only reference target column(s); adhoc (free-form
+    # SQL) columns cannot be validated, so reject them.
+    for key in ("columns", "groupby"):
+        for col in getattr(query, key, None) or []:
+            if not isinstance(col, str) or col not in allowed_columns:
+                return True
+    for metric in getattr(query, "metrics", None) or []:
+        if not _native_filter_term_allowed(metric, allowed_columns, allowed_metrics):
+            return True
+    # order-by entries are ``(expression, asc)`` pairs.
+    for order in getattr(query, "orderby", None) or []:
+        expr = order[0] if isinstance(order, (list, tuple)) and order else order
+        if not _native_filter_term_allowed(expr, allowed_columns, allowed_metrics):
+            return True
+    return False
+
+
+def _native_filter_request_modified(query_context: "QueryContext") -> bool:
+    """
+    Validate a chartless data request that targets a native filter.
+
+    Only requests identified as native-filter lookups (by the ``NATIVE_FILTER``
+    type marker or a ``native_filter_id``) are constrained; other chartless
+    paths (drill-to-detail, drill-by, samples) carry neither and are validated by
+    the datasource-access checks in raise_for_access, so they are not treated as
+    modified here.
+
+    A native filter may only read the column(s) it targets on the dashboard it
+    belongs to. The request is treated as modified (and therefore rejected for
+    guest users) when it cannot be tied to a native filter on the requesting
+    dashboard, or when any value-returning term (column, group-by, metric, or
+    order-by) references something other than a target column, a simple
+    aggregate over a target column, or the filter's configured sort metric.
+    Free-form SQL terms and saved metrics other than the configured sort metric
+    are rejected. Row-restricting clauses (``filter``/``extras``) are not
+    constrained here: cross-filters legitimately reference other columns and
+    they do not return column values; that blind-inference surface is a separate
+    concern shared with the chart path.
+    """
+    form_data = query_context.form_data or {}
+    if not (
+        form_data.get("type") == "NATIVE_FILTER" or form_data.get("native_filter_id")
+    ):
+        return False
+    targets = _native_filter_allowed_targets(query_context, form_data)
+    # Fail closed when the request cannot be tied to a native filter.
+    if targets is None:
+        return True
+    # Empty allowed sets (filter resolved but no matching column/metric target)
+    # intentionally deny every value-returning term below.
+    allowed_columns, allowed_metrics = targets
+
+    return any(
+        _native_filter_query_modified(query, allowed_columns, allowed_metrics)
+        for query in query_context.queries
+    )
 
 
 def query_context_modified(query_context: "QueryContext") -> bool:
@@ -353,8 +530,14 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     form_data = query_context.form_data
     stored_chart = query_context.slice_
 
-    # native filter requests
-    if form_data is None or stored_chart is None:
+    # Native-filter data requests have no associated chart (no slice_id). Rather
+    # than accepting any payload, constrain them to the column(s) the dashboard's
+    # native filter is allowed to target; other chartless paths keep prior
+    # behavior (see _native_filter_request_modified).
+    if stored_chart is None:
+        return _native_filter_request_modified(query_context)
+
+    if form_data is None:
         return False
 
     # cannot request a different chart
@@ -463,6 +646,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "PermissionViewMenu",
         "ViewMenu",
         "User",
+        # FAB registers ApiKeyApi when FAB_API_KEY_ENABLED=True
+        "ApiKey",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
@@ -632,7 +817,56 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         lm.request_loader(self.request_loader)
         return lm
 
+    def reset_password(self, userid: Union[int, str], password: str) -> None:
+        """Reset a user's password, clearing the forced-change flag only on a
+        self-service reset.
+
+        Both the self-service reset (``ResetMyPasswordView``) and the admin
+        "Reset Password" action (``ResetPasswordView``) route through this
+        method. The forced-password-change flag must only be cleared when the
+        user resets *their own* password — an admin-initiated reset sets a
+        temporary password and must preserve the "must change at next login"
+        requirement, otherwise the first-use lifecycle would be silently
+        bypassed. We distinguish the two by comparing the acting user
+        (``g.user``) against the target ``userid``: they match for a
+        self-service reset and differ for an admin reset.
+        """
+        super().reset_password(userid, password)
+
+        acting_user = getattr(g, "user", None)
+        acting_user_id = getattr(acting_user, "id", None)
+        # ``userid`` arrives as a string (the ``pk`` request arg) on the admin
+        # path, so coerce both sides before comparing.
+        is_self_service = acting_user_id is not None and self._same_user(
+            acting_user_id, userid
+        )
+        if is_self_service:
+            from superset.security.password_change import (
+                clear_password_must_change,
+            )
+
+            clear_password_must_change(int(userid))
+
+    @staticmethod
+    def _same_user(left: Any, right: Any) -> bool:
+        """Return True if two user identifiers refer to the same user.
+
+        Identifiers may be ints or numeric strings (FAB passes the admin-reset
+        target as a ``pk`` request arg string), so compare them as integers and
+        fall back to a string comparison if coercion fails.
+        """
+        try:
+            return int(left) == int(right)
+        except (TypeError, ValueError):
+            return str(left) == str(right)
+
     def on_user_login(self, user: Any) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.security.session_invalidation import stamp_login_time
+
+        # Record the authentication time so outstanding sessions can be
+        # invalidated when the account is later disabled.
+        stamp_login_time()
         _log_audit_event(
             "UserLoggedIn",
             {"username": user.username, "user_id": user.id},
@@ -1439,6 +1673,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_drill", "Dashboard")
         self.add_permission_view_menu("can_tag", "Chart")
         self.add_permission_view_menu("can_tag", "Dashboard")
+        # FAB registers ApiKeyApi when FAB_API_KEY_ENABLED=True, using
+        # @permission_name("revoke") for the DELETE endpoint. Create it
+        # explicitly here so sync_role_definitions assigns it to Admin even
+        # when create_missing_perms (called later in the same transaction) fails
+        # due to unrelated schema gaps.
+        if current_app.config.get("FAB_API_KEY_ENABLED", False):
+            for perm in ("can_list", "can_create", "can_get", "can_revoke"):
+                self.add_permission_view_menu(perm, "ApiKey")
 
     def create_missing_perms(self) -> None:
         """
@@ -3306,6 +3548,66 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .one_or_none()
         )
 
+    def find_user_with_relationships(
+        self,
+        username: Optional[str] = None,
+        email: Optional[str] = None,
+    ) -> Optional[User]:
+        """Find a user with roles and group roles eagerly loaded.
+
+        Mirrors FAB's ``SecurityManager.find_user``
+        (including ``auth_username_ci`` case-insensitive handling and
+        ``MultipleResultsFound`` guard) and additionally eager-loads
+        ``User.roles`` and ``User.groups.roles`` to prevent detached-instance
+        errors when the SQLAlchemy session is closed or rolled back after the
+        lookup — as happens in MCP tool-execution contexts.
+
+        FAB does not expose an eager-loading option on ``find_user``, so the
+        query logic is mirrored here with joinedload options added. Review this
+        method when upgrading FAB to ensure it stays in sync with upstream.
+
+        Mirrors ``BaseSecurityManager.find_user`` as of flask-appbuilder==5.2.1
+        (``flask_appbuilder/security/sqla/manager.py``). Re-check upstream when
+        bumping the FAB pin in ``requirements/base.txt``.
+        """
+        eager = [
+            joinedload(self.user_model.roles),
+            joinedload(self.user_model.groups).joinedload(self.group_model.roles),
+        ]
+        if username:
+            try:
+                if self.auth_username_ci:
+                    return (
+                        self.session.query(self.user_model)
+                        .options(*eager)
+                        .filter(
+                            sa_func.lower(self.user_model.username)
+                            == sa_func.lower(username)
+                        )
+                        .one_or_none()
+                    )
+                return (
+                    self.session.query(self.user_model)
+                    .options(*eager)
+                    .filter(self.user_model.username == username)
+                    .one_or_none()
+                )
+            except MultipleResultsFound:
+                logger.error("Multiple results found for username lookup")
+                return None
+        if email:
+            try:
+                return (
+                    self.session.query(self.user_model)
+                    .options(*eager)
+                    .filter(self.user_model.email == email)
+                    .one_or_none()
+                )
+            except MultipleResultsFound:
+                logger.error("Multiple results found for email lookup")
+                return None
+        return None
+
     def get_anonymous_user(self) -> User:
         return AnonymousUserMixin()
 
@@ -3585,6 +3887,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "user": user,
             "resources": resources,
             "rls_rules": rls,
+            # revocation version: bumping the expected version (see
+            # GUEST_TOKEN_REVOCATION_ENABLED) invalidates tokens minted with a
+            # lower version.
+            GUEST_TOKEN_REVOCATION_CLAIM: self._get_guest_token_revocation_version(),
             # standard jwt claims:
             "iat": now,  # issued at
             "exp": exp,  # expiration time
@@ -3594,6 +3900,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if datasets is not None:
             claims["datasets"] = datasets
         return self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
+
+    @staticmethod
+    def _get_guest_token_revocation_version() -> int:
+        """
+        Return the revocation version to stamp into newly minted guest tokens.
+
+        Reading the version is gated on ``GUEST_TOKEN_REVOCATION_ENABLED`` so that
+        deployments which have not opted in never touch the metadata store.
+        """
+        if not get_conf()["GUEST_TOKEN_REVOCATION_ENABLED"]:
+            return DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+        return get_current_guest_token_revocation_version()
 
     def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
         """
@@ -3620,6 +3938,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain an rls_rules claim")
             if token.get("type") != "guest":
                 raise ValueError("This is not a guest token.")
+            if self._is_guest_token_revoked(token):
+                raise ValueError("This guest token has been revoked.")
         except Exception:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.
@@ -3627,6 +3947,103 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return None
 
         return self.get_guest_user_from_token(cast(GuestToken, token))
+
+    @classmethod
+    def _is_guest_token_revoked(cls, token: dict[str, Any]) -> bool:
+        """
+        Determine whether a guest token has been revoked by any mechanism.
+
+        Two complementary revocation mechanisms apply:
+
+        - **Global version bump** (opt-in via ``GUEST_TOKEN_REVOCATION_ENABLED``):
+          a token is revoked if the version it was minted with is below the
+          expected version. Tokens minted before this feature existed carry no
+          version claim and are treated as
+          :data:`DEFAULT_GUEST_TOKEN_REVOCATION_VERSION` (0), so they only become
+          revoked once an admin has explicitly bumped the expected version above 0.
+        - **Per-embedded-dashboard cutoff** (``guest_token_revoked_before``): a
+          token is revoked if its ``iat`` predates the revocation cutoff of any of
+          its embedded-dashboard resources.
+        """
+        return cls._is_guest_token_revoked_by_version(
+            token
+        ) or cls._is_guest_token_revoked_by_embedded(token)
+
+    @staticmethod
+    def _is_guest_token_revoked_by_version(token: dict[str, Any]) -> bool:
+        """Return True if the token's revocation version is below the expected
+        version. Gated on ``GUEST_TOKEN_REVOCATION_ENABLED``."""
+        if not get_conf()["GUEST_TOKEN_REVOCATION_ENABLED"]:
+            return False
+        token_version = token.get(
+            GUEST_TOKEN_REVOCATION_CLAIM, DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+        )
+        try:
+            token_version = int(token_version)
+        except (TypeError, ValueError):
+            token_version = DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+        return token_version < get_current_guest_token_revocation_version()
+
+    @staticmethod
+    def _is_guest_token_revoked_by_embedded(token: dict[str, Any]) -> bool:
+        """Return True if the token predates a revocation on any of its
+        embedded-dashboard resources (``guest_token_revoked_before``).
+
+        A token missing ``iat`` cannot prove it was issued after a revocation
+        cutoff, so it is treated as revoked whenever any of its dashboard
+        resources has an active cutoff; otherwise it is not revoked.
+        """
+        issued_at = token.get("iat")
+
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.dashboard import EmbeddedDashboardDAO
+        from superset.models.dashboard import Dashboard
+
+        for resource in token.get("resources") or []:
+            if resource.get("type") != GuestTokenResourceType.DASHBOARD.value:
+                continue
+            resource_id = str(resource.get("id"))
+            # A dashboard resource id may be an embedded UUID or, during the
+            # UUID migration, a legacy dashboard id. Resolve the embedded
+            # config(s) for either form (mirrors validate_guest_token_resources).
+            embedded = EmbeddedDashboardDAO.find_by_id(resource_id)
+            if embedded:
+                embedded_configs = [embedded]
+            else:
+                dashboard = Dashboard.get(resource_id)
+                embedded_configs = dashboard.embedded if dashboard else []
+            for embedded_config in embedded_configs:
+                revoked_before = getattr(
+                    embedded_config, "guest_token_revoked_before", None
+                )
+                if revoked_before is None:
+                    continue
+                # Without an issued-at claim the token cannot be shown to
+                # postdate the cutoff, so fail closed and treat it as revoked.
+                if not issued_at or issued_at < revoked_before:
+                    return True
+        return False
+
+    @transaction()
+    def revoke_guest_token_access(
+        self, embedded_uuid: str, before: Optional[int] = None
+    ) -> None:
+        """Revoke all guest tokens issued for an embedded dashboard before
+        ``before`` (epoch seconds, default: now). Subsequent tokens are
+        unaffected."""
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.dashboard import EmbeddedDashboardDAO
+
+        embedded = EmbeddedDashboardDAO.find_by_id(str(embedded_uuid))
+        if embedded is None:
+            return
+        # Round the cutoff up to the next whole second so that tokens whose
+        # fractional ``iat`` falls within the current second are reliably
+        # revoked (the column stores integer seconds). Rounding up fails
+        # closed: at worst it revokes a token issued slightly after the call.
+        embedded.guest_token_revoked_before = (
+            before if before is not None else ceil(self._get_current_epoch_time())
+        )
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(

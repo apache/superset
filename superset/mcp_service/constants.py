@@ -19,9 +19,7 @@
 from typing import Literal
 
 # Supported model types for schema discovery and MCP tools
-ModelType = Literal[
-    "chart", "dataset", "dashboard", "database", "css_template", "theme", "report"
-]
+ModelType = Literal["chart", "dataset", "dashboard", "database", "report"]
 
 # Pagination defaults
 DEFAULT_PAGE_SIZE = 10  # Default number of items per page

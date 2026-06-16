@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1267,6 +1267,10 @@ msgid "Add new formatter"
 msgstr "Dodaj nowy formater"
 
 #, fuzzy
+msgid "Add numbered column"
+msgstr " aby dodać obliczane kolumny"
+
+#, fuzzy
 msgid "Add or edit display controls"
 msgstr "Dodaj i edytuj filtry"
 
@@ -1854,7 +1858,7 @@ msgstr "Wystąpił błąd podczas usuwania wartości."
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Wystąpił błąd podczas pobierania dostępnych szablonów CSS."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Wystąpił błąd podczas usuwania wartości."
 
@@ -1928,7 +1932,7 @@ msgstr "Wystąpił błąd podczas analizowania klucza."
 msgid "An error occurred while pruning logs "
 msgstr "Wystąpił błąd podczas czyszczenia dzienników."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Wystąpił błąd podczas usuwania wartości."
 
@@ -2490,7 +2494,7 @@ msgstr "Port bazy danych"
 msgid "Base height"
 msgstr "Wysokość wykresu"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Styl mapy warstwy podstawowej. Zobacz dokumentację Mapbox: %s"
 
@@ -4367,6 +4371,13 @@ msgstr "Niestandardowy SQL"
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Niestandardowe metryki SQL ad-hoc nie są włączone dla tego zestawu danych"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Pola niestandardowego SQL nie mogą zawierać podzapytań."
+
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Pola niestandardowego SQL nie mogą zawierać podzapytań."
 
@@ -4785,6 +4796,9 @@ msgstr "Ustawienia bazy danych zaktualizowane"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "Typ bazy danych nie obsługuje przesyłania plików."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 #, fuzzy
 msgid "Database upload file failed"
@@ -5913,7 +5927,7 @@ msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Czas trwania w ms (100.40008 => 100ms 400µs 80ns)"
 
 #, fuzzy
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Czas trwania w ms (66000 => 1m 6s)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -9732,7 +9746,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Brak kolumn tabeli"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Jeszcze brak %s"
 
@@ -9824,6 +9838,10 @@ msgstr "Nie zdefiniowano"
 
 msgid "Not equal to (≠)"
 msgstr "Nie równe (≠)"
+
+#, fuzzy
+msgid "Not found"
+msgstr "Nie znaleziono wykresu"
 
 msgid "Not in"
 msgstr "Nie w"
@@ -10931,6 +10949,12 @@ msgstr "Przestarzałe"
 msgid "Proportional"
 msgstr "Proporcjonalny"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Opublikowany"
 
@@ -11214,9 +11238,6 @@ msgstr "Filtr wstępny"
 #, fuzzy
 msgid "Registration date"
 msgstr "Data rozpoczęcia"
-
-msgid "Registration hash"
-msgstr ""
 
 msgid "Registration successful"
 msgstr ""
@@ -11764,6 +11785,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -16276,6 +16303,9 @@ msgstr "Wpisz wartość"
 msgid "Type is required"
 msgstr "Typ jest wymagany"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -16438,6 +16468,10 @@ msgstr "Cofnij akcję"
 
 msgid "Undo?"
 msgstr "Cofnąć?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr "Wystąpił nieoczekiwany błąd. Sprawdź dzienniki, aby uzyskać szczegóły."
 
 msgid "Unexpected error"
 msgstr "Nieoczekiwany błąd"
@@ -17440,6 +17474,10 @@ msgstr "Czy wyświetlać minimalne i maksymalne wartości osi X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Czy wyświetlać minimalne i maksymalne wartości osi Y"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Czy wyświetlać linię trendu"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Czy wyświetlać wartości liczbowe w komórkach"
 
@@ -18151,6 +18189,10 @@ msgstr ""
 
 msgid "`operation` property of post processing object undefined"
 msgstr "Właściwość `operation` obiektu przetwarzania po jest niezdefiniowana"
+
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
 
 msgid "`prophet` package not installed"
 msgstr "Pakiet `prophet` nie jest zainstalowany"
@@ -19177,25 +19219,8 @@ msgstr ""
 msgid "zoom area"
 msgstr "obszar powiększenia"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
+msgid "© Layer attribution"
 msgstr ""
 
-msgid "© Layer attribution"
+msgid "№"
 msgstr ""

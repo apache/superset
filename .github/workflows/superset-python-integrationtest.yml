@@ -16,6 +16,7 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
@@ -23,7 +24,7 @@ jobs:
       python: ${{ steps.check.outputs.python }}
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - name: Check for file changes
@@ -36,6 +37,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       id-token: write
     env:
@@ -65,7 +67,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           submodules: recursive
@@ -83,7 +85,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: python,mysql
           verbose: true
@@ -121,11 +123,14 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       id-token: write
     strategy:
       matrix:
-        python-version: ["current", "previous", "next"]
+        # Full version spread on push (master/release) + nightly; current only
+        # on PRs to cut runner cost (cross-version breaks are caught at merge).
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "previous", "next"]') }}
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -147,7 +152,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           submodules: recursive
@@ -168,7 +173,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: python,postgres
           verbose: true
@@ -179,6 +184,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       id-token: write
     env:
@@ -196,7 +202,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           submodules: recursive
@@ -216,9 +222,31 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: python,sqlite
           verbose: true
           use_oidc: true
           slug: apache/superset
+
+  # Stable required-status-check anchor for the matrix-based test-postgres job.
+  # It is gated on change detection, so on non-Python PRs it is skipped and
+  # never produces its `test-postgres (current)` context (a job-level skip
+  # happens before matrix expansion). This always-running job reports a single
+  # context branch protection can require: it passes when test-postgres
+  # succeeded or was skipped, and fails only on a real failure.
+  test-postgres-required:
+    needs: [changes, test-postgres]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check test-postgres result
+        env:
+          RESULT: ${{ needs.test-postgres.result }}
+        run: |
+          if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
+            echo "test-postgres did not pass (result: $RESULT)"
+            exit 1
+          fi
+          echo "test-postgres result: $RESULT"

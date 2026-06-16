@@ -249,6 +249,29 @@ class VersionedResponse(BaseModel):
     api_version: str = Field("v1", description="MCP API version")
 
 
+DEFAULT_GET_CHART_INFO_COLUMNS: List[str] = [
+    "id",
+    "slice_name",
+    "viz_type",
+    "datasource_name",
+    "datasource_type",
+    "url",
+    "description",
+    "cache_timeout",
+    "changed_on",
+    "changed_on_humanized",
+    "created_on",
+    "created_on_humanized",
+    "certified_by",
+    "certification_details",
+    "uuid",
+    "tags",
+    "filters",
+    "form_data_key",
+    "is_unsaved_state",
+]
+
+
 class GetChartInfoRequest(BaseModel):
     """Request schema for get_chart_info with support for ID, UUID, or form_data_key.
 
@@ -289,6 +312,17 @@ class GetChartInfoRequest(BaseModel):
             "and the caller to have dashboard access."
         ),
     )
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: list(DEFAULT_GET_CHART_INFO_COLUMNS),
+            description=(
+                "Top-level fields to include in the response. Defaults to a lean "
+                "set that excludes 'form_data' (the full chart config, can be 50KB+). "
+                "Add 'form_data' explicitly when you need the raw chart configuration."
+            ),
+        ),
+    ]
 
     @model_validator(mode="after")
     def validate_identifier_or_form_data_key(self) -> "GetChartInfoRequest":
@@ -297,6 +331,16 @@ class GetChartInfoRequest(BaseModel):
                 "At least one of 'identifier' or 'form_data_key' must be provided."
             )
         return self
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def _parse_select_columns(cls, value: Any) -> Any:
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        if value is None:
+            return list(DEFAULT_GET_CHART_INFO_COLUMNS)
+        parsed = parse_json_or_list(value, "select_columns")
+        return parsed if parsed else list(DEFAULT_GET_CHART_INFO_COLUMNS)
 
 
 def extract_filters_from_form_data(
@@ -1373,6 +1417,32 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         ),
         ge=1,
     )
+    aggregation: (
+        Literal["LAST_VALUE", "sum", "mean", "min", "max", "median", "raw"] | None
+    ) = Field(
+        None,
+        description=(
+            "How the single big-number value is computed from the trendline "
+            "data points. Only applies when show_trendline=True. "
+            "Options: "
+            "'sum' = Total (Sum) — add all data points; use for all-time totals. "
+            "'LAST_VALUE' = most recent data point "
+            "(frontend default when this field is absent). "
+            "'mean' = Average (Mean). "
+            "'min' = Minimum. "
+            "'max' = Maximum. "
+            "'median' = Median. "
+            "'raw' = Overall value — single aggregate across the full period; best for "
+            "non-additive metrics like ratios, averages, or distinct counts. "
+            "DIAGNOSIS: if a Big Number with Trendline shows an unexpectedly low value "
+            "(e.g. yesterday's revenue instead of all-time total), "
+            "inspect form_data['aggregation'] "
+            "— when absent or 'LAST_VALUE' the chart shows only the last data point. "
+            "Fix by setting aggregation='sum'. "
+            "IMPORTANT: when updating aggregation, always include "
+            "show_trendline=True and temporal_column to preserve the trendline."
+        ),
+    )
     filters: list[FilterConfig] | None = Field(
         None,
         description="Filters to apply",
@@ -1392,6 +1462,13 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
                 "compare_lag requires show_trendline=True. "
                 "Period comparison is only available for "
                 "trendline charts."
+            )
+        if self.aggregation and not self.show_trendline:
+            raise ValueError(
+                "aggregation requires show_trendline=True. "
+                "The aggregation field only applies to Big Number with "
+                "Trendline charts. Set show_trendline=True and provide "
+                "a temporal_column, or omit aggregation."
             )
         return self
 
@@ -1911,6 +1988,15 @@ class UpdateChartRequest(QueryCacheControl):
         description="Auto-generates if omitted",
         max_length=255,
         validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
+    )
+    dataset_id: int | None = Field(
+        None,
+        description=(
+            "Target dataset ID to rebind the chart to a different dataset. "
+            "When omitted, the chart retains its existing dataset. "
+            "Can be combined with config to simultaneously change the dataset "
+            "and visualization, or used alone to rebind without altering the config."
+        ),
     )
     generate_preview: bool = Field(
         default=True,

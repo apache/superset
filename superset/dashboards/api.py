@@ -130,7 +130,7 @@ from superset.tasks.thumbnails import (
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import parse_boolean_string
+from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
@@ -756,7 +756,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateDashboardCommand(item).run()
-            return self.response(201, id=new_model.id, result=item)
+            return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DashboardCreateFailedError as ex:
@@ -1278,7 +1278,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
@@ -1369,7 +1369,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 

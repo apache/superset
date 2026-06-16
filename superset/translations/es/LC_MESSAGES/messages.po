@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1270,6 +1270,10 @@ msgid "Add new formatter"
 msgstr "Añadir nuevo formateador"
 
 #, fuzzy
+msgid "Add numbered column"
+msgstr " para añadir columnas calculadas"
+
+#, fuzzy
 msgid "Add or edit display controls"
 msgstr "Añadir o editar filtros"
 
@@ -1850,7 +1854,7 @@ msgstr "Se ha producido un error al recuperar los valores del esquema: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Se ha producido un error al recuperar los valores del esquema: %s"
 
@@ -1925,7 +1929,7 @@ msgstr "Se ha producido un error al analizar la clave."
 msgid "An error occurred while pruning logs "
 msgstr "Se ha producido un error al depurar los registros "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Se ha producido un error al renderizar la visualización: %s"
 
@@ -2512,7 +2516,7 @@ msgstr "Exponente de la base"
 msgid "Base height"
 msgstr "Altura de la base"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Estilo del mapa de la capa base. Consulta la documentación de Mapbox: %s"
 
@@ -4383,6 +4387,13 @@ msgstr ""
 "Las métricas «ad hoc» SQL personalizadas no están habilitadas para este "
 "conjunto de datos"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Los campos SQL personalizados no pueden contener subconsultas."
+
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Los campos SQL personalizados no pueden contener subconsultas."
 
@@ -4806,6 +4817,9 @@ msgstr "Configuración de la base de datos actualizada"
 
 msgid "Database type does not support file uploads."
 msgstr "El tipo de base de datos no admite subidas de archivos."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "La subida de la base de datos ha fallado"
@@ -5919,8 +5933,8 @@ msgstr "Duración en ms (1,40008 => 1 ms 400 µs 80 ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Duración en ms (100.40008 => 100 ms 400 µs 80 ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Duración en ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Duración en ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Duración en ms (66 000 => 1 m 6 s)"
@@ -9727,7 +9741,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "No hay columnas de la tabla"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Todavía no hay %s"
 
@@ -9818,6 +9832,10 @@ msgstr "Sin definir"
 
 msgid "Not equal to (≠)"
 msgstr "No es igual a (≠)"
+
+#, fuzzy
+msgid "Not found"
+msgstr "No se ha encontrado ningún gráfico"
 
 msgid "Not in"
 msgstr "No está en"
@@ -10907,6 +10925,12 @@ msgstr "ID del proyecto"
 msgid "Proportional"
 msgstr "Proporcional"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Publicado"
 
@@ -11169,11 +11193,6 @@ msgstr "Filtro previo"
 #, fuzzy
 msgid "Registration date"
 msgstr "Fecha de inicio"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
-#, fuzzy
-msgid "Registration hash"
-msgstr "Hash de registro"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -11705,6 +11724,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "Consultas de SQL Lab"
@@ -16219,6 +16244,9 @@ msgstr "Introduce un valor"
 msgid "Type is required"
 msgstr "El tipo es obligatorio"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
 msgid "Type of chart to display in sparkline"
@@ -16398,6 +16426,12 @@ msgstr "Deshacer la acción"
 
 msgid "Undo?"
 msgstr "¿Deshacer?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+"Se ha producido un error inesperado; comprueba tus registros para obtener"
+" más información"
 
 msgid "Unexpected error"
 msgstr "Error inesperado"
@@ -17393,6 +17427,10 @@ msgstr "Si se deben mostrar los valores mínimo y máximo del eje X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Si se deben mostrar los valores mínimo y máximo del eje Y"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Si se debe mostrar la línea de tendencia"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Si se deben mostrar los valores numéricos dentro de las celdas"
 
@@ -18095,6 +18133,10 @@ msgstr ""
 
 msgid "`operation` property of post processing object undefined"
 msgstr "Propiedad «operation» del objeto de posprocesamiento no definida"
+
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
 
 msgid "`prophet` package not installed"
 msgstr "El paquete «prophet» no está instalado"
@@ -19036,25 +19078,8 @@ msgstr "your-project-1234-a1"
 msgid "zoom area"
 msgstr "área del «zoom»"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
-
 msgid "© Layer attribution"
 msgstr "© Atribución de la capa"
+
+msgid "№"
+msgstr ""
