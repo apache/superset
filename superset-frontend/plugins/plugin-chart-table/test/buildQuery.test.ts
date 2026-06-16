@@ -278,6 +278,57 @@ describe('plugin-chart-table', () => {
 
         expect(queries[0].filters?.some(f => f.op === 'ILIKE')).toBeFalsy();
       });
+
+      test('uses user row limit when it is lower than server page size', () => {
+        const { queries } = buildQuery(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: 10,
+            server_page_length: 20,
+            slice_id: 101,
+          },
+          {
+            ownState: {
+              currentPage: 0,
+              pageSize: 20,
+            },
+          },
+        );
+
+        expect(queries[0]).toMatchObject({
+          row_limit: 10,
+          row_offset: 0,
+        });
+      });
+
+      test('limits server page size by remaining rows inside user row limit', () => {
+        const { queries } = buildQuery(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: 120,
+            server_page_length: 50,
+            slice_id: 102,
+          },
+          {
+            ownState: {
+              currentPage: 2,
+              pageSize: 50,
+              sortBy: [{ key: 'category', desc: true }],
+            },
+          },
+        );
+
+        expect(queries[0]).toMatchObject({
+          orderby: [['category', false]],
+          row_limit: 20,
+          row_offset: 100,
+        });
+        expect(queries[1]).toMatchObject({
+          is_rowcount: true,
+          row_limit: 120,
+          row_offset: 0,
+        });
+      });
     });
   });
 });
