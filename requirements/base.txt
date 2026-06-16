@@ -384,7 +384,7 @@ setuptools==80.9.0
     # via -r requirements/base.in
 shillelagh==1.4.4
     # via apache-superset (pyproject.toml)
-simplejson==3.20.1
+simplejson==4.1.1
     # via apache-superset (pyproject.toml)
 six==1.17.0
     # via

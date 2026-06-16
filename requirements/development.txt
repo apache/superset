@@ -939,7 +939,7 @@ shillelagh==1.4.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-simplejson==3.20.1
+simplejson==4.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
