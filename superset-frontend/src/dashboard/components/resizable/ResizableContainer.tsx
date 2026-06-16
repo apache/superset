@@ -211,9 +211,10 @@ export default function ResizableContainer({
           'touches' in event
             ? (event.touches[0]?.clientY ?? 0)
             : (event as MouseEvent).clientY;
+        const snappedDelta = Math.round(delta.height / heightStep) * heightStep;
         const currentHeightPx = Math.max(
           minHeightMultiple * heightStep,
-          heightMultiple * heightStep + delta.height,
+          heightMultiple * heightStep + snappedDelta,
         );
         setCursorLabel({ x: clientX, y: clientY, height: currentHeightPx });
       }
