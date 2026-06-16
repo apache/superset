@@ -604,15 +604,18 @@ export default function sqlLabReducer(
     },
     [actions.QUERY_EDITOR_SET_SQL]() {
       const { unsavedQueryEditor } = state;
-      // Normalize tabViewId to client-side id (same pattern as START_QUERY)
-      const queryEditorByTabId = getFromArr(
-        state.queryEditors,
-        action.queryEditor!.id!,
-        'tabViewId',
-      );
+      const actionId = action.queryEditor!.id!;
+      // Skip the O(n) tabViewId scan on the common path (keystroke: actionId already
+      // matches the active editor's client-side id). Only scan when ids differ, which
+      // happens when restoring from history with a backend-assigned tabViewId.
       const normalizedId =
-        (queryEditorByTabId as QueryEditor | undefined)?.id ??
-        action.queryEditor!.id!;
+        unsavedQueryEditor?.id === actionId
+          ? actionId
+          : ((getFromArr(
+              state.queryEditors,
+              actionId,
+              'tabViewId',
+            ) as QueryEditor | undefined)?.id ?? actionId);
       if (
         unsavedQueryEditor?.id === normalizedId &&
         unsavedQueryEditor.sql === action.sql
