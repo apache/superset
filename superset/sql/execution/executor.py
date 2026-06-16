@@ -231,7 +231,7 @@ class SQLExecutor:
             )
 
             # 2. Security checks on transformed script
-            self._check_security(transformed_script, schema)
+            self._check_security(transformed_script)
 
             # 3. Get mutation status and format SQL
             has_mutation = transformed_script.has_mutation()
@@ -355,7 +355,7 @@ class SQLExecutor:
         )
 
         # 2. Security checks on transformed script
-        self._check_security(transformed_script, schema)
+        self._check_security(transformed_script)
 
         # 3. Get mutation status and format SQL
         has_mutation = transformed_script.has_mutation()
@@ -449,12 +449,11 @@ class SQLExecutor:
 
         return original_script, transformed_script, catalog, schema
 
-    def _check_security(self, script: SQLScript, schema: str | None = None) -> None:
+    def _check_security(self, script: SQLScript) -> None:
         """
         Perform security checks on prepared SQL script.
 
         :param script: Prepared SQLScript
-        :param schema: Effective schema unqualified references resolve to
         :raises SupersetSecurityException: If security checks fail
         """
         # Check disallowed functions
@@ -470,7 +469,7 @@ class SQLExecutor:
             )
 
         # Check disallowed tables
-        if disallowed_tables := self._check_disallowed_tables(script, schema):
+        if disallowed_tables := self._check_disallowed_tables(script):
             raise SupersetSecurityException(
                 SupersetError(
                     message=f"Disallowed SQL tables: {', '.join(disallowed_tables)}",
@@ -703,14 +702,11 @@ class SQLExecutor:
 
         return found if found else None
 
-    def _check_disallowed_tables(
-        self, script: SQLScript, schema: str | None = None
-    ) -> set[str] | None:
+    def _check_disallowed_tables(self, script: SQLScript) -> set[str] | None:
         """
         Check for disallowed SQL tables/views.
 
         :param script: Parsed SQL script
-        :param schema: Effective schema unqualified references resolve to
         :returns: Set of disallowed tables found, or None if none found
         """
         disallowed_config = app.config.get("DISALLOWED_SQL_TABLES", {})
@@ -721,11 +717,15 @@ class SQLExecutor:
         if not engine_disallowed:
             return None
 
-        # Honors schema-qualified denylist entries (e.g.
-        # ``information_schema.tables``) as well as bare names. The effective
-        # schema lets an unqualified reference that resolves to it at runtime
-        # (via the connection ``search_path``) match too.
-        return script.get_disallowed_tables(engine_disallowed, schema) or None
+        # Single-pass AST-based table detection
+        found: set[str] = set()
+        for statement in script.statements:
+            present = {table.table.lower() for table in statement.tables}
+            for table in engine_disallowed:
+                if table.lower() in present:
+                    found.add(table)
+
+        return found or None
 
     def _apply_rls_to_script(
         self, script: SQLScript, catalog: str | None, schema: str | None

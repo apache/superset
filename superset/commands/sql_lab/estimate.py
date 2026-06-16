@@ -102,21 +102,14 @@ class QueryEstimationCommand(BaseCommand):
             db_engine_spec.engine,
             set(),
         )
-        if disallowed_tables:
-            # Honors schema-qualified denylist entries (e.g.
-            # ``information_schema.tables``) and reports only the tables
-            # actually referenced by the query. Resolve the effective default
-            # schema so an unqualified reference that the connection resolves to
-            # it at runtime (e.g. Postgres ``public``) still matches a qualified
-            # entry, even when the request omitted the schema.
-            effective_schema = self._schema or self._database.get_default_schema(
-                self._catalog or self._database.get_default_catalog()
-            )
-            found_tables = parsed_script.get_disallowed_tables(
-                disallowed_tables, effective_schema
-            )
-            if found_tables:
-                raise SupersetDisallowedSQLTableException(found_tables)
+        if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
+            found_tables = set()
+            for statement in parsed_script.statements:
+                present = {table.table.lower() for table in statement.tables}
+                for table in disallowed_tables:
+                    if table.lower() in present:
+                        found_tables.add(table)
+            raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
 
         if parsed_script.has_mutation() and not self._database.allow_dml:
             raise SupersetDMLNotAllowedException()
