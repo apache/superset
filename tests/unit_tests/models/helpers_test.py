@@ -2675,6 +2675,36 @@ def test_normalize_df_normalizes_base_axis_temporal_columns() -> None:
     assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
 
 
+def test_normalize_df_dedups_column_in_granularity_and_columns() -> None:
+    """When the same temporal column is both the ``granularity`` and a selected
+    column, it is collected once (via the base path) and the raw pass does not
+    re-add it, so it is normalized a single time."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    assert datasource._collect_dttm_labels(query_object) == (("ts", "epoch_s"),)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
 def test_normalize_df_normalizes_legacy_time_column() -> None:
     """The legacy ``__timestamp`` column is normalized using the granularity
     column's python_date_format."""

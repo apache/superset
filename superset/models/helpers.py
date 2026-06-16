@@ -1578,34 +1578,47 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
         return str(fmt) if fmt else None
 
-    def _collect_dttm_labels(self, query_object: QueryObject) -> tuple[str | None, ...]:
-        """Labels of the columns whose values should be normalized to datetimes:
-        base-axis / granularity columns (aggregated charts), plus raw/unaggregated
-        temporal columns that declare a ``python_date_format``. The raw columns
-        are gated on the declared format rather than ``is_dttm`` alone so a plain
-        integer column is not misread as nanosecond timestamps."""
+    def _collect_dttm_labels(
+        self, query_object: QueryObject
+    ) -> tuple[tuple[str, str | None], ...]:
+        """``(label, python_date_format)`` for the columns whose values should be
+        normalized to datetimes: base-axis / granularity columns (aggregated
+        charts), plus raw/unaggregated temporal columns that declare a
+        ``python_date_format``. The raw columns are gated on the declared format
+        rather than ``is_dttm`` alone so a plain integer column is not misread as
+        nanosecond timestamps. The format is resolved here with a single column
+        lookup per label so callers need not look it up again."""
 
-        def _is_dttm(label: str | None) -> bool:
+        def _resolve(label: str | None) -> tuple[bool, str | None]:
+            """``(is_dttm, python_date_format)`` from one ``get_column`` lookup."""
             if not hasattr(self, "get_column") or not (col := self.get_column(label)):
-                return False
-            return bool(col.get("is_dttm") if isinstance(col, dict) else col.is_dttm)
+                return False, None
+            if isinstance(col, dict):
+                fmt = col.get("python_date_format")
+                return bool(col.get("is_dttm")), str(fmt) if fmt else None
+            fmt = getattr(col, "python_date_format", None)
+            return bool(col.is_dttm), str(fmt) if fmt else None
 
-        base_labels = [
-            label
-            for label in [
-                *get_base_axis_labels(query_object.columns),
-                query_object.granularity,
-            ]
-            if _is_dttm(label)
-        ]
-        raw_labels = [
-            label
-            for label in get_column_names(query_object.columns)
-            if label not in base_labels
-            and _is_dttm(label)
-            and self._python_date_format(label)
-        ]
-        return (*base_labels, *raw_labels)
+        labels: list[tuple[str, str | None]] = []
+        seen: set[str] = set()
+        for label in [
+            *get_base_axis_labels(query_object.columns),
+            query_object.granularity,
+        ]:
+            if not label or label in seen:
+                continue
+            is_dttm, fmt = _resolve(label)
+            if is_dttm:
+                labels.append((label, fmt))
+                seen.add(label)
+        for label in get_column_names(query_object.columns):
+            if label in seen:
+                continue
+            is_dttm, fmt = _resolve(label)
+            if is_dttm and fmt:
+                labels.append((label, fmt))
+                seen.add(label)
+        return tuple(labels)
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         """
@@ -1620,13 +1633,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         dttm_cols = [
             DateColumn(
-                timestamp_format=self._python_date_format(label),
+                timestamp_format=fmt,
                 offset=self.offset,
                 time_shift=query_object.time_shift,
                 col_label=label,
             )
-            for label in labels
-            if label
+            for label, fmt in labels
         ]
 
         if DTTM_ALIAS in df:
