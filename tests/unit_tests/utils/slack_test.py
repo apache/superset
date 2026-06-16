@@ -325,6 +325,38 @@ class TestShouldUseV2Api:
             assert "channels:read" in c.args[0]
             assert "groups:read" in c.args[0]
 
+    def test_scope_missing_detected_via_slack_response_data_shape(self, mocker):
+        """The real Slack SDK sets `SlackApiError.response` to a `SlackResponse`
+        whose payload lives in `.data` — not a plain dict. This is the
+        production-default code path, so it must be exercised directly:
+        `should_use_v2_api` reads the error code via `getattr(response, "data")`
+        and the scope-missing branch must still fire.
+        """
+        mocker.patch(
+            "superset.utils.slack.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        )
+        mock_client = mocker.Mock()
+        # MockResponse mirrors SlackResponse: the error payload is on `.data`,
+        # exactly as the live SDK delivers it.
+        mock_client.conversations_list.side_effect = SlackApiError(
+            message="missing_scope",
+            response=MockResponse({"ok": False, "error": "missing_scope"}),
+        )
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+        logger_mock = mocker.patch("superset.utils.slack.logger")
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            assert should_use_v2_api() is False
+
+        deprecation_warnings = [
+            w for w in caught if issubclass(w.category, DeprecationWarning)
+        ]
+        assert len(deprecation_warnings) == 1
+        assert logger_mock.warning.call_count == 1
+        assert "channels:read" in logger_mock.warning.call_args.args[0]
+
     @pytest.mark.parametrize(
         "error_code",
         ["invalid_auth", "ratelimited", "fatal_error", "account_inactive", ""],

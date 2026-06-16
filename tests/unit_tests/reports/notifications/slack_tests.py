@@ -758,6 +758,42 @@ def test_v2_send_retries_on_transient_slack_api_error(
 
 @patch("superset.reports.notifications.slackv2.g")
 @patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_v2_send_retries_then_succeeds_on_transient_failure(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data,
+) -> None:
+    """The point of switching backoff to NotificationUnprocessableException is
+    that a *transient* failure now retries and the send ultimately succeeds —
+    behavior the old (dead) SlackApiError decorator never delivered. Fail twice,
+    then succeed: send() must return normally after exactly 3 attempts and still
+    record the success gauge.
+    """
+    flask_global_mock.logs_context = {}
+    slack_client_mock.return_value.chat_postMessage.side_effect = [
+        SlackApiError(
+            message="rate limited", response={"ok": False, "error": "ratelimited"}
+        ),
+        SlackApiError(
+            message="rate limited", response={"ok": False, "error": "ratelimited"}
+        ),
+        {"ok": True},
+    ]
+
+    content = _make_content(mock_header_data)
+    notification = _make_v2_notification(content, target="C12345")
+
+    with patch(
+        "superset.extensions.stats_logger_manager.instance.gauge"
+    ) as statsd_mock:
+        notification.send()
+
+    assert slack_client_mock.return_value.chat_postMessage.call_count == 3
+    statsd_mock.assert_called_with("reports.slack.send.ok", 1)
+
+
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
 def test_v2_send_does_not_retry_param_errors(
     slack_client_mock: MagicMock,
     flask_global_mock: MagicMock,
