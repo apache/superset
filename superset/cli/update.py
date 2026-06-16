@@ -31,7 +31,7 @@ from flask_appbuilder.api.manager import resolver
 
 import superset.utils.database as database_utils
 from superset.utils.decorators import transaction
-from superset.utils.encrypt import SecretsMigrator
+from superset.utils.encrypt import ENCRYPTION_ENGINES, SecretsMigrator
 
 logger = logging.getLogger(__name__)
 
@@ -110,17 +110,45 @@ def update_api_docs() -> None:
     help="An optional previous secret key, if PREVIOUS_SECRET_KEY "
     "is not set on the config",
 )
-def re_encrypt_secrets(previous_secret_key: Optional[str] = None) -> None:
+@click.option(
+    "--engine",
+    "-e",
+    "target_engine_name",
+    required=False,
+    type=click.Choice(sorted(ENCRYPTION_ENGINES), case_sensitive=False),
+    help="Re-encrypt all app-encrypted fields with this encryption engine "
+    "(e.g. 'aes-gcm' for authenticated encryption). The SECRET_KEY is "
+    "unchanged. Take a metadata-DB backup first, then set "
+    "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE to the same value and restart.",
+)
+def re_encrypt_secrets(
+    previous_secret_key: Optional[str] = None,
+    target_engine_name: Optional[str] = None,
+) -> None:
+    """Re-encrypt every app-encrypted field via :class:`SecretsMigrator`.
+
+    Supports key rotation (``previous_secret_key``, falling back to the
+    ``PREVIOUS_SECRET_KEY`` config) and engine migration (``target_engine_name``,
+    a case-insensitive ``ENCRYPTION_ENGINES`` key such as ``aes-gcm``); the two
+    can combine. With neither provided the command is a no-op. Exits non-zero on
+    failure.
+    """
     previous_secret_key = previous_secret_key or current_app.config.get(
         "PREVIOUS_SECRET_KEY"
     )
-    if previous_secret_key is None:
+    target_engine = (
+        ENCRYPTION_ENGINES[target_engine_name] if target_engine_name else None
+    )
+    if previous_secret_key is None and target_engine is None:
         click.secho(
-            "No previous secret key provided; nothing to re-encrypt.",
+            "No previous secret key or target engine provided; nothing to re-encrypt.",
             fg="yellow",
         )
         return
-    secrets_migrator = SecretsMigrator(previous_secret_key=previous_secret_key)
+    secrets_migrator = SecretsMigrator(
+        previous_secret_key=previous_secret_key,
+        target_engine=target_engine,
+    )
     try:
         stats = secrets_migrator.run()
     except Exception as exc:  # pylint: disable=broad-except

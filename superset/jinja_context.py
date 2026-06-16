@@ -735,6 +735,22 @@ def to_datetime(
     return datetime.strptime(value, format)
 
 
+class SupersetSandboxedEnvironment(SandboxedEnvironment):
+    """
+    Sandbox that denies attribute access to the base environment/template
+    classes and to the internals of ``functools.partial`` objects, none of
+    which templates need. Calling such objects is unaffected; only attribute
+    access is denied.
+    """
+
+    def is_safe_attribute(self, obj: Any, attr: str, value: Any) -> bool:
+        if attr in {"environment_class", "template_class"}:
+            return False
+        if isinstance(obj, partial):
+            return False
+        return super().is_safe_attribute(obj, attr, value)
+
+
 class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
@@ -765,7 +781,7 @@ class BaseTemplateProcessor:
         self._applied_filters = applied_filters
         self._removed_filters = removed_filters
         self._context: dict[str, Any] = {}
-        self.env: Environment = SandboxedEnvironment(undefined=DebugUndefined)
+        self.env: Environment = SupersetSandboxedEnvironment(undefined=DebugUndefined)
         self.set_context(**kwargs)
 
         # custom filters
@@ -935,13 +951,14 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             }
         )
 
-        # The `metric` filter needs the full context, in order to expand other filters
-        self._context["metric"] = partial(
-            safe_proxy,
-            metric_macro,
-            self.env,
-            self._context,
-        )
+        # The `metric` filter needs the env and full context to expand other
+        # filters. Bind them through a closure rather than positional args so the
+        # template environment is not reachable via the macro's public
+        # ``partial.args`` from inside a template.
+        def metric_with_context(metric_key: str, dataset_id: int | None = None) -> str:
+            return metric_macro(self.env, self._context, metric_key, dataset_id)
+
+        self._context["metric"] = partial(safe_proxy, metric_with_context)
 
 
 class NoOpTemplateProcessor(BaseTemplateProcessor):
