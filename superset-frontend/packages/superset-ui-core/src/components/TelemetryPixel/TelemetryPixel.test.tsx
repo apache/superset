@@ -33,10 +33,15 @@ test('should render', () => {
 
 test('should render the pixel link when FF is on', () => {
   process.env.SCARF_ANALYTICS = 'true';
-  render(<TelemetryPixel />);
+  render(<TelemetryPixel version="1.2.3" sha="abc" build="42" />);
 
-  const image = document.querySelector('img[src*="scarf.sh"]');
+  // Hits Scarf's static pixel directly, not the gateway redirect that browsers flag
+  const image = document.querySelector('img[src^="https://static.scarf.sh/"]');
   expect(image).toBeInTheDocument();
+  expect(image?.getAttribute('src')).toContain('version=1.2.3');
+  expect(image?.getAttribute('src')).toContain('sha=abc');
+  expect(image?.getAttribute('src')).toContain('build=42');
+  expect(document.querySelector('img[src*="gateway.scarf.sh"]')).toBeNull();
 });
 
 test('should NOT render the pixel link when FF is off', () => {

@@ -53,7 +53,14 @@ export const TelemetryPixel = ({
   build = 'unknownBuild',
   enabled = true,
 }: TelemetryPixelProps): ReactElement | null => {
-  const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${PIXEL_ID}/${version}/${sha}/${build}`;
+  // Use Scarf's native static pixel directly rather than the gateway redirect
+  // (apachesuperset.gateway.scarf.sh), which some browsers/extensions flag as a
+  // tracking redirect. The gateway route forwards to this same static endpoint.
+  const pixelPath =
+    `https://static.scarf.sh/a.png?x-pxid=${PIXEL_ID}` +
+    `&version=${encodeURIComponent(version)}` +
+    `&sha=${encodeURIComponent(sha)}` +
+    `&build=${encodeURIComponent(build)}`;
   const disabled = !enabled || process.env.SCARF_ANALYTICS === 'false';
   return disabled ? null : (
     <img
