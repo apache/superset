@@ -193,13 +193,15 @@ class DashboardGrid extends PureComponent<
 
   handleResize(
     _event: MouseEvent | TouchEvent,
-    _direction: string,
+    direction: string,
     elementRef: HTMLElement,
     _delta: { width: number; height: number },
   ): void {
-    this.setState(() => ({
-      rowGuideTop: this.getRowGuidePosition(elementRef),
-    }));
+    if (direction.toLowerCase().includes('bottom')) {
+      this.setState(() => ({
+        rowGuideTop: this.getRowGuidePosition(elementRef),
+      }));
+    }
   }
 
   handleResizeStop(
