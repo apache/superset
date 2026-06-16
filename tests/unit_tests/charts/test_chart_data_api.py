@@ -95,11 +95,12 @@ def test_apply_dashboard_filter_context_does_not_duplicate_filters() -> None:
 
     apply_dashboard_filter_context(query_context_json, extra_form_data)
 
-    # Dashboard filters are applied via extra_form_data only; the chart's own
-    # filters are untouched and the dashboard value is not copied in.
     query = query_context_json["queries"][0]
-    assert query["filters"] == [{"col": "year", "op": "IN", "val": [2004]}]
-    assert query["extra_form_data"] == extra_form_data
+    assert query["filters"] == [
+        {"col": "year", "op": "IN", "val": [2004]},
+        {"col": "country", "op": "IN", "val": ["USA"], "isExtra": True},
+    ]
+    assert "filters" not in query["extra_form_data"]
 
     # filter_values() therefore returns the dashboard value exactly once.
     with current_app.test_request_context("/api/v1/chart/1/data/"):

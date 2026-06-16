@@ -321,13 +321,23 @@ def apply_dashboard_filter_context(
     extra_form_data: dict[str, Any],
 ) -> None:
     """
-    Apply a dashboard's merged `extra_form_data` to each query of a chart's
-    query context, in place.
+    Apply dashboard filter context.
+
+    Filters are removed from `extra_form_data` to avoid duplicated values when
+    using `filter_values()` macro.
 
     :param query_context: The chart's query context (mutated in place)
-    :param extra_form_data: The dashboard's merged extra_form_data to apply
+    :param extra_form_data: The dashboard's merged extra_form_data to apply. It's
+    also mutated in place.
     """
+    extra_filters = extra_form_data.pop("filters", [])
     for query in query_context.get("queries", []):
+        if extra_filters:
+            existing_filters = query.get("filters") or []
+            query["filters"] = existing_filters + [
+                {**flt, "isExtra": True} for flt in extra_filters
+            ]
+
         extras = query.get("extras") or {}
         for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
             if key in extra_form_data:
