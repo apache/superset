@@ -238,8 +238,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
                 : entry,
             ]),
           );
-        } else {
-          dataMask = isOldRison;
         }
       }
 

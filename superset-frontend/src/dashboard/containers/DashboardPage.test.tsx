@@ -164,6 +164,10 @@ beforeEach(() => {
   // Tests assert against the global document.title and the unmount restore
   // effect can carry title state across tests, so reset it for isolation.
   document.title = '';
+  // clearAllMocks does not reset mockImplementation — reset explicitly so
+  // per-test overrides don't leak into subsequent tests.
+  mockGetUrlParam.mockReset();
+  mockGetUrlParam.mockReturnValue(null);
   mockUseDashboard.mockReturnValue({
     result: mockDashboard,
     error: null,
