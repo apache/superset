@@ -249,7 +249,8 @@ export interface SupersetSpecificTokens {
   buttonFontSize?: number;
   buttonBorderRadius?: number;
 
-  // Dashboard tile tokens (opt-in, defaults to no border/shadow)
+  // Dashboard tile tokens (opt-in, defaults to transparent/no border/shadow)
+  dashboardTileBg?: string;
   dashboardTileBorder?: string;
   dashboardTileBorderRadius?: number;
   dashboardTileBoxShadow?: string;
