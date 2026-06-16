@@ -1947,7 +1947,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if offset_metrics_df.empty:
                 offset_metrics_df = pd.DataFrame(
                     {
-                        col: [np.NaN]
+                        col: [np.nan]
                         for col in join_keys + list(metrics_mapping.values())
                     }
                 )
