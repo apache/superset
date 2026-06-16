@@ -314,3 +314,29 @@ def get_dashboard_filter_context(
         )
 
     return context
+
+
+def apply_dashboard_filter_context(
+    query_context: dict[str, Any],
+    extra_form_data: dict[str, Any],
+) -> None:
+    """
+    Apply a dashboard's merged `extra_form_data` to each query of a chart's
+    query context, in place.
+
+    :param query_context: The chart's query context (mutated in place)
+    :param extra_form_data: The dashboard's merged extra_form_data to apply
+    """
+    for query in query_context.get("queries", []):
+        extras = query.get("extras") or {}
+        for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
+            if key in extra_form_data:
+                extras[key] = extra_form_data[key]
+        if extras:
+            query["extras"] = extras
+
+        for src_key, target_key in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
+            if src_key in extra_form_data:
+                query[target_key] = extra_form_data[src_key]
+
+        query["extra_form_data"] = extra_form_data

@@ -16,10 +16,15 @@
 # under the License.
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import MagicMock
 
-from flask import Flask, g
+from flask import current_app, Flask, g
 
+from superset.charts.data.dashboard_filter_context import (
+    apply_dashboard_filter_context,
+)
+from superset.jinja_context import ExtraCache
 from superset.utils import json
 
 
@@ -71,6 +76,35 @@ def test_get_data_sets_g_form_data_without_dashboard_filter() -> None:
         assert hasattr(g, "form_data")
         assert g.form_data["datasource"] == {"id": 42, "type": "table"}
         assert g.form_data["queries"][0]["columns"] == ["col1"]
+
+
+def test_apply_dashboard_filter_context_does_not_duplicate_filters() -> None:
+    """
+    Regression test for the ``filters_dashboard_id`` parameter.
+
+    A dashboard's filters must be applied only through extra_form_data, the
+    single source of truth. Previously the same filter was also appended onto
+    query["filters"], so Jinja's filter_values() read each value twice and
+    produced SQL such as ``country in ('USA', 'USA')``.
+    """
+    query_context_json: dict[str, Any] = {
+        "datasource": {"id": 1, "type": "table"},
+        "queries": [{"filters": [{"col": "year", "op": "IN", "val": [2004]}]}],
+    }
+    extra_form_data = {"filters": [{"col": "country", "op": "IN", "val": ["USA"]}]}
+
+    apply_dashboard_filter_context(query_context_json, extra_form_data)
+
+    # Dashboard filters are applied via extra_form_data only; the chart's own
+    # filters are untouched and the dashboard value is not copied in.
+    query = query_context_json["queries"][0]
+    assert query["filters"] == [{"col": "year", "op": "IN", "val": [2004]}]
+    assert query["extra_form_data"] == extra_form_data
+
+    # filter_values() therefore returns the dashboard value exactly once.
+    with current_app.test_request_context("/api/v1/chart/1/data/"):
+        g.form_data = query_context_json
+        assert ExtraCache().filter_values("country") == ["USA"]
 
 
 def _extract_filename(form_value: str) -> str | None:
