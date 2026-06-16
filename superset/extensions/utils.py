@@ -242,6 +242,7 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         "name": extension.name,
         "version": extension.version,
         "description": manifest.description or "",
+        "dependencies": manifest.dependencies,
     }
     if manifest.frontend:
         frontend = manifest.frontend

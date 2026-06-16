@@ -44,6 +44,7 @@ def test_extension_config_minimal():
     assert config.name == "my-extension"
     assert config.displayName == "My Extension"
     assert config.version == "0.0.0"
+    assert config.dependencies == []
     assert config.permissions == []
     assert config.backend is None
 
@@ -58,6 +59,7 @@ def test_extension_config_full():
             "version": "1.0.0",
             "license": "Apache-2.0",
             "description": "A query insights extension",
+            "dependencies": ["other-extension"],
             "permissions": ["can_read", "can_view"],
             "backend": {
                 "files": ["backend/src/query_insights/**/*.py"],
@@ -70,6 +72,7 @@ def test_extension_config_full():
     assert config.version == "1.0.0"
     assert config.license == "Apache-2.0"
     assert config.description == "A query insights extension"
+    assert config.dependencies == ["other-extension"]
     assert config.permissions == ["can_read", "can_view"]
     assert config.backend is not None
     assert config.backend.files == ["backend/src/query_insights/**/*.py"]

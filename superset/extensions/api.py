@@ -15,41 +15,34 @@
 # specific language governing permissions and limitations
 # under the License.
 import mimetypes
-import re
 from io import BytesIO
 from typing import Any
 
 from flask import send_file
 from flask.wrappers import Response
-from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.api import BaseApi, expose, protect, safe
 
 from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
 )
-from superset.views.base_api import BaseSupersetApi
-
-# Allowlist for publisher and name path parameters — alphanumeric, hyphens,
-# underscores only. Rejects path-traversal attempts (../), URL-encoded slashes,
-# and any other characters that could escape EXTENSIONS_PATH.
-_SEGMENT_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
-def _validate_segment(value: str) -> bool:
-    """Return True if *value* is a safe publisher or name segment."""
-    return bool(_SEGMENT_RE.match(value))
-
-
-class ExtensionsRestApi(BaseSupersetApi):
+class ExtensionsRestApi(BaseApi):
     allow_browser_login = True
     resource_name = "extensions"
-    class_permission_name = "Extensions"
-    base_permissions = [
-        "can_get_list",
-        "can_get",
-        "can_content",
-        "can_info",
-    ]
+
+    def response(self, status_code: int, **kwargs: Any) -> Response:
+        """Helper method to create JSON responses."""
+        from flask import jsonify
+
+        return jsonify(kwargs), status_code
+
+    def response_404(self) -> Response:
+        """Helper method to create 404 responses."""
+        from flask import jsonify
+
+        return jsonify({"message": "Not found"}), 404
 
     @expose("/_info", methods=("GET",))
     @protect()
@@ -79,13 +72,13 @@ class ExtensionsRestApi(BaseSupersetApi):
     @safe
     @expose("/", methods=("GET",))
     def get_list(self, **kwargs: Any) -> Response:
-        """List all installed extensions.
+        """List all enabled extensions.
         ---
         get_list:
-          summary: List all installed extensions.
+          summary: List all enabled extensions.
           responses:
             200:
-              description: List of all installed extensions
+              description: List of all enabled extensions
               content:
                 application/json:
                   schema:
@@ -165,8 +158,7 @@ class ExtensionsRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not _validate_segment(publisher) or not _validate_segment(name):
-            return self.response(400, message="Invalid publisher or name.")
+        # Reconstruct composite ID from publisher and name
         composite_id = f"{publisher}.{name}"
         extensions = get_extensions()
         extension = extensions.get(composite_id)
@@ -218,8 +210,7 @@ class ExtensionsRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not _validate_segment(publisher) or not _validate_segment(name):
-            return self.response(400, message="Invalid publisher or name.")
+        # Reconstruct composite ID from publisher and name
         composite_id = f"{publisher}.{name}"
         extensions = get_extensions()
         extension = extensions.get(composite_id)

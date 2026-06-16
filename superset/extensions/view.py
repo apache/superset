@@ -14,3 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask_appbuilder import expose
+from flask_appbuilder.security.decorators import has_access, permission_name
+
+from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+from superset.superset_typing import FlaskResponse
+from superset.views.base import BaseSupersetView
+
+
+class ExtensionsView(BaseSupersetView):
+    route_base = "/extensions"
+    class_permission_name = "Extensions"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+
+    @expose("/list/")
+    @has_access
+    @permission_name("read")
+    def list(self) -> FlaskResponse:
+        return super().render_app_template()
+    

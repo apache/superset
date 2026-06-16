@@ -214,52 +214,13 @@ export declare interface Event<T> {
 }
 
 /**
- * Context handed to an extension's `activate` function.
- *
- * `context.subscriptions` is provided for extensions to push their
- * {@link Disposable}s into. The host provides the array but does not dispose
- * it (lifecycle management is deferred).
- *
- * @example
- * ```typescript
- * export function activate(context: ExtensionContext) {
- *   context.subscriptions.push(
- *     commands.registerCommand('my_ext.hello', () => {}),
- *   );
- * }
- * ```
- */
-export interface ExtensionContext {
-  /**
-   * Disposables pushed by the extension. Provided for extensions to track
-   * their own registrations; the host does not dispose them.
-   */
-  subscriptions: { dispose(): void }[];
-}
-
-/**
- * Shape of an extension's entry module (its `./index`).
- *
- * Extensions are encouraged to export an `activate(context)` function so that
- * their registrations are tracked via `context.subscriptions` regardless of
- * whether they run synchronously or asynchronously. For backward compatibility,
- * a module may instead register its contributions as top-level side effects when
- * the module is evaluated.
- */
-export interface ExtensionModule {
-  /**
-   * Called by the host once the extension module has loaded. May be async; the
-   * host awaits it before considering the extension active.
-   */
-  activate?(context: ExtensionContext): void | Promise<void>;
-}
-
-/**
  * Represents a Superset extension with its metadata.
  * Extensions are modular components that can extend Superset's functionality
  * by registering commands, views, menus, and editors as module-level side effects.
  */
 export interface Extension {
+  /** List of other extensions that this extension depends on */
+  dependencies: string[];
   /** Human-readable description of the extension */
   description: string;
   /** Unique identifier for the extension */
