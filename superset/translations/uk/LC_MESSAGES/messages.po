@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -4542,6 +4542,9 @@ msgstr "Параметри бази даних оновлено"
 
 msgid "Database type does not support file uploads."
 msgstr "База даних не підтримує підвантаження файлів."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Не вдалося вивантажити файл до бази даних"
@@ -17818,10 +17821,6 @@ msgstr "значення за зростанням"
 
 msgid "value descending"
 msgstr "значення за спаданням"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Назва таблиці"
 
 msgid "var"
 msgstr "дисперсія"
