@@ -1941,7 +1941,7 @@ test('validates fix by testing all form field types clear validation errors', ()
     mockClearError();
   };
 
-  const handleChangeWithValidation = (actionType: any, payload: any) => {
+  const handleChangeWithValidation = (_actionType: any, _payload: any) => {
     handleClearValidationErrors();
   };
 

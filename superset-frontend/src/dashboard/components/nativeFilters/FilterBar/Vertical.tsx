@@ -141,8 +141,6 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   onPendingCustomizationDataMaskChange,
   toggleFiltersBar,
   width,
-  clearAllTriggers,
-  onClearAllComplete,
 }) => {
   const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);

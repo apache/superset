@@ -32,13 +32,10 @@ interface StandardModalProps {
   saveDisabled?: boolean;
   saveLoading?: boolean;
   saveText?: string;
-  cancelText?: string;
   errorTooltip?: ReactNode;
   children: ReactNode;
   isEditMode?: boolean;
   centered?: boolean;
-  destroyOnClose?: boolean;
-  maskClosable?: boolean;
   wrapProps?: object;
   contentLoading?: boolean;
 }
@@ -107,13 +104,10 @@ export function StandardModal({
   saveDisabled = false,
   saveLoading = false,
   saveText,
-  cancelText,
   errorTooltip,
   children,
   isEditMode = false,
   centered = true,
-  destroyOnClose = true,
-  maskClosable = false,
   wrapProps,
   contentLoading = false,
 }: StandardModalProps) {
