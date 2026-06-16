@@ -67,24 +67,16 @@ else
   echo "Skipping local overrides"
 fi
 
-LOGFILE_ARG=""
-
 case "${1}" in
   worker)
     echo "Starting Celery worker..."
-    if [ -n "$WORKER_LOG_FILE" ]; then
-      LOGFILE_ARG="--logfile=$WORKER_LOG_FILE"
-    fi
     # setting up only 2 workers by default to contain memory usage in dev environments
-    celery --app=superset.tasks.celery_app:app worker -O fair -l INFO --concurrency=${CELERYD_CONCURRENCY:-2} ${LOGFILE_ARG}
+    celery --app=superset.tasks.celery_app:app worker -O fair -l INFO --concurrency=${CELERYD_CONCURRENCY:-2} ${WORKER_LOG_FILE:+--logfile=$WORKER_LOG_FILE}
     ;;
   beat)
     echo "Starting Celery beat..."
-    if [ -n "$BEAT_LOG_FILE" ]; then
-      LOGFILE_ARG="--logfile=$BEAT_LOG_FILE"
-    fi
     rm -f /tmp/celerybeat.pid
-    celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid -l INFO -s "${SUPERSET_HOME}"/celerybeat-schedule ${LOGFILE_ARG}
+    celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid -l INFO -s "${SUPERSET_HOME}"/celerybeat-schedule ${BEAT_LOG_FILE:+--logfile=$BEAT_LOG_FILE}
     ;;
   app)
     echo "Starting web app (using development server)..."
