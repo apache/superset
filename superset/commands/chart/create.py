@@ -19,7 +19,7 @@ from datetime import datetime
 from functools import partial
 from typing import Any, Optional
 
-from flask import g
+from flask import current_app, g
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -58,7 +58,10 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         self.validate()
         self._properties["last_saved_at"] = datetime.now()
         self._properties["last_saved_by"] = g.user
-        return ChartDAO.create(attributes=self._properties)
+        chart = ChartDAO.create(attributes=self._properties)
+        if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
+            after_create(chart, "chart")
+        return chart
 
     def validate(self) -> None:
         exceptions = []

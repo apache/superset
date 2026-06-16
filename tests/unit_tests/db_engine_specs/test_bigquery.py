@@ -448,7 +448,92 @@ def test_adjust_engine_params_catalog_as_host() -> None:
         {},
         catalog="other-project",
     )[0]
-    assert str(uri) == "bigquery://other-project/"
+    assert uri.host == "other-project"
+    assert not uri.database  # no dataset when only catalog is overridden
+
+
+def test_adjust_engine_params_schema_as_dataset() -> None:
+    """
+    Test that passing a schema sets it as the BigQuery default dataset.
+
+    BigQuery requires table names to be fully qualified (project.dataset.table)
+    unless a default dataset is set via the URL database component. When schema
+    is provided, the URL database should be updated so unqualified table names
+    resolve to schema.table_name.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    url = make_url("bigquery://project")
+
+    # Without schema, URL is unchanged
+    uri = BigQueryEngineSpec.adjust_engine_params(url, {})[0]
+    assert str(uri) == "bigquery://project"
+
+    # With schema, database component is set to enable default dataset
+    uri = BigQueryEngineSpec.adjust_engine_params(
+        url,
+        {},
+        schema="my_dataset",
+    )[0]
+    assert uri.database == "my_dataset"
+
+    # catalog + schema: catalog goes to host, schema goes to database
+    uri = BigQueryEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="other-project",
+        schema="my_dataset",
+    )[0]
+    assert uri.host == "other-project"
+    assert uri.database == "my_dataset"
+
+    # Triple-slash form (bigquery:///project): project must not be overwritten
+    triple_slash_url = make_url("bigquery:///my_project")
+    uri = BigQueryEngineSpec.adjust_engine_params(
+        triple_slash_url,
+        {},
+        schema="my_dataset",
+    )[0]
+    assert uri.host == "my_project"
+    assert uri.database == "my_dataset"
+
+
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test that get_schema_from_engine_params returns the dataset from
+    bigquery://project/dataset URIs and None for all other URL forms.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    # Standard form: project in host, dataset in database
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(
+            make_url("bigquery://project/my_dataset"), {}
+        )
+        == "my_dataset"
+    )
+
+    # Project-only URI — no default dataset configured
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(
+            make_url("bigquery://project"), {}
+        )
+        is None
+    )
+
+    # Triple-slash form — database component is the project, not a dataset
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(
+            make_url("bigquery:///my_project"), {}
+        )
+        is None
+    )
+
+    # Bare URI — no project, no dataset
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(make_url("bigquery://"), {})
+        is None
+    )
 
 
 def test_get_materialized_view_names() -> None:
