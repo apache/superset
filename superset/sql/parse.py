@@ -998,8 +998,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             present_bare.add(bare)
             if t.schema:
                 present_qualified.add(f"{t.schema.lower()}.{bare}")
+                # Also index the fully-qualified (catalog.schema.table) form so a
+                # three-part denylist entry can match; without this, qualified
+                # entries deeper than schema.table would silently never match.
+                if t.catalog:
+                    present_qualified.add(
+                        f"{t.catalog.lower()}.{t.schema.lower()}.{bare}"
+                    )
             else:
                 present_unqualified.add(bare)
+                # An unqualified reference can only be resolved against a known
+                # default schema. When ``default_schema`` is None (the runtime
+                # search_path is unknown to us), a qualified denylist entry is
+                # matched only via the ``schema_indeterminate`` bare-name
+                # fallback below, never here, this is an inherent limit of static
+                # analysis without the live search_path.
                 if fallback:
                     present_qualified.add(f"{fallback}.{bare}")
         found: set[str] = set()

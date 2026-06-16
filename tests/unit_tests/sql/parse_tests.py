@@ -3339,6 +3339,22 @@ def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
             {"sys.sql_logins"},
             False,
         ),
+        # Three-part (catalog.schema.table) denylist entries match the
+        # fully-qualified reference, the multi-dot form is indexed rather than
+        # silently dead.
+        (
+            "trino",
+            "SELECT * FROM cat.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            True,
+        ),
+        # ... and a different catalog must NOT match.
+        (
+            "trino",
+            "SELECT * FROM other.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            False,
+        ),
     ],
 )
 def test_check_tables_present_schema_qualified(
