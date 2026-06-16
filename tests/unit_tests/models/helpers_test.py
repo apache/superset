@@ -981,10 +981,6 @@ def _assert_get_sqla_query_does_not_mutate_orderby(
 def test_get_sqla_query_does_not_mutate_adhoc_orderby(database: Database) -> None:
     """
     Test that `get_sqla_query` does not mutate ad-hoc ORDER BY entries.
-
-    The orderby dicts are shared with `QueryContext.cache_values`, so an
-    in-place write changes the cache key of a rehydrated query context
-    (see issue #37114).
     """
     _assert_get_sqla_query_does_not_mutate_orderby(
         database,
@@ -998,8 +994,7 @@ def test_get_sqla_query_does_not_mutate_adhoc_orderby_with_jinja(
     database: Database,
 ) -> None:
     """
-    Test that Jinja templates in ad-hoc ORDER BY entries are not rendered
-    back into the caller's dict (see issue #37114).
+    Test that Jinja in an ad-hoc ORDER BY entry is not rendered back.
     """
     _assert_get_sqla_query_does_not_mutate_orderby(
         database,
@@ -1011,11 +1006,6 @@ def test_get_sqla_query_does_not_mutate_adhoc_orderby_with_jinja(
 def test_cache_key_stable_across_query_build(database: Database) -> None:
     """
     Test that `QueryObject.cache_key()` is unchanged by building the query.
-
-    Async queries store data under a key computed before execution and
-    recompute the key from the cached query context on retrieval; a query
-    object mutated during query generation makes the keys diverge,
-    failing retrieval with "Error loading data from cache" (issue #37114).
     """
     from superset.common.query_object import QueryObject
     from superset.connectors.sqla.models import SqlaTable, TableColumn
