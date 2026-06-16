@@ -64,7 +64,12 @@ import {
   MarkLineComponent,
 } from 'echarts/components';
 import { LabelLayout } from 'echarts/features';
-import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
+import {
+  EchartsHandler,
+  EchartsProps,
+  EchartsStylesProps,
+  QueryEventHandlers,
+} from '../types';
 import { DEFAULT_LOCALE } from '../constants';
 import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
 
@@ -148,6 +153,7 @@ function Echart(
   }
   const [didMount, setDidMount] = useState(false);
   const chartRef = useRef<EChartsType>();
+  const previousQueryEventHandlers = useRef<QueryEventHandlers>([]);
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
     [selectedValues],
@@ -202,10 +208,13 @@ function Echart(
         chartRef.current?.on(name, handler);
       });
 
-      (queryEventHandlers || []).forEach(({ name, query, handler }) => {
+      previousQueryEventHandlers.current.forEach(({ name, handler }) => {
         chartRef.current?.off(name, handler);
+      });
+      (queryEventHandlers || []).forEach(({ name, query, handler }) => {
         chartRef.current?.on(name, query, handler);
       });
+      previousQueryEventHandlers.current = queryEventHandlers || [];
 
       Object.entries(zrEventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.getZr().off(name);
