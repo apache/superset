@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
@@ -2023,6 +2023,12 @@ msgstr "Lisää uusi värimuotoilija"
 msgid "Add new formatter"
 msgstr "Lisää uusi muotoilija"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
+#, fuzzy
+msgid "Add numbered column"
+msgstr " lisätäksesi laskettuja sarakkeita"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -3015,7 +3021,7 @@ msgstr "Käytettävissä olevien teemojen hakemisessa tapahtui virhe"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Skeeman arvojen hakemisessa tapahtui virhe: %s"
 
@@ -3140,7 +3146,7 @@ msgstr "Lokien siistimisen aikana tapahtui virhe "
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Visualisoinnin renderöinnin aikana tapahtui virhe: %s"
 
@@ -4152,7 +4158,7 @@ msgstr "Pohjan korkeus"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Peruskerroksen karttatyyli. Katso Mapbox-dokumentaatio: %s"
 
@@ -7406,6 +7412,15 @@ msgstr "Mukautettu SQL"
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Mukautetut SQL-ad-hoc-mittarit eivät ole käytössä tässä tietojoukossa"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Mukautetut SQL-kentät eivät voi sisältää alikyselyjä."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -8136,6 +8151,9 @@ msgstr "Tietokannan asetukset päivitetty"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "Tietokantityyppi ei tue tiedostojen lataamista."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -9959,8 +9977,8 @@ msgstr "Kesto ms (100.40008 => 100ms 400µs 80ns)"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Kesto ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Kesto ms (10500 => 0:00:10.5)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16563,7 +16581,7 @@ msgstr "Ei taulukon sarakkeita"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Ei vielä %s"
 
@@ -16726,6 +16744,12 @@ msgstr "Ei määritelty"
 #, fuzzy
 msgid "Not equal to (≠)"
 msgstr "Ei yhtä suuri kuin (≠)"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, tr, uk]
+#, fuzzy
+msgid "Not found"
+msgstr "Kaaviota ei löydy"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -18637,6 +18661,12 @@ msgstr "Projektin tunnus"
 msgid "Proportional"
 msgstr "Suhteellinen"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -19128,12 +19158,6 @@ msgstr "Rekisteröidy"
 #, fuzzy
 msgid "Registration date"
 msgstr "Rekisteröintipäivä"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
-# lv, ru, sk, uk]
-#, fuzzy
-msgid "Registration hash"
-msgstr "Rekisteröinti-hash"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, ru,
 # sk, uk]
@@ -20070,6 +20094,12 @@ msgstr "SQL"
 #, fuzzy
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -27334,6 +27364,9 @@ msgstr "Kirjoita arvo"
 msgid "Type is required"
 msgstr "Tyyppi vaaditaan"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -27596,6 +27629,12 @@ msgstr "Kumoa toiminto"
 #, fuzzy
 msgid "Undo?"
 msgstr "Kumotaanko?"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr "Tapahtui odottamaton virhe. Tarkista lokit lisätietojen saamiseksi"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -29210,6 +29249,12 @@ msgstr "Näytetäänkö Y-akselin minimi- ja maksimiarvot"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Näytetäänkö trendiviiva"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid "Whether to display the numerical values within the cells"
 msgstr "Näytetäänkö numeeriset arvot solujen sisällä"
 
@@ -30418,6 +30463,10 @@ msgstr "Jälkikäsittelyobjektin `operation`-ominaisuus on määrittelemätön"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 #, fuzzy
 msgid "`prophet` package not installed"
 msgstr "`prophet`-pakettia ei ole asennettu"
@@ -32119,28 +32168,11 @@ msgstr "your-project-1234-a1"
 msgid "zoom area"
 msgstr "zoomausalue"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
 msgid "© Layer attribution"
 msgstr "© Kerroksen attribuutio"
+
+msgid "№"
+msgstr ""

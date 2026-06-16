@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import callApiAndParseWithTimeout from './callApi/callApiAndParseWithTimeout';
 import {
   ClientConfig,
@@ -123,7 +124,7 @@ export default class SupersetClientClass {
     if (endpoint) {
       await this.ensureAuth();
       const hiddenForm = document.createElement('form');
-      hiddenForm.action = this.getUrl({ endpoint });
+      hiddenForm.action = sanitizeUrl(this.getUrl({ endpoint }));
       hiddenForm.method = 'POST';
       hiddenForm.target = target;
       const payloadWithToken: Record<string, any> = {

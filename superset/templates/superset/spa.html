@@ -17,7 +17,7 @@
   {% import 'appbuilder/general/lib.html' as lib %}
   {% from 'superset/partials/asset_bundle.html' import css_bundle, js_bundle with context %}
   {% import "superset/macros.html" as macros %}
-  {% set favicons = appbuilder.app.config['FAVICONS'] %}
+  {% set favicons = config['FAVICONS'] %}
 
   <head>
     <title>

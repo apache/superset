@@ -447,6 +447,7 @@ function DashboardList(props: DashboardListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="dashboard-row-edit"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -463,6 +464,7 @@ function DashboardList(props: DashboardListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="dashboard-row-export"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -490,6 +492,7 @@ function DashboardList(props: DashboardListProps) {
                       placement="bottom"
                     >
                       <span
+                        data-test="dashboard-row-delete"
                         role="button"
                         tabIndex={0}
                         className="action-button"

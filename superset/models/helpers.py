@@ -90,6 +90,8 @@ from superset.exceptions import (
     InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
     SupersetSecurityException,
@@ -1192,6 +1194,51 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 expression = sanitize_clause(expression, engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            # Adhoc expressions are user-controlled SQL that ends up inside a
+            # `literal_column(...)`. Apply the operator-configured
+            # `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` gates at the
+            # validation step so a dangerous function call (e.g. `version()`,
+            # `pg_read_file(...)`, `query_to_xml(...)`) is rejected before the
+            # expression is incorporated into the final SQL. This complements
+            # the same gate applied at query-execution time and gives the
+            # adhoc-expression path defense in depth.
+            disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
+                engine, set()
+            )
+            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
+            if disallowed_functions or disallowed_tables:
+                # `_process_select_expression` (and siblings) pre-wraps the
+                # input with `SELECT ...`; other callers pass bare
+                # expressions. Detect and don't double-wrap, otherwise
+                # `SELECT SELECT ...` fails the sqlglot parse.
+                sql_to_check = (
+                    expression
+                    if expression.strip().upper().startswith("SELECT")
+                    else f"SELECT {expression}"
+                )
+                parsed = SQLScript(sql_to_check, engine=engine)
+                if disallowed_functions and parsed.check_functions_present(
+                    disallowed_functions
+                ):
+                    raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+                if disallowed_tables and parsed.check_tables_present(disallowed_tables):
+                    # Report only the tables actually found in the expression,
+                    # mirroring the canonical execution-time gate in
+                    # `superset.sql_lab._validate_query` so the user-facing
+                    # error doesn't echo the operator's full denylist.
+                    present_tables = {
+                        table.table.lower()
+                        for statement in parsed.statements
+                        for table in statement.tables
+                    }
+                    found_tables = {
+                        table
+                        for table in disallowed_tables
+                        if table.lower() in present_tables
+                    }
+                    raise SupersetDisallowedSQLTableException(
+                        found_tables or disallowed_tables
+                    )
         return expression
 
     def _process_select_expression(
@@ -1402,6 +1449,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
 
+    def _raise_for_disallowed_sql(self, sql: str) -> None:
+        """
+        Mirror the DISALLOWED_SQL_* gate that sql_lab.execute_sql_statement
+        enforces so both query surfaces honour the same denylist.
+        """
+        engine = self.db_engine_spec.engine
+        disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(engine, set())
+        disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
+        if not (disallowed_functions or disallowed_tables):
+            return
+
+        parsed_script = SQLScript(sql, engine=engine)
+        if disallowed_functions and parsed_script.check_functions_present(
+            disallowed_functions
+        ):
+            raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+        if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
+            # Report only the tables actually found in the query, mirroring the
+            # canonical execution-time gate so the user-facing error doesn't
+            # echo the operator's full denylist.
+            present_tables = {
+                table.table.lower()
+                for statement in parsed_script.statements
+                for table in statement.tables
+            }
+            found_tables = {
+                table for table in disallowed_tables if table.lower() in present_tables
+            }
+            raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
+
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         """
         Executes the query and returns a dataframe.
@@ -1412,6 +1489,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
+
+        self._raise_for_disallowed_sql(sql)
+
         status = QueryStatus.SUCCESS
         errors = None
         error_message = None
@@ -2209,7 +2289,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: str,
         time_offset: str | None = None,
     ) -> str:
-        value = row[column_index]
+        value = row.iloc[column_index]
 
         if hasattr(value, "strftime"):
             if time_offset and not ExploreMixin.is_valid_date_range_static(time_offset):
@@ -2902,7 +2982,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Column:
         label = label or tbl_column.column_name
         db_engine_spec = self.db_engine_spec
-        column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
+        column_spec = db_engine_spec.get_column_spec(
+            tbl_column.type, db_extra=self.db_extra
+        )
         type_ = column_spec.sqla_type if column_spec else None
         if expression := tbl_column.expression:
             if template_processor:
@@ -3056,7 +3138,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for orig_col, ascending in orderby:  # noqa: B007
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
-                col = cast(AdhocMetric, col)
+                # process a copy, as the dict is shared with `QueryObject.orderby`
+                # and `QueryContext.cache_values`; writing the processed expression
+                # back would change the cache key of a rehydrated query context
+                col = cast(AdhocMetric, dict(col))
                 if col.get("sqlExpression"):
                     col["sqlExpression"] = self._process_orderby_expression(
                         expression=col["sqlExpression"],

@@ -198,6 +198,62 @@ function checkI18nTemplates(ast, filepath) {
 }
 
 /**
+ * Check for eager t()/tn() calls in `label` / `description` properties of
+ * config objects evaluated at module load (e.g., controlPanel files). The
+ * translation is captured at module-evaluation time, before i18n has loaded,
+ * and never updates when the user switches language. The fix is to wrap the
+ * call in an arrow function: `label: () => t('Foo')`.
+ *
+ * Limited to controlPanel files because that's where this pattern is
+ * problematic at scale; t() inside JSX or component bodies is evaluated at
+ * render time and works fine.
+ */
+const EAGER_T_WATCHED_PROPS = new Set(['label', 'description']);
+
+function checkEagerTranslationsInConfig(ast, filepath) {
+  if (!/controlPanel\.(ts|tsx|js|jsx)$/.test(filepath)) return;
+
+  traverse(ast, {
+    ObjectProperty(path) {
+      const { node } = path;
+      if (node.computed || node.shorthand) return;
+
+      const keyName =
+        node.key.type === 'Identifier'
+          ? node.key.name
+          : node.key.type === 'StringLiteral'
+            ? node.key.value
+            : null;
+      if (!keyName || !EAGER_T_WATCHED_PROPS.has(keyName)) return;
+
+      const { value } = node;
+      if (
+        value.type !== 'CallExpression' ||
+        value.callee.type !== 'Identifier' ||
+        (value.callee.name !== 't' && value.callee.name !== 'tn')
+      ) {
+        return;
+      }
+
+      if (hasEslintDisable(path, 'i18n-strings/no-eager-t-in-config')) return;
+
+      // Warn (not error) because there are many pre-existing violations.
+      // The ESLint plugin provides an autofix so authors can sweep files
+      // as they touch them. Promote to error once the codebase is clean.
+      // eslint-disable-next-line no-console
+      console.warn(
+        `${YELLOW}⚠${RESET} ${filepath}:${node.loc?.start.line ?? '?'}: ` +
+          `Eager \`${keyName}: ${value.callee.name}(...)\` is evaluated at ` +
+          `module load, before i18n is initialized. Wrap in an arrow ` +
+          `function: \`${keyName}: () => ${value.callee.name}(...)\`. ` +
+          `Run \`eslint --fix\` to autofix.`,
+      );
+      warningCount += 1;
+    },
+  });
+}
+
+/**
  * Props that should contain translated strings
  */
 const TRANSLATABLE_PROPS = new Set([
@@ -565,6 +621,7 @@ function processFile(filepath) {
     checkNoLiteralColors(ast, filepath);
     checkNoFaIcons(ast, filepath);
     checkI18nTemplates(ast, filepath);
+    checkEagerTranslationsInConfig(ast, filepath);
     checkUntranslatedStrings(ast, filepath);
   } catch (error) {
     // eslint-disable-next-line no-console

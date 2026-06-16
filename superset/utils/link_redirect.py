@@ -118,6 +118,14 @@ def process_html_links(html_content: str) -> str:
         return html_content
 
 
+# Characters that browsers remove from URLs during parsing per the WHATWG
+# URL spec (TAB, LF, CR). Both literal and percent-encoded forms must be
+# stripped before any structural check, otherwise a path like
+# ``/%09///host`` slips past a leading-``//`` guard because the percent-
+# encoded TAB only disappears after the browser parses the URL.
+_URL_STRIPPED_CONTROL_CHARS = re.compile(r"[\t\n\r]|%09|%0[ADad]")
+
+
 def is_safe_redirect_url(url: str) -> bool:
     """
     Return True if *url* is an internal Superset URL (safe to redirect to
@@ -126,7 +134,11 @@ def is_safe_redirect_url(url: str) -> bool:
     if not url or not url.strip():
         return False
 
-    stripped = url.strip()
+    # Normalize the URL the same way a browser will before parsing: drop
+    # the TAB/LF/CR characters that the WHATWG URL parser removes, plus
+    # their percent-encoded forms (which some browsers also strip when
+    # following a Location header).
+    stripped = _URL_STRIPPED_CONTROL_CHARS.sub("", url.strip())
 
     # Block protocol-relative URLs
     if stripped.startswith("//") or stripped.startswith("\\\\"):

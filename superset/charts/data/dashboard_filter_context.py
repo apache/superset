@@ -78,13 +78,21 @@ def _is_filter_in_scope_for_chart(
     position_json: dict[str, Any],
 ) -> bool:
     """
-    Determines whether a native filter applies to a given chart. When
-    chartsInScope is present on the filter config, uses that directly.
-    Otherwise falls back to scope.rootPath and scope.excluded with
-    the dashboard layout.
+    Determines whether a native filter applies to a given chart.
+
+    When chartsInScope is present on the filter config, uses that directly.
+    Otherwise falls back to scope.rootPath and scope.excluded with the
+    dashboard layout. Also considers charts that were added to the dashboard
+    but were not instantiated in the layout.
     """
     if (charts_in_scope := filter_config.get("chartsInScope")) is not None:
-        return chart_id in charts_in_scope
+        if chart_id in charts_in_scope:
+            return True
+
+        # If the chart is found in position_json and not in chartsInScope,
+        # it was explicitly excluded by the filter scope config.
+        if _find_chart_layout_item(chart_id, position_json) is not None:
+            return False
 
     scope = filter_config.get("scope", {})
     root_path: list[str] = scope.get("rootPath", [])
@@ -93,12 +101,14 @@ def _is_filter_in_scope_for_chart(
     if chart_id in excluded:
         return False
 
-    chart_layout_item = _find_chart_layout_item(chart_id, position_json)
-    if not chart_layout_item:
-        return False
+    if chart_layout_item := _find_chart_layout_item(chart_id, position_json):
+        parents: list[str] = chart_layout_item.get("parents", [])
+        return any(parent in root_path for parent in parents)
 
-    parents: list[str] = chart_layout_item.get("parents", [])
-    return any(parent in root_path for parent in parents)
+    # If the chart doesn't exist in the dashboard layout, treat it as a
+    # root-level chart.
+    else:
+        return "ROOT_ID" in root_path
 
 
 def _find_chart_layout_item(

@@ -21,6 +21,7 @@ from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
+from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
@@ -225,6 +226,11 @@ class Slice(  # pylint: disable=too-many-public-methods
             "query_context": self.query_context,
             "modified": self.modified(),
             "owners": [owner.id for owner in self.owners],
+            "extra_owners": (
+                [u["id"] for u in resolver(self)]
+                if (resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"))
+                else []
+            ),
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,
@@ -326,11 +332,15 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def icons(self) -> str:
+        # Escape the data-controlled datasource name and edit URL before they
+        # are interpolated into HTML attributes.
+        url = escape(self.datasource_edit_url)
+        datasource = escape(self.datasource)
         return f"""
         <a
-                href="{self.datasource_edit_url}"
+                href="{url}"
                 data-toggle="tooltip"
-                title="{self.datasource}">
+                title="{datasource}">
             <i class="fa fa-database"></i>
         </a>
         """

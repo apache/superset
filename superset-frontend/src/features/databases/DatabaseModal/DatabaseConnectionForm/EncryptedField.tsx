@@ -67,10 +67,16 @@ export const EncryptedField = ({
     encryptedCredentialsMap[db.engine as keyof typeof encryptedCredentialsMap];
   const paramValue =
     db?.parameters?.[encryptedField as keyof DatabaseParameters];
+  // In edit mode the backend may return the existing (masked) credential in
+  // the parameters. Do not surface any pre-existing value in the field; the
+  // user must re-enter credentials to change them. This also matches the
+  // mount effect below, which resets the parameter to an empty string.
   const encryptedValue =
-    paramValue && typeof paramValue === 'object'
-      ? JSON.stringify(paramValue)
-      : paramValue;
+    isEditMode || paramValue == null
+      ? ''
+      : typeof paramValue === 'object'
+        ? JSON.stringify(paramValue)
+        : paramValue;
 
   const handlePublicToggle = (value: string) => {
     const nextIsPublic = value === 'true';

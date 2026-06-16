@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -22,7 +22,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1217,6 +1217,10 @@ msgid "Add new formatter"
 msgstr "Nieuwe formatter toevoegen"
 
 #, fuzzy
+msgid "Add numbered column"
+msgstr " berekende kolommen toevoegen"
+
+#, fuzzy
 msgid "Add or edit display controls"
 msgstr "Filters toevoegen en bewerken"
 
@@ -1799,7 +1803,7 @@ msgstr ""
 "Er is een fout opgetreden tijdens het ophalen van beschikbare CSS "
 "templates"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Er is een fout opgetreden tijdens het ophalen van schemawaarden: %s"
 
@@ -1880,7 +1884,7 @@ msgstr "Er is een fout opgetreden tijdens het parsen van de sleutel."
 msgid "An error occurred while pruning logs "
 msgstr "Er is een fout opgetreden tijdens opschonen van de logbestanden "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Er is een fout opgetreden bij het renderen van de visualisatie: %s"
 
@@ -2443,7 +2447,7 @@ msgstr "Database poort"
 msgid "Base height"
 msgstr "Grafiek hoogte"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Basislaag kaartstijl. Zie Mapbox documentatie: %s"
 
@@ -4273,6 +4277,13 @@ msgstr ""
 "Aangepaste SQL ad hoc statistieken zijn niet ingeschakeld voor deze "
 "dataset"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Aangepaste SQL velden mogen geen sub-query's bevatten."
+
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Aangepaste SQL velden mogen geen sub-query's bevatten."
 
@@ -4676,6 +4687,9 @@ msgstr "Database instellingen bijgewerkt"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "Database ondersteunt geen subquery’s"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 #, fuzzy
 msgid "Database upload file failed"
@@ -5764,7 +5778,7 @@ msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Duur in ms (100.40008 => 100ms 400μs 80ns)"
 
 #, fuzzy
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Duur in ms (66000 => 1m 6s)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -9474,7 +9488,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Geen tabelkolommen"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Nog geen %s"
 
@@ -9566,6 +9580,10 @@ msgstr "Niet gedefinieerd"
 
 msgid "Not equal to (≠)"
 msgstr "Niet gelijk aan (≠)"
+
+#, fuzzy
+msgid "Not found"
+msgstr "Grafiek niet gevonden"
 
 msgid "Not in"
 msgstr "Niet in"
@@ -10637,6 +10655,12 @@ msgstr "Verouderd"
 msgid "Proportional"
 msgstr "Proportioneel"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Gepubliceerd"
 
@@ -10900,9 +10924,6 @@ msgstr "Vooraf-filter"
 #, fuzzy
 msgid "Registration date"
 msgstr "Start datum"
-
-msgid "Registration hash"
-msgstr ""
 
 msgid "Registration successful"
 msgstr ""
@@ -11420,6 +11441,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL-lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -15730,6 +15757,9 @@ msgstr "Voer een waarde in"
 msgid "Type is required"
 msgstr "Type is vereist"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15895,6 +15925,10 @@ msgstr "Actie ongedaan maken"
 
 msgid "Undo?"
 msgstr "Ongedaan maken?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr "Er is een onverwachte fout opgetreden, controleer uw logs voor details"
 
 msgid "Unexpected error"
 msgstr "Onverwachte fout"
@@ -16880,6 +16914,10 @@ msgstr "Of de min en max waarden van de X-as getoond moeten worden"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Of de min en max waarden van de Y-as getoond moeten worden"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Of de trendlijn moet worden weergegeven"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Of de numerieke waarden binnen de cellen moeten worden weergegeven"
 
@@ -17577,6 +17615,10 @@ msgstr ""
 
 msgid "`operation` property of post processing object undefined"
 msgstr "`operation` eigenschap van post processing object ongedefinieerd"
+
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
 
 msgid "`prophet` package not installed"
 msgstr "`prophet` package niet geïnstalleerd"
@@ -18521,25 +18563,8 @@ msgstr ""
 msgid "zoom area"
 msgstr "zoom gebied"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
+msgid "© Layer attribution"
 msgstr ""
 
-msgid "© Layer attribution"
+msgid "№"
 msgstr ""

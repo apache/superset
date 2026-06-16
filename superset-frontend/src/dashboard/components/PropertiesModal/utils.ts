@@ -73,7 +73,9 @@ export function parseSelectedOwners(
         // `label` is a React element unless the option came from a plain-text
         // source, so only use it as a name when it is actually a string.
         (typeof o.label === 'string' ? o.label : ''),
-      email: opt?.[OWNER_EMAIL_PROP] || '',
+      // Leave email undefined when the option carries no email, rather than
+      // fabricating an empty string — keeps the optional `email?` type honest.
+      email: opt?.[OWNER_EMAIL_PROP] ?? undefined,
     };
   });
 }

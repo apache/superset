@@ -254,7 +254,9 @@ const PropertiesModal = ({
     selectedOwners: OwnerOption[],
     options: OwnerOption[],
   ) => {
-    setOwners(parseSelectedOwners(selectedOwners, options, owners));
+    // Use the functional updater so the parse always reads the latest owners
+    // state rather than the value captured in this render's closure.
+    setOwners(prev => parseSelectedOwners(selectedOwners, options, prev));
   };
 
   const handleOnChangeRoles = (roles: { value: number; label: string }[]) => {
