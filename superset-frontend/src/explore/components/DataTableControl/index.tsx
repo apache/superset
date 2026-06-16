@@ -108,9 +108,16 @@ export const FilterInput = ({
   const inputRef: RefObject<any> = useRef(null);
 
   useEffect(() => {
-    // Focus the input element when the component mounts
     if (inputRef.current && shouldFocus) {
-      inputRef.current.focus();
+      const activeEl = document.activeElement;
+      const isInputFocused =
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          (activeEl as HTMLElement).isContentEditable);
+      if (!isInputFocused) {
+        inputRef.current.focus();
+      }
     }
   }, []);
 
