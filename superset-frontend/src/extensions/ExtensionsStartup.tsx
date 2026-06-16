@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { logging } from '@apache-superset/core/utils';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
@@ -42,7 +42,6 @@ import 'src/extensions/supersetGlobal';
 const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
-  const [initialized, setInitialized] = useState(false);
   const location = useLocation();
   const prevPathname = useRef<string | null>(null);
 
@@ -75,14 +74,6 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    if (initialized) return;
-
-    if (!userId) {
-      // No user logged in — nothing to initialize
-      setInitialized(true);
-      return;
-    }
-
     // Provide the implementations for @apache-superset/core.
     // Namespaces are listed explicitly — do not spread the core package here,
     // as that would leak un-contracted symbols onto window.superset.
@@ -99,20 +90,10 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       views,
     };
 
-    // Render the host immediately; extension bundles load in the background.
-    // ChatMount re-resolves reactively once a chat extension registers (via
-    // subscribeToChatState / getChatSnapshot), so the bubble appears
-    // without blocking the UI.
-    setInitialized(true);
-
     if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
       ExtensionsLoader.getInstance().initializeExtensions();
     }
-  }, [initialized, userId]);
-
-  if (!initialized) {
-    return null;
-  }
+  }, [userId]);
 
   return <>{children}</>;
 };

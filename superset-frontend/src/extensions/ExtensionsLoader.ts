@@ -17,17 +17,10 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { store } from 'src/views/store';
-// Side-effect import: brings the `window.superset` global augmentation into scope.
-import 'src/extensions/supersetGlobal';
 
 type Extension = core.Extension;
-type ExtensionContext = core.ExtensionContext;
-type ExtensionModule = core.ExtensionModule;
 
 /**
  * Loads extension modules via webpack module federation.
@@ -88,8 +81,7 @@ class ExtensionsLoader {
 
   /**
    * Initializes a single extension.
-   * If the extension has a remote entry, loads the module and runs its
-   * `activate(context)` hook (or, for legacy extensions, its top-level
+   * If the extension has a remote entry, loads the module (which triggers
    * side-effect registrations for commands, views, menus, and editors).
    * @param extension The extension to initialize.
    */
@@ -104,15 +96,12 @@ class ExtensionsLoader {
         `Failed to initialize extension ${extension.name}\n`,
         error,
       );
-      store.dispatch(
-        addDangerToast(t('Extension "%s" failed to load.', extension.name)),
-      );
     }
   }
 
   /**
-   * Loads a single extension module via webpack module federation and runs its
-   * `activate(context)` hook.
+   * Loads a single extension module via webpack module federation.
+   * The module's top-level side effects fire contribution registrations.
    * @param extension The extension to load.
    */
   private async loadModule(extension: Extension): Promise<void> {
@@ -160,21 +149,8 @@ class ExtensionsLoader {
     await container.init(__webpack_share_scopes__.default);
 
     const factory = await container.get('./index');
-
-    // `context.subscriptions` is provided for extensions to push their
-    // Disposables into. The host does not dispose them (lifecycle management is
-    // deferred); extensions own the array for as long as they are active.
-    const context: ExtensionContext = { subscriptions: [] };
-
-    // Evaluate the module factory. Extensions may register contributions as
-    // top-level side effects here, or return a module exposing `activate`.
-    const module = factory() as ExtensionModule | undefined;
-
-    // Preferred path: hand the extension its context so it can track every
-    // registration it makes, synchronous or asynchronous.
-    if (typeof module?.activate === 'function') {
-      await module.activate(context);
-    }
+    // Execute the module factory - side effects fire registrations
+    factory();
   }
 
   /**

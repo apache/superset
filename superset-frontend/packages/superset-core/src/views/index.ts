@@ -36,7 +36,7 @@
  */
 
 import { ReactElement } from 'react';
-import { Disposable } from '../common';
+import { Disposable, Event } from '../common';
 
 /**
  * Represents a contributed view in the application.
@@ -56,12 +56,12 @@ export interface View {
  * The view provider function is called when the UI renders the location,
  * and should return a React element to display.
  *
- * @param view The view descriptor (id, name, and optional description).
+ * @param view The view descriptor (id and name).
  * @param location The location where this view should appear (e.g. "sqllab.panels").
  * @param provider A function that returns the React element to render.
  * @returns A Disposable that unregisters the view when disposed.
  *
- * @example SQL Lab panel
+ * @example
  * ```typescript
  * views.registerView(
  *   { id: 'my_ext.result_stats', name: 'Result Stats' },
@@ -88,3 +88,33 @@ export declare function registerView(
  * ```
  */
 export declare function getViews(location: string): View[] | undefined;
+
+/**
+ * Event fired when a view is registered.
+ */
+export interface ViewRegisteredEvent {
+  /** The descriptor of the view that was registered. */
+  view: View;
+  /** The location where the view was registered. */
+  location: string;
+}
+
+/**
+ * Event fired when a view is unregistered.
+ */
+export interface ViewUnregisteredEvent {
+  /** The descriptor of the view that was unregistered. */
+  view: View;
+  /** The location where the view was registered. */
+  location: string;
+}
+
+/**
+ * Event fired when a view is registered.
+ */
+export declare const onDidRegisterView: Event<ViewRegisteredEvent>;
+
+/**
+ * Event fired when a view is unregistered.
+ */
+export declare const onDidUnregisterView: Event<ViewUnregisteredEvent>;
