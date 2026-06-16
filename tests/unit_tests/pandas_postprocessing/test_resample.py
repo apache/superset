@@ -253,7 +253,7 @@ def test_resample_linear():
                 ]
             ),
             data={
-                "label": ["a", np.NaN, np.NaN, np.NaN, "e", np.NaN, np.NaN, "j"],
+                "label": ["a", np.nan, np.nan, np.nan, "e", np.nan, np.nan, "j"],
                 "y": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
             },
         )
