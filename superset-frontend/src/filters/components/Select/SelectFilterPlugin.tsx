@@ -339,6 +339,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const options = useMemo(() => {
     if (
       search &&
+      !searchAllOptions &&
       creatable !== false &&
       !hasOption(search, uniqueOptions, true)
     ) {
@@ -348,7 +349,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ];
     }
     return uniqueOptions;
-  }, [search, uniqueOptions, creatable]);
+  }, [search, uniqueOptions, creatable, searchAllOptions]);
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
