@@ -174,7 +174,7 @@ cron-descriptor==1.4.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-croniter==6.0.0
+croniter==6.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -293,7 +293,7 @@ flask-login==0.6.3
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   flask-appbuilder
-flask-migrate==3.1.0
+flask-migrate==4.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -939,7 +939,7 @@ shillelagh==1.4.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-simplejson==3.20.1
+simplejson==4.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
