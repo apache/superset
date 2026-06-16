@@ -2630,6 +2630,8 @@ def test_normalize_df_without_get_column_is_a_noop() -> None:
     from superset.models.helpers import ExploreMixin
 
     class _NoGetColumnDatasource:
+        """A datasource that does not implement ``get_column``."""
+
         offset = 0
         enforce_numerical_metrics = False
         columns: list[object] = []
