@@ -1843,16 +1843,33 @@ def process_jinja_sql(
 
 def sanitize_clause(clause: str, engine: str) -> str:
     """
-    Make sure the SQL clause is valid.
+    Validate a SQL clause and return it unchanged.
+
+    The clause is parsed to ensure it is a single, well-formed statement. We
+    intentionally return the *original* text rather than a re-rendered version:
+    round-tripping user SQL through SQLGlot's dialect generator can silently
+    alter semantics. For example, the Postgres dialect (borrowed by several
+    engines) rewrites ``ROUND(AVG(x), n)`` to ``ROUND(CAST(AVG(x) AS DECIMAL),
+    n)``, which rounds the value to an integer before the explicit ``ROUND`` on
+    engines whose unqualified ``DECIMAL`` defaults to scale 0 (see #36113).
+
+    Comments are the one exception: a trailing line comment can comment out
+    surrounding SQL once the clause is embedded into a larger query (e.g.
+    wrapped in parentheses), so any clause that contains comments is re-rendered
+    to normalize them into a safe form.
     """
     try:
         statement = SQLStatement(clause, engine)
+        parsed = statement._parsed  # pylint: disable=protected-access
+        if not any(node.comments for node in parsed.walk()):
+            return clause
+
         return _normalized_generator(
             SQLGLOT_DIALECTS.get(engine),
             pretty=False,
             comments=True,
         ).generate(
-            statement._parsed,  # pylint: disable=protected-access
+            parsed,
             copy=True,
         )
     except SupersetParseError as ex:

@@ -3123,7 +3123,8 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
     "sql, expected, engine",
     [
         ("col = 1", "col = 1", "base"),
-        ("1=\t\n1", "1 = 1", "base"),
+        # Comment-free clauses are returned verbatim (no semantic round-trip).
+        ("1=\t\n1", "1=\t\n1", "base"),
         ("(col = 1)", "(col = 1)", "base"),  # Compact format without newlines
         (
             "(col1 = 1) AND (col2 = 2)",
