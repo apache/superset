@@ -74,6 +74,19 @@ const MenuWrapper = () => {
   return <Menu forceSubMenuRender items={menuItems} />;
 };
 
+const MenuWrapperWithProps = (
+  overrides: Partial<ReturnType<typeof createProps>> & {
+    canExportImage?: boolean;
+  },
+) => {
+  const downloadMenuItem = useDownloadMenuItems({
+    ...createProps(),
+    ...overrides,
+  });
+  const menuItems: MenuItem[] = [downloadMenuItem];
+  return <Menu forceSubMenuRender items={menuItems} />;
+};
+
 const originalCreateObjectURL = window.URL.createObjectURL;
 const originalRevokeObjectURL = window.URL.revokeObjectURL;
 
@@ -204,19 +217,6 @@ test('Export as Example shows error toast on failure', async () => {
 });
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
-
-const MenuWrapperWithProps = (
-  overrides: Partial<ReturnType<typeof createProps>> & {
-    canExportImage?: boolean;
-  },
-) => {
-  const downloadMenuItem = useDownloadMenuItems({
-    ...createProps(),
-    ...overrides,
-  });
-  const menuItems: MenuItem[] = [downloadMenuItem];
-  return <Menu forceSubMenuRender items={menuItems} />;
-};
 
 test('Screenshot menu items should be disabled when GranularExportControls is ON and canExportImage is false', () => {
   mockIsFeatureEnabled.mockImplementation(

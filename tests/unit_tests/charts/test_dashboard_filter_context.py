@@ -310,7 +310,7 @@ def test_apply_extra_form_data_overrides_regular_mapping() -> None:
 
 def test_apply_extra_form_data_overrides_extras_keys() -> None:
     """relative_start/relative_end land in the query's extras dict."""
-    json_body = {"queries": [{}]}
+    json_body: dict[str, Any] = {"queries": [{}]}
     apply_extra_form_data_to_query_context_json(
         json_body, {"relative_start": "2020-01-01"}
     )
@@ -670,7 +670,7 @@ def test_active_data_mask_empty_clears_default(
     ]
     _build_dashboard_mock(mock_db, filter_config, [10])
 
-    active_data_mask = {"f1": {"extraFormData": {}}}
+    active_data_mask: dict[str, Any] = {"f1": {"extraFormData": {}}}
     ctx = get_dashboard_filter_context(
         dashboard_id=1, chart_id=10, active_data_mask=active_data_mask
     )
@@ -698,7 +698,7 @@ def test_active_data_mask_absent_filter_falls_back_to_default(
     _build_dashboard_mock(mock_db, filter_config, [10])
 
     # Mask only references some other filter id
-    active_data_mask = {"f2": {"extraFormData": {"filters": []}}}
+    active_data_mask: dict[str, Any] = {"f2": {"extraFormData": {"filters": []}}}
     ctx = get_dashboard_filter_context(
         dashboard_id=1, chart_id=10, active_data_mask=active_data_mask
     )

@@ -1437,7 +1437,11 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 501, message="Excel export is not configured on this server."
             )
         try:
-            payload = DashboardExportXlsxPostSchema().load(request.json or {})
+            # Tolerate an empty/non-JSON body (e.g. a POST with no Content-Type);
+            # request.json would otherwise raise 415.
+            payload = DashboardExportXlsxPostSchema().load(
+                request.get_json(silent=True) or {}
+            )
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
