@@ -1141,6 +1141,40 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver.take_tiled_screenshot")
+    @patch("superset.utils.webdriver.app")
+    def test_tiled_fallback_triggered_on_empty_bytes(
+        self, mock_app, mock_take_tiled, mock_sync_playwright
+    ):
+        """Tiled fallback fires when take_tiled_screenshot returns b"" (not None)."""
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = {
+            **self._base_config,
+            "SCREENSHOT_TILED_ENABLED": True,
+            "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
+            "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 5000,
+            "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
+        }
+
+        mock_context, mock_page = self._make_pw_mocks(mock_sync_playwright)
+        mock_page.evaluate.side_effect = [25, 6000]
+        # Empty bytes — falsy but not None; was silently passed through before the fix
+        mock_take_tiled.return_value = b""
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            with patch.object(
+                WebDriverPlaywright, "_get_screenshot", return_value=b"fallback"
+            ) as mock_fallback:
+                result = WebDriverPlaywright("chrome").get_screenshot(
+                    "http://example.com", "standalone", mock_user
+                )
+
+        assert result == b"fallback"
+        mock_fallback.assert_called_once()
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver.sync_playwright")
     @patch("superset.utils.webdriver.app")
     def test_animation_wait_skipped_when_zero(self, mock_app, mock_sync_playwright):
         """No extra wait_for_timeout call when SCREENSHOT_SELENIUM_ANIMATION_WAIT=0."""

@@ -406,11 +406,15 @@ class WebDriverPlaywright(WebDriverProxy):
                             load_wait=self._screenshot_load_wait,
                             animation_wait=selenium_animation_wait,
                         )
-                        if img is None:
-                            logger.error(
-                                "Tiled screenshot failed at url %s; "
-                                "not falling back to avoid sending a blank PDF",
-                                url,
+                        if not img:
+                            logger.warning(
+                                (
+                                    "Tiled screenshot failed, "
+                                    "falling back to standard screenshot"
+                                )
+                            )
+                            img = WebDriverPlaywright._get_screenshot(
+                                page, element, element_name
                             )
                         logger.debug(
                             "Tiled screenshot result: %d bytes for url: %s",
