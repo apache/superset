@@ -84,7 +84,7 @@ colorama==0.4.6
     #   flask-appbuilder
 cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
-croniter==6.0.0
+croniter==6.2.2
     # via apache-superset (pyproject.toml)
 cryptography==46.0.7
     # via
@@ -141,7 +141,7 @@ flask-login==0.6.3
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
-flask-migrate==3.1.0
+flask-migrate==4.1.0
     # via apache-superset (pyproject.toml)
 flask-session==0.8.0
     # via apache-superset (pyproject.toml)
@@ -384,7 +384,7 @@ setuptools==80.9.0
     # via -r requirements/base.in
 shillelagh==1.4.4
     # via apache-superset (pyproject.toml)
-simplejson==3.20.1
+simplejson==4.1.1
     # via apache-superset (pyproject.toml)
 six==1.17.0
     # via

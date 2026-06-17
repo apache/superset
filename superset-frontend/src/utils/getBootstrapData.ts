@@ -38,7 +38,34 @@ const normalizePathWithFallback = (
   fallback: string,
 ): string => (path ?? fallback).replace(/\/$/, '');
 
-const APPLICATION_ROOT_NO_TRAILING_SLASH = normalizePathWithFallback(
+/**
+ * Matches a plain absolute path prefix (e.g. "" for root deployments or
+ * "/analytics" for a subdirectory). The character after the leading slash must
+ * not be another slash, so protocol-relative URLs ("//host") and scheme-bearing
+ * values ("javascript:...") do not qualify.
+ */
+const SAFE_APPLICATION_ROOT_RE = /^(\/[\w\-.][\w\-./]*)?$/;
+
+/**
+ * The application root (SUPERSET_APP_ROOT) is reflected into links and
+ * navigation, so constrain it to a plain absolute path before use. Anything
+ * that isn't a simple "/path" prefix falls back to the default root so a
+ * malformed value can't be reinterpreted as HTML or redirect off-origin. This
+ * also keeps the bootstrap-derived value from being treated as a tainted href
+ * source by static analysis.
+ */
+const sanitizeApplicationRoot = (
+  path: string | undefined,
+  fallback: string,
+): string => {
+  const normalizedFallback = normalizePathWithFallback(fallback, fallback);
+  const normalized = normalizePathWithFallback(path, fallback);
+  return SAFE_APPLICATION_ROOT_RE.test(normalized)
+    ? normalized
+    : normalizedFallback;
+};
+
+const APPLICATION_ROOT_NO_TRAILING_SLASH = sanitizeApplicationRoot(
   getBootstrapData().common.application_root,
   DEFAULT_BOOTSTRAP_DATA.common.application_root,
 );
