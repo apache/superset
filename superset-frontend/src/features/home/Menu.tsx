@@ -303,7 +303,7 @@ export function Menu({
       );
       link = (
         <StyledBrandWrapper margin={theme.brandLogoMargin}>
-          {isUrlExternal(brandHref) || !isFrontendRoute(brandHref) ? (
+          {isUrlExternal(brandHref) ? (
             <Typography.Link className="navbar-brand" href={brandHref}>
               {brandImage}
             </Typography.Link>
