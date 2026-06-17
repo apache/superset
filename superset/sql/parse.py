@@ -1424,6 +1424,12 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         return KustoKQLStatement(ast=self._parsed, engine=self.engine)
 
     def get_present_functions(self) -> set[str]:
+        """
+        Return SQL function names invoked in the statement.
+
+        Kusto KQL doesn't support function detection, so this always
+        returns an empty set.
+        """
         logger.warning("Kusto KQL doesn't support checking for functions present.")
         return set()
 
