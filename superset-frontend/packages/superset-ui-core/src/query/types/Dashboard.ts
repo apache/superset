@@ -217,6 +217,7 @@ export type NativeFiltersState = {
   filters: Filters;
   focusedFilterId?: string;
   hoveredFilterId?: string;
+  filtersInitialized: boolean;
 };
 
 export type ChartCustomizationConfiguration = Array<

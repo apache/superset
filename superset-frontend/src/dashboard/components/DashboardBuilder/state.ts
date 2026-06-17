@@ -46,6 +46,9 @@ export const useNativeFilters = () => {
 
   const filters = useFilters();
   const filterValues = useMemo(() => Object.values(filters), [filters]);
+  const filtersInitialized = useSelector<RootState, boolean>(
+    state => state.nativeFilters.filtersInitialized,
+  );
   const expandFilters = getUrlParam(URL_PARAMS.expandFilters);
   const chartCustomizations = useChartCustomizationFromRedux();
 
@@ -110,10 +113,10 @@ export const useNativeFilters = () => {
   ]);
 
   useEffect(() => {
-    if (showDashboard) {
+    if (showDashboard && filtersInitialized) {
       setIsInitialized(true);
     }
-  }, [showDashboard]);
+  }, [showDashboard, filtersInitialized]);
 
   return {
     showDashboard,

@@ -105,6 +105,7 @@ function handleFilterChangesComplete(
 export default function nativeFilterReducer(
   state: ExtendedNativeFiltersState = {
     filters: {},
+    filtersInitialized: false,
   },
   action: AnyFilterAction,
 ) {
@@ -139,6 +140,7 @@ export default function nativeFilterReducer(
 
       return {
         filters: mergedFilters,
+        filtersInitialized: true,
       };
     }
 
