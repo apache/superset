@@ -1,0 +1,204 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Build Chinese Superset image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_name:
+        description: "Image name. Leave empty to use ghcr.io/<owner>/superset-zh"
+        required: false
+        type: string
+      image_tag:
+        description: "Image tag to publish/export"
+        required: true
+        default: "zh-latest"
+        type: string
+      platform:
+        description: "Single platform to build. docker save/export requires a single platform."
+        required: true
+        default: "linux/amd64"
+        type: choice
+        options:
+          - linux/amd64
+          - linux/arm64
+      datasource_extras:
+        description: "Comma-separated Superset datasource extras to preinstall"
+        required: false
+        default: "mysql,postgres,doris,oracle,sqlite,mssql"
+        # default: "athena,aurora-data-api,bigquery,clickhouse,cockroachdb,crate,d1,databend,databricks,db2,denodo,dremio,drill,druid,duckdb,dynamodb,solr,elasticsearch,exasol,excel,firebird,firebolt,gsheets,hana,hive,impala,kusto,kylin,mssql,mysql,ocient,oracle,parseable,pinot,postgres,presto,trino,redshift,risingwave,shillelagh,singlestore,snowflake,spark,tdengine,teradata,vertica,netezza,starrocks,doris,oceanbase,ydb"
+        type: string
+      push_image:
+        description: "Push image to registry"
+        required: true
+        default: true
+        type: boolean
+      upload_tar:
+        description: "Upload a gzipped docker save artifact for offline deployment"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      IMAGE_NAME: ${{ inputs.image_name || format('ghcr.io/{0}/superset-zh', github.repository_owner) }}
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      PLATFORM: ${{ inputs.platform }}
+      DATASOURCE_EXTRAS: ${{ inputs.datasource_extras }}
+      BASE_IMAGE: local/superset-zh-base:${{ github.sha }}
+
+    steps:
+      - name: "Checkout ${{ github.ref }} (${{ github.sha }})"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: inputs.push_image && startsWith(env.IMAGE_NAME, 'ghcr.io/')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build translated Superset base image
+        shell: bash
+        run: |
+          docker buildx build \
+            --platform "${PLATFORM}" \
+            --target lean \
+            --build-arg DEV_MODE=false \
+            --build-arg BUILD_TRANSLATIONS=true \
+            --build-arg INCLUDE_CHROMIUM=false \
+            --build-arg INCLUDE_FIREFOX=false \
+            --load \
+            --tag "${BASE_IMAGE}" \
+            .
+
+      - name: Create Chinese default config layer
+        shell: bash
+        run: |
+          mkdir -p "${RUNNER_TEMP}/superset-zh-image"
+
+          cat > "${RUNNER_TEMP}/superset-zh-image/superset_config.py" <<'PY'
+          # Licensed to the Apache Software Foundation (ASF) under one
+          # or more contributor license agreements.  See the NOTICE file
+          # distributed with this work for additional information
+          # regarding copyright ownership.  The ASF licenses this file
+          # to you under the Apache License, Version 2.0 (the
+          # "License"); you may not use this file except in compliance
+          # with the License.  You may obtain a copy of the License at
+          #
+          #   http://www.apache.org/licenses/LICENSE-2.0
+          #
+          # Unless required by applicable law or agreed to in writing,
+          # software distributed under the License is distributed on an
+          # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+          # KIND, either express or implied.  See the License for the
+          # specific language governing permissions and limitations
+          # under the License.
+
+          BABEL_DEFAULT_LOCALE = "zh"
+
+          LANGUAGES = {
+              "en": {"flag": "us", "name": "English"},
+              "zh": {"flag": "cn", "name": "Chinese"}
+          }
+          PY
+
+          cat > "${RUNNER_TEMP}/superset-zh-image/Dockerfile" <<'DOCKERFILE'
+          ARG BASE_IMAGE
+          FROM ${BASE_IMAGE}
+
+          ARG DATASOURCE_EXTRAS
+
+          USER root
+          COPY superset_config.py /app/pythonpath/superset_config.py
+          ENV SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
+
+          RUN /app/docker/apt-install.sh \
+                default-libmysqlclient-dev \
+                freetds-dev \
+                pkg-config \
+                unixodbc-dev
+
+          RUN if [ -n "${DATASOURCE_EXTRAS}" ]; then \
+                /app/docker/pip-install.sh --requires-build-essential -e ".[${DATASOURCE_EXTRAS}]"; \
+              fi
+
+          USER superset
+          DOCKERFILE
+
+      - name: Build final Chinese default image
+        shell: bash
+        run: |
+          docker build \
+            --platform "${PLATFORM}" \
+            --build-arg "BASE_IMAGE=${BASE_IMAGE}" \
+            --build-arg "DATASOURCE_EXTRAS=${DATASOURCE_EXTRAS}" \
+            --tag "${IMAGE_NAME}:${IMAGE_TAG}" \
+            "${RUNNER_TEMP}/superset-zh-image"
+
+      - name: Verify Chinese defaults
+        shell: bash
+        run: |
+          docker run --rm --entrypoint python "${IMAGE_NAME}:${IMAGE_TAG}" - <<'PY'
+          from superset.config import BABEL_DEFAULT_LOCALE, LANGUAGES
+
+          assert BABEL_DEFAULT_LOCALE == "zh", BABEL_DEFAULT_LOCALE
+          assert "zh" in LANGUAGES, LANGUAGES
+          print(f"BABEL_DEFAULT_LOCALE={BABEL_DEFAULT_LOCALE}")
+          print(f"LANGUAGES={','.join(sorted(LANGUAGES))}")
+          PY
+
+      - name: Push image
+        if: inputs.push_image
+        shell: bash
+        run: docker push "${IMAGE_NAME}:${IMAGE_TAG}"
+
+      - name: Export image tarball
+        if: inputs.upload_tar
+        shell: bash
+        run: |
+          mkdir -p "${RUNNER_TEMP}/artifacts"
+          safe_name="${IMAGE_NAME//\//_}"
+          docker save "${IMAGE_NAME}:${IMAGE_TAG}" | gzip > "${RUNNER_TEMP}/artifacts/${safe_name}_${IMAGE_TAG}.tar.gz"
+
+      - name: Upload offline image artifact
+        if: inputs.upload_tar
+        uses: actions/upload-artifact@v4
+        with:
+          name: superset-zh-image-${{ inputs.image_tag }}
+          path: ${{ runner.temp }}/artifacts/*.tar.gz
+          if-no-files-found: error
