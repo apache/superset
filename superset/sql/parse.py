@@ -1856,13 +1856,15 @@ def sanitize_clause(clause: str, engine: str) -> str:
     Comments are the one exception: a trailing line comment can comment out
     surrounding SQL once the clause is embedded into a larger query (e.g.
     wrapped in parentheses), so any clause that contains comments is re-rendered
-    to normalize them into a safe form.
+    to normalize them into a safe form. A trailing statement terminator is
+    likewise stripped, since callers embed the clause inside a larger fragment
+    (``WHERE (...)``) where a stray ``;`` would produce invalid SQL.
     """
     try:
         statement = SQLStatement(clause, engine)
         parsed = statement._parsed  # pylint: disable=protected-access
         if not any(node.comments for node in parsed.walk()):
-            return clause
+            return clause.rstrip().rstrip(";").rstrip()
 
         return _normalized_generator(
             SQLGLOT_DIALECTS.get(engine),

@@ -3148,6 +3148,10 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
         ),  # Block comments preserved
         ("col = 'col1 = 1) AND (col2 = 2'", "col = 'col1 = 1) AND (col2 = 2'", "base"),
         ("col = 'select 1; select 2'", "col = 'select 1; select 2'", "base"),
+        # Trailing statement terminators are stripped so the clause stays valid
+        # once embedded inside a larger fragment (e.g. ``WHERE (...)``).
+        ("col = 1;", "col = 1", "base"),
+        ("col = 1 ; ", "col = 1", "base"),
         ("col = 'abc -- comment'", "col = 'abc -- comment'", "base"),
         ("col1 = 1) AND (col2 = 2)", QueryClauseValidationException, "base"),
         ("(col1 = 1) AND (col2 = 2", QueryClauseValidationException, "base"),
