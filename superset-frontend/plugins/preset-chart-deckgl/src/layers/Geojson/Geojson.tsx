@@ -254,6 +254,15 @@ export const computeGeoJsonIconOptionsFromFormData = (
   iconSizeUnits: fd.icon_size_unit,
 });
 
+// Free-form SelectControls can yield string values, and legacy charts may have
+// null persisted for these fields, so coerce to a number (falling back to the
+// provided default for null/undefined/NaN input, while preserving an explicit 0)
+// before handing them to deck.gl's numeric layer props.
+const toNumber = (value: unknown, fallback: number) => {
+  const num = Number(value ?? fallback);
+  return Number.isFinite(num) ? num : fallback;
+};
+
 export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   formData,
   onContextMenu,
@@ -328,7 +337,11 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
       getFillColor(feature, filterState?.value),
     getLineColor,
     getLineWidth: fd.line_width || 1,
-    pointRadiusScale: fd.point_radius_scale,
+    // Use deck.gl defaults as fallbacks for backward compatibility with existing charts.
+    // New charts will get control panel defaults (point_radius=10, units='pixels', scale=1).
+    getPointRadius: toNumber(fd.point_radius, 1),
+    pointRadiusUnits: fd.point_radius_units ?? 'meters',
+    pointRadiusScale: toNumber(fd.point_radius_scale, 1),
     lineWidthUnits: fd.line_width_unit,
     pointType,
     ...labelOpts,

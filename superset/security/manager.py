@@ -342,11 +342,182 @@ PermissionModelView.include_route_methods = {RouteMethod.LIST}
 ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
 
 
+# Keys on an adhoc column/metric that a guest may legitimately change through a
+# supported native filter, and which therefore must not count as payload
+# tampering. The time grain of a temporal x-axis is baked into its `BASE_AXIS`
+# column by `normalizeTimeColumn` on the frontend (it copies
+# `extras.time_grain_sqla` onto the column), so a Time Grain filter alters the
+# column payload without changing which data is queried.
+GUEST_OVERRIDABLE_VALUE_KEYS = frozenset({"timeGrain"})
+
+
+def _strip_overridable_keys(value: Any) -> Any:
+    """
+    Recursively drop guest-overridable keys from a value.
+
+    Adhoc columns/metrics can be nested inside sequences (e.g. an ``orderby``
+    entry is a ``(column, bool)`` tuple), so the overridable keys must be
+    stripped at every level rather than only from a top-level dict.
+    """
+    if isinstance(value, dict):
+        return {
+            key: _strip_overridable_keys(val)
+            for key, val in value.items()
+            if key not in GUEST_OVERRIDABLE_VALUE_KEYS
+        }
+    if isinstance(value, (list, tuple)):
+        return [_strip_overridable_keys(item) for item in value]
+    return value
+
+
 def freeze_value(value: Any) -> str:
     """
     Used to compare column and metric sets.
+
+    Guest-overridable keys (e.g. the time grain baked into a temporal x-axis
+    column) are dropped so that legitimate native-filter changes don't read as
+    payload tampering.
     """
-    return json.dumps(value, sort_keys=True)
+    return json.dumps(_strip_overridable_keys(value), sort_keys=True)
+
+
+def _native_filter_allowed_targets(
+    query_context: "QueryContext", form_data: dict[str, Any]
+) -> Optional[tuple[set[str], set[str]]]:
+    """
+    Return ``(allowed_columns, allowed_metrics)`` a native-filter data request
+    may read, or ``None`` when the request cannot be tied to a native filter on
+    the requesting dashboard (in which case the caller must fail closed).
+
+    ``allowed_columns`` are the target column(s) of the filter identified by
+    ``native_filter_id`` that point at the request's datasource. ``allowed_metrics``
+    are the saved-metric name(s) the filter is configured to sort its values by
+    (``controlValues.sortMetric``), which a legitimate value lookup sends.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+    from superset.models.dashboard import Dashboard
+
+    native_filter_id = form_data.get("native_filter_id")
+    dashboard_id = form_data.get("dashboardId")
+    if not native_filter_id or not dashboard_id:
+        return None
+
+    dashboard = (
+        db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+    )
+    if dashboard is None or not dashboard.json_metadata:
+        return None
+    try:
+        metadata = json.loads(dashboard.json_metadata)
+    except (TypeError, ValueError):
+        return None
+
+    datasource = getattr(query_context, "datasource", None)
+    datasource_id = datasource.data.get("id") if datasource else None
+
+    allowed_columns: set[str] = set()
+    allowed_metrics: set[str] = set()
+    for fltr in metadata.get("native_filter_configuration", []):
+        if fltr.get("id") != native_filter_id:
+            continue
+        for target in fltr.get("targets", []):
+            column = target.get("column")
+            if (
+                target.get("datasetId") == datasource_id
+                and isinstance(column, dict)
+                and column.get("name")
+            ):
+                allowed_columns.add(column["name"])
+        # The filter may be configured to sort its values by a saved metric; a
+        # legitimate value lookup then sends that metric name.
+        sort_metric = (fltr.get("controlValues") or {}).get("sortMetric") or fltr.get(
+            "sortMetric"
+        )
+        if isinstance(sort_metric, str):
+            allowed_metrics.add(sort_metric)
+        # Filter ids are unique, so the matching filter is the only one.
+        break
+
+    return allowed_columns, allowed_metrics
+
+
+def _native_filter_term_allowed(
+    term: Any, allowed_columns: set[str], allowed_metrics: set[str]
+) -> bool:
+    """
+    Whether a value-returning term (metric or order-by expression) is allowed on
+    a native-filter request: a plain reference to a target column or the
+    configured sort metric, or a simple aggregate over a target column. Free-form
+    SQL terms and other saved metrics cannot be validated and are not allowed.
+    """
+    if isinstance(term, str):
+        return term in allowed_columns or term in allowed_metrics
+    if isinstance(term, dict) and term.get("expressionType") == "SIMPLE":
+        return (term.get("column") or {}).get("column_name") in allowed_columns
+    return False
+
+
+def _native_filter_query_modified(
+    query: Any, allowed_columns: set[str], allowed_metrics: set[str]
+) -> bool:
+    """Whether a single query in a native-filter request reads beyond its targets."""
+    # Columns and group-by may only reference target column(s); adhoc (free-form
+    # SQL) columns cannot be validated, so reject them.
+    for key in ("columns", "groupby"):
+        for col in getattr(query, key, None) or []:
+            if not isinstance(col, str) or col not in allowed_columns:
+                return True
+    for metric in getattr(query, "metrics", None) or []:
+        if not _native_filter_term_allowed(metric, allowed_columns, allowed_metrics):
+            return True
+    # order-by entries are ``(expression, asc)`` pairs.
+    for order in getattr(query, "orderby", None) or []:
+        expr = order[0] if isinstance(order, (list, tuple)) and order else order
+        if not _native_filter_term_allowed(expr, allowed_columns, allowed_metrics):
+            return True
+    return False
+
+
+def _native_filter_request_modified(query_context: "QueryContext") -> bool:
+    """
+    Validate a chartless data request that targets a native filter.
+
+    Only requests identified as native-filter lookups (by the ``NATIVE_FILTER``
+    type marker or a ``native_filter_id``) are constrained; other chartless
+    paths (drill-to-detail, drill-by, samples) carry neither and are validated by
+    the datasource-access checks in raise_for_access, so they are not treated as
+    modified here.
+
+    A native filter may only read the column(s) it targets on the dashboard it
+    belongs to. The request is treated as modified (and therefore rejected for
+    guest users) when it cannot be tied to a native filter on the requesting
+    dashboard, or when any value-returning term (column, group-by, metric, or
+    order-by) references something other than a target column, a simple
+    aggregate over a target column, or the filter's configured sort metric.
+    Free-form SQL terms and saved metrics other than the configured sort metric
+    are rejected. Row-restricting clauses (``filter``/``extras``) are not
+    constrained here: cross-filters legitimately reference other columns and
+    they do not return column values; that blind-inference surface is a separate
+    concern shared with the chart path.
+    """
+    form_data = query_context.form_data or {}
+    if not (
+        form_data.get("type") == "NATIVE_FILTER" or form_data.get("native_filter_id")
+    ):
+        return False
+    targets = _native_filter_allowed_targets(query_context, form_data)
+    # Fail closed when the request cannot be tied to a native filter.
+    if targets is None:
+        return True
+    # Empty allowed sets (filter resolved but no matching column/metric target)
+    # intentionally deny every value-returning term below.
+    allowed_columns, allowed_metrics = targets
+
+    return any(
+        _native_filter_query_modified(query, allowed_columns, allowed_metrics)
+        for query in query_context.queries
+    )
 
 
 def query_context_modified(query_context: "QueryContext") -> bool:
@@ -359,8 +530,14 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     form_data = query_context.form_data
     stored_chart = query_context.slice_
 
-    # native filter requests
-    if form_data is None or stored_chart is None:
+    # Native-filter data requests have no associated chart (no slice_id). Rather
+    # than accepting any payload, constrain them to the column(s) the dashboard's
+    # native filter is allowed to target; other chartless paths keep prior
+    # behavior (see _native_filter_request_modified).
+    if stored_chart is None:
+        return _native_filter_request_modified(query_context)
+
+    if form_data is None:
         return False
 
     # cannot request a different chart
@@ -2976,12 +3153,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
+        from flask import current_app
+
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
         from superset.models.sql_lab import Query
         from superset.utils.core import shortid
+
+        # Extension hook: bypass all permission checks if an external system
+        # (e.g. folder permissions) grants access to this resource.
+        if bypass := current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS"):
+            if bypass(
+                user_id=get_user_id(),
+                dashboard=dashboard,
+                chart=chart,
+                datasource=datasource,
+                query_context=query_context,
+            ):
+                logger.info(
+                    "EXTRA_RAISE_FOR_ACCESS_BYPASS granted access for user %s",
+                    get_user_id(),
+                )
+                return
 
         if sql and database:
             query = Query(
@@ -3970,6 +4165,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:
+            # Extension hook: check if the user is an extra owner
+            resolver = current_app.config.get("EXTRA_OWNERS_RESOLVER")
+            if resolver and not g.user.is_anonymous:
+                extra_owners = resolver(orig_resource)
+                user_id = g.user.id
+                if any(
+                    (u.id if hasattr(u, "id") else u.get("id")) == user_id
+                    for u in extra_owners
+                ):
+                    return
+
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
