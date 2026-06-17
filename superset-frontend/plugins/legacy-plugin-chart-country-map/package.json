@@ -34,6 +34,7 @@
     "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "@superset-ui/glyph-core": "*",
     "react": "^18.3.0"
   }
 }

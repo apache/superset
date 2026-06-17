@@ -487,9 +487,17 @@ function ChartRendererComponent({
     Object.keys(ownState.agGridFilterModel).length > 0;
 
   const currentFormDataExtended = currentFormData as JsonObject;
+
+  // Check if chart allows empty results (e.g., for drag-and-drop configuration)
+  const chartMetadata = getChartMetadataRegistry().get(vizType);
+  const allowsEmptyResults = chartMetadata?.behaviors?.includes(
+    Behavior.AllowsEmptyResults,
+  );
+
   const bypassNoResult = !(
-    currentFormDataExtended?.server_pagination &&
-    (hasSearchText || hasAgGridFilters)
+    (currentFormDataExtended?.server_pagination &&
+      (hasSearchText || hasAgGridFilters)) ||
+    allowsEmptyResults
   );
 
   return (

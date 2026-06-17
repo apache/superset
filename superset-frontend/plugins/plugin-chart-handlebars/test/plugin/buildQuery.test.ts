@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HandlebarsQueryFormData } from '../../src/types';
-import buildQuery from '../../src/plugin/buildQuery';
+import { HandlebarsQueryFormData, buildQuery } from '../../src/index';
 
 describe('Handlebars buildQuery', () => {
   const formData: HandlebarsQueryFormData = {

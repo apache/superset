@@ -17,21 +17,12 @@
  * under the License.
  */
 
-import {
-  SuperChart,
-  VizType,
-  getChartTransformPropsRegistry,
-} from '@superset-ui/core';
-import {
-  EchartsPieChartPlugin,
-  PieTransformProps,
-} from '@superset-ui/plugin-chart-echarts';
+import { SuperChart, VizType } from '@superset-ui/core';
+import { EchartsPieChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { weekday, population, sales } from './data';
 import { withResizableChartDemo } from '@storybook-shared';
 
 new EchartsPieChartPlugin().configure({ key: VizType.Pie }).register();
-
-getChartTransformPropsRegistry().registerValue(VizType.Pie, PieTransformProps);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Pie',

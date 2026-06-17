@@ -35,6 +35,7 @@
     "@superset-ui/chart-controls": "*",
     "@apache-superset/core": "*",
     "@superset-ui/core": "*",
+    "@superset-ui/glyph-core": "*",
     "ace-builds": "^1.4.14",
     "handlebars": "^4.7.8",
     "lodash": "^4.18.1",

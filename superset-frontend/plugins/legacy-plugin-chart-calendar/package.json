@@ -32,6 +32,7 @@
     "@emotion/react": "^11.4.1",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "@superset-ui/glyph-core": "*",
     "@apache-superset/core": "*",
     "react": "^18.3.0"
   },

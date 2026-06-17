@@ -22,7 +22,7 @@ import Handlebars from 'handlebars';
 // The end-to-end behavior (the bundling/minification regression) is covered by a
 // Playwright spec; these unit tests guard the helper's edge cases, which run fine
 // under Jest's Node environment without a browser.
-import '../../src/components/Handlebars/HandlebarsViewer';
+import '../../src';
 
 // Handlebars passes its options object as the trailing argument, so callers that
 // omit the optional locale still get a non-string final arg. Mimic that here.

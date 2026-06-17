@@ -41,7 +41,7 @@ import {
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/preset-chart-deckgl';
 import ScatterMapChartPlugin from '@superset-ui/plugin-chart-point-cluster-map';
-import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
+import { createCartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
 import {
   BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
@@ -84,7 +84,7 @@ import {
   DeckglLayerVisibilityCustomizationPlugin,
 } from 'src/chartCustomizations/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
-import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
+import HandlebarsChartPlugin from '@superset-ui/plugin-chart-handlebars';
 import { ChartCustomizationPlugins, FilterPlugins } from 'src/constants';
 import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
@@ -196,7 +196,7 @@ export default class MainPreset extends Preset {
         new EchartsSunburstChartPlugin().configure({ key: VizType.Sunburst }),
         new HandlebarsChartPlugin().configure({ key: VizType.Handlebars }),
         new EchartsBubbleChartPlugin().configure({ key: VizType.Bubble }),
-        new CartodiagramPlugin({
+        new (createCartodiagramPlugin({
           defaultLayers: [
             {
               type: 'WMS',
@@ -208,7 +208,7 @@ export default class MainPreset extends Preset {
                 '© Map data from <a href="openstreetmap.org/copyright">OpenStreetMap</a>. Service provided by <a href="https://www.terrestris.de">terrestris GmbH & Co. KG</a>',
             },
           ],
-        }).configure({ key: VizType.Cartodiagram }),
+        }))().configure({ key: VizType.Cartodiagram }),
         ...experimentalPlugins,
         ...agGridTablePlugin,
       ],

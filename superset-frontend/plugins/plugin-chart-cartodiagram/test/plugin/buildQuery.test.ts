@@ -17,7 +17,7 @@
  * under the License.
  */
 import { getChartBuildQueryRegistry } from '@superset-ui/core';
-import buildQuery from '../../src/plugin/buildQuery';
+import { buildQuery } from '../../src/index';
 
 describe('CartodiagramPlugin buildQuery', () => {
   const selectedChartParams = {

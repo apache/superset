@@ -23,7 +23,7 @@
   "homepage": "https://github.com/apache-superset/superset-ui#readme",
   "contributors": [
     "terrestris GmbH & Co. KG <info@terrestris.de> (https://www.terrestris.de)",
-    "meggsimum - Büro für Geoinformatik <info@meggsimum.de> (https://meggsimum.de)"
+    "meggsimum - B\u00fcro f\u00fcr Geoinformatik <info@meggsimum.de> (https://meggsimum.de)"
   ],
   "publishConfig": {
     "access": "public"
@@ -39,6 +39,7 @@
     "@reduxjs/toolkit": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "@superset-ui/glyph-core": "*",
     "@types/react-redux": "*",
     "geostyler": "^18.3.1",
     "geostyler-data": "^1.0.0",

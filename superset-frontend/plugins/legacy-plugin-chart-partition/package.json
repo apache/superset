@@ -31,6 +31,7 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "@apache-superset/core": "*",
+    "@superset-ui/glyph-core": "*",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^14.0.0",
     "react": "^18.3.0",

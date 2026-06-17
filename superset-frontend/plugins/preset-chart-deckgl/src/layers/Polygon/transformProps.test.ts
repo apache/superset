@@ -18,7 +18,7 @@
  */
 
 import { ChartProps, DatasourceType } from '@superset-ui/core';
-import transformProps from './transformProps';
+import { transformProps } from '.';
 
 interface PolygonFeature {
   polygon?: number[][];

@@ -60,7 +60,9 @@
       "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
       "@superset-ui/legacy-plugin-chart-*": ["./plugins/legacy-plugin-chart-*/src"],
       "@superset-ui/legacy-preset-chart-*": ["./plugins/legacy-preset-chart-*/src"],
-      "echarts/types/src/*": ["./node_modules/echarts/types/src/*"]
+      "echarts/types/src/*": ["./node_modules/echarts/types/src/*"],
+      "@superset-ui/glyph-core": ["./packages/superset-ui-glyph-core/src"],
+      "@superset-ui/glyph-core/*": ["./packages/superset-ui-glyph-core/src/*"]
     }
   },
   "include": [
@@ -78,6 +80,7 @@
     { "path": "./packages/superset-core" },
     { "path": "./packages/superset-ui-core" },
     { "path": "./packages/superset-ui-chart-controls" },
+    { "path": "./packages/superset-ui-glyph-core" },
     { "path": "./packages/superset-ui-switchboard" },
     { "path": "./plugins/legacy-plugin-chart-calendar" },
     { "path": "./plugins/legacy-plugin-chart-chord" },

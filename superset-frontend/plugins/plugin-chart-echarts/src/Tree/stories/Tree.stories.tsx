@@ -17,20 +17,12 @@
  * under the License.
  */
 
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import {
-  EchartsTreeChartPlugin,
-  TreeTransformProps,
-} from '@superset-ui/plugin-chart-echarts';
+import { SuperChart } from '@superset-ui/core';
+import { EchartsTreeChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import { withResizableChartDemo } from '@storybook-shared';
 
 new EchartsTreeChartPlugin().configure({ key: 'echarts-tree' }).register();
-
-getChartTransformPropsRegistry().registerValue(
-  'echarts-tree',
-  TreeTransformProps,
-);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Tree',

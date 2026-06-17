@@ -16,26 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  SuperChart,
-  VizType,
-  getChartTransformPropsRegistry,
-} from '@superset-ui/core';
-import {
-  EchartsWaterfallChartPlugin,
-  WaterfallTransformProps,
-} from '@superset-ui/plugin-chart-echarts';
+import { SuperChart, VizType } from '@superset-ui/core';
+import { EchartsWaterfallChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import { withResizableChartDemo } from '@storybook-shared';
 
 new EchartsWaterfallChartPlugin()
   .configure({ key: VizType.Waterfall })
   .register();
-
-getChartTransformPropsRegistry().registerValue(
-  VizType.Waterfall,
-  WaterfallTransformProps,
-);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Waterfall',

@@ -27,6 +27,11 @@ module.exports = {
     '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.tsx',
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
+    // mapping glyph-core to local package source
+    '^@superset-ui/glyph-core$':
+      '<rootDir>/packages/superset-ui-glyph-core/src',
+    '^@superset-ui/glyph-core/(.*)$':
+      '<rootDir>/packages/superset-ui-glyph-core/src/$1',
     // mapping plugins of superset-ui to source code
     '^@superset-ui/([^/]+)/(.*)$':
       '<rootDir>/node_modules/@superset-ui/$1/src/$2',

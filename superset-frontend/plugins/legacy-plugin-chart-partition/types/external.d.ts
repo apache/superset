@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-declare module '*.png' {
-  const value: string;
+declare module "*.png" {
+  const value: any;
   export default value;
 }
-
-declare module '*.jpg' {
-  const value: string;
+declare module "*.jpg" {
+  const value: any;
   export default value;
 }

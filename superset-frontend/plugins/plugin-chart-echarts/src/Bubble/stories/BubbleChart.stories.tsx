@@ -16,24 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  EchartsBubbleChartPlugin,
-  BubbleTransformProps,
-} from '@superset-ui/plugin-chart-echarts';
-import {
-  SuperChart,
-  VizType,
-  getChartTransformPropsRegistry,
-} from '@superset-ui/core';
+import { EchartsBubbleChartPlugin } from '@superset-ui/plugin-chart-echarts';
+import { SuperChart, VizType } from '@superset-ui/core';
 import { simpleBubbleData } from './data';
 import { withResizableChartDemo } from '@storybook-shared';
 
 new EchartsBubbleChartPlugin().configure({ key: VizType.Bubble }).register();
-
-getChartTransformPropsRegistry().registerValue(
-  VizType.Bubble,
-  BubbleTransformProps,
-);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts',

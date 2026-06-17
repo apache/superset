@@ -841,3 +841,14 @@ export const generateDeckGLColorSchemeControls = ({
   [breakpointsDefaultColor],
   [deckGLColorBreakpointsSelect],
 ];
+
+// ─── Shared section definitions ──────────────────────────────────────────────
+
+/**
+ * Standard "Advanced" section shared by all DeckGL layers.
+ * Contains JS customization controls (columns, data mutator, tooltip, onclick).
+ */
+export const DECKGL_ADVANCED_SECTION = {
+  label: t('Advanced'),
+  controlSetRows: [[jsColumns], [jsDataMutator], [jsTooltip], [jsOnclickHref]],
+};

@@ -17,22 +17,14 @@
  * under the License.
  */
 
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import {
-  EchartsTreemapChartPlugin,
-  TreemapTransformProps,
-} from '@superset-ui/plugin-chart-echarts';
+import { SuperChart } from '@superset-ui/core';
+import { EchartsTreemapChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import { withResizableChartDemo } from '@storybook-shared';
 
 new EchartsTreemapChartPlugin()
   .configure({ key: 'echarts-treemap' })
   .register();
-
-getChartTransformPropsRegistry().registerValue(
-  'echarts-treemap',
-  TreemapTransformProps,
-);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Treemap',

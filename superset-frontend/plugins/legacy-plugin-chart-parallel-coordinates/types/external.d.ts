@@ -16,18 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 declare module '*.png' {
-  const value: string;
+  const value: any;
   export default value;
 }
-
 declare module '*.jpg' {
-  const value: string;
+  const value: any;
   export default value;
 }
-
-declare module 'd3v3' {
-  const d3: Record<string, Function>;
-  export = d3;
-}
+declare module 'd3v3';

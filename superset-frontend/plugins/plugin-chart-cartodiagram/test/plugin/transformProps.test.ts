@@ -19,7 +19,7 @@
 import { ChartProps, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { LayerConf, MapViewConfigs, ZoomConfigs } from '../../src/types';
-import transformProps from '../../src/plugin/transformProps';
+import { transformProps } from '../../src/index';
 import {
   groupedTimeseriesChartData,
   groupedTimeseriesLabelMap,

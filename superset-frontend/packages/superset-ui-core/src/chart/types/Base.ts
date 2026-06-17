@@ -33,6 +33,14 @@ export enum Behavior {
    */
   DrillToDetail = 'DRILL_TO_DETAIL',
   DrillBy = 'DRILL_BY',
+
+  /**
+   * Include `ALLOWS_EMPTY_RESULTS` behavior if the chart handles empty/no data
+   * gracefully (e.g., showing a drop zone for drag-and-drop configuration).
+   * Charts with this behavior will receive empty data instead of seeing
+   * the "No results" message.
+   */
+  AllowsEmptyResults = 'ALLOWS_EMPTY_RESULTS',
 }
 
 export interface ContextMenuFilters {

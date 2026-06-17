@@ -35,6 +35,7 @@
     "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "@superset-ui/glyph-core": "*",
     "dayjs": "^1.11.21",
     "echarts": "*",
     "memoize-one": "*",

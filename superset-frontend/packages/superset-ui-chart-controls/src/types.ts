@@ -415,6 +415,8 @@ export interface ControlPanelSectionConfig {
     props: ControlPanelsContainerProps,
     controlData: AnyDict,
   ) => boolean;
+  /** @internal Marks the auto-generated glyph "Chart Options" section */
+  _glyphChartOptions?: boolean;
 }
 
 export interface StandardizedControls {
@@ -447,6 +449,8 @@ export interface ControlPanelConfig {
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
   formDataOverrides?: (formData: QueryFormData) => QueryFormData;
+  /** @internal Raw glyph argument definitions from defineChart() – used for native control panel rendering */
+  _glyphArgs?: unknown;
 }
 
 export type ControlOverrides = {

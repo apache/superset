@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import buildQuery, { DeckScatterFormData } from './buildQuery';
+import { buildQuery, DeckScatterFormData } from '.';
 
 const baseFormData: DeckScatterFormData = {
   datasource: '1__table',

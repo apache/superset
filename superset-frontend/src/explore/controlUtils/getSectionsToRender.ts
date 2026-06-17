@@ -36,6 +36,7 @@ const getMemoizedSectionsToRender = memoizeOne(
       sectionOverrides = {},
       controlOverrides,
       controlPanelSections = [],
+      _glyphArgs,
     } = controlPanelConfig;
 
     // default control panel sections
@@ -94,7 +95,22 @@ const getMemoizedSectionsToRender = memoizeOne(
                     typeof control !== 'string' ||
                     !invalidControls.includes(control),
                 )
-                .map(item => expandControlConfig(item, controlOverrides)),
+                .map(item => {
+                  // For glyph-core charts (_glyphArgs present), already-resolved
+                  // { name, config } objects skip expandControlConfig: Control.tsx
+                  // resolves string type names itself via controlMap, and these
+                  // objects have no string shortcuts to look up in sharedControls.
+                  if (
+                    _glyphArgs &&
+                    item &&
+                    typeof item === 'object' &&
+                    'name' in item &&
+                    'config' in item
+                  ) {
+                    return item;
+                  }
+                  return expandControlConfig(item, controlOverrides);
+                }),
             ) || [],
         };
       })

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import CartodiagramPlugin from '../../src/CartodiagramPlugin';
+import { createCartodiagramPlugin as CartodiagramPlugin } from '../../src/index';
 
 describe('CartodiagramPlugin', () => {
   test('exists', () => {

@@ -17,11 +17,8 @@
  * under the License.
  */
 
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import {
-  EchartsTimeseriesChartPlugin,
-  TimeseriesTransformProps,
-} from '@superset-ui/plugin-chart-echarts';
+import { SuperChart } from '@superset-ui/core';
+import { EchartsTimeseriesChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import negativeNumData from './negativeNumData';
 import confbandData from './confbandData';
@@ -31,11 +28,6 @@ import { withResizableChartDemo } from '@storybook-shared';
 new EchartsTimeseriesChartPlugin()
   .configure({ key: 'echarts-timeseries' })
   .register();
-
-getChartTransformPropsRegistry().registerValue(
-  'echarts-timeseries',
-  TimeseriesTransformProps,
-);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/SeriesChart',

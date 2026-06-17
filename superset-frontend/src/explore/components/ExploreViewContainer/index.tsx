@@ -23,6 +23,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { bindActionCreators, Dispatch } from 'redux';
@@ -579,7 +580,20 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     }
   }, [isDynamicPluginLoading]);
 
+  // Track if the initial-query decision has been made (a ref: no extra render)
+  const hasEvaluatedInitialQuery = useRef(false);
+
+  // Trigger the initial query once, as soon as dynamic plugin loading (if any)
+  // has settled. This is a one-shot evaluation: if the chart opens with
+  // validation errors, no query fires — then or later. Auto-running a query
+  // when the user later fixes the last invalid control would bypass the
+  // explicit "Create chart" flow and fire unrequested queries.
   useEffect(() => {
+    if (hasEvaluatedInitialQuery.current || isDynamicPluginLoading) {
+      return;
+    }
+    hasEvaluatedInitialQuery.current = true;
+
     const hasError = Object.values(props.controls).some(
       control =>
         control.validationErrors && control.validationErrors.length > 0,
@@ -587,7 +601,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     if (!hasError) {
       props.actions.triggerQuery(true, props.chart.id);
     }
-  }, []);
+  }, [props.controls, isDynamicPluginLoading]);
 
   const reRenderChart = useCallback(
     (controlsChanged?: string[]) => {

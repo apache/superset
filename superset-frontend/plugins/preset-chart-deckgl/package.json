@@ -65,6 +65,7 @@
     "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "@superset-ui/glyph-core": "*",
     "dayjs": "^1.11.21",
     "mapbox-gl": ">=1.0.0",
     "react": "^18.3.0",

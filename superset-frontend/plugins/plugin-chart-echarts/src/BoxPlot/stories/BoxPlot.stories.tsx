@@ -17,22 +17,14 @@
  * under the License.
  */
 
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import {
-  EchartsBoxPlotChartPlugin,
-  BoxPlotTransformProps,
-} from '@superset-ui/plugin-chart-echarts';
+import { SuperChart } from '@superset-ui/core';
+import { EchartsBoxPlotChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import { withResizableChartDemo } from '@storybook-shared';
 
 new EchartsBoxPlotChartPlugin()
   .configure({ key: 'echarts-boxplot' })
   .register();
-
-getChartTransformPropsRegistry().registerValue(
-  'echarts-boxplot',
-  BoxPlotTransformProps,
-);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/BoxPlot',

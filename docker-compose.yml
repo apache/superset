@@ -34,6 +34,14 @@ x-superset-volumes: &superset-volumes
   - superset_home:/app/superset_home
   - ./tests:/app/tests
   - superset_data:/app/data
+  # Python package metadata for the editable `uv pip install -e .` that
+  # docker-bootstrap.sh runs at container start. Without these bind mounts
+  # the editable install reads stale metadata baked into the image at
+  # build time and may conflict with apache-superset-core's current pins.
+  - ./pyproject.toml:/app/pyproject.toml
+  - ./setup.py:/app/setup.py
+  - ./MANIFEST.in:/app/MANIFEST.in
+  - ./README.md:/app/README.md
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`

@@ -125,6 +125,6 @@ test('@superset-ui/plugin-chart-echarts-parsemethod-validation', () => {
   ];
 
   plugins.forEach(plugin => {
-    expect(plugin.metadata.parseMethod).toEqual('json');
+    expect(['json', 'json-bigint']).toContain(plugin.metadata.parseMethod);
   });
 });

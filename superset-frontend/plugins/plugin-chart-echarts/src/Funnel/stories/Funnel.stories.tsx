@@ -17,24 +17,12 @@
  * under the License.
  */
 
-import {
-  SuperChart,
-  VizType,
-  getChartTransformPropsRegistry,
-} from '@superset-ui/core';
-import {
-  EchartsFunnelChartPlugin,
-  FunnelTransformProps,
-} from '@superset-ui/plugin-chart-echarts';
+import { SuperChart, VizType } from '@superset-ui/core';
+import { EchartsFunnelChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { dataSource } from './constants';
 import { withResizableChartDemo } from '@storybook-shared';
 
 new EchartsFunnelChartPlugin().configure({ key: VizType.Funnel }).register();
-
-getChartTransformPropsRegistry().registerValue(
-  VizType.Funnel,
-  FunnelTransformProps,
-);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Funnel',

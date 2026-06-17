@@ -17,24 +17,12 @@
  * under the License.
  */
 
-import {
-  SuperChart,
-  getChartTransformPropsRegistry,
-  VizType,
-} from '@superset-ui/core';
-import {
-  EchartsAreaChartPlugin,
-  TimeseriesTransformProps,
-} from '@superset-ui/plugin-chart-echarts';
+import { SuperChart, VizType } from '@superset-ui/core';
+import { EchartsAreaChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import { withResizableChartDemo } from '@storybook-shared';
 
 new EchartsAreaChartPlugin().configure({ key: VizType.Area }).register();
-
-getChartTransformPropsRegistry().registerValue(
-  VizType.Area,
-  TimeseriesTransformProps,
-);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts',

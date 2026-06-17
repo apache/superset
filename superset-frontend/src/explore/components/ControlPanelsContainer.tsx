@@ -71,6 +71,8 @@ import Tabs from '@superset-ui/core/components/Tabs';
 import { PluginContext } from 'src/components';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
 
+import { type ChartArguments } from '@superset-ui/glyph-core';
+import GlyphOptionsPanel from './GlyphOptionsPanel';
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
@@ -937,6 +939,29 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     return <Loading />;
   }
 
+  // For glyph-core charts, _glyphArgs holds the raw arg definitions from defineChart().
+  // We use them to render the Chart Options section natively (no ControlPanelConfig
+  // string expansion, no Redux controls-state for values or visibility).
+  const currentConfig = controlPanelRegistry.get(form_data.viz_type) as {
+    _glyphArgs?: unknown;
+  } | null;
+  const glyphArgs = currentConfig?._glyphArgs as ChartArguments | undefined;
+
+  // The auto-generated Chart Options section (rendered by GlyphOptionsPanel when
+  // present). Identified by the structural _glyphChartOptions marker stamped by
+  // generateControlPanel — never by label, so hand-written sections that happen
+  // to be named "Chart Options" are not hijacked.
+  const glyphChartOptionsSection = glyphArgs
+    ? (customizeSections.find(s => s._glyphChartOptions) as
+        | ExpandedControlPanelSectionConfig
+        | undefined)
+    : undefined;
+  // Sections in the Customize tab other than the Chart Options one
+  // (e.g. additionalSections with custom tabOverrides, Time Comparison, etc.)
+  const remainingCustomizeSections = glyphArgs
+    ? customizeSections.filter(s => !s._glyphChartOptions)
+    : customizeSections;
+
   return (
     <>
       <Styles ref={containerRef}>
@@ -969,13 +994,33 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                     key: TABS_KEYS.CUSTOMIZE,
                     label: t('Customize'),
                     children: (
-                      <Collapse
-                        defaultActiveKey={expandedCustomizeSections}
-                        expandIconPosition="end"
-                        ghost
-                        bordered
-                        items={customizeSections.map(renderControlPanelSection)}
-                      />
+                      <>
+                        {glyphArgs && glyphChartOptionsSection ? (
+                          // Glyph-core charts: hybrid rendering for Chart Options.
+                          // Glyph args: value + visibility from formData directly.
+                          // Additional controls (additionalControls.chartOptions): existing path.
+                          <GlyphOptionsPanel
+                            glyphArgs={glyphArgs}
+                            chartOptionsSection={glyphChartOptionsSection}
+                            formData={form_data}
+                            controls={props.controls}
+                            actions={actions}
+                            renderControl={renderControl}
+                            defaultExpandedKeys={expandedCustomizeSections}
+                          />
+                        ) : null}
+                        {remainingCustomizeSections.length > 0 && (
+                          <Collapse
+                            defaultActiveKey={expandedCustomizeSections}
+                            expandIconPosition="end"
+                            ghost
+                            bordered
+                            items={remainingCustomizeSections.map(
+                              renderControlPanelSection,
+                            )}
+                          />
+                        )}
+                      </>
                     ),
                   },
                 ]

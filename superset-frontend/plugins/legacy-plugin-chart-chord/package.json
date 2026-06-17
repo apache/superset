@@ -36,6 +36,7 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@apache-superset/core": "*"
+    "@apache-superset/core": "*",
+    "@superset-ui/glyph-core": "*"
   }
 }

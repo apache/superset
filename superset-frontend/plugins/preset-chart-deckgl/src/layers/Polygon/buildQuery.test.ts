@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import buildQuery, { DeckPolygonFormData } from './buildQuery';
+import { buildQuery, DeckPolygonFormData } from '.';
 
 describe('Polygon buildQuery', () => {
   const baseFormData: DeckPolygonFormData = {
