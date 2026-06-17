@@ -101,8 +101,8 @@
     "@types/tinycolor2": "*",
     "antd": "^5.26.0",
     "nanoid": "^5.0.9",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
     "react-loadable": "^5.5.0",
     "tinycolor2": "*"
   },

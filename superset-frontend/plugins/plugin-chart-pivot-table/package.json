@@ -33,8 +33,8 @@
     "@superset-ui/core": "*",
     "lodash": "^4.18.1",
     "prop-types": "*",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
     "@babel/types": "^7.29.7",
