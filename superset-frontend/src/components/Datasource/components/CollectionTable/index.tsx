@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useState, useCallback, useEffect, useMemo } from 'react';
+import {
+  ReactNode,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core/translation';
 import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
@@ -96,11 +103,18 @@ export default function CRUDCollection({
   const [expandedColumns, setExpandedColumns] = useState<
     Record<PropertyKey, boolean>
   >({});
+  // Seed both pieces of state from a single createKeyedCollection() pass so
+  // that items lacking an `id` get one consistent set of synthetic ids
+  // (matching the prior class component, which keyed the collection once).
+  const initialKeyed = useRef<ReturnType<typeof createKeyedCollection>>();
+  if (!initialKeyed.current) {
+    initialKeyed.current = createKeyedCollection(propsCollection);
+  }
   const [collection, setCollection] = useState<
     Record<PropertyKey, CollectionItem>
-  >(() => createKeyedCollection(propsCollection).collection);
+  >(() => initialKeyed.current!.collection);
   const [collectionArray, setCollectionArray] = useState<CollectionItem[]>(
-    () => createKeyedCollection(propsCollection).collectionArray,
+    () => initialKeyed.current!.collectionArray,
   );
   const [sortColumn, setSortColumn] = useState<string>('');
   const [sort, setSort] = useState<SortOrderEnum>(SortOrderEnum.Unsorted);
