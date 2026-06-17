@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1247,6 +1247,10 @@ msgstr "Pridať nový formátovač farieb"
 msgid "Add new formatter"
 msgstr "Pridať nový formátovač"
 
+#, fuzzy
+msgid "Add numbered column"
+msgstr " pre pridanie počítaných stĺpcov"
+
 msgid "Add or edit display controls"
 msgstr "Pridať alebo upraviť ovládací prvky zobrazenie"
 
@@ -1807,7 +1811,7 @@ msgstr "Pri načítavanie hodnôt schématu došlo k chybe: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Pri načítavanie dostupných témat došlo k chybe"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Pri načítavanie hodnôt schématu došlo k chybe: %s"
 
@@ -1880,7 +1884,7 @@ msgstr "Pri parsovanie klíče došlo k chybe."
 msgid "An error occurred while pruning logs "
 msgstr "Pri mazaní protokolov došlo k chybe "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Pri vykreslovanie vizualizácia došlo k chybe: %s"
 
@@ -2441,7 +2445,7 @@ msgstr "Exponent základu"
 msgid "Base height"
 msgstr "Výška základu"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Styl mapy základný vrstvy. Viz dokumentaci Mapbox: %s"
 
@@ -4227,6 +4231,13 @@ msgstr "Vlastný SQL"
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Vlastný SQL ad-hoc metriky nesú pre tuto sadu dat povoleny"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Vlastný pole SQL nemôžu obsahovať poddotazy."
+
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Vlastný pole SQL nemôžu obsahovať poddotazy."
 
@@ -4621,6 +4632,9 @@ msgstr "Nastavenie databáza aktualizované"
 
 msgid "Database type does not support file uploads."
 msgstr "Typ databáza nepodporuje nahrávanie súborov."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Nahranie súboru do databáza zlyhalo"
@@ -5714,8 +5728,8 @@ msgstr "Trvanie v ms (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Trvanie v ms (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Trvanie v ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Trvanie v ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Trvanie v ms (66000 => 1m 6s)"
@@ -9362,7 +9376,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Žiadne stĺpce tabuľky"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Zatiaľ žiadne %s"
 
@@ -9450,6 +9464,10 @@ msgstr "Nedefinováno"
 
 msgid "Not equal to (≠)"
 msgstr "Nerovná sa (≠)"
+
+#, fuzzy
+msgid "Not found"
+msgstr "Graf nenalezen"
 
 msgid "Not in"
 msgstr "Nie je v"
@@ -10505,6 +10523,12 @@ msgstr "ID projektu"
 msgid "Proportional"
 msgstr "Proporcionální"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Zveřejneno"
 
@@ -10764,9 +10788,6 @@ msgstr "Registrovať"
 #, fuzzy
 msgid "Registration date"
 msgstr "Dátum registrácia"
-
-msgid "Registration hash"
-msgstr "Hash registrácia"
 
 msgid "Registration successful"
 msgstr "Registrácia úspešná"
@@ -11275,6 +11296,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "Dotazy SQL Labu"
@@ -15548,6 +15575,9 @@ msgstr "Napište hodnotu"
 msgid "Type is required"
 msgstr "Typ je povinný"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr "Typ grafu pre zobrazenie ve sparkline"
 
@@ -15711,6 +15741,12 @@ msgstr "Vrátiť akci späť"
 
 msgid "Undo?"
 msgstr "Späť?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+"Došlo k neočekávané chybe, skontrolujte prosím svoje protokoly pre "
+"podrobnosti"
 
 msgid "Unexpected error"
 msgstr "Neočekávaná chyba"
@@ -16668,6 +16704,10 @@ msgstr "Či zobraziť minimální a maximální hodnoty osy X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Či zobraziť minimální a maximální hodnoty osy Y"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Či zobraziť trendovou čáru"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Či zobraziť číselné hodnoty v buňkách"
 
@@ -17349,6 +17389,10 @@ msgstr ""
 
 msgid "`operation` property of post processing object undefined"
 msgstr "vlastnosť `operation` objektu následného spracovanie nie je definována"
+
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
 
 msgid "`prophet` package not installed"
 msgstr "balíček `prophet` nie je nainstalován"
@@ -18275,25 +18319,8 @@ msgstr "your-project-1234-a1"
 msgid "zoom area"
 msgstr "oblasť priblíženie"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
-
 msgid "© Layer attribution"
 msgstr "© Atribuce vrstvy"
+
+msgid "№"
+msgstr ""

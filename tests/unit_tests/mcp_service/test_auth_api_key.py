@@ -23,6 +23,7 @@ The streamable-http transport does not push a Flask request context, so
 ``flask.request``. These tests mock ``get_access_token`` accordingly.
 """
 
+import logging
 from collections.abc import Generator
 from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
@@ -181,6 +182,55 @@ def test_api_key_disabled_skips_auth(app: SupersetApp) -> None:
                 get_user_from_request()
 
     mock_sm.validate_api_key.assert_not_called()
+
+
+@pytest.mark.usefixtures("_disable_api_keys")
+def test_unauthenticated_error_does_not_leak_config(
+    app: SupersetApp, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The error returned to an unauthenticated client must not reveal which
+    auth mechanisms are configured; the diagnostics stay in the server log."""
+    # Snapshot and restore config: the ``app`` fixture is module-scoped, so
+    # leaving these set would leak into later tests in this module.
+    sentinel = object()
+    saved_auth = app.config.get("MCP_AUTH_ENABLED", sentinel)
+    saved_secret = app.config.get("MCP_JWT_SECRET", sentinel)
+    app.config["MCP_AUTH_ENABLED"] = True
+    app.config["MCP_JWT_SECRET"] = "super-secret-value"  # noqa: S105
+
+    try:
+        with app.test_request_context():
+            g.user = None
+            with caplog.at_level(logging.WARNING, logger="superset.mcp_service.auth"):
+                with pytest.raises(
+                    MCPNoAuthSourceError, match="Authentication required"
+                ) as exc_info:
+                    get_user_from_request()
+    finally:
+        for key, saved in (
+            ("MCP_AUTH_ENABLED", saved_auth),
+            ("MCP_JWT_SECRET", saved_secret),
+        ):
+            if saved is sentinel:
+                app.config.pop(key, None)
+            else:
+                app.config[key] = saved
+
+    message = str(exc_info.value)
+    assert message == "Authentication required. No valid credentials provided."
+    for leaked in (
+        "MCP_AUTH_ENABLED",
+        "JWT keys configured",
+        "API key",
+        "MCP_DEV_USERNAME",
+        "super-secret-value",
+    ):
+        assert leaked not in message
+
+    # The diagnostics the client must not see are still emitted server-side.
+    server_log = caplog.text
+    assert "could not be authenticated" in server_log
+    assert "MCP_AUTH_ENABLED=True" in server_log
 
 
 # -- No AccessToken -> API key auth skipped --

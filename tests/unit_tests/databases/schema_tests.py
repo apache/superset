@@ -393,3 +393,34 @@ def test_ssh_tunnel_server_address_rejects_non_hostnames() -> None:
     for bad in ("http://evil/", "1.2.3.4/../x", "a b", "file:///etc/passwd"):
         with pytest.raises(ValidationError):
             schema.load({**base, "server_address": bad})
+
+
+def test_ssh_tunnel_credentials_load_only() -> None:
+    """
+    Credential fields on DatabaseSSHTunnel are accepted on input (load) but
+    never serialized in output (dump).
+    """
+    from superset.databases.schemas import DatabaseSSHTunnel
+
+    schema = DatabaseSSHTunnel()
+    payload = {
+        "server_address": "localhost",
+        "server_port": 22,
+        "username": "user",
+        "password": "secret",  # noqa: S106
+        "private_key": "PRIVATE",
+        "private_key_password": "keysecret",  # noqa: S106
+    }
+
+    # Load accepts the credential fields
+    loaded = schema.load(payload)
+    assert loaded["password"] == "secret"  # noqa: S105
+    assert loaded["private_key"] == "PRIVATE"
+    assert loaded["private_key_password"] == "keysecret"  # noqa: S105
+
+    # Dump never emits the credential fields
+    dumped = schema.dump(payload)
+    assert "password" not in dumped
+    assert "private_key" not in dumped
+    assert "private_key_password" not in dumped
+    assert dumped["server_address"] == "localhost"
