@@ -30,12 +30,15 @@ if TYPE_CHECKING:
     from flask import Response
 
 
-def set_version_etag(response: "Response", version_uuid: UUID | None) -> "Response":
+def set_version_etag(
+    response: "Response", version_uuid: UUID | str | None
+) -> "Response":
     """Attach ``ETag: "<version_uuid>"`` to *response*.
 
     Uses RFC 7232 strong-validator form (no leading ``W/``); the response
     header value is wrapped in double quotes per the spec. No-op when
-    *version_uuid* is ``None`` (entity has no version rows yet).
+    *version_uuid* is ``None`` (entity has no version rows yet). Accepts a
+    ``UUID`` or a pre-stringified uuid (the write endpoints carry the latter).
     """
     if version_uuid is not None:
         response.headers["ETag"] = f'"{version_uuid}"'

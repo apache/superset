@@ -666,23 +666,51 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             versioning_manager.track_cloned_connections,
         )
 
+        # Belt-and-suspenders: flip Continuum's master option off as well.
+        # Every write listener checks ``manager.options['versioning']`` before
+        # doing work (manager.py / unit_of_work.py), so if a future Continuum
+        # version registers an additional write listener this detach does not
+        # know to remove, that listener still no-ops. ``version_class()`` reads
+        # from ``version_class_map`` and ignores this option, so the read-only
+        # ``/versions/`` endpoints are unaffected.
+        versioning_manager.options["versioning"] = False
+
+        # Verify the known write listeners are actually gone. A Continuum
+        # upgrade that renamed a handler would make the removals above silently
+        # miss, leaving capture half-on while we report "disabled"; surface
+        # that rather than booting in a contradictory state.
+        if sa.event.contains(
+            sa.orm.Mapper, "after_insert", versioning_manager.track_inserts
+        ):
+            logger.warning(
+                "versioning: Continuum write listeners still attached after "
+                "detach; capture may not be fully disabled. This usually means "
+                "the pinned sqlalchemy-continuum version changed how it "
+                "registers listeners."
+            )
+
     def init_versioning(self) -> None:
         """Register SQLAlchemy-Continuum baseline and retention listeners.
 
         Must be called after all versioned model classes have been imported so
         that VERSIONED_MODELS can be populated and configure_mappers() has run.
 
-        ``ENABLE_VERSIONING_CAPTURE`` (default ``True``) gates the two
+        ``ENABLE_VERSIONING_CAPTURE`` (ships default ``False``) gates the two
         before-flush listener registrations. The flag is operational, not
-        feature: every deployment captures version history by default. The
-        switch exists so an operator who observes a versioning-induced
-        regression (e.g. a save-path slowdown attributable to the
-        change-record listener) can disable capture in
-        ``superset_config.py`` and restart workers — a 30-second recovery
-        instead of revert-and-redeploy. Shadow tables already created by
-        the migration stay; they just stop accumulating new rows.
+        feature: with it off the infrastructure is inert (no save writes
+        shadow rows); flipping it on activates capture. The switch also lets
+        an operator who observes a versioning-induced regression (e.g. a
+        save-path slowdown attributable to the change-record listener)
+        disable capture in ``superset_config.py`` and restart workers — a
+        30-second recovery instead of revert-and-redeploy. Shadow tables
+        already created by the migration stay; they just stop accumulating
+        new rows.
+
+        The fallback here is ``False`` so that any app-factory path that
+        does not load ``superset.config`` (some test factories, embedded
+        use) stays inert by default rather than silently enabling capture.
         """
-        if not self.config.get("ENABLE_VERSIONING_CAPTURE", True):
+        if not self.config.get("ENABLE_VERSIONING_CAPTURE", False):
             logger.warning(
                 "versioning: ENABLE_VERSIONING_CAPTURE is False; "
                 "skipping baseline + change-record listener registration "

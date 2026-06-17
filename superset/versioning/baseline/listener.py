@@ -33,10 +33,12 @@ have been imported. It registers one ``before_flush`` listener on
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sqlalchemy import event
 from sqlalchemy.orm import Session
+from sqlalchemy_continuum import versioning_manager
 
 from superset.versioning.baseline.collection import (
     collect_parents_to_baseline,
@@ -46,6 +48,8 @@ from superset.versioning.baseline.collection import (
 )
 from superset.versioning.baseline.dirty import force_parent_dirty_on_child_change
 from superset.versioning.baseline.insertion import insert_baseline_and_children
+
+logger = logging.getLogger(__name__)
 
 # Sentinel attribute set on the session target after first successful
 # registration — same pattern as
@@ -79,17 +83,37 @@ def register_baseline_listener() -> None:
     def capture_baseline(session: Session, flush_context: Any, instances: Any) -> None:
         if not VERSIONED_MODELS:
             return
-        # Make sure a child-only edit promotes the parent to ``session.dirty``
-        # before Continuum's before_flush reads the dirty set.
-        force_parent_dirty_on_child_change(session)
-        for obj in collect_parents_to_baseline(session).values():
-            if type(obj) not in VERSIONED_MODELS:
-                continue
-            version_table = version_table_for(obj)
-            if version_table is None:
-                continue
-            count = shadow_row_count(session, obj, version_table)
-            if count == 0:
-                insert_baseline_and_children(session, obj, version_table)
+        # Respect the unified capture master switch. Unlike the change-record
+        # listener (which self-gates because it needs a Continuum transaction
+        # id that won't exist when capture is off), the baseline writer mints
+        # its own ``version_transaction`` row via direct SQL — so without this
+        # guard a detached/kill-switched session would still write baselines.
+        # ``_remove_continuum_write_listeners`` flips this option off.
+        if not versioning_manager.options["versioning"]:
+            return
+        try:
+            # Make sure a child-only edit promotes the parent to
+            # ``session.dirty`` before Continuum's before_flush reads the
+            # dirty set.
+            force_parent_dirty_on_child_change(session)
+            for obj in collect_parents_to_baseline(session).values():
+                if type(obj) not in VERSIONED_MODELS:
+                    continue
+                version_table = version_table_for(obj)
+                if version_table is None:
+                    continue
+                count = shadow_row_count(session, obj, version_table)
+                if count == 0:
+                    insert_baseline_and_children(session, obj, version_table)
+        except Exception:  # pylint: disable=broad-except
+            # Versioning must never break a user's save. If baseline capture
+            # fails (a lazy-load error, a registry gap, an unexpected schema
+            # state), log it and let the flush proceed uninstrumented rather
+            # than aborting the user's transaction.
+            logger.warning(
+                "versioning: baseline capture failed during before_flush; "
+                "the save proceeds without a baseline row for this flush.",
+                exc_info=True,
+            )
 
     setattr(db.session, _REGISTERED_SENTINEL, True)

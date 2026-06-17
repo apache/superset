@@ -31,9 +31,12 @@ Two pieces:
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import sqlalchemy as sa
+
+logger = logging.getLogger(__name__)
 
 # Continuum's per-shadow-row bookkeeping columns. Skipped when copying
 # content from a live row into a synthetic baseline shadow row; set
@@ -61,11 +64,28 @@ def insert_baseline_shadow_row(
     ``.name`` — a thing Continuum-generated tables occasionally produce.
     """
     col_values: dict[Any, Any] = {}
+    dropped: list[str] = []
     for col in version_table.columns:
         if col.name in CONTINUUM_BOOKKEEPING_COLUMNS:
             continue
         if col.name in source_row:
             col_values[col] = source_row[col.name]
+        else:
+            dropped.append(col.name)
+    if dropped:
+        # A content column present on the shadow table but absent from the
+        # live source row means the two schemas have diverged (a Continuum
+        # shadow column whose name doesn't match the live column). The value
+        # would be stored NULL — a silent history-fidelity gap — so surface
+        # it rather than dropping it quietly.
+        logger.warning(
+            "versioning: baseline shadow row for %s is missing source "
+            "values for column(s) %s; they will be stored NULL. This "
+            "indicates a name divergence between the live table and its "
+            "Continuum shadow table.",
+            version_table.name,
+            ", ".join(dropped),
+        )
     col_values[version_table.c.transaction_id] = tx_id
     col_values[version_table.c.end_transaction_id] = None
     col_values[version_table.c.operation_type] = 0

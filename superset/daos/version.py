@@ -17,11 +17,11 @@
 """Backward-compat façade for the entity-versioning DAO surface.
 
 The actual implementation lives in :mod:`superset.versioning.queries`
-(read side: list/get/resolve/find/UUID derivation) and
-:mod:`superset.versioning.restore` (write side: restore + audit
-stamping). This module re-exports both under a single ``VersionDAO``
-class plus the module-level UUID helpers so existing callers keep
-working without changes.
+(read side: list/get/resolve/find/UUID derivation). This module
+re-exports it under a single ``VersionDAO`` class plus the module-level
+UUID helpers so existing callers keep working without changes. (The
+write side — restore + audit stamping — ships in a later PR; only the
+read surface is wired here.)
 
 New code should import from the versioning sub-modules directly.
 """
@@ -51,8 +51,7 @@ __all__ = [
 
 
 class VersionDAO:
-    """Thin façade over :mod:`superset.versioning.queries` and
-    :mod:`superset.versioning.restore`.
+    """Thin façade over :mod:`superset.versioning.queries`.
 
     Preserved as a single namespace for ergonomic access from API
     handlers and command classes; the underlying functions are

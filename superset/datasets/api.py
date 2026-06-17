@@ -58,7 +58,6 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
-from superset.daos.version import VersionDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
@@ -83,6 +82,8 @@ from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.versioning.api_helpers import (
+    current_entity_etag_uuid,
+    current_entity_version_info,
     get_version_endpoint,
     list_versions_endpoint,
 )
@@ -488,19 +489,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
-        # pylint: disable=import-outside-toplevel
-        from superset.extensions import db as _db
-
-        pre_dataset = (
-            _db.session.query(SqlaTable).filter(SqlaTable.id == pk).one_or_none()
-        )
-        old_version = VersionDAO.current_version_number(SqlaTable, pk)
-        old_transaction_id = VersionDAO.current_live_transaction_id(SqlaTable, pk)
-        old_version_uuid = (
-            VersionDAO.current_live_version_uuid(SqlaTable, pk, pre_dataset.uuid)
-            if pre_dataset is not None
-            else None
-        )
+        # Live version identifiers before the update (empty + query-free when
+        # ``ENABLE_VERSIONING_CAPTURE`` is off).
+        old_info = current_entity_version_info(SqlaTable, pk)
 
         try:
             # Two commands, two commits, two Continuum transactions for an
@@ -522,32 +513,28 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             # RefreshDatasetCommand commits its own transaction, so reading
             # afterwards would attribute the refresh's version to the
             # user's update (and old→new would span two transactions).
-            new_version = VersionDAO.current_version_number(SqlaTable, changed_model.id)
-            new_transaction_id = VersionDAO.current_live_transaction_id(
-                SqlaTable, changed_model.id
-            )
-            new_version_uuid = VersionDAO.current_live_version_uuid(
+            new_info = current_entity_version_info(
                 SqlaTable, changed_model.id, changed_model.uuid
             )
-            etag_version_uuid = new_version_uuid
+            etag_version_uuid = new_info.version_uuid
             if override_columns:
                 RefreshDatasetCommand(pk).run()
                 # The ETag must reflect the entity's *current live* version,
                 # which after the refresh is the refresh's transaction —
                 # re-read it rather than reusing the pre-refresh uuid.
-                etag_version_uuid = VersionDAO.current_live_version_uuid(
+                etag_version_uuid = current_entity_etag_uuid(
                     SqlaTable, changed_model.id, changed_model.uuid
                 )
             response = self.response(
                 200,
                 id=changed_model.id,
                 result=item,
-                old_version=old_version,
-                new_version=new_version,
-                old_transaction_id=old_transaction_id,
-                new_transaction_id=new_transaction_id,
-                old_version_uuid=str(old_version_uuid) if old_version_uuid else None,
-                new_version_uuid=str(new_version_uuid) if new_version_uuid else None,
+                old_version=old_info.version,
+                new_version=new_info.version,
+                old_transaction_id=old_info.transaction_id,
+                new_transaction_id=new_info.transaction_id,
+                old_version_uuid=old_info.version_uuid,
+                new_version_uuid=new_info.version_uuid,
             )
             set_version_etag(response, etag_version_uuid)
         except DatasetNotFoundError:
@@ -1417,7 +1404,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         return set_version_etag(
             self.response(200, **response),
-            VersionDAO.current_live_version_uuid(SqlaTable, table.id, table.uuid),
+            current_entity_etag_uuid(SqlaTable, table.id, table.uuid),
         )
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))

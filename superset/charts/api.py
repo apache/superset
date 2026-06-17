@@ -81,7 +81,6 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
-from superset.daos.version import VersionDAO
 from superset.exceptions import (
     ScreenshotImageNotAvailableException,
 )
@@ -99,6 +98,8 @@ from superset.utils.screenshots import (
 )
 from superset.utils.urls import get_url_path
 from superset.versioning.api_helpers import (
+    current_entity_etag_uuid,
+    current_entity_version_info,
     get_version_endpoint,
     list_versions_endpoint,
 )
@@ -326,7 +327,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
             return set_version_etag(
                 self.response(200, result=result),
-                VersionDAO.current_live_version_uuid(Slice, dash.id, dash.uuid),
+                current_entity_etag_uuid(Slice, dash.id, dash.uuid),
             )
         except ChartNotFoundError:
             return self.response_404()
@@ -481,39 +482,28 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
-        # pylint: disable=import-outside-toplevel
-        from superset.extensions import db as _db
-
-        pre_chart = _db.session.query(Slice).filter(Slice.id == pk).one_or_none()
-        old_version = VersionDAO.current_version_number(Slice, pk)
-        old_transaction_id = VersionDAO.current_live_transaction_id(Slice, pk)
-        old_version_uuid = (
-            VersionDAO.current_live_version_uuid(Slice, pk, pre_chart.uuid)
-            if pre_chart is not None
-            else None
-        )
+        # Live version identifiers before the update (empty + query-free when
+        # ``ENABLE_VERSIONING_CAPTURE`` is off, so this stays inert under the
+        # kill-switch).
+        old_info = current_entity_version_info(Slice, pk)
 
         try:
             changed_model = UpdateChartCommand(pk, item).run()
-            new_version = VersionDAO.current_version_number(Slice, changed_model.id)
-            new_transaction_id = VersionDAO.current_live_transaction_id(
-                Slice, changed_model.id
-            )
-            new_version_uuid = VersionDAO.current_live_version_uuid(
+            new_info = current_entity_version_info(
                 Slice, changed_model.id, changed_model.uuid
             )
             response = self.response(
                 200,
                 id=changed_model.id,
                 result=item,
-                old_version=old_version,
-                new_version=new_version,
-                old_transaction_id=old_transaction_id,
-                new_transaction_id=new_transaction_id,
-                old_version_uuid=str(old_version_uuid) if old_version_uuid else None,
-                new_version_uuid=str(new_version_uuid) if new_version_uuid else None,
+                old_version=old_info.version,
+                new_version=new_info.version,
+                old_transaction_id=old_info.transaction_id,
+                new_transaction_id=new_info.transaction_id,
+                old_version_uuid=old_info.version_uuid,
+                new_version_uuid=new_info.version_uuid,
             )
-            set_version_etag(response, new_version_uuid)
+            set_version_etag(response, new_info.version_uuid)
         except ChartNotFoundError:
             response = self.response_404()
         except ChartForbiddenError:

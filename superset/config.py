@@ -1491,18 +1491,17 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
-# Master switch for entity-version-history capture. Default ``True`` —
-# every save of a chart, dashboard, or dataset writes shadow rows + a
-# ``version_changes`` record. Set to ``False`` in ``superset_config.py``
-# (or via the env var of the same name) to disable the two before-flush
-# listeners that drive capture; existing shadow tables stay intact and
-# the /versions/ + /activity/ endpoints continue to work read-only.
-# This is an operational escape hatch — for use when a versioning-induced
-# regression needs a 30-second recovery instead of revert-and-redeploy —
-# not a feature flag. It ships defaulted OFF so the versioning infrastructure
-# (schema + Continuum wiring) lands inert; capture is activated by flipping
-# the default to on once validated in production. It then remains as the
-# permanent kill-switch.
+# Master switch for entity-version-history capture. Ships defaulted ``False``
+# so the versioning infrastructure (schema + Continuum wiring) lands inert:
+# no save writes shadow rows or a ``version_transaction``/``version_changes``
+# record, while the /versions/ endpoints stay available read-only (returning
+# empty). Set to ``True`` in ``superset_config.py`` (or via the env var of the
+# same name) to enable the before-flush listeners that drive capture.
+# Capture is activated by flipping this default to on once validated in
+# production. It is an operational escape hatch — for use when a
+# versioning-induced regression needs a 30-second recovery instead of
+# revert-and-redeploy — not a feature flag, and remains as the permanent
+# kill-switch.
 ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
     os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
 )

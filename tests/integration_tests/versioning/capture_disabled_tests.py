@@ -22,8 +22,12 @@ rows — Continuum is wired at import (``make_versioned()``), so suppressing
 only the custom listeners would leave Continuum's own listeners minting
 empty transaction rows on every flush. ``init_versioning`` detaches those
 via ``_remove_continuum_write_listeners()``; this test pins that the
-*behavioral* result is genuinely nothing-written (the structural unit test
-in ``initialization_test.py`` mocks the detach; this exercises it for real).
+*behavioral* result is genuinely nothing-written. The structural unit tests
+in ``tests/unit_tests/initialization_test.py`` (``TestInitVersioning``) drive
+the config-flag branch of ``init_versioning`` with mocks; this exercises the
+detach for real, against a database, and proves a control save under capture
+*on* writes both a shadow row and a ``version_changes`` record (so the
+zero-rows assertions are not vacuously true).
 
 This is the acceptance gate for shipping versioning dark in the
 base-infra rollout PR.
@@ -58,10 +62,25 @@ def _slice_version_count(slice_id: int) -> int:
     return db.session.query(ver_cls).filter(ver_cls.id == slice_id).count()
 
 
+def _version_changes_count() -> int:
+    """Total rows in the ``version_changes`` table — the custom diff records,
+    distinct from Continuum's shadow rows. Proves the full capture pipeline
+    (not just Continuum) ran."""
+    return (
+        db.session.execute(sa.text("SELECT COUNT(*) FROM version_changes")).scalar()
+        or 0
+    )
+
+
 def _reattach_continuum_write_listeners() -> None:
     """Inverse of ``init_versioning._remove_continuum_write_listeners`` so this
-    test restores process-global SQLAlchemy event state for the rest of the
-    suite. Idempotent on a representative listener."""
+    test restores process-global capture state for the rest of the suite
+    (which runs with ``ENABLE_VERSIONING_CAPTURE`` on). Idempotent on a
+    representative listener. Also restores ``options['versioning']`` — the
+    detach flips it off (and the baseline listener honors it), so the
+    re-attach must flip it back on or subsequent saves would silently stop
+    capturing."""
+    versioning_manager.options["versioning"] = True
     if sa.event.contains(Mapper, "after_insert", versioning_manager.track_inserts):
         return  # already attached
     versioning_manager.track_operations(Mapper)
@@ -118,10 +137,12 @@ class TestVersioningCaptureDisabled(SupersetTestCase):
             _reattach_continuum_write_listeners()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_control_capture_on_does_write_a_version_row(self) -> None:
+    def test_control_capture_on_writes_version_and_change_rows(self) -> None:
         """Control: with capture on (the suite default), the same edit DOES
-        mint a shadow + transaction row — proves the disabled-path assertion
-        above is not vacuously true."""
+        mint a shadow row AND a ``version_changes`` record — proving the
+        disabled-path assertions are not vacuously true and that the full
+        capture pipeline (Continuum shadow rows + the custom change-record
+        listener) runs end-to-end, not just Continuum's own writes."""
         db.session.commit()
         chart = db.session.query(Slice).filter(Slice.slice_name == "Boys").first()
         if chart is None:  # birth_names fixture not loaded for this test
@@ -129,8 +150,11 @@ class TestVersioningCaptureDisabled(SupersetTestCase):
         chart_id = chart.id
 
         self.login(ADMIN_USERNAME)
-        _reattach_continuum_write_listeners()  # ensure attached
+        _reattach_continuum_write_listeners()  # belt-and-suspenders: suite is on
+        # ``>`` rather than ``== before + 1``: the first edit to a not-yet-
+        # versioned entity also mints a synthetic baseline shadow row.
         ver_before = _slice_version_count(chart_id)
+        changes_before = _version_changes_count()
         try:
             rv = self.client.put(
                 f"/api/v1/chart/{chart_id}",
@@ -138,6 +162,11 @@ class TestVersioningCaptureDisabled(SupersetTestCase):
             )
             assert rv.status_code == 200, rv.data
             db.session.expire_all()
-            assert _slice_version_count(chart_id) == ver_before + 1
+            assert _slice_version_count(chart_id) > ver_before, (
+                "capture on MUST write at least one shadow row"
+            )
+            assert _version_changes_count() > changes_before, (
+                "capture on MUST write at least one version_changes record"
+            )
         finally:
             self.client.put(f"/api/v1/chart/{chart_id}", json={"slice_name": "Boys"})

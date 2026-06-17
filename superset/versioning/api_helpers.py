@@ -30,15 +30,17 @@ wired here.)
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from flask import Response
+import sqlalchemy as sa
+from flask import current_app, Response
 from flask_appbuilder import Model
 
 from superset.daos.version import VersionDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import security_manager
+from superset.extensions import db, security_manager
 from superset.versioning.etag import set_version_etag_by_uuid
 from superset.versioning.schemas import VersionListItemSchema
 
@@ -49,6 +51,72 @@ from superset.versioning.schemas import VersionListItemSchema
 #: http-dates) and ``version_uuid`` consistently a string (the list rows
 #: carry UUID instances, the snapshot block pre-stringifies).
 _version_item_schema = VersionListItemSchema()
+
+
+@dataclass
+class EntityVersionInfo:
+    """Live version identifiers for a write-endpoint response.
+
+    Every field is ``None`` when ``ENABLE_VERSIONING_CAPTURE`` is off — the
+    write endpoints then issue no version queries at all, so they stay inert
+    under the kill-switch rather than paying save-path latency the flag is
+    meant to eliminate.
+    """
+
+    version: int | None = None
+    transaction_id: int | None = None
+    version_uuid: str | None = None
+
+
+def _capture_enabled() -> bool:
+    return bool(current_app.config.get("ENABLE_VERSIONING_CAPTURE", False))
+
+
+def current_entity_version_info(
+    model_cls: type[Model],
+    entity_id: int | None,
+    entity_uuid: UUID | None = None,
+) -> EntityVersionInfo:
+    """Resolve the live version number, transaction id, and version uuid.
+
+    Returns an empty (all-``None``) record and issues *no* queries when
+    capture is disabled. When *entity_uuid* is not supplied it is resolved
+    with a single ``SELECT uuid`` rather than loading the whole entity row.
+    """
+    if entity_id is None or not _capture_enabled():
+        return EntityVersionInfo()
+    if entity_uuid is None:
+        entity_uuid = db.session.scalar(
+            sa.select(model_cls.uuid).where(model_cls.id == entity_id)
+        )
+    version_uuid = (
+        VersionDAO.current_live_version_uuid(model_cls, entity_id, entity_uuid)
+        if entity_uuid is not None
+        else None
+    )
+    return EntityVersionInfo(
+        version=VersionDAO.current_version_number(model_cls, entity_id),
+        transaction_id=VersionDAO.current_live_transaction_id(model_cls, entity_id),
+        version_uuid=str(version_uuid) if version_uuid else None,
+    )
+
+
+def current_entity_etag_uuid(
+    model_cls: type[Model],
+    entity_id: int | None,
+    entity_uuid: UUID | None,
+) -> str | None:
+    """Resolve only the live version uuid (for an ETag), gated by capture.
+
+    Returns ``None`` without querying when capture is off or either id is
+    missing.
+    """
+    if entity_id is None or entity_uuid is None or not _capture_enabled():
+        return None
+    version_uuid = VersionDAO.current_live_version_uuid(
+        model_cls, entity_id, entity_uuid
+    )
+    return str(version_uuid) if version_uuid else None
 
 
 def _resolve_entity(
