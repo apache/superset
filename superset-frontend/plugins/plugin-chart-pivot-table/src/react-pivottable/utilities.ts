@@ -473,14 +473,10 @@ const baseAggregatorTemplates = {
 
   extremes(mode: string, formatter = usFmt) {
     return function ([attr]: string[]) {
-      return function (data: any) {
+      return function () {
         return {
           val: null as any,
           currencySet: new Set<string>(),
-          sorter: getSort(
-            typeof data !== 'undefined' ? data.sorters : null,
-            attr,
-          ),
           push(record: PivotRecord) {
             const x = record[attr];
             if (['min', 'max'].includes(mode)) {
