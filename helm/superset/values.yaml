@@ -269,7 +269,7 @@ supersetNode:
   command:
     - "/bin/sh"
     - "-c"
-    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/run-server.sh"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; exec /usr/bin/run-server.sh"
   connections:
     # -- Change in case of bringing your own redis and then also set redis.enabled:false
     redis_host: "{{ .Release.Name }}-redis-headless"
