@@ -18,7 +18,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "cookie": "^1.1.1",
-    "hot-shots": "^15.0.0",
+    "hot-shots": "^16.0.0",
     "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.18.1",
@@ -34,7 +34,7 @@
     "@types/node": "^25.9.2",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.60.1",
-    "@typescript-eslint/parser": "^8.60.1",
+    "@typescript-eslint/parser": "^8.61.0",
     "eslint": "^10.4.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-lodash": "^8.0.0",
@@ -45,7 +45,7 @@
     "ts-node": "^10.9.2",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.60.1"
+    "typescript-eslint": "^8.61.0"
   },
   "engines": {
     "node": "^24.16.0",
