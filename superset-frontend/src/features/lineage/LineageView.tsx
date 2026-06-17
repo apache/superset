@@ -142,7 +142,7 @@ type NodeDetails = {
   name: string;
   type: NodeType;
   id?: number;
-  additionalInfo?: Record<string, any>;
+  additionalInfo?: Record<string, string | number | null | undefined>;
 };
 
 // Build a stable, unique graph identity for a node so that entities sharing the
@@ -350,10 +350,13 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
 
   // Handle node click
   const handleNodeClick = useCallback(
-    (params: any) => {
-      if (params.dataType === 'node') {
-        const nodeName = params.name;
-        const nodeDetails = nodeDetailsMap.get(nodeName);
+    (params: {
+      dataType?: string;
+      name?: string;
+      event?: { stop: () => void };
+    }) => {
+      if (params.dataType === 'node' && params.name) {
+        const nodeDetails = nodeDetailsMap.get(params.name);
         if (nodeDetails) {
           setSelectedNode(nodeDetails);
         }
