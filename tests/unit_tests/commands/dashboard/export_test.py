@@ -559,6 +559,143 @@ def test_stabilize_chart_ids_remaps_cross_filter_configuration():
     assert chart_config["crossFilters"]["chartsInScope"] == [new_id]
 
 
+def test_stable_chart_id_is_deterministic_and_in_range():
+    """
+    stable_chart_id must derive a stable, environment-independent integer from a
+    chart UUID. The same UUID always yields the same id, and the id stays within
+    a signed 31-bit positive range so it can stand in for a database
+    auto-increment primary key without colliding with the sign bit.
+    """
+    from superset.commands.dashboard.export import (
+        _STABLE_CHART_ID_MODULO,
+        stable_chart_id,
+    )
+
+    chart_uuid = "812bc377-ac09-475a-8d34-a63f7f087bd7"
+
+    # Deterministic: repeated derivations of the same UUID agree.
+    assert stable_chart_id(chart_uuid) == stable_chart_id(chart_uuid)
+
+    # Distinct UUIDs map to distinct ids (no accidental collapse).
+    other_uuid = "00000000-0000-4000-8000-000000000001"
+    assert stable_chart_id(chart_uuid) != stable_chart_id(other_uuid)
+
+    # Bounded to [1, _STABLE_CHART_ID_MODULO]: positive and within 31 bits.
+    for candidate in (chart_uuid, other_uuid, str(uuid.uuid4())):
+        derived = stable_chart_id(candidate)
+        assert 1 <= derived <= _STABLE_CHART_ID_MODULO
+
+
+def test_stabilize_chart_ids_remaps_default_filters():
+    """
+    default_filters is a JSON *string* keyed by env-local chart id. The exporter
+    must parse it, remap the top-level keys to the stabilized ids, and re-emit it
+    as a JSON string so the bundle never leaks the source-env integer.
+    """
+    from superset.commands.dashboard.export import stable_chart_id
+
+    chart_uuid = "812bc377-ac09-475a-8d34-a63f7f087bd7"
+    new_id = stable_chart_id(chart_uuid)
+
+    result = _export_with_chart(
+        chart_uuid,
+        392,
+        {
+            "native_filter_configuration": [],
+            "default_filters": json.dumps({"392": {"__time_range": "No filter"}}),
+        },
+    )
+
+    # default_filters round-trips as a JSON string keyed by the stabilized id.
+    default_filters = json.loads(result["metadata"]["default_filters"])
+    assert str(new_id) in default_filters
+    assert "392" not in default_filters
+    assert default_filters[str(new_id)] == {"__time_range": "No filter"}
+
+
+def test_stabilize_chart_ids_remaps_timed_refresh_immune_slices():
+    """
+    timed_refresh_immune_slices is a flat list of env-local chart ids. Each entry
+    must be remapped to the stabilized id so the immune list keeps pointing at the
+    same logical charts after a cross-environment round-trip.
+    """
+    from superset.commands.dashboard.export import stable_chart_id
+
+    chart_uuid = "812bc377-ac09-475a-8d34-a63f7f087bd7"
+    new_id = stable_chart_id(chart_uuid)
+
+    result = _export_with_chart(
+        chart_uuid,
+        392,
+        {
+            "native_filter_configuration": [],
+            "timed_refresh_immune_slices": [392],
+        },
+    )
+
+    assert result["metadata"]["timed_refresh_immune_slices"] == [new_id]
+
+
+def test_stabilize_chart_ids_remaps_filter_scopes_keys_and_immune():
+    """
+    filter_scopes is a dict keyed by env-local chart id, whose values hold nested
+    per-column ``immune`` lists of chart ids. The exporter must remap BOTH the
+    top-level keys AND the nested immune arrays to the stabilized ids.
+    """
+    from superset.commands.dashboard.export import stable_chart_id
+
+    chart_uuid = "812bc377-ac09-475a-8d34-a63f7f087bd7"
+    new_id = stable_chart_id(chart_uuid)
+
+    result = _export_with_chart(
+        chart_uuid,
+        392,
+        {
+            "native_filter_configuration": [],
+            "filter_scopes": {
+                "392": {
+                    "region": {
+                        "scope": ["ROOT_ID"],
+                        "immune": [392],
+                    }
+                }
+            },
+        },
+    )
+
+    filter_scopes = result["metadata"]["filter_scopes"]
+    # Top-level key remapped to the stabilized id (and the old key is gone).
+    assert str(new_id) in filter_scopes
+    assert "392" not in filter_scopes
+    # Nested immune array remapped too.
+    assert filter_scopes[str(new_id)]["region"]["immune"] == [new_id]
+
+
+def test_stabilize_chart_ids_remaps_expanded_slices():
+    """
+    expanded_slices is a dict keyed by env-local chart id. The exporter must
+    re-key it to the stabilized ids while preserving the values.
+    """
+    from superset.commands.dashboard.export import stable_chart_id
+
+    chart_uuid = "812bc377-ac09-475a-8d34-a63f7f087bd7"
+    new_id = stable_chart_id(chart_uuid)
+
+    result = _export_with_chart(
+        chart_uuid,
+        392,
+        {
+            "native_filter_configuration": [],
+            "expanded_slices": {"392": True},
+        },
+    )
+
+    expanded_slices = result["metadata"]["expanded_slices"]
+    assert str(new_id) in expanded_slices
+    assert "392" not in expanded_slices
+    assert expanded_slices[str(new_id)] is True
+
+
 def test_file_content_missing_dataset_preserves_dataset_id():
     """
     When DatasetDAO.find_by_id returns None for a display control target,
