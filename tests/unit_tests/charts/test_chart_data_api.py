@@ -82,10 +82,10 @@ def test_apply_dashboard_filter_context_does_not_duplicate_filters() -> None:
     """
     Regression test for the ``filters_dashboard_id`` parameter.
 
-    A dashboard's filters must be applied only through extra_form_data, the
-    single source of truth. Previously the same filter was also appended onto
-    query["filters"], so Jinja's filter_values() read each value twice and
-    produced SQL such as ``country in ('USA', 'USA')``.
+    A dashboard's filters must not be present in both query["filters"] and
+    query["extra_form_data"]["filters"]. Previously the same filter existed in both,
+    so Jinja's filter_values() read each value twice and produced SQL such as
+    ``country in ('USA', 'USA')``.
     """
     query_context_json: dict[str, Any] = {
         "datasource": {"id": 1, "type": "table"},
