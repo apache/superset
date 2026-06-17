@@ -203,10 +203,14 @@ const defaultProps: TimeseriesChartTransformedProps = {
 };
 
 function getLatestHeight() {
+  return getLatestEchartProps().height;
+}
+
+function getLatestEchartProps() {
   const lastCall = mockEchart.mock.calls.at(-1);
   expect(lastCall).toBeDefined();
   const [props] = lastCall as [EchartsProps];
-  return props.height;
+  return props;
 }
 
 test('observes extra control height changes when ResizeObserver is available', async () => {
@@ -359,6 +363,43 @@ test('emits cross-filter on X-axis value when no dimensions and categorical X-ax
       },
     ]);
   }
+});
+
+test('uses rendered categorical axis for query event handlers', () => {
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  expect(getLatestEchartProps().queryEventHandlers?.[0].query).toBe(
+    'xAxis.category',
+  );
+
+  cleanup();
+  mockEchart.mockReset();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      formData={{
+        ...defaultFormData,
+        orientation: OrientationType.Horizontal,
+      }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  expect(getLatestEchartProps().queryEventHandlers?.[0].query).toBe(
+    'yAxis.category',
+  );
 });
 
 test('does not emit cross-filter when no dimensions and time-based X-axis', async () => {

@@ -27,12 +27,15 @@ import {
   LegendState,
   ensureIsArray,
 } from '@superset-ui/core';
-import type { ViewRootGroup } from 'echarts/types/src/util/types';
+import type {
+  ECElementEvent,
+  ViewRootGroup,
+} from 'echarts/types/src/util/types';
 import type GlobalModel from 'echarts/types/src/model/Global';
 import type ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
-import { TimeseriesChartTransformedProps } from './types';
+import { OrientationType, TimeseriesChartTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
 import { ExtraControls } from '../components/ExtraControls';
 
@@ -329,23 +332,30 @@ export default function EchartsTimeseries({
   };
 
   const handleXAxisLabelClick = useCallback(
-    (event: { value: string | number }) => {
-      if (canCrossFilterByXAxis) {
-        handleXAxisChange(event.value);
+    (event: ECElementEvent) => {
+      const { value } = event;
+      if (
+        canCrossFilterByXAxis &&
+        (typeof value === 'string' || typeof value === 'number')
+      ) {
+        handleXAxisChange(value);
       }
     },
     [canCrossFilterByXAxis, handleXAxisChange],
   );
 
+  const categoryAxis =
+    formData.orientation === OrientationType.Horizontal ? 'yAxis' : 'xAxis';
+
   const queryEventHandlers = useMemo(
     () => [
       {
         name: 'click',
-        query: 'xAxis.category',
+        query: `${categoryAxis}.category`,
         handler: handleXAxisLabelClick,
       },
     ],
-    [handleXAxisLabelClick],
+    [categoryAxis, handleXAxisLabelClick],
   );
 
   const zrEventHandlers: EventHandlers = {
