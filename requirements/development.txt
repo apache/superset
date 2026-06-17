@@ -42,6 +42,10 @@ apsw==3.50.1.0
     #   shillelagh
 astroid==3.3.10
     # via pylint
+async-timeout==4.0.3
+    # via
+    #   -c requirements/base-constraint.txt
+    #   redis
 attrs==25.3.0
     # via
     #   -c requirements/base-constraint.txt
@@ -100,6 +104,7 @@ cachelib==0.13.0
 cachetools==6.2.1
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   google-auth
     #   py-key-value-aio
 caio==0.9.25
@@ -841,7 +846,6 @@ python-multipart==0.0.29
 pytz==2025.2
     # via
     #   -c requirements/base-constraint.txt
-    #   croniter
     #   flask-babel
     #   pandas
     #   trino
@@ -1009,6 +1013,8 @@ tabulate==0.10.0
     #   apache-superset
 tiktoken==0.13.0
     # via apache-superset
+tomli==2.4.1
+    # via coverage
 tomli-w==1.2.0
     # via apache-superset-extensions-cli
 tomlkit==0.13.3
