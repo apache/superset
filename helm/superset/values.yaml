@@ -307,11 +307,12 @@ supersetNode:
         - /bin/bash
         - -c
         - |
-          # bash's /dev/tcp redirect performs a TCP connect; no external
-          # `dockerize`, `nc`, or busybox needed. SECONDS-based deadline
-          # mirrors the prior `dockerize -timeout 120s` behaviour.
+          # opening a /dev/tcp fd performs a TCP connect without sending any
+          # payload (avoids postgres "incomplete startup packet" log noise);
+          # no external `dockerize`, `nc`, or busybox needed. SECONDS-based
+          # deadline mirrors the prior `dockerize -timeout 120s` behaviour.
           SECONDS=0
-          until (echo > /dev/tcp/"$DB_HOST"/"$DB_PORT") 2>/dev/null; do
+          until (exec 3<>/dev/tcp/"$DB_HOST"/"$DB_PORT") 2>/dev/null; do
             if [ "$SECONDS" -ge 120 ]; then
               echo "timeout waiting for postgres at $DB_HOST:$DB_PORT after 120s" >&2
               exit 1
@@ -428,7 +429,7 @@ supersetWorker:
           SECONDS=0
           wait_for() {
             local host=$1 port=$2 name=$3
-            until (echo > /dev/tcp/"$host"/"$port") 2>/dev/null; do
+            until (exec 3<>/dev/tcp/"$host"/"$port") 2>/dev/null; do
               if [ "$SECONDS" -ge 120 ]; then
                 echo "timeout waiting for $name at $host:$port after 120s" >&2
                 exit 1
@@ -532,7 +533,7 @@ supersetCeleryBeat:
           SECONDS=0
           wait_for() {
             local host=$1 port=$2 name=$3
-            until (echo > /dev/tcp/"$host"/"$port") 2>/dev/null; do
+            until (exec 3<>/dev/tcp/"$host"/"$port") 2>/dev/null; do
               if [ "$SECONDS" -ge 120 ]; then
                 echo "timeout waiting for $name at $host:$port after 120s" >&2
                 exit 1
@@ -647,7 +648,7 @@ supersetCeleryFlower:
           SECONDS=0
           wait_for() {
             local host=$1 port=$2 name=$3
-            until (echo > /dev/tcp/"$host"/"$port") 2>/dev/null; do
+            until (exec 3<>/dev/tcp/"$host"/"$port") 2>/dev/null; do
               if [ "$SECONDS" -ge 120 ]; then
                 echo "timeout waiting for $name at $host:$port after 120s" >&2
                 exit 1
@@ -831,7 +832,7 @@ init:
         - |
           # See supersetNode.initContainers for the rationale.
           SECONDS=0
-          until (echo > /dev/tcp/"$DB_HOST"/"$DB_PORT") 2>/dev/null; do
+          until (exec 3<>/dev/tcp/"$DB_HOST"/"$DB_PORT") 2>/dev/null; do
             if [ "$SECONDS" -ge 120 ]; then
               echo "timeout waiting for postgres at $DB_HOST:$DB_PORT after 120s" >&2
               exit 1
