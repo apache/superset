@@ -295,6 +295,7 @@ export interface ListViewProps<T extends object = any> {
     name: ReactNode;
     onSelect: (rows: any[]) => any;
     type?: 'primary' | 'secondary' | 'danger';
+    hidden?: (rows: any[]) => boolean;
   }>;
   bulkSelectEnabled?: boolean;
   disableBulkSelect?: () => void;
@@ -313,6 +314,8 @@ export interface ListViewProps<T extends object = any> {
     clearFilters: () => void;
     clearFilterById: (id: string) => void;
   }>;
+  /** Optional expandable row configuration, passed through to antd Table. */
+  expandable?: Record<string, unknown>;
 }
 
 export function ListView<T extends object = any>({
@@ -340,6 +343,7 @@ export function ListView<T extends object = any>({
   enableBulkTag = false,
   bulkTagResourceName,
   filtersRef,
+  expandable,
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
@@ -506,7 +510,16 @@ export function ListView<T extends object = any>({
                         {t('Deselect all')}
                       </span>
                       <div className="divider" />
-                      {bulkActions.map(action => (
+                      {bulkActions
+                        .filter(
+                          action =>
+                            !action.hidden?.(
+                              selectedFlatRows.map(
+                                (r: any) => r.original,
+                              ),
+                            ),
+                        )
+                        .map(action => (
                         <Button
                           data-test="bulk-select-action"
                           data-test-action-key={action.key}
@@ -593,6 +606,7 @@ export function ListView<T extends object = any>({
                   loading={loading && rows.length > 0}
                   highlightRowId={highlightRowId}
                   columnsForWrapText={columnsForWrapText}
+                  expandable={expandable}
                   bulkSelectEnabled={bulkSelectEnabled}
                   selectedFlatRows={selectedFlatRows}
                   toggleRowSelected={(rowId, value) => {

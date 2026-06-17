@@ -18,7 +18,13 @@
  */
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  createStore,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import {
   useDashboard,
   useDashboardCharts,
@@ -27,7 +33,11 @@ import {
 import { SupersetClient } from '@superset-ui/core';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
-import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
+import {
+  clearDashboardHistory,
+  UPDATE_COMPONENTS,
+} from 'src/dashboard/actions/dashboardLayout';
+import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import DashboardPage from './DashboardPage';
 
 const mockTheme = {
@@ -148,6 +158,9 @@ afterEach(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Tests assert against the global document.title and the unmount restore
+  // effect can carry title state across tests, so reset it for isolation.
+  document.title = '';
   mockUseDashboard.mockReturnValue({
     result: mockDashboard,
     error: null,
@@ -231,6 +244,174 @@ test('uses theme from Redux dashboardInfo when it differs from API response (Pro
     expect.objectContaining({ theme: reduxTheme }),
     expect.anything(),
   );
+});
+
+test('document.title tracks the live Redux dashboard title after a rename, not the stale API value', async () => {
+  // Renaming a dashboard updates the live title in Redux
+  // (dashboardLayout HEADER meta.text) and persists via an in-SPA save with
+  // no full reload, so the useDashboard() API result stays stale. The browser
+  // tab title must follow the live title, otherwise a newly created dashboard
+  // keeps showing "[ untitled dashboard ]" after being renamed and saved.
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        dashboardLayout: {
+          past: [],
+          future: [],
+          present: {
+            [DASHBOARD_HEADER_ID]: {
+              id: DASHBOARD_HEADER_ID,
+              type: 'HEADER',
+              meta: { text: 'Live Renamed Title' },
+            },
+          },
+        },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // API result (mockDashboard.dashboard_title) is 'Test Dashboard', but the
+  // live title is 'Live Renamed Title' — the tab title must reflect the latter.
+  await waitFor(() => {
+    expect(document.title).toBe('Live Renamed Title');
+  });
+});
+
+test('document.title updates when the dashboard is renamed after mount', async () => {
+  // The bug is a live rename: the title is edited in Redux after the page has
+  // already mounted, so the tab title must react to the change rather than only
+  // reflecting the title present at initial render.
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [] },
+      dashboardLayout: {
+        past: [],
+        future: [],
+        present: {
+          [DASHBOARD_HEADER_ID]: {
+            id: DASHBOARD_HEADER_ID,
+            type: 'HEADER',
+            meta: { text: 'Title At Mount' },
+          },
+        },
+      },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() => expect(document.title).toBe('Title At Mount'));
+
+  // Simulate the in-SPA rename mutating the live header title.
+  store.dispatch({
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents: {
+        [DASHBOARD_HEADER_ID]: {
+          id: DASHBOARD_HEADER_ID,
+          type: 'HEADER',
+          meta: { text: 'Renamed After Mount' },
+        },
+      },
+    },
+  });
+
+  await waitFor(() => expect(document.title).toBe('Renamed After Mount'));
+});
+
+test('document.title uses the fresh API title during dashboard-to-dashboard navigation', async () => {
+  // While switching dashboards in the SPA the component instance and Redux store
+  // are reused, so the previous dashboard's layout (header title) lingers until
+  // the new dashboard hydrates. The tab title must follow the newly loaded
+  // dashboard's API title, not the stale live layout title.
+  mockUseDashboard.mockReturnValue({
+    result: { ...mockDashboard, id: 2, dashboard_title: 'Dashboard Two' },
+    error: null,
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="2" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        // dashboardInfo still describes the previously hydrated dashboard 1.
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        dashboardLayout: {
+          past: [],
+          future: [],
+          present: {
+            [DASHBOARD_HEADER_ID]: {
+              id: DASHBOARD_HEADER_ID,
+              type: 'HEADER',
+              meta: { text: 'Dashboard One' },
+            },
+          },
+        },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  await waitFor(() => expect(document.title).toBe('Dashboard Two'));
+});
+
+test('document.title falls back to the API dashboard_title before the layout is hydrated', async () => {
+  // Before hydration there is no HEADER component in the layout, so the tab
+  // title should still come from the dashboard API response.
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  await waitFor(() => {
+    expect(document.title).toBe('Test Dashboard');
+  });
 });
 
 test('passes null theme when Redux dashboardInfo.theme is explicitly null (theme removed)', async () => {
