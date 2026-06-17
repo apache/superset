@@ -167,6 +167,14 @@ export function GridTable<RecordType extends object>({
           overflow: hidden;
         }
 
+        /* Preserve significant whitespace within cell values (e.g. option
+        symbols and other whitespace-sensitive data). ag-Grid's default
+        collapses runs of spaces, which can misrepresent the underlying
+        value. */
+        .ag-cell-value {
+          white-space: pre;
+        }
+
         & [role='columnheader']:hover .customHeaderAction {
           display: flex;
         }
