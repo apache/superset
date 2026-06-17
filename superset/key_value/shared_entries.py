@@ -86,6 +86,19 @@ def set_shared_value(key: SharedKey, value: Any) -> None:
     KeyValueDAO.create_entry(RESOURCE, value, CODEC, uuid_key)
 
 
+@transaction()
+def upsert_shared_value(key: SharedKey, value: Any) -> None:
+    """
+    Create or update a shared value by key, using the current hash algorithm.
+
+    Unlike :func:`set_shared_value`, this is idempotent and may be called
+    repeatedly to overwrite an existing entry.
+    """
+    namespace = get_uuid_namespace("")
+    uuid_key = uuid3(namespace, key)
+    KeyValueDAO.upsert_entry(RESOURCE, value, CODEC, uuid_key)
+
+
 def get_permalink_salt(key: SharedKey) -> str:
     salt = get_shared_value(key)
     if salt is None:

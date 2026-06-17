@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -4796,6 +4796,9 @@ msgstr "Ustawienia bazy danych zaktualizowane"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "Typ bazy danych nie obsługuje przesyłania plików."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 #, fuzzy
 msgid "Database upload file failed"
@@ -19160,10 +19163,6 @@ msgstr "wartości rosnące"
 #, fuzzy
 msgid "value descending"
 msgstr "wartości malejące"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Nazwa tabeli"
 
 #, fuzzy
 msgid "var"

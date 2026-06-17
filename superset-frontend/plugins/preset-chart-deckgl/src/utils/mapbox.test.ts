@@ -17,23 +17,22 @@
  * under the License.
  */
 
-import { useEffect, useRef } from 'react';
-import { isDefined } from '@superset-ui/core';
+import { getMapboxApiKey, hasMapboxApiKey } from './mapbox';
 
-export const useMemoCompare = <T>(
-  next: T,
-  compare: (prev: T | undefined, next: T) => boolean,
-) => {
-  const previousRef = useRef<T>();
-  const previous = previousRef.current;
-  const isEqual = compare(previous, next);
-  useEffect(() => {
-    if (!isEqual) {
-      previousRef.current = next;
-    }
-  });
-  if (!isDefined(previous)) {
-    return next;
-  }
-  return isEqual ? previous : next;
+const setBootstrap = (conf: Record<string, unknown>) => {
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify({
+    common: { conf },
+  })}'></div>`;
 };
+
+test('deck.gl Mapbox helpers read key presence from bootstrap data', () => {
+  setBootstrap({ MAPBOX_API_KEY: 'pk.test' });
+
+  expect(getMapboxApiKey()).toBe('pk.test');
+  expect(hasMapboxApiKey()).toBe(true);
+
+  setBootstrap({});
+
+  expect(getMapboxApiKey()).toBe('');
+  expect(hasMapboxApiKey()).toBe(false);
+});
