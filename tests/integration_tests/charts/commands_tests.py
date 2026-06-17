@@ -178,6 +178,33 @@ class TestExportChartsCommand(SupersetTestCase):
         ]
         assert expected == list(contents.keys())
 
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_command_unicode_chars(self, mock_g):
+        """Test that unicode characters in a chart name are exported to the YAML"""
+        mock_g.user = security_manager.find_user("admin")
+        db.session.query(Slice).filter_by(slice_name="Energy Sankey").update(
+            {"slice_name": "中文"},
+        )
+        try:
+            example_chart = db.session.query(Slice).filter_by(slice_name="中文").one()
+
+            command = ExportChartsCommand([example_chart.id])
+            contents = dict(command.run())
+
+            path = f"charts/{example_chart.id}.yaml"
+            assert path in set(contents.keys())
+            yaml_content = contents[path]()
+            metadata = yaml.safe_load(yaml_content)
+            assert metadata["slice_name"] == "中文"
+            assert "slice_name: 中文" in yaml_content
+        finally:
+            # restore the original name so fixture teardown works even if an
+            # assertion above fails
+            db.session.query(Slice).filter_by(slice_name="中文").update(
+                {"slice_name": "Energy Sankey"},
+            )
+
 
 class TestImportChartsCommand(SupersetTestCase):
     @patch("superset.utils.core.g")
