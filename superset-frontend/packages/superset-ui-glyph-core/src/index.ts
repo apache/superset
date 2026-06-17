@@ -65,7 +65,6 @@
 // Re-export everything
 export * from './types';
 export * from './arguments';
-export * from './generators';
 export * from './defineChart';
 export * from './presets';
 export * from './crossFilter';

@@ -427,9 +427,11 @@ export default defineChart<
               `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter}%`,
             ],
             fontSize,
+            /* eslint-disable theme-colors/no-literal-colors */
             color:
               (theme as { colorTextSecondary?: string })?.colorTextSecondary ??
               '#666',
+            /* eslint-enable theme-colors/no-literal-colors */
           },
           detail: {
             offsetCenter: [
@@ -441,6 +443,7 @@ export default defineChart<
               }%`,
             ],
             fontSize: FONT_SIZE_MULTIPLIERS.detailFontSize * fontSize,
+            // eslint-disable-next-line theme-colors/no-literal-colors
             color: (theme as { colorText?: string })?.colorText ?? '#000',
           },
         };

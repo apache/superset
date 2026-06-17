@@ -38,6 +38,11 @@ import {
   ChartLabel,
   ChartProps,
   buildQueryContext,
+  ensureIsArray,
+  getMetricLabel,
+  getXAxisColumn,
+  isXAxisSet,
+  ParseMethod,
   QueryFormData,
 } from '@superset-ui/core';
 import type {
@@ -53,6 +58,9 @@ import {
   Checkbox,
   Int,
   Color,
+  ColorPicker,
+  RadioButton,
+  Bounds,
   Metric,
   Dimension,
   Temporal,
@@ -64,6 +72,9 @@ import {
   isCheckboxArg,
   isIntArg,
   isColorArg,
+  isColorPickerArg,
+  isRadioButtonArg,
+  isBoundsArg,
   isMetricArg,
   isDimensionArg,
   isTemporalArg,
@@ -202,6 +213,12 @@ export interface ChartDefinition<
     canBeAnnotationTypes?: string[];
     useLegacyApi?: boolean;
     label?: ChartLabel;
+    /** Number of query objects this chart issues (e.g. 2 for Mixed Chart) */
+    queryObjectCount?: number;
+    dynamicQueryObjectCount?: boolean;
+    parseMethod?: ParseMethod;
+    suppressContextMenu?: boolean;
+    enableNoResults?: boolean;
   };
 
   /**
@@ -305,7 +322,12 @@ export interface ChartDefinition<
 // ============================================================================
 
 function hexToRgba(hex: string): RgbaColor {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  // Expand 3-digit shorthand (#fff -> #ffffff) before parsing
+  const normalized = hex.replace(
+    /^#?([a-f\d])([a-f\d])([a-f\d])$/i,
+    (_, r: string, g: string, b: string) => `${r}${r}${g}${g}${b}${b}`,
+  );
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(normalized);
   if (result?.[1] && result[2] && result[3]) {
     return {
       r: parseInt(result[1], 16),
@@ -342,38 +364,6 @@ export function getArgVisibleWhen(
 }
 
 /**
- * Convert a declarative ArgumentCondition to a visibility function.
- *
- * @example
- * // { showMetricName: true } becomes:
- * ({ controls }) => controls?.showMetricName?.value === true
- *
- * @example
- * // { subtitle: (val) => !!val } becomes:
- * ({ controls }) => !!controls?.subtitle?.value
- */
-function conditionToVisibilityFn(condition: ArgumentCondition): VisibilityFn {
-  return ({ controls }) => {
-    for (const [argName, expectedValue] of Object.entries(condition)) {
-      const actualValue = controls?.[argName]?.value;
-
-      if (typeof expectedValue === 'function') {
-        // Function check
-        if (!expectedValue(actualValue)) {
-          return false;
-        }
-      } else {
-        // Equality check
-        if (actualValue !== expectedValue) {
-          return false;
-        }
-      }
-    }
-    return true;
-  };
-}
-
-/**
  * Evaluate an ArgumentCondition directly from formData (no Redux controls state needed).
  *
  * Use this in rendering code to decide control visibility without going through
@@ -400,29 +390,34 @@ export function evaluateGlyphCondition(
 }
 
 /**
- * Convert a declarative ArgumentCondition to a disabled function.
- * Similar to visibility but returns true when condition IS met (to disable).
+ * Convert a declarative ArgumentCondition to a visibility function.
+ *
+ * @example
+ * // { showMetricName: true } becomes:
+ * ({ controls }) => controls?.showMetricName?.value === true
+ *
+ * @example
+ * // { subtitle: (val) => !!val } becomes:
+ * ({ controls }) => !!controls?.subtitle?.value
  */
-function conditionToDisabledFn(
-  condition: ArgumentCondition,
-): (state: { controls: Record<string, { value: unknown }> }) => boolean {
+function conditionToVisibilityFn(condition: ArgumentCondition): VisibilityFn {
   return ({ controls }) => {
-    for (const [argName, expectedValue] of Object.entries(condition)) {
-      const actualValue = controls?.[argName]?.value;
-
-      if (typeof expectedValue === 'function') {
-        if (!expectedValue(actualValue)) {
-          return false;
-        }
-      } else {
-        if (actualValue !== expectedValue) {
-          return false;
-        }
-      }
+    const values: Record<string, unknown> = {};
+    for (const argName of Object.keys(condition)) {
+      values[argName] = controls?.[argName]?.value;
     }
-    return true;
+    return evaluateGlyphCondition(condition, values);
   };
 }
+
+/**
+ * Convert a declarative ArgumentCondition to a disabled function.
+ * Same evaluation as visibility: returns true when the condition IS met
+ * (the caller disables the control when this returns true).
+ */
+const conditionToDisabledFn = conditionToVisibilityFn as (
+  condition: ArgumentCondition,
+) => (state: { controls: Record<string, { value: unknown }> }) => boolean;
 
 interface ControlVisibilityConfig {
   visibility?: VisibilityFn;
@@ -466,6 +461,19 @@ function getControlConfig(
   const label = argClass.label || paramName;
   const description = argClass.description || '';
 
+  // RadioButton must be checked before Select ('options' in class matches both)
+  if (isRadioButtonArg(argClass)) {
+    const radioClass = argClass as typeof RadioButton;
+    return {
+      type: 'RadioButtonControl',
+      label,
+      description,
+      default: radioClass.default,
+      options: radioClass.options.map(opt => [opt.value, opt.label]),
+      renderTrigger: true,
+    };
+  }
+
   if (isSelectArg(argClass)) {
     return {
       type: 'SelectControl',
@@ -473,7 +481,7 @@ function getControlConfig(
       description,
       default: argClass.default,
       options: argClass.options,
-      clearable: false,
+      clearable: argClass.clearable ?? false,
       renderTrigger: true,
     };
   }
@@ -501,6 +509,18 @@ function getControlConfig(
     };
   }
 
+  // ColorPicker (RGBA object default) must be checked before Color (hex string
+  // default) — both use controlType 'ColorPickerControl'.
+  if (isColorPickerArg(argClass)) {
+    return {
+      type: 'ColorPickerControl',
+      label,
+      description,
+      default: (argClass as typeof ColorPicker).default,
+      renderTrigger: true,
+    };
+  }
+
   if (isColorArg(argClass)) {
     // eslint-disable-next-line theme-colors/no-literal-colors
     const hexDefault = argClass.default ?? '#000000';
@@ -509,6 +529,16 @@ function getControlConfig(
       label,
       description,
       default: hexToRgba(hexDefault),
+      renderTrigger: true,
+    };
+  }
+
+  if (isBoundsArg(argClass)) {
+    return {
+      type: 'BoundsControl',
+      label,
+      description,
+      default: (argClass as typeof Bounds).default,
       renderTrigger: true,
     };
   }
@@ -630,19 +660,22 @@ export const getGlyphControlConfig = getControlConfig;
 // Control Panel Generator
 // ============================================================================
 
-function generateControlPanel<TArgs extends ChartArguments>(
-  args: TArgs,
-  additionalControls?: ChartDefinition<TArgs>['additionalControls'],
-  controlOverrides?: ChartDefinition<TArgs>['controlOverrides'],
-  additionalControlOverrides?: ChartDefinition<TArgs>['additionalControlOverrides'],
-  formDataOverrides?: ChartDefinition<TArgs>['formDataOverrides'],
-  onInit?: ChartDefinition<TArgs>['onInit'],
-  additionalSections?: ControlPanelSectionConfig[],
-  prependSections?: ControlPanelSectionConfig[],
-  chartOptionsTabOverride?: 'customize' | 'data',
-  middleSections?: ControlPanelSectionConfig[],
-  suppressQuerySection?: boolean,
+function generateControlPanel<TArgs extends ChartArguments, TExtra>(
+  definition: ChartDefinition<TArgs, TExtra>,
 ): ControlPanelConfig {
+  const {
+    arguments: args,
+    additionalControls,
+    controlOverrides,
+    additionalControlOverrides,
+    formDataOverrides,
+    onInit,
+    additionalSections,
+    prependSections,
+    chartOptionsTabOverride,
+    middleSections,
+    suppressQuerySection,
+  } = definition;
   const queryControls: ControlSetRow[] = [];
   const chartOptionsControls: ControlSetRow[] = [];
 
@@ -675,16 +708,16 @@ function generateControlPanel<TArgs extends ChartArguments>(
       controlConfig.resetOnHide = resetOnHide ?? false;
     }
     if (disabled) {
-      // Superset uses shouldMapStateToProps + mapStateToProps for dynamic disabled state
+      // Superset uses shouldMapStateToProps + mapStateToProps for dynamic disabled state.
+      // Both call sites (controlUtils/getControlState and ControlPanelsContainer)
+      // pass the state holding `controls` as the FIRST argument.
       controlConfig.shouldMapStateToProps = () => true;
       controlConfig.mapStateToProps = (
-        _explore: unknown,
+        state: unknown,
         control: { value: unknown },
-        chart: unknown,
       ) => {
-        // Get current controls state from the control panel
         const controls =
-          (chart as { controls?: Record<string, { value: unknown }> })
+          (state as { controls?: Record<string, { value: unknown }> })
             ?.controls || {};
         return {
           disabled: disabled({ controls }),
@@ -735,6 +768,9 @@ function generateControlPanel<TArgs extends ChartArguments>(
             {
               label: t('Chart Options'),
               expanded: true,
+              // Structural marker so explore can identify the auto-generated
+              // section without comparing translated label strings.
+              _glyphChartOptions: true,
               ...(chartOptionsTabOverride
                 ? { tabOverride: chartOptionsTabOverride }
                 : {}),
@@ -783,15 +819,13 @@ function generateBuildQuery<TArgs extends ChartArguments>(args: TArgs) {
     buildQueryContext(formData, baseQueryObject => {
       const query = { ...baseQueryObject };
 
-      // Add temporal axis if needed
-      if (hasTemporal && formData.x_axis) {
+      // Add the temporal axis column. Using the core helpers (rather than a
+      // hand-built BASE_AXIS object) lets buildQueryContext's
+      // normalizeTimeColumn pass attach timeGrain from extras.time_grain_sqla
+      // and handles adhoc x_axis columns and the DTTM_ALIAS fallback.
+      if (hasTemporal && isXAxisSet(formData)) {
         query.columns = [
-          {
-            columnType: 'BASE_AXIS',
-            sqlExpression: formData.x_axis,
-            label: formData.x_axis,
-            expressionType: 'SQL',
-          },
+          ...ensureIsArray(getXAxisColumn(formData)),
           ...(query.columns || []),
         ];
       }
@@ -807,11 +841,7 @@ function generateBuildQuery<TArgs extends ChartArguments>(args: TArgs) {
 function generateTransformProps<
   TArgs extends ChartArguments,
   TExtra = Record<string, unknown>,
->(
-  args: TArgs,
-  RenderComponent: FC<RenderProps<TArgs> & TExtra>,
-  customTransform?: TransformFn<TArgs, TExtra>,
-) {
+>(args: TArgs, customTransform?: TransformFn<TArgs, TExtra>) {
   return (chartProps: ChartProps) => {
     const { width, height, queriesData, formData, theme } = chartProps;
     const data = queriesData[0]?.data || [];
@@ -831,30 +861,21 @@ function generateTransformProps<
       // Handle different argument types
       if (isMetricArg(argClass)) {
         const metricValue = formData.metric || formData.metrics?.[0];
-        // Extract metric label from various formats
-        let metricLabel: string;
-        if (typeof metricValue === 'string') {
-          metricLabel = metricValue;
-        } else if (metricValue?.label) {
-          metricLabel = metricValue.label;
-        } else if (metricValue?.column?.column_name && metricValue?.aggregate) {
-          metricLabel = `${metricValue.aggregate}(${metricValue.column.column_name})`;
-        } else {
-          metricLabel = 'value';
-        }
+        // getMetricLabel matches the backend's column-key derivation
+        // (saved metric strings, adhoc labels, aggregate(column), sqlExpression)
+        let metricLabel = metricValue ? getMetricLabel(metricValue) : 'value';
 
-        // Find the actual value - try the label first, then look for first numeric column
+        // Find the actual value by label. Only when the result set has exactly
+        // one numeric column do we fall back to it — guessing among multiple
+        // numeric columns could silently render a dimension value as the metric.
         let rawValue = data[0]?.[metricLabel];
         if (rawValue === undefined && data[0]) {
-          // Try to find the metric value by looking for numeric columns
-          const dataKeys = Object.keys(data[0]);
-          for (const key of dataKeys) {
-            const val = data[0][key];
-            if (typeof val === 'number') {
-              rawValue = val;
-              metricLabel = key;
-              break;
-            }
+          const numericKeys = Object.keys(data[0]).filter(
+            key => typeof data[0][key] === 'number',
+          );
+          if (numericKeys.length === 1) {
+            [metricLabel] = numericKeys;
+            rawValue = data[0][metricLabel];
           }
         }
 
@@ -884,7 +905,10 @@ function generateTransformProps<
       );
       let value = formData[camelParamName] ?? formData[paramName];
 
-      if (isColorArg(argClass)) {
+      if (isColorPickerArg(argClass)) {
+        // ColorPicker values stay in RGBA-object form (no hex conversion)
+        value = value ?? (argClass as typeof ColorPicker).default;
+      } else if (isColorArg(argClass)) {
         const colorClass = argClass as typeof Color;
         // eslint-disable-next-line theme-colors/no-literal-colors
         const defaultRgba = hexToRgba(colorClass.default ?? '#000000');
@@ -899,6 +923,10 @@ function generateTransformProps<
           // eslint-disable-next-line theme-colors/no-literal-colors
           value = colorClass.default ?? '#000000';
         }
+      } else if (isRadioButtonArg(argClass)) {
+        value = value ?? (argClass as typeof RadioButton).default;
+      } else if (isBoundsArg(argClass)) {
+        value = value ?? (argClass as typeof Bounds).default;
       } else if (isNumberFormatArg(argClass)) {
         value =
           value ?? (argClass as typeof NumberFormat).default ?? 'SMART_NUMBER';
@@ -974,16 +1002,6 @@ export function defineChart<
   const {
     metadata,
     arguments: args,
-    additionalControls,
-    additionalSections,
-    prependSections,
-    middleSections,
-    chartOptionsTabOverride,
-    suppressQuerySection,
-    controlOverrides,
-    additionalControlOverrides,
-    formDataOverrides,
-    onInit,
     buildQuery: customBuildQuery,
     transform,
     render,
@@ -994,27 +1012,12 @@ export function defineChart<
     render(props);
 
   // Generate everything from arguments (or use custom if provided)
-  const controlPanel = generateControlPanel(
-    args,
-    additionalControls,
-    controlOverrides,
-    additionalControlOverrides,
-    formDataOverrides,
-    onInit,
-    additionalSections,
-    prependSections,
-    chartOptionsTabOverride,
-    middleSections,
-    suppressQuerySection,
-  );
-  const transformProps = generateTransformProps(
-    args,
-    ChartComponent,
-    transform,
-  );
+  const controlPanel = generateControlPanel(definition);
+  const transformProps = generateTransformProps(args, transform);
   const buildQuery = customBuildQuery ?? generateBuildQuery(args);
 
-  // Create metadata
+  // Create metadata. behaviors defaults to [] to match ChartMetadata's own
+  // default — charts must opt in to InteractiveChart (cross-filter) etc.
   const chartMetadata = new ChartMetadata({
     name: metadata.name,
     description: metadata.description,
@@ -1022,13 +1025,18 @@ export function defineChart<
     tags: metadata.tags,
     thumbnail: metadata.thumbnail,
     thumbnailDark: metadata.thumbnailDark,
-    behaviors: metadata.behaviors || [Behavior.InteractiveChart],
+    behaviors: metadata.behaviors ?? [],
     credits: metadata.credits,
     exampleGallery: metadata.exampleGallery,
     supportedAnnotationTypes: metadata.supportedAnnotationTypes,
     canBeAnnotationTypes: metadata.canBeAnnotationTypes,
     useLegacyApi: metadata.useLegacyApi,
     label: metadata.label,
+    queryObjectCount: metadata.queryObjectCount,
+    dynamicQueryObjectCount: metadata.dynamicQueryObjectCount,
+    parseMethod: metadata.parseMethod,
+    suppressContextMenu: metadata.suppressContextMenu,
+    enableNoResults: metadata.enableNoResults,
   });
 
   // Return a ChartPlugin class

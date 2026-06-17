@@ -1397,6 +1397,8 @@ export default defineChart({
       AnnotationType.Interval,
       AnnotationType.Timeseries,
     ],
+    // Two queries (A and B) — drives the Results tab count in the Data panel
+    queryObjectCount: 2,
   },
 
   arguments: {},

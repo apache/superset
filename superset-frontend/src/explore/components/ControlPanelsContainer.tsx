@@ -940,17 +940,19 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   } | null;
   const glyphArgs = currentConfig?._glyphArgs as ChartArguments | undefined;
 
-  const CHART_OPTIONS_LABEL = t('Chart Options');
-  // The auto-generated Chart Options section (rendered by GlyphOptionsPanel when present)
+  // The auto-generated Chart Options section (rendered by GlyphOptionsPanel when
+  // present). Identified by the structural _glyphChartOptions marker stamped by
+  // generateControlPanel — never by label, so hand-written sections that happen
+  // to be named "Chart Options" are not hijacked.
   const glyphChartOptionsSection = glyphArgs
-    ? (customizeSections.find(s => s.label === CHART_OPTIONS_LABEL) as
+    ? (customizeSections.find(s => s._glyphChartOptions) as
         | ExpandedControlPanelSectionConfig
         | undefined)
     : undefined;
   // Sections in the Customize tab other than the Chart Options one
   // (e.g. additionalSections with custom tabOverrides, Time Comparison, etc.)
   const remainingCustomizeSections = glyphArgs
-    ? customizeSections.filter(s => s.label !== CHART_OPTIONS_LABEL)
+    ? customizeSections.filter(s => !s._glyphChartOptions)
     : customizeSections;
 
   return (

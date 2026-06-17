@@ -3029,6 +3029,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if not db_engine_spec.allows_hidden_orderby_agg:
             select_exprs = remove_duplicates(select_exprs + orderby_exprs)
 
+        # An empty SELECT list would compile to invalid SQL. The allow_empty_query
+        # bypass above is only safe for callers that short-circuit before building
+        # SQL (ExploreMixin.query); any other path reaching this point with no
+        # select expressions must still fail validation cleanly.
+        if not select_exprs:
+            raise QueryObjectValidationError(_("Empty query?"))
+
         qry = sa.select(select_exprs)
 
         if groupby_all_columns:

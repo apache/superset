@@ -38,49 +38,46 @@ let errorCount = 0;
 let warningCount = 0;
 
 /**
- * Check if a node has an eslint-disable comment
+ * Build a line-based suppression index from a file's comments, mirroring real
+ * ESLint semantics:
+ *   - `eslint-disable-next-line <rule>` covers only the line directly below it
+ *   - `eslint-disable-line <rule>` covers only its own line
+ *   - block-form `eslint-disable <rule>` covers every line until the matching
+ *     `eslint-enable <rule>` (or end of file)
+ * Line-based (not AST-attachment-based) scoping means one disable comment on a
+ * large declaration cannot silence color literals nested hundreds of lines
+ * deeper inside it.
  */
-function hasEslintDisable(path, ruleName = 'theme-colors/no-literal-colors') {
-  const { node, parent } = path;
+function buildDisabledLineIndex(
+  comments,
+  ruleName = 'theme-colors/no-literal-colors',
+) {
+  const singleLines = new Set();
+  const ranges = [];
+  let openRangeStart = null;
 
-  // Check leadingComments on the node itself
-  if (node.leadingComments) {
-    const hasDisable = node.leadingComments.some(
-      comment =>
-        (comment.value.includes('eslint-disable-next-line') ||
-          comment.value.includes('eslint-disable')) &&
-        comment.value.includes(ruleName),
-    );
-    if (hasDisable) return true;
-  }
-
-  // Check leadingComments on parent nodes (for expressions in assignments, etc.)
-  if (parent && parent.leadingComments) {
-    const hasDisable = parent.leadingComments.some(
-      comment =>
-        (comment.value.includes('eslint-disable-next-line') ||
-          comment.value.includes('eslint-disable')) &&
-        comment.value.includes(ruleName),
-    );
-    if (hasDisable) return true;
-  }
-
-  // Walk up the ancestor chain using parentPath (NodePath, not raw node)
-  let current = path.parentPath;
-  while (current) {
-    if (current.node && current.node.leadingComments) {
-      const hasDisable = current.node.leadingComments.some(
-        comment =>
-          (comment.value.includes('eslint-disable-next-line') ||
-            comment.value.includes('eslint-disable')) &&
-          comment.value.includes(ruleName),
-      );
-      if (hasDisable) return true;
+  (comments || []).forEach(comment => {
+    if (!comment.value.includes(ruleName)) return;
+    if (comment.value.includes('eslint-disable-next-line')) {
+      singleLines.add(comment.loc.end.line + 1);
+    } else if (comment.value.includes('eslint-disable-line')) {
+      singleLines.add(comment.loc.start.line);
+    } else if (comment.value.includes('eslint-enable')) {
+      if (openRangeStart !== null) {
+        ranges.push([openRangeStart, comment.loc.start.line]);
+        openRangeStart = null;
+      }
+    } else if (comment.value.includes('eslint-disable')) {
+      openRangeStart = comment.loc.start.line;
     }
-    current = current.parentPath;
+  });
+  if (openRangeStart !== null) {
+    ranges.push([openRangeStart, Infinity]);
   }
 
-  return false;
+  return line =>
+    singleLines.has(line) ||
+    ranges.some(([start, end]) => line >= start && line <= end);
 }
 
 /**
@@ -93,12 +90,14 @@ function checkNoLiteralColors(ast, filepath) {
     /^rgba\(/, // RGBA colors
   ];
 
+  const isLineDisabled = buildDisabledLineIndex(ast.comments);
+
   traverse(ast, {
     StringLiteral(path) {
       const { value } = path.node;
       if (colorPatterns.some(pattern => pattern.test(value))) {
         // Check if this line has an eslint-disable comment
-        if (hasEslintDisable(path)) {
+        if (isLineDisabled(path.node.loc.start.line)) {
           return; // Skip this violation
         }
 
@@ -120,7 +119,7 @@ function checkNoLiteralColors(ast, filepath) {
           )
         ) {
           // Check if this line has an eslint-disable comment
-          if (hasEslintDisable(path)) {
+          if (isLineDisabled(path.node.loc.start.line)) {
             return; // Skip this violation
           }
 
@@ -470,6 +469,11 @@ function isWrappedInTranslation(node) {
  * Check for untranslated user-facing strings
  */
 function checkUntranslatedStrings(ast, filepath) {
+  const isLineDisabled = buildDisabledLineIndex(
+    ast.comments,
+    'i18n/no-untranslated-string',
+  );
+
   traverse(ast, {
     // Check JSX attributes for untranslated strings
     JSXAttribute(path) {
@@ -498,7 +502,7 @@ function checkUntranslatedStrings(ast, filepath) {
       // String literal value
       if (value && value.type === 'StringLiteral') {
         if (needsTranslation(value.value)) {
-          if (hasEslintDisable(path, 'i18n/no-untranslated-string')) {
+          if (isLineDisabled(path.node.loc.start.line)) {
             return;
           }
           // eslint-disable-next-line no-console
@@ -517,7 +521,7 @@ function checkUntranslatedStrings(ast, filepath) {
           needsTranslation(expression.value)
         ) {
           if (!isWrappedInTranslation(value)) {
-            if (hasEslintDisable(path, 'i18n/no-untranslated-string')) {
+            if (isLineDisabled(path.node.loc.start.line)) {
               return;
             }
             // eslint-disable-next-line no-console
@@ -535,7 +539,7 @@ function checkUntranslatedStrings(ast, filepath) {
       const text = path.node.value.trim();
 
       if (needsTranslation(text)) {
-        if (hasEslintDisable(path, 'i18n/no-untranslated-string')) {
+        if (isLineDisabled(path.node.loc.start.line)) {
           return;
         }
         // eslint-disable-next-line no-console

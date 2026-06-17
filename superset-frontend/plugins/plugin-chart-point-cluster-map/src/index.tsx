@@ -386,7 +386,7 @@ export function transformProps(chartProps: ChartProps) {
 
 const columnsConfig = sharedControls.entity;
 
-// eslint-disable-next-line theme-colors/no-literal-colors
+/* eslint-disable theme-colors/no-literal-colors */
 const colorChoices = [
   ['#008b8b', t('Dark Cyan')],
   ['#800080', t('Purple')],
@@ -395,6 +395,7 @@ const colorChoices = [
   ['#dc143c', t('Crimson')],
   ['#228b22', t('Forest Green')],
 ];
+/* eslint-enable theme-colors/no-literal-colors */
 
 // ─── Plugin definition ───────────────────────────────────────────────────────
 

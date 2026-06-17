@@ -110,8 +110,10 @@ export const Subtitle = Text.with({
  * Common toggle for charts with legends
  */
 export const ShowLegend = Checkbox.with({
-  label: t('Show Legend'),
-  description: t('Whether to display the chart legend'),
+  // Strings match plugin-chart-echarts' legend controls so existing i18n
+  // catalogs apply and legend UX stays consistent across chart families.
+  label: t('Show legend'),
+  description: t('Whether to display a legend for the chart'),
   default: true,
 });
 
@@ -154,8 +156,8 @@ export const LEGEND_SORT_OPTIONS: SelectOption[] = [
  * Choose between scrollable or plain list legend
  */
 export const LegendType = Select.with({
-  label: t('Legend Type'),
-  description: t('Type of legend display'),
+  label: t('Type'),
+  description: t('Legend type'),
   options: LEGEND_TYPE_OPTIONS,
   default: 'scroll',
 });
@@ -165,8 +167,8 @@ export const LegendType = Select.with({
  * Position the legend relative to the chart
  */
 export const LegendOrientation = Select.with({
-  label: t('Legend Orientation'),
-  description: t('Position of the legend'),
+  label: t('Orientation'),
+  description: t('Legend Orientation'),
   options: LEGEND_ORIENTATION_OPTIONS,
   default: 'top',
 });

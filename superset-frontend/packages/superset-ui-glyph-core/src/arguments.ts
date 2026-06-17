@@ -18,6 +18,10 @@
  */
 
 import {
+  D3_FORMAT_OPTIONS,
+  D3_TIME_FORMAT_OPTIONS,
+} from '@superset-ui/chart-controls';
+import {
   ColumnType,
   SelectOptions,
   SelectOption,
@@ -263,30 +267,13 @@ export class NumberFormat extends Argument {
   static override controlType = 'NumberFormatControl';
   static default: string = 'SMART_NUMBER';
 
-  // Standard D3 format options
-  static readonly FORMAT_OPTIONS: SelectOption[] = [
-    { label: 'Adaptive formatting', value: 'SMART_NUMBER' },
-    { label: 'Original value', value: '~g' },
-    { label: '12,345.432', value: ',.3f' },
-    { label: '12,345.43', value: ',.2f' },
-    { label: '12,345.4', value: ',.1f' },
-    { label: '12,345', value: ',.0f' },
-    { label: '12345.432', value: '.3f' },
-    { label: '12345.43', value: '.2f' },
-    { label: '12345.4', value: '.1f' },
-    { label: '12345', value: '.0f' },
-    { label: '12K', value: '.0s' },
-    { label: '12.3K', value: '.1s' },
-    { label: '12.35K', value: '.2s' },
-    { label: '12.346K', value: '.3s' },
-    { label: '1234543.21%', value: '.2%' },
-    { label: '1234543%', value: '.0%' },
-    { label: '12.34%', value: '.2r' },
-    { label: '+12,345.4', value: '+,.1f' },
-    { label: '$12,345.43', value: '$,.2f' },
-    { label: 'Duration (1m 6s)', value: 'DURATION' },
-    { label: 'Duration (1ms 400µs)', value: 'DURATION_SUB' },
-  ];
+  // Standard D3 format options — derived from the canonical list in
+  // @superset-ui/chart-controls so glyph charts offer the same formats
+  // (with previews and translations) as legacy charts, and new formats
+  // propagate automatically.
+  static readonly FORMAT_OPTIONS: SelectOption[] = D3_FORMAT_OPTIONS.map(
+    ([value, label]) => ({ value, label }),
+  );
 
   static with(options: NumberFormatOptions): typeof NumberFormat {
     const Base = this;
@@ -334,23 +321,11 @@ export class TimeFormat extends Argument {
   static override controlType = 'TimeFormatControl';
   static default: string = 'smart_date';
 
-  // Standard D3 time format options
-  static readonly FORMAT_OPTIONS: SelectOption[] = [
-    { label: 'Adaptive formatting', value: 'smart_date' },
-    { label: '%d/%m/%Y | 14/01/2019', value: '%d/%m/%Y' },
-    { label: '%m/%d/%Y | 01/14/2019', value: '%m/%d/%Y' },
-    { label: '%d.%m.%Y | 14.01.2019', value: '%d.%m.%Y' },
-    { label: '%Y-%m-%d | 2019-01-14', value: '%Y-%m-%d' },
-    {
-      label: '%Y-%m-%d %H:%M:%S | 2019-01-14 01:32:10',
-      value: '%Y-%m-%d %H:%M:%S',
-    },
-    {
-      label: '%d-%m-%Y %H:%M:%S | 14-01-2019 01:32:10',
-      value: '%d-%m-%Y %H:%M:%S',
-    },
-    { label: '%H:%M:%S | 01:32:10', value: '%H:%M:%S' },
-  ];
+  // Standard D3 time format options — derived from the canonical list in
+  // @superset-ui/chart-controls (see NumberFormat.FORMAT_OPTIONS).
+  static readonly FORMAT_OPTIONS: SelectOption[] = D3_TIME_FORMAT_OPTIONS.map(
+    ([value, label]) => ({ value, label }),
+  );
 
   static with(options: TimeFormatOptions): typeof TimeFormat {
     const Base = this;

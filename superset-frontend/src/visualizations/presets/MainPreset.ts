@@ -44,7 +44,7 @@ import ScatterMapChartPlugin from '@superset-ui/plugin-chart-point-cluster-map';
 import { createCartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
 import {
   BigNumberChartPlugin,
-  BigNumberGlyphChartPlugin,
+  BigNumberTotalChartPlugin,
   EchartsPieChartPlugin,
   EchartsBoxPlotChartPlugin,
   EchartsAreaChartPlugin,
@@ -110,7 +110,7 @@ export default class MainPreset extends Preset {
       presets: [new DeckGLChartPreset()],
       plugins: [
         new BigNumberChartPlugin().configure({ key: VizType.BigNumber }),
-        new BigNumberGlyphChartPlugin().configure({
+        new BigNumberTotalChartPlugin().configure({
           key: VizType.BigNumberTotal,
         }),
         new EchartsBoxPlotChartPlugin().configure({ key: VizType.BoxPlot }),

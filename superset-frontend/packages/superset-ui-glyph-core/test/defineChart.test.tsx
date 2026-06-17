@@ -23,14 +23,19 @@ import {
   ChartPlugin,
 } from '@superset-ui/core';
 import {
+  Bounds,
   Checkbox,
+  ColorPicker,
   defineChart,
   Dimension,
   evaluateGlyphCondition,
   getArgVisibleWhen,
+  getGlyphControlConfig,
   Metric,
+  RadioButton,
   resolveArgClass,
   Select,
+  Temporal,
   Text,
 } from '@superset-ui/glyph-core';
 import type { ChartDefinition } from '@superset-ui/glyph-core/defineChart';
@@ -42,8 +47,9 @@ function instantiate(PluginClass: ReturnType<typeof defineChart>) {
   // (set via super({ controlPanel }) in defineChart's GlyphChartPlugin).
   return {
     plugin,
-    controlPanel: (plugin as unknown as { controlPanel: Record<string, unknown> })
-      .controlPanel,
+    controlPanel: (
+      plugin as unknown as { controlPanel: Record<string, unknown> }
+    ).controlPanel,
     metadata: (plugin as unknown as { metadata: ChartMetadata }).metadata,
   };
 }
@@ -144,7 +150,7 @@ describe('defineChart - basic plugin construction', () => {
     expect(metadata.thumbnail).toBe(MIN_THUMBNAIL);
   });
 
-  test('metadata defaults Behavior.InteractiveChart when omitted', () => {
+  test('metadata defaults behaviors to [] when omitted (matching ChartMetadata)', () => {
     const Plugin = defineChart({
       metadata: { name: 'Test', thumbnail: MIN_THUMBNAIL },
       arguments: {},
@@ -152,7 +158,28 @@ describe('defineChart - basic plugin construction', () => {
       render: () => null as unknown as React.ReactElement,
     });
     const { metadata } = instantiate(Plugin);
-    expect(metadata.behaviors).toContain(Behavior.InteractiveChart);
+    // Charts must opt in to InteractiveChart — defaulting it on would enroll
+    // non-interactive charts in dashboard cross-filter UI and configuration.
+    expect(metadata.behaviors).toEqual([]);
+  });
+
+  test('metadata forwards queryObjectCount and related fields', () => {
+    const Plugin = defineChart({
+      metadata: {
+        name: 'Test',
+        thumbnail: MIN_THUMBNAIL,
+        queryObjectCount: 2,
+        suppressContextMenu: true,
+        enableNoResults: false,
+      },
+      arguments: {},
+      transform: () => ({}),
+      render: () => null as unknown as React.ReactElement,
+    });
+    const { metadata } = instantiate(Plugin);
+    expect(metadata.queryObjectCount).toBe(2);
+    expect(metadata.suppressContextMenu).toBe(true);
+    expect(metadata.enableNoResults).toBe(false);
   });
 
   test('metadata behaviors override the default when provided', () => {
@@ -481,8 +508,9 @@ describe('defineChart - custom buildQuery / transform', () => {
     });
     const p = new Plugin();
     // ChartPlugin stores it as a sanitized loader
-    const loader = (p as unknown as { loadBuildQuery?: () => Promise<Function> })
-      .loadBuildQuery;
+    const loader = (
+      p as unknown as { loadBuildQuery?: () => Promise<Function> }
+    ).loadBuildQuery;
     expect(loader).toBeDefined();
     const fn = await (loader as () => Promise<Function>)();
     fn({ viz_type: 'test', datasource: '1__table' });
@@ -562,5 +590,200 @@ describe('defineChart - visibleWhen with object-form ArgDef', () => {
     // The visibleWhen is preserved on the glyph args
     const lp = glyphArgs.legendPosition as { visibleWhen?: unknown };
     expect(lp.visibleWhen).toEqual({ showLegend: true });
+  });
+});
+
+describe('defineChart - getGlyphControlConfig argument class coverage', () => {
+  test('RadioButton maps to RadioButtonControl (not SelectControl)', () => {
+    const Choice = RadioButton.with({
+      label: 'Mode',
+      default: 'a',
+      options: [
+        { label: 'A', value: 'a' },
+        { label: 'B', value: 'b' },
+      ],
+    });
+    const config = getGlyphControlConfig(Choice, 'mode');
+    expect(config.type).toBe('RadioButtonControl');
+    expect(config.default).toBe('a');
+    expect(config.options).toEqual([
+      ['a', 'A'],
+      ['b', 'B'],
+    ]);
+  });
+
+  test('ColorPicker keeps its RGBA object default (no hex coercion)', () => {
+    const red = { r: 255, g: 0, b: 0, a: 1 };
+    const Picker = ColorPicker.with({ label: 'Stroke', default: red });
+    const config = getGlyphControlConfig(Picker, 'stroke');
+    expect(config.type).toBe('ColorPickerControl');
+    expect(config.default).toEqual(red);
+  });
+
+  test('Bounds maps to BoundsControl (not TextControl)', () => {
+    const Range = Bounds.with({ label: 'Y bounds', default: [0, 100] });
+    const config = getGlyphControlConfig(Range, 'y_bounds');
+    expect(config.type).toBe('BoundsControl');
+    expect(config.default).toEqual([0, 100]);
+  });
+
+  test('Select honors clearable from the argument class', () => {
+    const config = getGlyphControlConfig(
+      Select.with({ label: 'S', options: [{ label: 'A', value: 'a' }] }),
+      's',
+    );
+    expect(config.clearable).toBe(false);
+  });
+});
+
+describe('defineChart - disabledWhen wiring', () => {
+  test('mapStateToProps reads controls from the state (first) argument', () => {
+    const Plugin = defineChart({
+      metadata: { name: 'D', thumbnail: MIN_THUMBNAIL },
+      arguments: {
+        subtitle: Text.with({ label: 'Subtitle', default: '' }),
+        subtitleFontSize: {
+          arg: Select.with({
+            label: 'Size',
+            default: 'm',
+            options: [{ label: 'M', value: 'm' }],
+          }),
+          disabledWhen: { subtitle: (val: unknown) => !val },
+        },
+      },
+      transform: () => ({}),
+      render: () => null as unknown as React.ReactElement,
+    });
+    const { controlPanel } = instantiate(Plugin);
+    const sections = controlPanel.controlPanelSections as Array<{
+      controlSetRows: Array<
+        Array<{ name: string; config: Record<string, Function> }>
+      >;
+    }>;
+    const control = sections
+      .flatMap(s => s.controlSetRows)
+      .flat()
+      .find(c => c?.name === 'subtitleFontSize');
+    expect(control).toBeDefined();
+    const { mapStateToProps, shouldMapStateToProps } = control!.config;
+    expect(shouldMapStateToProps()).toBe(true);
+
+    // Both real call sites pass the controls-bearing state as the FIRST arg
+    const disabledResult = mapStateToProps(
+      { controls: { subtitle: { value: '' } } },
+      { value: 'm' },
+    );
+    expect(disabledResult.disabled).toBe(true);
+
+    const enabledResult = mapStateToProps(
+      { controls: { subtitle: { value: 'hello' } } },
+      { value: 'm' },
+    );
+    expect(enabledResult.disabled).toBe(false);
+  });
+});
+
+describe('defineChart - generated buildQuery temporal axis', () => {
+  test('x_axis column is normalized to BASE_AXIS with timeGrain', async () => {
+    const Plugin = defineChart({
+      metadata: { name: 'T', thumbnail: MIN_THUMBNAIL },
+      arguments: { time: Temporal, metric: Metric },
+      transform: () => ({}),
+      render: () => null as unknown as React.ReactElement,
+    });
+    const p = new Plugin();
+    const loader = (p as unknown as { loadBuildQuery: () => Promise<Function> })
+      .loadBuildQuery;
+    const buildQuery = await loader();
+    const queryContext = buildQuery({
+      datasource: '1__table',
+      viz_type: 'test',
+      x_axis: 'ds',
+      time_grain_sqla: 'P1D',
+      metrics: ['count'],
+    });
+    const axisColumn = queryContext.queries[0].columns.find(
+      (col: { columnType?: string }) =>
+        typeof col === 'object' && col?.columnType === 'BASE_AXIS',
+    );
+    expect(axisColumn).toBeDefined();
+    expect(axisColumn.sqlExpression).toBe('ds');
+    // The grain selected in the control panel must reach the query
+    expect(axisColumn.timeGrain).toBe('P1D');
+  });
+});
+
+describe('defineChart - generated metric extraction', () => {
+  async function getTransformProps(
+    PluginClass: ReturnType<typeof defineChart>,
+  ) {
+    const p = new PluginClass();
+    const loader = (
+      p as unknown as { loadTransformProps: () => Promise<Function> }
+    ).loadTransformProps;
+    return loader();
+  }
+
+  const MetricPlugin = defineChart({
+    metadata: { name: 'M', thumbnail: MIN_THUMBNAIL },
+    arguments: { metric: Metric },
+    render: () => null as unknown as React.ReactElement,
+  });
+
+  test('label-less SQL adhoc metrics resolve via sqlExpression', async () => {
+    const transformProps = await getTransformProps(MetricPlugin);
+    const props = transformProps({
+      width: 1,
+      height: 1,
+      formData: {
+        metric: { expressionType: 'SQL', sqlExpression: 'SUM(x)/SUM(y)' },
+      },
+      queriesData: [{ data: [{ 'SUM(x)/SUM(y)': 42 }] }],
+    });
+    expect(props.metric.name).toBe('SUM(x)/SUM(y)');
+    expect(props.metric.value).toBe(42);
+  });
+
+  test('does NOT guess among multiple numeric columns on label miss', async () => {
+    const transformProps = await getTransformProps(MetricPlugin);
+    const props = transformProps({
+      width: 1,
+      height: 1,
+      formData: { metric: 'count' },
+      queriesData: [{ data: [{ year: 2024, total: 9 }] }],
+    });
+    // Guessing could render a numeric dimension (e.g. a year) as the metric
+    expect(props.metric.value).toBeUndefined();
+  });
+
+  test('falls back to the only numeric column when unambiguous', async () => {
+    const transformProps = await getTransformProps(MetricPlugin);
+    const props = transformProps({
+      width: 1,
+      height: 1,
+      formData: { metric: 'count' },
+      queriesData: [{ data: [{ name: 'a', total: 9 }] }],
+    });
+    expect(props.metric.value).toBe(9);
+    expect(props.metric.name).toBe('total');
+  });
+});
+
+describe('defineChart - Chart Options section marker', () => {
+  test('the generated section carries the structural _glyphChartOptions flag', () => {
+    const Plugin = defineChart({
+      metadata: { name: 'S', thumbnail: MIN_THUMBNAIL },
+      arguments: { title: Text.with({ label: 'Title', default: '' }) },
+      transform: () => ({}),
+      render: () => null as unknown as React.ReactElement,
+    });
+    const { controlPanel } = instantiate(Plugin);
+    const sections = controlPanel.controlPanelSections as Array<{
+      label?: string;
+      _glyphChartOptions?: boolean;
+    }>;
+    const chartOptions = sections.find(s => s?._glyphChartOptions);
+    expect(chartOptions).toBeDefined();
+    expect(chartOptions?.label).toBe('Chart Options');
   });
 });

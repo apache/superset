@@ -688,10 +688,11 @@ export default defineChart<
           label: {
             show: true,
             fontWeight: 'bold',
-            // eslint-disable-next-line theme-colors/no-literal-colors
+            /* eslint-disable theme-colors/no-literal-colors */
             backgroundColor:
               (theme as { colorBgContainer?: string })?.colorBgContainer ??
               '#fff',
+            /* eslint-enable theme-colors/no-literal-colors */
           },
         },
         data: transformedData,

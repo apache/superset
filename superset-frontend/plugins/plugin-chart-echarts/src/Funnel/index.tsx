@@ -481,11 +481,11 @@ export default defineChart<
     const defaultLabel = {
       formatter,
       show: showLabels,
-      // eslint-disable-next-line theme-colors/no-literal-colors
+      /* eslint-disable theme-colors/no-literal-colors */
       color: (theme as { colorText?: string })?.colorText ?? '#000',
-      // eslint-disable-next-line theme-colors/no-literal-colors
       textBorderColor:
         (theme as { colorBgBase?: string })?.colorBgBase ?? '#fff',
+      /* eslint-enable theme-colors/no-literal-colors */
       textBorderWidth: 1,
     };
 

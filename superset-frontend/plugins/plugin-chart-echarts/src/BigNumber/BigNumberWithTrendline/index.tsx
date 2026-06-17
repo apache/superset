@@ -633,10 +633,11 @@ export default defineChart<
                   },
                   {
                     offset: 1,
-                    // eslint-disable-next-line theme-colors/no-literal-colors
+                    /* eslint-disable theme-colors/no-literal-colors */
                     color:
                       (theme as { colorBgContainer?: string })
                         ?.colorBgContainer ?? '#fff',
+                    /* eslint-enable theme-colors/no-literal-colors */
                   },
                 ]),
               },

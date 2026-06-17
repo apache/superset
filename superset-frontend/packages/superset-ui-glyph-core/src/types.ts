@@ -17,9 +17,6 @@
  * under the License.
  */
 
-import type { ControlPanelConfig } from '@superset-ui/chart-controls';
-import type { ChartProps } from '@superset-ui/core';
-
 /**
  * Option for Select controls
  */
@@ -217,16 +214,6 @@ export enum ColumnType {
 }
 
 /**
- * Base argument class interface
- */
-export interface ArgumentClass {
-  label: string | null;
-  description: string | null;
-  columnType?: ColumnType;
-  controlType?: string;
-}
-
-/**
  * RGBA color format used by Superset's ColorPickerControl
  */
 export interface RgbaColor {
@@ -268,39 +255,3 @@ export type ArgumentCondition = Record<
   string,
   unknown | ((value: unknown) => boolean)
 >;
-
-/**
- * Extended control configuration with visibility
- */
-export interface ControlConfig {
-  name: string;
-  config: Record<string, unknown>;
-  visibility?: VisibilityFn;
-  resetOnHide?: boolean;
-}
-
-/**
- * Glyph chart definition
- */
-export interface GlyphChartDef<TArgs extends Record<string, ArgumentClass>> {
-  arguments: TArgs;
-  sections?: {
-    query?: ControlConfig[][];
-    chartOptions?: ControlConfig[][];
-  };
-}
-
-/**
- * Result of createGlyphPlugin
- */
-export interface GlyphPluginResult<TFormData> {
-  controlPanel: ControlPanelConfig;
-  transformProps: (chartProps: ChartProps) => TFormData;
-}
-
-/**
- * Type helper to extract form data types from argument definitions
- */
-export type ArgumentsToFormData<TArgs extends Record<string, ArgumentClass>> = {
-  [K in keyof TArgs]: TArgs[K] extends { default: infer D } ? D : unknown;
-};

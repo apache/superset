@@ -36,7 +36,13 @@
  * correctly while glyph-defined args get the simplified formData-based path.
  */
 
-import { ReactNode } from 'react';
+import {
+  cloneElement,
+  isValidElement,
+  ReactElement,
+  ReactNode,
+  useMemo,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import { JsonValue, QueryFormData } from '@superset-ui/core';
 import {
@@ -81,6 +87,8 @@ interface GlyphOptionsPanelProps {
   defaultExpandedKeys?: string[];
 }
 
+const EMPTY_ERRORS: unknown[] = [];
+
 /**
  * Render a single glyph arg control natively (value + visibility from formData).
  */
@@ -98,19 +106,26 @@ function GlyphArgControl({
   actions: Pick<ExploreActions, 'setControlValue'>;
 }) {
   const formDataRecord = formData as Record<string, unknown>;
-  const argClass = resolveArgClass(argDef);
-  const visibleWhen = getArgVisibleWhen(argDef);
-  const controlConfig = getGlyphControlConfig(argClass, name) as Record<
-    string,
-    unknown
-  > & { type: string };
+  // The config is deterministic per (argDef, name) — don't rebuild it (and its
+  // nested option arrays) on every keystroke-driven re-render.
+  const { visibleWhen, controlConfig } = useMemo(
+    () => ({
+      visibleWhen: getArgVisibleWhen(argDef),
+      controlConfig: getGlyphControlConfig(
+        resolveArgClass(argDef),
+        name,
+      ) as Record<string, unknown> & { type: string },
+    }),
+    [argDef, name],
+  );
 
   const isVisible = visibleWhen
     ? evaluateGlyphCondition(visibleWhen, formDataRecord)
     : undefined;
 
   const { type, label, description, ...restConfig } = controlConfig;
-  const validationErrors = controls[name]?.validationErrors ?? [];
+  // Stable empty-array reference so PureComponent controls can bail out
+  const validationErrors = controls[name]?.validationErrors ?? EMPTY_ERRORS;
 
   return (
     <StashFormDataContainer
@@ -148,17 +163,21 @@ export default function GlyphOptionsPanel({
   defaultExpandedKeys,
 }: GlyphOptionsPanelProps) {
   // Build the set of arg names that are data args (go in the Query/Data tab, not here)
-  const dataArgNames = new Set(
-    Object.entries(glyphArgs)
-      .filter(([, argDef]) => {
-        const argClass = resolveArgClass(argDef as ArgDef);
-        return (
-          isMetricArg(argClass) ||
-          isDimensionArg(argClass) ||
-          isTemporalArg(argClass)
-        );
-      })
-      .map(([name]) => name),
+  const dataArgNames = useMemo(
+    () =>
+      new Set(
+        Object.entries(glyphArgs)
+          .filter(([, argDef]) => {
+            const argClass = resolveArgClass(argDef as ArgDef);
+            return (
+              isMetricArg(argClass) ||
+              isDimensionArg(argClass) ||
+              isTemporalArg(argClass)
+            );
+          })
+          .map(([name]) => name),
+      ),
+    [glyphArgs],
   );
 
   const rows = chartOptionsSection.controlSetRows
@@ -167,11 +186,42 @@ export default function GlyphOptionsPanel({
         .map(item => {
           if (!item) return null;
 
+          // JSX rows (sub-section headers, dividers) — render them like the
+          // legacy section renderer does instead of silently dropping them.
+          if (isValidElement(item)) {
+            const element = item as ReactElement<Record<string, unknown>>;
+            const controlName = (element.props as { name?: string }).name;
+            if (!controlName) {
+              return element;
+            }
+            const controlState = controls[controlName];
+            return cloneElement(element, {
+              ...(element.props as Record<string, unknown>),
+              actions,
+              controls,
+              form_data: formData,
+              ...(controlState && {
+                value: controlState.value,
+                validationErrors: controlState.validationErrors,
+                default: controlState.default,
+                onChange: (value: unknown, errors: unknown[]) =>
+                  actions.setControlValue(controlName, value, errors),
+              }),
+            });
+          }
+
           if (isCustomControlItem(item)) {
             const { name } = item;
             const argDef = glyphArgs[name] as ArgDef | undefined;
 
-            if (argDef && !dataArgNames.has(name)) {
+            // Controls whose config needs mapStateToProps (e.g. conditional
+            // formatting deriving column options from the chart response, or
+            // disabledWhen) must go through the legacy renderControl path —
+            // the native path has no exploreState/chart to map from.
+            const needsStateMapping =
+              item.config && 'mapStateToProps' in item.config;
+
+            if (argDef && !dataArgNames.has(name) && !needsStateMapping) {
               // Native glyph rendering: value from formData, visibility from formData
               return (
                 <GlyphArgControl

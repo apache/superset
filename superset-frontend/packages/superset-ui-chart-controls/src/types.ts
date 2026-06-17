@@ -409,6 +409,8 @@ export interface ControlPanelSectionConfig {
     props: ControlPanelsContainerProps,
     controlData: AnyDict,
   ) => boolean;
+  /** @internal Marks the auto-generated glyph "Chart Options" section */
+  _glyphChartOptions?: boolean;
 }
 
 export interface StandardizedControls {
