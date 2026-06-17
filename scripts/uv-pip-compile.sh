@@ -31,11 +31,32 @@ if [ -z "$RUNNING_IN_DOCKER" ]; then
 
   echo "Running in Docker (Python ${PYTHON_VERSION} on Linux)..."
 
+  IMAGE="python:${PYTHON_VERSION}-slim"
+
+  # Pre-pull the image with a few retries to absorb transient Docker Hub
+  # registry failures ("context deadline exceeded" / anonymous rate-limit blips
+  # on shared CI runners). Without this a flaky pull fails the whole
+  # check-python-deps job on an infrastructure hiccup rather than a real
+  # dependency drift. The pull is in the `until` condition so `set -e` does not
+  # abort on an individual failed attempt.
+  attempt=1
+  max_attempts=4
+  until docker pull "$IMAGE"; do
+    if [ "$attempt" -ge "$max_attempts" ]; then
+      echo "docker pull $IMAGE failed after ${max_attempts} attempts" >&2
+      exit 1
+    fi
+    delay=$((attempt * 10))
+    echo "docker pull $IMAGE failed (attempt ${attempt}/${max_attempts}); retrying in ${delay}s..." >&2
+    sleep "$delay"
+    attempt=$((attempt + 1))
+  done
+
   docker run --rm \
     -v "$(pwd)":/app \
     -w /app \
     -e RUNNING_IN_DOCKER=1 \
-    python:${PYTHON_VERSION}-slim \
+    "$IMAGE" \
     bash -c "pip install uv && ./scripts/uv-pip-compile.sh $*"
 
   exit $?

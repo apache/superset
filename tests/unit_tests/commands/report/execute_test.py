@@ -1541,15 +1541,43 @@ def test_success_state_report_sends_and_logs_success(
         schedule_type=ReportScheduleType.REPORT,
     )
     mock_send = mocker.patch.object(state, "send")
-    mocker.patch.object(state, "update_report_schedule_and_log")
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
 
     state.next()
 
     mock_send.assert_called_once()
-    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
-        ReportState.SUCCESS,
-        error_message=None,
+    # WORKING is set before send() (concurrency guard against duplicate sends),
+    # then SUCCESS after.
+    assert mock_update.call_args_list == [
+        mocker.call(ReportState.WORKING),
+        mocker.call(ReportState.SUCCESS, error_message=None),
+    ]
+
+
+def test_success_state_error_logged_when_send_error_raises(
+    mocker: MockerFixture,
+) -> None:
+    """If send_error() itself raises, the schedule must still transition to
+    ERROR (not stay stuck in WORKING)."""
+    state = _make_state_instance(
+        mocker, ReportSuccessState, schedule_type=ReportScheduleType.ALERT
     )
+    mocker.patch.object(state, "is_in_grace_period", return_value=False)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    mocker.patch.object(
+        state, "send_error", side_effect=RuntimeError("notification boom")
+    )
+    mocker.patch(
+        "superset.commands.report.execute.AlertCommand"
+    ).return_value.run.side_effect = RuntimeError("alert boom")
+
+    # The original alert error propagates...
+    with pytest.raises(RuntimeError, match="alert boom"):
+        state.next()
+
+    # ...but ERROR was still logged despite send_error() failing.
+    states = [call.args[0] for call in mock_update.call_args_list]
+    assert ReportState.ERROR in states
 
 
 def test_get_url_for_csv_uses_post_processed_type(

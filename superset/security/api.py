@@ -83,6 +83,18 @@ class GuestTokenCreateSchema(PermissiveSchema):
     user = fields.Nested(UserSchema)
     resources = fields.List(fields.Nested(ResourceSchema), required=True)
     rls = fields.List(fields.Nested(RlsRuleSchema), required=True)
+    datasets = fields.List(
+        fields.Integer(),
+        load_default=None,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Optional allowlist of dataset IDs the guest may access. "
+                "When omitted all datasets linked to the embedded dashboard "
+                "are accessible, preserving the default behaviour."
+            )
+        },
+    )
 
 
 class RoleResponseSchema(PermissiveSchema):
@@ -187,7 +199,10 @@ class SecurityRestApi(BaseSupersetApi):
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
             token = self.appbuilder.sm.create_guest_access_token(
-                body["user"], body["resources"], body["rls"]
+                body.get("user", {}),
+                body["resources"],
+                body["rls"],
+                **({"datasets": body["datasets"]} if "datasets" in body else {}),
             )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
@@ -355,6 +370,11 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
     resource_name = "security/user_registrations"
     datamodel = SQLAInterface(RegisterUser)
     allow_browser_login = True
+    # NOTE: registration_hash is intentionally excluded from both list_columns
+    # and search_columns. It is a bearer token for the
+    # /register/activation/<hash> flow; exposing it in API responses (and thus
+    # logs/caches) or allowing it to be filtered on would let a holder activate
+    # the pending account.
     list_columns = [
         "id",
         "username",
@@ -362,5 +382,11 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
         "first_name",
         "last_name",
         "registration_date",
-        "registration_hash",
+    ]
+    search_columns = [
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "registration_date",
     ]

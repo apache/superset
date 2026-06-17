@@ -386,3 +386,27 @@ def test_handle_boolean_filter() -> None:
         str(result_computed.compile(compile_kwargs={"literal_binds": True}))
         == "(expiration = 1) = true"
     )
+
+
+def test_extract_errors_maps_401_to_access_denied() -> None:
+    """
+    Regression for #33554: Presto 401 errors must surface as
+    CONNECTION_ACCESS_DENIED_ERROR rather than a raw GENERIC_DB_ENGINE_ERROR.
+
+    pyhive raises "presto error: Unexpected status code 401 b'Unauthorized'"
+    when the Presto server rejects the connection with HTTP 401. SQL Lab
+    users see a cryptic raw error instead of an actionable "check your
+    credentials" message.
+
+    The custom_errors map has a pattern for "Access Denied: Invalid
+    credentials" (PyHive LDAP auth path), but not for the HTTP 401
+    status-code message that pyhive raises when the server rejects the
+    initial request. Adding the pattern surfaces a user-readable error.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.errors import SupersetErrorType
+
+    msg = "presto error: Unexpected status code 401 b'Unauthorized'"
+    result = PrestoEngineSpec.extract_errors(Exception(msg))
+    assert len(result) == 1
+    assert result[0].error_type == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR

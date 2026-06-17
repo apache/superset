@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useState } from 'react';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 
 import { resetState } from 'src/SqlLab/actions/sqlLab';
 import {

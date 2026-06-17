@@ -86,6 +86,7 @@ describe('SupersetThemeProvider', () => {
       clearLocalOverrides: jest.fn(),
       getCurrentCrudThemeId: jest.fn().mockReturnValue(null),
       hasDevOverride: jest.fn().mockReturnValue(false),
+      hasThemeConfigOverride: jest.fn().mockReturnValue(false),
       canSetMode: jest.fn().mockReturnValue(true),
       canSetTheme: jest.fn().mockReturnValue(true),
       canDetectOSPreference: jest.fn().mockReturnValue(true),
