@@ -21,7 +21,7 @@ import {
   CustomControlConfig,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, useThemeMode } from '@superset-ui/core';
 import { InfoTooltip } from '@superset-ui/core/components';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
@@ -34,6 +34,7 @@ interface StyleCustomControlProps {
 
 const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
   const theme = useTheme();
+  const isDarkMode = useThemeMode();
   const htmlSanitization = props.htmlSanitization ?? true;
 
   const defaultValue = props?.value
@@ -62,7 +63,7 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
         </div>
       </ControlHeader>
       <CodeEditor
-        theme="dark"
+        theme={isDarkMode ? 'dark' : 'light'}
         mode="css"
         value={props.value}
         defaultValue={defaultValue}

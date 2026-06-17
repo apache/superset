@@ -21,7 +21,7 @@ import {
   CustomControlConfig,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { t, validateNonEmpty, useTheme } from '@superset-ui/core';
+import { t, validateNonEmpty, useTheme, useThemeMode } from '@superset-ui/core';
 import { InfoTooltip, SafeMarkdown } from '@superset-ui/core/components';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
@@ -35,7 +35,7 @@ const HandlebarsTemplateControl = (
   props: CustomControlConfig<HandlebarsCustomControlProps>,
 ) => {
   const theme = useTheme();
-
+  const isDarkMode = useThemeMode();
   const val = String(
     props?.value ? props?.value : props?.default ? props?.default : '',
   );
@@ -77,7 +77,7 @@ ${helperDescriptions
         </div>
       </ControlHeader>
       <CodeEditor
-        theme="dark"
+        theme={isDarkMode ? 'dark' : 'light'}
         value={val}
         onChange={source => {
           debounceFunc(props.onChange, source || '');
