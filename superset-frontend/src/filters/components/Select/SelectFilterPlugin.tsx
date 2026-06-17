@@ -592,6 +592,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               allowClear
               autoClearSearchValue
               allowNewOptions={!searchAllOptions && creatable !== false}
+              allowNewOptionsOnPaste={multiSelect && searchAllOptions}
               allowSelectAll={!searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}
               disabled={isDisabled}

@@ -89,6 +89,16 @@ export interface BaseSelectProps extends AntdExposedProps {
    * */
   allowNewOptions?: boolean;
   /**
+   * Accept values pasted into the Select even when they are not part of the
+   * currently loaded options and `allowNewOptions` is false. Useful for
+   * selects whose full option set is searched server-side and only partially
+   * loaded on the client (e.g. dashboard filters with "Dynamically search all
+   * filter values"), where a pasted value can legitimately exist in the
+   * dataset but fall outside the loaded page.
+   * False by default.
+   * */
+  allowNewOptionsOnPaste?: boolean;
+  /**
    * It adds the aria-label tag for accessibility standards.
    * Must be plain English and localized.
    */

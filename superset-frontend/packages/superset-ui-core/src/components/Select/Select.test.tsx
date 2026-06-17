@@ -1146,6 +1146,53 @@ test('pasting an non-existent option should not add it if allowNewOptions is fal
   expect(await findAllSelectOptions()).toHaveLength(0);
 });
 
+// Reference for the bug this tests: https://github.com/apache/superset/issues/32645
+// Dashboard filters with "Dynamically search all filter values" only load a
+// page of options client-side, so a pasted value outside that page used to be
+// silently dropped. allowNewOptionsOnPaste keeps such values so the filter can
+// still apply them.
+test('keeps pasted values outside loaded options when allowNewOptionsOnPaste is true', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions={false}
+      allowNewOptionsOnPaste
+    />,
+  );
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      // Liam is a loaded option; OutsideValue is not in the loaded page.
+      getData: () => 'Liam,OutsideValue',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    expect(values).toEqual(expect.arrayContaining(['Liam', 'OutsideValue']));
+  });
+});
+
+test('drops pasted values outside loaded options when allowNewOptionsOnPaste is false', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions={false} />);
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Liam,OutsideValue',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    expect(values).toEqual(['Liam']);
+  });
+});
+
 test('does not fire onChange if the same value is selected in single mode', async () => {
   const onChange = jest.fn();
   render(<Select {...defaultProps} onChange={onChange} />);
