@@ -179,7 +179,11 @@ export const useDownloadMenuItems = (
         ),
       );
     } catch (error) {
-      const { status } = await getClientErrorObject(error);
+      // status comes from the response (Partial<SupersetClientResponse>), which
+      // the union type does not expose uniformly; read it via a narrow cast.
+      const { status } = (await getClientErrorObject(error)) as {
+        status?: number;
+      };
       if (status === 501) {
         addDangerToast(t('Excel export is not configured on this server.'));
       } else {
