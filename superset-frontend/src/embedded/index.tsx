@@ -34,7 +34,6 @@ import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import initPreamble from 'src/preamble';
 import setupClient from 'src/setup/setupClient';
-import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { store, USER_LOADED } from 'src/views/store';
 import { Loading } from '@superset-ui/core/components';
@@ -42,7 +41,6 @@ import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import {
   EmbeddedContextProviders,
   getThemeController,
@@ -53,6 +51,9 @@ import { validateMessageEvent } from './originValidation';
 
 // Defer plugin setup until after the language pack loads to prevent t() calls in
 // plugin control panel configs from being cached in English before translations are ready.
+// Dynamic imports (webpackMode: "eager") keep modules in the same bundle chunk but defer
+// their evaluation until after initPreamble() resolves, so module-level t() calls in plugin
+// control panels and setup code run only after translations are available.
 const pluginsReady = initPreamble()
   .catch(err => {
     logging.warn(
@@ -60,7 +61,12 @@ const pluginsReady = initPreamble()
       err,
     );
   })
-  .then(() => {
+  .then(async () => {
+    const [{ default: setupPlugins }, { default: setupCodeOverrides }] =
+      await Promise.all([
+        import(/* webpackMode: "eager" */ 'src/setup/setupPlugins'),
+        import(/* webpackMode: "eager" */ 'src/setup/setupCodeOverrides'),
+      ]);
     setupPlugins();
     setupCodeOverrides({ embedded: true });
   });
