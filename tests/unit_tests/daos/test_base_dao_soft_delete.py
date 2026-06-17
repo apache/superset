@@ -59,8 +59,11 @@ class _PlainDAO(BaseDAO[_Plain]):
     model_cls = _Plain
 
 
-def test_delete_routes_to_soft_delete_for_mixin_models(app_context: None) -> None:
-    """delete() calls soft_delete() when model_cls includes SoftDeleteMixin."""
+@patch("superset.daos.base.is_feature_enabled", return_value=True)
+def test_delete_routes_to_soft_delete_for_mixin_models(
+    mock_flag: MagicMock, app_context: None
+) -> None:
+    """delete() soft-deletes a mixin model when the SOFT_DELETE gate is ON."""
     items = [MagicMock(), MagicMock()]
 
     with patch.object(_SoftDeletableDAO, "soft_delete") as mock_soft:
@@ -68,8 +71,25 @@ def test_delete_routes_to_soft_delete_for_mixin_models(app_context: None) -> Non
         mock_soft.assert_called_once_with(items)
 
 
-def test_delete_routes_to_hard_delete_for_non_mixin_models(app_context: None) -> None:
-    """delete() calls hard_delete() for non-SoftDeleteMixin models."""
+@patch("superset.daos.base.is_feature_enabled", return_value=False)
+def test_delete_hard_deletes_mixin_model_when_gate_off(
+    mock_flag: MagicMock, app_context: None
+) -> None:
+    """With the SOFT_DELETE gate OFF (default), even a mixin model hard-deletes
+    — the substrate ships dark."""
+    items = [MagicMock(), MagicMock()]
+
+    with patch.object(_SoftDeletableDAO, "hard_delete") as mock_hard:
+        _SoftDeletableDAO.delete(items)
+        mock_hard.assert_called_once_with(items)
+
+
+@patch("superset.daos.base.is_feature_enabled", return_value=True)
+def test_delete_routes_to_hard_delete_for_non_mixin_models(
+    mock_flag: MagicMock, app_context: None
+) -> None:
+    """delete() calls hard_delete() for non-SoftDeleteMixin models — regardless
+    of the gate (here ON, to show the gate doesn't make a plain model soft)."""
     items = [MagicMock(), MagicMock()]
 
     with patch.object(_PlainDAO, "hard_delete") as mock_hard:

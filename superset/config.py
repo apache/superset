@@ -657,6 +657,18 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
+    # Temporary rollout / kill-switch gate for soft delete. Default off. When
+    # off: DELETE hard-deletes (legacy) and
+    # the read-path visibility filter is inactive, so the substrate ships dark;
+    # the import pipeline's existing-row detection inherits this via the same
+    # listener (no separate check); restore has nothing to act on because no row
+    # carries deleted_at. Flipping ON->OFF after rows were soft-deleted RESURRECTS
+    # them (they become visible/active again) — an emergency stop, not a clean
+    # rollback. Not a permanent toggle: REMOVE this flag and its two gate points
+    # (BaseDAO.delete routing; the do_orm_execute visibility listener) once soft
+    # delete is stable.
+    # @lifecycle: development
+    "SOFT_DELETE": False,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
