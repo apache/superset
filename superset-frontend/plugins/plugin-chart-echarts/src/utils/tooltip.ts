@@ -24,7 +24,11 @@ import {
   getColumnLabel,
   getMetricLabel,
 } from '@superset-ui/core';
-import { TOOLTIP_OVERFLOW_MARGIN, TOOLTIP_POINTER_MARGIN } from '../constants';
+import {
+  TOOLTIP_OVERFLOW_MARGIN,
+  TOOLTIP_POINTER_MARGIN,
+  TOOLTIP_TOP_CLEARANCE,
+} from '../constants';
 import { Refs } from '../types';
 
 export function getDefaultTooltip(refs: Refs) {
@@ -107,18 +111,39 @@ export function getDefaultTooltip(refs: Refs) {
         }
       }
 
-      // Position tooltip above cursor, or below if no space
-      yPos = mouseY - TOOLTIP_POINTER_MARGIN - effectiveTooltipHeight;
+      // Mirror horizontal logic: position tooltip below cursor when in top half of chart,
+      // above cursor when in bottom half. This prevents the tooltip from covering annotation
+      // labels that appear at the top of the chart (markArea/markLine labels).
+      const chartHeight = divRect?.height || viewportHeight;
+      const cursorYInChart = canvasMousePos[1];
+      const isInTopHalfOfChart = cursorYInChart < chartHeight / 2;
 
-      // The tooltip is overflowing past the top edge of the window
-      if (yPos <= 0) {
-        // Attempt to place the tooltip to the bottom of the mouse position
+      if (isInTopHalfOfChart) {
         yPos = mouseY + TOOLTIP_POINTER_MARGIN;
 
-        // The tooltip is overflowing past the bottom edge of the window
-        if (yPos + effectiveTooltipHeight >= viewportHeight)
-          // Place the tooltip a fixed distance from the top edge of the window
-          yPos = TOOLTIP_OVERFLOW_MARGIN;
+        if (yPos + effectiveTooltipHeight >= viewportHeight) {
+          yPos = mouseY - TOOLTIP_POINTER_MARGIN - effectiveTooltipHeight;
+
+          if (yPos <= 0) {
+            yPos = TOOLTIP_OVERFLOW_MARGIN;
+          }
+        }
+      } else {
+        yPos = mouseY - TOOLTIP_POINTER_MARGIN - effectiveTooltipHeight;
+
+        if (yPos <= 0) {
+          yPos = mouseY + TOOLTIP_POINTER_MARGIN;
+
+          if (yPos + effectiveTooltipHeight >= viewportHeight) {
+            yPos = TOOLTIP_OVERFLOW_MARGIN;
+          }
+        }
+      }
+
+      // Clamp tooltip away from the top of the chart to avoid covering annotation labels
+      // (markLine/markArea labels rendered at insideEndTop are within the first ~40px)
+      if (divRect) {
+        yPos = Math.max(yPos, divRect.y + TOOLTIP_TOP_CLEARANCE);
       }
 
       // Return the position (converted back to a relative position on the canvas)
