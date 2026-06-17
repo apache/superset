@@ -24,7 +24,7 @@ import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 // Subdirectory-specific regressions live here so the existing 676-line
 // SliceHeaderControls.test.tsx doesn't need to mock getBootstrapData.
 
-// Slice 8 M7 verification gate (2026-06-01) — DO NOT switch this file to
+// DO NOT switch this file to
 // `spec/helpers/withApplicationRoot.ts`. The fixture does
 // `jest.resetModules()` + dynamic `import('src/utils/getBootstrapData')` to
 // install a fixture-configured applicationRoot. But `SliceHeaderControls` is

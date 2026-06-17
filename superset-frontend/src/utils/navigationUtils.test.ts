@@ -113,7 +113,7 @@ describe('openInNewTab', () => {
     });
   });
 
-  // RF-3 (review-fix Slice 1–8): scheme-without-authority bypass. WHATWG
+  // Scheme-without-authority bypass. WHATWG
   // URL parsers extract the host from `http:evil.com/foo` as `evil.com`,
   // so the previous regex `/^https?:/i` mistook a cross-origin URL for a
   // safe absolute one. The tightened regex requires `//` after the scheme.
@@ -123,7 +123,7 @@ describe('openInNewTab', () => {
     ['HTTP:evil.example.com/phish'],
     ['ftp:evil.example.com/file'],
   ])(
-    'refuses scheme-without-authority URL %s (RF-3)',
+    'refuses scheme-without-authority URL %s',
     async (unsafeUrl: string) => {
       await withApplicationRoot('/superset/', async () => {
         const { openInNewTab } = await import('src/utils/navigationUtils');
@@ -133,7 +133,7 @@ describe('openInNewTab', () => {
     },
   );
 
-  // RF-4 (review-fix Slice 1–8): C0/C1 controls and zero-width / bidi
+  // C0/C1 controls and zero-width / bidi
   // formatting marks are stripped by browsers before URL parsing, so a
   // string like `\t//evil.com` would survive the leading-slash check and
   // navigate cross-origin. Reject them outright.
@@ -145,7 +145,7 @@ describe('openInNewTab', () => {
     ['​/foo'],
     ['﻿/foo'],
   ])(
-    'refuses URL %j containing control or zero-width chars (RF-4)',
+    'refuses URL %j containing control or zero-width chars',
     async (unsafeUrl: string) => {
       await withApplicationRoot('/superset/', async () => {
         const { openInNewTab } = await import('src/utils/navigationUtils');
@@ -155,9 +155,9 @@ describe('openInNewTab', () => {
     },
   );
 
-  // CR-M1 / AR-L1 (review-fix Slice 1–8, round 2): the bidi formatting
+  // The bidi formatting
   // ranges U+202A..U+202E (LRE/RLE/PDF/LRO/RLO) and U+2066..U+2069
-  // (LRI/RLI/FSI/PDI) were promised by the RF-4 comment but missing from
+  // (LRI/RLI/FSI/PDI) were promised by the earlier comment but missing from
   // the original regex. Pin them directly so a documentation/regex drift
   // can't reintroduce the gap.
   test.each([
@@ -171,7 +171,7 @@ describe('openInNewTab', () => {
     ['⁨/foo', 'U+2068 FSI'],
     ['⁩/foo', 'U+2069 PDI'],
   ])(
-    'refuses URL containing %s bidi formatting mark (CR-M1/AR-L1)',
+    'refuses URL containing %s bidi formatting mark',
     async (unsafeUrl: string, _label: string) => {
       await withApplicationRoot('/superset/', async () => {
         const { openInNewTab } = await import('src/utils/navigationUtils');
@@ -221,7 +221,7 @@ describe('redirect', () => {
     });
   });
 
-  // encodeURI-at-the-sink regression (gap review 2026-06-10): see the
+  // encodeURI-at-the-sink regression: see the
   // matching navigateWithState tests — `%27`/`%20` must survive un-doubled.
   test('does not double-encode percent-encoded query strings', async () => {
     await withApplicationRoot('/superset/', async () => {
@@ -233,7 +233,7 @@ describe('redirect', () => {
     });
   });
 
-  // AF-1 (2026-05-19, dual-lane adversarial review): backslash-laden URLs
+  // Backslash-laden URLs
   // were accepted by `SAFE_NAVIGATION_URL_RE` and the sibling guards in
   // `ensureAppRoot` / `isAllowedScheme`. Browsers normalise `/\` → `//` in
   // the special-scheme authority, so `/\evil.com` became a cross-origin
@@ -245,7 +245,7 @@ describe('redirect', () => {
     ['empty app root', ''],
     ['/superset app root', '/superset/'],
   ])(
-    'falls back to "/" + console.error for /\\evil.com under %s (AF-1)',
+    'falls back to "/" + console.error for /\\evil.com under %s',
     async (_label, appRoot) => {
       await withApplicationRoot(appRoot, async () => {
         const errorSpy = jest
@@ -266,7 +266,7 @@ describe('redirect', () => {
     },
   );
 
-  test('falls back to "/" + console.error for https://good@evil.com (nit-3 userinfo)', async () => {
+  test('falls back to "/" + console.error for https://good@evil.com (userinfo)', async () => {
     await withApplicationRoot('', async () => {
       const errorSpy = jest
         .spyOn(console, 'error')
@@ -300,8 +300,8 @@ describe('redirect', () => {
 });
 
 // `navigateTo` and `navigateWithState` are exported imperative helpers
-// (channel-3 stubs) and are the entry points that nit-1 / AF-1 cover.
-describe('navigateTo (AF-1 + nit-1)', () => {
+// and are the entry points that these tests cover.
+describe('navigateTo', () => {
   let originalLocation: Location;
   let openSpy: jest.SpyInstance;
 
@@ -371,7 +371,7 @@ describe('navigateTo (AF-1 + nit-1)', () => {
   });
 });
 
-describe('navigateWithState (AF-1 + nit-1)', () => {
+describe('navigateWithState', () => {
   let pushSpy: jest.SpyInstance;
   let replaceSpy: jest.SpyInstance;
 
@@ -418,7 +418,7 @@ describe('navigateWithState (AF-1 + nit-1)', () => {
     });
   });
 
-  // encodeURI-at-the-sink regression (gap review 2026-06-10): the CodeQL
+  // encodeURI-at-the-sink regression: the CodeQL
   // `js/html-injection` sanitiser escapes `%` itself, so already-percent-
   // encoded paths (the URL constructor's output always is) were double-
   // encoded — `%20` → `%2520` — corrupting the pushed URL.
@@ -502,7 +502,7 @@ describe('getShareableUrl', () => {
     });
   });
 
-  // Composition pin (AF-1 / round-6 step-0 addendum):
+  // Composition pin:
   // `assertSafeNavigationUrl` is module-private; route the pin through the
   // purest public helper. `getShareableUrl` runs the same composition
   // (`assertSafeNavigationUrl(ensureAppRoot(...))`) as `openInNewTab` /
@@ -513,7 +513,7 @@ describe('getShareableUrl', () => {
     ['empty app root', ''],
     ['/superset app root', '/superset/'],
   ])(
-    'throws for /\\evil.com under %s (AF-1 composition pin)',
+    'throws for /\\evil.com under %s (composition pin)',
     async (_label, appRoot) => {
       await withApplicationRoot(appRoot, async () => {
         const { getShareableUrl } = await import('src/utils/navigationUtils');
@@ -533,7 +533,7 @@ describe('getShareableUrl', () => {
     });
   });
 
-  test('throws for https://good@evil.com (nit-3 userinfo)', async () => {
+  test('throws for https://good@evil.com (userinfo)', async () => {
     await withApplicationRoot('', async () => {
       const { getShareableUrl } = await import('src/utils/navigationUtils');
       expect(() =>
@@ -543,7 +543,7 @@ describe('getShareableUrl', () => {
   });
 });
 
-describe('openInNewTab — AF-1 sibling-site coverage', () => {
+describe('openInNewTab — sibling-site coverage', () => {
   let openSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -568,7 +568,7 @@ describe('openInNewTab — AF-1 sibling-site coverage', () => {
     },
   );
 
-  test('throws for https://good@evil.com (nit-3 userinfo)', async () => {
+  test('throws for https://good@evil.com (userinfo)', async () => {
     await withApplicationRoot('', async () => {
       const { openInNewTab } = await import('src/utils/navigationUtils');
       expect(() => openInNewTab('https://good@evil.example.com')).toThrow(

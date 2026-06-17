@@ -49,7 +49,7 @@ function normalizeUrl(url: string): string {
  * presents as router-relative to the eye. Without the explicit rejection,
  * `new URL('/\\evil.com')` would throw and the catch branch would return
  * `true`, allowing the interstitial UI to display the URL as if it were a
- * safe relative path (AF-1, 2026-05-19).
+ * safe relative path.
  */
 export function isAllowedScheme(url: string): boolean {
   if (/^[/\\][/\\]/.test(url) || url.includes('\\')) return false;

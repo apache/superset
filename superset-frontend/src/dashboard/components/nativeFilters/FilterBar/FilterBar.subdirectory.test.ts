@@ -17,8 +17,6 @@
  * under the License.
  */
 
-// Closes test-gap P1-5 from the 2026-06-02 subdirectory test-gap audit.
-//
 // `FilterBar/index.tsx::publishDataMask` is one of the five sanctioned
 // `applicationRoot()` callers (memory `project_supersetclient_approot_dedupe`).
 // It runs after a filter mutation to push the updated filter cache key into

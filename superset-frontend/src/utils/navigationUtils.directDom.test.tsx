@@ -19,7 +19,7 @@
 import { applicationRootScenarios } from 'spec/helpers/withApplicationRoot';
 
 // Subdirectory regression for the five direct-DOM-navigation callsites
-// migrated in Slice 3b:
+// migrated:
 //
 //   src/components/Datasource/components/DatasourceEditor/DatasourceEditor.tsx:1163
 //     → openInNewTab(this.getSQLLabUrl())
@@ -100,7 +100,7 @@ const DEPLOYMENTS: { label: string; root: string }[] = [
   { label: '/superset subdirectory deployment', root: '/superset' },
 ];
 
-test('Slice 3b callsites: helpers hand the correct single-prefix URL to the DOM under both deployments', async () => {
+test('helpers hand the correct single-prefix URL to the DOM under both deployments', async () => {
   // Capture the original window.location.href descriptor so we can restore
   // it after each scenario; jsdom defines it as a getter/setter on the
   // Location prototype and we need a plain assignment to spy on.
@@ -175,11 +175,11 @@ test('Slice 3b callsites: helpers hand the correct single-prefix URL to the DOM 
 
 // Open-redirect guard: the helpers route every URL through
 // `assertSafeNavigationUrl`, which rejects backslash-laden paths, protocol-
-// relative authorities, and `javascript:` / `data:` schemes. The pre-Slice-3b
+// relative authorities, and `javascript:` / `data:` schemes. The pre-migration
 // raw `window.open(url, ...)` / `window.location.href = url` callsites had
 // no such guard; pin the post-migration safety so a future "simplify"
 // refactor cannot accidentally re-introduce the open-redirect surface.
-test('Slice 3b: openInNewTab / redirect reject open-redirect URL shapes', async () => {
+test('openInNewTab / redirect reject open-redirect URL shapes', async () => {
   await applicationRootScenarios(
     [{ label: '/superset subdirectory deployment', root: '/superset' }],
     async () => {

@@ -19,7 +19,7 @@
 import { getURIDirectory } from '.';
 
 test('Cases in which the "explore_json" will be returned', () => {
-  // Slice 3c: post `Superset.route_base = ""` collapse the legacy
+  // post `Superset.route_base = ""` collapse the legacy
   // `/superset/explore_json/` endpoint is gone; `getURIDirectory` now
   // returns the bare `/explore_json/` path (appRoot is applied at the
   // outer `ensureAppRoot` layer when `includeAppRoot=true`).

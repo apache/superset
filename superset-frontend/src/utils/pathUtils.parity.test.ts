@@ -17,8 +17,6 @@
  * under the License.
  */
 
-// Closes test-gap P1-1 from the 2026-06-02 subdirectory test-gap audit.
-//
 // `pathUtils.ensureAppRoot` and `SupersetClientClass.getUrl` are the two
 // runtime safety nets beneath the Layer-2 static scan (see memory
 // `project_supersetclient_approot_dedupe`). They run on different inputs —

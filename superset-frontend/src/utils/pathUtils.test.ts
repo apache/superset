@@ -294,11 +294,11 @@ test('stripAppRoot handles nested application roots', async () => {
   expect(stripAppRoot('/welcome/')).toBe('/welcome/');
 });
 
-test('stripAppRoot strips exactly one application root segment (AF-5 single-pass)', async () => {
+test('stripAppRoot strips exactly one application root segment (single-pass)', async () => {
   const { stripAppRoot } = await loadPathUtils('/superset/');
 
-  // AF-5 reconciliation (2026-06-01): single-pass strip preserves a
-  // legitimate `/superset/superset/<slug>` route. Under the Slice-7
+  // Single-pass strip preserves a
+  // legitimate `/superset/superset/<slug>` route. Under the single-prefix
   // invariant the backend emits relative URLs and the frontend prefixes
   // exactly once at the helper boundary, so a doubled leading segment is
   // a real route, not a double-prefix bug. The normaliser at the
@@ -323,7 +323,7 @@ test('stripAppRoot passes absolute and protocol-relative URLs through', async ()
   );
 });
 
-// AF-1 (2026-05-19, dual-lane adversarial review): the protocol-relative
+// The protocol-relative
 // check in `ensureAppRoot` was `path.startsWith('//')` only — backslash
 // variants (`/\`, `\/`, `\\`) slipped past and were returned as router-
 // relative paths. Browsers later normalised `/\` → `//` in the special-
@@ -339,7 +339,7 @@ test.each([
   ['empty app root', ''],
   ['/superset app root', '/superset/'],
 ])(
-  'ensureAppRoot composition with assertSafeNavigationUrl rejects /\\evil.com under %s (AF-1)',
+  'ensureAppRoot composition with assertSafeNavigationUrl rejects /\\evil.com under %s',
   async (_label, appRoot) => {
     const { ensureAppRoot } = await loadPathUtils(appRoot);
     // `openInNewTab` exercises exactly `assertSafeNavigationUrl(ensureAppRoot(x))`
@@ -392,7 +392,7 @@ test('ensureAppRoot neutralises \\\\evil.com via the composition guard', async (
 
 test('ensureAppRoot keeps protocol-relative //evil.com behaviour unchanged (regression)', async () => {
   // `//evil.com` was already protocol-relative and already rejected by the
-  // navigation guard. AF-1 must not change that.
+  // navigation guard. The hardening must not change that.
   const { ensureAppRoot } = await loadPathUtils('/superset/');
   expect(ensureAppRoot('//evil.example.com')).toBe('//evil.example.com');
 });

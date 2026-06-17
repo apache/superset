@@ -1514,7 +1514,7 @@ class SqlaTable(
 
     @property
     def sql_url(self) -> str:
-        # AF-4: `Database.sql_url` returns `/sqllab/?dbid=N` — the base
+        # `Database.sql_url` returns `/sqllab/?dbid=N` — the base
         # already carries a query string, so the historical string concat
         # `+ "?table_name=" + str(...)` produced a second literal `?` and
         # corrupted the query parser. Parse + append + re-encode so

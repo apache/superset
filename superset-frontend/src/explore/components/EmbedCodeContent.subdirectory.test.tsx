@@ -20,8 +20,6 @@ import fetchMock from 'fetch-mock';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import EmbedCodeContent from 'src/explore/components/EmbedCodeContent';
 
-// Closes test-gap P0-3 from the 2026-06-02 subdirectory test-gap audit.
-//
 // The chart-embed iframe `src` is produced by:
 //   1. Backend `url_for(_external=True)` → absolute URL whose origin is the
 //      backend `Host` header (often the internal docker hostname under
@@ -32,7 +30,7 @@ import EmbedCodeContent from 'src/explore/components/EmbedCodeContent';
 //   3. The path segment (`/superset/explore/p/<key>/`) survives unchanged —
 //      the application_root must therefore be applied exactly once.
 //
-// Until P0-3 was filed, this composition was verified only via manual QA
+// This composition was previously verified only via manual QA
 // (memory `project_supersetclient_approot_dedupe` records the discovery).
 // This test pins the iframe-src shape so a future change to the permalink
 // API, the origin-rewrite helper, or the EmbedCodeContent template would

@@ -16,13 +16,13 @@
 # under the License.
 """Regression tests for the legacy `/superset/*` → 308 WSGI shim.
 
-Five concern groups, each maps to a step-0 oracle (5-a..5-j):
+Five concern groups:
 
 A. Path-rewriter behavior (synthetic inner WSGI app, no Flask routing).
 B. Wrap-order pins through `create_app()` — the shim is the final wrap,
    regardless of what `init_app()` does inside.
 C. Live-route shadow pins (shim does not intercept canonical routes).
-D. AF-4 `SqlaTable.sql_url` query-encoding regression.
+D. `SqlaTable.sql_url` query-encoding regression.
 E. Closed-set discipline — the redirect map is frozen as a snapshot.
 
 These run as unit tests (no DB / login required) so they execute under the
@@ -144,7 +144,7 @@ def test_legacy_get_redirects_308_under_subdir(legacy: str, canonical: str) -> N
     `Location` is built from the construction-time `app_root` capture,
     not from `environ["SCRIPT_NAME"]`.
 
-    RF-2 (review-fix Slice 1–8): the `/superset` deployment collides with
+    The `/superset` deployment collides with
     `_LEGACY_PREFIX` → covered separately by
     `test_degenerate_app_root_equals_superset_disables_shim`."""
     client = _build_client(app_root="/myapp")
@@ -286,7 +286,7 @@ def test_legacy_sql_route_passes_through_not_308() -> None:
 
 
 def test_degenerate_app_root_equals_superset_disables_shim() -> None:
-    """RF-2 (review-fix Slice 1–8): when `APPLICATION_ROOT == "/superset"`,
+    """When `APPLICATION_ROOT == "/superset"`,
     legacy and canonical prefixes coincide. If the shim were active, an
     inbound `/superset/welcome/` would 308 to `/superset/welcome/` — the
     same URL → infinite redirect loop.
@@ -308,7 +308,7 @@ def test_degenerate_app_root_equals_superset_disables_shim() -> None:
     ["/", "", "/superset/", "/other", "/a/b"],
 )
 def test_shim_enabled_for_non_legacy_app_roots(app_root: str) -> None:
-    """RF-2: the disable-shim short-circuit is targeted at the exact
+    """The disable-shim short-circuit is targeted at the exact
     `/superset` collision case — every other `APPLICATION_ROOT` (including
     root, empty, `/superset/` with trailing slash that strips to
     `/superset`, and arbitrary subdirs) keeps the shim active."""
@@ -321,9 +321,9 @@ def test_shim_enabled_for_non_legacy_app_roots(app_root: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Section A.1 — APPLICATION_ROOT case-sensitivity (P1-4 from the 2026-06-02
-# subdirectory test-gap audit). CR-M2 (deferred MEDIUM in the Slice 1–8 2nd
-# review) noted that `_enabled` uses byte-equality rather than `casefold()`.
+# Section A.1 — APPLICATION_ROOT case-sensitivity.
+# A deferred MEDIUM review finding noted that `_enabled` uses byte-equality
+# rather than `casefold()`.
 # These tests pin TODAY's documented behaviour so that:
 #   - A future `casefold()` introduction is a deliberate contract change
 #     (test updates alongside the code change).
@@ -348,7 +348,7 @@ def test_shim_enabled_for_mixed_case_app_roots(app_root: str) -> None:
       1. Documents the deliberate scope choice — the shim targets the
          hardcoded `/superset/*` legacy URL pattern, not arbitrary casing
          of the app-root config value.
-      2. Anchors CR-M2 (deferred MEDIUM): if a future commit graduates
+      2. Anchors the deferred MEDIUM finding: if a future commit graduates
          the comparison to `casefold()` so `/Superset` == `/superset`, this
          test fires and forces the contract change to be explicit.
     """
@@ -369,7 +369,7 @@ def test_shim_enabled_for_mixed_case_app_roots(app_root: str) -> None:
 )
 def test_shim_disabled_for_trailing_slash_variants(app_root: str) -> None:
     """Trailing-slash variants of `/superset` all collapse to `/superset`
-    via `rstrip("/")` and disable the shim — the RF-2 collision short-
+    via `rstrip("/")` and disable the shim — the collision short-
     circuit catches every shape an operator might write the app root as.
 
     Pinning the multi-slash branch protects against a future maintainer
@@ -413,7 +413,7 @@ def test_lowercase_inbound_path_still_308s_under_mixed_case_app_root() -> None:
       2. Builds the Location from the captured `app_root_prefix` — so the
          redirect lands the client at the operator's casing.
 
-    This is the failure mode CR-M2 raised — but it does NOT produce a
+    This is the failure mode that finding raised — but it does NOT produce a
     self-loop, because `/Superset/welcome/` != `/superset/welcome/` at the
     string level, so the inbound path of the redirected request will not
     re-match the legacy prefix. Pin the documented shape: 308 to the
@@ -472,7 +472,7 @@ def test_query_string_preserved_in_location() -> None:
 def test_query_string_preserved_under_subdir() -> None:
     """Subdir + query string: single prefix, query intact.
 
-    Uses a non-colliding subdir (`/myapp`) — RF-2 disables the shim under
+    Uses a non-colliding subdir (`/myapp`) — the shim is disabled under
     `/superset` (see `test_degenerate_app_root_equals_superset_disables_shim`)."""
     client = _build_client(app_root="/myapp")
     resp = client.get("/superset/explore/?form_data=%7B%7D")
@@ -601,7 +601,7 @@ def test_shim_does_not_shadow_explore_root(app_context: None) -> None:
     """`GET /explore/` (no legacy prefix) still routes to
     `ExploreView.root` — the shim does not over-match on `/explore/`.
 
-    The Slice-4 registration-order pin survives Slice 5."""
+    The registration-order pin survives the outer-wrap change."""
     from flask import current_app
 
     adapter = current_app.url_map.bind("")
@@ -622,7 +622,7 @@ def test_shim_does_not_shadow_redirect_view(app_context: None) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Section D — AF-4 SqlaTable.sql_url query-encoding regression
+# Section D — SqlaTable.sql_url query-encoding regression
 # ---------------------------------------------------------------------------
 
 
@@ -689,7 +689,7 @@ def test_shim_short_circuits_before_inner_app() -> None:
     def _raise_on_reach(environ, start_response):  # pragma: no cover
         raise AssertionError("shim must 308 before inner app sees the legacy path")
 
-    # Use a non-colliding subdir — `/superset` would trigger the RF-2
+    # Use a non-colliding subdir — `/superset` would trigger the
     # short-circuit and fall through to inner (covered elsewhere).
     shim = LegacyPrefixRedirectMiddleware(_raise_on_reach, "/myapp")
     client = Client(shim, response_wrapper=Response)

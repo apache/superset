@@ -95,7 +95,7 @@ def create_app(
         # PATH_INFO and 308s legacy `/superset/*` paths before any other
         # routing runs. Unconditional (independent of `app_root != "/"`)
         # because legacy bookmarks exist under root deployments too.
-        # See PLAN.md "WSGI layering invariant" and the module docstring
+        # See the "Layering invariant" section of the module docstring
         # in `superset/middleware/legacy_prefix_redirect.py`.
         # mypy reads `app.wsgi_app` as `object` after the conditional
         # `AppRootMiddleware` rewrap above — the LUB of the two branches

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Slice 6 regression coverage: PWA manifest served dynamically.
+"""Regression coverage: PWA manifest served dynamically.
 
 Closes C5 in PR #39925 (subdirectory deployment): the static
 `/static/assets/pwa-manifest.json` carried hard-coded `/superset/`
@@ -143,7 +143,7 @@ def test_build_manifest_no_superset_literal_under_root_deployment() -> None:
 
 
 def test_build_manifest_field_set_is_closed() -> None:
-    """No phantom fields drift in (guards against the round-2/3 `shortcuts` phantom)."""
+    """No phantom fields drift in (guards against the `shortcuts` phantom)."""
     manifest = _build_manifest(application_root="/", static_assets_prefix="")
     assert set(manifest.keys()) == {
         "name",

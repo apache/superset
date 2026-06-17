@@ -69,7 +69,7 @@ test('isAllowedScheme does not block single-leading-slash absolute paths', () =>
   expect(isAllowedScheme('/dashboard/list/')).toBe(true);
 });
 
-// AF-1 (2026-05-19, dual-lane adversarial review): the up-front
+// The up-front
 // `startsWith('//')` check missed backslash variants. `new URL('/\\evil.com')`
 // throws → the catch returns `true` (allow) → the interstitial UI shows
 // `/\evil.com` inside an "External link warning" Card with a Continue
@@ -78,15 +78,15 @@ test('isAllowedScheme does not block single-leading-slash absolute paths', () =>
 // **before** the `new URL` attempt so the throw cannot route through the
 // allow branch.
 
-test('isAllowedScheme blocks /\\evil.com (AF-1 backslash variant)', () => {
+test('isAllowedScheme blocks /\\evil.com (backslash variant)', () => {
   expect(isAllowedScheme('/\\evil.example.com')).toBe(false);
 });
 
-test('isAllowedScheme blocks \\/evil.com (AF-1 backslash variant)', () => {
+test('isAllowedScheme blocks \\/evil.com (backslash variant)', () => {
   expect(isAllowedScheme('\\/evil.example.com')).toBe(false);
 });
 
-test('isAllowedScheme blocks \\\\evil.com (AF-1 backslash variant)', () => {
+test('isAllowedScheme blocks \\\\evil.com (backslash variant)', () => {
   expect(isAllowedScheme('\\\\evil.example.com')).toBe(false);
 });
 

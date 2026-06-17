@@ -26,8 +26,8 @@ import { ensureAppRoot, makeUrl, stripAppRoot } from './pathUtils';
 // '@braintree/sanitize-url';` here as part of its sink-wrapping approach.
 // Dropped on merge because this file's `assertSafeNavigationUrl` /
 // inline-barrier scheme is strictly stronger: it rejects `javascript:` /
-// `data:` (scheme allowlist), backslash-laden authority spoofing (AF-1),
-// and userinfo-bearing http(s)/ftp URLs (nit-3) — none of which
+// `data:` (scheme allowlist), backslash-laden authority spoofing,
+// and userinfo-bearing http(s)/ftp URLs — none of which
 // `sanitizeUrl` rejects. The library remains a project dep (used in
 // ListViewCard, SqlAlchemyForm, etc.) and is intentionally unused here.
 
@@ -59,7 +59,7 @@ const SAFE_PATH_PARSE_ORIGIN = 'http://navigation-utils.invalid';
 // relative `//host` is intentionally excluded here because it is a cross-
 // origin navigation primitive that previously enabled open redirects.
 //
-// nit-3 / AF-1 hardening: the leading-slash branch also rejects any URL
+// The leading-slash branch also rejects any URL
 // containing a backslash anywhere — browsers normalise `/\evil.com` →
 // `//evil.com` in the special-scheme authority, so backslashes in any
 // position let an attacker craft a path that looks router-relative until
@@ -68,12 +68,12 @@ const SAFE_PATH_PARSE_ORIGIN = 'http://navigation-utils.invalid';
 // below, since `https://good@evil.com` resolves to the host `evil.com`
 // despite presenting as a same-origin-looking URL to the eye.
 //
-// RF-3 (review-fix Slice 1–8): the http(s)/ftp branches require an
+// The http(s)/ftp branches require an
 // explicit `//` after the scheme. Without it, `new URL('http:evil.com')`
 // in modern browsers parses the authority as `evil.com` — a same-origin-
 // looking absolute URL that resolves cross-origin. Mirroring the
 // protocol-relative `//host` reject from above.
-// RF-4 (review-fix Slice 1–8): URL strings containing C0/C1 controls
+// URL strings containing C0/C1 controls
 // (`\t`/`\n`/`\r`/etc., DEL, U+0080..U+009F) or Unicode zero-width / bidi
 // formatting marks (U+200B..U+200F, U+202A..U+202E, U+2066..U+2069,
 // U+2028, U+2029, U+FEFF) are rejected outright. Browsers strip leading
@@ -83,12 +83,12 @@ const SAFE_PATH_PARSE_ORIGIN = 'http://navigation-utils.invalid';
 // against the current allow-list, but the regex would otherwise depend
 // on browser-specific normalisation behaviour.
 //
-// CR-M1 / AR-L1 (review-fix Slice 1–8, round 2): the bidi range was
+// The bidi range was
 // extended to cover the explicit-direction format characters U+202A..E
 // (LRE/RLE/PDF/LRO/RLO) and U+2066..9 (LRI/RLI/FSI/PDI). WHATWG strips
-// these before parsing the host, but the RF-4 comment had promised them
+// these before parsing the host, but the earlier comment had promised them
 // while the regex only covered U+200E/F — closing the documentation
-// drift the multi-slice code review surfaced.
+// drift the code review surfaced.
 const SAFE_NAVIGATION_URL_RE =
   /^(?:\/(?!\/)|https?:\/\/|ftp:\/\/|mailto:|tel:)/i;
 const USERINFO_BEARING_SCHEME_RE = /^(?:https?|ftp):\/\//i;
@@ -163,7 +163,7 @@ function assertSafeNavigationUrl(url: string): string {
  *   1. `target.startsWith('/')` + `!target.startsWith('//')` +
  *      `!target.includes('\\')` — recognised by `js/client-side-
  *      unvalidated-url-redirection`; rules out protocol-relative and
- *      browser-normalised backslash-laden authority spoofing (AF-1).
+ *      browser-normalised backslash-laden authority spoofing.
  *   2. `new URL(target, SAFE_PATH_PARSE_BASE)` + literal equality on
  *      `parsed.origin` + literal equality on `parsed.protocol` —
  *      recognised by `js/xss-through-dom`. The constant base keeps the
@@ -200,7 +200,7 @@ export function navigateTo(
   //   1. Outer `startsWith('/')` + `!startsWith('//')` + `!includes('\\')`
   //      on `target` — recognised by `js/client-side-unvalidated-url-
   //      redirection` and rules out protocol-relative + backslash-laden
-  //      authority-spoofing (AF-1).
+  //      authority-spoofing.
   //   2. URL-constructor parse + literal-equality on `parsed.origin` and
   //      `parsed.protocol` — recognised by `js/xss-through-dom`. The
   //      constant base (`http://navigation-utils.invalid/`) keeps the parse

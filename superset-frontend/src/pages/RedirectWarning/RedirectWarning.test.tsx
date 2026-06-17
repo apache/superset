@@ -19,7 +19,7 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import RedirectWarning from './index';
 
-// AF-1 (2026-05-19): the interstitial page MUST visibly refuse a
+// The interstitial page MUST visibly refuse a
 // backslash-laden URL — both the `isAllowedScheme` check *and* the rendered
 // shape have to communicate the block, so a user does not see a normal-
 // looking "External link warning" Card with a Continue button for what
@@ -38,7 +38,7 @@ function setLocationSearch(search: string): void {
 }
 
 describe('RedirectWarning interstitial', () => {
-  test('does NOT offer a Continue button when ?url=%2F%5Cevil.com (AF-1)', () => {
+  test('does NOT offer a Continue button when ?url=%2F%5Cevil.com', () => {
     setLocationSearch('?url=%2F%5Cevil.example.com');
     render(<RedirectWarning />);
     expect(
@@ -46,7 +46,7 @@ describe('RedirectWarning interstitial', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('shows a blocked-URL message for /\\evil.com (AF-1)', () => {
+  test('shows a blocked-URL message for /\\evil.com', () => {
     setLocationSearch('?url=%2F%5Cevil.example.com');
     render(<RedirectWarning />);
     // The page surfaces an unsafe / blocked state — assert the text shape

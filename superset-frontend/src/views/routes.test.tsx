@@ -42,10 +42,10 @@ describe('isFrontendRoute', () => {
 });
 
 test('routes used to mount the Superset.* SPA pages no longer carry a /superset prefix', () => {
-  // After `Superset.route_base = ""` (round-2 backend fix), the SPA paths
-  // must mirror the post-basename pathname seen by React Router. The legacy
-  // shapes still appearing here would mean Home or Dashboard renders blank
-  // under subdirectory deployment, exactly the round-4 user report.
+  // After `Superset.route_base = ""`, the SPA paths must mirror the
+  // post-basename pathname seen by React Router. The legacy shapes still
+  // appearing here would mean Home or Dashboard renders blank under
+  // subdirectory deployment.
   const paths = routes.map(r => r.path);
   expect(paths).toContain('/welcome/');
   expect(paths).toContain('/dashboard/:idOrSlug/');

@@ -426,7 +426,7 @@ class Superset(BaseSupersetView):
             # Share the form_data → form_data_key cache-and-redirect contract
             # with `ExploreView.root` via the lifted helper. Helper returns
             # ``None`` for: empty/non-dict form_data, missing datasource,
-            # malformed datasource (AF-2), invalid `DatasourceType` (AF-2),
+            # malformed datasource, invalid `DatasourceType`,
             # cache-write failure (loop guard), and "already at target" loop
             # guard. Falling through to `super().render_app_template()` kills
             # the typed-entry `/explore/<dst>/<int:dsid>/` GET loop that the

@@ -105,10 +105,10 @@ export function stripAppRoot(path: string): string {
   }
   const root = applicationRoot();
   if (!root) return path;
-  // Single-pass strip (AF-5 reconciliation, 2026-06-01): mirror
+  // Single-pass strip mirrors
   // `normalizeBackendUrlString` and `SupersetClientClass.getUrl` exactly. A
   // genuine `/superset/superset/<slug>` is a legitimate route under the
-  // Slice-7 invariant (backend emits relative URLs, frontend prefixes once),
+  // single-prefix invariant (backend emits relative URLs, frontend prefixes once),
   // not a double-prefix bug. Greedy stripping would corrupt such routes.
   if (path === root) return '/';
   if (path.startsWith(`${root}/`)) return path.slice(root.length);

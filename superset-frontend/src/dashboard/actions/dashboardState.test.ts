@@ -258,7 +258,7 @@ describe('dashboardState actions', () => {
       );
     });
 
-    // Slice 8 step 1 — `navigateWithState` regression for the
+    // `navigateWithState` regression for the
     // dashboard-properties-changed save path. Two assertions in one shape:
     //   (a) the emitted path is router-relative (`/dashboard/<id>/`), not
     //       the pre-migration `/superset/dashboard/<id>/` literal that under

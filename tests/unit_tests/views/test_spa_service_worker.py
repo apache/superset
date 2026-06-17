@@ -17,7 +17,7 @@
 
 """Pin the spa.html service-worker registration path under subdir deployments.
 
-Closes test-gap P1-3 from the 2026-06-02 subdirectory test-gap audit. The
+The
 service-worker `<script>` block in `superset/templates/superset/spa.html`
 emits the registration URL via `'{{ assets_prefix }}/static/service-worker.js'`.
 Under `APPLICATION_ROOT=/superset` the `app.py:73-74` backfill sets

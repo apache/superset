@@ -17,8 +17,6 @@
  * under the License.
  */
 
-// Closes test-gap P2 from the 2026-06-02 subdirectory test-gap audit.
-//
 // The existing navigationUtils tests pin `javascript:`-scheme neutralisation
 // (`navigationUtils.directDom.test.tsx:203-219`), but the broader
 // script/data/binary-content scheme family — `data:`, `vbscript:`, `file:`,

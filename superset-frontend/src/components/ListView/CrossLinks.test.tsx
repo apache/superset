@@ -68,7 +68,7 @@ test('should render the link with just one item', () => {
     ],
   });
   expect(screen.getByText('Test dashboard')).toBeInTheDocument();
-  // Slice 3c: default `linkPrefix` is now `/dashboard/` (post-route_base);
+  // default `linkPrefix` is now `/dashboard/` (post-route_base);
   // legacy `/superset/dashboard/...` was the pre-collapse route.
   expect(screen.getByRole('link')).toHaveAttribute('href', `/dashboard/1`);
 });

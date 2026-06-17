@@ -283,7 +283,7 @@ export default class SupersetClientClass {
     // Strip a single leading appRoot segment so callers that accidentally
     // pre-prefix their endpoint (e.g. by wrapping with ensureAppRoot before
     // passing to the client) do not produce a doubled `/superset/superset/...`
-    // URL. Single-pass strip (AF-5 reconciliation, 2026-06-01) mirrors
+    // URL. Single-pass strip mirrors
     // `stripAppRoot` in `src/utils/pathUtils` and `normalizeBackendUrlString`
     // exactly: a genuine `/superset/superset/<slug>` is a legitimate route, not
     // a double-prefix bug. The L2 static invariant still flags pre-prefixing as

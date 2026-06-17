@@ -29,8 +29,7 @@ This shim must wrap **outside** every other WSGI middleware so it sees the
 raw inbound ``PATH_INFO``. ``superset/app.py`` installs it unconditionally
 *after* ``init_app()`` returns (and therefore after
 ``configure_middlewares()`` has applied ``AppRootMiddleware`` /
-``ProxyFix`` / ``ChunkedEncodingFix`` / ``ADDITIONAL_MIDDLEWARE``). See
-``PLAN.md`` "WSGI layering invariant" for the full ordering rationale.
+``ProxyFix`` / ``ChunkedEncodingFix`` / ``ADDITIONAL_MIDDLEWARE``).
 
 The ``Location`` header is built from the ``app_root`` captured at
 construction + the canonical path. It **never** consults
@@ -171,7 +170,7 @@ class LegacyPrefixRedirectMiddleware:
         # produce the same Location prefix at build time. Empty string is
         # correct for app_root == "/".
         self.app_root_prefix: str = app_root.rstrip("/")
-        # RF-2 (review-fix Slice 1–8): if the operator deploys under
+        # If the operator deploys under
         # APPLICATION_ROOT == "/superset", the legacy prefix collides with
         # the app-root prefix and `app_root_prefix + canonical_target`
         # produces the same URL as the inbound path → infinite 308 loop.
@@ -185,7 +184,7 @@ class LegacyPrefixRedirectMiddleware:
         environ: "WSGIEnvironment",
         start_response: "StartResponse",
     ) -> Iterable[bytes]:
-        # RF-2: short-circuit when APPLICATION_ROOT == _LEGACY_PREFIX
+        # Short-circuit when APPLICATION_ROOT == _LEGACY_PREFIX
         # (legacy and canonical prefixes coincide → 308 self-loop). See
         # `__init__` for the full rationale.
         if not self._enabled:

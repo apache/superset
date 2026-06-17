@@ -230,8 +230,8 @@ def get_explore_redirect_url() -> str | None:  # noqa: C901
     - no/empty/non-dict ``form_data``;
     - ``form_data`` missing a ``datasource`` (e.g. legacy ``slice_url``
       payloads carrying only ``slice_id``);
-    - ``datasource`` that doesn't decompose as ``"<id>__<type>"`` (AF-2);
-    - ``datasource`` whose type is not a valid ``DatasourceType`` (AF-2);
+    - ``datasource`` that doesn't decompose as ``"<id>__<type>"``;
+    - ``datasource`` whose type is not a valid ``DatasourceType``;
     - cache-write failure (``CreateFormDataCommand.run`` raises
       ``ValueError``) — avoid 302-looping when the cache layer is down;
     - the current request already matches the would-be redirect target
@@ -265,42 +265,40 @@ def get_explore_redirect_url() -> str | None:  # noqa: C901
     if not datasource:
         return None
     if not isinstance(datasource, str):
-        # RF-1 (review-fix Slice 1–8): malformed `form_data.datasource` of a
+        # Malformed `form_data.datasource` of a
         # non-string shape (number, list, dict) used to raise
         # `AttributeError: ... has no attribute 'split'` and surface as 500.
-        # Closes the residual AF-2 gap surfaced in the multi-slice review.
         return None
 
     parts = datasource.split("__")
     if len(parts) != 2:
-        # AF-2: malformed `datasource` (missing the `__type` suffix) used to
+        # Malformed `datasource` (missing the `__type` suffix) used to
         # raise `ValueError: not enough values to unpack` and surface as 500.
         return None
     datasource_id_str, datasource_type_str = parts
     try:
         datasource_type_enum = DatasourceType(datasource_type_str)
     except ValueError:
-        # AF-2: an unknown `datasource_type` used to raise `ValueError` from
+        # An unknown `datasource_type` used to raise `ValueError` from
         # `DatasourceType(...)` and surface as 500. Fall through to SPA.
         return None
     try:
         datasource_id = int(datasource_id_str)
     except ValueError:
-        # AF-2 (sibling): non-integer `datasource_id` (e.g. `"abc__table"`)
+        # Non-integer `datasource_id` (e.g. `"abc__table"`)
         # would crash deeper inside the form-data write. Fall through to SPA.
         return None
 
     slice_id = parsed_form_data.get("slice_id")
     if not isinstance(slice_id, int) or isinstance(slice_id, bool):
-        # AR-M1 (review-fix Slice 1–8, round 2): residual AF-3 gap — a
-        # non-int, non-None `form_data.slice_id` (`"abc"`, `[1, 2]`, `{}`,
+        # A non-int, non-None `form_data.slice_id` (`"abc"`, `[1, 2]`, `{}`,
         # `True`) used to survive the `is None` guard and surface as 500
         # downstream when `CommandParameters(chart_id=...)` reached the
         # cache write. Treat any non-int shape the same as missing and
         # fall back to the typed query parse. `bool` is excluded because
         # it is a subclass of `int` in Python — `True` would otherwise
         # become `chart_id=1`.
-        # AF-3: previously `int(request.args.get("slice_id", 0))` blew up on
+        # Previously `int(request.args.get("slice_id", 0))` blew up on
         # non-numeric values (`?slice_id=abc`). `type=int` returns None on
         # parse failure; coerce to 0 to preserve historical default.
         slice_id = request.args.get("slice_id", type=int) or 0

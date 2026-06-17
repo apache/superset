@@ -130,7 +130,7 @@ export default function RedirectWarning() {
     );
   }
 
-  // AF-1 defense-in-depth: when the URL's scheme is rejected we render a
+  // Defense-in-depth: when the URL's scheme is rejected we render a
   // visible "blocked" state without a Continue button, instead of the
   // standard "External link warning" Card. The handler also short-circuits
   // on `isAllowedScheme(targetUrl)`, but rendering Continue for a URL we

@@ -31,7 +31,7 @@ def _unwrap_to_app_root(app):
     """Walk the WSGI middleware chain past the outermost
     `LegacyPrefixRedirectMiddleware` (always installed) and return the
     next layer. Lets the existing AppRootMiddleware-shape assertions
-    survive the Slice-5 outer-wrap change."""
+    survive the outer-wrap change."""
     assert isinstance(app.wsgi_app, LegacyPrefixRedirectMiddleware)
     return app.wsgi_app.wsgi_app
 
@@ -215,7 +215,7 @@ class TestCreateAppRoot:
             app = create_app()
 
         # The outermost `LegacyPrefixRedirectMiddleware` is now always
-        # installed (Slice 5). Under root deployment, the next layer
+        # installed. Under root deployment, the next layer
         # should NOT be `AppRootMiddleware`.
         inner = _unwrap_to_app_root(app)
         assert not isinstance(inner, AppRootMiddleware)

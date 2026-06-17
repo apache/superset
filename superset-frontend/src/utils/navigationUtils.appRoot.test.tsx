@@ -19,7 +19,7 @@
 import { applicationRootScenarios } from 'spec/helpers/withApplicationRoot';
 
 // Subdirectory regression for the nine `ensureAppRoot(...)` value-wrap
-// callsites converted in Slice 3a. Each row pins one callsite's input value
+// callsites. Each row pins one callsite's input value
 // (what the migrated component now passes to `ensureAppRoot`) and asserts the
 // resulting URL under both the root deployment (`''`) and the `/superset`
 // subdirectory deployment.
@@ -90,7 +90,7 @@ const DEPLOYMENTS: { label: string; root: string }[] = [
   { label: '/superset subdirectory deployment', root: '/superset' },
 ];
 
-test('Slice 3a callsites: ensureAppRoot composes correctly under both deployments', async () => {
+test('ensureAppRoot composes correctly under both deployments', async () => {
   await applicationRootScenarios(DEPLOYMENTS, async ({ root }) => {
     const { ensureAppRoot } = await import('src/utils/navigationUtils');
     for (const callsite of CALLSITES) {
@@ -118,7 +118,7 @@ test('Slice 3a callsites: ensureAppRoot composes correctly under both deployment
 // `/superset/...` literal, the helper short-circuits to a single-prefix URL
 // instead of doubling it. Pin the behaviour here so a future "simplify"
 // refactor cannot accidentally strip the safety net.
-test('Slice 3a: ensureAppRoot is idempotent on already-prefixed paths under /superset', async () => {
+test('ensureAppRoot is idempotent on already-prefixed paths under /superset', async () => {
   await applicationRootScenarios(
     [{ label: '/superset subdirectory deployment', root: '/superset' }],
     async () => {
@@ -128,7 +128,7 @@ test('Slice 3a: ensureAppRoot is idempotent on already-prefixed paths under /sup
       expect(ensureAppRoot('/superset/dashboard/42')).toBe(
         '/superset/dashboard/42',
       );
-      // New emitter shape (post-Slice-3a): `/dashboard/42` is unprefixed and
+      // New emitter shape: `/dashboard/42` is unprefixed and
       // gets the deployment root composed in.
       expect(ensureAppRoot('/dashboard/42')).toBe('/superset/dashboard/42');
     },

@@ -21,8 +21,8 @@ plus its two sanctioned callers (``ExploreView.root`` in ``views/explore.py``
 and ``Superset.explore`` GET in ``views/core.py``). Each test maps to a
 failure mode the helper or its callers must close:
 
-- AF-2: malformed/invalid ``datasource`` no longer surfaces as 500.
-- AF-3: non-numeric ``?slice_id=`` no longer raises ``ValueError``.
+- Malformed/invalid ``datasource`` no longer surfaces as 500.
+- Non-numeric ``?slice_id=`` no longer raises ``ValueError``.
 - Cache-write failure renders SPA instead of 302-looping.
 - ``form_data`` ``slice_id`` wins over query ``slice_id`` (precedence pin).
 - Loop guard via ``(endpoint, sorted_query_items)`` equality.
@@ -80,7 +80,7 @@ class TestExploreRedirect(SupersetTestCase):
         assert rv.headers["Location"] == "/explore/?form_data_key=random_key"
 
     def test_explore_root_non_dict_form_data_renders_spa(self):
-        """AF-2 (non-dict): ``form_data=42`` returns 200 instead of 500."""
+        """Non-dict ``form_data=42`` returns 200 instead of 500."""
         self.login(ADMIN_USERNAME)
         rv = self.client.get("/explore/?form_data=42")
         assert rv.status_code == 200
@@ -92,8 +92,8 @@ class TestExploreRedirect(SupersetTestCase):
         rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
         assert rv.status_code == 200
 
-    def test_explore_root_af2_datasource_no_double_underscore(self):
-        """AF-2 (shape): ``datasource="1"`` (no ``__type``) → 200, not 500.
+    def test_explore_root_datasource_no_double_underscore(self):
+        """Shape: ``datasource="1"`` (no ``__type``) → 200, not 500.
 
         HEAD raised ``ValueError: not enough values to unpack`` inside
         ``datasource.split("__")`` and surfaced as 500. The lifted helper
@@ -104,16 +104,15 @@ class TestExploreRedirect(SupersetTestCase):
         rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
         assert rv.status_code == 200
 
-    def test_explore_root_rf1_datasource_non_string(self):
-        """RF-1 (review-fix Slice 1–8): a non-string ``datasource`` value
+    def test_explore_root_datasource_non_string(self):
+        """A non-string ``datasource`` value
         (number, list, dict, bool) used to raise ``AttributeError: ... has
         no attribute 'split'`` inside ``datasource.split("__")`` and
         surface as 500.
 
         The lifted helper now type-guards ``isinstance(datasource, str)``
         before the split and falls through to the SPA on any non-string
-        shape — closing the residual AF-2 gap surfaced in the multi-slice
-        code review.
+        shape.
         """
         # ``@pytest.mark.parametrize`` is a no-op on ``unittest.TestCase``
         # subclasses (see pytest docs on unittest interop), so we inline
@@ -127,8 +126,8 @@ class TestExploreRedirect(SupersetTestCase):
                 )
                 assert rv.status_code == 200
 
-    def test_explore_root_af2_datasource_invalid_enum(self):
-        """AF-2 (enum): ``datasource="1__bogus"`` → 200, not 500.
+    def test_explore_root_datasource_invalid_enum(self):
+        """Enum: ``datasource="1__bogus"`` → 200, not 500.
 
         HEAD raised ``ValueError`` from ``DatasourceType("bogus")``; the
         narrow ``try/except ValueError`` around the enum coercion falls
@@ -141,8 +140,8 @@ class TestExploreRedirect(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand.run")
-    def test_explore_root_af3_combined_invalid_slice_id(self, mock_run: mock.Mock):
-        """AF-3: ``?slice_id=abc`` combined with valid ``form_data`` → 302.
+    def test_explore_root_combined_invalid_slice_id(self, mock_run: mock.Mock):
+        """``?slice_id=abc`` combined with valid ``form_data`` → 302.
 
         HEAD raised ``ValueError: invalid literal for int()`` on the eager
         ``int(request.args.get("slice_id", 0))`` even when the slice_id
@@ -160,8 +159,8 @@ class TestExploreRedirect(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand")
-    def test_explore_root_arm1_slice_id_non_int(self, mock_command_cls: mock.Mock):
-        """AR-M1 (review-fix Slice 1–8, round 2): a non-int, non-None
+    def test_explore_root_slice_id_non_int(self, mock_command_cls: mock.Mock):
+        """A non-int, non-None
         ``form_data.slice_id`` (string, list, dict, bool) used to survive
         the ``is None`` guard and reach ``CommandParameters(chart_id=...)``,
         500ing downstream when the cache write tried to coerce it.
@@ -195,7 +194,7 @@ class TestExploreRedirect(SupersetTestCase):
     def test_explore_slice_id_precedence_form_data_wins(
         self, mock_command_cls: mock.Mock
     ):
-        """form_data slice_id wins over query slice_id (round-6 precedence pin).
+        """form_data slice_id wins over query slice_id (precedence pin).
 
         Pre-lift the static method used
         ``parsed_form_data.get("slice_id", int(request.args.get("slice_id", 0)))``
@@ -272,7 +271,7 @@ class TestExploreRedirect(SupersetTestCase):
 
         Pins the second sanctioned caller — the deprecated
         ``Superset.explore`` GET branch routes through the same helper
-        so AF-2/AF-3 guards apply identically.
+        so the datasource and slice_id guards apply identically.
         """
         mock_run.return_value = "random_key"
         self.login(ADMIN_USERNAME)
@@ -322,6 +321,6 @@ class TestExploreRedirect(SupersetTestCase):
             "superset/views/core.py",
         }, (
             "Sanctioned callers of `get_explore_redirect_url` changed. "
-            "Update this assertion (and PLAN.md Slice 5 step-0 sanction list) "
+            "Update this assertion "
             f"if the new caller is legitimate. Found: {sorted(callers)}"
         )

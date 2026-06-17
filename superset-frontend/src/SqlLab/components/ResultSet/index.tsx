@@ -383,7 +383,7 @@ const ResultSet = ({
               // `getExportCsvUrl` already runs the path through `makeUrl`;
               // `redirect` re-applies `ensureAppRoot` idempotently and routes
               // the sink through navigationUtils' barriers (scheme allowlist,
-              // userinfo rejection, AF-1 backslash rejection), which is a
+              // userinfo rejection, backslash rejection), which is a
               // strict superset of what `sanitizeUrl` from master PR #40546
               // provides.
               redirect(getExportCsvUrl(query.id));

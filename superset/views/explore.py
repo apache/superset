@@ -39,8 +39,8 @@ class ExploreView(BaseSupersetView):
         # view register at `/explore/`; this view wins. Preserve the legacy
         # form_data → form_data_key cache-and-redirect contract via the
         # shared `get_explore_redirect_url` helper (lives in `views/utils.py`
-        # so both callers share the same guards: AF-2 malformed datasource,
-        # AF-3 non-numeric slice_id, cache-write failure, loop guard). The
+        # so both callers share the same guards: malformed datasource,
+        # non-numeric slice_id, cache-write failure, loop guard). The
         # helper returns ``None`` for any case that would otherwise loop;
         # we render the SPA in that branch.
         if redirect_url := get_explore_redirect_url():

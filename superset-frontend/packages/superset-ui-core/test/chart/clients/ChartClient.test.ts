@@ -176,7 +176,7 @@ describe('ChartClient', () => {
         Promise.reject(new Error('Unexpected all to v1 API')),
       );
 
-      // Slice 3c: post `Superset.route_base = ""`, the legacy endpoint
+      // post `Superset.route_base = ""`, the legacy endpoint
       // collapsed from `/superset/explore_json/` to `/explore_json/`.
       fetchMock.post('glob:*/explore_json/', {
         field1: 'abc',

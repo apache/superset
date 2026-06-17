@@ -185,7 +185,7 @@ test('exportChart legacy API (useLegacyApi=true) passes prefixed URL to onStartS
 
   expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
   const callArgs = onStartStreamingExport.mock.calls[0][0];
-  // Slice 3c: post `Superset.route_base = ""`, the blueprint path is
+  // post `Superset.route_base = ""`, the blueprint path is
   // `/explore_json/`. With appRoot=/superset, the prefixed URL is
   // `/superset/explore_json/?csv=true` — single-prefix, not the legacy
   // doubled `/superset/superset/explore_json/...` that this test used to

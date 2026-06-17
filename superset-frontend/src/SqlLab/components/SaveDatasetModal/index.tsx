@@ -248,7 +248,7 @@ export const SaveDatasetModal = ({
     // navigationUtils helpers re-apply `ensureAppRoot` idempotently.
     if (openWindow) {
       // `openInNewTab` / `redirect` route the sink through navigationUtils'
-      // barriers (scheme allowlist, userinfo rejection, AF-1 backslash
+      // barriers (scheme allowlist, userinfo rejection, backslash
       // rejection) — strictly stronger than master PR #40546's `sanitizeUrl`
       // wrap, which only rejects `javascript:` / `data:` / `vbscript:`.
       openInNewTab(url);

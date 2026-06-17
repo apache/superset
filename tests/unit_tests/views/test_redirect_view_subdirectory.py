@@ -17,7 +17,7 @@
 
 """Subdirectory-aware coverage for `/redirect/` (alert/report email links).
 
-Closes test-gap P0-2 from the 2026-06-02 subdirectory test-gap audit. The
+The
 existing `tests/integration_tests/views/test_redirect_view.py` only exercises
 the root deployment (`APPLICATION_ROOT="/"`). Under
 `APPLICATION_ROOT=/superset` the route is mounted at `/superset/redirect/`
@@ -33,8 +33,8 @@ and recipients of alert/report emails click links that already embed the
 
 These cases are unit-scoped via a minimal Flask app that mounts
 `RedirectView.redirect_warning` directly. The integration-suite docker-light
-`/login/` POST baseline (recorded in PROJECT.md) blocks `SupersetTestCase`
-locally; the minimal-app pattern matches the Slice 6 PWA-manifest test
+`/login/` POST baseline blocks `SupersetTestCase`
+locally; the minimal-app pattern matches the PWA-manifest test
 module that established the workaround.
 """
 

@@ -28,7 +28,7 @@ import {
 // doubled-prefix bug intentionally contain the literal. Strip comments from
 // each line and re-test the original pattern against what's left.
 //
-// AF-7 hardening (Slice 3b): the previous line-based predicate dropped any
+// The previous line-based predicate dropped any
 // line beginning with `/*`, which silently swallowed shapes like
 // `/* ignore */ window.open('/x')` — executable code following an inline
 // block comment. The structural strip below removes block-comment and
@@ -60,7 +60,7 @@ function dropCommentLines(hits: ScanHit[], pattern: RegExp): ScanHit[] {
   });
 }
 
-// Synthetic AF-7 regression — pins the structural strip behaviour above.
+// Synthetic regression — pins the structural strip behaviour above.
 // Mutate `dropCommentLines` back to the line-based form and this fails on
 // the `/* ignore */ window.open(...)` row, the exact evasion shape the
 // rewrite closes.
@@ -134,7 +134,7 @@ test('no file outside navigationUtils.ts imports from pathUtils', () => {
 const RAW_HREF_ABSOLUTE_PATH_PATTERN =
   /(?<!\.)\bhref\s*=\s*(?:["']\/(?!\/)|\{\s*["']\/(?!\/)|\{\s*`\/(?!\/))/;
 
-// Slice 3a (`fbd07afdc9` → next SHA): 7 entries removed; all callsites
+// 7 entries removed; all callsites
 // migrated to `<AppLink>` (plain `<a>`) or `ensureAppRoot(...)` value-wrap
 // (antd `<Button href>`, `<Typography.Link href>`). The two scan + stale-
 // allowlist tests below now enforce a genuine zero on the RAW_HREF surface.
@@ -174,7 +174,7 @@ test('RAW_HREF_ABSOLUTE_PATH_ALLOWLIST has no stale entries', () => {
   expect(stale).toEqual([]);
 });
 
-// Direct `applicationRoot()` calls are the channel-2 escape hatch for reading
+// Direct `applicationRoot()` calls are the escape hatch for reading
 // the deployment root. The sanctioned shape is to route everything through
 // `navigationUtils` helpers (which delegate to pathUtils.ensureAppRoot /
 // makeUrl). Only a small set of modules legitimately needs the raw root: the
@@ -270,7 +270,7 @@ const DIRECT_DOM_NAV_SANCTIONED: string[] = [
 ];
 
 // MIGRATION TARGETS: files that still call window.* directly and should be
-// drained to zero. Slice 3b drained the last three (DatasourceEditor,
+// drained to zero. The last three were drained (DatasourceEditor,
 // ResultSet, SaveDatasetModal); future direct-DOM navigations must either
 // migrate immediately or earn a justified SANCTIONED entry above.
 const DIRECT_DOM_NAV_ALLOWLIST: string[] = [];
