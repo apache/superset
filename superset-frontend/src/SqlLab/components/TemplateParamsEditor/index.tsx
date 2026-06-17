@@ -31,9 +31,10 @@ import { EditorHost } from 'src/core/editors';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 const EditorOutline = styled.div`
-  border: 1px solid ${({ theme }) => theme.colorBorder};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  overflow: hidden;
+  & .ace_editor {
+    border: 1px solid ${({ theme }) => theme.colorBorder};
+    border-radius: ${({ theme }) => theme.borderRadius}px;
+  }
 `;
 
 const StyledParagraph = styled.p`
