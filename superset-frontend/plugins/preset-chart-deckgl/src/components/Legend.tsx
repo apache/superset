@@ -137,7 +137,7 @@ const Legend = ({
   };
 
   return (
-    <StyledLegend className="dupa" style={style}>
+    <StyledLegend style={style}>
       <ul>{categories}</ul>
     </StyledLegend>
   );
