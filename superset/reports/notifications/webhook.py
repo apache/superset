@@ -128,7 +128,19 @@ class WebhookNotification(BaseNotification):
             raise NotificationParamException("Webhook URL target host is not allowed.")
 
     @backoff.on_exception(
-        backoff.expo, NotificationUnprocessableException, factor=10, base=2, max_tries=5
+        backoff.expo,
+        NotificationUnprocessableException,
+        factor=10,
+        base=2,
+        max_tries=5,
+        # Bound total wall-clock retry time. Without this, a hanging or
+        # persistently failing target can stall a worker for minutes per bad URL
+        # (up to ~5 socket waits at timeout=60 plus ~150s of retry sleeps),
+        # starving sequential report dispatch. max_time is checked between
+        # attempts, so the final in-flight request can still run its full
+        # timeout; factor is intentionally kept at 10 so legitimately-transient
+        # 5xx targets are not abandoned early.
+        max_time=120,
     )
     @statsd_gauge("reports.webhook.send")
     def send(self) -> None:

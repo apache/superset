@@ -16,11 +16,14 @@
 # under the License.
 
 
+import datetime as datetime_module
+
 import pandas as pd
 import pytest
 
 from superset.reports.notifications.exceptions import (
     NotificationParamException,
+    NotificationUnprocessableException,
 )
 from superset.reports.notifications.webhook import WebhookNotification
 from superset.utils.core import HeaderDataType
@@ -269,3 +272,170 @@ def test_send_treats_redirect_as_failure(monkeypatch, mock_header_data) -> None:
 
     with pytest.raises(NotificationParamException, match="redirect"):
         webhook_notification.send()
+
+
+class _FakeBackoffDatetime:
+    """
+    Drop-in for the ``datetime`` *module* referenced as ``backoff._sync.datetime``.
+
+    backoff 2.2.1 computes the ``max_time`` elapsed via
+    ``datetime.datetime.now()`` inside ``backoff._sync`` (NOT via ``time``), so
+    patching only ``backoff._sync.time.sleep`` leaves ``elapsed`` pinned at 0 and
+    ``max_time`` never fires. This fake advances the clock a fixed ``step`` per
+    ``now()`` call so the wall-time bound is observable in a sub-second test.
+    A ``step`` of 0 holds the clock flat (elapsed stays 0).
+    """
+
+    def __init__(self, step_seconds: float) -> None:
+        base = datetime_module.datetime(2020, 1, 1)
+        state = {"calls": 0}
+
+        class _FakeDateTime:
+            @staticmethod
+            def now() -> datetime_module.datetime:
+                offset = datetime_module.timedelta(
+                    seconds=step_seconds * state["calls"]
+                )
+                state["calls"] += 1
+                return base + offset
+
+        self.datetime = _FakeDateTime
+
+
+def _make_webhook(mock_header_data) -> WebhookNotification:
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    content = NotificationContent(
+        name="test alert", header_data=mock_header_data, description="Test description"
+    )
+    return WebhookNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.WEBHOOK,
+            recipient_config_json='{"target": "https://example.com/webhook"}',
+        ),
+        content=content,
+    )
+
+
+class _MockServerErrorResponse:
+    status_code = 500
+    text = ""
+
+
+def _allow_internal_app() -> type:
+    class MockCurrentApp:
+        config = {
+            "ALERT_REPORTS_WEBHOOK_HTTPS_ONLY": True,
+            "ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS": True,
+        }
+
+    return MockCurrentApp
+
+
+def test_send_backoff_bounded_by_max_time(monkeypatch, mock_header_data) -> None:
+    """
+    A persistently failing (500) target gives up on wall-time (``max_time``),
+    not just ``max_tries``. With the fake clock stepping +50s per backoff sample,
+    elapsed crosses ``max_time=120`` between the 2nd and 3rd POST, so exactly 3
+    POSTs happen (distinct from ``max_tries=5``). The terminal exception type is
+    unchanged on giveup.
+    """
+    webhook_notification = _make_webhook(mock_header_data)
+    post_calls: list[int] = []
+
+    def fake_post(*args, **kwargs) -> _MockServerErrorResponse:
+        post_calls.append(1)
+        return _MockServerErrorResponse()
+
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.current_app", _allow_internal_app()
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        lambda flag: True,
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.requests.post", fake_post
+    )
+    monkeypatch.setattr("backoff._sync.time.sleep", lambda *a, **k: None)
+    monkeypatch.setattr("backoff._sync.datetime", _FakeBackoffDatetime(50))
+
+    with pytest.raises(NotificationUnprocessableException):
+        webhook_notification.send()
+
+    assert len(post_calls) == 3
+
+
+def test_send_flat_clock_falls_back_to_max_tries(monkeypatch, mock_header_data) -> None:
+    """
+    Characterization (NOT a RED discriminator): with the clock held flat,
+    ``max_time`` can never fire, so ``max_tries=5`` governs and exactly 5 POSTs
+    happen. Passes on both buggy and fixed code; its job is to prove the 3-vs-5
+    delta in ``test_send_backoff_bounded_by_max_time`` is attributable to
+    wall-time, not to ``max_tries``.
+    """
+    webhook_notification = _make_webhook(mock_header_data)
+    post_calls: list[int] = []
+
+    def fake_post(*args, **kwargs) -> _MockServerErrorResponse:
+        post_calls.append(1)
+        return _MockServerErrorResponse()
+
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.current_app", _allow_internal_app()
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        lambda flag: True,
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.requests.post", fake_post
+    )
+    monkeypatch.setattr("backoff._sync.time.sleep", lambda *a, **k: None)
+    monkeypatch.setattr("backoff._sync.datetime", _FakeBackoffDatetime(0))
+
+    with pytest.raises(NotificationUnprocessableException):
+        webhook_notification.send()
+
+    assert len(post_calls) == 5
+
+
+def test_send_max_time_does_not_abandon_recovering_target(
+    monkeypatch, mock_header_data
+) -> None:
+    """
+    No-regression guard: a target that fails twice (500) then succeeds on the
+    3rd attempt — cumulative elapsed well under ``max_time`` — still succeeds.
+    Confirms ``max_time=120`` is not set so low that it abandons a target that
+    recovers within the normal retry window.
+    """
+    webhook_notification = _make_webhook(mock_header_data)
+    post_calls: list[int] = []
+
+    class _OkResponse:
+        status_code = 200
+        text = ""
+
+    def fake_post(*args, **kwargs):
+        post_calls.append(1)
+        if len(post_calls) < 3:
+            return _MockServerErrorResponse()
+        return _OkResponse()
+
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.current_app", _allow_internal_app()
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        lambda flag: True,
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.requests.post", fake_post
+    )
+    monkeypatch.setattr("backoff._sync.time.sleep", lambda *a, **k: None)
+    monkeypatch.setattr("backoff._sync.datetime", _FakeBackoffDatetime(10))
+
+    webhook_notification.send()
+
+    assert len(post_calls) == 3
