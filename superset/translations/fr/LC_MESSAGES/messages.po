@@ -2638,7 +2638,7 @@ msgid "Bucket break points"
 msgstr "Points de rupture du seau"
 
 msgid "Bulk select"
-msgstr "Sélectionner plusieurs"
+msgstr "Sélection multiple"
 
 msgid "Bulk tag"
 msgstr "Balises multiples"
