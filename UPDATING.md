@@ -25,6 +25,16 @@ assists people when migrating to a new version.
 ## 6.0.0
 ## Next
 
+### `thumbnail_url` removed from dashboard list API response
+
+The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list responses. External consumers relying on this field must now construct the thumbnail URL client-side using `id` and `changed_on_utc`:
+
+```
+/api/v1/dashboard/{id}/thumbnail/{changed_on_utc}/
+```
+
+The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
