@@ -4412,7 +4412,7 @@ msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given cell"
 " against the other cells in the selected range: "
 msgstr ""
-"Боја ће бити засенчена на основу нормализоване (0% dо 100%) вредности дате "
+"Боја ће бити засенчена на основу нормализоване (0% до 100%) вредности дате "
 "ћелије у односу на остале ћелије у изабраном опсегу: "
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -7118,7 +7118,7 @@ msgstr "ECharts опције (JS object literals)"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 msgid "EMAIL_REPORTS_CTA"
-msgstr "ЕМАИЛ_РЕПОРТС_ЦТА"
+msgstr "EMAIL_REPORTS_CTA"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "ERROR"
@@ -8104,7 +8104,7 @@ msgstr ""
 "Додатни подаци за одређивање метаподатака табеле. Тренутно подржава "
 "метаподатке у формату: `{ \"certification\": { \"certified_by\": \"Data "
 "Platform Team\", \"details\": \"This table is the source of truth.\" }, "
-"\"warning_маркдоwн\": \"This is а warning.\" }`."
+"\"warning_markdown\": \"This is a warning.\" }`."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Extra parameters for use in jinja templated queries"
@@ -9754,7 +9754,7 @@ msgstr "Проблем 1000 - Скуп података је превише ве
 
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Issue 1001 - The database is under an unusual load."
-msgstr "Проблем 1001 - База података је под неoбичним оптерећењем."
+msgstr "Проблем 1001 - База података је под необичним оптерећењем."
 
 # ru, sk, uk]
 msgid ""
@@ -10577,7 +10577,7 @@ msgid ""
 "MAPBOX_API_KEY to be configured on the server."
 msgstr ""
 "MapLibre је отвореног кода и не захтева API кључ. Mapbox захтева да "
-"МАПБОX_API_КЕY буде подешен на серверу."
+"MAPBOX_API_KEY буде подешен на серверу."
 
 msgid "Mapbox"
 msgstr "Mapbox"
@@ -10586,7 +10586,7 @@ msgid "Mapbox (API key required)"
 msgstr "Mapbox (потребан API кључ)"
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
-msgstr "Mapbox захтева да МАПБОX_АПИ_КЕY буде подешен на серверу."
+msgstr "Mapbox захтева да MAPBOX_API_KEY буде подешен на серверу."
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -16454,7 +16454,7 @@ msgstr "ТАБЕЛЕ"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 msgid "TEMPORAL_RANGE"
-msgstr "ВРЕМЕНСКИ_ОПСЕГ"
+msgstr "TEMPORAL_RANGE"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "THU"
@@ -16777,7 +16777,7 @@ msgid ""
 "to enable the GLOBAL_TASK_FRAMEWORK feature flag."
 msgstr ""
 "Global Task Framework није омогућен. Обратите се администратору да омогући "
-"опцију ГЛОБАЛ_ТАСК_ФРАМЕWОРК."
+"опцију GLOBAL_TASK_FRAMEWORK."
 
 msgid ""
 "The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True in "
@@ -16785,7 +16785,7 @@ msgid ""
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
 msgstr ""
-"Global Task Framework није омогућен. Поставите ГЛОБАЛ_ТАСК_ФРАМЕWОРК=True у "
+"Global Task Framework није омогућен. Поставите GLOBAL_TASK_FRAMEWORK=True у "
 "опцијама да бисте користили @task. Погледајте "
 "https://superset.apache.org/docs/configuration/async-queries-celery за "
 "детаље о конфигурацији."
@@ -22060,7 +22060,7 @@ msgid "linear"
 msgstr "линеарно"
 
 msgid "locale_key"
-msgstr "лоцале_кеy"
+msgstr "locale_key"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "log"
@@ -22257,7 +22257,7 @@ msgid "permalink state not found"
 msgstr "стање трајне везе није пронађено"
 
 msgid "pivoted_xlsx"
-msgstr "пивотед_xлсx"
+msgstr "pivoted_xlsx"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "pixels"

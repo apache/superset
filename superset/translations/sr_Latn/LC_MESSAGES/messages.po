@@ -16469,7 +16469,7 @@ msgstr "TABELE"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 msgid "TEMPORAL_RANGE"
-msgstr "VREMENSKI_OPSEG"
+msgstr "TEMPORAL_RANGE"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "THU"
