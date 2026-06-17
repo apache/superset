@@ -191,6 +191,9 @@ def test_apply_sql_security_blocks_disallowed_table(
     mock_db: MagicMock,
     mock_query: MagicMock,
 ) -> None:
+    """A query referencing a table on ``DISALLOWED_SQL_TABLES`` for the engine
+    is rejected on the estimate path with ``SupersetDisallowedSQLTableException``,
+    mirroring the execution-time denylist gate."""
     mock_app.config = {
         "DISALLOWED_SQL_FUNCTIONS": {},
         "DISALLOWED_SQL_TABLES": {"postgresql": {"secrets"}},

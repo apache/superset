@@ -2960,3 +2960,54 @@ def test_process_sql_expression_no_gate_when_denylists_empty(
         template_processor=None,
     )
     assert result is not None
+
+
+def test_resolve_denylist_schema_uses_query_aware_resolution(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """A datasource without an explicit schema resolves the denylist schema
+    through the query-aware ``get_default_schema_for_query`` (matching the SQL
+    Lab / executor gate), not the static inspector-based ``get_default_schema``."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved"
+    )
+    static = mocker.patch.object(database, "get_default_schema")
+    table = SqlaTable(database=database, schema=None, table_name="t")
+
+    assert table._resolve_denylist_schema("SELECT 1") == "resolved"
+    query_aware.assert_called_once()
+    static.assert_not_called()
+
+
+def test_resolve_denylist_schema_memoizes_across_expressions(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """The resolved schema is cached per datasource so adhoc-expression
+    validation, which runs once per column/metric/order-by, does not re-resolve
+    (and re-probe) the schema for every expression."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved"
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+
+    for _ in range(3):
+        assert table._resolve_denylist_schema("SELECT 1") == "resolved"
+    query_aware.assert_called_once()
+
+
+def test_resolve_denylist_schema_explicit_schema_skips_probe(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """An explicit datasource schema is returned directly, with no probe Query
+    and no inspector round-trip."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(database, "get_default_schema_for_query")
+    table = SqlaTable(database=database, schema="analytics", table_name="t")
+
+    assert table._resolve_denylist_schema("SELECT 1") == "analytics"
+    query_aware.assert_not_called()

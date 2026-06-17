@@ -1456,7 +1456,12 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
         ("SELECT lo_import('/etc/passwd')", True),
         ("SELECT lo_put(12345, 0, decode('00', 'hex'))", True),
         ("SELECT lo_create(0)", True),
+        # lo_creat is the legacy large-object creator (distinct from lo_create).
+        ("SELECT lo_creat(-1)", True),
         ("SELECT lowrite(12345, decode('00', 'hex'))", True),
+        # lo_truncate/lo_truncate64 shrink an existing large object: a write.
+        ("SELECT lo_truncate(12345, 0)", True),
+        ("SELECT lo_truncate64(12345, 0)", True),
         # lo_unlink deletes a large object outright.
         ("SELECT lo_unlink(12345)", True),
         # PostgreSQL sequence mutators. setval()/nextval() look like reads but

@@ -1172,6 +1172,48 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # for datasources of type query
         return []
 
+    def _resolve_denylist_schema(self, sql: str) -> Optional[str]:
+        """
+        Resolve the effective default schema for ``DISALLOWED_SQL_TABLES``
+        checks, memoized per datasource instance.
+
+        An explicit datasource schema always wins. Otherwise the schema is
+        resolved through the query-aware ``get_default_schema_for_query`` (not
+        the static ``get_default_schema``) so the value matches what the engine
+        uses at runtime -- honoring dynamic-schema engines and URI/connect-arg
+        schema rules -- exactly like the SQL Lab / executor denylist gate.
+
+        The result is cached on the instance so adhoc-expression validation,
+        which runs once per selected column/metric/order-by, resolves the schema
+        at most once instead of issuing a fallback inspector round-trip per
+        expression.
+        """
+        if self.schema:
+            return self.schema
+        if not hasattr(self, "_denylist_default_schema"):
+            from superset.models.sql_lab import Query
+
+            catalog = self.catalog or self.database.get_default_catalog()
+            # Build a transient (unsaved) Query so the engine spec can resolve
+            # the effective schema exactly as execution does. Set a ``client_id``
+            # (the column is ``nullable=False``) and expunge it so the
+            # ``database`` backref's ``cascade="all, delete-orphan"`` cannot
+            # autoflush this incomplete row into the session.
+            probe_query = Query(
+                database=self.database,
+                sql=sql,
+                schema=None,
+                catalog=catalog,
+                client_id=utils.shortid()[:10],
+                user_id=utils.get_user_id(),
+            )
+            if probe_query in db.session:
+                db.session.expunge(probe_query)
+            self._denylist_default_schema = self.database.get_default_schema_for_query(
+                probe_query
+            )
+        return self._denylist_default_schema
+
     def _process_sql_expression(  # pylint: disable=too-many-arguments
         self,
         expression: Optional[str],
@@ -1228,13 +1270,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # error doesn't echo the operator's full denylist. Honors
                     # schema-qualified denylist entries (e.g.
                     # ``information_schema.tables``) and resolves unqualified
-                    # references against the effective schema, falling back to
-                    # the database default when none was supplied (e.g. a
-                    # virtual dataset with no schema) so a qualified entry
-                    # cannot be bypassed by an unqualified reference.
-                    effective_schema = schema or self.database.get_default_schema(
-                        self.catalog
-                    )
+                    # references against the same runtime schema the SQL Lab /
+                    # executor gate resolves them to (via the query-aware
+                    # resolver, not the static inspector default), so both
+                    # surfaces enforce the denylist consistently.
+                    effective_schema = self._resolve_denylist_schema(sql_to_check)
                     found_tables = parsed.get_disallowed_tables(
                         disallowed_tables, effective_schema
                     )
@@ -1471,13 +1511,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # canonical execution-time gate so the user-facing error doesn't
             # echo the operator's full denylist. Honors schema-qualified
             # denylist entries (e.g. ``information_schema.tables``) and resolves
-            # unqualified references against the effective schema, falling back
-            # to the database default when the datasource has none (e.g. a
-            # virtual dataset) so a qualified entry cannot be bypassed by an
-            # unqualified reference.
-            effective_schema = self.schema or self.database.get_default_schema(
-                self.catalog
-            )
+            # unqualified references against the same runtime schema the SQL Lab
+            # / executor gate resolves them to (via the query-aware resolver,
+            # not the static inspector default), so both surfaces enforce the
+            # denylist consistently.
+            effective_schema = self._resolve_denylist_schema(sql)
             found_tables = parsed_script.get_disallowed_tables(
                 disallowed_tables, effective_schema
             )

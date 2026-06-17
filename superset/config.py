@@ -1875,8 +1875,9 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         # PostgreSQL large-object functions: writers can plant arbitrary
         # bytes on the server filesystem (lo_export, lo_from_bytea, lowrite,
         # lo_put, lo_create, lo_creat, lo_import), readers can pull bytes back
-        # out (lo_get, loread), and lo_unlink deletes large objects outright.
-        # Defense-in-depth on top of is_mutating()'s function-name check.
+        # out (lo_get, loread), lo_truncate/lo_truncate64 shrink existing
+        # large objects, and lo_unlink deletes them outright. Defense-in-depth
+        # on top of is_mutating()'s function-name check.
         "lo_from_bytea",
         "lo_export",
         "lo_import",
@@ -1886,6 +1887,8 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "lowrite",
         "lo_get",
         "loread",
+        "lo_truncate",
+        "lo_truncate64",
         "lo_unlink",
         # XML functions that can execute SQL
         "database_to_xml",

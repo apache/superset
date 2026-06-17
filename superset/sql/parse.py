@@ -637,7 +637,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "LO_IMPORT",
             "LO_PUT",
             "LO_CREATE",
+            "LO_CREAT",
             "LOWRITE",
+            "LO_TRUNCATE",
+            "LO_TRUNCATE64",
             "LO_UNLINK",
             # PostgreSQL sequence mutators. `SELECT setval('seq', N)` and
             # `SELECT nextval('seq')` look like reads but change sequence state
