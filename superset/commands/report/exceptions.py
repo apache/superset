@@ -16,6 +16,7 @@
 # under the License.
 
 import math
+from typing import Optional
 
 from flask_babel import lazy_gettext as _
 
@@ -198,6 +199,19 @@ class ReportScheduleCsvFailedError(CommandException):
 
 class ReportScheduleDataFrameFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a dataframe.")
+
+
+class ReportScheduleExecutorNotFoundError(CommandException):
+    status = 422
+
+    def __init__(self, username: str = "", exception: Optional[Exception] = None):
+        super().__init__(
+            _(
+                "Report Schedule executor user %(username)s was not found.",
+                username=f'"{username}"' if username else "",
+            ),
+            exception,
+        )
 
 
 class ReportScheduleExecuteUnexpectedError(CommandException):

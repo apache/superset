@@ -28,6 +28,7 @@ from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleCsvFailedError,
+    ReportScheduleExecutorNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
@@ -1096,6 +1097,81 @@ def test_screenshot_width_calculation(
                 )
 
 
+def _executor_report_state(mocker: MockerFixture) -> BaseReportState:
+    report_schedule = create_report_schedule(mocker)
+    # _get_csv_data/_get_embedded_data build a chart-data URL from chart_id
+    # before resolving the executor; give it a concrete value so URL building
+    # succeeds and the executor resolution is actually reached.
+    report_schedule.chart_id = 1
+    report_schedule.force_screenshot = False
+    return BaseReportState(
+        report_schedule=report_schedule,
+        scheduled_dttm=datetime.now(),
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+    )
+
+
+@pytest.mark.parametrize(
+    "method_name",
+    ["_get_screenshots", "_get_csv_data", "_get_embedded_data"],
+)
+def test_get_content_raises_when_executor_user_missing(
+    app: SupersetApp, mocker: MockerFixture, method_name: str
+) -> None:
+    """
+    When the configured executor user cannot be resolved
+    (``security_manager.find_user`` returns ``None``), each content path raises a
+    dedicated ``ReportScheduleExecutorNotFoundError`` naming the username, rather
+    than passing ``None`` downstream and failing with an opaque NoneType error.
+    """
+    app.config.update(
+        {
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 1600,
+            "WEBDRIVER_WINDOW": {"slice": (800, 600), "dashboard": (800, 600)},
+            "ALERT_REPORTS_EXECUTORS": {},
+        }
+    )
+    report_state = _executor_report_state(mocker)
+
+    with (
+        patch("superset.commands.report.execute.security_manager") as mock_sm,
+        patch("superset.commands.report.execute.get_executor") as mock_get_executor,
+        patch("superset.commands.report.execute.machine_auth_provider_factory"),
+    ):
+        mock_get_executor.return_value = ("executor", "ghost_user")
+        mock_sm.find_user = mocker.MagicMock(return_value=None)
+
+        with pytest.raises(ReportScheduleExecutorNotFoundError, match="ghost_user"):
+            getattr(report_state, method_name)()
+
+
+def test_resolve_executor_user_returns_user_and_username(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """
+    Happy path: when the executor user exists, the helper returns the
+    ``(user, username)`` tuple unchanged — locking the no-behavior-change exit
+    criterion for the four call sites.
+    """
+    from superset.commands.report.execute import resolve_executor_user
+
+    app.config.update({"ALERT_REPORTS_EXECUTORS": {}})
+    report_schedule = create_report_schedule(mocker)
+    mock_user = mocker.MagicMock()
+
+    with (
+        patch("superset.commands.report.execute.security_manager") as mock_sm,
+        patch("superset.commands.report.execute.get_executor") as mock_get_executor,
+    ):
+        mock_get_executor.return_value = ("executor", "real_user")
+        mock_sm.find_user = mocker.MagicMock(return_value=mock_user)
+
+        user, username = resolve_executor_user(report_schedule)
+
+    assert user is mock_user
+    assert username == "real_user"
+
+
 def test_update_recipient_to_slack_v2(mocker: MockerFixture):
     """
     Test converting a Slack recipient to Slack v2 format.
@@ -1169,6 +1245,122 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
     )
     with pytest.raises(UpdateFailedError):
         mock_cmmd.update_report_schedule_slack_v2()
+
+
+def test_update_recipient_to_slack_v2_reverts_all_on_partial_failure(
+    mocker: MockerFixture,
+) -> None:
+    """
+    When the second of two Slack recipients fails channel resolution, BOTH
+    recipients are fully reverted — type AND exact original
+    ``recipient_config_json`` string — not just the loop variable's type. This
+    prevents the intervening ``create_log`` commit from flushing a half-migrated,
+    inconsistent state.
+    """
+
+    def channels_side_effect(search_string, types, exact_match):
+        if search_string == "Channel-1":
+            return [
+                {
+                    "id": "id_channel_1",
+                    "name": "Channel-1",
+                    "is_member": True,
+                    "is_private": False,
+                }
+            ]
+        # Second recipient: no channel found → length mismatch → UpdateFailedError
+        return []
+
+    mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+        side_effect=channels_side_effect,
+    )
+    original_config_1 = json.dumps({"target": "Channel-1"})
+    original_config_2 = json.dumps({"target": "Channel-2"})
+    mock_report_schedule = ReportSchedule(
+        name="Test Report",
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=original_config_1,
+            ),
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=original_config_2,
+            ),
+        ],
+    )
+
+    mock_cmmd = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+
+    with pytest.raises(UpdateFailedError):
+        mock_cmmd.update_report_schedule_slack_v2()
+
+    first, second = mock_report_schedule.recipients
+    # The first recipient was mutated to v2 before the second failed; it must be
+    # reverted to its exact original type AND config string.
+    assert first.type == ReportRecipientType.SLACK
+    assert first.recipient_config_json == original_config_1
+    assert second.type == ReportRecipientType.SLACK
+    assert second.recipient_config_json == original_config_2
+
+
+def test_update_recipient_to_slack_v2_pre_iteration_failure(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A failure raised while accessing/iterating the recipients (before the loop
+    variable is bound) surfaces as ``UpdateFailedError``, not a ``NameError``
+    that would mask the real error.
+    """
+
+    class _ExplodingRecipients:
+        def __iter__(self):
+            raise RuntimeError("recipients exploded")
+
+    mock_report_schedule = mocker.MagicMock()
+    mock_report_schedule.recipients = _ExplodingRecipients()
+
+    mock_cmmd = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+
+    with pytest.raises(UpdateFailedError):
+        mock_cmmd.update_report_schedule_slack_v2()
+
+
+def test_update_recipient_to_slack_v2_no_slack_recipients_is_noop(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With no SLACK recipients there is nothing to migrate: the method returns
+    without raising and leaves the non-Slack recipients untouched.
+    """
+    mock_search = mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+    )
+    mock_report_schedule = ReportSchedule(
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json=json.dumps({"target": "user@example.com"}),
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    mock_cmmd.update_report_schedule_slack_v2()
+
+    assert mock_cmmd._report_schedule.recipients[0].type == ReportRecipientType.EMAIL
+    assert (
+        mock_cmmd._report_schedule.recipients[0].recipient_config_json
+        == '{"target": "user@example.com"}'
+    )
+    mock_search.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
