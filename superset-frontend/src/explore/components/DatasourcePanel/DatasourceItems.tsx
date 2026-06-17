@@ -20,6 +20,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VariableSizeList as List } from 'react-window';
 import { FlattenedItem, Folder } from './types';
 import DatasourcePanelItem from './DatasourcePanelItem';
+import type { DatasetRelationship } from 'src/features/datasets/relationships/types';
+import type { ActiveJoin } from 'src/features/datasets/relationships/hooks/useExploreRelationships';
 
 const BORDER_WIDTH = 2;
 const HEADER_ITEM_HEIGHT = 50;
@@ -88,15 +90,32 @@ const flattenFolderStructure = (
   return { flattenedItems, folderMap };
 };
 
+export interface DatasourceItemsData {
+  flattenedItems: FlattenedItem[];
+  folderMap: Map<string, Folder>;
+  width: number;
+  onToggleCollapse: (folderId: string) => void;
+  collapsedFolderIds: Set<string>;
+  columnRelationshipMap?: Map<string, DatasetRelationship[]>;
+  activeJoins?: Map<number, ActiveJoin>;
+  onToggleJoin?: (relationshipId: number) => void;
+}
+
 interface DatasourceItemsProps {
   width: number;
   height: number;
   folders: Folder[];
+  columnRelationshipMap?: Map<string, DatasetRelationship[]>;
+  activeJoins?: Map<number, ActiveJoin>;
+  onToggleJoin?: (relationshipId: number) => void;
 }
 export const DatasourceItems = ({
   width,
   height,
   folders,
+  columnRelationshipMap,
+  activeJoins,
+  onToggleJoin,
 }: DatasourceItemsProps) => {
   const listRef = useRef<List>(null);
   const [collapsedFolderIds, setCollapsedFolderIds] = useState<Set<string>>(
@@ -132,13 +151,16 @@ export const DatasourceItems = ({
     [flattenedItems],
   );
 
-  const itemData = useMemo(
+  const itemData: DatasourceItemsData = useMemo(
     () => ({
       flattenedItems,
       folderMap,
       width,
       onToggleCollapse: handleToggleCollapse,
       collapsedFolderIds,
+      columnRelationshipMap,
+      activeJoins,
+      onToggleJoin,
     }),
     [
       flattenedItems,
@@ -146,6 +168,9 @@ export const DatasourceItems = ({
       width,
       handleToggleCollapse,
       collapsedFolderIds,
+      columnRelationshipMap,
+      activeJoins,
+      onToggleJoin,
     ],
   );
 

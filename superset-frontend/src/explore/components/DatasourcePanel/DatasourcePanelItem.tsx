@@ -27,7 +27,11 @@ import { Tooltip } from '@superset-ui/core/components/Tooltip';
 import { Typography } from '@superset-ui/core/components';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
-import { DndItemValue, FlattenedItem, Folder } from './types';
+import { DndItemValue, FlattenedItem, Folder, ColumnItem } from './types';
+import type { DatasetRelationship } from 'src/features/datasets/relationships/types';
+import type { ActiveJoin } from 'src/features/datasets/relationships/hooks/useExploreRelationships';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { RelationshipBadge } from 'src/features/datasets/relationships/components/RelationshipBadge';
 
 const LabelWrapper = styled.div`
   ${({ theme }) => css`
@@ -121,6 +125,9 @@ export interface DatasourcePanelItemProps {
     width: number;
     onToggleCollapse: (folderId: string) => void;
     collapsedFolderIds: Set<string>;
+    columnRelationshipMap?: Map<string, DatasetRelationship[]>;
+    activeJoins?: Map<number, ActiveJoin>;
+    onToggleJoin?: (relationshipId: number) => void;
   };
 }
 
@@ -135,6 +142,9 @@ const DatasourcePanelItem = ({
     width,
     onToggleCollapse,
     collapsedFolderIds,
+    columnRelationshipMap,
+    activeJoins,
+    onToggleJoin,
   } = data;
   const item = flattenedItems[index];
   const theme = useTheme();
@@ -229,19 +239,55 @@ const DatasourcePanelItem = ({
         <LabelWrapper
           key={
             (item.item.type === 'column'
-              ? item.item.column_name
-              : item.item.metric_name) + String(width)
+              ? (item.item as ColumnItem).column_name
+              : (item.item as any).metric_name) + String(width)
           }
           className="column"
         >
-          <DatasourcePanelDragOption
-            value={item.item as DndItemValue}
-            type={
-              item.item.type === 'column'
-                ? DndItemType.Column
-                : DndItemType.Metric
-            }
-          />
+          <div
+            css={css`
+              display: flex;
+              align-items: center;
+              width: 100%;
+            `}
+          >
+            <div css={css`flex: 1; min-width: 0;`}>
+              <DatasourcePanelDragOption
+                value={item.item as DndItemValue}
+                type={
+                  item.item.type === 'column'
+                    ? DndItemType.Column
+                    : DndItemType.Metric
+                }
+              />
+            </div>
+            {/* Relationship badges — only for columns */}
+            {item.item.type === 'column' &&
+              isFeatureEnabled(FeatureFlag.DatasetRelationships) &&
+              columnRelationshipMap &&
+              onToggleJoin &&
+              (() => {
+                const colName = (item.item as ColumnItem).column_name;
+                const rels = colName
+                  ? columnRelationshipMap.get(colName)
+                  : undefined;
+                if (!rels || rels.length === 0) return null;
+                return (
+                  <div css={css`display: flex; gap: 2px; flex-shrink: 0; padding-right: 4px;`}>
+                    {rels.map(rel => (
+                      <RelationshipBadge
+                        key={rel.id}
+                        relationship={rel}
+                        joinActive={
+                          activeJoins?.get(rel.id)?.enabled ?? false
+                        }
+                        onToggleJoin={onToggleJoin}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
+          </div>
         </LabelWrapper>
       )}
 
