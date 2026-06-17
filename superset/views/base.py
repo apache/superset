@@ -130,7 +130,12 @@ logger = logging.getLogger(__name__)
 
 
 def get_error_msg() -> str:
+    # Always preserve the full traceback server-side so operators retain it for
+    # debugging, independent of what is surfaced to the client.
+    logger.error("%s", traceback.format_exc())
     if app.config.get("SHOW_STACKTRACE"):
+        # Opt-in: operators can choose to expose the raw stacktrace in responses.
+        # This defaults to off so internal details are not leaked to clients.
         error_msg = traceback.format_exc()
     else:
         error_msg = "FATAL ERROR \n"

@@ -145,6 +145,64 @@ def test_locale_language_extraction_preserves_region_when_configured(
     assert _extract_language(locale_str, languages) == expected_language
 
 
+def test_get_error_msg_hides_stacktrace_by_default() -> None:
+    """``get_error_msg`` must not return the raw stacktrace to the client unless
+    the operator has explicitly opted in via ``SHOW_STACKTRACE``.
+
+    Regression guard for CodeQL ``py/stack-trace-exposure`` alerts: the default
+    response carries a generic message rather than internal exception detail.
+    """
+    from flask import current_app
+
+    from superset.views.base import get_error_msg
+
+    with patch.dict(current_app.config, {"SHOW_STACKTRACE": False}):
+        try:
+            raise RuntimeError("boom-secret-internal-detail")
+        except RuntimeError:
+            error_msg = get_error_msg()
+
+    assert "boom-secret-internal-detail" not in error_msg
+    assert "Traceback" not in error_msg
+    assert "Stacktrace is hidden" in error_msg
+
+
+def test_get_error_msg_exposes_stacktrace_when_opted_in() -> None:
+    """When ``SHOW_STACKTRACE`` is enabled the raw traceback is returned, matching
+    the documented opt-in debugging behavior."""
+    from flask import current_app
+
+    from superset.views.base import get_error_msg
+
+    with patch.dict(current_app.config, {"SHOW_STACKTRACE": True}):
+        try:
+            raise RuntimeError("boom")
+        except RuntimeError:
+            error_msg = get_error_msg()
+
+    assert "Traceback" in error_msg
+    assert "RuntimeError" in error_msg
+
+
+def test_get_error_msg_always_logs_full_traceback_server_side() -> None:
+    """The full traceback is always logged server-side, even when it is hidden
+    from the client response, so operators retain it for debugging."""
+    from flask import current_app
+
+    from superset.views.base import get_error_msg
+
+    with patch.dict(current_app.config, {"SHOW_STACKTRACE": False}):
+        with patch("superset.views.base.logger") as mock_logger:
+            try:
+                raise RuntimeError("boom-server-side")
+            except RuntimeError:
+                get_error_msg()
+
+    logged = " ".join(str(call) for call in mock_logger.error.call_args_list)
+    assert "Traceback" in logged
+    assert "boom-server-side" in logged
+
+
 def test_api_query_returns_json_content_type() -> None:
     """``Api.query`` returns a response with a JSON content type.
 
