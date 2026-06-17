@@ -58,15 +58,6 @@ interface WorldMapProps {
   formatter: ValueFormatter;
 }
 
-type MouseEventHandler = (this: HTMLElement) => void;
-
-interface MockD3Selection {
-  attr: jest.Mock;
-  style: jest.Mock;
-  classed: jest.Mock;
-  selectAll: jest.Mock;
-}
-
 // Mock Datamap
 const mockBubbles = jest.fn();
 const mockUpdateChoropleth = jest.fn();
@@ -157,244 +148,24 @@ afterEach(() => {
   document.body.removeChild(container);
 });
 
-test('sets up mouseover and mouseout handlers on countries', () => {
+test('relies on Datamaps highlightOnHover without adding conflicting fill handlers', () => {
+  // Regression test for #37761. The hover highlight got stuck on Chrome/Edge
+  // because hand-written mouseover/mouseout handlers competed with Datamaps'
+  // built-in highlightOnHover restore path, and the winning path was
+  // browser-timing-dependent. The chart should rely on the single built-in
+  // path and register no custom fill-restoring hover handlers on the countries.
   WorldMap(container, baseProps);
 
-  expect(mockSvg.selectAll).toHaveBeenCalledWith('.datamaps-subunit');
-  const onCalls = mockSvg.on.mock.calls;
+  const geographyConfig = lastDatamapConfig?.geographyConfig as Record<
+    string,
+    unknown
+  >;
+  expect(geographyConfig?.highlightOnHover).toBe(true);
 
-  // Find mouseover and mouseout handler registrations (namespaced events)
-  const hasMouseover = onCalls.some(
-    call => call[0] === 'mouseover.fillPreserve',
+  const hoverHandlers = mockSvg.on.mock.calls.filter((call: [string]) =>
+    /^mouse(over|out)/.test(call[0]),
   );
-  const hasMouseout = onCalls.some(call => call[0] === 'mouseout.fillPreserve');
-
-  expect(hasMouseover).toBe(true);
-  expect(hasMouseout).toBe(true);
-});
-
-test('stores original fill color on mouseover', () => {
-  // Create a mock DOM element with d3 selection capabilities
-  const mockElement = document.createElement('path');
-  mockElement.setAttribute('class', 'datamaps-subunit USA');
-  mockElement.style.fill = 'rgb(100, 150, 200)';
-  container.appendChild(mockElement);
-
-  let mouseoverHandler: MouseEventHandler | null = null;
-
-  // Mock d3.select to return the mock element
-  const mockD3Selection: MockD3Selection = {
-    attr: jest.fn((attrName: string, value?: string) => {
-      if (value !== undefined) {
-        mockElement.setAttribute(attrName, value);
-      } else {
-        return mockElement.getAttribute(attrName);
-      }
-      return mockD3Selection;
-    }),
-    style: jest.fn((styleName: string, value?: string) => {
-      if (value !== undefined) {
-        mockElement.style[styleName as any] = value;
-      } else {
-        return mockElement.style[styleName as any];
-      }
-      return mockD3Selection;
-    }),
-    classed: jest.fn().mockReturnThis(),
-    selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
-  };
-
-  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
-
-  // Capture the mouseover handler (namespaced event)
-  mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
-    if (event === 'mouseover.fillPreserve') {
-      mouseoverHandler = handler;
-    }
-    return mockSvg;
-  });
-
-  WorldMap(container, baseProps);
-
-  // Simulate mouseover
-  if (mouseoverHandler) {
-    (mouseoverHandler as MouseEventHandler).call(mockElement);
-  }
-
-  // Verify that data-original-fill attribute was set
-  expect(mockD3Selection.attr).toHaveBeenCalledWith(
-    'data-original-fill',
-    expect.any(String),
-  );
-});
-
-test('restores original fill color on mouseout for country with data', () => {
-  const mockElement = document.createElement('path');
-  mockElement.setAttribute('class', 'datamaps-subunit USA');
-  mockElement.style.fill = 'rgb(100, 150, 200)';
-  mockElement.setAttribute('data-original-fill', 'rgb(100, 150, 200)');
-  container.appendChild(mockElement);
-
-  let mouseoutHandler: MouseEventHandler | null = null;
-
-  const mockD3Selection: MockD3Selection = {
-    attr: jest.fn((attrName: string, value?: string | null) => {
-      if (value !== undefined) {
-        if (value === null) {
-          mockElement.removeAttribute(attrName);
-        } else {
-          mockElement.setAttribute(attrName, value);
-        }
-        return mockD3Selection;
-      }
-      return mockElement.getAttribute(attrName);
-    }),
-    style: jest.fn((styleName: string, value?: string) => {
-      if (value !== undefined) {
-        mockElement.style[styleName as any] = value;
-      }
-      return mockElement.style[styleName as any] || mockD3Selection;
-    }),
-    classed: jest.fn().mockReturnThis(),
-    selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
-  };
-
-  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
-
-  // Capture the mouseout handler (namespaced event)
-  mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
-    if (event === 'mouseout.fillPreserve') {
-      mouseoutHandler = handler;
-    }
-    return mockSvg;
-  });
-
-  WorldMap(container, baseProps);
-
-  // Simulate mouseout
-  if (mouseoutHandler) {
-    (mouseoutHandler as MouseEventHandler).call(mockElement);
-  }
-
-  // Verify that original fill was restored
-  expect(mockD3Selection.style).toHaveBeenCalledWith(
-    'fill',
-    'rgb(100, 150, 200)',
-  );
-  expect(mockD3Selection.attr).toHaveBeenCalledWith('data-original-fill', null);
-});
-
-test('restores default fill color on mouseout for country with no data', () => {
-  const mockElement = document.createElement('path');
-  mockElement.setAttribute('class', 'datamaps-subunit XXX');
-  mockElement.style.fill = '#e0e0e0'; // Default border color
-  mockElement.setAttribute('data-original-fill', '#e0e0e0');
-  container.appendChild(mockElement);
-
-  let mouseoutHandler: MouseEventHandler | null = null;
-
-  const mockD3Selection: MockD3Selection = {
-    attr: jest.fn((attrName: string, value?: string | null) => {
-      if (value !== undefined) {
-        if (value === null) {
-          mockElement.removeAttribute(attrName);
-        } else {
-          mockElement.setAttribute(attrName, value);
-        }
-        return mockD3Selection;
-      }
-      return mockElement.getAttribute(attrName);
-    }),
-    style: jest.fn((styleName: string, value?: string) => {
-      if (value !== undefined) {
-        mockElement.style[styleName as any] = value;
-      }
-      return mockElement.style[styleName as any] || mockD3Selection;
-    }),
-    classed: jest.fn().mockReturnThis(),
-    selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
-  };
-
-  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
-
-  // Capture the mouseout handler (namespaced event)
-  mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
-    if (event === 'mouseout.fillPreserve') {
-      mouseoutHandler = handler;
-    }
-    return mockSvg;
-  });
-
-  WorldMap(container, baseProps);
-
-  // Simulate mouseout
-  if (mouseoutHandler) {
-    (mouseoutHandler as MouseEventHandler).call(mockElement);
-  }
-
-  // Verify that default fill was restored (no-data color)
-  expect(mockD3Selection.style).toHaveBeenCalledWith('fill', '#e0e0e0');
-  expect(mockD3Selection.attr).toHaveBeenCalledWith('data-original-fill', null);
-});
-
-test('does not handle mouse events when inContextMenu is true', () => {
-  const propsWithContextMenu = {
-    ...baseProps,
-    inContextMenu: true,
-  };
-
-  const mockElement = document.createElement('path');
-  mockElement.setAttribute('class', 'datamaps-subunit USA');
-  mockElement.style.fill = 'rgb(100, 150, 200)';
-  container.appendChild(mockElement);
-
-  let mouseoverHandler: MouseEventHandler | null = null;
-  let mouseoutHandler: MouseEventHandler | null = null;
-
-  const mockD3Selection: MockD3Selection = {
-    attr: jest.fn(() => mockD3Selection),
-    style: jest.fn(() => mockD3Selection),
-    classed: jest.fn().mockReturnThis(),
-    selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
-  };
-
-  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
-
-  // Capture namespaced event handlers
-  mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
-    if (event === 'mouseover.fillPreserve') {
-      mouseoverHandler = handler;
-    }
-    if (event === 'mouseout.fillPreserve') {
-      mouseoutHandler = handler;
-    }
-    return mockSvg;
-  });
-
-  WorldMap(container, propsWithContextMenu);
-
-  // Simulate mouseover and mouseout
-  if (mouseoverHandler) {
-    (mouseoverHandler as MouseEventHandler).call(mockElement);
-  }
-  if (mouseoutHandler) {
-    (mouseoutHandler as MouseEventHandler).call(mockElement);
-  }
-
-  // When inContextMenu is true, handlers should exit early without modifying anything
-  // We verify this by checking that attr and style weren't called to change fill
-  const attrCalls = mockD3Selection.attr.mock.calls;
-  const fillChangeCalls = attrCalls.filter(
-    (call: [string, unknown]) =>
-      call[0] === 'data-original-fill' && call[1] !== undefined,
-  );
-  const styleCalls = mockD3Selection.style.mock.calls;
-  const fillStyleChangeCalls = styleCalls.filter(
-    (call: [string, unknown]) => call[0] === 'fill' && call[1] !== undefined,
-  );
-  // The handlers should return early, so no state changes
-  expect(fillChangeCalls.length).toBe(0);
-  expect(fillStyleChangeCalls.length).toBe(0);
+  expect(hoverHandlers).toEqual([]);
 });
 
 test('does not throw error when onContextMenu is undefined', () => {
