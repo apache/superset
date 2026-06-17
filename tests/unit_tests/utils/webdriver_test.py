@@ -1161,17 +1161,20 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         mock_page.evaluate.side_effect = [25, 6000]
         # Empty bytes — falsy but not None; was silently passed through before the fix
         mock_take_tiled.return_value = b""
+        # _get_screenshot("standalone") calls page.screenshot(full_page=True);
+        # configure that return value so we can assert the fallback was reached
+        mock_page.screenshot.return_value = b"fallback"
 
         with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
-            with patch.object(
-                WebDriverPlaywright, "_get_screenshot", return_value=b"fallback"
-            ) as mock_fallback:
-                result = WebDriverPlaywright("chrome").get_screenshot(
-                    "http://example.com", "standalone", mock_user
-                )
+            result = WebDriverPlaywright("chrome").get_screenshot(
+                "http://example.com", "standalone", mock_user
+            )
 
         assert result == b"fallback"
-        mock_fallback.assert_called_once()
+        # Tiled path was taken (take_tiled_screenshot was called)
+        mock_take_tiled.assert_called_once()
+        # Standard screenshot was called as fallback (full_page=True for "standalone")
+        mock_page.screenshot.assert_called_with(full_page=True)
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver.sync_playwright")
