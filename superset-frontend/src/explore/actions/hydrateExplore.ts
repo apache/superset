@@ -48,6 +48,7 @@ import { getDatasourceUid } from 'src/utils/getDatasourceUid';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { findPermission } from 'src/utils/findPermission';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 enum ColorSchemeType {
   CATEGORICAL = 'CATEGORICAL',
@@ -164,6 +165,7 @@ export const hydrateExplore =
     if (linearColorSchemeKey) verifyColorScheme(ColorSchemeType.SEQUENTIAL);
 
     const granularExport = isFeatureEnabled(FeatureFlag.GranularExportControls);
+    const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
     const exploreState = {
       // note this will add `form_data` to state,
       // which will be manipulable by future reducers.
@@ -179,7 +181,9 @@ export const hydrateExplore =
         : findPermission('can_csv', 'Superset', user?.roles),
       can_overwrite: ensureIsArray(slice?.editors).some(
         (editor: { id: number } | number) =>
-          (typeof editor === 'number' ? editor : editor.id) === user?.userId,
+          userSubjects.includes(
+            typeof editor === 'number' ? editor : editor.id,
+          ),
       ),
       isDatasourceMetaLoading: false,
       isStarred: false,

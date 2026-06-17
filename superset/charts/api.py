@@ -21,7 +21,7 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import redirect, request, Response, send_file, url_for
+from flask import current_app, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -1056,9 +1056,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         return self.response(200, result="OK")
 
     def _pre_related_check(self, column_name: str) -> Optional[Response]:
-        """Restrict the owners related field to users with write access."""
+        """Restrict the editors related field to users with write access."""
         if (
-            column_name == "owners"
+            column_name == "editors"
             and not security_manager.can_access_all_datasources()
         ):
             return self.response_403()

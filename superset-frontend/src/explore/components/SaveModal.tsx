@@ -76,6 +76,7 @@ interface SaveModalProps extends RouteComponentProps {
   alert?: string;
   sliceName?: string;
   slice?: Record<string, any>;
+  can_overwrite?: boolean;
   datasource?: Record<string, any>;
   dashboardId: '' | number | null;
   isVisible: boolean;
@@ -136,7 +137,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     );
 
     return (
-      (isUserAdmin(this.props.user) || canEditSlice) &&
+      (this.props.can_overwrite ||
+        isUserAdmin(this.props.user) ||
+        canEditSlice) &&
       !this.props.slice?.is_managed_externally
     );
   }
@@ -827,6 +830,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 interface StateProps {
   datasource: any;
   slice: any;
+  can_overwrite: boolean;
   user: UserWithPermissionsAndRoles;
   dashboards: any;
   alert: any;
@@ -841,6 +845,7 @@ function mapStateToProps({
   return {
     datasource: explore.datasource,
     slice: explore.slice,
+    can_overwrite: explore.can_overwrite,
     user,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,

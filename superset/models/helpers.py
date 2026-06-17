@@ -3138,7 +3138,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for orig_col, ascending in orderby:  # noqa: B007
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
-                col = cast(AdhocMetric, col)
+                # process a copy, as the dict is shared with `QueryObject.orderby`
+                # and `QueryContext.cache_values`; writing the processed expression
+                # back would change the cache key of a rehydrated query context
+                col = cast(AdhocMetric, dict(col))
                 if col.get("sqlExpression"):
                     col["sqlExpression"] = self._process_orderby_expression(
                         expression=col["sqlExpression"],
