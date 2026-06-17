@@ -146,8 +146,10 @@ def _normalized_generator(
     comments: bool,
 ) -> Generator:
     """
+    Generator that preserves multi-argument DISTINCT expressions.
+
     Build a sqlglot generator that preserves user-written multi-argument
-    DISTINCT expressions verbatim. Postgres, Presto, Trino, DuckDB and Dremio
+    DISTINCT expressions verbatim. Postgres, Presto, Trino, and DuckDB
     set ``MULTI_ARG_DISTINCT = False`` to emulate the unsupported
     ``COUNT(DISTINCT a, b)`` idiom via a ``CASE WHEN`` row-expression, which
     silently corrupts user-defined aggregates that natively accept multiple

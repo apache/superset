@@ -3155,8 +3155,10 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
         ("TRUE; SELECT 1", QueryClauseValidationException, "base"),
         # Regression test for https://github.com/apache/superset/issues/39223:
         # dialects with `MULTI_ARG_DISTINCT=False` (Postgres, Presto, Trino,
-        # DuckDB, Dremio) must not rewrite user-defined multi-argument DISTINCT
-        # aggregates into row-expression null guards.
+        # DuckDB) must not rewrite user-defined multi-argument DISTINCT
+        # aggregates into row-expression null guards. Dremio is included
+        # below as a defensive regression guard even though its generator
+        # does not currently set `MULTI_ARG_DISTINCT=False`.
         (
             "DISTINCT_AVG(DISTINCT report_id, time_to_accept / 86400)",
             "DISTINCT_AVG(DISTINCT report_id, time_to_accept / 86400)",
