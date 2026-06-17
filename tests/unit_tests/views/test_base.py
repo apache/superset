@@ -130,6 +130,7 @@ def test_menu_data_exposes_build_details_when_config_opts_in() -> None:
 
 
 def test_scarf_analytics_is_exposed_to_frontend_config() -> None:
+    """Verify SCARF_ANALYTICS is exposed in the frontend config keys."""
     # Exposed at runtime so pre-built images can opt out via the SCARF_ANALYTICS
     # config/env var (the webpack build-time flag cannot be changed there).
     from superset.views.base import FRONTEND_CONF_KEYS
