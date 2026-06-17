@@ -293,7 +293,7 @@ flask-login==0.6.3
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   flask-appbuilder
-flask-migrate==3.1.0
+flask-migrate==4.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
