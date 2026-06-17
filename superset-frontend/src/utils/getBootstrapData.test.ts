@@ -114,6 +114,8 @@ describe('getBootstrapData and helpers', () => {
       ['markup payload', '"><script>x</script>/'],
       ['protocol-relative URL', '//evil.example.com/app/'],
       ['absolute URL', 'https://evil.example.com/app/'],
+      // eslint-disable-next-line no-script-url -- intentional unsafe value under test
+      ['javascript scheme', 'javascript:alert(1)'],
       ['embedded quote', "/my'app/"],
       ['path traversal', '/app/..'],
       ['double-dot segment', '/legit/../etc'],

@@ -1143,7 +1143,14 @@ def test_split_kql(kql: str, expected: list[str]) -> None:
         ("postgresql", "DROP TABLE foo", True),
         ("postgresql", "EXPLAIN ANALYZE SELECT * FROM foo", False),
         ("postgresql", "EXPLAIN ANALYZE DELETE FROM foo", True),
+        # SHOW reads server configuration; it mutates nothing, so it is NOT
+        # classified as mutating (that would be wrong for the commit/limit/
+        # "only SELECT" consumers of has_mutation()). Gating disclosure reads
+        # belongs in DISALLOWED_SQL_FUNCTIONS, not the mutation check.
         ("postgresql", "SHOW search_path", False),
+        # SET search_path parses as exp.Set (a structured node), not
+        # exp.Command, so the SET-in-mutating-commands rule does NOT
+        # catch it. Pure GUC reads/writes stay non-mutating.
         ("postgresql", "SET search_path TO public", False),
         (
             "postgres",
@@ -1388,6 +1395,9 @@ def test_custom_dialect(app: None) -> None:
         ("SELECT 1", False),
         ("with source as ( select 1 as one ) select * from source", False),
         ("ALTER TABLE foo ADD COLUMN bar INT", True),
+        # COMMENT ON parses as a typed exp.Comment node across dialects; it
+        # writes to the catalog (pg_description on Postgres) so it is gated.
+        ("COMMENT ON TABLE t IS 'note'", True),
     ],
 )
 def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
@@ -1432,6 +1442,222 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
     Since we can't parse the PL/pgSQL inside the block we always assume it is mutating.
     """
     assert SQLStatement(sql, "postgresql").is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        # PostgreSQL large-object writers: each mutates server state. The bare
+        # SELECT wrapper is irrelevant because the function call itself is the
+        # side effect.
+        ("SELECT lo_from_bytea(0, decode('deadbeef', 'hex'))", True),
+        ("SELECT lo_export(12345, '/tmp/payload.bin')", True),
+        ("SELECT lo_import('/etc/passwd')", True),
+        ("SELECT lo_put(12345, 0, decode('00', 'hex'))", True),
+        ("SELECT lo_create(0)", True),
+        ("SELECT lowrite(12345, decode('00', 'hex'))", True),
+        # lo_unlink deletes a large object outright.
+        ("SELECT lo_unlink(12345)", True),
+        # PostgreSQL sequence mutators. setval()/nextval() look like reads but
+        # advance sequence state for every subsequent caller.
+        ("SELECT setval('public.my_seq', 1000)", True),
+        ("SELECT SETVAL('public.my_seq', 1)", True),
+        ("SELECT nextval('public.my_seq')", True),
+        # currval() only reads the session's last value, so it is not mutating.
+        ("SELECT currval('public.my_seq')", False),
+        # Read-side large-object functions are intentionally NOT classified
+        # as mutating here. They are still blocked via the function denylist
+        # (see DISALLOWED_SQL_FUNCTIONS) but they do not write state.
+        ("SELECT lo_get(12345)", False),
+        ("SELECT loread(12345, 1024)", False),
+        # Case-insensitive matching: the AST stores the raw casing for
+        # anonymous functions, the check uppercases both sides.
+        ("SELECT LO_EXPORT(12345, '/tmp/x')", True),
+        # `SELECT INTO new_table FROM existing` creates a new relation; treat
+        # as mutating even though sqlglot parses it as exp.Select.
+        ("SELECT * INTO new_table FROM existing_table", True),
+        ("SELECT col INTO TEMP new_table FROM existing_table", True),
+        # A built-in function whose first string argument happens to match a
+        # mutating name must NOT be flagged. sqlglot parses these into dedicated
+        # nodes (e.g. exp.Upper) whose `.name` is the argument text, not the
+        # function name, so the walk is restricted to exp.Anonymous to avoid a
+        # false positive on this read-only query.
+        ("SELECT upper('lo_export')", False),
+        ("SELECT length('setval')", False),
+        # Plain SELECT must remain non-mutating.
+        ("SELECT 1", False),
+        ("SELECT * FROM users WHERE id = 1", False),
+    ],
+)
+def test_is_mutating_postgres_function_and_select_into(
+    sql: str, expected: bool
+) -> None:
+    """
+    `is_mutating` must catch mutating function calls (PostgreSQL large-object
+    writers) and `SELECT ... INTO new_table` even though the wrapping AST
+    node is a plain `exp.Select`.
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # `SELECT ... INTO new_table` is CTAS only in Postgres/Redshift/T-SQL.
+        # In Oracle PL/SQL and MySQL the same syntax assigns into a variable
+        # and is a read, so it must NOT be classified as mutating.
+        ("oracle", "SELECT col INTO v FROM existing_table"),
+        ("mysql", "SELECT col INTO @v FROM existing_table"),
+    ],
+)
+def test_is_mutating_select_into_variable_is_read(engine: str, sql: str) -> None:
+    """
+    `SELECT ... INTO target` is only CTAS (mutating) for dialects where the
+    syntax creates a table. On Oracle/MySQL it assigns into a variable and is
+    a read, so `is_mutating` must return False there.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is False
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # `SELECT ... INTO new_table` is CTAS on Redshift and T-SQL just as it
+        # is on Postgres, so each dialect in _SELECT_INTO_CTAS_DIALECTS must
+        # classify the statement as mutating.
+        ("redshift", "SELECT * INTO new_table FROM existing_table"),
+        ("redshift", "SELECT col INTO new_table FROM existing_table"),
+        ("mssql", "SELECT * INTO new_table FROM existing_table"),
+        ("mssql", "SELECT col INTO new_table FROM existing_table"),
+    ],
+)
+def test_is_mutating_select_into_ctas_dialects(engine: str, sql: str) -> None:
+    """
+    `SELECT ... INTO new_table` creates a table on the CTAS dialects beyond
+    Postgres (Redshift, T-SQL), so `is_mutating` must return True there.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is True
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # The mutating-function names are PostgreSQL built-ins. On other engines
+        # a same-named read-only function or UDF must NOT be flagged as
+        # mutating, otherwise read-only queries get wrongly blocked.
+        ("mysql", "SELECT setval(my_col)"),
+        ("mysql", "SELECT lo_export(id, path) FROM t"),
+        ("base", "SELECT setval(my_col)"),
+        ("trino", "SELECT lowrite(x)"),
+    ],
+)
+def test_is_mutating_function_names_scoped_to_postgres(engine: str, sql: str) -> None:
+    """
+    `_MUTATING_FUNCTION_NAMES` is PostgreSQL-specific, so the function-name walk
+    only runs for the Postgres dialect; same-named functions on other engines
+    must stay non-mutating.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is False
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        # PostgreSQL constructs that sqlglot parses as opaque exp.Command.
+        # Each can wrap a DML body or change effective server state.
+        ("PREPARE u AS UPDATE t SET x = 1", True),
+        ("PREPARE i AS INSERT INTO t VALUES (1)", True),
+        ("EXECUTE my_plan", True),
+        ("CALL my_writing_procedure()", True),
+        ("COPY t FROM '/tmp/data.csv'", True),
+        ("GRANT SELECT ON t TO public", True),
+        ("REVOKE SELECT ON t FROM public", True),
+        ("SET ROLE other_role", True),
+        ("REFRESH MATERIALIZED VIEW mv", True),
+        ("REINDEX TABLE t", True),
+        ("VACUUM t", True),
+        # SHOW commands are reads (they mutate nothing), so they are NOT
+        # classified as mutating. Gating information-disclosure reads such as
+        # SHOW server_version belongs in DISALLOWED_SQL_FUNCTIONS (which already
+        # blocks pg_read_file, version(), etc.), not in the mutation check.
+        ("SHOW search_path", False),
+        ("SHOW all", False),
+        ("SHOW server_version", False),
+        # RESET reverts a prior SET (e.g. RESET ROLE backs out SET ROLE).
+        ("RESET ROLE", True),
+        # DDL head-tokens that sqlglot falls back to exp.Command for when the
+        # body uses syntax it does not model. One representative per
+        # head-token branch (CREATE/ALTER/DROP); they all hit the same
+        # set-lookup so additional CREATE PUBLICATION/SUBSCRIPTION/etc.
+        # cases would not add coverage.
+        (
+            "CREATE FUNCTION x() RETURNS int AS '/tmp/x.so', 'i' LANGUAGE C",
+            True,
+        ),
+        ("CREATE EXTENSION pg_trgm", True),  # non-FUNCTION DDL via Command
+        ("ALTER SYSTEM SET wal_level = 'logical'", True),
+        ("DROP EXTENSION pg_trgm", True),
+        # LOAD dlopens a shared library on the PG host. Same RCE primitive
+        # as `CREATE FUNCTION ... LANGUAGE C` if the library path is
+        # attacker-controlled (e.g. via a prior COPY-to-program foothold).
+        ("LOAD '/tmp/x.so'", True),
+        # Case-insensitive: sqlglot preserves source case on Command.name,
+        # so the set lookup must normalise. Regression for the original
+        # bug where a lowercase head-token bypassed the gate.
+        ("create extension pg_trgm", True),
+        ("load '/tmp/x.so'", True),
+        # Pre-existing positive controls
+        ("DO $$ BEGIN UPDATE t SET x = 1; END $$", True),
+        ("EXPLAIN ANALYZE UPDATE t SET x = 1", True),
+    ],
+)
+def test_is_mutating_postgres_command_constructs(sql: str, expected: bool) -> None:
+    """
+    Several PostgreSQL constructs are represented by sqlglot as opaque
+    `exp.Command` nodes (no structured AST). `is_mutating` recognises them
+    by command name so they cannot slip past the read-only gate.
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, functions, expected",
+    [
+        # MySQL `@@<name>` syntax parses as exp.SessionParameter, which is
+        # not a subclass of exp.Func. The walker must include it so the
+        # denylist entry for `version` still catches `SELECT @@version`.
+        ("SELECT @@version", "mysql", {"version"}, True),
+        ("SELECT @@global.version", "mysql", {"version"}, True),
+        ("SELECT @@hostname", "mysql", {"hostname"}, True),
+        ("SELECT @@datadir", "mysql", {"datadir"}, True),
+        # Negative control: a session parameter not in the denylist must
+        # not match.
+        ("SELECT @@autocommit", "mysql", {"version", "hostname"}, False),
+        # A plain SELECT does not introduce session-parameter names.
+        ("SELECT 1", "mysql", {"version"}, False),
+        # The pre-existing exp.Func walk still works for normal calls.
+        ("SELECT version()", "mysql", {"version"}, True),
+        # PostgreSQL large-object functions are exp.Anonymous calls. The
+        # walk includes them; the denylist entry catches them.
+        ("SELECT lo_export(12345, '/tmp/x')", "postgresql", {"lo_export"}, True),
+        (
+            "SELECT lo_from_bytea(0, decode('00','hex'))",
+            "postgresql",
+            {"lo_from_bytea"},
+            True,
+        ),
+        ("SELECT loread(12345, 1024)", "postgresql", {"loread"}, True),
+    ],
+)
+def test_check_functions_present_session_parameter(
+    sql: str, engine: str, functions: set[str], expected: bool
+) -> None:
+    """
+    `check_functions_present` must visit `exp.SessionParameter` so that
+    denylist entries for names like `version` or `hostname` also match
+    `SELECT @@version` / `SELECT @@hostname` in MySQL.
+    """
+    assert SQLScript(sql, engine).check_functions_present(functions) == expected
 
 
 @pytest.mark.parametrize(

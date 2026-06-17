@@ -22,7 +22,6 @@ import {
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
-  normalizeBackendUrlString,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
@@ -72,8 +71,7 @@ import {
 import type { SelectOption } from 'src/components/ListView/types';
 import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
-import { ensureAppRoot } from 'src/utils/navigationUtils';
-import { applicationRoot } from 'src/utils/getBootstrapData';
+import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -681,9 +679,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           // Router basename, which re-prefixes the root — so strip it here to
           // avoid a doubled `/superset/superset/...`. External
           // `default_endpoint` URLs pass through unchanged.
-          const exploreTo = normalizeBackendUrlString(exploreURL, {
-            applicationRoot: applicationRoot(),
-          });
+          const exploreTo = stripAppRoot(exploreURL);
           let titleLink: JSX.Element;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
             titleLink = (
