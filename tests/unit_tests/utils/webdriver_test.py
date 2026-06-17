@@ -905,7 +905,7 @@ class TestWebDriverPlaywrightErrorHandling:
     @patch("superset.utils.webdriver.take_tiled_screenshot")
     def test_tiled_screenshot_failure_returns_none_without_fallback(
         self, mock_take_tiled, mock_logger, mock_sync_playwright
-    ):
+    ) -> None:
         """When take_tiled_screenshot fails, return None rather than fall back to a
         potentially blank standard screenshot."""
         mock_user = MagicMock()
