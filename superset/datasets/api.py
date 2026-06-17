@@ -58,6 +58,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
+from superset.daos.version import VersionDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
@@ -74,10 +75,19 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
-from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
+from superset.exceptions import (
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
+)
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
+from superset.versioning.api_helpers import (
+    get_version_endpoint,
+    list_versions_endpoint,
+)
+from superset.versioning.etag import set_version_etag
+from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -112,6 +122,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "get_or_create_dataset",
         "warm_up_cache",
         "get_drill_info",
+        "list_versions",
+        "get_version",
     }
     list_columns = [
         "id",
@@ -300,6 +312,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         DatasetRelatedObjectsResponse,
         DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
+        VersionListItemSchema,
     )
 
     openapi_spec_methods = openapi_spec_methods_override
@@ -417,6 +430,40 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+                      old_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the live row before this
+                          update (null if the dataset had no prior history).
+                          Matches the ``version_number`` field of the list
+                          versions endpoint. Unstable under retention
+                          pruning — see ``old_transaction_id`` for a stable
+                          identifier.
+                      new_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the newly-live row after
+                          this update. Can equal ``old_version`` when no
+                          versioned column changed, or when retention
+                          pruning dropped an older closed row in the same
+                          commit.
+                      old_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          Continuum transaction_id of the live row before
+                          this update. Stable across retention pruning.
+                      new_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          Continuum transaction_id of the live row after
+                          this update. When this differs from
+                          ``old_transaction_id`` the update produced a new
+                          version row (regardless of whether ``new_version``
+                          changed).
             400:
               $ref: '#/components/responses/400'
             401:
@@ -440,17 +487,83 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        # pylint: disable=import-outside-toplevel
+        from superset.extensions import db as _db
+
+        pre_dataset = (
+            _db.session.query(SqlaTable).filter(SqlaTable.id == pk).one_or_none()
+        )
+        old_version = VersionDAO.current_version_number(SqlaTable, pk)
+        old_transaction_id = VersionDAO.current_live_transaction_id(SqlaTable, pk)
+        old_version_uuid = (
+            VersionDAO.current_live_version_uuid(SqlaTable, pk, pre_dataset.uuid)
+            if pre_dataset is not None
+            else None
+        )
+
         try:
+            # Two commands, two commits, two Continuum transactions for an
+            # ``override_columns`` save — deliberately NOT merged into one
+            # transaction. A single-transaction design was attempted and
+            # reverted: ``DBEventLogger`` writes request logs through the
+            # SHARED scoped session and calls ``commit()`` /
+            # ``rollback()`` on it mid-request (superset/utils/log.py),
+            # so any save held uncommitted across a logged sub-action can
+            # be committed half-done (Postgres/MySQL) or rolled back
+            # entirely on a transient logger failure (SQLite's
+            # "database is locked"). Until the event logger gets its own
+            # session, per-command commit boundaries are the only shape
+            # whose failure modes are honest. Consequence the
+            # version-history UI must tolerate: one logical save can
+            # surface as two version transactions stamped the same second.
             changed_model = UpdateDatasetCommand(pk, item, override_columns).run()
+            # Capture the post-update identifiers BEFORE the refresh:
+            # RefreshDatasetCommand commits its own transaction, so reading
+            # afterwards would attribute the refresh's version to the
+            # user's update (and old→new would span two transactions).
+            new_version = VersionDAO.current_version_number(SqlaTable, changed_model.id)
+            new_transaction_id = VersionDAO.current_live_transaction_id(
+                SqlaTable, changed_model.id
+            )
+            new_version_uuid = VersionDAO.current_live_version_uuid(
+                SqlaTable, changed_model.id, changed_model.uuid
+            )
+            etag_version_uuid = new_version_uuid
             if override_columns:
                 RefreshDatasetCommand(pk).run()
-            response = self.response(200, id=changed_model.id, result=item)
+                # The ETag must reflect the entity's *current live* version,
+                # which after the refresh is the refresh's transaction —
+                # re-read it rather than reusing the pre-refresh uuid.
+                etag_version_uuid = VersionDAO.current_live_version_uuid(
+                    SqlaTable, changed_model.id, changed_model.uuid
+                )
+            response = self.response(
+                200,
+                id=changed_model.id,
+                result=item,
+                old_version=old_version,
+                new_version=new_version,
+                old_transaction_id=old_transaction_id,
+                new_transaction_id=new_transaction_id,
+                old_version_uuid=str(old_version_uuid) if old_version_uuid else None,
+                new_version_uuid=str(new_version_uuid) if new_version_uuid else None,
+            )
+            set_version_etag(response, etag_version_uuid)
         except DatasetNotFoundError:
             response = self.response_404()
         except DatasetForbiddenError:
             response = self.response_403()
         except DatasetInvalidError as ex:
             response = self.response_422(message=ex.normalized_messages())
+        except DatasetRefreshFailedError as ex:
+            logger.error(
+                "Error refreshing dataset during update %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            response = self.response_422(message=str(ex))
         except DatasetUpdateFailedError as ex:
             logger.error(
                 "Error updating model %s: %s",
@@ -1302,7 +1415,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             except SupersetTemplateException as ex:
                 return self.response(ex.status, message=str(ex))
 
-        return self.response(200, **response)
+        return set_version_etag(
+            self.response(200, **response),
+            VersionDAO.current_live_version_uuid(SqlaTable, table.id, table.uuid),
+        )
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))
     @protect()
@@ -1447,3 +1563,114 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 raise template_exception from ex
 
         return data
+
+    @expose("/<uuid_str>/versions/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
+        log_to_statsd=False,
+    )
+    def list_versions(self, uuid_str: str) -> Response:
+        """List version history for a dataset.
+        ---
+        get:
+          summary: Return the version history for a dataset
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          responses:
+            200:
+              description: Version history ordered by oldest first
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VersionListItemSchema'
+                      count:
+                        type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return list_versions_endpoint(
+            self, SqlaTable, uuid_str, access_kwarg="datasource"
+        )
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/",
+        methods=("GET",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
+        log_to_statsd=False,
+    )
+    def get_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Return the dataset's state at a specific version.
+        ---
+        get:
+          summary: Read-only snapshot of the dataset at a given version
+          description: >-
+            Returns the dataset's scalar fields plus reconstructed
+            ``columns`` and ``metrics`` lists as they were at the target
+            version. Does not modify live state.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: Version UUID as returned by the list endpoint
+          responses:
+            200:
+              description: Snapshot of the dataset at the target version
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        description: >-
+                          The dataset's scalar fields at the target version
+                          (entity-specific keys), plus `columns` / `metrics`
+                          as they were at that version, plus a `_version`
+                          block with the version-level metadata.
+                        properties:
+                          _version:
+                            $ref: '#/components/schemas/VersionListItemSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return get_version_endpoint(
+            self, SqlaTable, uuid_str, version_uuid_str, access_kwarg="datasource"
+        )

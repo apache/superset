@@ -59,23 +59,31 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         assert self._model is not None
-        self.process_tab_diff()
-        self.process_native_filter_diff()
+        # Suppress autoflush during the update body so that Continuum's
+        # before_flush baseline listener does not fire mid-operation while
+        # the session is only partially populated.
+        with db.session.no_autoflush:
+            self.process_tab_diff()
+            self.process_native_filter_diff()
 
-        # Update tags
-        if (tags := self._properties.pop("tags", None)) is not None:
-            update_tags(ObjectType.dashboard, self._model.id, self._model.tags, tags)
+            # Update tags
+            if (tags := self._properties.pop("tags", None)) is not None:
+                update_tags(
+                    ObjectType.dashboard, self._model.id, self._model.tags, tags
+                )
 
-        # Re-serialize position_json to escape 4-byte Unicode characters
-        if position_json := self._properties.get("position_json"):
-            self._properties["position_json"] = json.dumps(json.loads(position_json))
+            # Re-serialize position_json to escape 4-byte Unicode characters
+            if position_json := self._properties.get("position_json"):
+                self._properties["position_json"] = json.dumps(
+                    json.loads(position_json)
+                )
 
-        dashboard = DashboardDAO.update(self._model, self._properties)
-        if self._properties.get("json_metadata"):
-            DashboardDAO.set_dash_metadata(
-                dashboard,
-                data=json.loads(self._properties.get("json_metadata", "{}")),
-            )
+            dashboard = DashboardDAO.update(self._model, self._properties)
+            if self._properties.get("json_metadata"):
+                DashboardDAO.set_dash_metadata(
+                    dashboard,
+                    data=json.loads(self._properties.get("json_metadata", "{}")),
+                )
         return dashboard
 
     def validate(self) -> None:
