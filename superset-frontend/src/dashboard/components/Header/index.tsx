@@ -749,7 +749,7 @@ const Header = (): JSX.Element => {
         ) : (
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
-            {userCanEdit && (
+            {userCanEdit && !isEmbedded && (
               <Button
                 buttonStyle="secondary"
                 onClick={handleEnterEditMode}
@@ -776,6 +776,7 @@ const Header = (): JSX.Element => {
       handleCtrlZ,
       handleEnterEditMode,
       hasUnsavedChanges,
+      isEmbedded,
       overwriteDashboard,
       redoLength,
       undoLength,

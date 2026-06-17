@@ -106,11 +106,11 @@ export interface Dashboard {
   changed_by_name: string;
   changed_on_delta_humanized: string;
   changed_by: string;
+  changed_on?: string;
   dashboard_title: string;
   id: number;
   published: boolean;
   url: string;
-  thumbnail_url: string;
   owners: Owner[];
   tags: TagType[];
   created_by: object;
@@ -447,6 +447,7 @@ function DashboardList(props: DashboardListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="dashboard-row-edit"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -463,6 +464,7 @@ function DashboardList(props: DashboardListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="dashboard-row-export"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -490,6 +492,7 @@ function DashboardList(props: DashboardListProps) {
                       placement="bottom"
                     >
                       <span
+                        data-test="dashboard-row-delete"
                         role="button"
                         tabIndex={0}
                         className="action-button"

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -31,7 +31,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1248,6 +1248,10 @@ msgstr "Pievienot jaunu krāsu formatētāju"
 msgid "Add new formatter"
 msgstr "Pievienot jaunu formatētāju"
 
+#, fuzzy
+msgid "Add numbered column"
+msgstr " lai pievienotu aprēķinātās kolonnas"
+
 msgid "Add or edit display controls"
 msgstr "Pievienot vai rediģēt displeja vadības elementus"
 
@@ -1794,7 +1798,7 @@ msgstr "Radās kļūda, iegūstot shēmu vērtības: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Radās kļūda, lejupielādējot pieejamos motīvus"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Radās kļūda, iegūstot shēmu vērtības: %s"
 
@@ -1864,7 +1868,7 @@ msgstr "Radās kļūda, apstrādājot atslēgu."
 msgid "An error occurred while pruning logs "
 msgstr "Radās kļūda, tīrot žurnālus "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Radās kļūda, attēlojot vizualizāciju: %s"
 
@@ -2417,7 +2421,7 @@ msgstr "Bāzes eksponents"
 msgid "Base height"
 msgstr "Bāzes augstums"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Pamata slāņa kartes stils. Skatīt Mapbox dokumentāciju: %s"
 
@@ -4170,6 +4174,13 @@ msgstr "Pielāgots SQL"
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Pielāgoti SQL ad-hoc rādītāji nav iespējoti šai datu kopai"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Pielāgotie SQL lauki nevar saturēt apakšvaicājumus."
+
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Pielāgotie SQL lauki nevar saturēt apakšvaicājumus."
 
@@ -4560,6 +4571,9 @@ msgstr "Datubāzes iestatījumi atjaunināti"
 
 msgid "Database type does not support file uploads."
 msgstr "Datubāzes tips neatbalsta failu augšupielādi."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Datubāzes faila augšupielāde neizdevās"
@@ -5611,8 +5625,8 @@ msgstr "Ilgums ms (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Ilgums ms (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Ilgums ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Ilgums ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Ilgums ms (66000 => 1m 6s)"
@@ -9148,7 +9162,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Nav tabulas kolonnu"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Pagaidām nav %s"
 
@@ -9234,6 +9248,10 @@ msgstr "Nav definēts"
 
 msgid "Not equal to (≠)"
 msgstr "Nav vienāds ar (≠)"
+
+#, fuzzy
+msgid "Not found"
+msgstr "Diagramma nav atrasta"
 
 msgid "Not in"
 msgstr "Neietilpst"
@@ -10270,6 +10288,12 @@ msgstr "Projekta ID"
 msgid "Proportional"
 msgstr "Proporcionāls"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Publicēts"
 
@@ -10519,9 +10543,6 @@ msgstr "Reģistrēties"
 
 msgid "Registration date"
 msgstr "Reģistrācijas datums"
-
-msgid "Registration hash"
-msgstr "Reģistrācijas hash"
 
 #, fuzzy
 msgid "Registration successful"
@@ -11019,6 +11040,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL laboratorija"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "SQL laboratorijas vaicājumi"
@@ -15189,6 +15216,9 @@ msgstr "Ierakstiet vērtību"
 msgid "Type is required"
 msgstr "Veids ir obligāts"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr "Diagrammas veids, kas jāparāda sparkline"
 
@@ -15351,6 +15381,10 @@ msgstr "Atsaukt darbību"
 
 msgid "Undo?"
 msgstr "Atsaukt?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr "Radās neparedzēta kļūda, lūdzu pārbaudiet žurnālus detaļām"
 
 msgid "Unexpected error"
 msgstr "Neparedzēta kļūda"
@@ -16291,6 +16325,10 @@ msgstr "Vai rādīt X ass minimālās un maksimālās vērtības"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Vai rādīt Y ass minimālās un maksimālās vērtības"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Vai rādīt tendences līniju"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Vai rādīt skaitliskās vērtības šūnās"
 
@@ -16966,6 +17004,10 @@ msgstr ""
 
 msgid "`operation` property of post processing object undefined"
 msgstr "Pēcapstrādes objekta `operation` rekvizīts nav definēts"
+
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
 
 msgid "`prophet` package not installed"
 msgstr "`prophet` pakotne nav instalēta"
@@ -17874,25 +17916,8 @@ msgstr "jūsu-projekts-1234-a1"
 msgid "zoom area"
 msgstr "tālummaiņas zona"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
-
 msgid "© Layer attribution"
 msgstr "© Slāņa attiecinājums"
+
+msgid "№"
+msgstr ""

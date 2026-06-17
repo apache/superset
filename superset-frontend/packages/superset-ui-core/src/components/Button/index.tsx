@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Children, ReactElement, Fragment } from 'react';
+import { Children, ReactElement, Fragment, forwardRef, Ref } from 'react';
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd';
 import { useTheme } from '@apache-superset/core/theme';
@@ -100,7 +100,7 @@ const BUTTON_STYLE_MAP: Record<
   link: { type: 'link' },
 };
 
-export function Button(props: ButtonProps) {
+function ButtonInner(props: ButtonProps, ref: Ref<HTMLElement>) {
   const {
     tooltip,
     placement,
@@ -160,6 +160,7 @@ export function Button(props: ButtonProps) {
 
   const button = (
     <AntdButton
+      ref={ref as Ref<HTMLButtonElement & HTMLAnchorElement>}
       href={disabled ? undefined : href}
       disabled={disabled}
       type={antdType}
@@ -234,5 +235,7 @@ export function Button(props: ButtonProps) {
 
   return button;
 }
+
+export const Button = forwardRef<HTMLElement, ButtonProps>(ButtonInner);
 
 export type { ButtonProps, OnClickHandler };

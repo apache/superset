@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useState } from 'react';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 
 import { resetState } from 'src/SqlLab/actions/sqlLab';
 import {
@@ -189,15 +189,19 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
         placement="bottomLeft"
         trigger="click"
       >
-        <DatabaseSelector
-          key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
-            schema ?? 'no-schema'
-          }`}
-          {...dbSelectorProps}
-          emptyState={<EmptyState />}
-          sqlLabMode
-          onOpenModal={openSelectorModal}
-        />
+        {/* Wrap in a span so the Popover can attach a ref without relying
+            on findDOMNode (deprecated in React 18+). */}
+        <span>
+          <DatabaseSelector
+            key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
+              schema ?? 'no-schema'
+            }`}
+            {...dbSelectorProps}
+            emptyState={<EmptyState />}
+            sqlLabMode
+            onOpenModal={openSelectorModal}
+          />
+        </span>
       </Popover>
       <StyledDivider />
       <TableExploreTree queryEditorId={activeQEId} />

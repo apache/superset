@@ -119,14 +119,10 @@ def test_mcp_packages_discoverable_by_setuptools():
 
 def _make_flask_app_mock(
     disabled_tools: set[str],
-    fab_security_views: bool = True,
-    log_view: bool = True,
 ) -> MagicMock:
     """Return a minimal Flask app mock with MCP config set to safe defaults."""
     _config: dict[str, object] = {
         "MCP_DISABLED_TOOLS": disabled_tools,
-        "FAB_ADD_SECURITY_VIEWS": fab_security_views,
-        "SUPERSET_LOG_VIEW": log_view,
     }
     flask_app = MagicMock()
     flask_app.config.get.side_effect = lambda key, default=None: _config.get(
@@ -273,50 +269,14 @@ def test_no_disabled_tools_returns_full_instructions() -> None:
 
     assert "- execute_sql:" in full
     assert "- health_check:" in full
-    assert "- list_action_logs:" in full
-    assert "- get_action_log_info:" in full
     assert "- list_tasks:" in full
     assert "- get_task_info:" in full
     assert full == also_full
 
 
 # ---------------------------------------------------------------------------
-# Config-guard tests: action-log tools and task tools
+# Config-guard tests: task tools
 # ---------------------------------------------------------------------------
-
-
-def test_action_log_tools_removed_when_superset_log_view_disabled() -> None:
-    """Action-log tools removed when SUPERSET_LOG_VIEW=False.
-
-    Mirrors LogRestApi.is_enabled() which checks FAB_ADD_SECURITY_VIEWS and
-    SUPERSET_LOG_VIEW.
-    """
-    flask_app = _make_flask_app_mock(set(), log_view=False)
-
-    with (
-        patch("superset.mcp_service.flask_singleton.app", flask_app),
-        patch.object(mcp.local_provider, "remove_tool") as mock_remove,
-    ):
-        init_fastmcp_server()
-
-    removed = {call.args[0] for call in mock_remove.call_args_list}
-    assert "list_action_logs" in removed
-    assert "get_action_log_info" in removed
-
-
-def test_action_log_tools_removed_when_fab_security_views_disabled() -> None:
-    """Action-log tools removed when FAB_ADD_SECURITY_VIEWS=False."""
-    flask_app = _make_flask_app_mock(set(), fab_security_views=False)
-
-    with (
-        patch("superset.mcp_service.flask_singleton.app", flask_app),
-        patch.object(mcp.local_provider, "remove_tool") as mock_remove,
-    ):
-        init_fastmcp_server()
-
-    removed = {call.args[0] for call in mock_remove.call_args_list}
-    assert "list_action_logs" in removed
-    assert "get_action_log_info" in removed
 
 
 def test_task_tools_removed_when_global_task_framework_disabled(
@@ -342,10 +302,13 @@ def test_task_tools_removed_when_global_task_framework_disabled(
     assert "get_task_info" in removed
 
 
-def test_config_guard_tools_excluded_from_instructions() -> None:
+def test_config_guard_tools_excluded_from_instructions(
+    gtf_ffm: MagicMock,
+) -> None:
     """Config-guard removed tools must be passed to get_default_instructions so
     the instructions never advertise tools that are disabled by config flags."""
-    flask_app = _make_flask_app_mock(set(), log_view=False)
+    gtf_ffm.is_feature_enabled.return_value = False
+    flask_app = _make_flask_app_mock(set())
 
     captured: list[str] = []
 
@@ -367,8 +330,8 @@ def test_config_guard_tools_excluded_from_instructions() -> None:
         init_fastmcp_server()
 
     assert len(captured) == 1
-    assert "list_action_logs" in captured[0]
-    assert "get_action_log_info" in captured[0]
+    assert "list_tasks" in captured[0]
+    assert "get_task_info" in captured[0]
 
 
 def test_instructions_generated_after_disabled_tools_removed() -> None:

@@ -111,12 +111,15 @@ const createController = (
     ...options,
   });
 
-// Shared console spies
-const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+// Shared console spies — re-installed in beforeEach so each test starts
+// with a fresh call count and a clean implementation.
+let consoleSpy: jest.SpyInstance;
+let consoleErrorSpy: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
   // Setup DOM environment
   Object.defineProperty(window, 'localStorage', {
@@ -1080,6 +1083,24 @@ test('setThemeConfig sets complete theme configuration', () => {
   expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
   expect(controller.canSetTheme()).toBe(true);
   expect(controller.canSetMode()).toBe(true);
+});
+
+test('setThemeConfig flags an active theme config override', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: {}, dark: {} }),
+  );
+
+  const controller = createController({ defaultTheme: { token: {} } });
+
+  // No override until setThemeConfig is called (e.g. from the Embedded SDK).
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+
+  expect(controller.hasThemeConfigOverride()).toBe(true);
 });
 
 test('setThemeConfig handles theme_default only', () => {
