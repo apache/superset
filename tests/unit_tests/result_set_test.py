@@ -463,8 +463,8 @@ def test_stringify_values_dict_and_list_produce_valid_json() -> None:
     data = np.array(
         [
             {"key": "value", "nested": {"a": 1}},
-            # List with string elements: str() gives ['a', 'b'] (single-quoted, invalid JSON)
-            # while json.dumps gives ["a", "b"] (double-quoted, valid JSON).
+            # str() gives ['a', 'b'] (single-quoted, invalid JSON);
+            # json.dumps gives ["a", "b"] (double-quoted, valid JSON).
             ["a", "b"],
             {"items": [1, 2, 3], "d": "Hello, World!"},
             None,
