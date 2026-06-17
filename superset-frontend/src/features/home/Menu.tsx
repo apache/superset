@@ -21,7 +21,7 @@ import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot } from 'src/utils/pathUtils';
-import { getUrlParam } from 'src/utils/urlUtils';
+import { getUrlParam, isUrlExternal } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
@@ -153,7 +153,7 @@ const StyledBrandWrapper = styled.div<{ margin?: string }>`
   `}
 `;
 
-const StyledBrandLink = styled(Typography.Link)`
+const StyledBrandLink = styled(GenericLink)`
   ${({ theme }) => css`
     align-items: center;
     display: flex;
@@ -293,16 +293,24 @@ export function Menu({
   const renderBrand = () => {
     let link;
     if (theme.brandLogoUrl) {
+      const brandHref = ensureAppRoot(theme.brandLogoHref);
+      const brandImage = (
+        <StyledImage
+          preview={false}
+          src={ensureStaticPrefix(theme.brandLogoUrl)}
+          alt={theme.brandLogoAlt || 'Apache Superset'}
+          height={theme.brandLogoHeight}
+        />
+      );
       link = (
         <StyledBrandWrapper margin={theme.brandLogoMargin}>
-          <StyledBrandLink href={ensureAppRoot(theme.brandLogoHref)}>
-            <StyledImage
-              preview={false}
-              src={ensureStaticPrefix(theme.brandLogoUrl)}
-              alt={theme.brandLogoAlt || 'Apache Superset'}
-              height={theme.brandLogoHeight}
-            />
-          </StyledBrandLink>
+          {isUrlExternal(brandHref) ? (
+            <Typography.Link className="navbar-brand" href={brandHref}>
+              {brandImage}
+            </Typography.Link>
+          ) : (
+            <StyledBrandLink to={brandHref}>{brandImage}</StyledBrandLink>
+          )}
         </StyledBrandWrapper>
       );
     } else if (isFrontendRoute(window.location.pathname)) {
