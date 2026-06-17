@@ -76,8 +76,8 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
 }) => {
   // inherit the size of parent columns
   const widthMultiple =
-    parentComponent.type === COLUMN_TYPE
-      ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
+    parentComponent?.type === COLUMN_TYPE
+      ? parentComponent?.meta?.width || GRID_MIN_COLUMN_COUNT
       : component.meta.width || GRID_MIN_COLUMN_COUNT;
 
   const handleDeleteComponent = () => {

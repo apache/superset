@@ -48,7 +48,7 @@ export interface ChartHolderProps {
   parentId: string;
   dashboardId: number;
   component: LayoutItem;
-  parentComponent: LayoutItem;
+  parentComponent?: LayoutItem;
   getComponentById?: (id?: string) => LayoutItem | undefined;
   index: number;
   depth: number;
@@ -172,8 +172,8 @@ const ChartHolder = ({
     )?.meta?.width;
 
     let widthMultiple = component.meta.width || GRID_MIN_COLUMN_COUNT;
-    if (parentComponent.type === COLUMN_TYPE) {
-      widthMultiple = parentComponent.meta.width || GRID_MIN_COLUMN_COUNT;
+    if (parentComponent && parentComponent.type === COLUMN_TYPE) {
+      widthMultiple = parentComponent?.meta?.width || GRID_MIN_COLUMN_COUNT;
     } else if (columnParentWidth && widthMultiple > columnParentWidth) {
       widthMultiple = columnParentWidth;
     }
@@ -182,9 +182,9 @@ const ChartHolder = ({
   }, [
     component,
     getComponentById,
-    parentComponent.meta.width,
-    parentComponent.parents,
-    parentComponent.type,
+    parentComponent?.meta?.width,
+    parentComponent?.parents,
+    parentComponent?.type,
   ]);
 
   const { chartWidth, chartHeight } = useMemo(() => {
@@ -346,7 +346,7 @@ const ChartHolder = ({
       component.meta.chartId,
       component.meta.sliceNameOverride,
       component.meta.sliceName,
-      parentComponent.type,
+      parentComponent?.type,
       columnWidth,
       widthMultiple,
       availableColumnCount,
@@ -377,7 +377,7 @@ const ChartHolder = ({
     <Draggable
       component={component}
       parentComponent={parentComponent}
-      orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
+      orientation={parentComponent?.type === ROW_TYPE ? 'column' : 'row'}
       index={index}
       depth={depth}
       onDrop={handleComponentDrop}

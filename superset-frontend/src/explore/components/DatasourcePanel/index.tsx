@@ -36,6 +36,13 @@ import { DatasourceFolder, DatasourcePanelColumn, DndItemValue } from './types';
 import { DropzoneContext } from '../ExploreContainer';
 import { DatasourceItems } from './DatasourceItems';
 import { transformDatasourceWithFolders } from './transformDatasourceFolders';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import type { DatasetRelationship } from 'src/features/datasets/relationships/types';
+import {
+  useExploreRelationships,
+} from 'src/features/datasets/relationships/hooks/useExploreRelationships';
+import { useSyncRelationshipsToFormData } from 'src/features/datasets/relationships/hooks/useSyncRelationshipsToFormData';
+import { RelationshipPanel } from 'src/features/datasets/relationships/components/RelationshipPanel';
 
 interface DatasourceControl extends Omit<ControlConfig, 'hidden'> {
   datasource?: IDatasource;
@@ -54,6 +61,7 @@ export interface IDatasource {
   name?: string | null;
   catalog?: string | null;
   schema?: string | null;
+  relationships?: DatasetRelationship[];
 }
 
 export interface Props {
@@ -134,6 +142,27 @@ export default function DataSourcePanel({
 }: Props) {
   const [dropzones] = useContext(DropzoneContext);
   const { columns: _columns, metrics, folders: _folders } = datasource;
+
+  // Relationship management (gated behind feature flag)
+  const relationshipsEnabled = isFeatureEnabled(FeatureFlag.DatasetRelationships);
+  const relationships = relationshipsEnabled
+    ? (datasource as any).relationships ?? []
+    : [];
+  const {
+    activeJoins,
+    availableTargetColumns,
+    columnRelationshipMap,
+    getColumnInfo,
+    toggleJoin,
+    updateSelectedColumns,
+  } = useExploreRelationships(relationships);
+
+  // Sync active relationships into form_data.active_relationships
+  useSyncRelationshipsToFormData(
+    activeJoins,
+    relationships,
+    (name, value) => actions.setControlValue?.(name, value),
+  );
 
   const allowedColumns = useMemo(() => {
     const validators = Object.values(dropzones);
@@ -260,6 +289,17 @@ export default function DataSourcePanel({
   const mainBody = useMemo(
     () => (
       <>
+        {/* Relationship panel — shows active JOIN configurations */}
+        {relationshipsEnabled && relationships.length > 0 && (
+          <RelationshipPanel
+            relationships={relationships}
+            activeJoins={activeJoins}
+            availableTargetColumns={availableTargetColumns}
+            onToggleJoin={toggleJoin}
+            onUpdateSelectedColumns={updateSelectedColumns}
+          />
+        )}
+
         <div style={{ padding: theme.sizeUnit * 4 }}>
           <Input
             allowClear
@@ -306,13 +346,27 @@ export default function DataSourcePanel({
                 width={width - BORDER_WIDTH}
                 height={height}
                 folders={folders}
+                columnRelationshipMap={columnRelationshipMap}
+                activeJoins={activeJoins}
+                onToggleJoin={toggleJoin}
               />
             )}
           </AutoSizer>
         </div>
       </>
     ),
-    [inputValue, datasourceIsSaveable, width, folders],
+    [
+      inputValue,
+      datasourceIsSaveable,
+      width,
+      folders,
+      relationshipsEnabled,
+      relationships,
+      activeJoins,
+      availableTargetColumns,
+      toggleJoin,
+      updateSelectedColumns,
+    ],
   );
 
   return (

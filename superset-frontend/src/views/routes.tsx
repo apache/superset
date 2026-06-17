@@ -93,6 +93,13 @@ const DatasetCreation = lazy(
     ),
 );
 
+const DatasetRelationshipsPage = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DatasetRelationships" */ 'src/pages/DatasetRelationshipsPage'
+    ),
+);
+
 const ExecutionLogList = lazy(
   () =>
     import(
@@ -306,6 +313,10 @@ export const routes: Routes = [
     Component: DatasetCreation,
   },
   {
+    path: '/superset/dataset/relationships/',
+    Component: DatasetRelationshipsPage,
+  },
+  {
     path: '/dataset/:datasetId',
     Component: DatasetCreation,
   },
@@ -342,6 +353,8 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
     Component: Tags,
   });
 }
+
+// DatasetRelationships route moved into main routes array before /dataset/:datasetId
 
 const user = getBootstrapData()?.user;
 const authRegistrationEnabled =

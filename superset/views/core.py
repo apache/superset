@@ -864,11 +864,12 @@ class Superset(BaseSupersetView):
         )
         if url_params := state.get("urlParams"):
             for param_key, param_val in url_params:
-                # URL-encode every param value (including native_filters) so a
-                # value containing '&'/'#'/'=' cannot inject extra parameters
-                # into the redirect target. Flask decodes the value back on read.
-                params = parse.urlencode([(param_key, param_val)])
-                url = f"{url}&{params}"
+                if param_key == "native_filters":
+                    # native_filters doesnt need to be encoded here
+                    url = f"{url}&native_filters={param_val}"
+                else:
+                    params = parse.urlencode([(param_key, param_val)])
+                    url = f"{url}&{params}"
         if original_params := request.query_string.decode():
             url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
@@ -953,6 +954,20 @@ class Superset(BaseSupersetView):
     @expose("/file-handler")
     def file_handler(self) -> FlaskResponse:
         """File handler page for PWA file handling"""
+        if not g.user or not get_user_id():
+            return redirect_to_login()
+
+        payload = {
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "common": common_bootstrap_payload(),
+        }
+
+        return self.render_app_template(extra_bootstrap_data=payload)
+
+    @expose("/dataset/relationships/")
+    @event_logger.log_this
+    def dataset_relationships(self) -> FlaskResponse:
+        """Dataset Relationships management page"""
         if not g.user or not get_user_id():
             return redirect_to_login()
 

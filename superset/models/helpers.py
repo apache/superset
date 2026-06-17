@@ -25,14 +25,12 @@ import dataclasses
 import logging
 import re
 import uuid
-from collections.abc import Hashable, Iterator
-from contextlib import contextmanager
+from collections.abc import Hashable
 from datetime import datetime, timedelta
 from typing import (
     Any,
     Callable,
     cast,
-    ClassVar,
     NamedTuple,
     Optional,
     TYPE_CHECKING,
@@ -59,9 +57,7 @@ from pandas import DateOffset
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapper, Session, validates, with_loader_criteria
-from sqlalchemy.orm.session import ORMExecuteState
+from sqlalchemy.orm import Mapper, validates
 from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -75,13 +71,7 @@ from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
 )
-from superset.constants import (
-    CacheRegion,
-    EMPTY_STRING,
-    NULL_STRING,
-    SKIP_VISIBILITY_FILTER_CLASSES,
-    TimeGrain,
-)
+from superset.constants import CacheRegion, EMPTY_STRING, NULL_STRING, TimeGrain
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -90,8 +80,6 @@ from superset.exceptions import (
     InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
-    SupersetDisallowedSQLFunctionException,
-    SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
     SupersetSecurityException,
@@ -622,7 +610,7 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("changed_on")
     def changed_on_(self) -> Markup:
-        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')  # noqa: S704
+        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')
 
     @renders("changed_on")
     def changed_on_delta_humanized(self) -> str:
@@ -666,253 +654,7 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("changed_on")
     def modified(self) -> Markup:
-        return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')  # noqa: S704
-
-
-# Shared sentinel for "no bypass requested" — returned by
-# ``_collect_bypass_classes`` on the common path so every primary SELECT
-# does not allocate a fresh empty set. ``frozenset`` so accidental
-# mutation by a caller is a TypeError, not silent corruption.
-_NO_BYPASS: frozenset[type] = frozenset()
-
-
-class SoftDeleteMixin:
-    """Mixin that adds soft-delete support to a SQLAlchemy model.
-
-    Adds a nullable ``deleted_at`` column. When set, the row is treated as
-    deleted and excluded from standard ORM queries via a global
-    ``do_orm_execute`` listener registered at app init.
-
-    Delete commands route through ``BaseDAO.delete()``, which detects
-    the mixin and calls ``soft_delete()`` to mark the row as deleted
-    (without removing it). ``BaseDAO.hard_delete()`` is the permanent
-    hard-deletion path; it bypasses the mixin and calls
-    ``session.delete()`` directly.
-
-    The listener can be bypassed per-entity, either for one statement (via
-    ``execution_options``) or for a session-scoped block (via
-    ``session.info`` / the ``skip_visibility_filter`` context manager).
-    See ``_add_soft_delete_filter`` for the precise semantics.
-
-    Subclass registry: every concrete subclass registers itself in
-    ``_registered_subclasses`` via ``__init_subclass__``. The listener
-    iterates this cached list rather than walking ``__subclasses__()``
-    on every primary SELECT — important because the listener fires on
-    every ORM query in the app, and the walk grows with each adopted
-    entity.
-    """
-
-    _registered_subclasses: ClassVar[list[type[SoftDeleteMixin]]] = []
-
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        super().__init_subclass__(**kwargs)
-        # Cache the subclass once, sorted by qualname so the listener's
-        # ``with_loader_criteria`` options attach in a deterministic
-        # order across processes (stable compiled-statement cache key).
-        if cls in SoftDeleteMixin._registered_subclasses:
-            return
-        SoftDeleteMixin._registered_subclasses.append(cls)
-        SoftDeleteMixin._registered_subclasses.sort(key=lambda c: c.__qualname__)
-
-    deleted_at = sa.Column(sa.DateTime, nullable=True, index=True)
-
-    @hybrid_property
-    def is_deleted(self) -> bool:
-        return self.deleted_at is not None
-
-    @is_deleted.expression  # type: ignore
-    def is_deleted(cls) -> ColumnElement:  # noqa: N805
-        return cls.deleted_at.is_not(None)
-
-    @classmethod
-    def where_not_deleted(cls) -> ColumnElement:
-        """Return a SQL WHERE clause that excludes soft-deleted rows.
-
-        Returns a ``ColumnElement`` (a SQL expression), not a Python bool —
-        use this in a query's ``.filter(...)`` call. The name reflects the
-        intent ("WHERE NOT deleted") rather than reading like a predicate.
-        """
-        return cls.deleted_at.is_(None)
-
-    def soft_delete(self) -> None:
-        """Mark this object as soft-deleted."""
-        # Naive datetime, mirroring AuditMixinNullable.changed_on. PR #33693
-        # reverted a UTC migration on the audit columns; if/when those move
-        # to UTC-aware, this assignment should follow.
-        self.deleted_at = datetime.now()
-
-    def restore(self) -> None:
-        """Clear the soft-delete marker, making this object active again."""
-        self.deleted_at = None
-
-
-def _collect_bypass_classes(execute_state: ORMExecuteState) -> frozenset[type]:
-    """Union of bypass class sets from per-query and per-session sources.
-
-    Per-query: ``execution_options[SKIP_VISIBILITY_FILTER_CLASSES]`` — set
-    by ``BaseDAO.find_by_id(skip_visibility_filter=True)``,
-    ``find_existing_for_import``, ``raise_for_ownership``, etc., for
-    narrow one-statement bypass.
-
-    Per-session: ``session.info[SKIP_VISIBILITY_FILTER_CLASSES]`` — set by
-    ``BaseDeletedStateFilter.apply`` and the ``skip_visibility_filter``
-    context manager, for request-scoped bypass across multiple queries
-    issued on the same session (e.g., FAB list endpoints that build a
-    count query plus an inner+outer pair, where per-query options are
-    stripped between count and outer fetch).
-
-    Returns the shared empty ``_NO_BYPASS`` sentinel when neither source
-    has a bypass set — the common case for every ORM SELECT in the app —
-    so the listener's hot path does not allocate per-call empty sets.
-    """
-    per_query = execute_state.execution_options.get(SKIP_VISIBILITY_FILTER_CLASSES)
-    per_session = execute_state.session.info.get(SKIP_VISIBILITY_FILTER_CLASSES)
-    if not per_query and not per_session:
-        return _NO_BYPASS
-    return frozenset(per_query or ()) | frozenset(per_session or ())
-
-
-def _should_attach_soft_delete_criteria(execute_state: ORMExecuteState) -> bool:
-    """The event classes where the listener attaches loader criteria.
-
-    Column loads are excluded: they re-execute against already-loaded
-    parents to refresh specific attribute values; the soft-delete
-    criteria isn't meaningful at that level and would add noise.
-
-    Relationship loads ARE included. The Bayer canonical pattern
-    excludes them on the assumption that
-    ``with_loader_criteria(..., propagate_to_loaders=True)`` carries
-    the criteria from the parent statement to its relationship loads
-    automatically. In practice this propagation isn't reliable when
-    the criteria targets a class that doesn't appear in the parent
-    statement (e.g., loading a ``Dashboard`` whose listener-attached
-    criteria targets ``Slice`` — Slice never appears in the parent
-    query, and the criteria doesn't always reach the
-    ``dashboard.slices`` lazy load). Re-attaching on the
-    relationship-load event closes that gap. The resulting WHERE
-    clause may have ``deleted_at IS NULL`` twice when propagation
-    DOES work — harmless redundancy, idempotent SQL.
-    """
-    return execute_state.is_select and not execute_state.is_column_load
-
-
-def _all_soft_delete_subclasses() -> list[type[SoftDeleteMixin]]:
-    """The cached subclass registry maintained by
-    ``SoftDeleteMixin.__init_subclass__``. Returned in a stable
-    qualname-sorted order so SQLAlchemy's compiled-statement cache key
-    is deterministic across processes.
-
-    Assumes all soft-deletable models have been imported by the time
-    the listener fires. Superset imports models eagerly at app init via
-    ``superset.models``; if that ever changes to lazy import, the
-    listener would silently stop filtering un-imported classes — but
-    since registration happens at class-definition time, the cache is
-    automatically updated as new subclasses are introduced (including
-    test-defined synthetic subclasses).
-    """
-    return SoftDeleteMixin._registered_subclasses
-
-
-def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
-    """Global ``do_orm_execute`` listener that automatically excludes
-    soft-deleted rows from every ORM SELECT.
-
-    Uses SQLAlchemy's recommended soft-delete pattern
-    (``do_orm_execute`` + ``with_loader_criteria`` — see
-    https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295).
-
-    Skips relationship and column loader paths: those propagate the
-    criteria from the parent statement via
-    ``with_loader_criteria(..., propagate_to_loaders=True)`` (the default)
-    rather than re-attaching it here, which would stack redundant
-    ``deleted_at IS NULL`` clauses.
-
-    Per-class scoping: the listener iterates concrete ``SoftDeleteMixin``
-    subclasses and attaches a ``with_loader_criteria`` only for those
-    NOT in the request's bypass set. A bypass for ``Dashboard`` therefore
-    does not unhide soft-deleted ``Slice`` or ``SqlaTable`` rows in the
-    same statement. Each criteria is a concrete SQL expression rather
-    than a callable, so SQLAlchemy compiles it normally (passing a
-    callable triggers ``DeferredLambdaElement`` parsing, which does not
-    support Python control flow like ``if cls in bypass``).
-
-    Opt-out:
-
-    * **One statement**: attach
-      ``execution_options(_skip_visibility_filter_classes={Model})`` to a
-      Query, or pass ``skip_visibility_filter=True`` to ``BaseDAO``
-      methods (which translate the boolean into a one-class set
-      internally).
-    * **Session-scoped**: set
-      ``session.info[SKIP_VISIBILITY_FILTER_CLASSES] = {Model, ...}`` or
-      use the ``skip_visibility_filter`` context manager. Survives FAB's
-      inner/outer query reconstruction (and any future framework that
-      strips per-query options).
-
-    Performance: the listener attaches one ``with_loader_criteria``
-    option per non-bypassed ``SoftDeleteMixin`` subclass to every
-    primary SELECT, including queries that don't reference any
-    soft-deletable entity. SQLAlchemy no-ops the criteria when the
-    targeted class isn't in the statement, so the cost is small per
-    query, but linear in the number of soft-delete classes. At ~10
-    entities this is still negligible on typical endpoints; profile
-    before adding many more.
-    """
-    if not _should_attach_soft_delete_criteria(execute_state):
-        return
-
-    bypass_classes = _collect_bypass_classes(execute_state)
-
-    for cls in _all_soft_delete_subclasses():
-        if cls in bypass_classes:
-            continue
-        # Pass the criteria as a lambda — SQLAlchemy adapts the column
-        # reference to whatever alias the class wears at each occurrence
-        # in the statement (critical for FAB's outer/inner reconstruction
-        # and any other code that aliases the same model under different
-        # names). A concrete SQL expression — ``cls.where_not_deleted()``
-        # — would render as the raw ``slices.deleted_at`` even when the
-        # statement actually aliases ``slices AS chart``, producing
-        # ``Unknown column 'slices.deleted_at' in 'on clause'``. The
-        # lambda's body is trivial so the ``DeferredLambdaElement``
-        # parser handles it without issue; complex control flow inside
-        # the lambda is what trips the parser, not simple attribute
-        # access.
-        execute_state.statement = execute_state.statement.options(
-            with_loader_criteria(
-                cls,
-                lambda c: c.deleted_at.is_(None),
-                include_aliases=True,
-            )
-        )
-
-
-@contextmanager
-def skip_visibility_filter(session: Session, *classes: type) -> Iterator[None]:
-    """Bypass the soft-delete listener for the given classes within this
-    session for the duration of the ``with`` block.
-
-    Adds ``classes`` to ``session.info[SKIP_VISIBILITY_FILTER_CLASSES]``
-    on entry and removes them on exit, restoring the prior state. Nesting
-    is safe: an inner block only removes the classes *it* added, so the
-    outer block's bypass remains in effect.
-
-    Usage::
-
-        with skip_visibility_filter(session, Dashboard):
-            return session.query(Dashboard).filter_by(uuid=u).first()
-
-    Prefer this over manually setting ``session.info`` so the cleanup is
-    guaranteed even on exceptions. Calling with no classes is a no-op
-    (the block runs with no bypass added).
-    """
-    bypass = session.info.setdefault(SKIP_VISIBILITY_FILTER_CLASSES, set())
-    added = set(classes) - bypass
-    bypass.update(added)
-    try:
-        yield
-    finally:
-        bypass -= added
+        return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')
 
 
 class QueryResult:  # pylint: disable=too-few-public-methods
@@ -1194,51 +936,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 expression = sanitize_clause(expression, engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
-            # Adhoc expressions are user-controlled SQL that ends up inside a
-            # `literal_column(...)`. Apply the operator-configured
-            # `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` gates at the
-            # validation step so a dangerous function call (e.g. `version()`,
-            # `pg_read_file(...)`, `query_to_xml(...)`) is rejected before the
-            # expression is incorporated into the final SQL. This complements
-            # the same gate applied at query-execution time and gives the
-            # adhoc-expression path defense in depth.
-            disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
-                engine, set()
-            )
-            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
-            if disallowed_functions or disallowed_tables:
-                # `_process_select_expression` (and siblings) pre-wraps the
-                # input with `SELECT ...`; other callers pass bare
-                # expressions. Detect and don't double-wrap, otherwise
-                # `SELECT SELECT ...` fails the sqlglot parse.
-                sql_to_check = (
-                    expression
-                    if expression.strip().upper().startswith("SELECT")
-                    else f"SELECT {expression}"
-                )
-                parsed = SQLScript(sql_to_check, engine=engine)
-                if disallowed_functions and parsed.check_functions_present(
-                    disallowed_functions
-                ):
-                    raise SupersetDisallowedSQLFunctionException(disallowed_functions)
-                if disallowed_tables and parsed.check_tables_present(disallowed_tables):
-                    # Report only the tables actually found in the expression,
-                    # mirroring the canonical execution-time gate in
-                    # `superset.sql_lab._validate_query` so the user-facing
-                    # error doesn't echo the operator's full denylist.
-                    present_tables = {
-                        table.table.lower()
-                        for statement in parsed.statements
-                        for table in statement.tables
-                    }
-                    found_tables = {
-                        table
-                        for table in disallowed_tables
-                        if table.lower() in present_tables
-                    }
-                    raise SupersetDisallowedSQLTableException(
-                        found_tables or disallowed_tables
-                    )
         return expression
 
     def _process_select_expression(
@@ -1449,36 +1146,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
 
-    def _raise_for_disallowed_sql(self, sql: str) -> None:
-        """
-        Mirror the DISALLOWED_SQL_* gate that sql_lab.execute_sql_statement
-        enforces so both query surfaces honour the same denylist.
-        """
-        engine = self.db_engine_spec.engine
-        disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(engine, set())
-        disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
-        if not (disallowed_functions or disallowed_tables):
-            return
-
-        parsed_script = SQLScript(sql, engine=engine)
-        if disallowed_functions and parsed_script.check_functions_present(
-            disallowed_functions
-        ):
-            raise SupersetDisallowedSQLFunctionException(disallowed_functions)
-        if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
-            # Report only the tables actually found in the query, mirroring the
-            # canonical execution-time gate so the user-facing error doesn't
-            # echo the operator's full denylist.
-            present_tables = {
-                table.table.lower()
-                for statement in parsed_script.statements
-                for table in statement.tables
-            }
-            found_tables = {
-                table for table in disallowed_tables if table.lower() in present_tables
-            }
-            raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
-
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         """
         Executes the query and returns a dataframe.
@@ -1489,9 +1156,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
-
-        self._raise_for_disallowed_sql(sql)
-
         status = QueryStatus.SUCCESS
         errors = None
         error_message = None
@@ -1645,9 +1309,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         This method handles:
         1. Query execution via self.query()
-        2. DataFrame normalization
-        3. Time offset processing (if applicable)
-        4. Post-processing operations
+        2. Cross-database relationship merges (when DATASET_RELATIONSHIPS enabled)
+        3. DataFrame normalization
+        4. Time offset processing (if applicable)
+        5. Post-processing operations
 
         :param query_object: The query configuration
         :return: QueryResult with processed dataframe
@@ -1655,6 +1320,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # Execute the base query
         result = self.query(query_object.to_dict())
         query = result.query + ";\n\n" if result.query else ""
+
+        # -- Dataset Relationship Engine: cross-database merges ------------
+        result = self._maybe_apply_cross_db_merges(result)
 
         # Process the dataframe if not empty
         df = result.df
@@ -1685,6 +1353,187 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         result.query = query
         result.from_dttm = query_object.from_dttm
         result.to_dttm = query_object.to_dttm
+
+        return result
+
+    # ------------------------------------------------------------------
+    # Dataset Relationship Engine helpers
+    # ------------------------------------------------------------------
+
+    def _maybe_inject_relationship_joins(
+        self,
+        tbl: Any,
+    ) -> Any:
+        """Inject same-database JOIN clauses into the FROM selectable.
+
+        This method is called inside ``get_sqla_query()`` just before the
+        query's ``select_from()`` call.  If the ``DATASET_RELATIONSHIPS``
+        feature flag is disabled or no active same-db relationships exist
+        for the current dataset, the original *tbl* is returned unchanged.
+
+        :param tbl: The current SQLAlchemy selectable (table/alias).
+        :return: Either the original *tbl* or a ``Join`` object.
+        """
+        if not is_feature_enabled("DATASET_RELATIONSHIPS"):
+            return tbl
+
+        dataset_id = getattr(self, "id", None)
+        if dataset_id is None:
+            return tbl
+
+        try:
+            from superset.common.relationship_query_injector import (
+                RelationshipQueryInjector,
+            )
+
+            injector = RelationshipQueryInjector()
+            relationships = injector.get_active_relationships(dataset_id)
+            same_db = injector.get_same_db_relationships(relationships)
+
+            if not same_db:
+                return tbl
+
+            logger.info(
+                "Injecting %d same-database JOIN(s) for dataset %d",
+                len(same_db),
+                dataset_id,
+            )
+            joined_query = injector.inject_joins(
+                sqla_query=sa.select(sa.text("*")),
+                source_table=tbl,
+                relationships=same_db,
+            )
+            # Extract the Join object from the wrapper Select
+            return joined_query.froms[0] if joined_query.froms else tbl
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "Failed to inject relationship JOINs for dataset %d; "
+                "falling back to original query.",
+                dataset_id,
+            )
+            return tbl
+
+    def _maybe_apply_cross_db_merges(
+        self,
+        result: "QueryResult",
+    ) -> "QueryResult":
+        """Merge cross-database related datasets into the result DataFrame.
+
+        This method is called inside ``get_query_result()`` right after the
+        base query has been executed.  If the ``DATASET_RELATIONSHIPS``
+        feature flag is disabled, or no active cross-database relationships
+        exist, the original *result* is returned unchanged.
+
+        :param result: The ``QueryResult`` from the base query.
+        :return: Potentially augmented ``QueryResult``.
+        """
+        if not is_feature_enabled("DATASET_RELATIONSHIPS"):
+            return result
+
+        dataset_id = getattr(self, "id", None)
+        if dataset_id is None or result.df.empty:
+            return result
+
+        try:
+            from superset.common.cross_database_merger import CrossDatabaseMerger
+            from superset.common.relationship_query_injector import (
+                RelationshipQueryInjector,
+            )
+
+            injector = RelationshipQueryInjector()
+            relationships = injector.get_active_relationships(dataset_id)
+            cross_db = injector.get_cross_db_relationships(relationships)
+
+            if not cross_db:
+                return result
+
+            max_rows = int(
+                app.config.get("RELATIONSHIP_MAX_MERGE_ROWS", 100_000)
+            )
+            timeout = int(
+                app.config.get("RELATIONSHIP_QUERY_TIMEOUT", 30)
+            )
+            merger = CrossDatabaseMerger(
+                max_rows=max_rows,
+                timeout_seconds=timeout,
+            )
+
+            merged_df = result.df
+            extra_queries: list[str] = []
+
+            for rel in cross_db:
+                target_ds = rel.target_dataset
+                if target_ds is None:
+                    logger.warning(
+                        "Cross-db relationship %d has no target dataset; skipping.",
+                        rel.id,
+                    )
+                    continue
+
+                # Execute query on the target database
+                # Only select columns needed for the merge (join columns)
+                # to avoid pulling unnecessary data from large tables.
+                target_columns = list(
+                    {col.target_column_name for col in rel.columns}
+                )
+                cols_expr = ', '.join(
+                    target_ds.database.db_engine_spec.quote_identifier(c)
+                    for c in target_columns
+                )
+                quoted_table = target_ds.database.db_engine_spec.quote_identifier(
+                    target_ds.table_name
+                )
+                try:
+                    target_df = target_ds.database.get_df(
+                        f"SELECT {cols_expr} FROM {quoted_table}",
+                        target_ds.catalog,
+                        target_ds.schema,
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    logger.exception(
+                        "Failed to query target dataset %d for cross-db "
+                        "relationship %d; skipping.",
+                        target_ds.id,
+                        rel.id,
+                    )
+                    continue
+
+                column_pairs = [
+                    (col.source_column_name, col.target_column_name)
+                    for col in rel.columns
+                ]
+
+                merge_result = merger.merge_dataframes(
+                    source_df=merged_df,
+                    target_df=target_df,
+                    column_pairs=column_pairs,
+                    join_type=rel.join_type,
+                    source_prefix=getattr(self, "table_name", "source"),
+                    target_prefix=target_ds.table_name,
+                )
+                merged_df = merge_result.df
+                extra_queries.append(
+                    f"-- Cross-database merge with '{target_ds.table_name}' "
+                    f"({rel.join_type} JOIN on {column_pairs})"
+                )
+
+                logger.info(
+                    "Cross-database merge applied: relationship %d, "
+                    "result %d rows",
+                    rel.id,
+                    len(merged_df),
+                )
+
+            result.df = merged_df
+            if extra_queries:
+                result.query = (result.query or "") + "\n".join(extra_queries)
+
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "Failed to apply cross-database merges for dataset %d; "
+                "returning original result.",
+                dataset_id,
+            )
 
         return result
 
@@ -1867,12 +1716,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # If it IS a datetime series, we still need to clear conflicts
                     query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
 
-                    # Match against the column of the existing TEMPORAL_RANGE
-                    # filter rather than the X-axis label so adhoc Custom SQL
-                    # x-axes (label != underlying time column) still get shifted.
-                    temporal_col = self._get_temporal_column_for_filter(
-                        query_object, x_axis_label
-                    )
+                    # For relative offsets with datetime series, ensure the temporal
+                    # filter matches our range
+                    temporal_col = query_object_clone.granularity or x_axis_label
 
                     # Update any existing temporal filters to match our shifted range
                     for flt in query_object_clone.filter:
@@ -2289,7 +2135,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: str,
         time_offset: str | None = None,
     ) -> str:
-        value = row.iloc[column_index]
+        value = row[column_index]
 
         if hasattr(value, "strftime"):
             if time_offset and not ExploreMixin.is_valid_date_range_static(time_offset):
@@ -2399,17 +2245,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             default_schema = self.database.get_default_schema(self.catalog)
             try:
                 rls_applied = False
-                # ``id`` lives on concrete subclasses (e.g. SqlaTable), not on
-                # ExploreMixin itself. getattr keeps this safe for non-dataset
-                # subclasses (e.g. SQL Lab Query), which have no RLS to dedupe.
-                self_id = getattr(self, "id", None)
                 for statement in parsed_script.statements:
                     if apply_rls(
                         self.database,
                         self.catalog,
                         self.schema or default_schema or "",
                         statement,
-                        exclude_dataset_id=self_id,
                     ):
                         rls_applied = True
 
@@ -2982,9 +2823,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Column:
         label = label or tbl_column.column_name
         db_engine_spec = self.db_engine_spec
-        column_spec = db_engine_spec.get_column_spec(
-            tbl_column.type, db_extra=self.db_extra
-        )
+        column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else None
         if expression := tbl_column.expression:
             if template_processor:
@@ -3138,10 +2977,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for orig_col, ascending in orderby:  # noqa: B007
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
-                # process a copy, as the dict is shared with `QueryObject.orderby`
-                # and `QueryContext.cache_values`; writing the processed expression
-                # back would change the cache key of a rehydrated query context
-                col = cast(AdhocMetric, dict(col))
+                col = cast(AdhocMetric, col)
                 if col.get("sqlExpression"):
                     col["sqlExpression"] = self._process_orderby_expression(
                         expression=col["sqlExpression"],
@@ -3841,6 +3677,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 else:
                     # Original behavior: filter to only top groups
                     qry = qry.where(top_groups)
+
+        # -- Dataset Relationship Engine: inject same-database JOINs ------
+        tbl = self._maybe_inject_relationship_joins(tbl)
 
         qry = qry.select_from(tbl)
 

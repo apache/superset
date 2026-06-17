@@ -97,6 +97,37 @@ export interface Dataset {
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
   extra?: object | string;
+  relationships?: DatasetRelationship[];
+}
+
+/**
+ * Relationship between two datasets.
+ * Mirrors the backend DatasetRelationship schema.
+ */
+export interface DatasetRelationship {
+  id: number;
+  uuid: string;
+  source_dataset_id: number;
+  target_dataset_id: number;
+  relationship_type: 'one_to_one' | 'one_to_many' | 'many_to_one' | 'many_to_many';
+  join_type: 'INNER' | 'LEFT' | 'RIGHT' | 'FULL';
+  is_cross_database: boolean;
+  is_active: boolean;
+  name: string | null;
+  description: string | null;
+  columns: RelationshipColumn[];
+  created_on?: string;
+  changed_on?: string;
+  created_by_fk?: number;
+  changed_by_fk?: number;
+}
+
+export interface RelationshipColumn {
+  id?: number;
+  source_column_name: string;
+  target_column_name: string;
+  operator: '=' | '!=' | '>' | '<' | '>=' | '<=';
+  ordinal: number;
 }
 
 export interface ControlPanelState {
@@ -204,14 +235,8 @@ export type TabOverride = 'data' | 'customize' | 'matrixify' | boolean;
  * these configs will be passed to the UI component for control as props.
  *
  * - type: the control type, referencing a React component of the same name
- * - label: the label as shown in the control's header. When the value involves
- *   `t()`/`tn()`, prefer the arrow-function form (`label: () => t('Foo')`) so
- *   the lookup runs at render time rather than at module load — eager
- *   `label: t('Foo')` captures the fallback language before i18n initializes
- *   and does not update on runtime language change. The
- *   `i18n-strings/no-eager-t-in-config` lint rule autofixes this.
- * - description: shown in the info tooltip of the control's header. Same
- *   lazy-form guidance as `label`.
+ * - label: the label as shown in the control's header
+ * - description: shown in the info tooltip of the control's header
  * - default: the default value when opening a new chart, or changing visualization type
  * - renderTrigger: a bool that defines whether the visualization should be re-rendered
  *    when changed. This should `true` for controls that only affect the rendering (client side)
