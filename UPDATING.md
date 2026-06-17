@@ -28,6 +28,16 @@ assists people when migrating to a new version.
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
 
+### `thumbnail_url` removed from dashboard list API response
+
+The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list responses. External consumers relying on this field must now construct the thumbnail URL client-side using `id` and `changed_on_utc`:
+
+```
+/api/v1/dashboard/{id}/thumbnail/{changed_on_utc}/
+```
+
+The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
+
 ### Webhook alerts/reports block private/internal hosts by default
 
 Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
