@@ -265,7 +265,7 @@
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@playwright/test": "^1.60.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
-    "@storybook/addon-docs": "10.4.2",
+    "@storybook/addon-docs": "10.4.3",
     "@storybook/addon-links": "10.4.2",
     "@storybook/react-webpack5": "10.4.2",
     "@storybook/test-runner": "0.24.4",
