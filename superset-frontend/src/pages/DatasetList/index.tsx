@@ -22,6 +22,7 @@ import {
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
+  normalizeBackendUrlString,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
@@ -72,6 +73,7 @@ import type { SelectOption } from 'src/components/ListView/types';
 import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -673,10 +675,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             },
           },
         }: CellProps<Dataset>) => {
+          // `explore_url` arrives router-relative from the backend (already
+          // carrying the application root under a subdirectory deployment).
+          // react-router's <Link>/<GenericLink> resolve `to` against the
+          // Router basename, which re-prefixes the root — so strip it here to
+          // avoid a doubled `/superset/superset/...`. External
+          // `default_endpoint` URLs pass through unchanged.
+          const exploreTo = normalizeBackendUrlString(exploreURL, {
+            applicationRoot: applicationRoot(),
+          });
           let titleLink: JSX.Element;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
             titleLink = (
-              <Link data-test="internal-link" to={exploreURL}>
+              <Link data-test="internal-link" to={exploreTo}>
                 {datasetTitle}
               </Link>
             );
@@ -684,7 +695,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             titleLink = (
               // exploreUrl can be a link to Explore or an external link
               // in the first case use SPA routing, else use HTML anchor
-              <GenericLink to={exploreURL}>{datasetTitle}</GenericLink>
+              <GenericLink to={exploreTo}>{datasetTitle}</GenericLink>
             );
           }
           try {

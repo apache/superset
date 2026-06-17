@@ -72,12 +72,12 @@ describe('SupersetClient applies the application root exactly once', () => {
     );
   });
 
-  // AF-5 reconciliation (2026-06-01): single-pass strip preserves a
-  // legitimate `/superset/superset/<slug>` route. Under the Slice-7
-  // invariant the inbound normaliser at `request()` strips any double
-  // prefix in backend payloads before it reaches `getUrl`, so a doubled
-  // leading segment that reaches this point is a real route, not a bug.
-  // This pin guards against silent regression to the prior greedy strip.
+  // Single-pass strip preserves a legitimate `/superset/superset/<slug>`
+  // route. Backend-supplied router-relative URLs are stripped of the root at
+  // the call sites that surface them (via `normalizeBackendUrlString`) before
+  // any re-prefixing helper sees them, so a doubled leading segment reaching
+  // `getUrl` is a real route, not a double-prefix bug. This pin guards against
+  // silent regression to a greedy strip.
   test('strips exactly one application-root segment (single-pass)', () => {
     expect(
       buildClient().getUrl({ endpoint: '/superset/superset/api/v1/chart' }),

@@ -21,13 +21,7 @@ export { default as callApi } from './callApi';
 export { default as SupersetClient } from './SupersetClient';
 export { default as SupersetClientClass } from './SupersetClientClass';
 
-export {
-  NORMALIZED_URL_FIELDS,
-  NORMALIZER_EXCLUSIONS,
-  NORMALIZE_MAX_DEPTH,
-  normalizeBackendUrlString,
-  normalizeBackendUrls,
-} from './normalizeBackendUrls';
+export { normalizeBackendUrlString } from './normalizeBackendUrls';
 export type { NormalizeOptions } from './normalizeBackendUrls';
 
 export * from './types';

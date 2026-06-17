@@ -20,7 +20,6 @@ import _JSONbig from 'json-bigint';
 import { cloneDeepWith } from 'lodash';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
-import { normalizeBackendUrls } from '../normalizeBackendUrls';
 
 const JSONbig = _JSONbig({
   constructorAction: 'preserve',
@@ -29,7 +28,6 @@ const JSONbig = _JSONbig({
 export default async function parseResponse<T extends ParseMethod = 'json'>(
   apiPromise: Promise<Response>,
   parseMethod?: T,
-  appRoot?: string,
 ) {
   type ReturnType = T extends 'raw' | null
     ? Response
@@ -75,9 +73,7 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
     });
     const result: JsonResponse = {
       response,
-      json: appRoot
-        ? normalizeBackendUrls(decoded, { applicationRoot: appRoot })
-        : decoded,
+      json: decoded,
     };
     return result as ReturnType;
   }
@@ -85,9 +81,7 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
   if (parseMethod === undefined || parseMethod === 'json') {
     const json = await response.json();
     const result: JsonResponse = {
-      json: appRoot
-        ? normalizeBackendUrls(json, { applicationRoot: appRoot })
-        : json,
+      json,
       response,
     };
     return result as ReturnType;

@@ -212,14 +212,6 @@ export default class SupersetClientClass {
       headers: { ...this.headers, ...headers },
       timeout: timeout ?? this.timeout,
       fetchRetryOptions: fetchRetryOptions ?? this.fetchRetryOptions,
-      // Inbound normalisation seam (Slice 7, 2026-06-01): strip the configured
-      // application root from router-relative URL fields in JSON responses so
-      // outbound helpers (SupersetClient.getUrl, makeUrl, react-router
-      // basename) don't re-prefix them into `/superset/superset/...`.
-      // `@superset-ui/core` cannot import the app's `applicationRoot()`, so we
-      // thread `this.appRoot` through `callApiAndParseWithTimeout` →
-      // `parseResponse` here. Both `json` and `json-bigint` paths are covered.
-      appRoot: this.appRoot,
     }).catch(res => {
       if (res?.status === 401 && !ignoreUnauthorized) {
         this.handleUnauthorized();

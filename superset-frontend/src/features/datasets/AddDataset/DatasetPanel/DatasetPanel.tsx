@@ -26,7 +26,9 @@ import Table, {
   TableSize,
 } from '@superset-ui/core/components/Table';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
+import { normalizeBackendUrlString } from '@superset-ui/core';
 import { openInNewTab } from 'src/utils/navigationUtils';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
 
@@ -229,7 +231,14 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
           role="button"
           onClick={() => {
             if (dataset?.explore_url) {
-              openInNewTab(dataset.explore_url);
+              // `explore_url` is router-relative from the backend (rooted under
+              // a subdirectory deployment); strip the root so openInNewTab's
+              // ensureAppRoot re-prefixes it once rather than doubling it.
+              openInNewTab(
+                normalizeBackendUrlString(dataset.explore_url, {
+                  applicationRoot: applicationRoot(),
+                }),
+              );
             }
           }}
           tabIndex={0}
