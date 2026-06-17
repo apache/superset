@@ -334,7 +334,7 @@ class TestCore(SupersetTestCase):
         assert "Charts" in self.get_resp("/chart/list/")
         assert "Dashboards" in self.get_resp("/dashboard/list/")
 
-    def test_security_fab_views_have_valid_list_template(self):
+    def test_security_fab_views_have_valid_list_template(self) -> None:
         # Regression test for #36130: the FAB permission views pointed at a custom
         # list template (superset/fab_overrides/list.html) that was deleted during a
         # cleanup, so they 500'd with TemplateNotFound. Ensure each view's list
