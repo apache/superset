@@ -256,7 +256,7 @@ def test_file_content_omits_roles_field_when_dashboard_has_no_roles():
     assert "roles" not in result
 
 
-def test_position_json_chart_id_leaks_env_local_integers():
+def test_position_json_chart_id_leaks_env_local_integers() -> None:
     """
     Regression for #32972: dashboard export must produce stable output that does
     not vary with env-local integer chartIds.
@@ -476,7 +476,7 @@ def _export_with_chart(
     return yaml.safe_load(content)
 
 
-def test_stabilize_chart_ids_skips_invalid_uuid():
+def test_stabilize_chart_ids_skips_invalid_uuid() -> None:
     """A malformed meta.uuid must not abort the whole dashboard export."""
     result = _export_with_chart(
         "not-a-valid-uuid",
@@ -493,7 +493,7 @@ def test_stabilize_chart_ids_skips_invalid_uuid():
     assert chart_nodes[0]["meta"]["chartId"] == 392
 
 
-def test_stabilize_chart_ids_remaps_native_filter_scope():
+def test_stabilize_chart_ids_remaps_native_filter_scope() -> None:
     """Native filter scope.excluded / chartsInScope must track the stabilized id."""
     from superset.commands.dashboard.export import stable_chart_id
 
@@ -519,7 +519,7 @@ def test_stabilize_chart_ids_remaps_native_filter_scope():
     assert native_filter["chartsInScope"] == [new_id]
 
 
-def test_stabilize_chart_ids_remaps_cross_filter_configuration():
+def test_stabilize_chart_ids_remaps_cross_filter_configuration() -> None:
     """global_chart_configuration and chart_configuration must be remapped."""
     from superset.commands.dashboard.export import stable_chart_id
 
@@ -559,7 +559,7 @@ def test_stabilize_chart_ids_remaps_cross_filter_configuration():
     assert chart_config["crossFilters"]["chartsInScope"] == [new_id]
 
 
-def test_stable_chart_id_is_deterministic_and_in_range():
+def test_stable_chart_id_is_deterministic_and_in_range() -> None:
     """
     stable_chart_id must derive a stable, environment-independent integer from a
     chart UUID. The same UUID always yields the same id, and the id stays within
@@ -586,7 +586,7 @@ def test_stable_chart_id_is_deterministic_and_in_range():
         assert 1 <= derived <= _STABLE_CHART_ID_MODULO
 
 
-def test_stabilize_chart_ids_remaps_default_filters():
+def test_stabilize_chart_ids_remaps_default_filters() -> None:
     """
     default_filters is a JSON *string* keyed by env-local chart id. The exporter
     must parse it, remap the top-level keys to the stabilized ids, and re-emit it
@@ -613,7 +613,7 @@ def test_stabilize_chart_ids_remaps_default_filters():
     assert default_filters[str(new_id)] == {"__time_range": "No filter"}
 
 
-def test_stabilize_chart_ids_remaps_timed_refresh_immune_slices():
+def test_stabilize_chart_ids_remaps_timed_refresh_immune_slices() -> None:
     """
     timed_refresh_immune_slices is a flat list of env-local chart ids. Each entry
     must be remapped to the stabilized id so the immune list keeps pointing at the
@@ -636,7 +636,7 @@ def test_stabilize_chart_ids_remaps_timed_refresh_immune_slices():
     assert result["metadata"]["timed_refresh_immune_slices"] == [new_id]
 
 
-def test_stabilize_chart_ids_remaps_filter_scopes_keys_and_immune():
+def test_stabilize_chart_ids_remaps_filter_scopes_keys_and_immune() -> None:
     """
     filter_scopes is a dict keyed by env-local chart id, whose values hold nested
     per-column ``immune`` lists of chart ids. The exporter must remap BOTH the
@@ -671,7 +671,7 @@ def test_stabilize_chart_ids_remaps_filter_scopes_keys_and_immune():
     assert filter_scopes[str(new_id)]["region"]["immune"] == [new_id]
 
 
-def test_stabilize_chart_ids_remaps_expanded_slices():
+def test_stabilize_chart_ids_remaps_expanded_slices() -> None:
     """
     expanded_slices is a dict keyed by env-local chart id. The exporter must
     re-key it to the stabilized ids while preserving the values.
@@ -696,7 +696,7 @@ def test_stabilize_chart_ids_remaps_expanded_slices():
     assert expanded_slices[str(new_id)] is True
 
 
-def test_file_content_missing_dataset_preserves_dataset_id():
+def test_file_content_missing_dataset_preserves_dataset_id() -> None:
     """
     When DatasetDAO.find_by_id returns None for a display control target,
     datasetId is preserved (dual-write: it was never popped) and no

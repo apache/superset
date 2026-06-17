@@ -180,12 +180,18 @@ def _stabilize_chart_ids(payload: dict[str, Any]) -> None:
         return
 
     def remap_id(old_id: Any) -> Optional[int]:
+        """Map a single legacy chart id to its stabilized id, or ``None``.
+
+        Returns ``None`` when the id is unknown or not coercible to ``int`` so
+        callers can drop unresolved references rather than raising.
+        """
         try:
             return id_map.get(int(old_id))
         except (TypeError, ValueError):
             return None
 
     def remap_ids(old_ids: Any) -> list[int]:
+        """Remap a collection of legacy chart ids, dropping unresolved entries."""
         return [
             new_id for old_id in old_ids if (new_id := remap_id(old_id)) is not None
         ]
