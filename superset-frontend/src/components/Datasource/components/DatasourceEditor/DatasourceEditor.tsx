@@ -418,7 +418,7 @@ const StyledTableTabWrapper = styled.div`
 // Functional wrapper for the lineage tab, since hooks can't be used directly in
 // the DatasourceEditor class component.
 function DatasetLineageTab({ datasourceId }: { datasourceId?: number }) {
-  const lineageResource = useDatasetLineage(datasourceId ?? 0);
+  const lineageResource = useDatasetLineage(datasourceId ?? '');
   if (!datasourceId) {
     return <Loading />;
   }
