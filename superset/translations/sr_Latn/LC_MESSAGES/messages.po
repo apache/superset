@@ -120,9 +120,7 @@ msgstr " u liniji %(line)d"
 msgid " expression which needs to adhere to the "
 msgstr " izraz koji mora da se pridržava "
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid " for details."
 msgstr " za detalje."
 
@@ -203,21 +201,18 @@ msgstr "„%s” je sada sistemska tamna tema"
 msgid "\"%s\" is now the system default theme"
 msgstr "„%s” je sada podrazumevana sistemska tema"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
-#, no-python-format, fuzzy
+#, no-python-format
 msgid "% calculation"
-msgstr "% izračunavanje"
+msgstr "proračun"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
-#, no-python-format, fuzzy
+#, no-python-format
 msgid "% of parent"
 msgstr "% od roditelja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
-#, no-python-format, fuzzy
+#, no-python-format
 msgid "% of total"
 msgstr "% od ukupnog"
 
@@ -251,8 +246,7 @@ msgstr "%(object)s ne postoji u ovoj bazi podataka."
 msgid "%(prefix)s %(title)s"
 msgstr "%(prefix)s %(title)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid ""
 "%(prefix)sResults truncated to %(row_count)s rows due to memory constraints."
 msgstr ""
@@ -275,9 +269,8 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Vraćeno %(rows)d redova"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, lv,
 # mi, ru, sl, uk]
-#, python-format, fuzzy
+#, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
@@ -299,15 +292,13 @@ msgstr ""
 "Molimo proverite upit ponovo.\n"
 "Izuzetak: %(ex)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s %s"
 msgstr "%s %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "%s ŠIFROVANI EKSTRA"
+msgstr "%s DODATNO ŠIFROVANO"
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -320,8 +311,7 @@ msgstr "%s greška"
 msgid "%s PASSWORD"
 msgstr "%s LOZINKA"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s Physical"
 msgstr "%s Fizička"
 
@@ -346,8 +336,7 @@ msgstr "%s LOZINKA PRIVATNOG KLJUČA SSH TUNELA"
 msgid "%s Selected"
 msgstr "%s izabrano"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s Selected (%s)"
 msgstr "%s izabrano (%s)"
 
@@ -361,19 +350,16 @@ msgstr "%s izabrano (fizičko)"
 msgid "%s Selected (Virtual)"
 msgstr "%s izabrano (virtuelnih)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s Semantic View"
 msgstr "%s Semantički prikaz"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, python-format, fuzzy
+#, python-format
 msgid "%s URL"
 msgstr "%s URL"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s Virtual"
 msgstr "%s Virtuelno"
 
@@ -382,8 +368,7 @@ msgstr "%s Virtuelno"
 msgid "%s aggregates(s)"
 msgstr "%s agregatne funkcije"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s column"
 msgid_plural "%s columns"
 msgstr[0] "%s kolona"
@@ -396,38 +381,33 @@ msgstr[2] "%s kolona"
 msgid "%s column(s)"
 msgstr "%s kolona(e)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "Pre %s dan"
 msgstr[1] "Pre %s dana"
 msgstr[2] "Pre %s dana"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s hr ago"
 msgid_plural "%s hr ago"
 msgstr[0] "Pre %s h"
 msgstr[1] "Pre %s h"
 msgstr[2] "Pre %s h"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s imported"
 msgstr "%s uvezeno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s item"
 msgid_plural "%s items"
 msgstr[0] "%s stavka"
 msgstr[1] "%s stavke"
 msgstr[2] "%s stavki"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, python-format, fuzzy
+#, python-format
 msgid "%s item(s)"
 msgstr "%s stavka(e)"
 
@@ -440,16 +420,14 @@ msgstr ""
 "%s stavki nije moglo biti označeno jer nemate dozvole za uređivanje svih "
 "izabranih objekata."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
 msgstr[0] "%s metrika"
 msgstr[1] "%s metrike"
 msgstr[2] "%s metrika"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
 msgstr[0] "Pre %s min"
@@ -475,24 +453,21 @@ msgstr[2] "%s opcija"
 msgid "%s option(s)"
 msgstr "%s opcija(e)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
 msgstr[0] "%s od %s kolona"
 msgstr[1] "%s od %s kolona"
 msgstr[2] "%s od %s kolona"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
 msgstr[0] "%s od %s metrika"
 msgstr[1] "%s od %s metrika"
 msgstr[2] "%s od %s metrika"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s out of %s selected"
 msgstr "%s od %s izabrano"
 
@@ -501,17 +476,15 @@ msgstr "%s od %s izabrano"
 msgid "%s recipients"
 msgstr "%s primalaca"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
-#, python-format, fuzzy
+#, python-format
 msgid "%s record"
 msgid_plural "%s records..."
 msgstr[0] "%s zapis"
 msgstr[1] "%s zapisa..."
 msgstr[2] "%s zapisa..."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s record..."
 msgid_plural "%s records..."
 msgstr[0] "%s zapis..."
@@ -526,8 +499,7 @@ msgstr[0] "%s red"
 msgstr[1] "%s reda"
 msgstr[2] "%s redova"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s s ago"
 msgid_plural "%s s ago"
 msgstr[0] "Pre %s s"
@@ -539,26 +511,22 @@ msgstr[2] "Pre %s s"
 msgid "%s saved metric(s)"
 msgstr "%s sačuvanih metrika"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s second"
 msgid_plural "%s seconds"
 msgstr[0] "%s sekunda"
 msgstr[1] "%s sekunde"
 msgstr[2] "%s sekundi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s semantic view(s) added"
 msgstr "%s semantičkih prikaza dodato"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s semantic view(s) failed to add"
 msgstr "Dodavanje %s semantičkih prikaza nije uspelo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "%s semantic view(s) failed to add: %s"
 msgstr "Dodavanje %s semantičkih prikaza nije uspelo: %s"
 
@@ -646,13 +614,11 @@ msgstr ""
 "-- Napomena: Ako ne sačuvate upit, ovi tabovi NEĆE biti sačuvani ako obrišete kolačiće ili promenite pregledač.\n"
 "\n"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "... and %d more"
 msgstr "... i još %d"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "... and %s more records"
 msgstr "... i još %s zapisa"
 
@@ -745,9 +711,7 @@ msgstr "Frekvencija na početku godine"
 msgid "10 minute"
 msgstr "10 minuta"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "10 seconds"
 msgstr "10 sekundi"
 
@@ -767,9 +731,7 @@ msgstr "104 nedelje"
 msgid "104 weeks ago"
 msgstr "pre 104 nedelje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "12 hours"
 msgstr "12 sati"
 
@@ -821,9 +783,7 @@ msgstr "2/98 percentila"
 msgid "22"
 msgstr "22"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "24 hours"
 msgstr "24 sata"
 
@@ -923,9 +883,7 @@ msgstr "52 nedelje počevši od ponedeljka (freq=52W-MON)"
 msgid "6 hour"
 msgstr "6 sati"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "6 hours"
 msgstr "6 sati"
 
@@ -1009,8 +967,7 @@ msgstr "JavaScript funkcija koja generiše konfiguracioni objekat oznake"
 msgid "A JavaScript function that generates an icon configuration object"
 msgstr "JavaScript funkcija koja generiše konfiguracioni objekat ikone"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-brace-format, fuzzy
+#, python-brace-format
 msgid ""
 "A JavaScript object that adheres to the ECharts options specification, "
 "overriding other control options with higher precedence. (i.e. { title: { "
@@ -1189,44 +1146,28 @@ msgstr ""
 "          kumulativnog efekta sekvencijalno unetih pozitivnih ili negativnih vrednosti.\n"
 "          Ove međuvrednosti mogu biti vremenski ili kategorijski zasnovani."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "A-Z"
 msgstr "A-Š"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "AND"
 msgstr "I"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "API Key Created"
 msgstr "API ključ kreiran"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "API Keys"
 msgstr "API ključevi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "API key created successfully"
 msgstr "API ključ je uspešno kreiran"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "API key name is required"
 msgstr "Naziv API ključa je obavezan"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "API key revoked successfully"
 msgstr "API ključ je uspešno opozvan"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "API keys allow scoped programmatic access to Superset."
 msgstr "API ključevi omogućavaju ograničen programski pristup Superset-u."
 
@@ -1246,13 +1187,9 @@ msgstr "Asinhrono izvršavanje upita"
 msgid "AUG"
 msgstr "AVG"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Aborted"
 msgstr "Prekinuto"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Aborting"
 msgstr "Prekidanje"
 
@@ -1268,9 +1205,7 @@ msgstr "Pristup i vlasništvo"
 msgid "Access token"
 msgstr "Pristupni token"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Account"
 msgstr "Nalog"
 
@@ -1284,11 +1219,9 @@ msgstr "Radnja"
 msgid "Action Log"
 msgstr "Dnevnik radnji"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Action Logs"
-msgstr "Dnevnici radnji"
+msgstr "Istorijat radnji"
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -1328,8 +1261,7 @@ msgstr "Adaptivno formatiranje"
 msgid "Add"
 msgstr "Dodaj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Add %s view(s)"
 msgstr "Dodaj %s prikaza"
 
@@ -1351,9 +1283,7 @@ msgstr "Dodaj CSS šablon"
 msgid "Add Dashboard"
 msgstr "Dodaj kontrolnu tablu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Add Group"
 msgstr "Dodaj grupu"
 
@@ -1381,8 +1311,6 @@ msgstr "Dodaj ulogu"
 msgid "Add Rule"
 msgstr "Dodaj pravilo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Add Semantic View"
 msgstr "Dodaj semantički prikaz"
 
@@ -1415,9 +1343,7 @@ msgstr "Dodaj novu karticu za kreiranje SQL upita"
 msgid "Add additional custom parameters"
 msgstr "Dodaj dodatne prilagođene parametre"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Add alert"
 msgstr "Dodaj upozorenje"
 
@@ -1462,8 +1388,6 @@ msgstr "Dodaj detalje sertifikacije za ovu kontrolnu tablu"
 msgid "Add color for positive/negative change"
 msgstr "Dodaj boju za pozitivnu/negativnu promenu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Dodaj boje trakama ćelija za +/- za sve kolone"
 
@@ -1518,9 +1442,7 @@ msgstr ""
 "                    kada želite da poboljšate performanse upita skeniranjem samo podskupa\n"
 "                    osnovnih podataka ili da ograničite dostupne vrednosti prikazane u filteru."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Add folder"
 msgstr "Dodaj fasciklu"
 
@@ -1546,8 +1468,6 @@ msgstr "Dodaj novi formatirač boja"
 msgid "Add new formatter"
 msgstr "Dodaj novi formatirač"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Add numbered column"
 msgstr "Dodaj numerisanu kolonu"
 
@@ -1559,9 +1479,7 @@ msgstr "Dodaj ili izmeni kontrole prikaza"
 msgid "Add or edit filters and controls"
 msgstr "Dodaj ili izmeni filtere i kontrole"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Add report"
 msgstr "Dodaj izveštaj"
 
@@ -1589,9 +1507,7 @@ msgstr "Dodaj naziv grafikona"
 msgid "Add the name of the dashboard"
 msgstr "Dodaj naziv kontrolne table"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Add theme"
 msgstr "Dodaj temu"
 
@@ -1608,18 +1524,16 @@ msgstr "Dodaj u kartice"
 msgid "Added"
 msgstr "Dodato"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, python-format, fuzzy
+#, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
 msgstr[0] "Dodata je %s nova kolona u virtuelni skup podataka"
 msgstr[1] "Dodate su %s nove kolone u virtuelni skup podataka"
 msgstr[2] "Dodato je %s novih kolona u virtuelni skup podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, fr,
 # ja, lv, mi, ru, sl, uk]
-#, python-format, fuzzy
+#, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
 msgstr[0] "Dodato na %s kontrolnu tablu"
@@ -1885,8 +1799,6 @@ msgstr "Upozorenja i izveštaji"
 msgid "Align +/-"
 msgstr "Poravnaj +/-"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Align +/- for all columns"
 msgstr "Poravnaj +/- za sve kolone"
 
@@ -1912,8 +1824,6 @@ msgstr "Svi grafikoni"
 msgid "All charts/global scoping"
 msgstr "Svi grafikoni/globalni opseg"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "All dimensions"
 msgstr "Sve dimenzije"
 
@@ -1926,9 +1836,7 @@ msgstr "Svi filteri"
 msgid "All panels"
 msgstr "Svi paneli"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "All records"
 msgstr "Svi zapisi"
 
@@ -2099,8 +2007,6 @@ msgstr "Došlo je do greške prilikom pristupa ekstenziji."
 msgid "An error occurred while accessing the value."
 msgstr "Došlo je do greške prilikom pristupa vrednosti."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while adding semantic views"
 msgstr "Došlo je do greške prilikom dodavanja semantičkih prikaza"
 
@@ -2131,8 +2037,6 @@ msgstr "Došlo je do greške prilikom kreiranja izvora podataka"
 msgid "An error occurred while creating the extension."
 msgstr "Došlo je do greške prilikom kreiranja ekstenzije."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while creating the semantic layer"
 msgstr "Došlo je do greške prilikom kreiranja semantičkog sloja"
 
@@ -2156,8 +2060,7 @@ msgstr ""
 "Došlo je do greške prilikom proširivanja šeme tabele. Obratite se "
 "administratoru."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "An error occurred while fetching %s"
 msgstr "Došlo je do greške prilikom preuzimanja %s"
 
@@ -2166,23 +2069,19 @@ msgstr "Došlo je do greške prilikom preuzimanja %s"
 msgid "An error occurred while fetching %s info: %s"
 msgstr "Došlo je do greške prilikom preuzimanja informacija o %s: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "An error occurred while fetching %s owner values: %s"
 msgstr "Došlo je do greške prilikom preuzimanja vrednosti vlasnika za %s: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr "Došlo je do greške prilikom preuzimanja podataka povezanih sa %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "An error occurred while fetching %s values: %s"
 msgstr "Došlo je do greške prilikom preuzimanja vrednosti za %s: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "An error occurred while fetching %s: %s"
 msgstr "Došlo je do greške prilikom preuzimanja %s: %s"
 
@@ -2200,8 +2099,6 @@ msgstr "Došlo je do greške prilikom preuzimanja dostupnih CSS šablona"
 msgid "An error occurred while fetching available themes"
 msgstr "Došlo je do greške prilikom preuzimanja dostupnih tema"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while fetching available views"
 msgstr "Došlo je do greške prilikom preuzimanja dostupnih prikaza"
 
@@ -2211,16 +2108,12 @@ msgid "An error occurred while fetching chart owners values: %s"
 msgstr ""
 "Došlo je do greške prilikom preuzimanja vrednosti vlasnika grafikona: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while fetching connections"
 msgstr "Došlo je do greške prilikom preuzimanja veza"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "An error occurred while fetching created by values: %s"
-msgstr ""
-"Došlo je do greške prilikom preuzimanja vrednosti za polje „kreirao“: %s"
+msgstr "Došlo je do greške prilikom preuzimanja created by values: %s"
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -2284,13 +2177,9 @@ msgstr "Došlo je do greške prilikom preuzimanja vrednosti vlasnika: %s"
 msgid "An error occurred while fetching schema values: %s"
 msgstr "Došlo je do greške prilikom preuzimanja vrednosti šeme: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Došlo je do greške prilikom preuzimanja tipova semantičkog sloja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Došlo je do greške prilikom preuzimanja semantičkih slojeva"
 
@@ -2304,8 +2193,7 @@ msgstr "Došlo je do greške prilikom preuzimanja stanja kartice"
 msgid "An error occurred while fetching table metadata"
 msgstr "Došlo je do greške prilikom preuzimanja metapodataka tabele"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "Došlo je do greške prilikom preuzimanja metapodataka tabele za %s"
 
@@ -2318,23 +2206,15 @@ msgstr ""
 "Došlo je do greške prilikom preuzimanja metapodataka tabele. Obratite se "
 "administratoru."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while fetching the configuration schema"
 msgstr "Došlo je do greške prilikom preuzimanja konfiguracione šeme"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while fetching the runtime schema"
 msgstr "Došlo je do greške prilikom preuzimanja šeme izvršavanja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while fetching the semantic layer"
 msgstr "Došlo je do greške prilikom preuzimanja semantičkog sloja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while fetching the semantic view structure"
 msgstr "Došlo je do greške prilikom preuzimanja strukture semantičkog prikaza"
 
@@ -2384,8 +2264,6 @@ msgstr "Došlo je do greške prilikom analize ključa."
 msgid "An error occurred while pruning logs "
 msgstr "Došlo je do greške prilikom čišćenja dnevnika "
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Došlo je do greške prilikom ažuriranja šeme konfiguracije"
 
@@ -2410,8 +2288,6 @@ msgstr ""
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Došlo je do greške prilikom prikazivanja vizualizacije: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while saving the semantic view"
 msgstr "Došlo je do greške prilikom čuvanja semantičkog prikaza"
 
@@ -2436,8 +2312,6 @@ msgstr "Došlo je do greške prilikom sinhronizacije dozvola za %s: %s"
 msgid "An error occurred while updating the extension."
 msgstr "Došlo je do greške prilikom ažuriranja ekstenzije."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "An error occurred while updating the semantic layer"
 msgstr "Došlo je do greške prilikom ažuriranja semantičkog sloja"
 
@@ -2695,8 +2569,6 @@ msgstr ""
 "Primenjeni klizni prozor nije vratio nikakve podatke. Uverite se da izvorni "
 "upit zadovoljava minimalne periode definisane u kliznom prozoru."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Applies only when \"Cell bars\" formatting is selected: the background of "
 "the histogram columns is displayed if the \"Show cell bars\" flag is "
@@ -2711,9 +2583,7 @@ msgstr ""
 msgid "Apply"
 msgstr "Primeni"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Apply Filter"
 msgstr "Primeni filter"
 
@@ -2842,8 +2712,6 @@ msgstr ""
 "Da li ste sigurni da želite da uklonite podrazumevanu sistemsku temu? "
 "Aplikacija će se vratiti na podrazumevanu temu iz konfiguracione datoteke."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Are you sure you want to revoke this API key? This action cannot be undone."
 msgstr ""
@@ -2938,26 +2806,21 @@ msgstr "Automatski"
 msgid "Auto Zoom"
 msgstr "Automatsko zumiranje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Auto refresh paused (set to %s seconds)"
 msgstr "Automatsko osvežavanje je pauzirano (podešeno na %s sekundi)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Auto refresh paused - tab inactive (set to %s seconds)"
 msgstr ""
 "Automatsko osvežavanje je pauzirano - kartica je neaktivna (podešeno na %s "
 "sekundi)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Auto refresh set to %s seconds"
 msgstr "Automatsko osvežavanje podešeno na %s sekundi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Auto-detect"
 msgstr "Automatsko prepoznavanje"
 
@@ -3013,8 +2876,6 @@ msgstr "Prosek"
 msgid "Average value"
 msgstr "Prosečna vrednost"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Awaiting filter selection"
 msgstr "Čeka se izbor filtera"
 
@@ -3111,9 +2972,7 @@ msgstr "Orijentacija stubova"
 msgid "Base"
 msgstr "Osnova"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Base exponent"
 msgstr "Osnovni eksponent"
 
@@ -3121,21 +2980,16 @@ msgstr "Osnovni eksponent"
 msgid "Base height"
 msgstr "Osnovna visina"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr ""
 "Stil mape osnovnog sloja. Prihvata URL stila kompatibilan sa MapLibre-om."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...)."
 msgstr ""
 "Stil mape osnovnog sloja. Prihvata URL stila Mapbox-a (mapbox://styles/...)."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Stil mape osnovnog sloja. Pogledajte MapLibre dokumentaciju: %s"
 
@@ -3202,9 +3056,7 @@ msgstr "Veliki broj sa linijom trenda"
 msgid "Bins"
 msgstr "Intervali"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Blanks"
 msgstr "Prazno"
 
@@ -3245,9 +3097,7 @@ msgstr "Dole desno"
 msgid "Bottom to Top"
 msgstr "Od dna do vrha"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Bounds"
 msgstr "Granice"
 
@@ -3322,8 +3172,6 @@ msgstr "Box Plot"
 msgid "Breakdowns"
 msgstr "Raspodele"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Breakpoint Metric"
 msgstr "Metrika granične tačke"
 
@@ -3420,9 +3268,7 @@ msgstr "OTKAŽI"
 msgid "CC recipients"
 msgstr "CC primaoci"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "COPY QUERY"
 msgstr "KOPIRAJ UPIT"
 
@@ -3460,8 +3306,6 @@ msgstr "CSS šabloni"
 msgid "CSS applied to the chart"
 msgstr "CSS primenjen na grafikon"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "CSS styles may be removed by server-side HTML sanitization. If styles are "
 "not applying, ask your Superset administrator to adjust the HTML "
@@ -3490,9 +3334,7 @@ msgstr "CSS šabloni"
 msgid "CSS templates could not be deleted."
 msgstr "CSS šabloni nisu mogli biti obrisani."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "CSV Export"
 msgstr "CSV izvoz"
 
@@ -3518,9 +3360,7 @@ msgstr ""
 "poslednja izjava SELECT. Uverite se da vaš upit ima SELECT kao poslednju "
 "izjavu. Zatim pokušajte ponovo da pokrenete upit."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "CUSTOM"
 msgstr "PRILAGOĐENO"
 
@@ -3624,8 +3464,6 @@ msgstr "Moguće je izabrati više vrednosti"
 msgid "Cancel"
 msgstr "Otkaži"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Cancel Task"
 msgstr "Otkaži zadatak"
 
@@ -3633,8 +3471,6 @@ msgstr "Otkaži zadatak"
 msgid "Cancel query on window unload event"
 msgstr "Otkaži upit pri događaju zatvaranja prozora"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Otkazivanje nije moguće zbog nedostatka upravljača prekidom"
 
@@ -3689,15 +3525,11 @@ msgstr "Nije moguće ugnezditi fascikle u podrazumevane fascikle"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Nije moguće raščlaniti vremenski niz [%(human_readable)s]"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Captcha"
 msgstr "Captcha"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Cartodiagram"
 msgstr "Kartodijagram"
 
@@ -3884,18 +3716,12 @@ msgstr "Promena ovog izvora podataka je zabranjena"
 msgid "Changing this report is forbidden"
 msgstr "Promena ovog izveštaja je zabranjena"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Changing this semantic layer is forbidden"
 msgstr "Promena ovog semantičkog sloja je zabranjena"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Changing this semantic view is forbidden"
 msgstr "Promena ovog semantičkog prikaza je zabranjena"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "Promena ovog zadatka je zabranjena"
 
@@ -3908,8 +3734,7 @@ msgstr "Znak koji se tumači kao decimalna tačka"
 msgid "Chart"
 msgstr "Grafikon"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Chart %(chart_id)s is not on dashboard %(dashboard_id)s"
 msgstr "Grafikon %(chart_id)s nije na kontrolnoj tabli %(dashboard_id)s"
 
@@ -3953,9 +3778,7 @@ msgstr "Izvor grafikona"
 msgid "Chart Title"
 msgstr "Naslov grafikona"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Chart Type"
 msgstr "Tip grafikona"
 
@@ -4061,9 +3884,7 @@ msgstr "Veličina grafikona"
 msgid "Chart title"
 msgstr "Naslov grafikona"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Chart type"
 msgstr "Tip grafikona"
 
@@ -4134,8 +3955,7 @@ msgstr "Izbor [Oznaka] mora biti prisutan u [Grupiši po]"
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr "Izbor [Poluprečnik tačke] mora biti prisutan u [Grupiši po]"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Choose a %s"
 msgstr "Izaberite %s"
 
@@ -4266,9 +4086,7 @@ msgstr ""
 "Izaberite da li država treba da bude obojena na osnovu metrike ili da joj se"
 " dodeli boja na osnovu kategorijalne palete boja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Choose..."
 msgstr "Izaberite..."
 
@@ -4317,14 +4135,11 @@ msgstr "Klauzula"
 msgid "Clear"
 msgstr "Obriši"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Clear %s filter"
 msgstr "Obriši %s filter"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Clear Sort"
 msgstr "Obriši sortiranje"
 
@@ -4458,15 +4273,11 @@ msgstr "Kliknite za sortiranje rastućim redosledom"
 msgid "Click to sort descending"
 msgstr "Kliknite za sortiranje opadajućim redosledom"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Client ID"
 msgstr "ID klijenta"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "Client Secret"
 msgstr "Tajna klijenta"
 
@@ -4499,20 +4310,14 @@ msgstr "Radijus klasterovanja"
 msgid "Code"
 msgstr "Kod"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Code Copied!"
 msgstr "Kod kopiran!"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Collapse"
 msgstr "Skupi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Collapse All"
 msgstr "Skupi sve"
 
@@ -4540,13 +4345,9 @@ msgstr "Boja"
 msgid "Color +/-"
 msgstr "Boja +/-"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Color By X-Axis"
 msgstr "Boja po X-osi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Color By Y-Axis"
 msgstr "Boja po Y-osi"
 
@@ -4566,13 +4367,9 @@ msgstr "Tip šeme boja"
 msgid "Color Steps"
 msgstr "Koraci boja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Color bars by x-axis"
 msgstr "Boji trake po X-osi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Color bars by y-axis"
 msgstr "Boji trake po Y-osi"
 
@@ -4588,8 +4385,6 @@ msgstr "Prelomne tačke boje"
 msgid "Color by"
 msgstr "Boja po"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 "Polje za boju mora biti heksadecimalna boja (#rrggbb) ili 'rgb(r, g, b)'"
@@ -4615,9 +4410,7 @@ msgstr "Boja ciljne lokacije"
 msgid "Color scheme"
 msgstr "Šema boja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
-#, fuzzy
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given cell"
 " against the other cells in the selected range: "
@@ -4729,8 +4522,6 @@ msgstr "Kolone"
 msgid "Columns (%s)"
 msgstr "Kolone (%s)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Columns (horizontal layout)"
 msgstr "Kolone (horizontalni raspored)"
 
@@ -4738,8 +4529,6 @@ msgstr "Kolone (horizontalni raspored)"
 msgid "Columns and metrics"
 msgstr "Kolone i metrike"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Columns and metrics should be inside folders"
 msgstr "Kolone i metrike treba da budu unutar fascikli"
 
@@ -4757,8 +4546,6 @@ msgstr "Kolone koje nedostaju u skupu podataka: %(invalid_columns)s"
 msgid "Columns missing in datasource: %(invalid_columns)s"
 msgstr "Kolone koje nedostaju u izvoru podataka: %(invalid_columns)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Columns should be inside folders"
 msgstr "Kolone treba da budu unutar fascikli"
 
@@ -4909,8 +4696,7 @@ msgstr "Interval poverenja mora biti između 0 i 1 (isključivo)"
 msgid "Configuration"
 msgstr "Konfiguracija"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Configure %s"
 msgstr "Konfiguriši %s"
 
@@ -4967,9 +4753,7 @@ msgstr ""
 msgid "Configure your how you overlay is displayed here."
 msgstr "Podesite ovde kako se prikazuje vaš preklop."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Confirm"
 msgstr "Potvrdi"
 
@@ -5038,14 +4822,11 @@ msgstr "Povezivanje nije uspelo, proveri podešavanja veze"
 msgid "Connection failed, please check your connection settings."
 msgstr "Povezivanje nije uspelo, proveri podešavanja veze."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Contains"
 msgstr "Sadrži"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Contains text (ILIKE %x%)"
 msgstr "Sadrži tekst (ILIKE %x%)"
 
@@ -5093,8 +4874,6 @@ msgstr "Kontrole sa oznakom "
 msgid "Copied to clipboard!"
 msgstr "Kopirano u klipbord!"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Copied!"
 msgstr "Kopirano!"
 
@@ -5123,8 +4902,6 @@ msgstr "Kopiraj i nalepi JSON akreditive"
 msgid "Copy code to clipboard"
 msgstr "Kopiraj kôd u klipbord"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Copy column name"
 msgstr "Kopiraj naziv kolone"
 
@@ -5270,14 +5047,10 @@ msgstr "Mapa države"
 msgid "Create"
 msgstr "Kreiraj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Create API Key"
 msgstr "Kreiraj API ključ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Create Tag"
 msgstr "Kreiraj oznaku"
 
@@ -5341,8 +5114,7 @@ msgstr "Kreirao"
 msgid "Created by me"
 msgstr "Kreirao sam"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Created by: %s"
 msgstr "Kreirao: %s"
 
@@ -5368,8 +5140,6 @@ msgstr "Kreator"
 msgid "Crimson"
 msgstr "Tamnocrvena"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Cross-filter column"
 msgstr "Kolona za ukrštene filtere"
 
@@ -5424,8 +5194,6 @@ msgstr "Simbol valute"
 msgid "Current"
 msgstr "Trenutni"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Current Zoom"
 msgstr "Trenutno uvećanje"
 
@@ -5475,13 +5243,9 @@ msgstr "Prilagođeni SQL"
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Prilagođene ad-hoc SQL metrike nisu omogućene za ovaj skup podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Prilagođena SQL polja se ne mogu protumačiti kao jedna SQL izjava."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Prilagođena SQL polja ne mogu sadržati operacije nad skupovima."
 
@@ -5517,14 +5281,10 @@ msgstr "Prilagođeni dodatak za filter vremena"
 msgid "Custom width of the screenshot in pixels"
 msgstr "Prilagođena širina snimka ekrana u pikselima"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Custom..."
 msgstr "Prilagođeno..."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Customization and styling"
 msgstr "Prilagođavanje i stilizovanje"
 
@@ -5652,8 +5412,6 @@ msgstr "Dnevna sezonalnost"
 msgid "Dark"
 msgstr "Tamna"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Dark (Carto)"
 msgstr "Tamna (Carto)"
 
@@ -5670,8 +5428,7 @@ msgstr "Tamni režim"
 msgid "Dashboard"
 msgstr "Kontrolna tabla"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr "Kontrolna tabla %(dashboard_id)s nije pronađena"
 
@@ -5679,9 +5436,7 @@ msgstr "Kontrolna tabla %(dashboard_id)s nije pronađena"
 msgid "Dashboard Filter"
 msgstr "Filter kontrolne table"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Dashboard Id"
 msgstr "ID kontrolne table"
 
@@ -5781,8 +5536,7 @@ msgstr ""
 msgid "Dashboard title"
 msgstr "Naslov kontrolne table"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Dashboard updated %s"
 msgstr "Kontrolna tabla ažurirana %s"
 
@@ -5813,8 +5567,6 @@ msgstr "Isprekidano"
 msgid "Data"
 msgstr "Podaci"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Data Connections"
 msgstr "Veze sa podacima"
 
@@ -5834,13 +5586,9 @@ msgstr "Data URI nije dozvoljen."
 msgid "Data Zoom"
 msgstr "Zumiranje podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Data connection"
 msgstr "Veza sa podacima"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Data connections"
 msgstr "Veze sa podacima"
 
@@ -5862,8 +5610,6 @@ msgstr ""
 "Podaci se ne mogu preuzeti iz pozadinskog sistema za rezultate. Morate "
 "ponovo izvršiti originalni upit."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Data error"
 msgstr "Greška u podacima"
 
@@ -5987,8 +5733,6 @@ msgstr "Lozinke baze podataka"
 msgid "Database port"
 msgstr "Port baze podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Database reference is not allowed on a report"
 msgstr "Referenca na bazu podataka nije dozvoljena u izveštaju"
 
@@ -6119,8 +5863,6 @@ msgstr "Izvor podataka i tip grafika"
 msgid "Datasource does not exist"
 msgstr "Izvor podataka ne postoji"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Datasource is required"
 msgstr "Izvor podataka je obavezan"
 
@@ -6136,8 +5878,6 @@ msgstr "Tip izvora podataka je nevalidan"
 msgid "Datasource type is required when datasource_id is given"
 msgstr "Tip izvora podataka je obavezan kada je dat datasource_id"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Datasources"
 msgstr "Izvori podataka"
 
@@ -6252,8 +5992,6 @@ msgstr "Deck.gl - Ekranska mreža"
 msgid "Deck.gl Layer Visibility"
 msgstr "Vidljivost sloja Deck.gl"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
-#, fuzzy
 msgid "Deckgl"
 msgstr "Deckgl"
 
@@ -6261,21 +5999,15 @@ msgstr "Deckgl"
 msgid "Decrease"
 msgstr "Smanjenje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Decrease color"
-msgstr "Boja smanjenja"
+msgstr "Smanji boju"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Decrease label"
-msgstr "Oznaka smanjenja"
+msgstr "Smanji oznaku"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Default"
 msgstr "Podrazumevano"
 
@@ -6308,9 +6040,7 @@ msgstr ""
 msgid "Default Value"
 msgstr "Podrazumevana vrednost"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Default color"
 msgstr "Podrazumevana boja"
 
@@ -6466,13 +6196,10 @@ msgstr ""
 "Definiše da li se korak prikazuje na početku, sredini ili kraju između dve "
 "tačke podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Definition"
 msgstr "Definicija"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Delayed (missed %s refresh)"
 msgid_plural "Delayed (missed %s refreshes)"
 msgstr[0] "Kašnjenje (propušteno %s osvežavanje)"
@@ -6484,8 +6211,7 @@ msgstr[2] "Kašnjenje (propušteno %s osvežavanja)"
 msgid "Delete"
 msgstr "Obriši"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Delete %s"
 msgstr "Obriši %s"
 
@@ -6500,9 +6226,7 @@ msgstr "Obrisati %s?"
 msgid "Delete Annotation?"
 msgstr "Obrisati anotaciju?"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Delete Group?"
 msgstr "Obrisati grupu?"
 
@@ -6524,13 +6248,9 @@ msgstr "Obrisati izveštaj?"
 msgid "Delete Role?"
 msgstr "Obrisati ulogu?"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Delete Semantic Layer?"
 msgstr "Obrisati semantički sloj?"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Delete Semantic View?"
 msgstr "Obrisati semantički prikaz?"
 
@@ -6539,9 +6259,7 @@ msgstr "Obrisati semantički prikaz?"
 msgid "Delete Template?"
 msgstr "Obrisati šablon?"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Delete Theme?"
 msgstr "Obrisati temu?"
 
@@ -6568,15 +6286,11 @@ msgstr "Obrisati karticu kontrolne table?"
 msgid "Delete email report"
 msgstr "Obriši izveštaj putem e-pošte"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Delete group"
 msgstr "Obriši grupu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Delete item"
 msgstr "Obriši stavku"
 
@@ -6589,9 +6303,7 @@ msgstr "Obriši ulogu"
 msgid "Delete template"
 msgstr "Obriši šablon"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Delete theme"
 msgstr "Obriši temu"
 
@@ -6687,17 +6399,15 @@ msgstr[0] "Obrisan je %(num)d sačuvani upit"
 msgstr[1] "Obrisana su %(num)d sačuvana upita"
 msgstr[2] "Obrisano je %(num)d sačuvanih upita"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Deleted %(num)d semantic view"
 msgid_plural "Deleted %(num)d semantic views"
 msgstr[0] "Obrisan je %(num)d semantički prikaz"
 msgstr[1] "Obrisana su %(num)d semantička prikaza"
 msgstr[2] "Obrisano je %(num)d semantičkih prikaza"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, python-format, fuzzy
+#, python-format
 msgid "Deleted %(num)d theme"
 msgid_plural "Deleted %(num)d themes"
 msgstr[0] "Obrisana je %(num)d tema"
@@ -6709,8 +6419,7 @@ msgstr[2] "Obrisano je %(num)d tema"
 msgid "Deleted %s"
 msgstr "Obrisano %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Deleted %s item(s)"
 msgstr "Obrisano %s stavki(a)"
 
@@ -6805,9 +6514,7 @@ msgstr "Tekst opisa koji se prikazuje ispod vašeg Velikog broja"
 msgid "Deselect all"
 msgstr "Poništi izbor svih"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Design with"
 msgstr "Dizajnirajte sa"
 
@@ -6819,8 +6526,6 @@ msgstr "Detalji"
 msgid "Details of the certification"
 msgstr "Detalji sertifikacije"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Determines how the filter matches values. \"Exact match\" uses the IN "
 "operator (default). ILIKE options enable partial text matching with a free-"
@@ -6864,8 +6569,6 @@ msgstr "Tamno siva"
 msgid "Dimension"
 msgstr "Dimenzija"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Dimension column emitted as a cross-filter when a feature is clicked. Other "
 "charts on the dashboard match against this column. If unset, falls back to "
@@ -6904,8 +6607,7 @@ msgstr "Vrednosti dimenzije"
 msgid "Dimensions"
 msgstr "Dimenzije"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Dimensions (%s)"
 msgstr "Dimenzije (%s)"
 
@@ -7115,14 +6817,10 @@ msgstr "Dokumentacija"
 msgid "Domain"
 msgstr "Domen"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Don't refresh"
 msgstr "Ne osvežavaj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Done"
 msgstr "Završeno"
 
@@ -7189,8 +6887,6 @@ msgstr ""
 "Redosled je važan - stavke će se prikazati istim redosledom u prikazu "
 "informacija. Kliknite na dugme da ručno izaberete kolone i metrike."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Drag to reorder"
 msgstr "Povucite za promenu redosleda"
 
@@ -7286,9 +6982,7 @@ msgstr "Otpustite vremensku kolonu ovde ili kliknite"
 msgid "Drop columns/metrics here or click"
 msgstr "Otpustite kolone/metrike ovde ili kliknite"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Dttm"
 msgstr "Dttm"
 
@@ -7373,9 +7067,7 @@ msgstr ""
 "Trajanje (u sekundama) vremenskog ograničenja keširanja metapodataka za "
 "tabele ove baze podataka. Ako nije podešeno, keš nikada ne ističe. "
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Duration Ms"
 msgstr "Trajanje (ms)"
 
@@ -7395,14 +7087,10 @@ msgstr "Trajanje u ms (10500 => 0:00:10.5)"
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Trajanje u ms (66000 => 1m 6s)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Duration in seconds"
 msgstr "Trajanje u sekundama"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # pt_BR, ru, sk, uk]
-#, fuzzy
 msgid "Dynamic"
 msgstr "Dinamički"
 
@@ -7410,8 +7098,6 @@ msgstr "Dinamički"
 msgid "Dynamic Aggregation Function"
 msgstr "Dinamička funkcija agregacije"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Dynamic Section Label"
 msgstr "Oznaka dinamičke sekcije"
 
@@ -7419,8 +7105,6 @@ msgstr "Oznaka dinamičke sekcije"
 msgid "Dynamic group by"
 msgstr "Dinamičko grupisanje po"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Dynamic section description"
 msgstr "Opis dinamičke sekcije"
 
@@ -7435,8 +7119,6 @@ msgstr "Dinamički odaberi kolone za grupisanje iz skupa podataka"
 msgid "ECharts"
 msgstr "ECharts"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "ECharts Options (JS object literals)"
 msgstr "ECharts opcije (JS object literals)"
 
@@ -7469,8 +7151,7 @@ msgstr "Širina ivice"
 msgid "Edit"
 msgstr "Uredi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Edit %s"
 msgstr "Uredi %s"
 
@@ -7493,9 +7174,7 @@ msgstr "Uredi kontrolnu tablu"
 msgid "Edit Dataset "
 msgstr "Uredi skup podataka "
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: it, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Edit Group"
 msgstr "Uredi grupu"
 
@@ -7525,9 +7204,7 @@ msgstr "Uredi oznaku"
 msgid "Edit User"
 msgstr "Uredi korisnika"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Edit alert"
 msgstr "Uredi upozorenje"
 
@@ -7571,9 +7248,7 @@ msgstr "Uredi izveštaj putem e-pošte"
 msgid "Edit formatter"
 msgstr "Uredi formatizator"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Edit group"
 msgstr "Uredi grupu"
 
@@ -7582,21 +7257,15 @@ msgstr "Uredi grupu"
 msgid "Edit properties"
 msgstr "Uredi svojstva"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Edit report"
 msgstr "Uredi izveštaj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Edit role"
 msgstr "Uredi ulogu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Edit tag"
 msgstr "Uredi oznaku"
 
@@ -7622,9 +7291,7 @@ msgstr "Uredi svojstva teme"
 msgid "Edit time range"
 msgstr "Izmeni vremenski opseg"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Edit user"
 msgstr "Izmeni korisnika"
 
@@ -7659,9 +7326,7 @@ msgstr ""
 msgid "Either the username or the password is wrong."
 msgstr "Korisničko ime ili lozinka su neispravni."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Elapsed"
 msgstr "Proteklo"
 
@@ -7677,9 +7342,7 @@ msgstr "Imejl"
 msgid "Email is required"
 msgstr "Imejl je obavezan"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Email link"
 msgstr "Link za email"
 
@@ -7778,8 +7441,6 @@ msgstr "Omogući slobodno kretanje po grafikonu"
 msgid "Enable icon JavaScript mode"
 msgstr "Omogući JavaScript režim za ikone"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
-#, fuzzy
 msgid "Enable icons"
 msgstr "Omogući ikone"
 
@@ -7787,13 +7448,9 @@ msgstr "Omogući ikone"
 msgid "Enable label JavaScript mode"
 msgstr "Omogući JavaScript režim za oznake"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
-#, fuzzy
 msgid "Enable labels"
 msgstr "Omogući oznake"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Enable matrixify"
 msgstr "Omogući matrixify"
 
@@ -7837,8 +7494,6 @@ msgid ""
 msgstr ""
 "Pronađen je nevažeći prostorni unos NULL, razmislite o njegovom filtriranju"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Encrypted extra fields"
 msgstr "Šifrovana dodatna polja"
 
@@ -7858,9 +7513,7 @@ msgstr "Kraj (isključivo)"
 msgid "End Longitude & Latitude"
 msgstr "Krajnja geografska dužina i širina"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "End Time"
 msgstr "Vreme završetka"
 
@@ -7881,14 +7534,11 @@ msgstr "Datum završetka je isključen iz vremenskog opsega"
 msgid "End date must be after start date"
 msgstr "Datum završetka mora biti posle datuma početka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Ends With"
 msgstr "Završava se sa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Ends with (ILIKE %x)"
 msgstr "Završava se sa (ILIKE %x)"
 
@@ -8010,9 +7660,7 @@ msgstr "Jednake veličine datuma"
 msgid "Equal to (=)"
 msgstr "Jednako (=)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Equals"
 msgstr "Jednako"
 
@@ -8029,13 +7677,11 @@ msgstr "Greška pri preuzimanju označenih objekata"
 msgid "Error deleting %s"
 msgstr "Greška pri brisanju %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Error disabling fullscreen: %s"
 msgstr "Greška pri isključivanju celog ekrana: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Error enabling fullscreen: %s"
 msgstr "Greška pri uključivanju celog ekrana: %s"
 
@@ -8065,8 +7711,7 @@ msgstr "Greška u jinja izrazu u RLS filterima: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Greška u jinja izrazu u WHERE klauzi: %(msg)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr "Greška u jinja izrazu u ad hoc koloni: %(msg)s"
 
@@ -8156,9 +7801,8 @@ msgstr "Greška: %(error)s"
 msgid "Error: %(msg)s"
 msgstr "Greška: %(msg)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, python-format, fuzzy
+#, python-format
 msgid "Error: %s"
 msgstr "Greška: %s"
 
@@ -8202,8 +7846,6 @@ msgstr "Evolucija"
 msgid "Exact"
 msgstr "Tačno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Exact match (IN)"
 msgstr "Tačno podudaranje (IN)"
 
@@ -8215,9 +7857,7 @@ msgstr "Primer"
 msgid "Examples"
 msgstr "Primeri"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Excel Export"
 msgstr "Izvoz u Excel"
 
@@ -8270,9 +7910,7 @@ msgstr "Izađi iz prikaza preko celog ekrana"
 msgid "Expand"
 msgstr "Proširi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Expand All"
 msgstr "Proširi sve"
 
@@ -8288,8 +7926,6 @@ msgstr "Proširi panel podataka"
 msgid "Expand row"
 msgstr "Proširi red"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Expand row to edit"
 msgstr "Proširi red za izmenu"
 
@@ -8307,8 +7943,6 @@ msgstr ""
 msgid "Experimental"
 msgstr "Eksperimentalno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Expired"
 msgstr "Isteklo"
 
@@ -8339,9 +7973,7 @@ msgstr "Izvezi sve podatke"
 msgid "Export Current View"
 msgstr "Izvezi trenutni prikaz"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Export YAML"
 msgstr "Izvezi YAML"
 
@@ -8358,9 +7990,7 @@ msgstr "Izvoz otkazan"
 msgid "Export dashboards?"
 msgstr "Izvezi kontrolne table?"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Export failed"
 msgstr "Izvoz nije uspeo"
 
@@ -8390,8 +8020,6 @@ msgstr "Izvezi u .CSV"
 msgid "Export to .JSON"
 msgstr "Izvezi u .JSON"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Export to CSV"
 msgstr "Izvezi u CSV"
 
@@ -8436,8 +8064,6 @@ msgstr "Izloži bazu podataka u SQL laboratoriji"
 msgid "Expose in SQL Lab"
 msgstr "Izloži u SQL laboratoriji"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Expression"
 msgstr "Izraz"
 
@@ -8445,9 +8071,7 @@ msgstr "Izraz"
 msgid "Expression cannot be empty"
 msgstr "Izraz ne može biti prazan"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Extensions"
 msgstr "Ekstenzije"
 
@@ -8455,8 +8079,6 @@ msgstr "Ekstenzije"
 msgid "Extent"
 msgstr "Opseg"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "External link warning"
 msgstr "Upozorenje o eksternom linku"
 
@@ -8513,9 +8135,7 @@ msgstr "Ekstrudovano"
 msgid "FEB"
 msgstr "FEB"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "FIT DATA"
 msgstr "PRILAGODI PODACIMA"
 
@@ -8548,18 +8168,12 @@ msgstr "Neuspelo preuzimanje rezultata"
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Neuspela primena teme: Nevažeći JSON"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Failed to copy API key to clipboard"
 msgstr "Neuspelo kopiranje API ključa u privremenu memoriju"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Failed to copy stack trace to clipboard"
 msgstr "Neuspelo kopiranje stack trace-a u privremenu memoriju"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Failed to create API key"
 msgstr "Neuspelo kreiranje API ključa"
 
@@ -8572,8 +8186,6 @@ msgstr "Neuspelo kreiranje izveštaja"
 msgid "Failed to execute %(query)s"
 msgstr "Neuspelo izvršavanje %(query)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Failed to fetch API keys"
 msgstr "Neuspelo preuzimanje API ključeva"
 
@@ -8581,8 +8193,7 @@ msgstr "Neuspelo preuzimanje API ključeva"
 msgid "Failed to generate chart edit URL"
 msgstr "Neuspelo generisanje URL-a za izmenu grafikona"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Failed to generate download: %s"
 msgstr "Neuspelo generisanje preuzimanja: %s"
 
@@ -8594,8 +8205,7 @@ msgstr "Neuspelo učitavanje podataka grafikona"
 msgid "Failed to load chart data."
 msgstr "Neuspelo učitavanje podataka grafikona."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Neuspelo učitavanje kolona za %s %s"
 
@@ -8621,8 +8231,6 @@ msgstr "Neuspelo uklanjanje sistemske podrazumevane teme: %s"
 msgid "Failed to retrieve advanced type"
 msgstr "Neuspelo preuzimanje napredne vrste"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Failed to revoke API key"
 msgstr "Neuspelo opozivanje API ključa"
 
@@ -8685,9 +8293,7 @@ msgstr "Neuspela provera opcija izbora: %s"
 msgid "Falling back to CSV; Excel export library not available."
 msgstr "Vraćanje na CSV; biblioteka za izvoz u Excel nije dostupna."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "False"
 msgstr "Netačno"
 
@@ -8696,8 +8302,6 @@ msgstr "Netačno"
 msgid "Favorite"
 msgstr "Omiljeno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Feature Not Enabled"
 msgstr "Funkcija nije omogućena"
 
@@ -8726,8 +8330,6 @@ msgstr "Preuzeto %s"
 msgid "Fetching"
 msgstr "Preuzimanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Fetching data..."
 msgstr "Preuzimanje podataka..."
 
@@ -8741,8 +8343,6 @@ msgstr "Polje ne može biti dekodirano JSON-om. %(json_error)s"
 msgid "Field cannot be decoded by JSON. %(msg)s"
 msgstr "Polje ne može biti dekodirano JSON-om. %(msg)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Field cannot be empty."
 msgstr "Polje ne može biti prazno."
 
@@ -8762,9 +8362,7 @@ msgstr ""
 "Rad sa datotekama nije podržan u ovom pregledaču. Molimo koristite moderan "
 "pregledač kao Chrome ili Edge."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "File settings"
 msgstr "Podešavanja datoteke"
 
@@ -8833,8 +8431,6 @@ msgstr ""
 "Filter prikazuje samo vrednosti relevantne za izbore napravljene u drugim "
 "filterima."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Filter options"
 msgstr "Opcije filtera"
 
@@ -8934,9 +8530,7 @@ msgstr "Završi"
 msgid "First"
 msgstr "Prvi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "First Name"
 msgstr "Ime"
 
@@ -8988,9 +8582,7 @@ msgstr "Tok"
 msgid "Folder with content must have a name"
 msgstr "Fascikla sa sadržajem mora imati naziv"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Folders"
 msgstr "Fascikle"
 
@@ -9048,9 +8640,7 @@ msgstr ""
 " bazne filtere, ovo su uloge na koje se filter NE primenjuje, npr. Admin ako"
 " administrator treba da vidi sve podatke."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Forbidden"
 msgstr "Zabranjeno"
 
@@ -9062,8 +8652,6 @@ msgstr "Sila"
 msgid "Force Time Grain as Max Interval"
 msgstr "Forsiraj vremensku granularnost kao maksimalni interval"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Force abort (stops task for all subscribers)"
 msgstr "Forsiraj prekid (zaustavlja zadatak za sve pretplatnike)"
 
@@ -9134,13 +8722,9 @@ msgid "Form data not found in cache, reverting to dataset metadata."
 msgstr ""
 "Podaci forme nisu pronađeni u kešu, vraćanje na metapodatke skupa podataka."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Format"
 msgstr "Format"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Format JSON configuration"
 msgstr "Formatiraj JSON konfiguraciju"
 
@@ -9189,13 +8773,9 @@ msgstr "Formatirana vrednost"
 msgid "Formatting"
 msgstr "Formatiranje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Formatting column"
 msgstr "Kolona za formatiranje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Formatting object"
 msgstr "Objekat za formatiranje"
 
@@ -9239,8 +8819,6 @@ msgstr "Datum od ne može biti veći od datuma do"
 msgid "Full name"
 msgstr "Puno ime"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Fullscreen is not supported in this browser."
 msgstr "Ovaj pregledač ne podržava prikaz preko celog ekrana."
 
@@ -9260,9 +8838,7 @@ msgstr "Dodatno prilagodite prikaz svake metrike"
 msgid "GROUP BY"
 msgstr "GRUPIŠI PO"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Gantt Chart"
 msgstr "Gantov grafikon"
 
@@ -9346,8 +8922,6 @@ msgstr "Naziv i URL Google tabele"
 msgid "Grace period"
 msgstr "Period odgode"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Grain"
 msgstr "Granularnost"
 
@@ -9363,9 +8937,7 @@ msgstr "Raspored grafa"
 msgid "Gravity"
 msgstr "Gravitacija"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Greater Than"
 msgstr "Veće od"
 
@@ -9393,14 +8965,10 @@ msgstr "Mreža"
 msgid "Grid Size"
 msgstr "Veličina mreže"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Grid view"
 msgstr "Prikaz mreže"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Group"
 msgstr "Grupa"
 
@@ -9425,15 +8993,11 @@ msgstr "Grupiši po"
 msgid "Group remaining as \"Others\""
 msgstr "Grupiši preostale kao \"Ostalo\""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Grouping"
 msgstr "Grupisanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Groups"
 msgstr "Grupe"
 
@@ -9450,9 +9014,7 @@ msgstr ""
 msgid "Guest user cannot modify chart payload"
 msgstr "Gostujući korisnik ne može da izmeni podatke grafikona"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "HTTP Path"
 msgstr "HTTP putanja"
 
@@ -9501,9 +9063,7 @@ msgstr "Visina svakog reda u pikselima"
 msgid "Height of the sparkline"
 msgstr "Visina sparkline grafikona"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Hidden"
 msgstr "Skriveno"
 
@@ -9625,15 +9185,11 @@ msgstr "ISO 8601"
 msgid "Icon JavaScript config generator"
 msgstr "Generator JavaScript konfiguracije ikona"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Icon URL"
 msgstr "URL ikone"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Icon size"
 msgstr "Veličina ikone"
 
@@ -9731,9 +9287,7 @@ msgstr "Uvezi"
 msgid "Import %s"
 msgstr "Uvezi %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Import Error"
 msgstr "Greška pri uvozu"
 
@@ -9774,9 +9328,7 @@ msgstr "Uvezi upite"
 msgid "Import saved query failed for an unknown reason."
 msgstr "Uvoz sačuvanog upita nije uspeo iz nepoznatog razloga."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Import themes"
 msgstr "Uvezi teme"
 
@@ -9784,14 +9336,10 @@ msgstr "Uvezi teme"
 msgid "In"
 msgstr "U"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "In Progress"
 msgstr "U toku"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "In Range"
 msgstr "U opsegu"
 
@@ -9807,8 +9355,6 @@ msgstr ""
 msgid "In this view you can preview the first 25 rows. "
 msgstr "U ovom prikazu možete pregledati prvih 25 redova. "
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Inactive"
 msgstr "Neaktivno"
 
@@ -9841,15 +9387,11 @@ msgstr "Uključi vreme"
 msgid "Increase"
 msgstr "Povećanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Increase color"
 msgstr "Boja povećanja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Increase label"
 msgstr "Oznaka povećanja"
 
@@ -9857,9 +9399,7 @@ msgstr "Oznaka povećanja"
 msgid "Index"
 msgstr "Indeks"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Index column"
 msgstr "Indeksna kolona"
 
@@ -9867,9 +9407,8 @@ msgstr "Indeksna kolona"
 msgid "Index label"
 msgstr "Oznaka indeksa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, python-format, fuzzy
+#, python-format
 msgid "Indexes (%s)"
 msgstr "Indeksi (%s)"
 
@@ -9910,15 +9449,11 @@ msgstr "Unesite URL sloja"
 msgid "Insert Layer title"
 msgstr "Unesite naziv sloja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Inside"
 msgstr "Unutra"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Inside bottom"
 msgstr "Unutra dole"
 
@@ -9930,21 +9465,15 @@ msgstr "Unutra dole levo"
 msgid "Inside bottom right"
 msgstr "Unutra dole desno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Inside left"
 msgstr "Unutra levo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Inside right"
 msgstr "Unutra desno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "Inside top"
 msgstr "Unutra gore"
 
@@ -10010,8 +9539,6 @@ msgstr ""
 msgid "Invalid JSON"
 msgstr "Nevažeći JSON"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Invalid JSON configuration"
 msgstr "Nevažeća JSON konfiguracija"
 
@@ -10033,9 +9560,7 @@ msgstr "Nevažeći napredni tip podataka: %(advanced_data_type)s"
 msgid "Invalid certificate"
 msgstr "Nevažeći sertifikat"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Invalid color"
 msgstr "Nevažeća boja"
 
@@ -10154,8 +9679,7 @@ msgstr "Naišao na nevažeću prostornu tačku: %(latlong)s"
 msgid "Invalid state."
 msgstr "Nevažeće stanje."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, sk]
-#, python-format, fuzzy
+#, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Nevažeći ID-ovi kartica: %(tab_ids)s"
 
@@ -10171,9 +9695,7 @@ msgstr "Invertuj izbor"
 msgid "Invert current page"
 msgstr "Invertuj trenutnu stranicu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Is Active?"
 msgstr "Da li je aktivan?"
 
@@ -10345,8 +9867,6 @@ msgstr "Nastavi uređivanje"
 msgid "Key"
 msgstr "Ključ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Key Prefix"
 msgstr "Prefiks ključa"
 
@@ -10354,8 +9874,6 @@ msgstr "Prefiks ključa"
 msgid "Keyboard shortcuts"
 msgstr "Prečice na tastaturi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
 "Ključevi se prikazuju samo jednom prilikom kreiranja. Čuvajte ih bezbedno."
@@ -10401,9 +9919,7 @@ msgstr "Oznaka već postoji"
 msgid "Label ascending"
 msgstr "Oznaka uzlazno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Label color"
 msgstr "Boja oznake"
 
@@ -10427,9 +9943,7 @@ msgstr "Pozicija oznake"
 msgid "Label property name"
 msgstr "Naziv svojstva oznake"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "Label size"
 msgstr "Veličina oznake"
 
@@ -10461,9 +9975,7 @@ msgstr "Oznake za markere"
 msgid "Labels for the ranges"
 msgstr "Oznake za raspone"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Languages"
 msgstr "Jezici"
 
@@ -10475,9 +9987,7 @@ msgstr "Veliko"
 msgid "Last"
 msgstr "Poslednji"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Last Name"
 msgstr "Prezime"
 
@@ -10491,8 +10001,6 @@ msgstr "Poslednje ažuriranje %s"
 msgid "Last Updated %s by %s"
 msgstr "Poslednje ažuriranje %s od strane %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Last Used"
 msgstr "Poslednje korišćenje"
 
@@ -10538,8 +10046,7 @@ msgstr "Vreme poslednjeg upita"
 msgid "Last run"
 msgstr "Poslednje izvršavanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Last updated %s ago"
 msgstr "Ažurirano pre %s"
 
@@ -10551,9 +10058,7 @@ msgstr "Poslednja nedelja"
 msgid "Last year"
 msgstr "Poslednja godina"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Lat"
 msgstr "Geo. šir."
 
@@ -10565,15 +10070,11 @@ msgstr "Geografska širina"
 msgid "Latitude of default viewport"
 msgstr "Geografska širina podrazumevanog prikaza"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Layer"
 msgstr "Sloj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Layer Name"
 msgstr "Naziv sloja"
 
@@ -10585,15 +10086,11 @@ msgstr "URL sloja"
 msgid "Layer configuration"
 msgstr "Konfiguracija sloja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Layer title"
 msgstr "Naslov sloja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Layer type"
 msgstr "Tip sloja"
 
@@ -10669,9 +10166,7 @@ msgstr "Tip legende"
 msgid "Legend type"
 msgstr "Tip legende"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Less Than"
 msgstr "Manje od"
 
@@ -10687,8 +10182,6 @@ msgstr "Manje ili jednako (<=)"
 msgid "Less than (<)"
 msgstr "Manje od (<)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Liberty (OpenFreeMap)"
 msgstr "Liberty (OpenFreeMap)"
 
@@ -10700,8 +10193,6 @@ msgstr "Preciznost procenta rasta"
 msgid "Light"
 msgstr "Svetlo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Light (Carto)"
 msgstr "Light (Carto)"
 
@@ -10716,9 +10207,7 @@ msgstr "Slično"
 msgid "Like (case insensitive)"
 msgstr "Like (bez obzira na velika i mala slova)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Limit"
 msgstr "Ograničenje"
 
@@ -10808,9 +10297,7 @@ msgstr "Linearna šema boja"
 msgid "Linear interpolation"
 msgstr "Linearna interpolacija"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Linear palette"
 msgstr "Linearna paleta"
 
@@ -10822,15 +10309,11 @@ msgstr "Kolona linija"
 msgid "Lines encoding"
 msgstr "Kodiranje linija"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "List"
 msgstr "Lista"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "List Groups"
 msgstr "Lista grupa"
 
@@ -10870,8 +10353,6 @@ msgstr "Lista vrednosti za obeležavanje trouglovima"
 msgid "List updated"
 msgstr "Lista ažurirana"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "List view"
 msgstr "Pregled liste"
 
@@ -10893,13 +10374,9 @@ msgstr "Učitani podaci keširani"
 msgid "Loaded from cache"
 msgstr "Učitano iz keša"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Loading"
 msgstr "Učitavanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Loading filter values"
 msgstr "Učitavanje vrednosti filtera"
 
@@ -10911,9 +10388,7 @@ msgstr "Učitavanje vremenskih zona..."
 msgid "Loading..."
 msgstr "Učitavanje..."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Local"
 msgstr "Lokalna"
 
@@ -10930,9 +10405,7 @@ msgstr "Lokalna tema podešena na \"%s\""
 msgid "Locate the chart"
 msgstr "Lociraj grafikon"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Log"
 msgstr "Log"
 
@@ -10987,11 +10460,9 @@ msgstr "Odjava"
 msgid "Logs"
 msgstr "Logovi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Lon"
-msgstr "Duž."
+msgstr "Geo. šir."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Long dashed"
@@ -11040,8 +10511,6 @@ msgstr "PON"
 msgid "Main"
 msgstr "Glavno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Main navigation"
 msgstr "Glavna navigacija"
 
@@ -11075,8 +10544,6 @@ msgstr "Upravljajte vlasnicima kontrolne table i dozvolama za pristup"
 msgid "Manage email report"
 msgstr "Upravljaj imejl izveštajem"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Manage filters and customizations to set scoping, descriptions, and "
 "limitations. Create new elements for better dashboard insights."
@@ -11100,14 +10567,10 @@ msgstr "Ručno podesite min/maks vrednosti za y-osu."
 msgid "Map"
 msgstr "Mapa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: es, fr, ja,
 # lv, mi, ru, uk]
-#, fuzzy
 msgid "Map Options"
 msgstr "Opcije mape"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Map Renderer"
 msgstr "Renderer mape"
 
@@ -11115,13 +10578,9 @@ msgstr "Renderer mape"
 msgid "Map Style"
 msgstr "Stil mape"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "MapLibre (open-source)"
 msgstr "MapLibre (otvoreni izvor)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "MapLibre is open-source and requires no API key. Mapbox requires "
 "MAPBOX_API_KEY to be configured on the server."
@@ -11132,13 +10591,9 @@ msgstr ""
 msgid "Mapbox"
 msgstr "Mapbox"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Mapbox (API key required)"
 msgstr "Mapbox (potreban API ključ)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox zahteva da MAPBOX_API_KEY bude podešen na serveru."
 
@@ -11186,9 +10641,7 @@ msgstr "Markeri"
 msgid "Markup type"
 msgstr "Tip markup-a"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, pt_BR, ru, sk, uk]
-#, fuzzy
 msgid "Match system"
 msgstr "Prati sistem"
 
@@ -11196,14 +10649,10 @@ msgstr "Prati sistem"
 msgid "Match time shift color with original series"
 msgstr "Uskladi boju vremenskog pomaka sa originalnom serijom"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Match type"
 msgstr "Tip podudaranja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Matrixify"
 msgstr "Matrixify"
 
@@ -11216,9 +10665,7 @@ msgstr "Maks"
 msgid "Max Bubble Size"
 msgstr "Maksimalna veličina mehurića"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Max value"
 msgstr "Maks. vrednost"
 
@@ -11238,8 +10685,6 @@ msgstr "Maksimalna veličina fonta"
 msgid "Maximum Radius"
 msgstr "Maksimalni radijus"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Maximum Width"
 msgstr "Maksimalna širina"
 
@@ -11267,8 +10712,6 @@ msgstr "Maksimalna vrednost"
 msgid "Maximum value on the gauge axis"
 msgstr "Maksimalna vrednost na osi merača"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "Maksimalna širina putanje, u pikselima ili metrima."
 
@@ -11346,9 +10789,7 @@ msgstr "Parametri metapodataka"
 msgid "Metadata has been synced"
 msgstr "Metapodaci su sinhronizovani"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Meters"
 msgstr "Metri"
 
@@ -11484,13 +10925,10 @@ msgstr ""
 msgid "Metrics"
 msgstr "Metrike"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Metrics (%s)"
 msgstr "Metrike (%s)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Metrics can't be used for both rows and columns at the same time"
 msgstr "Metrike se ne mogu koristiti istovremeno za redove i kolone"
 
@@ -11498,8 +10936,6 @@ msgstr "Metrike se ne mogu koristiti istovremeno za redove i kolone"
 msgid "Metrics folder can only contain metric items"
 msgstr "Folder metrika može sadržati samo stavke metrika"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Metrics should be inside folders"
 msgstr "Metrike treba da budu unutar foldera"
 
@@ -11536,9 +10972,7 @@ msgstr "Minimalna širina"
 msgid "Min periods"
 msgstr "Minimalni periodi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Min value"
 msgstr "Minimalna vrednost"
 
@@ -11571,8 +11005,6 @@ msgstr "Minimalna veličina fonta"
 msgid "Minimum Radius"
 msgstr "Minimalni radijus"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Minimum Width"
 msgstr "Minimalna širina"
 
@@ -11604,8 +11036,6 @@ msgstr "Minimalna vrednost oznake da bi bila prikazana na grafiku."
 msgid "Minimum value on the gauge axis"
 msgstr "Minimalna vrednost na osi merača"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Minimum width size of the path, in pixels or meters."
 msgstr "Minimalna veličina širine putanje, u pikselima ili metrima."
 
@@ -11627,8 +11057,7 @@ msgstr "Minut"
 msgid "Minutes %s"
 msgstr "Minuti %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Missing %s"
 msgstr "Nedostaje %s"
 
@@ -11636,8 +11065,6 @@ msgstr "Nedostaje %s"
 msgid "Missing OAuth2 token"
 msgstr "Nedostaje OAuth2 token"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Missing URL parameter"
 msgstr "Nedostaje URL parametar"
 
@@ -11700,9 +11127,7 @@ msgstr "Meseci %s"
 msgid "More"
 msgstr "Više"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "More Options"
 msgstr "Više opcija"
 
@@ -11714,8 +11139,6 @@ msgstr "Više filtera"
 msgid "MotherDuck token"
 msgstr "MotherDuck token"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Move icon"
 msgstr "Ikona za pomeranje"
 
@@ -11759,8 +11182,6 @@ msgstr ""
 msgid "Multiplier"
 msgstr "Množitelj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Must be a chart owner to overwrite this chart. Save as a new chart instead."
 msgstr ""
@@ -11840,8 +11261,6 @@ msgstr "Naziv kolone koja sadrži id roditeljskog čvora"
 msgid "Name of the id column"
 msgstr "Naziv kolone id"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Name of the semantic layer"
 msgstr "Naziv semantičkog sloja"
 
@@ -11882,9 +11301,7 @@ msgstr "Treba li vam pomoć? Saznajte kako da povežete svoju bazu podataka"
 msgid "Need help? Learn more about"
 msgstr "Treba li vam pomoć? Saznajte više o"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Network Error"
 msgstr "Greška mreže"
 
@@ -11900,14 +11317,10 @@ msgstr "Greška mreže prilikom pokušaja preuzimanja resursa"
 msgid "Network error."
 msgstr "Mrežna greška."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "New"
 msgstr "Novo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "New Semantic Layer"
 msgstr "Novi semantički sloj"
 
@@ -11985,9 +11398,7 @@ msgstr "SQL upit nije pronađen"
 msgid "No Tags created"
 msgstr "Nema kreiranih oznaka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "No actions"
 msgstr "Nema akcija"
 
@@ -12017,8 +11428,7 @@ msgstr "Nema dostupnih filtera."
 msgid "No columns found"
 msgstr "Nisu pronađene kolone"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "No compatible %s found"
 msgstr "Nije pronađen kompatibilan %s"
 
@@ -12078,8 +11488,6 @@ msgstr "Nijedan filter nije izabran."
 msgid "No filters"
 msgstr "Nema filtera"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "No filters applied"
 msgstr "Nema primenjenih filtera"
 
@@ -12087,8 +11495,6 @@ msgstr "Nema primenjenih filtera"
 msgid "No filters are currently added to this dashboard."
 msgstr "Na ovu kontrolnu tablu trenutno nisu dodati nikakvi filteri."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "No filters or customizations created yet"
 msgstr "Još nisu kreirani filteri ili prilagođavanja"
 
@@ -12100,9 +11506,7 @@ msgstr "Podešavanja obrasca nisu sačuvana"
 msgid "No global filters are currently added"
 msgstr "Trenutno nema dodatih globalnih filtera"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "No groups"
 msgstr "Nema grupa"
 
@@ -12110,9 +11514,7 @@ msgstr "Nema grupa"
 msgid "No groups yet"
 msgstr "Još nema grupa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "No items"
 msgstr "Nema stavki"
 
@@ -12124,8 +11526,6 @@ msgstr "Nisu pronađeni odgovarajući zapisi"
 msgid "No matching results found"
 msgstr "Nisu pronađeni odgovarajući rezultati"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 "Na ovu kontrolnu tablu trenutno nisu dodati nikakvi višeslojni deck.gl "
@@ -12163,9 +11563,7 @@ msgstr ""
 "vraćeni rezultati, provjerite da li su filteri pravilno podešeni i da izvor "
 "podataka sadrži podatke za izabrani vremenski period."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "No roles"
 msgstr "Nema uloga"
 
@@ -12173,13 +11571,11 @@ msgstr "Nema uloga"
 msgid "No roles yet"
 msgstr "Još nema uloga"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "No rows were returned for this %s"
 msgstr "Za %s nisu vraćeni nikakvi redovi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "No samples were returned for this %s"
 msgstr "Za %s nisu vraćeni nikakvi uzorci"
 
@@ -12206,8 +11602,6 @@ msgstr ""
 msgid "No table columns"
 msgstr "Nema kolona tabele"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "No tasks yet"
 msgstr "Još nema zadataka"
 
@@ -12284,15 +11678,11 @@ msgstr "Normalizuj nazive kolona"
 msgid "Normalized"
 msgstr "Normalizovano"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Not Contains"
 msgstr "Ne sadrži"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Not Equal"
 msgstr "Nije jednako"
 
@@ -12324,8 +11714,6 @@ msgstr "Nije definisano"
 msgid "Not equal to (≠)"
 msgstr "Nije jednako (≠)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Not found"
 msgstr "Nije pronađeno"
 
@@ -12337,9 +11725,7 @@ msgstr "Nije u"
 msgid "Not null"
 msgstr "Nije null"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Not set"
 msgstr "Nije podešeno"
 
@@ -12500,9 +11886,7 @@ msgstr "OKT"
 msgid "OK"
 msgstr "OK"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "OR"
 msgstr "ILI"
 
@@ -12616,13 +12000,9 @@ msgid "Only applies when \"Label Type\" is set to show values."
 msgstr ""
 "Primenjuje se samo kada je „Tip oznake” podešen da prikazuje vrednosti."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Only exact match is available for non-string columns."
 msgstr "Samo potpuno podudaranje je dostupno za kolone koje nisu tekstualne."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Only proceed if you trust the destination or its source."
 msgstr "Nastavite samo ako verujete odredištu ili njegovom izvoru."
 
@@ -12931,15 +12311,11 @@ msgstr ""
 msgid "PDF download failed, please refresh and try again."
 msgstr "Preuzimanje PDF-a nije uspelo, osvežite stranicu i pokušajte ponovo."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Page"
 msgstr "Stranica"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Page Size:"
 msgstr "Veličina stranice:"
 
@@ -12947,8 +12323,6 @@ msgstr "Veličina stranice:"
 msgid "Page length"
 msgstr "Dužina stranice"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Page navigation"
 msgstr "Navigacija po stranicama"
 
@@ -13031,9 +12405,7 @@ msgstr "Lozinka"
 msgid "Password is required"
 msgstr "Lozinka je obavezna"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Password:"
 msgstr "Lozinka:"
 
@@ -13041,9 +12413,7 @@ msgstr "Lozinka:"
 msgid "Passwords do not match!"
 msgstr "Lozinke se ne podudaraju!"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Paste"
 msgstr "Nalepi"
 
@@ -13063,13 +12433,9 @@ msgstr "Nalepite ovde URL adresu Google tabele za deljenje"
 msgid "Paste your access token here"
 msgstr "Nalepite ovde vaš pristupni token"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Path Color"
 msgstr "Boja putanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Path Size"
 msgstr "Veličina putanje"
 
@@ -13077,18 +12443,12 @@ msgstr "Veličina putanje"
 msgid "Pattern"
 msgstr "Obrazac"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Pause auto refresh if tab is inactive"
 msgstr "Pauziraj automatsko osvežavanje ako je kartica neaktivna"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Pause auto-refresh"
 msgstr "Pauziraj automatsko osvežavanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Pending"
 msgstr "Na čekanju"
 
@@ -13173,9 +12533,7 @@ msgstr "Osoba ili grupa koja je sertifikovala ovu kontrolnu tablu."
 msgid "Person or group that has certified this metric"
 msgstr "Osoba ili grupa koja je sertifikovala ovu metriku"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "Personal info"
 msgstr "Lični podaci"
 
@@ -13251,9 +12609,7 @@ msgstr "Po delovima"
 msgid "Pin"
 msgstr "Prikači"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Pin Column"
 msgstr "Prikači kolonu"
 
@@ -13269,14 +12625,10 @@ msgstr "Prikači desno"
 msgid "Pin to the result panel"
 msgstr "Prikači na panel rezultata"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Pin to top"
 msgstr "Prikači na vrh"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Pivot Mode"
 msgstr "Pivot režim"
 
@@ -13297,9 +12649,7 @@ msgstr "Pivot operacija zahteva najmanje jedan indeks"
 msgid "Pivoted"
 msgstr "Pivotirano"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Pivots"
 msgstr "Pivoti"
 
@@ -13450,8 +12800,7 @@ msgstr ""
 msgid "Please select at least one role or group"
 msgstr "Izaberite najmanje jednu ulogu ili grupu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Please select both a %s and a Chart type to proceed"
 msgstr "Izaberite %s i tip grafikona da biste nastavili"
 
@@ -13486,8 +12835,6 @@ msgstr ""
 msgid "Plugins"
 msgstr "Dodaci"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Point Cluster Map"
 msgstr "Mapa klastera tačaka"
 
@@ -13653,8 +13000,6 @@ msgstr "Granice primarne y-ose"
 msgid "Primary y-axis format"
 msgstr "Format primarne y-ose"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Private"
 msgstr "Privatno"
 
@@ -13695,9 +13040,7 @@ msgstr "Napredak"
 msgid "Progressive"
 msgstr "Progresivno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Project Id"
 msgstr "ID projekta"
 
@@ -13705,13 +13048,9 @@ msgstr "ID projekta"
 msgid "Proportional"
 msgstr "Proporcionalno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Public and privately shared sheets"
 msgstr "Javno i privatno deljeni listovi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "Samo javno deljeni listovi"
 
@@ -13774,9 +13113,7 @@ msgstr "Upit B"
 msgid "Query History"
 msgstr "Istorija upita"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Query State"
 msgstr "Stanje upita"
 
@@ -13833,9 +13170,7 @@ msgstr "Upit je zaustavljen"
 msgid "Query was stopped."
 msgstr "Upit je zaustavljen."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Queued"
 msgstr "U redu"
 
@@ -13887,15 +13222,11 @@ msgstr "Radijus u miljama"
 msgid "Range"
 msgstr "Opseg"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Range Inputs"
 msgstr "Unosi opsega"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sl, uk]
-#, fuzzy
 msgid "Range Type"
 msgstr "Tip opsega"
 
@@ -13911,9 +13242,7 @@ msgstr "Dodatak za filter opsega korišćenjem AntD"
 msgid "Range labels"
 msgstr "Oznake opsega"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sl, uk]
-#, fuzzy
 msgid "Range type"
 msgstr "Tip opsega"
 
@@ -13949,8 +13278,6 @@ msgstr "Nedavni"
 msgid "Recipients are separated by \",\" or \";\""
 msgstr "Primaoci su razdvojeni sa \",\" ili \";\""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Records"
 msgstr "Zapisi"
 
@@ -13992,9 +13319,7 @@ msgstr "Pogledajte"
 msgid "Referenced columns not available in DataFrame."
 msgstr "Referentne kolone nisu dostupne u DataFrame-u."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, lv, ru,
 # uk]
-#, fuzzy
 msgid "Referrer"
 msgstr "Upućivač"
 
@@ -14008,8 +13333,6 @@ msgstr "Ponovo preuzmi rezultate"
 msgid "Refresh dashboard"
 msgstr "Osveži kontrolnu tablu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Refresh delayed"
 msgstr "Osvežavanje odloženo"
 
@@ -14055,9 +13378,7 @@ msgstr "Osvežavanje grafikona"
 msgid "Refreshing columns"
 msgstr "Osvežavanje kolona"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Register"
 msgstr "Registruj se"
 
@@ -14126,13 +13447,9 @@ msgstr "Ukloni sistemsku podrazumevanu temu"
 msgid "Remove cross-filter"
 msgstr "Ukloni ukrsni filter"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Remove customization"
 msgstr "Ukloni prilagođavanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Remove filter"
 msgstr "Ukloni filter"
 
@@ -14357,9 +13674,7 @@ msgstr "Operacija ponovnog uzorkovanja zahteva DatetimeIndex"
 msgid "Reset"
 msgstr "Resetuj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Reset Columns"
 msgstr "Resetuj kolone"
 
@@ -14367,9 +13682,7 @@ msgstr "Resetuj kolone"
 msgid "Reset all folders to default"
 msgstr "Resetuj sve fascikle na podrazumevano"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Reset columns"
 msgstr "Resetuj kolone"
 
@@ -14377,9 +13690,7 @@ msgstr "Resetuj kolone"
 msgid "Reset my password"
 msgstr "Resetuj moju lozinku"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Reset password"
 msgstr "Resetovanje lozinke"
 
@@ -14387,14 +13698,10 @@ msgstr "Resetovanje lozinke"
 msgid "Reset state"
 msgstr "Resetuj stanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
-#, fuzzy
 msgid "Reset to default folders?"
 msgstr "Resetovati fascikle na podrazumevano?"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Resize"
 msgstr "Promeni veličinu"
 
@@ -14406,8 +13713,6 @@ msgstr "Resurs već ima prikačen izveštaj."
 msgid "Resource was not found."
 msgstr "Resurs nije pronađen."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Resource was removed before ownership could be verified"
 msgstr "Resurs je uklonjen pre nego što je vlasništvo moglo biti provereno"
 
@@ -14434,14 +13739,10 @@ msgid "Results backend needed for asynchronous queries is not configured."
 msgstr ""
 "Rezervni sistem za rezultate potreban za asinhrone upite nije konfigurisan."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Resume auto-refresh"
 msgstr "Nastavi automatsko osvežavanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Retry"
 msgstr "Pokušaj ponovo"
 
@@ -14449,8 +13750,6 @@ msgstr "Pokušaj ponovo"
 msgid "Retry fetching results"
 msgstr "Pokušaj ponovo preuzimanje rezultata"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Return to Superset"
 msgstr "Povratak na Superset"
 
@@ -14466,23 +13765,15 @@ msgstr "Obrni geografsku širinu i dužinu"
 msgid "Reverse lat/long "
 msgstr "Obrni geografsku širinu/dužinu "
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Revoke"
 msgstr "Opozovi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Revoke API Key"
 msgstr "Opozovi API ključ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Revoke this API key"
 msgstr "Opozovi ovaj API ključ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Revoked"
 msgstr "Opozvano"
 
@@ -14506,9 +13797,7 @@ msgstr "Format desne ose"
 msgid "Right Axis Metric"
 msgstr "Metrika desne ose"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Right Panel"
 msgstr "Desni panel"
 
@@ -14536,9 +13825,7 @@ msgstr ""
 msgid "Role"
 msgstr "Uloga"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Role Name"
 msgstr "Naziv uloge"
 
@@ -14641,9 +13928,7 @@ msgstr ""
 "Red koji sadrži zaglavlja za korišćenje kao nazivi kolona (0 je prva linija "
 "podataka)."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Row height"
 msgstr "Visina reda"
 
@@ -14655,8 +13940,6 @@ msgstr "Ograničenje redova"
 msgid "Rows"
 msgstr "Redovi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Rows (vertical layout)"
 msgstr "Redovi (vertikalni raspored)"
 
@@ -14728,8 +14011,7 @@ msgstr "Izvrši izbor"
 msgid "Running"
 msgstr "Izvršava se"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
-#, python-format, fuzzy
+#, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Izvršava se blok %(block_num)s od %(block_count)s"
 
@@ -14747,8 +14029,6 @@ msgstr "SQL"
 msgid "SQL Lab"
 msgstr "SQL Lab"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "SQL Lab cannot authorise a statement that could not be fully parsed. Qualify"
 " tables explicitly and avoid dynamic SQL inside stored-procedure or vendor-"
@@ -14838,9 +14118,7 @@ msgstr "Parametri SSH tunela su nevažeći."
 msgid "SSH Tunneling is not enabled"
 msgstr "SSH tunelovanje nije omogućeno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "SSL"
 msgstr "SSL"
 
@@ -14922,8 +14200,7 @@ msgstr "Sačuvaj (Prepisi)"
 msgid "Save as"
 msgstr "Sačuvaj kao"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Save as %s"
 msgstr "Sačuvaj kao %s"
 
@@ -14988,8 +14265,6 @@ msgstr "Sačuvaj ili prepiši skup podataka"
 msgid "Save query"
 msgstr "Sačuvaj upit"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Save this API key securely"
 msgstr "Bezbedno sačuvajte ovaj API ključ"
 
@@ -15044,8 +14319,6 @@ msgstr "Čuvanje..."
 msgid "Scale and Move"
 msgstr "Skaliranje i pomeranje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Scale factor applied to metric-driven line widths"
 msgstr "Faktor skaliranja primenjen na širine linija zasnovane na metrikama"
 
@@ -15172,8 +14445,6 @@ msgstr "Pretraži sve mere i kolone"
 msgid "Search box"
 msgstr "Polje za pretragu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Search by"
 msgstr "Pretraži po"
 
@@ -15181,13 +14452,9 @@ msgstr "Pretraži po"
 msgid "Search by query text"
 msgstr "Pretraži po tekstu upita"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Search calculated columns by name"
 msgstr "Pretraži izračunate kolone po imenu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Search charts by name, owner, or dashboard"
 msgstr "Pretraži grafikone po imenu, vlasniku ili kontrolnoj tabli"
 
@@ -15195,8 +14462,6 @@ msgstr "Pretraži grafikone po imenu, vlasniku ili kontrolnoj tabli"
 msgid "Search columns"
 msgstr "Pretraži kolone"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Search columns by name"
 msgstr "Pretraži kolone po imenu"
 
@@ -15208,26 +14473,18 @@ msgstr "Pretraži kolone..."
 msgid "Search in filters"
 msgstr "Pretraga u filterima"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Pretraži metrike po ključu ili oznaci"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Search owners"
 msgstr "Pretraga vlasnika"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Search roles"
 msgstr "Pretraga uloga"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Search tags"
 msgstr "Pretraga oznaka"
 
@@ -15279,8 +14536,6 @@ msgstr "Bezbednosni dodatak"
 msgid "Security"
 msgstr "Bezbednost"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "See "
 msgstr "Pogledajte "
 
@@ -15305,8 +14560,7 @@ msgstr "Pogledajte detalje upita"
 msgid "Select"
 msgstr "Izaberi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Select %s or type to search %s"
 msgstr "Izaberite %s ili ukucajte za pretragu %s"
 
@@ -15315,9 +14569,7 @@ msgstr "Izaberite %s ili ukucajte za pretragu %s"
 msgid "Select ..."
 msgstr "Izaberi..."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Select All"
 msgstr "Izaberi sve"
 
@@ -15329,9 +14581,7 @@ msgstr "Izaberite bazu podataka i šemu"
 msgid "Select Delivery Method"
 msgstr "Izaberite metod dostavljanja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "Select Filter"
 msgstr "Izaberi filter"
 
@@ -15339,14 +14589,11 @@ msgstr "Izaberi filter"
 msgid "Select Tags"
 msgstr "Izaberi oznake"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Select Value"
 msgstr "Izaberi vrednost"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Select a %s"
 msgstr "Izaberi %s"
 
@@ -15394,8 +14641,6 @@ msgstr "Izaberite graničnik za ove podatke"
 msgid "Select a dimension"
 msgstr "Izaberite dimenziju"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
-#, fuzzy
 msgid "Select a linear color scheme"
 msgstr "Izaberite linearnu šemu boja"
 
@@ -15423,13 +14668,9 @@ msgstr "Izaberite šemu"
 msgid "Select a schema if the database supports this"
 msgstr "Izaberite šemu ako baza podataka to podržava"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Select a semantic layer"
 msgstr "Izaberite semantički sloj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Select a semantic layer type"
 msgstr "Izaberite tip semantičkog sloja"
 
@@ -15462,9 +14703,7 @@ msgstr "Izaberite tip vizualizacije"
 msgid "Select aggregate options"
 msgstr "Izaberite opcije agregacije"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Select all"
 msgstr "Izaberi sve"
 
@@ -15508,8 +14747,6 @@ msgstr "Izaberite šemu boja"
 msgid "Select column"
 msgstr "Izaberite kolonu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Select column name"
 msgstr "Izaberite naziv kolone"
 
@@ -15603,9 +14840,7 @@ msgstr "Podrazumevano izaberite prvu vrednost filtera"
 msgid "Select format"
 msgstr "Izaberite format"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Select groups"
 msgstr "Izaberite grupe"
 
@@ -15627,8 +14862,6 @@ msgstr ""
 msgid "Select layers to hide"
 msgstr "Izaberite slojeve za sakrivanje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Select object name"
 msgstr "Izaberite naziv objekta"
 
@@ -15677,14 +14910,10 @@ msgstr "Izaberite vlasnike"
 msgid "Select page size"
 msgstr "Izaberite veličinu stranice"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Select permissions"
 msgstr "Izaberite dozvole"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Select roles"
 msgstr "Izaberite uloge"
 
@@ -15696,8 +14925,6 @@ msgstr "Izaberite sačuvane metrike"
 msgid "Select saved queries"
 msgstr "Izaberite sačuvane upite"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Select schema"
 msgstr "Izaberite šemu"
 
@@ -15705,8 +14932,6 @@ msgstr "Izaberite šemu"
 msgid "Select scheme"
 msgstr "Izaberite šemu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Select semantic views"
 msgstr "Izaberite semantičke poglede"
 
@@ -15806,8 +15031,6 @@ msgstr "Izaberite fiksnu boju"
 msgid "Select the geojson column"
 msgstr "Izaberite geojson kolonu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Select the map tile provider. MapLibre is open-source and requires no API "
 "key. Mapbox requires MAPBOX_API_KEY to be configured in Superset."
@@ -15815,8 +15038,6 @@ msgstr ""
 "Izaberite dobavljača mapa (tajlova). MapLibre je otvorenog koda i ne zahteva"
 " API ključ. Mapbox zahteva da MAPBOX_API_KEY bude konfigurisan u Superset-u."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Select the metric used to determine which color breakpoint range each path "
 "falls into."
@@ -15828,15 +15049,11 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Izaberite tip šeme boja koju želite da koristite."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Select users"
 msgstr "Izaberite korisnike"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Select values"
 msgstr "Izaberite vrednosti"
 
@@ -15849,8 +15066,6 @@ msgstr ""
 "Izaberite vrednosti u istaknutim poljima na kontrolnoj tabli. Zatim "
 "pokrenite upit klikom na dugme %s."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Select which time grains are available in the filter control. This is a UI "
 "allow list only and does not add extra conditions to the underlying queries."
@@ -15859,8 +15074,6 @@ msgstr ""
 "samo lista dozvoljenih opcija za korisničko okruženje i ne dodaje dodatne "
 "uslove osnovnim upitima."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Selected"
 msgstr "Izabrano"
 
@@ -15872,103 +15085,63 @@ msgstr "Izbor baze podataka je obavezan"
 msgid "Selection method"
 msgstr "Metod izbora"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic"
 msgstr "Semantički"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic Layer"
 msgstr "Semantički sloj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic View"
 msgstr "Semantički pogled"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic Views"
 msgstr "Semantički pogledi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic layer"
 msgstr "Semantički sloj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic layer could not be created."
 msgstr "Semantički sloj nije mogao biti kreiran."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic layer could not be deleted."
 msgstr "Semantički sloj nije mogao biti obrisan."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic layer could not be updated."
 msgstr "Semantički sloj nije mogao biti ažuriran."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic layer created"
 msgstr "Semantički sloj kreiran"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic layer does not exist"
 msgstr "Semantički sloj ne postoji"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic layer parameters are invalid."
 msgstr "Parametri semantičkog sloja su nevažeći."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic layer type"
 msgstr "Tip semantičkog sloja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic layer updated"
 msgstr "Semantički sloj ažuriran"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic view could not be created."
 msgstr "Semantički pogled nije mogao biti kreiran."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic view could not be deleted."
 msgstr "Semantički pogled nije mogao biti obrisan."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic view could not be updated."
 msgstr "Semantički pregled nije moguće ažurirati."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic view does not exist"
 msgstr "Semantički pregled ne postoji"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic view parameters are invalid."
 msgstr "Parametri semantičkog pregleda su nevažeći."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic view updated"
 msgstr "Semantički pregled je ažuriran"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Semantic views"
 msgstr "Semantički pregledi"
 
@@ -16144,9 +15317,7 @@ msgstr "Podešavanja"
 msgid "Settings for time series"
 msgstr "Podešavanja za vremenske serije"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Shape"
 msgstr "Oblik"
 
@@ -16163,8 +15334,6 @@ msgstr "Podeli grafikon putem e-pošte"
 msgid "Share permalink by email"
 msgstr "Podeli trajnu vezu putem e-pošte"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Shared"
 msgstr "Deljeno"
 
@@ -16264,8 +15433,6 @@ msgstr "Prikaži nazive metrika"
 msgid "Show Range Filter"
 msgstr "Prikaži filter opsega"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Show SQL"
 msgstr "Prikaži SQL"
 
@@ -16293,9 +15460,7 @@ msgstr "Prikaži gornje oznake"
 msgid "Show Values"
 msgstr "Prikaži vrednosti"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Show X-axis"
 msgstr "Prikaži X-osu"
 
@@ -16323,8 +15488,6 @@ msgstr "Prikaži oznake na liniji ose"
 msgid "Show cell bars"
 msgstr "Prikaži trake u ćelijama"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Show cell bars for all columns"
 msgstr "Prikaži trake u ćelijama za sve kolone"
 
@@ -16460,9 +15623,7 @@ msgstr ""
 "Prikaži ukupne agregacije odabranih metrika. Imajte na umu da ograničenje "
 "broja redova ne važi za rezultat."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Show value"
 msgstr "Prikaži vrednost"
 
@@ -16524,9 +15685,7 @@ msgstr "Prikazuje listu svih serija dostupnih u tom vremenskom trenutku"
 msgid "Shows or hides markers for the time series"
 msgstr "Prikazuje ili sakriva markere za vremensku seriju"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "Sign in"
 msgstr "Prijavi se"
 
@@ -16600,15 +15759,11 @@ msgstr "Preskoči razmake posle razdvajača"
 msgid "Skipped %d system themes that cannot be deleted"
 msgstr "Preskočeno %d sistemskih tema koje se ne mogu obrisati"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "Slice Id"
 msgstr "ID isečka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, lv, ru,
 # uk]
-#, fuzzy
 msgid "Slider"
 msgstr "Klizač"
 
@@ -16643,18 +15798,12 @@ msgstr ""
 msgid "Solid"
 msgstr "Puna"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Some groups could not be resolved and are shown as IDs."
 msgstr "Neke grupe nisu mogle biti razrešene i prikazane su kao ID-ovi."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr "Neke dozvole nisu mogle biti razrešene i prikazane su kao ID-ovi."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
@@ -16745,9 +15894,7 @@ msgstr ""
 msgid "Sort"
 msgstr "Sortiraj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Sort Ascending"
 msgstr "Sortiraj rastuće"
 
@@ -16797,13 +15944,9 @@ msgstr "Sortiraj po podacima"
 msgid "Sort by metric"
 msgstr "Sortiraj po metrici"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Sort by original table order"
 msgstr "Sortiraj po originalnom redosledu tabele"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Sort by series"
 msgstr "Sortiraj po serijama"
 
@@ -16819,8 +15962,6 @@ msgstr "Sortiraj kolone po"
 msgid "Sort descending"
 msgstr "Sortiraj opadajuće"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
-#, fuzzy
 msgid "Sort display control values"
 msgstr "Sortiraj vrednosti kontrole prikaza"
 
@@ -16828,9 +15969,7 @@ msgstr "Sortiraj vrednosti kontrole prikaza"
 msgid "Sort filter values"
 msgstr "Sortiraj vrednosti filtera"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Sort legend"
 msgstr "Sortiraj legendu"
 
@@ -16843,8 +15982,6 @@ msgstr "Metrika za sortiranje"
 msgid "Sort query by"
 msgstr "Sortiraj upit po"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Sort results by series name in ascending order. When combined with \"Sort by"
 " metric\", this acts as a tiebreaker for equal metric values. Adding this "
@@ -16872,9 +16009,7 @@ msgstr "Tip sortiranja"
 msgid "Source"
 msgstr "Izvor"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Source Color"
 msgstr "Boja izvora"
 
@@ -16886,8 +16021,6 @@ msgstr "Izvorni SQL"
 msgid "Source category"
 msgstr "Kategorija izvora"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Source location"
 msgstr "Lokacija izvora"
 
@@ -16988,9 +16121,7 @@ msgstr "Početak (uključivo)"
 msgid "Start Longitude & Latitude"
 msgstr "Početna geografska dužina i širina"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Start Time"
 msgstr "Vreme početka"
 
@@ -17025,14 +16156,10 @@ msgstr ""
 msgid "Started"
 msgstr "Pokrenuto"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Starts With"
 msgstr "Počinje sa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Starts with (ILIKE x%)"
 msgstr "Počinje sa (ILIKE x%)"
 
@@ -17112,8 +16239,6 @@ msgstr "Tok"
 msgid "Streets"
 msgstr "Ulice"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Streets (Carto)"
 msgstr "Ulice (Carto)"
 
@@ -17137,8 +16262,6 @@ msgstr "Sa obrisom"
 msgid "Structural"
 msgstr "Strukturni"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Structure is managed by the upstream semantic layer and is read-only."
 msgstr ""
 "Struktura je upravljana od strane izvornog semantičkog sloja i samo je za "
@@ -17152,15 +16275,11 @@ msgstr "Stil"
 msgid "Style the ends of the progress bar with a round cap"
 msgstr "Stilizuj krajeve trake napretka sa okruglim završetkom"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Styling"
 msgstr "Stilizacija"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Subcategories"
 msgstr "Podkategorije"
 
@@ -17172,8 +16291,6 @@ msgstr "Poddomen"
 msgid "Submit"
 msgstr "Pošalji"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Subscribers"
 msgstr "Pretplatnici"
 
@@ -17189,8 +16306,7 @@ msgstr "Podzbir"
 msgid "Success"
 msgstr "Uspeh"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Successfully changed %s!"
 msgstr "Uspešno promenjeno %s!"
 
@@ -17267,8 +16383,7 @@ msgstr "Superset je naišao na neočekivanu grešku."
 msgid "Supported databases"
 msgstr "Podržane baze podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Swap %s"
 msgstr "Razmeni %s"
 
@@ -17332,9 +16447,7 @@ msgstr "Sintaksa"
 msgid "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s"
 msgstr "Sintaksna greška: %(qualifier)s ulaz \"%(input)s\" očekuje \"%(expected)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "System"
 msgstr "Sistemska"
 
@@ -17395,9 +16508,7 @@ msgstr "Tabela %(table)s nije pronađena u bazi podataka %(db)s"
 msgid "Table Name"
 msgstr "Naziv tabele"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Table V2"
 msgstr "Tabela V2"
 
@@ -17534,33 +16645,22 @@ msgstr "Ciljna kategorija"
 msgid "Target value"
 msgstr "Ciljna vrednost"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Task"
 msgstr "Zadatak"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "Task cancelled: %s"
 msgstr "Zadatak otkazan: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Task could not be aborted."
 msgstr "Zadatak nije mogao biti prekinut."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Task could not be created."
 msgstr "Zadatak nije mogao biti kreiran."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Task could not be updated."
 msgstr "Zadatak nije mogao biti ažuriran."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Task is not abortable. The task is in progress but has not registered an "
 "abort handler."
@@ -17568,18 +16668,12 @@ msgstr ""
 "Zadatak se ne može prekinuti. Zadatak je u toku, ali nije registrovao "
 "rukovaoca za prekid."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Task parameters are invalid."
 msgstr "Parametri zadatka su nevažeći."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Tasks"
 msgstr "Zadaci"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Tasks will appear here as background operations are executed."
 msgstr "Zadaci će se ovde prikazati kada se izvrše operacije u pozadini."
 
@@ -17653,13 +16747,11 @@ msgstr "Ravnanje teksta"
 msgid "Text embedded in email"
 msgstr "Tekst ugrađen u e-poštu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "The %s"
 msgstr "%s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "The %s linked to this chart may have been deleted."
 msgstr "%s povezan sa ovim grafikonom je možda obrisan."
 
@@ -17695,8 +16787,6 @@ msgstr ""
 "GeoJsonLayer prima podatke u GeoJSON formatu i prikazuje ih kao interaktivne"
 " poligone, linije i tačke (krugove, ikone i/ili tekst)."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "The Global Task Framework is not enabled. Please contact your administrator "
 "to enable the GLOBAL_TASK_FRAMEWORK feature flag."
@@ -17704,8 +16794,6 @@ msgstr ""
 "Global Task Framework nije omogućen. Obratite se administratoru da omogući "
 "opciju GLOBAL_TASK_FRAMEWORK."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True in "
 "your feature flags to use @task. See "
@@ -17767,8 +16855,6 @@ msgstr ""
 "Kategorija izvornih čvorova koja se koristi za dodeljivanje boja. Ako je "
 "čvor povezan sa više od jedne kategorije, koristiće se samo prva."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "Grafikon se još učitava. Sačekajte trenutak i pokušajte ponovo."
 
@@ -18033,8 +17119,6 @@ msgid ""
 "%(columns)s. "
 msgstr "Sledeći unosi u `series_columns` nedostaju u `columns`: %(columns)s. "
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "The following fields contain sensitive information that was masked during "
 "export. Please provide the values to import this database."
@@ -18267,18 +17351,9 @@ msgstr "Objekat ne postoji u datoj bazi podataka."
 msgid "The parameter %(parameters)s in your query is undefined."
 msgid_plural ""
 "The following parameters in your query are undefined: %(parameters)s."
-msgstr[0] ""
-"[0] \"Parametar %(parameters)s u vašem upitu nije definisan.\"; [1] "
-"\"Sledeći parametri u vašem upitu nisu definisani: %(parameters)s.\"; [2] "
-"\"Sledeći parametri u vašem upitu nisu definisani: %(parameters)s.\""
-msgstr[1] ""
-"[0] \"Parametar %(parameters)s u vašem upitu nije definisan.\"; [1] "
-"\"Sledeći parametri u vašem upitu nisu definisani: %(parameters)s.\"; [2] "
-"\"Sledeći parametri u vašem upitu nisu definisani: %(parameters)s.\""
-msgstr[2] ""
-"[0] \"Parametar %(parameters)s u vašem upitu nije definisan.\"; [1] "
-"\"Sledeći parametri u vašem upitu nisu definisani: %(parameters)s.\"; [2] "
-"\"Sledeći parametri u vašem upitu nisu definisani: %(parameters)s.\""
+msgstr[0] "Parametar %(parameters)s u vašem upitu nije definisan."
+msgstr[1] "Sledeći parametri u vašem upitu nisu definisani: %(parameters)s."
+msgstr[2] "Sledeći parametri u vašem upitu nisu definisani: %(parameters)s."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -18345,8 +17420,6 @@ msgstr ""
 " „Sertifikat“ konfiguracije baze podataka nisu prisutni u izvoznim fajlovima"
 " i treba ih dodati ručno nakon uvoza ako su potrebni."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "The passwords for the databases below are needed in order to import them."
 msgstr "Lozinke za baze podataka ispod su potrebne da bi se uvezle."
@@ -18709,8 +17782,6 @@ msgstr "Merna jedinica za navedeni radijus tačke"
 msgid "The upper limit of the threshold range of the Isoband"
 msgstr "Gornja granica opsega praga za Isoband"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "The user has been created successfully."
 msgstr "Korisnik je uspešno kreiran."
 
@@ -18775,23 +17846,17 @@ msgstr "Širina okvira elemenata"
 msgid "The width of the lines"
 msgstr "Širina linija"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "The width of the lines as either a fixed value or variable width based on a "
 "metric."
 msgstr ""
 "Širina linija kao fiksna vrednost ili promenljiva širina na osnovu metrike."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Theme"
 msgstr "Tema"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Theme imported"
 msgstr "Tema je uvezena"
 
@@ -18799,9 +17864,7 @@ msgstr "Tema je uvezena"
 msgid "Theme not found."
 msgstr "Tema nije pronađena."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "Themes"
 msgstr "Teme"
 
@@ -18862,8 +17925,7 @@ msgstr ""
 "Nema dovoljno prostora za ovu komponentu. Pokušajte da smanjite njenu širinu"
 " ili da uvećate širinu odredišta."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid ""
 "There was a problem refreshing your dashboard. We'll try again in %s, as "
 "scheduled."
@@ -18905,13 +17967,9 @@ msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr ""
 "Došlo je do greške pri preuzimanju filtriranih grafikona i kontrolnih tabli:"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "There was an error loading groups."
 msgstr "Došlo je do greške pri učitavanju grupa."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "There was an error loading permissions."
 msgstr "Došlo je do greške pri učitavanju dozvola."
 
@@ -18957,13 +18015,9 @@ msgid "There was an error updating the user. Please, try again."
 msgstr ""
 "Došlo je do greške pri ažuriranju korisnika. Molimo, pokušajte ponovo."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "There was an error while fetching groups"
 msgstr "Došlo je do greške pri preuzimanju grupa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "There was an error while fetching permissions"
 msgstr "Došlo je do greške pri preuzimanju dozvola"
 
@@ -18975,8 +18029,7 @@ msgstr "Došlo je do greške pri preuzimanju korisnika"
 msgid "There was an error with your request"
 msgstr "Došlo je do greške sa vašim zahtevom"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "There was an issue cancelling the task: %s"
 msgstr "Došlo je do problema pri otkazivanju zadatka: %s"
 
@@ -19000,8 +18053,7 @@ msgstr "Došlo je do problema pri brisanju registracije korisnika: %s"
 msgid "There was an issue deleting rules: %s"
 msgstr "Došlo je do problema pri brisanju pravila: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "There was an issue deleting the selected %s"
 msgstr "Došlo je do problema pri brisanju odabranog %s"
 
@@ -19044,23 +18096,19 @@ msgstr "Došlo je do problema pri brisanju odabranih tema: %s"
 msgid "There was an issue deleting: %s"
 msgstr "Došlo je do problema pri brisanju: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "There was an issue duplicating the %s."
 msgstr "Došlo je do problema pri dupliranju %s."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "There was an issue duplicating the selected %s: %s"
 msgstr "Došlo je do problema pri dupliranju odabranog %s: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "There was an issue exporting the %s"
 msgstr "Došlo je do problema pri izvozu %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "There was an issue exporting the selected %s"
 msgstr "Došlo je do problema pri izvozu odabranog %s"
 
@@ -19192,8 +18240,6 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Ovaj grafikon je premešten u drugi opseg filtera."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
 "Ovim grafikonom se upravlja eksterno i ne može se prepisati u Superset-u."
@@ -19218,8 +18264,7 @@ msgstr ""
 "Ovaj tip grafikona nije podržan kada se nesačuvani upit koristi kao izvor "
 "grafikona. "
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "This column might be incompatible with current %s"
 msgstr "Ova kolona možda nije kompatibilna sa trenutnim %s"
 
@@ -19335,8 +18380,6 @@ msgid ""
 "table."
 msgstr "Ova tabela u bazi podataka ne sadrži podatke. Izaberite drugu tabelu."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "This database uses OAuth2 for authentication. Please click the link above to"
 " grant Apache Superset permission to access the data. Your personal access "
@@ -19387,8 +18430,7 @@ msgstr ""
 msgid "This filter already exist on the report"
 msgstr "Ovaj filter već postoji na izveštaju"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr "Ovaj filter možda nije kompatibilan sa trenutnim %s"
 
@@ -19396,13 +18438,9 @@ msgstr "Ovaj filter možda nije kompatibilan sa trenutnim %s"
 msgid "This folder is currently empty"
 msgstr "Ova fascikla je trenutno prazna"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This folder only supports columns"
 msgstr "Ova fascikla podržava samo kolone"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This folder only supports metrics"
 msgstr "Ova fascikla podržava samo metrike"
 
@@ -19462,8 +18500,6 @@ msgstr "Ovo je podrazumevana fascikla"
 msgid "This is the default light theme"
 msgstr "Ovo je podrazumevana svetla tema"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This is the only time you will see this key. Store it securely."
 msgstr ""
 "Ovo je jedini put kada ćete videti ovaj ključ. Čuvajte ga na bezbednom "
@@ -19480,8 +18516,6 @@ msgstr ""
 "Dinamički se generiše pri podešavanju veličine i pozicije vidžeta pomoću "
 "povlačenja i ispuštanja (drag & drop) u prikazu kontrolne table"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -19510,8 +18544,7 @@ msgstr ""
 msgid "This may be triggered by:"
 msgstr "Ovo može biti izazvano sledećim:"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Ova metrika možda nije kompatibilna sa trenutnim %s"
 
@@ -19609,8 +18642,7 @@ msgstr[0] "Ovo je pokrenuto sledećim:"
 msgstr[1] "Ovo može biti pokrenuto sledećim:"
 msgstr[2] "Ovo može biti pokrenuto sledećim:"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
 msgstr "Ovo će prekinuti (zaustaviti) zadatak za svih %s pretplatnika."
 
@@ -19624,8 +18656,6 @@ msgstr ""
 "kolonama za povećanje i smanjenje. Osnovno uslovno formatiranje može biti "
 "prepisano uslovnim formatiranjem ispod."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "This will cancel the task."
 msgstr "Ovo će otkazati zadatak."
 
@@ -19818,8 +18848,6 @@ msgstr "Dodatak filtera za vremensku granulaciju"
 msgid "Time grain missing"
 msgstr "Nedostaje vremenska granulacija"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Time grain options"
 msgstr "Opcije vremenske granulacije"
 
@@ -19885,19 +18913,14 @@ msgstr "Pivot perioda vremenske serije"
 msgid "Time-series Table"
 msgstr "Tabela vremenske serije"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Timed Out"
 msgstr "Vreme je isteklo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Timeline"
 msgstr "Vremenska linija"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid ""
 "Timeout configured (%s seconds) but no abort handler defined. Task will "
 "continue running past the timeout."
@@ -19975,9 +18998,7 @@ msgstr "Da biste dobili čitljiv URL za svoju kontrolnu tablu"
 msgid "Token Request URI"
 msgstr "URI zahteva za token"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Tool Panel"
 msgstr "Panel alatki"
 
@@ -20017,9 +19038,7 @@ msgstr "Gore"
 msgid "Top left"
 msgstr "Gore levo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Top n"
 msgstr "Najveće N"
 
@@ -20045,15 +19064,11 @@ msgstr "Ukupno (%(aggfunc)s)"
 msgid "Total (%(aggregatorName)s)"
 msgstr "Ukupno (%(aggregatorName)s)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Total color"
 msgstr "Boja ukupnog"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Total label"
 msgstr "Oznaka ukupnog"
 
@@ -20115,9 +19130,7 @@ msgstr "Trougao"
 msgid "Trigger Alert If..."
 msgstr "Pokreni upozorenje ako..."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "True"
 msgstr "Tačno"
 
@@ -20159,8 +19172,6 @@ msgid ""
 "Truncates the specified date to the accuracy specified by the date unit."
 msgstr "Skraćuje navedeni datum na tačnost određenu jedinicom datuma."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Trust this URL and don't ask again"
 msgstr "Veruj ovom URL-u i ne pitaj ponovo"
 
@@ -20199,8 +19210,6 @@ msgstr "Unesite vrednost"
 msgid "Type a value here"
 msgstr "Unesite vrednost ovde"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Type a value..."
 msgstr "Unesite vrednost..."
 
@@ -20208,8 +19217,6 @@ msgstr "Unesite vrednost..."
 msgid "Type is required"
 msgstr "Tip je obavezan"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Type of Google Sheets allowed"
 msgstr "Dozvoljeni tip Google tabela"
 
@@ -20221,18 +19228,12 @@ msgstr "Tip grafikona za prikaz u sparklajnu"
 msgid "Type of comparison, value difference or percentage"
 msgstr "Tip poređenja, razlika vrednosti ili procenat"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Type to search (contains)..."
 msgstr "Ukucajte za pretragu (sadrži)..."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Type to search (ends with)..."
 msgstr "Ukucajte za pretragu (završava sa)..."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Type to search (starts with)..."
 msgstr "Ukucajte za pretragu (počinje sa)..."
 
@@ -20247,8 +19248,6 @@ msgstr "Administracija UI tema nije omogućena."
 msgid "URL"
 msgstr "URL"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "URL Filters"
 msgstr "URL filteri"
 
@@ -20256,9 +19255,7 @@ msgstr "URL filteri"
 msgid "URL Parameters"
 msgstr "URL parametri"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "URL Slug"
 msgstr "URL slag"
 
@@ -20292,8 +19289,6 @@ msgstr ""
 " Job User“ i da su podešena sledeća ovlašćenja: "
 "„bigquery.readsessions.create“, „bigquery.readsessions.getData“"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Unable to connect. Verify that the following roles are set on the service "
 "account: \"Cloud Datastore Viewer\", \"Cloud Datastore User\", \"Cloud "
@@ -20324,8 +19319,6 @@ msgstr "Nije moguće dekodirati vrednost"
 msgid "Unable to encode value"
 msgstr "Nije moguće kodirati vrednost"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr ""
 "Nije moguće preuzeti semantičke prikaze. Proverite konfiguraciju sloja."
@@ -20335,8 +19328,6 @@ msgstr ""
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nije moguće pronaći takav praznik: [%(holiday)s]"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Unable to generate download payload"
 msgstr "Nije moguće generisati sadržaj za preuzimanje"
 
@@ -20418,8 +19409,6 @@ msgstr "Opozovi radnju"
 msgid "Undo?"
 msgstr "Opozvati?"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Unexpected HTTP 401 response. Check your credentials."
 msgstr "Neočekivan HTTP 401 odgovor. Proverite svoje akreditive."
 
@@ -20444,15 +19433,11 @@ msgstr "Neočekivano, ekstenzija datoteke nije pronađena"
 msgid "Unexpected time range: %(error)s"
 msgstr "Neočekivani vremenski opseg: %(error)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Ungroup By"
 msgstr "Ukloni grupisanje po"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Unhide"
 msgstr "Prikaži"
 
@@ -20465,9 +19450,7 @@ msgstr "Nepoznato"
 msgid "Unknown Doris server host \"%(hostname)s\"."
 msgstr "Nepoznat host Doris servera „%(hostname)s“."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Unknown Error"
 msgstr "Nepoznata greška"
 
@@ -20503,8 +19486,6 @@ msgstr "Nepoznata greška"
 msgid "Unknown input format"
 msgstr "Nepoznat format unosa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Unknown tokens will be highlighted as warnings."
 msgstr "Nepoznati tokeni će biti označeni kao upozorenja."
 
@@ -20516,19 +19497,13 @@ msgstr "Nepoznat tip"
 msgid "Unknown value"
 msgstr "Nepoznata vrednost"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "Unpin"
 msgstr "Otkači"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Unpin from the result panel"
 msgstr "Otkači sa panela rezultata"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Unpin from top"
 msgstr "Otkači sa vrha"
 
@@ -20584,9 +19559,7 @@ msgstr "Neimenovan upit"
 msgid "Untitled query"
 msgstr "Neimenovan upit"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, lv, ru,
 # uk]
-#, fuzzy
 msgid "Unverified"
 msgstr "Neprovereno"
 
@@ -20594,8 +19567,6 @@ msgstr "Neprovereno"
 msgid "Update"
 msgstr "Ažuriraj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Update auto-refresh"
 msgstr "Ažuriraj automatsko osvežavanje"
 
@@ -20736,9 +19707,7 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 "Koristi format datuma čak i kada vrednost metrike nije vremenska oznaka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Use gradient"
 msgstr "Koristi gradijent"
 
@@ -20791,9 +19760,7 @@ msgstr ""
 msgid "User"
 msgstr "Korisnik"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # sk, uk]
-#, fuzzy
 msgid "User Name"
 msgstr "Korisničko ime"
 
@@ -20805,9 +19772,7 @@ msgstr "Registracije korisnika"
 msgid "User doesn't have the proper permissions."
 msgstr "Korisnik nema odgovarajuće dozvole."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "User info"
 msgstr "Informacije o korisniku"
 
@@ -20840,9 +19805,7 @@ msgstr "Korisničko ime"
 msgid "Username is required"
 msgstr "Korisničko ime je obavezno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "Username:"
 msgstr "Korisničko ime:"
 
@@ -20886,8 +19849,6 @@ msgstr ""
 "razumeli kroz koje faze je vrednost prošla. Korisno za vizualizaciju "
 "višestepenih, višegrupnih levaka i tokova."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Koristi prvih 25 vrednosti ako dimenzija sadrži više."
 
@@ -20895,9 +19856,7 @@ msgstr "Koristi prvih 25 vrednosti ako dimenzija sadrži više."
 msgid "Valid SQL expression"
 msgstr "Važeći SQL izraz"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Validate query"
 msgstr "Proveri upit"
 
@@ -20910,9 +19869,7 @@ msgstr "Proveri svoj izraz"
 msgid "Validating connectivity for %s"
 msgstr "Provera povezivosti za %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Validating..."
 msgstr "Provera u toku..."
 
@@ -20925,9 +19882,7 @@ msgstr "Vrednost"
 msgid "Value Aggregation"
 msgstr "Agregacija vrednosti"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Value Columns"
 msgstr "Kolone vrednosti"
 
@@ -20980,9 +19935,7 @@ msgstr "Vrednost mora biti 0 ili veća"
 msgid "Value must be greater than 0"
 msgstr "Vrednost mora biti veća od 0"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "Values"
 msgstr "Vrednosti"
 
@@ -21229,20 +20182,14 @@ msgstr "Tip vizualizacije"
 msgid "WED"
 msgstr "SRE"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, sk, uk]
-#, fuzzy
 msgid "WFS"
 msgstr "WFS"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, sk, uk]
-#, fuzzy
 msgid "WMS"
 msgstr "WMS"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Waiting for first refresh"
 msgstr "Čeka se prvo osvežavanje"
 
@@ -21259,9 +20206,7 @@ msgstr "Čeka se baza podataka..."
 msgid "Want to add a new database?"
 msgstr "Želite da dodate novu bazu podataka?"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
-#, fuzzy
 msgid "Warehouse"
 msgstr "Skladište"
 
@@ -21282,8 +20227,6 @@ msgstr ""
 "Upozorenje! Promena skupa podataka može pokvariti grafikon ako metapodaci ne"
 " postoje."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
@@ -21544,8 +20487,6 @@ msgid "When using other than adaptive formatting, labels may overlap"
 msgstr ""
 "Kada se koristi format različit od adaptivnog, oznake se mogu preklapati"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid ""
 "When using this option, default value can't be set. Using this option may "
 "impact the load times for your dashboard."
@@ -21654,8 +20595,6 @@ msgstr "Da li prikazati minimalne i maksimalne vrednosti X ose"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Da li prikazati minimalne i maksimalne vrednosti Y ose"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Whether to display the numbered column"
 msgstr "Da li prikazati numerisanu kolonu"
 
@@ -21792,8 +20731,6 @@ msgstr "Koji srodni elementi se ističu pri prelasku mišem"
 msgid "Whisker/outlier options"
 msgstr "Opcije za usove/ekstremne vrednosti"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
-#, fuzzy
 msgid "Why do I need to create a database?"
 msgstr "Zašto treba da napravim bazu podataka?"
 
@@ -21810,8 +20747,6 @@ msgstr "Širina intervala poverenja. Treba da bude između 0 i 1"
 msgid "Width of the sparkline"
 msgstr "Širina sparklajna"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Width scale multiplier"
 msgstr "Množitelj skale širine"
 
@@ -21916,9 +20851,7 @@ msgstr "X osa"
 msgid "X-scale interval"
 msgstr "Interval skale X"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, sk, uk]
-#, fuzzy
 msgid "XYZ"
 msgstr "XYZ"
 
@@ -22016,8 +20949,6 @@ msgstr "Godina %s"
 msgid "Yes"
 msgstr "Da"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Yes, Cancel"
 msgstr "Da, otkaži"
 
@@ -22179,8 +21110,6 @@ msgstr "Nemate dozvolu da uređujete ovaj grafikon"
 msgid "You do not have permission to edit this dashboard"
 msgstr "Nemate dozvolu da uređujete ovu kontrolnu tablu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "You do not have permission to perform this operation"
 msgstr "Nemate dozvolu za izvršavanje ove operacije"
 
@@ -22213,23 +21142,15 @@ msgstr "Nemate pristup ovom skupu podataka."
 msgid "You don't have access to this embedded dashboard config."
 msgstr "Nemate pristup ovoj konfiguraciji ugrađene kontrolne table."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "You don't have access to this semantic view."
 msgstr "Nemate pristup ovom semantičkom prikazu."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "You don't have permission to copy to clipboard"
 msgstr "Nemate dozvolu za kopiranje u privremenu memoriju"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "You don't have permission to export data"
 msgstr "Nemate dozvolu za izvoz podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "You don't have permission to export images"
 msgstr "Nemate dozvolu za izvoz slika"
 
@@ -22263,13 +21184,10 @@ msgstr "Nemate prava da kreirate grafikon"
 msgid "You don't have the rights to create a dashboard"
 msgstr "Nemate prava da kreirate kontrolnu tablu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "You don't have the rights to export data"
 msgstr "Nemate prava za izvoz podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "You have been removed from task: %s"
 msgstr "Uklonjeni ste sa zadatka: %s"
 
@@ -22297,8 +21215,7 @@ msgstr ""
 "potpunosti opozvati naredne radnje. Možete sačuvati svoje trenutno stanje da"
 " biste resetovali istoriju."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid ""
 "You must be a %s owner in order to edit. Please reach out to a %s owner to "
 "request modifications or edit access."
@@ -22323,8 +21240,6 @@ msgstr "Morate izabrati naziv za novu kontrolnu tablu"
 msgid "You must run the query successfully first"
 msgstr "Morate prvo uspešno izvršiti upit"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "You need to"
 msgstr "Morate"
 
@@ -22336,8 +21251,7 @@ msgstr ""
 "Ažurirali ste vrednosti na kontrolnoj tabli, ali grafikon nije automatski "
 "ažuriran. Pokrenite upit klikom na dugme „Ažuriraj grafikon” ili"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
 "subscriber(s)."
@@ -22425,8 +21339,6 @@ msgstr "Vaš izveštaj nije mogao biti obrisan"
 msgid "Your user information"
 msgstr "Informacije o vašem korisniku"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "Z-A"
 msgstr "Z-A"
 
@@ -22549,8 +21461,6 @@ msgstr "`row_offset` mora biti veći ili jednak 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` mora biti veći ili jednak 0"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "a few seconds"
 msgstr "nekoliko sekundi"
 
@@ -22607,8 +21517,6 @@ msgstr "automatski"
 msgid "background"
 msgstr "pozadina"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "background color"
 msgstr "boja pozadine"
 
@@ -22616,9 +21524,7 @@ msgstr "boja pozadine"
 msgid "basis"
 msgstr "osnova"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "begins with"
 msgstr "počinje sa"
 
@@ -22626,9 +21532,7 @@ msgstr "počinje sa"
 msgid "below (example:"
 msgstr "ispod (primer:"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "beta"
 msgstr "beta"
 
@@ -22644,8 +21548,6 @@ msgstr "bfill"
 msgid "bolt"
 msgstr "zavrtka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "boolean"
 msgstr "logički"
 
@@ -22673,8 +21575,6 @@ msgstr "ne može biti prazno"
 msgid "cardinal"
 msgstr "kardinalni"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "cell bar"
 msgstr "traka ćelije"
 
@@ -22687,9 +21587,7 @@ msgstr "promena"
 msgid "chart"
 msgstr "grafikon"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "charts"
 msgstr "grafikoni"
 
@@ -22701,9 +21599,7 @@ msgstr "izaberite WHERE ili HAVING..."
 msgid "click here"
 msgstr "kliknite ovde"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "close"
 msgstr "zatvori"
 
@@ -22737,9 +21633,7 @@ msgstr "kolona"
 msgid "connecting to %(dbModelName)s"
 msgstr "povezivanje sa %(dbModelName)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "containing"
 msgstr "sadrži"
 
@@ -22782,19 +21676,13 @@ msgstr "kumulativna suma"
 msgid "dashboard"
 msgstr "kontrolna tabla"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "dashboards"
 msgstr "kontrolne table"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "data connection"
 msgstr "veza sa podacima"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "data connections"
 msgstr "veze sa podacima"
 
@@ -22803,8 +21691,6 @@ msgstr "veze sa podacima"
 msgid "database"
 msgstr "baza podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "databases"
 msgstr "baze podataka"
 
@@ -22816,18 +21702,12 @@ msgstr "skup podataka"
 msgid "dataset name"
 msgstr "naziv skupa podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "datasets"
 msgstr "skupovi podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "datasource"
 msgstr "izvor podataka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "datasources"
 msgstr "izvori podataka"
 
@@ -22918,9 +21798,7 @@ msgstr "odstupanje"
 msgid "dialect+driver://username:password@host:port/database"
 msgstr "dialect+driver://username:password@host:port/database"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "documentation"
 msgstr "dokumentacija"
 
@@ -22975,8 +21853,6 @@ msgstr "npr. world_population"
 msgid "e.g. xy12345.us-east-2.aws"
 msgstr "npr. xy12345.us-east-2.aws"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "e.g., CI/CD Pipeline, Analytics Script"
 msgstr "npr. CI/CD Pipeline, Analytics Script"
 
@@ -22988,14 +21864,10 @@ msgstr "režim uređivanja"
 msgid "email subject"
 msgstr "tema imejla"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "ends with"
 msgstr "završava se sa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "entire row"
 msgstr "ceo red"
 
@@ -23046,8 +21918,6 @@ msgstr "svaki mesec"
 msgid "expand"
 msgstr "proširi"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "extra.dashboard must be an object"
 msgstr "extra.dashboard mora biti objekat"
 
@@ -23055,8 +21925,6 @@ msgstr "extra.dashboard mora biti objekat"
 msgid "failed"
 msgstr "neuspelo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "farewell"
 msgstr "zbogom"
 
@@ -23071,8 +21939,6 @@ msgstr "ffill"
 msgid "flat"
 msgstr "ravan"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "for a list of available helpers."
 msgstr "za listu dostupnih pomoćnika."
 
@@ -23080,8 +21946,6 @@ msgstr "za listu dostupnih pomoćnika."
 msgid "for more information on how to structure your URI."
 msgstr "za više informacija o tome kako da strukturirate svoj URI."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
-#, fuzzy
 msgid "formatted"
 msgstr "formatirano"
 
@@ -23093,8 +21957,6 @@ msgstr "ikona tipa funkcije"
 msgid "geohash (square)"
 msgstr "geoheš (kvadrat)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "greeting"
 msgstr "pozdrav"
 
@@ -23106,8 +21968,6 @@ msgstr "toplotna mapa"
 msgid "heatmap: values are normalized across the entire heatmap"
 msgstr "toplotna mapa: vrednosti su normalizovane u okviru cele toplotne mape"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "hello"
 msgstr "zdravo"
 
@@ -23125,8 +21985,6 @@ msgstr "sat"
 msgid "in"
 msgstr "u"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "in order to run this operation."
 msgstr "da biste izvršili ovu operaciju."
 
@@ -23134,9 +21992,7 @@ msgstr "da biste izvršili ovu operaciju."
 msgid "invalid email"
 msgstr "nevažeći imejl"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "is"
 msgstr "je"
 
@@ -23156,9 +22012,7 @@ msgstr "se očekuje da bude broj"
 msgid "is expected to be an integer"
 msgstr "se očekuje da bude ceo broj"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, lv, ru,
 # uk]
-#, fuzzy
 msgid "is false"
 msgstr "je netačno"
 
@@ -23192,15 +22046,11 @@ msgstr "nije"
 msgid "is not null"
 msgstr "nije null"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "is null"
 msgstr "je null"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "is true"
 msgstr "je tačno"
 
@@ -23233,8 +22083,6 @@ msgstr "manje od {min} {name}"
 msgid "linear"
 msgstr "linearno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "locale_key"
 msgstr "locale_key"
 
@@ -23270,8 +22118,6 @@ msgstr "metri"
 msgid "metric"
 msgstr "metrika"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
-#, fuzzy
 msgid "metric type icon"
 msgstr "ikona tipa metrike"
 
@@ -23310,28 +22156,22 @@ msgstr "mora imati vrednost"
 msgid "name"
 msgstr "naziv"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "nativeFilters must be a list"
 msgstr "nativeFilters mora biti lista"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "nativeFilters[%(idx)s] missing required keys: %(keys)s"
 msgstr "nativeFilters[%(idx)s] nedostaju obavezni ključevi: %(keys)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "nativeFilters[%(idx)s] must be an object"
 msgstr "nativeFilters[%(idx)s] mora biti objekat"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "nativeFilters[%(idx)s].filterValues must be a list"
 msgstr "nativeFilters[%(idx)s].filterValues mora biti lista"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid ""
 "nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' does not exist on the "
 "dashboard"
@@ -23339,8 +22179,7 @@ msgstr ""
 "nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' ne postoji na "
 "kontrolnoj tabli"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, python-format, fuzzy
+#, python-format
 msgid "nativeFilters[%(idx)s].nativeFilterId must be a non-empty string"
 msgstr ""
 "nativeFilters[%(idx)s].nativeFilterId mora biti neprazan niz karaktera"
@@ -23354,14 +22193,10 @@ msgstr "nijedan SQL validator nije konfigurisan"
 msgid "no SQL validator is configured for %(engine_spec)s"
 msgstr "nijedan SQL validator nije konfigurisan za %(engine_spec)s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "not containing"
 msgstr "ne sadrži"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "numeric"
 msgstr "numerički"
 
@@ -23373,9 +22208,7 @@ msgstr "ikona numeričkog tipa"
 msgid "nvd3"
 msgstr "nvd3"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
 msgid "of"
 msgstr "od"
 
@@ -23399,9 +22232,7 @@ msgstr "ili koristite postojeće iz panela na desnoj strani"
 msgid "orderby column must be populated"
 msgstr "kolona za sortiranje (orderby) mora biti popunjena"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "original"
 msgstr "original"
 
@@ -23449,8 +22280,6 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "stanje trajne veze nije pronađeno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, uk]
-#, fuzzy
 msgid "pivoted_xlsx"
 msgstr "pivoted_xlsx"
 
@@ -23474,8 +22303,6 @@ msgstr "prethodna kalendarska nedelja"
 msgid "previous calendar year"
 msgstr "prethodna kalendarska godina"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "provide authorization"
 msgstr "obezbedite ovlašćenje"
 
@@ -23589,8 +22416,6 @@ msgstr "zaustavljeno"
 msgid "stream"
 msgstr "tok"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "string"
 msgstr "niska"
 
@@ -23617,8 +22442,6 @@ msgstr "sintaksa."
 msgid "tag"
 msgstr "oznaka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "task"
 msgstr "zadatak"
 
@@ -23626,8 +22449,6 @@ msgstr "zadatak"
 msgid "temporal type icon"
 msgstr "ikona vremenskog tipa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "text color"
 msgstr "boja teksta"
 
@@ -23636,24 +22457,16 @@ msgstr "boja teksta"
 msgid "textarea"
 msgstr "tekstuelno polje"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "the Handlebars chart documentation"
 msgstr "dokumentaciju Handlebars grafikona"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
-#, fuzzy
 msgid "theme"
 msgstr "tema"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "timestamp"
 msgstr "vremenska oznaka"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
-#, fuzzy
 msgid "to"
 msgstr "do"
 
@@ -23669,15 +22482,11 @@ msgstr "opozovi"
 msgid "unknown type icon"
 msgstr "ikona nepoznatog tipa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "unset"
 msgstr "nije postavljeno"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
-#, fuzzy
 msgid "updated"
 msgstr "ažurirano"
 
@@ -23693,9 +22502,7 @@ msgstr ""
 msgid "use latest_partition template"
 msgstr "koristi latest_partition šablon"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
-#, fuzzy
 msgid "username"
 msgstr "korisničko ime"
 
@@ -23707,8 +22514,6 @@ msgstr "vrednost rastuće"
 msgid "value descending"
 msgstr "vrednost opadajuće"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "valuename"
 msgstr "naziv vrednosti"
 
@@ -23781,7 +22586,5 @@ msgstr "oblast zumiranja"
 msgid "© Layer attribution"
 msgstr "© Atribucija sloja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "№"
 msgstr "№"
