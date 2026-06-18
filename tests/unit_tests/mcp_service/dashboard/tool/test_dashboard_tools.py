@@ -526,6 +526,7 @@ async def test_get_dashboard_info_permalink_key_includes_filter_state(
     dashboard.owners = []
     dashboard.tags = []
     dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     mock_info.return_value = dashboard
 
@@ -772,6 +773,7 @@ async def test_get_dashboard_info_does_not_expose_access_list_or_roles(
     dashboard.owners = [owner]
     dashboard.tags = []
     dashboard.roles = [dashboard_role]
+    dashboard.embedded = []
 
     mock_info.return_value = dashboard
 
