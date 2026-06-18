@@ -69,9 +69,8 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         # Rename deprecated kwargs before any processing so that downstream code
         # (time-range resolution, QueryObject) only ever sees the canonical names.
         for field in DEPRECATED_FIELDS:
-            if field.old_name in kwargs:
-                if value := kwargs.pop(field.old_name):
-                    kwargs.setdefault(field.new_name, value)
+            if old_val := kwargs.pop(field.old_name, None):
+                kwargs.setdefault(field.new_name, old_val)
 
         # Process row limit taking server pagination into account
         row_limit = self._process_row_limit(
