@@ -138,3 +138,32 @@ class TestQueryObjectFactory:
             **raw_query_object,
         )
         assert query_object.metric_names == ["SUM", "num_girls", "num_boys"]
+
+    def test_deprecated_groupby_renamed_to_columns(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        """groupby in stored query_context should be silently renamed to columns."""
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object.pop("columns", None)
+        raw_query_object["groupby"] = ["name", "gender"]
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"], **raw_query_object
+        )
+        assert query_object.columns == ["name", "gender"]
+        assert not hasattr(query_object, "groupby")
+
+    def test_deprecated_groupby_does_not_overwrite_columns(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        """When both groupby and columns are present, columns takes precedence."""
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object["columns"] = ["state"]
+        raw_query_object["groupby"] = ["name", "gender"]
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"], **raw_query_object
+        )
+        assert query_object.columns == ["state"]
