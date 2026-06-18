@@ -59,6 +59,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import logging
+import re
 import time
 import uuid
 from datetime import datetime
@@ -71,6 +72,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
+    SupersetParseError,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
@@ -429,7 +431,30 @@ class SQLExecutor:
         rendered_sql = self._render_sql_template(sql, opts.template_params)
 
         # 2. Parse SQL with SQLScript - this is the ORIGINAL script
-        original_script = SQLScript(rendered_sql, self.database.db_engine_spec.engine)
+        #
+        # Some disallowed functions (e.g. MySQL's `KILL`) are reserved
+        # statement-level keywords in the dialect grammar and cannot appear
+        # as a function call inside a SELECT projection, so sqlglot fails to
+        # parse SQL like `SELECT KILL(123)` rather than returning an AST we
+        # could inspect via the normal AST-based check in _check_security().
+        # Without this fallback, such SQL would still be blocked (parsing
+        # failure halts execution either way) but would surface a generic
+        # parse-error message instead of the clearer "Disallowed SQL
+        # functions" error.
+        try:
+            original_script = SQLScript(
+                rendered_sql, self.database.db_engine_spec.engine
+            )
+        except SupersetParseError:
+            if disallowed := self._check_disallowed_functions_in_raw_sql(rendered_sql):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        message=(f"Disallowed SQL functions: {', '.join(disallowed)}"),
+                        error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                ) from None
+            raise
 
         # 3. Create a copy for transformation
         transformed_script = SQLScript(
@@ -693,6 +718,33 @@ class SQLExecutor:
 
         present = script.get_present_functions()
         found = {func for func in engine_disallowed if func.upper() in present}
+        return found or None
+
+    def _check_disallowed_functions_in_raw_sql(self, sql: str) -> set[str] | None:
+        """
+        Fallback, text-based disallowed-function check for SQL that failed
+        to parse entirely.
+
+        This is intentionally only used when AST parsing fails (see
+        ``_prepare_sql``) — using a word-boundary regex on raw SQL as the
+        primary check would reintroduce the false positives the AST-based
+        ``_check_disallowed_functions`` was built to avoid.
+
+        :param sql: Raw (rendered) SQL that could not be parsed
+        :returns: Set of disallowed functions found, or None if none found
+        """
+        disallowed_config = app.config.get("DISALLOWED_SQL_FUNCTIONS", {})
+        engine_name = self.database.db_engine_spec.engine
+
+        engine_disallowed = disallowed_config.get(engine_name, set())
+        if not engine_disallowed:
+            return None
+
+        found = {
+            func
+            for func in engine_disallowed
+            if re.search(rf"\b{re.escape(func)}\b", sql, re.IGNORECASE)
+        }
         return found or None
 
     def _check_disallowed_tables(self, script: SQLScript) -> set[str] | None:
