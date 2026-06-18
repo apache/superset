@@ -465,6 +465,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(RedirectView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
+        # Throwaway: sc-107283 activity-view debug page. Delete this
+        # import + add_view_no_menu when the debug UI is no longer
+        # needed (see superset/views/activity_debug.py).
+        from superset.views.activity_debug import ActivityDebugView
+
+        appbuilder.add_view_no_menu(ActivityDebugView)
 
         #
         # Add links
