@@ -106,11 +106,11 @@ export interface Dashboard {
   changed_by_name: string;
   changed_on_delta_humanized: string;
   changed_by: string;
+  changed_on?: string;
   dashboard_title: string;
   id: number;
   published: boolean;
   url: string;
-  thumbnail_url: string;
   owners: Owner[];
   tags: TagType[];
   created_by: object;

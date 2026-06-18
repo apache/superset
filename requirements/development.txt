@@ -112,7 +112,7 @@ celery==5.5.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-certifi==2025.6.15
+certifi==2026.5.20
     # via
     #   -c requirements/base-constraint.txt
     #   httpcore
@@ -174,11 +174,11 @@ cron-descriptor==1.4.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-croniter==6.0.0
+croniter==6.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-cryptography==46.0.7
+cryptography==48.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -293,7 +293,7 @@ flask-login==0.6.3
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   flask-appbuilder
-flask-migrate==3.1.0
+flask-migrate==4.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -312,7 +312,7 @@ flask-talisman==1.1.0
     #   apache-superset
 flask-testing==0.8.1
     # via apache-superset
-flask-wtf==1.2.2
+flask-wtf==1.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -471,7 +471,7 @@ jmespath==1.1.0
     # via
     #   boto3
     #   botocore
-jsonpath-ng==1.7.0
+jsonpath-ng==1.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -674,10 +674,6 @@ platformdirs==4.3.8
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-ply==3.11
-    # via
-    #   -c requirements/base-constraint.txt
-    #   jsonpath-ng
 polib==1.2.0
     # via apache-superset
 polyline==2.0.2
@@ -690,7 +686,7 @@ prison==0.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
-progress==1.6
+progress==1.6.1
     # via apache-superset
 prompt-toolkit==3.0.51
     # via
@@ -715,7 +711,7 @@ psycopg2-binary==2.9.12
     # via apache-superset
 py-key-value-aio==0.4.4
     # via fastmcp
-pyarrow==20.0.0
+pyarrow==24.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -784,7 +780,7 @@ pynacl==1.6.2
     # via
     #   -c requirements/base-constraint.txt
     #   paramiko
-pyopenssl==26.0.0
+pyopenssl==26.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   shillelagh
@@ -838,14 +834,13 @@ python-dotenv==1.2.2
     #   apache-superset
     #   fastmcp
     #   pydantic-settings
-python-ldap==3.4.5
+python-ldap==3.4.7
     # via apache-superset
 python-multipart==0.0.29
     # via mcp
 pytz==2025.2
     # via
     #   -c requirements/base-constraint.txt
-    #   croniter
     #   flask-babel
     #   pandas
     #   trino
@@ -925,7 +920,7 @@ s3transfer==0.16.0
     # via boto3
 secretstorage==3.5.0
     # via keyring
-selenium==4.32.0
+selenium==4.44.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -943,7 +938,7 @@ shillelagh==1.4.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-simplejson==3.20.1
+simplejson==4.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -980,7 +975,7 @@ sqlalchemy==1.4.54
     #   shillelagh
     #   sqlalchemy-bigquery
     #   sqlalchemy-utils
-sqlalchemy-bigquery==1.15.0
+sqlalchemy-bigquery==1.17.0
     # via apache-superset
 sqlalchemy-utils==0.42.0
     # via
@@ -1011,7 +1006,7 @@ tabulate==0.10.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-tiktoken==0.12.0
+tiktoken==0.13.0
     # via apache-superset
 tomli-w==1.2.0
     # via apache-superset-extensions-cli
@@ -1023,7 +1018,7 @@ tqdm==4.67.1
     #   prophet
 trino==0.330.0
     # via apache-superset
-trio==0.30.0
+trio==0.33.0
     # via
     #   -c requirements/base-constraint.txt
     #   selenium
@@ -1125,7 +1120,7 @@ wsproto==1.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   trio-websocket
-wtforms==3.2.1
+wtforms==3.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1140,7 +1135,7 @@ xlrd==2.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
-xlsxwriter==3.0.9
+xlsxwriter==3.2.9
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

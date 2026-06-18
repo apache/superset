@@ -20,20 +20,21 @@ Check that source-code changes don't cause translation regressions.
 
 What counts as a regression
 ---------------------------
-A regression is an *existing translation that a source change invalidated* —
-i.e. a string was renamed/reworded so its committed translation no longer
-applies. ``babel_update.sh`` (``pybabel update --ignore-obsolete``) surfaces
-exactly these as **newly fuzzy** entries: the old translation is fuzzy-matched
-onto the new ``msgid`` and flagged ``#, fuzzy``.
+A regression is an *existing translation that a source change invalidated*.
+The check keys on the **increase in fuzzy entries** rather than a drop in the
+translated count, because a count drop happens identically for a benign
+*deletion* and a real *rename*, so it cannot distinguish the two — whereas a
+``#, fuzzy`` marker unambiguously flags a stranded translation.
 
-Crucially, *deleting* a translatable string is **not** a regression. With
-``--ignore-obsolete`` a removed string is dropped from the catalogs entirely;
-no fuzzy entry is created. So a PR that intentionally removes a string (e.g. a
-security fix that stops rendering a value) legitimately lowers the translated
-count without introducing any fuzzies, and must not be flagged. We therefore
-key the check on the **increase in fuzzy entries**, not on a drop in the
-translated count (a drop happens identically for a benign deletion and a real
-rename, so it cannot distinguish the two).
+Note ``babel_update.sh`` runs ``pybabel update`` with ``--no-fuzzy-matching``,
+so *adding* (or renaming) a source string does **not** auto-generate a fuzzy
+guess against an unrelated existing translation — new strings land as cleanly
+untranslated (empty ``msgstr``). This deliberately avoids the prior behaviour
+where *every* PR that merely added a translatable string tripped this check on
+spurious fuzzies. As a result the check now guards against ``#, fuzzy`` entries
+that arrive another way — e.g. a committed ``.po`` edit — rather than ones the
+update step synthesises. *Deleting* a string is still not a regression: with
+``--ignore-obsolete`` it is simply dropped and no fuzzy is created.
 
 Usage
 -----

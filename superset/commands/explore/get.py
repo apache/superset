@@ -19,7 +19,7 @@ import logging
 from abc import ABC
 from typing import Any, cast, Optional
 
-from flask import request
+from flask import current_app, request
 from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -160,10 +160,15 @@ class GetExploreCommand(BaseCommand, ABC):
         metadata = None
 
         if slc:
+            extra_owners = []
+            if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
+                extra_owners = resolver(slc)
+
             metadata = {
                 "created_on_humanized": slc.created_on_humanized,
                 "changed_on_humanized": slc.changed_on_humanized,
                 "owners": [owner.get_full_name() for owner in slc.owners],
+                "extra_owners": extra_owners,
                 "dashboards": [
                     {"id": dashboard.id, "dashboard_title": dashboard.dashboard_title}
                     for dashboard in slc.dashboards

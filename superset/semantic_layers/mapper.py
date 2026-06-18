@@ -56,6 +56,7 @@ from superset.common.utils.time_range_utils import get_since_until_from_query_ob
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
 from superset.models.helpers import QueryResult
+from superset.result_set import stringify_extension_columns
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     FilterOperator,
@@ -121,7 +122,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
     main_query = queries[0]
     main_result = dispatcher(main_query)
 
-    main_df = main_result.results.to_pandas()
+    main_df = stringify_extension_columns(main_result.results).to_pandas()
 
     # Collect all requests (SQL queries, HTTP requests, etc.) for troubleshooting
     all_requests = list(main_result.requests)
@@ -155,7 +156,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         # Add this query's requests to the collection
         all_requests.extend(result.requests)
 
-        offset_df = result.results.to_pandas()
+        offset_df = stringify_extension_columns(result.results).to_pandas()
 
         # Handle empty results - add NaN columns directly instead of merging
         # This avoids dtype mismatch issues with empty DataFrames
@@ -229,7 +230,7 @@ def map_semantic_result_to_query_result(
 
     return QueryResult(
         # Core data
-        df=semantic_result.results.to_pandas(),
+        df=stringify_extension_columns(semantic_result.results).to_pandas(),
         query=query_str,
         duration=duration,
         # Template filters - not applicable to semantic layers
