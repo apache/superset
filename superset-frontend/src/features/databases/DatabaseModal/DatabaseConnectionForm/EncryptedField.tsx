@@ -62,6 +62,7 @@ export const EncryptedField = ({
   setIsPublic,
 }: FieldPropTypes) => {
   const theme = useTheme() as SupersetTheme;
+  const credentialTextAreaCss = CredentialInfoFormTextArea(theme);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
@@ -195,7 +196,7 @@ export const EncryptedField = ({
           onChange={changeMethods.onParametersChange}
           helpText={t('Add service credentials')}
           renderAsTextArea
-          textAreaCss={CredentialInfoFormTextArea(theme)}
+          textAreaCss={credentialTextAreaCss}
         />
       ) : (
         showCredentialsInfo && (
