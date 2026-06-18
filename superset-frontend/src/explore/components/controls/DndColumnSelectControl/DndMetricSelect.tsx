@@ -52,7 +52,7 @@ const isDictionaryForAdhocMetric = (value: QueryFormMetric) =>
   typeof value !== 'string' &&
   value.expressionType;
 
-const coerceMetrics = (
+export const coerceMetrics = (
   addedMetrics: QueryFormMetric | QueryFormMetric[] | undefined | null,
   savedMetrics: Metric[],
   columns: ColumnMeta[],
@@ -70,6 +70,24 @@ const coerceMetrics = (
       return true;
     },
   );
+
+  // Metrics are identified by optionName when editing; regenerate any that
+  // collide so each keeps a unique identity and editing one never overwrites
+  // another (a saved chart can carry duplicate optionNames, e.g. from a
+  // duplicated metric).
+  const seenOptionNames = new Set<string>();
+  const dedupeOptionName = (metric: AdhocMetric) => {
+    if (!seenOptionNames.has(metric.optionName)) {
+      seenOptionNames.add(metric.optionName);
+      return metric;
+    }
+    const deduped = new AdhocMetric({
+      ...(metric as unknown as Record<string, unknown>),
+      optionName: undefined,
+    });
+    seenOptionNames.add(deduped.optionName);
+    return deduped;
+  };
 
   return metricsCompatibleWithDataset.map(metric => {
     if (
@@ -94,14 +112,18 @@ const coerceMetrics = (
       );
       if (column) {
         // Cast entire config object to handle type mismatch between @superset-ui/core and local types
-        return new AdhocMetric({
-          ...(metric as unknown as Record<string, unknown>),
-          column,
-        } as Record<string, unknown>);
+        return dedupeOptionName(
+          new AdhocMetric({
+            ...(metric as unknown as Record<string, unknown>),
+            column,
+          } as Record<string, unknown>),
+        );
       }
     }
     // Cast to unknown first to handle type mismatch between @superset-ui/core and local AdhocMetric
-    return new AdhocMetric(metric as unknown as Record<string, unknown>);
+    return dedupeOptionName(
+      new AdhocMetric(metric as unknown as Record<string, unknown>),
+    );
   });
 };
 
