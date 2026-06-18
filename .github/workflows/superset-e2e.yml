@@ -49,10 +49,9 @@ jobs:
 
   cypress-matrix:
     needs: changes
-    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
+    if: (needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true') && github.event.pull_request.draft == false
     # Somehow one test flakes on 24.04 for unknown reasons, this is the only GHA left on 22.04
     runs-on: ubuntu-22.04
-    if: github.event.pull_request.draft == false
     timeout-minutes: 30
     permissions:
       contents: read
