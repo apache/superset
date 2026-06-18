@@ -369,16 +369,21 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       overlayClassName="time-range-popover"
     >
       <Tooltip placement="top" title={tooltipTitle}>
-        <DateLabel
-          name={name}
-          aria-labelledby={`filter-name-${props.name}`}
-          aria-describedby={`date-label-${props.name}`}
-          label={actualTimeRange}
-          isActive={show}
-          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
-          data-test={DateFilterTestKey.PopoverOverlay}
-          ref={labelRef}
-        />
+        {/* Wrap in a span so the Popover gets a stable DOM ref target;
+            DateLabel forwards its ref to an inner span used for measuring
+            text truncation, which would otherwise become the popover's
+            positioning anchor in React 18. */}
+        <span data-test={DateFilterTestKey.PopoverOverlay}>
+          <DateLabel
+            name={name}
+            aria-labelledby={`filter-name-${props.name}`}
+            aria-describedby={`date-label-${props.name}`}
+            label={actualTimeRange}
+            isActive={show}
+            isPlaceholder={actualTimeRange === NO_TIME_RANGE}
+            ref={labelRef}
+          />
+        </span>
       </Tooltip>
     </ControlPopover>
   );

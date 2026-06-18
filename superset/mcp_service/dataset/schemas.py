@@ -21,7 +21,7 @@ Pydantic schemas for dataset-related responses
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal
 
 from pydantic import (
@@ -327,8 +327,6 @@ class DatasetError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatasetError":
         """Create a standardized DatasetError with timestamp."""
-        from datetime import datetime, timezone
-
         return cls(
             error=error,
             error_type=error_type,
@@ -766,7 +764,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if isinstance(params, str):
         try:
             params = json.loads(params)
-        except Exception:
+        except (json.JSONDecodeError, TypeError):
             params = None
     columns = [
         TableColumnInfo(

@@ -312,7 +312,9 @@ class ChartPutSchema(Schema):
         validate=utils.validate_json,
     )
     query_context = fields.String(
-        metadata={"description": query_context_description}, allow_none=True
+        metadata={"description": query_context_description},
+        allow_none=True,
+        validate=utils.validate_json,
     )
     query_context_generation = fields.Boolean(
         metadata={"description": query_context_generation_description}, allow_none=True
@@ -554,8 +556,20 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         required=True,
     )
     window = fields.Integer(
-        metadata={"description": "Size of the rolling window in days.", "example": 7},
+        metadata={
+            "description": "Size of the rolling window in days.",
+            "example": 7,
+            "min": 1,
+            "max": 10000,
+        },
         required=True,
+        validate=[
+            Range(
+                min=1,
+                max=10000,
+                error=_("`window` must be between 1 and 10000"),
+            )
+        ],
     )
     rolling_type_options = fields.Dict(
         metadata={
@@ -695,6 +709,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "the future",
             "example": 7,
             "min": 1,
+            "max": DEFAULT_MAX_PROPHET_PERIODS,
         },
         validate=validate_prophet_periods,
         required=True,
@@ -1438,6 +1453,21 @@ class ChartDataQueryObjectSchema(Schema):
         fields.String(),
         allow_none=True,
     )
+
+    @post_load
+    def rename_deprecated_fields(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        _renames = (
+            ("groupby", "columns"),
+            ("granularity_sqla", "granularity"),
+            ("timeseries_limit", "series_limit"),
+            ("timeseries_limit_metric", "series_limit_metric"),
+        )
+        for old, new in _renames:
+            if value := data.pop(old, None):
+                data[new] = value
+        return data
 
 
 class ChartDataQueryContextSchema(Schema):
