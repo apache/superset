@@ -18,7 +18,7 @@
  */
 import { useState, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { SupersetTheme } from '@apache-superset/core/theme';
+import { SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import {
   Button,
   FormLabel,
@@ -61,6 +61,7 @@ export const EncryptedField = ({
   validationErrors,
   getValidation,
 }: FieldPropTypes) => {
+  const theme = useTheme() as SupersetTheme;
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
@@ -194,9 +195,7 @@ export const EncryptedField = ({
           onChange={changeMethods.onParametersChange}
           helpText={t('Add service credentials')}
           renderAsTextArea
-          textAreaCss={(theme: SupersetTheme) =>
-            CredentialInfoFormTextArea(theme)
-          }
+          textAreaCss={CredentialInfoFormTextArea(theme)}
         />
       ) : (
         showCredentialsInfo && (
