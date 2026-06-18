@@ -301,6 +301,7 @@ DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
     "created_on",
     "changed_on",
     "uuid",
+    "embedded_uuid",
     "url",
     "created_on_humanized",
     "changed_on_humanized",
