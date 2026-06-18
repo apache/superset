@@ -836,8 +836,9 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         table_name = "table_name"
         result = PrestoEngineSpec._show_columns(inspector, Table(table_name))
         assert result == ["a", "b"]
-        inspector.bind.execute.assert_called_once_with(
-            f'SHOW COLUMNS FROM "{table_name}"'
+        assert_called_once_with_text(
+            inspector.bind.execute,
+            f'SHOW COLUMNS FROM "{table_name}"',
         )
 
     def test_show_columns_with_schema(self):
@@ -853,8 +854,8 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         schema = "schema"
         result = PrestoEngineSpec._show_columns(inspector, Table(table_name, schema))
         assert result == ["a", "b"]
-        inspector.bind.execute.assert_called_once_with(
-            f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
+        assert_called_once_with_text(
+            inspector.bind.execute, f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
         )
 
     def test_is_column_name_quoted(self):
@@ -1214,3 +1215,11 @@ def test_get_catalog_names(app_context: AppContext) -> None:
             "tpcds",
             "tpch",
         ]
+
+
+def assert_called_once_with_text(
+    m: mock.Mock,
+    q: str,
+):
+    m.assert_called_once()
+    assert m.call_args[0][0].text == q

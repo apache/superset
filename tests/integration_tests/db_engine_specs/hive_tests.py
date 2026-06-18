@@ -198,7 +198,10 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
             {"if_exists": "replace", "header": 1, "na_values": "mock", "sep": "mock"},
         )
 
-    mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {table_name}")
+    assert_any_call_with_text(
+        mock_execute,
+        f"DROP TABLE IF EXISTS {table_name}",
+    )
     app.config = config
 
 
@@ -226,7 +229,9 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
             {"if_exists": "replace", "header": 1, "na_values": "mock", "sep": "mock"},
         )
 
-    mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {schema}.{table_name}")
+    assert_any_call_with_text(
+        mock_execute, f"DROP TABLE IF EXISTS {schema}.{table_name}"
+    )
     app.config = config
 
 
@@ -435,3 +440,13 @@ def test_get_table_names(
     mock_get_table_names.return_value = {"table1", "table2", "view1", "view2"}
     tables = HiveEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
     assert tables == {"table1", "table2"}
+
+
+def assert_any_call_with_text(
+    m: mock.Mock,
+    q: str,
+):
+    assert any(
+        hasattr(call_args_it[0][0], "text") and call_args_it[0][0].text == q
+        for call_args_it in m.call_args_list
+    )
