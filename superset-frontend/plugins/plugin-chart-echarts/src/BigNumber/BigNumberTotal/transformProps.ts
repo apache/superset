@@ -79,8 +79,13 @@ export default function transformProps(
   const formattedSubtitleFontSize = subtitle?.trim()
     ? (subtitleFontSize ?? PROPORTION.SUBHEADER)
     : (subheaderFontSize ?? subtitleFontSize ?? PROPORTION.SUBHEADER);
+  const rawValue = data.length === 0 ? null : data[0][metricName];
+  const parsedValue = rawValue == null ? null : parseMetricValue(rawValue);
+  // Preserve non-date strings for display-only path
   const bigNumber =
-    data.length === 0 ? null : parseMetricValue(data[0][metricName]);
+    parsedValue === null && typeof rawValue === 'string' && rawValue !== ''
+      ? rawValue
+      : parsedValue;
 
   let metricEntry: Metric | undefined;
   if (chartProps.datasource?.metrics) {
