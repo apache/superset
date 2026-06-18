@@ -886,3 +886,32 @@ class TestGetDefaultSpinnerSvg:
         assert result is not None
         assert "<svg" in result
         assert "morphPath" in result
+
+
+class TestThemeCacheInvalidation:
+    """Test theme cache invalidation event listeners"""
+
+    @patch("superset.extensions.cache_manager.cache.delete_memoized")
+    def test_clear_bootstrap_cache_event(self, mock_delete_memoized):
+        """Test that the event listener triggers delete_memoized"""
+        from superset.models.core import clear_bootstrap_cache
+        from superset.views.base import cached_common_bootstrap_data
+
+        # Call clear_bootstrap_cache with dummy mapper, connection, and Theme
+        clear_bootstrap_cache(MagicMock(), MagicMock(), MagicMock())
+
+        mock_delete_memoized.assert_called_once_with(cached_common_bootstrap_data)
+
+    @patch("superset.extensions.cache_manager.cache.delete_memoized")
+    @patch("superset.models.core.logger")
+    def test_clear_bootstrap_cache_event_error(self, mock_logger, mock_delete_memoized):
+        """Test that the event listener handles errors gracefully and logs them"""
+        from superset.models.core import clear_bootstrap_cache
+
+        mock_delete_memoized.side_effect = Exception("Cache error")
+        clear_bootstrap_cache(MagicMock(), MagicMock(), MagicMock())
+
+        mock_logger.warning.assert_called_once_with(
+            "Failed to clear theme bootstrap cache: %s",
+            mock_delete_memoized.side_effect,
+        )
