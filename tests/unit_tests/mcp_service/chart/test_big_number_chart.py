@@ -177,6 +177,17 @@ class TestBigNumberChartConfig:
                 compare_lag=1,
             )
 
+    def test_aggregation_requires_trendline(self) -> None:
+        """aggregation without show_trendline=True must raise ValidationError."""
+        with pytest.raises(
+            ValidationError, match="aggregation requires show_trendline"
+        ):
+            BigNumberChartConfig(
+                chart_type="big_number",
+                metric=ColumnRef(name="revenue", aggregate="SUM"),
+                aggregation="sum",
+            )
+
     def test_with_filters(self) -> None:
         config = BigNumberChartConfig(
             chart_type="big_number",
@@ -187,6 +198,36 @@ class TestBigNumberChartConfig:
         )
         assert config.filters is not None
         assert len(config.filters) == 1
+
+    def test_with_aggregation_sum(self) -> None:
+        """aggregation='sum' is accepted when show_trendline=True."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="ds",
+            show_trendline=True,
+            aggregation="sum",
+        )
+        assert config.aggregation == "sum"
+
+    def test_with_aggregation_last_value(self) -> None:
+        """aggregation='LAST_VALUE' is accepted when show_trendline=True."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="ds",
+            show_trendline=True,
+            aggregation="LAST_VALUE",
+        )
+        assert config.aggregation == "LAST_VALUE"
+
+    def test_aggregation_defaults_to_none(self) -> None:
+        """aggregation field is None when omitted."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+        assert config.aggregation is None
 
     def test_extra_fields_forbidden(self) -> None:
         with pytest.raises(ValueError, match="Unknown field 'unknown_field'"):
@@ -306,6 +347,52 @@ class TestMapBigNumberConfig:
         assert "granularity_sqla" not in form_data
         assert "time_grain_sqla" not in form_data
         assert "start_y_axis_at_zero" not in form_data
+
+    def test_with_aggregation_sum(self) -> None:
+        """aggregation='sum' is written to form_data for trendline charts."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="order_date",
+            show_trendline=True,
+            aggregation="sum",
+        )
+        form_data = map_big_number_config(config)
+        assert form_data["aggregation"] == "sum"
+
+    def test_with_aggregation_last_value(self) -> None:
+        """aggregation='LAST_VALUE' is written to form_data for trendline charts."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="order_date",
+            show_trendline=True,
+            aggregation="LAST_VALUE",
+        )
+        form_data = map_big_number_config(config)
+        assert form_data["aggregation"] == "LAST_VALUE"
+
+    def test_aggregation_absent_when_not_set(self) -> None:
+        """aggregation key is absent from form_data when config.aggregation is None."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="order_date",
+            show_trendline=True,
+        )
+        form_data = map_big_number_config(config)
+        assert "aggregation" not in form_data
+
+    def test_aggregation_not_allowed_for_big_number_total(self) -> None:
+        """aggregation is rejected when show_trendline=False (big_number_total)."""
+        with pytest.raises(
+            ValidationError, match="aggregation requires show_trendline"
+        ):
+            BigNumberChartConfig(
+                chart_type="big_number",
+                metric=ColumnRef(name="revenue", aggregate="SUM"),
+                aggregation="sum",
+            )
 
 
 class TestMapConfigToFormDataBigNumber:
