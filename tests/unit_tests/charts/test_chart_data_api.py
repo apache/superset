@@ -16,9 +16,18 @@
 # under the License.
 from __future__ import annotations
 
+from typing import Any, TYPE_CHECKING
+
 from flask import Flask, g
 
+from superset.charts.data.dashboard_filter_context import (
+    apply_dashboard_filter_context,
+)
+from superset.jinja_context import ExtraCache
 from superset.utils import json
+
+if TYPE_CHECKING:
+    from superset.app import SupersetApp
 
 
 def test_get_data_sets_g_form_data_without_dashboard_filter() -> None:
@@ -69,3 +78,35 @@ def test_get_data_sets_g_form_data_without_dashboard_filter() -> None:
         assert hasattr(g, "form_data")
         assert g.form_data["datasource"] == {"id": 42, "type": "table"}
         assert g.form_data["queries"][0]["columns"] == ["col1"]
+
+
+def test_apply_dashboard_filter_context_does_not_duplicate_filters(
+    app: SupersetApp,
+) -> None:
+    """
+    Regression test for the ``filters_dashboard_id`` parameter.
+
+    A dashboard's filters must not be present in both query["filters"] and
+    query["extra_form_data"]["filters"]. Previously the same filter existed in both,
+    so Jinja's filter_values() read each value twice and produced SQL such as
+    ``country in ('USA', 'USA')``.
+    """
+    query_context_json: dict[str, Any] = {
+        "datasource": {"id": 1, "type": "table"},
+        "queries": [{"filters": [{"col": "year", "op": "IN", "val": [2004]}]}],
+    }
+    extra_form_data = {"filters": [{"col": "country", "op": "IN", "val": ["USA"]}]}
+
+    apply_dashboard_filter_context(query_context_json, extra_form_data)
+
+    query = query_context_json["queries"][0]
+    assert query["filters"] == [
+        {"col": "year", "op": "IN", "val": [2004]},
+        {"col": "country", "op": "IN", "val": ["USA"], "isExtra": True},
+    ]
+    assert "filters" not in query["extra_form_data"]
+
+    # filter_values() therefore returns the dashboard value exactly once.
+    with app.test_request_context("/api/v1/chart/1/data/"):
+        g.form_data = query_context_json
+        assert ExtraCache().filter_values("country") == ["USA"]
