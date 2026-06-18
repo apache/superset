@@ -30,8 +30,13 @@ jobs:
         with:
           node-version-file: "./superset-embedded-sdk/.nvmrc"
           registry-url: "https://registry.npmjs.org"
-      # Trusted publishing requires npm >= 11.5.1; ensure it regardless of the
-      # version bundled with the pinned Node release.
-      - run: npm install -g npm@latest
       - run: npm ci
       - run: npm run ci:release
+        env:
+          # actions/setup-node injects a placeholder NODE_AUTH_TOKEN
+          # (XXXXX-XXXXX-XXXXX-XXXXX) when registry-url is set, which makes npm
+          # attempt failed token auth and skip the OIDC trusted-publishing
+          # exchange. Clear it so npm authenticates via OIDC. The Node pinned in
+          # .nvmrc (v24.16.0) ships npm 11.13, satisfying the >= 11.5.1
+          # trusted-publishing requirement, so no manual npm upgrade is needed.
+          NODE_AUTH_TOKEN: ""
