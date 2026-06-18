@@ -65,6 +65,8 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
+
     // Provide the implementations for @apache-superset/core.
     // Namespaces are listed explicitly — do not spread the core package here,
     // as that would leak un-contracted symbols onto window.superset.
