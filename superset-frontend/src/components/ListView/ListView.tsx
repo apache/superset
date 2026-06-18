@@ -166,7 +166,6 @@ const BulkSelectWrapper = styled(Alert)`
       margin: ${`${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px`};
       width: 1px;
       height: ${theme.sizeUnit * 8}px;
-      box-shadow: inset -1px 0px 0px ${theme.colorBorder};
       display: inline-flex;
       vertical-align: middle;
       position: relative;
