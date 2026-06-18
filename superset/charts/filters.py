@@ -106,21 +106,26 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             return query
 
         table_alias = aliased(SqlaTable)
-        dataset_query = (
-            query.join(table_alias, self.model.datasource_id == table_alias.id)
-            .join(models.Database, table_alias.database_id == models.Database.id)
-            .filter(get_dataset_access_filters(self.model))
+        query = query.join(table_alias, self.model.datasource_id == table_alias.id)
+        query = query.join(
+            models.Database, table_alias.database_id == models.Database.id
         )
 
-        conditions = [
-            self.model.id.in_(dataset_query.with_entities(self.model.id).subquery()),
-        ]
-
+        extra_access_filters = []
         extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
-        if chart_filter := extra_filters.get("chart"):
-            conditions.append(chart_filter(query, self.model))
+        if extra_charts_filter := extra_filters.get("charts"):
+            user_id = get_user_id()
+            if user_id:
+                extra_access_filters.append(
+                    self.model.id.in_(extra_charts_filter(user_id))
+                )
 
-        return query.filter(or_(*conditions))
+        return query.filter(
+            or_(
+                get_dataset_access_filters(self.model),
+                *extra_access_filters,
+            )
+        )
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods

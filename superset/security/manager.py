@@ -3153,6 +3153,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
+        from flask import current_app
+
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
@@ -3160,19 +3162,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.models.sql_lab import Query
         from superset.utils.core import shortid
 
-        # Extension hook: allow deployments to bypass access checks for
-        # specific assets (e.g. based on external permission systems).
-        bypass_fn = current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS")
-        if bypass_fn and bypass_fn(
-            dashboard=dashboard,
-            chart=chart,
-            database=database,
-            datasource=datasource,
-            query=query,
-            query_context=query_context,
-            viz=viz,
-        ):
-            return
+        # Extension hook: bypass all permission checks if an external system
+        # (e.g. folder permissions) grants access to this resource.
+        if bypass := current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS"):
+            if bypass(
+                user_id=get_user_id(),
+                dashboard=dashboard,
+                chart=chart,
+                datasource=datasource,
+                query_context=query_context,
+            ):
+                logger.info(
+                    "EXTRA_RAISE_FOR_ACCESS_BYPASS granted access for user %s",
+                    get_user_id(),
+                )
+                return
 
         if sql and database:
             query = Query(
@@ -4165,7 +4169,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             resolver = current_app.config.get("EXTRA_OWNERS_RESOLVER")
             if resolver and not g.user.is_anonymous:
                 extra_owners = resolver(orig_resource)
-                if g.user in extra_owners:
+                user_id = g.user.id
+                if any(
+                    (u.id if hasattr(u, "id") else u.get("id")) == user_id
+                    for u in extra_owners
+                ):
                     return
 
             raise SupersetSecurityException(

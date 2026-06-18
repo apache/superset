@@ -309,13 +309,13 @@ export interface ListViewProps<T extends object = any> {
   columnsForWrapText?: string[];
   enableBulkTag?: boolean;
   bulkTagResourceName?: string;
-  /** Optional expandable row configuration, passed through to antd Table. */
-  expandable?: Record<string, unknown>;
   /** Optional ref exposed to callers for programmatic filter control. */
   filtersRef?: React.RefObject<{
     clearFilters: () => void;
     clearFilterById: (id: string) => void;
   }>;
+  /** Optional expandable row configuration, passed through to antd Table. */
+  expandable?: Record<string, unknown>;
 }
 
 export function ListView<T extends object = any>({
@@ -342,8 +342,8 @@ export function ListView<T extends object = any>({
   columnsForWrapText,
   enableBulkTag = false,
   bulkTagResourceName,
-  expandable,
   filtersRef,
+  expandable,
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
@@ -514,25 +514,27 @@ export function ListView<T extends object = any>({
                         .filter(
                           action =>
                             !action.hidden?.(
-                              selectedFlatRows.map((r: any) => r.original),
+                              selectedFlatRows.map(
+                                (r: any) => r.original,
+                              ),
                             ),
                         )
                         .map(action => (
-                          <Button
-                            data-test="bulk-select-action"
-                            data-test-action-key={action.key}
-                            key={action.key}
-                            buttonStyle={action.type}
-                            cta
-                            onClick={() =>
-                              action.onSelect(
-                                selectedFlatRows.map((r: any) => r.original),
-                              )
-                            }
-                          >
-                            {action.name}
-                          </Button>
-                        ))}
+                        <Button
+                          data-test="bulk-select-action"
+                          data-test-action-key={action.key}
+                          key={action.key}
+                          buttonStyle={action.type}
+                          cta
+                          onClick={() =>
+                            action.onSelect(
+                              selectedFlatRows.map((r: any) => r.original),
+                            )
+                          }
+                        >
+                          {action.name}
+                        </Button>
+                      ))}
                       {enableBulkTag && (
                         <span
                           data-test="bulk-select-tag-btn"
