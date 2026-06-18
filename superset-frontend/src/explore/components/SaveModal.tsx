@@ -54,7 +54,7 @@ import {
   isUserAdmin,
 } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
-import { SaveActionType, ChartStatusType } from 'src/explore/types';
+import { SaveActionType, ChartStatusType, ExplorePageInitialData } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   removeChartState,
@@ -81,6 +81,7 @@ interface SaveModalProps extends RouteComponentProps {
   isVisible: boolean;
   dispatch: Dispatch;
   theme: SupersetTheme;
+  metadata?: ExplorePageInitialData['metadata'];
 }
 
 type SaveModalState = {
@@ -161,6 +162,34 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         this.props.addDangerToast(
           t('An error occurred while loading dashboard information.'),
         );
+      }
+    } else {
+      const metadataDashboards = this.props.metadata?.dashboards;
+      if (metadataDashboards?.length) {
+        // Fallback: the chart is already on one or more dashboards (from Explore API
+        // metadata). Pre-populate with the first dashboard the user can edit so the
+        // "Save & go to dashboard" button works out of the box.
+        try {
+          const loaded = await Promise.all(
+            metadataDashboards.map(({ id }) =>
+              this.loadDashboard(id).catch(() => null),
+            ),
+          );
+          const editable = (loaded as (Dashboard | null)[]).find(
+            d => d && canUserEditDashboard(d, this.props.user),
+          ) as Dashboard | undefined;
+          if (editable) {
+            this.setState({
+              dashboard: {
+                label: editable.dashboard_title,
+                value: editable.id,
+              },
+            });
+            await this.loadTabs(editable.id);
+          }
+        } catch (error) {
+          logging.warn(error);
+        }
       }
     }
   }
@@ -826,6 +855,7 @@ interface StateProps {
   dashboards: any;
   alert: any;
   isVisible: boolean;
+  metadata?: ExplorePageInitialData['metadata'];
 }
 
 function mapStateToProps({
@@ -841,6 +871,7 @@ function mapStateToProps({
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
     isVisible: saveModal.isVisible,
+    metadata: explore.metadata,
   };
 }
 
