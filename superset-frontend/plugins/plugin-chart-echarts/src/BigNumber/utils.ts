@@ -37,7 +37,7 @@ export const parseMetricValue = (metricValue: number | string | null) => {
     if (dateObject.isValid()) {
       return dateObject.valueOf();
     }
-    return null;
+    return metricValue;
   }
   return metricValue;
 };
