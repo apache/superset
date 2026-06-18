@@ -231,6 +231,8 @@ describe('OAuth2RedirectMessage Component', () => {
     await waitFor(() => {
       expect(api.util.invalidateTags).toHaveBeenCalledWith([
         { type: 'Schemas', id: 'LIST' },
+        { type: 'Catalogs', id: 'LIST' },
+        'Tables',
       ]);
     });
   });

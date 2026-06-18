@@ -87,8 +87,11 @@ export function OAuth2RedirectMessage({
   const query = qe?.latestQueryId ? queries[qe.latestQueryId] : null;
 
   // state needed for triggering the chart in Explore
-  const chartId = useSelector<ExplorePageState, number | undefined>(
-    state => state.explore?.slice?.slice_id,
+  const chartId = useSelector<ExplorePageState, number>(
+    state =>
+      state.explore?.slice?.slice_id ??
+      state.explore?.form_data?.slice_id ??
+      UNSAVED_CHART_ID,
   );
 
   // state needed for refreshing dashboard
@@ -109,11 +112,17 @@ export function OAuth2RedirectMessage({
       if (source === 'sqllab' && query) {
         dispatch(reRunQuery(query));
       } else if (source === 'explore') {
-        dispatch(triggerQuery(true, chartId ?? UNSAVED_CHART_ID));
+        dispatch(triggerQuery(true, chartId));
       } else if (source === 'dashboard') {
         dispatch(onRefresh(chartList.map(Number), true, 0, dashboardId));
       } else if (source === 'crud') {
-        dispatch(api.util.invalidateTags([{ type: 'Schemas', id: 'LIST' }]));
+        dispatch(
+          api.util.invalidateTags([
+            { type: 'Schemas', id: 'LIST' },
+            { type: 'Catalogs', id: 'LIST' },
+            'Tables',
+          ]),
+        );
       }
     };
 
