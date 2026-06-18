@@ -259,6 +259,19 @@ def test_non_superset_path_passes_through() -> None:
     assert resp.data == _SENTINEL_BODY
 
 
+@pytest.mark.parametrize("bare", ["/superset", "/superset/"])
+def test_bare_legacy_prefix_passes_through(bare: str) -> None:
+    """The bare legacy prefix itself (`/superset` and `/superset/`, with no
+    canonical tail) is not an enumerated row. It exercises the
+    `candidate == _LEGACY_PREFIX` disjunct and the `or "/"` fallback on the
+    empty strip result — `_match("/")` returns None, so the request passes
+    through to the inner app rather than 308-ing to `/`."""
+    client = _build_client(app_root="/")
+    resp = client.get(bare)
+    assert resp.status_code == 200
+    assert resp.data == _SENTINEL_BODY
+
+
 def test_canonical_path_without_legacy_prefix_passes_through() -> None:
     """The shim only matches paths under `/superset` — a pure canonical
     request (e.g. `/explore/`) is never intercepted, even though

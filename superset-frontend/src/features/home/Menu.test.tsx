@@ -945,7 +945,7 @@ describe('brand link single-prefix regressions (subdirectory deployment)', () =>
     expect(observedGenericLinkTo).toBe('/welcome/');
   });
 
-  test('brand link from theme.brandLogoHref is single-prefix when already rooted', async () => {
+  test('brand link from theme.brandLogoHref hands a root-stripped path to GenericLink when already rooted', async () => {
     applicationRootMock.mockReturnValue('/superset');
     staticAssetsPrefixMock.mockReturnValue('/superset');
     useSelectorMock.mockReturnValue({ roles: user.roles });
@@ -966,7 +966,13 @@ describe('brand link single-prefix regressions (subdirectory deployment)', () =>
     const brandLink = await screen.findByRole('link', {
       name: /apache superset/i,
     });
-    expect(brandLink).toHaveAttribute('href', '/superset/welcome/');
+    // The internal brand logo link goes through StyledBrandLink -> GenericLink
+    // -> react-router <Link>. The production Router re-prepends the app root, so
+    // the value handed to GenericLink must already be stripped to avoid a
+    // doubled /superset/superset/... href. (Real-basename coverage of the
+    // resulting rendered href lives in Menu.subdirectory.test.tsx.)
+    expect(observedGenericLinkTo).toBe('/welcome/');
+    expect(brandLink).toHaveAttribute('href', '/welcome/');
     const brandImg = brandLink.querySelector('img');
     expect(brandImg).toHaveAttribute(
       'src',

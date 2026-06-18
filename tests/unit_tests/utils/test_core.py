@@ -647,6 +647,16 @@ def test_get_datasource_full_name():
         # route segment must not win over (or fabricate) an attribution.
         ("https://mysuperset.com/explore/?next=/dashboard/1/", QuerySource.CHART),
         ("https://mysuperset.com/?next=/dashboard/1/", None),
+        # Substring match is slash-bounded: a sibling route that merely shares
+        # the leading token (`/dashboardx/`, `/explorer/`) must NOT match. Pins
+        # the trailing `/` in the `"/dashboard/" in path` checks against a
+        # future loosening to a prefix/startswith compare.
+        ("https://mysuperset.com/dashboardx/", None),
+        ("https://mysuperset.com/explorer/", None),
+        ("https://mysuperset.com/sqllab_extra/", None),
+        # The bare token without a trailing slash is also not a match — the
+        # canonical routes always carry the trailing slash.
+        ("https://mysuperset.com/dashboard", None),
         # Referer is client-controlled: a malformed URL (unclosed IPv6
         # bracket makes urlparse raise ValueError) must yield None, not 500.
         ("http://[/explore/", None),

@@ -321,7 +321,18 @@ export function Menu({
               {brandImage}
             </Typography.Link>
           ) : (
-            <StyledBrandLink to={brandHref}>{brandImage}</StyledBrandLink>
+            // StyledBrandLink wraps GenericLink -> react-router <Link>, and
+            // `<Router basename={applicationRoot()}>` re-prepends the app root
+            // to `to`. Strip the root so the rendered anchor is single-prefixed
+            // rather than a doubled `/superset/superset/...`. Strip `brandHref`
+            // (the ensureAppRoot'd value) rather than the raw
+            // `theme.brandLogoHref` so an unset href (partial theme override)
+            // stays null-safe — `ensureAppRoot(undefined)` yields the app root,
+            // which `stripAppRoot` then reduces to `/`. Mirrors the brand.path
+            // branch's single-prefix treatment.
+            <StyledBrandLink to={stripAppRoot(brandHref)}>
+              {brandImage}
+            </StyledBrandLink>
           )}
         </StyledBrandWrapper>
       );

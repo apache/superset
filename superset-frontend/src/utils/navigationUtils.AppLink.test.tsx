@@ -67,3 +67,29 @@ test('passes absolute URLs through without prefixing', () => {
     'https://external.example.com',
   );
 });
+
+// AppLink runs `assertSafeNavigationUrl(ensureAppRoot(href))` during render, so
+// an unsafe href throws rather than emitting an anchor that points at the
+// attacker-controlled target. Mirror the openInNewTab / getShareableUrl pins.
+test('throws on a backslash-laden authority-spoof href', () => {
+  mockApplicationRoot.mockReturnValue('/superset');
+  const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    expect(() => render(<AppLink href="/\evil.com">x</AppLink>)).toThrow(
+      /refused unsafe URL/,
+    );
+  } finally {
+    errorSpy.mockRestore();
+  }
+});
+
+test('throws on a protocol-relative href', () => {
+  const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    expect(() =>
+      render(<AppLink href="//evil.example.com">x</AppLink>),
+    ).toThrow(/refused unsafe URL/);
+  } finally {
+    errorSpy.mockRestore();
+  }
+});

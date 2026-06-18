@@ -119,6 +119,13 @@ describe('getBootstrapData and helpers', () => {
       ['embedded quote', "/my'app/"],
       ['path traversal', '/app/..'],
       ['double-dot segment', '/legit/../etc'],
+      ['backslash separator', '/app\\admin'],
+      ['leading double slash', '//app'],
+      ['double trailing slash', '/app//'],
+      ['unicode segment', '/café'],
+      ['tab control character', '/app\tadmin'],
+      ['newline control character', '/app\nadmin'],
+      ['null byte', '/app\x00admin'],
     ])(
       'should degrade a non-path application_root to root deployment (%s)',
       async (_label, applicationRootValue) => {
@@ -141,6 +148,29 @@ describe('getBootstrapData and helpers', () => {
         expect(applicationRoot()).toEqual('');
       },
     );
+
+    // Percent-encoded traversal sequences are NOT decoded or rejected here.
+    // application_root is operator-controlled server-rendered configuration
+    // (see SECURITY.md trust-boundary 2); the sanitizer only enforces the
+    // documented path shape on the literal value. Encoded forms like "%2e%2e"
+    // are valid path-segment characters and pass through unchanged — this is
+    // intentional and out of scope, documented here so the behavior is pinned.
+    test('should preserve a percent-encoded application_root (operator-controlled, out of scope)', async () => {
+      const customData = {
+        common: {
+          application_root: '/app/%2e%2e',
+          static_assets_prefix: '/custom-static/',
+        },
+      };
+      document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
+
+      jest.resetModules();
+      const { default: getBootstrapData, applicationRoot } =
+        await import('./getBootstrapData');
+      getBootstrapData();
+
+      expect(applicationRoot()).toEqual('/app/%2e%2e');
+    });
 
     test('should preserve a multi-segment application_root', async () => {
       const customData = {

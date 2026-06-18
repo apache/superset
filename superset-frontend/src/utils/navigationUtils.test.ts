@@ -369,6 +369,29 @@ describe('navigateTo', () => {
       expect(window.location.href).toBe('/superset/dashboard/list/');
     });
   });
+
+  test('uses window.location.assign (not href) for a router-relative path when { assign: true }', async () => {
+    await withApplicationRoot('/superset/', async () => {
+      const { navigateTo } = await import('src/utils/navigationUtils');
+      navigateTo('/dashboard/list/', { assign: true });
+      expect(window.location.assign).toHaveBeenCalledWith(
+        '/superset/dashboard/list/',
+      );
+      // The assign branch must not also fall through to the href sink.
+      expect(window.location.href).toBe('');
+    });
+  });
+
+  test('uses window.location.assign for an external URL when { assign: true }', async () => {
+    await withApplicationRoot('/superset/', async () => {
+      const { navigateTo } = await import('src/utils/navigationUtils');
+      navigateTo('https://external.example.com/docs', { assign: true });
+      expect(window.location.assign).toHaveBeenCalledWith(
+        'https://external.example.com/docs',
+      );
+      expect(window.location.href).toBe('');
+    });
+  });
 });
 
 describe('navigateWithState', () => {
@@ -415,6 +438,19 @@ describe('navigateWithState', () => {
         '',
         '/superset/dashboard/42/',
       );
+    });
+  });
+
+  test('uses replaceState (not pushState) when { replace: true }', async () => {
+    await withApplicationRoot('/superset/', async () => {
+      const { navigateWithState } = await import('src/utils/navigationUtils');
+      navigateWithState('/dashboard/42/', { from: 'test' }, { replace: true });
+      expect(replaceSpy).toHaveBeenCalledWith(
+        { from: 'test' },
+        '',
+        '/superset/dashboard/42/',
+      );
+      expect(pushSpy).not.toHaveBeenCalled();
     });
   });
 
