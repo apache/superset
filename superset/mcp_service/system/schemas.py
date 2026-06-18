@@ -25,9 +25,11 @@ system-level info.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Annotated, Any, List
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 
 
 class HealthCheckResponse(BaseModel):
@@ -86,12 +88,12 @@ class DashboardBreakdown(BaseModel):
 
 
 class DatabaseBreakdown(BaseModel):
-    by_type: Dict[str, int]
+    by_type: dict[str, int]
 
 
 class PopularContent(BaseModel):
-    top_tags: List[str] = Field(default_factory=list)
-    top_creators: List[str] = Field(default_factory=list)
+    top_tags: list[str] = Field(default_factory=list)
+    top_creators: list[str] = Field(default_factory=list)
 
 
 class FeatureAvailability(BaseModel):
@@ -101,7 +103,7 @@ class FeatureAvailability(BaseModel):
     so they reflect the actual permissions of the requesting user.
     """
 
-    accessible_menus: List[str] = Field(
+    accessible_menus: list[str] = Field(
         default_factory=list,
         description=(
             "UI menu items accessible to the current user, "
@@ -118,11 +120,16 @@ class InstanceInfo(BaseModel):
     popular_content: PopularContent
     current_user: UserInfo | None = Field(
         None,
-        description=(
-            "Use current_user.id with created_by_fk filter to find your own assets."
-        ),
+        description="Information about the authenticated user.",
     )
     feature_availability: FeatureAvailability
+    data_model_metadata_redacted: bool = Field(
+        default=False,
+        description=(
+            "True when dataset/database summary fields were removed because "
+            "the current user cannot inspect data model metadata."
+        ),
+    )
     timestamp: datetime
 
 
@@ -133,7 +140,7 @@ class UserInfo(BaseModel):
     last_name: str | None = None
     email: str | None = None
     active: bool | None = None
-    roles: List[str] = Field(
+    roles: list[str] = Field(
         default_factory=list,
         description=(
             "Role names assigned to the user (e.g., Admin, Alpha, Gamma, Viewer). "
@@ -165,6 +172,84 @@ def serialize_user_object(user: Any) -> UserInfo | None:
     )
 
 
+class FindUsersRequest(BaseModel):
+    """Request schema for find_users tool.
+
+    Resolves a person's name (or partial name, username, or email) to user IDs
+    so they can be passed to listing tools as filter values for created_by_fk
+    or changed_by_fk. This is the only sanctioned path for "show me what
+    <person> is working on" queries.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: Annotated[
+        str,
+        Field(
+            min_length=1,
+            max_length=200,
+            description=(
+                "Substring to match (case-insensitive) against username, "
+                "first_name, last_name, and email. Required and non-empty: "
+                "this tool does not enumerate the full user directory."
+            ),
+        ),
+    ]
+    page_size: Annotated[
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Maximum number of matches to return (max {MAX_PAGE_SIZE}).",
+        ),
+    ]
+
+    @field_validator("query")
+    @classmethod
+    def _reject_blank_query(cls, value: str) -> str:
+        # min_length=1 alone admits whitespace-only strings, which strip to "" and
+        # produce a "%%" LIKE pattern that matches every user. Strip and require
+        # at least one non-space character.
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("query must contain at least one non-whitespace character")
+        return stripped
+
+
+class UserMatch(BaseModel):
+    """Minimal user projection returned by find_users.
+
+    Intentionally narrower than UserInfo: only the fields needed to disambiguate
+    matches and pass an id to created_by_fk / changed_by_fk filters. Email,
+    active flag, and roles are deliberately excluded to limit identity
+    exposure through this directory-resolution path.
+    """
+
+    id: int | None = None
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+
+
+class FindUsersResponse(BaseModel):
+    """Response schema for find_users tool."""
+
+    users: List[UserMatch] = Field(
+        default_factory=list,
+        description=(
+            "Matching users. Pass user.id as the value for created_by_fk or "
+            "changed_by_fk filters on list_dashboards, list_charts, and "
+            "list_datasets."
+        ),
+    )
+    count: int = Field(..., description="Number of users returned in this response.")
+    truncated: bool = Field(
+        default=False,
+        description="True when the query matched more rows than page_size allows.",
+    )
+
+
 class TagInfo(BaseModel):
     id: int | None = None
     name: str | None = None
@@ -175,7 +260,7 @@ class TagInfo(BaseModel):
 class RoleInfo(BaseModel):
     id: int | None = None
     name: str | None = None
-    permissions: List[str] | None = None
+    permissions: list[str] | None = None
 
 
 class PaginationInfo(BaseModel):
@@ -186,3 +271,84 @@ class PaginationInfo(BaseModel):
     has_next: bool
     has_previous: bool
     model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+
+class GenerateBugReportRequest(BaseModel):
+    """Request schema for the generate_bug_report tool.
+
+    All fields are optional so users can invoke the tool even when they only
+    remember part of what happened. Every free-text field is run through a
+    PII / secret sanitizer before being written into the report, and each
+    field has a ``max_length`` cap to bound regex work on adversarial input.
+    """
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    tool_name: str | None = Field(
+        None,
+        max_length=200,
+        description=(
+            "The MCP tool the user was using when the issue occurred "
+            "(e.g. 'generate_chart', 'execute_sql')."
+        ),
+    )
+    error_message: str | None = Field(
+        None,
+        max_length=4000,
+        description=(
+            "The error message or unexpected behavior the user encountered. "
+            "Emails, IPs, tokens and similar secrets are automatically redacted."
+        ),
+    )
+    llm_used: str | None = Field(
+        None,
+        max_length=200,
+        description=(
+            "The LLM / client the user was running when the issue occurred "
+            "(e.g. 'Claude Sonnet 4.6', 'ChatGPT', 'Cursor + GPT-4')."
+        ),
+    )
+    steps_to_reproduce: str | None = Field(
+        None,
+        max_length=4000,
+        description="Optional free-text description of what the user was trying to do.",
+    )
+    additional_context: str | None = Field(
+        None,
+        max_length=4000,
+        description=(
+            "Any other information the user wants to include. "
+            "PII and secrets are sanitized before being written to the report."
+        ),
+    )
+    mcp_call_id: str | None = Field(
+        None,
+        description=(
+            "Optional MCP call ID from a previous tool invocation. "
+            "When provided, it will be included in the bug report "
+            "for server-side log correlation."
+        ),
+    )
+
+
+class GenerateBugReportResponse(BaseModel):
+    """Response schema for the generate_bug_report tool.
+
+    ``report`` is a pre-formatted, copy-paste-friendly markdown block that the
+    user can send to the Preset support team. ``redactions_applied`` lists the
+    categories of PII/secret that were stripped from the user's free-text input
+    so the user can confirm nothing important was lost.
+    """
+
+    report: str = Field(..., description="Pre-formatted, PII-sanitized bug report.")
+    redactions_applied: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Categories of sensitive data that were redacted from user-provided "
+            "free-text fields (e.g. 'email', 'ip_address', 'token')."
+        ),
+    )
+    support_contact: str = Field(
+        ...,
+        description="Where the user should send the report.",
+    )

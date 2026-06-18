@@ -1,0 +1,18 @@
+---
+id: sql-lab
+title: "SQL Lab"
+description: "SQL Lab"
+custom_edit_url: null
+---
+
+Execute SQL queries and manage SQL Lab sessions.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `GET` | [Get the bootstrap data for SqlLab page](./get-the-bootstrap-data-for-sql-lab-page) | `/api/v1/sqllab/` |
+| `POST` | [Estimate the SQL query execution cost](./estimate-the-sql-query-execution-cost) | `/api/v1/sqllab/estimate/` |
+| `POST` | [Execute a SQL query](./execute-a-sql-query) | `/api/v1/sqllab/execute/` |
+| `POST` | [Export SQL query results to CSV with streaming](./export-sql-query-results-to-csv-with-streaming) | `/api/v1/sqllab/export_streaming/` |
+| `GET` | [Export the SQL query results to a CSV](./export-the-sql-query-results-to-a-csv) | `/api/v1/sqllab/export/{client_id}/` |
+| `POST` | [Format SQL code](./format-sql-code) | `/api/v1/sqllab/format_sql/` |
+| `GET` | [Get the result of a SQL query execution](./get-the-result-of-a-sql-query-execution) | `/api/v1/sqllab/results/` |

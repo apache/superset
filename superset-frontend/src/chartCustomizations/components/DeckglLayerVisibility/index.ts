@@ -21,6 +21,7 @@ import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
 
 export default class DeckglLayerVisibilityCustomizationPlugin extends ChartPlugin {
   constructor() {
@@ -29,7 +30,7 @@ export default class DeckglLayerVisibilityCustomizationPlugin extends ChartPlugi
       description: t('Chart customization to control deck.gl layer visibility'),
       behaviors: [Behavior.InteractiveChart, Behavior.ChartCustomization],
       tags: [t('Deckgl'), t('Experimental')],
-      thumbnail: '',
+      thumbnail,
       enableNoResults: false,
       datasourceCount: 0,
     });

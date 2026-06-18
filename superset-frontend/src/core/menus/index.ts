@@ -24,11 +24,14 @@
  * Extensions register menu items as side effects at import time.
  */
 
+import { useSyncExternalStore } from 'react';
 import type { menus as menusApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 
 type MenuItem = menusApi.MenuItem;
 type Menu = menusApi.Menu;
+type MenuItemRegisteredEvent = menusApi.MenuItemRegisteredEvent;
+type MenuItemUnregisteredEvent = menusApi.MenuItemUnregisteredEvent;
 
 type StoredMenuItem = {
   item: MenuItem;
@@ -38,6 +41,27 @@ type StoredMenuItem = {
 
 const menuItems: StoredMenuItem[] = [];
 
+const syncListeners = new Set<() => void>();
+const subscribe = (listener: () => void) => {
+  syncListeners.add(listener);
+  return () => syncListeners.delete(listener);
+};
+
+const registerListeners = new Set<(e: MenuItemRegisteredEvent) => void>();
+const unregisterListeners = new Set<(e: MenuItemUnregisteredEvent) => void>();
+
+const menuCache = new Map<string, Menu | undefined>();
+const notifyRegister = (event: MenuItemRegisteredEvent) => {
+  menuCache.clear();
+  syncListeners.forEach(l => l());
+  registerListeners.forEach(l => l(event));
+};
+const notifyUnregister = (event: MenuItemUnregisteredEvent) => {
+  menuCache.clear();
+  syncListeners.forEach(l => l());
+  unregisterListeners.forEach(l => l(event));
+};
+
 const registerMenuItem: typeof menusApi.registerMenuItem = (
   item: MenuItem,
   location: string,
@@ -45,11 +69,13 @@ const registerMenuItem: typeof menusApi.registerMenuItem = (
 ): Disposable => {
   const stored: StoredMenuItem = { item, location, group };
   menuItems.push(stored);
+  notifyRegister({ item, location, group });
   return new Disposable(() => {
     const index = menuItems.indexOf(stored);
     if (index >= 0) {
       menuItems.splice(index, 1);
     }
+    notifyUnregister({ item, location, group });
   });
 };
 
@@ -77,7 +103,34 @@ const getMenu: typeof menusApi.getMenu = (
   return result;
 };
 
+export const useMenu = (location: string): Menu | undefined =>
+  useSyncExternalStore(
+    subscribe,
+    () => {
+      if (!menuCache.has(location)) {
+        menuCache.set(location, getMenu(location));
+      }
+      return menuCache.get(location);
+    },
+    () => undefined,
+  );
+
+export const onDidRegisterMenuItem: typeof menusApi.onDidRegisterMenuItem = (
+  listener: (e: MenuItemRegisteredEvent) => void,
+): Disposable => {
+  registerListeners.add(listener);
+  return new Disposable(() => registerListeners.delete(listener));
+};
+
+export const onDidUnregisterMenuItem: typeof menusApi.onDidUnregisterMenuItem =
+  (listener: (e: MenuItemUnregisteredEvent) => void): Disposable => {
+    unregisterListeners.add(listener);
+    return new Disposable(() => unregisterListeners.delete(listener));
+  };
+
 export const menus: typeof menusApi = {
   registerMenuItem,
   getMenu,
+  onDidRegisterMenuItem,
+  onDidUnregisterMenuItem,
 };

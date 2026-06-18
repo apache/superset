@@ -141,6 +141,47 @@ def eval_node(node):
         return "<f-string>"
     return None
 
+def static_return_bool(func_node):
+    """
+    Statically resolve a method's return value to a bool when possible.
+
+    Returns True/False for functions whose body is (effectively) a single
+    \`return True\` / \`return False\` — allowing a leading docstring and
+    ignoring pure-comment/pass statements. Returns None for anything more
+    complex (conditional returns, computed values, no return, etc.).
+
+    Used by \`has_implicit_cancel\` handling: \`diagnose()\` in lib.py calls
+    the method and checks the return value, so an override that explicitly
+    returns False must NOT be treated as enabling query cancelation.
+    """
+    returns = []
+    other_logic = False
+    docstring_skipped = False
+    for stmt in func_node.body:
+        # Skip docstring (only the FIRST expression statement that is a
+        # string constant — later bare string literals are not docstrings
+        # and should count as non-trivial logic).
+        if (not docstring_skipped
+                and isinstance(stmt, ast.Expr)
+                and isinstance(stmt.value, ast.Constant)
+                and isinstance(stmt.value.value, str)):
+            docstring_skipped = True
+            continue
+        if isinstance(stmt, ast.Pass):
+            continue
+        if isinstance(stmt, ast.Return):
+            returns.append(stmt)
+            continue
+        # Any other statement (if/for/assign/etc.) means control flow is
+        # non-trivial; bail out to be conservative.
+        other_logic = True
+        break
+    if other_logic or len(returns) != 1:
+        return None
+    val = eval_node(returns[0].value)
+    return val if isinstance(val, bool) else None
+
+
 def deep_merge(base, override):
     """Deep merge two dictionaries. Override values take precedence."""
     if base is None:
@@ -186,8 +227,55 @@ if not os.path.isdir(specs_dir):
     print(json.dumps({"error": f"Directory not found: {specs_dir}", "cwd": os.getcwd()}))
     sys.exit(1)
 
-# First pass: collect all class info (name, bases, metadata)
-class_info = {}  # class_name -> {bases: [], metadata: {}, engine_name: str, filename: str}
+# Capability flag attributes with their defaults from BaseEngineSpec
+CAP_ATTR_DEFAULTS = {
+    'supports_dynamic_schema': False,
+    'supports_catalog': False,
+    'supports_dynamic_catalog': False,
+    'disable_ssh_tunneling': False,
+    'supports_file_upload': True,
+    'allows_joins': True,
+    'allows_subqueries': True,
+}
+
+# Maps source capability attribute -> output field name used in databases.json.
+# When a cap attr is assigned an unevaluable expression (e.g.
+# allows_joins = is_feature_enabled("DRUID_JOINS")), the JS layer uses this
+# mapping to preserve the corresponding field from the previously-generated
+# JSON rather than silently inheriting an incorrect parent default.
+CAP_ATTR_TO_OUTPUT_FIELD = {
+    'allows_joins': 'joins',
+    'allows_subqueries': 'subqueries',
+    'supports_dynamic_schema': 'supports_dynamic_schema',
+    'supports_catalog': 'supports_catalog',
+    'supports_dynamic_catalog': 'supports_dynamic_catalog',
+    'disable_ssh_tunneling': 'ssh_tunneling',
+    'supports_file_upload': 'supports_file_upload',
+}
+
+# Methods that indicate a capability when overridden by a non-BaseEngineSpec class.
+# Mirrors the has_custom_method checks in superset/db_engine_specs/lib.py.
+# cancel_query / has_implicit_cancel -> query_cancelation
+#   (diagnose() checks cancel_query override OR has_implicit_cancel() == True;
+#    base has_implicit_cancel returns False, so overriding it is the static
+#    equivalent of that method returning True. get_cancel_query_id is NOT
+#    part of the diagnose() heuristic and is intentionally excluded.)
+# estimate_statement_cost / estimate_query_cost -> query_cost_estimation
+# impersonate_user / update_impersonation_config / get_url_for_impersonation -> user_impersonation
+# validate_sql -> sql_validation (not used yet; validation is engine-based)
+CAP_METHODS = {
+    'cancel_query', 'has_implicit_cancel',
+    'estimate_statement_cost', 'estimate_query_cost',
+    'impersonate_user', 'update_impersonation_config', 'get_url_for_impersonation',
+    'validate_sql',
+}
+
+# Only the literal BaseEngineSpec is excluded from method-override tracking.
+# Intermediate base classes (e.g. PrestoBaseEngineSpec) do count as overrides.
+TRUE_BASE_CLASS = 'BaseEngineSpec'
+
+# First pass: collect all class info (name, bases, metadata, cap_attrs, direct_methods)
+class_info = {}  # class_name -> {bases: [], metadata: {}, engine_name: str, filename: str, ...}
 
 for filename in sorted(os.listdir(specs_dir)):
     if not filename.endswith('.py') or filename in ('__init__.py', 'lib.py', 'lint_metadata.py'):
@@ -218,30 +306,54 @@ for filename in sorted(os.listdir(specs_dir)):
 
             # Extract class attributes
             engine_name = None
+            engine_attr = None
             metadata = None
+            cap_attrs = {}   # capability flag attributes defined directly in this class
+            # Cap attrs assigned via expressions we can't statically resolve
+            # (e.g. is_feature_enabled("FLAG")). Tracked so the JS layer can
+            # fall back to the previously-generated databases.json value
+            # rather than inherit a parent default that would be wrong.
+            unresolved_cap_attrs = set()
+            direct_methods = set()  # capability methods defined directly in this class
 
             for item in node.body:
                 if isinstance(item, ast.Assign):
                     for target in item.targets:
-                        if isinstance(target, ast.Name):
-                            if target.id == 'engine_name':
-                                val = eval_node(item.value)
-                                if isinstance(val, str):
-                                    engine_name = val
-                            elif target.id == 'metadata':
-                                metadata = eval_node(item.value)
+                        if not isinstance(target, ast.Name):
+                            continue
+                        if target.id == 'engine_name':
+                            val = eval_node(item.value)
+                            if isinstance(val, str):
+                                engine_name = val
+                        elif target.id == 'engine':
+                            val = eval_node(item.value)
+                            if isinstance(val, str):
+                                engine_attr = val
+                        elif target.id == 'metadata':
+                            metadata = eval_node(item.value)
+                        elif target.id in CAP_ATTR_DEFAULTS:
+                            val = eval_node(item.value)
+                            if isinstance(val, bool):
+                                cap_attrs[target.id] = val
+                            else:
+                                # Unevaluable expression — defer to JS fallback.
+                                unresolved_cap_attrs.add(target.id)
+                elif isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if item.name in CAP_METHODS:
+                        # has_implicit_cancel is special: diagnose() uses the
+                        # method's RETURN VALUE, not just its presence. If the
+                        # override statically returns False, treat it as if
+                        # the method weren't overridden so query_cancelation
+                        # matches diagnose(). Unresolvable / True / anything
+                        # else falls through as an override (conservative).
+                        if item.name == 'has_implicit_cancel':
+                            if static_return_bool(item) is False:
+                                continue
+                        direct_methods.add(item.name)
 
             # Check for engine attribute with non-empty value to distinguish
             # true base classes from product classes like OceanBaseEngineSpec
-            has_non_empty_engine = False
-            for item in node.body:
-                if isinstance(item, ast.Assign):
-                    for target in item.targets:
-                        if isinstance(target, ast.Name) and target.id == 'engine':
-                            # Check if engine value is non-empty string
-                            if isinstance(item.value, ast.Constant):
-                                has_non_empty_engine = bool(item.value.value)
-                            break
+            has_non_empty_engine = engine_attr is not None and bool(engine_attr)
 
             # True base classes: end with BaseEngineSpec AND don't define engine
             # or have empty engine (like PostgresBaseEngineSpec with engine = "")
@@ -254,13 +366,18 @@ for filename in sorted(os.listdir(specs_dir)):
                 'bases': base_names,
                 'metadata': metadata,
                 'engine_name': engine_name,
+                'engine': engine_attr,
                 'filename': filename,
                 'is_base_or_mixin': is_true_base,
+                'cap_attrs': cap_attrs,
+                'unresolved_cap_attrs': unresolved_cap_attrs,
+                'direct_methods': direct_methods,
             }
     except Exception as e:
         errors.append(f"{filename}: {str(e)}")
 
-# Second pass: resolve inheritance and build final metadata
+# Second pass: resolve inheritance and build final metadata + capability flags
+
 def get_inherited_metadata(class_name, visited=None):
     """Recursively get metadata from parent classes."""
     if visited is None:
@@ -286,6 +403,64 @@ def get_inherited_metadata(class_name, visited=None):
 
     return inherited
 
+def get_resolved_caps(class_name, visited=None):
+    """
+    Resolve capability flags and method overrides with inheritance.
+
+    Returns (attr_values, unresolved, methods):
+      - attr_values: {attr: bool} for attrs where the nearest MRO assignment
+        was a literal bool. Defaults are applied at the call site.
+      - unresolved: attrs where the nearest MRO assignment was an unevaluable
+        expression (e.g. is_feature_enabled("FLAG")). The JS layer falls
+        back to the previously-generated JSON value for these.
+      - methods: capability methods defined directly in some non-base ancestor,
+        matching the has_custom_method() logic in db_engine_specs/lib.py.
+
+    attr_values and unresolved are disjoint — an attr is in at most one.
+    """
+    if visited is None:
+        visited = set()
+    if class_name in visited:
+        return {}, set(), set()
+    visited.add(class_name)
+
+    info = class_info.get(class_name)
+    if not info:
+        return {}, set(), set()
+
+    attr_values = {}
+    unresolved = set()
+    resolved_methods = set()
+
+    # Collect from parents, iterating right-to-left so leftmost bases win
+    # (matches Python MRO: for class C(A, B), A's attributes take precedence).
+    for base_name in reversed(info['bases']):
+        p_vals, p_unres, p_meth = get_resolved_caps(base_name, visited.copy())
+        # A parent's literal assignments overwrite whatever we inherited so far.
+        for attr, val in p_vals.items():
+            attr_values[attr] = val
+            unresolved.discard(attr)
+        # A parent's unresolved assignments likewise take precedence.
+        for attr in p_unres:
+            unresolved.add(attr)
+            attr_values.pop(attr, None)
+        resolved_methods.update(p_meth)
+
+    # Apply this class's own assignments (override parents).
+    for attr, val in info['cap_attrs'].items():
+        attr_values[attr] = val
+        unresolved.discard(attr)
+    for attr in info['unresolved_cap_attrs']:
+        unresolved.add(attr)
+        attr_values.pop(attr, None)
+
+    # Accumulate method overrides, but skip the literal BaseEngineSpec
+    # (its implementations are stubs; only non-base overrides count).
+    if class_name != TRUE_BASE_CLASS:
+        resolved_methods.update(info['direct_methods'])
+
+    return attr_values, unresolved, resolved_methods
+
 for class_name, info in class_info.items():
     # Skip base classes and mixins
     if info['is_base_or_mixin']:
@@ -310,7 +485,14 @@ for class_name, info in class_info.items():
 
     if final_metadata and isinstance(final_metadata, dict) and display_name:
         debug_info["classes_with_metadata"] += 1
-        databases[display_name] = {
+
+        # Resolve capability flags from Python source
+        attr_values, unresolved_caps, cap_methods = get_resolved_caps(class_name)
+        cap_attrs = dict(CAP_ATTR_DEFAULTS)
+        cap_attrs.update(attr_values)
+        engine_attr = info.get('engine') or ''
+
+        entry = {
             'engine': display_name.lower().replace(' ', '_'),
             'engine_name': display_name,
             'module': info['filename'][:-3],  # Remove .py extension
@@ -318,18 +500,39 @@ for class_name, info in class_info.items():
             'time_grains': {},
             'score': 0,
             'max_score': 0,
-            'joins': True,
-            'subqueries': True,
-            'supports_dynamic_schema': False,
-            'supports_catalog': False,
-            'supports_dynamic_catalog': False,
-            'ssh_tunneling': False,
-            'query_cancelation': False,
-            'supports_file_upload': False,
-            'user_impersonation': False,
-            'query_cost_estimation': False,
-            'sql_validation': False,
+            # Capability flags read from engine spec class attributes/methods
+            'joins': cap_attrs['allows_joins'],
+            'subqueries': cap_attrs['allows_subqueries'],
+            'supports_dynamic_schema': cap_attrs['supports_dynamic_schema'],
+            'supports_catalog': cap_attrs['supports_catalog'],
+            'supports_dynamic_catalog': cap_attrs['supports_dynamic_catalog'],
+            'ssh_tunneling': not cap_attrs['disable_ssh_tunneling'],
+            'supports_file_upload': cap_attrs['supports_file_upload'],
+            # Method-based flags: True only when a non-base class overrides them.
+            # Matches diagnose() in lib.py: cancel_query override OR
+            # has_implicit_cancel() returning True (which, given the base
+            # returns False, is equivalent to overriding has_implicit_cancel).
+            'query_cancelation': bool({'cancel_query', 'has_implicit_cancel'} & cap_methods),
+            'query_cost_estimation': bool({'estimate_statement_cost', 'estimate_query_cost'} & cap_methods),
+            # SQL validation is implemented in external validator classes keyed by engine name
+            'sql_validation': engine_attr in {'presto', 'postgresql'},
+            'user_impersonation': bool(
+                {'impersonate_user', 'update_impersonation_config', 'get_url_for_impersonation'} & cap_methods
+            ),
         }
+
+        # Tell the JS layer which output fields were populated from the
+        # BaseEngineSpec default because the source assignment was an
+        # unevaluable expression; those get overridden from existing JSON.
+        unresolved_fields = sorted(
+            CAP_ATTR_TO_OUTPUT_FIELD[attr]
+            for attr in unresolved_caps
+            if attr in CAP_ATTR_TO_OUTPUT_FIELD
+        )
+        if unresolved_fields:
+            entry['_unresolved_cap_fields'] = unresolved_fields
+
+        databases[display_name] = entry
 
 if errors and not databases:
     print(json.dumps({"error": "Parse errors", "details": errors, "debug": debug_info}), file=sys.stderr)
@@ -852,23 +1055,51 @@ function loadExistingData() {
 }
 
 /**
+ * Fall back to the previously-generated databases.json for capability flags
+ * whose source assignment couldn't be statically resolved (e.g.
+ * `allows_joins = is_feature_enabled("DRUID_JOINS")`). The Python extractor
+ * flags these via the internal `_unresolved_cap_fields` marker; without this
+ * fallback those fields would silently inherit the BaseEngineSpec default
+ * and disagree with runtime behavior. The marker is stripped before output.
+ */
+function fallbackUnresolvedCaps(newDatabases, existingData) {
+  for (const [name, db] of Object.entries(newDatabases)) {
+    const unresolved = db._unresolved_cap_fields;
+    if (!unresolved || unresolved.length === 0) {
+      delete db._unresolved_cap_fields;
+      continue;
+    }
+    const existingDb = existingData?.databases?.[name];
+    if (existingDb) {
+      for (const field of unresolved) {
+        if (existingDb[field] !== undefined) {
+          db[field] = existingDb[field];
+        }
+      }
+    }
+    delete db._unresolved_cap_fields;
+  }
+  return newDatabases;
+}
+
+/**
  * Merge new documentation with existing diagnostics
- * Preserves score, time_grains, and feature flags from existing data
+ * Preserves score, max_score, and time_grains from existing data (these require
+ * Flask context to generate and cannot be derived from static source analysis).
+ * Capability flags (joins, supports_catalog, etc.) are NOT preserved here — they
+ * are read fresh from the Python engine spec source by extractEngineSpecMetadata(),
+ * with a separate fallback for expression-based assignments (see fallbackUnresolvedCaps).
  */
 function mergeWithExistingDiagnostics(newDatabases, existingData) {
   if (!existingData?.databases) return newDatabases;
 
-  const diagnosticFields = [
-    'score', 'max_score', 'time_grains', 'joins', 'subqueries',
-    'supports_dynamic_schema', 'supports_catalog', 'supports_dynamic_catalog',
-    'ssh_tunneling', 'query_cancelation', 'supports_file_upload',
-    'user_impersonation', 'query_cost_estimation', 'sql_validation'
-  ];
+  // Only preserve fields that require Flask/runtime context to generate
+  const diagnosticFields = ['score', 'max_score', 'time_grains'];
 
   for (const [name, db] of Object.entries(newDatabases)) {
     const existingDb = existingData.databases[name];
     if (existingDb && existingDb.score > 0) {
-      // Preserve diagnostics from existing data
+      // Preserve score/time_grain diagnostics from existing data
       for (const field of diagnosticFields) {
         if (existingDb[field] !== undefined) {
           db[field] = existingDb[field];
@@ -879,7 +1110,7 @@ function mergeWithExistingDiagnostics(newDatabases, existingData) {
 
   const preserved = Object.values(newDatabases).filter(d => d.score > 0).length;
   if (preserved > 0) {
-    console.log(`Preserved diagnostics for ${preserved} databases from existing data`);
+    console.log(`Preserved score/time_grains for ${preserved} databases from existing data`);
   }
 
   return newDatabases;
@@ -926,6 +1157,12 @@ async function main() {
   if (!hasNewScores && existingData) {
     databases = mergeWithExistingDiagnostics(databases, existingData);
   }
+
+  // For cap flags assigned via unevaluable expressions (e.g.
+  // `is_feature_enabled(...)`), prefer the value from a previously-generated
+  // JSON. Runs regardless of scores since it addresses static-analysis gaps,
+  // not missing Flask diagnostics. Always strips the internal marker.
+  databases = fallbackUnresolvedCaps(databases, existingData);
 
   // Extract and merge custom_errors for troubleshooting documentation
   const customErrors = extractCustomErrors();

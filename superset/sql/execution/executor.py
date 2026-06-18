@@ -69,6 +69,8 @@ from flask import current_app as app, g, has_app_context
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
@@ -318,6 +320,10 @@ class SQLExecutor:
             )
         except SupersetSecurityException as ex:
             return self._create_error_result(QueryStatus.FAILED, str(ex), start_time)
+        except (OAuth2RedirectError, OAuth2Error):
+            # Let OAuth2 exceptions propagate so callers (MCP, API) can
+            # handle them with context-appropriate responses.
+            raise
         except Exception as ex:
             error_msg = self.database.db_engine_spec.extract_error_message(ex)
             return self._create_error_result(QueryStatus.FAILED, error_msg, start_time)
@@ -839,13 +845,22 @@ class SQLExecutor:
             or app.config.get("CACHE_DEFAULT_TIMEOUT", 300)
         )
 
-        # Serialize statement results for caching
+        # Serialize statement results for caching.
+        # Convert DataFrames to list-of-dicts so the cache backend
+        # does not need to pickle pandas objects (which can fail to
+        # deserialize correctly with some backends or pandas versions).
+        import pandas as pd
+
         cached_data = {
             "statements": [
                 {
                     "original_sql": stmt.original_sql,
                     "executed_sql": stmt.executed_sql,
-                    "data": stmt.data,
+                    "data": (
+                        stmt.data.to_dict(orient="records")
+                        if isinstance(stmt.data, pd.DataFrame)
+                        else stmt.data
+                    ),
                     "row_count": stmt.row_count,
                     "execution_time_ms": stmt.execution_time_ms,
                 }

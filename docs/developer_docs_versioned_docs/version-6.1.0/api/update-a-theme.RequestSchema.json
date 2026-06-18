@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"json_data":{"type":"string"},"theme_name":{"type":"string"}},"required":["json_data","theme_name"],"type":"object","title":"ThemeRestApi.put"},"example":{"json_data":"string","theme_name":"string"}}},"description":"Theme schema","required":true}}

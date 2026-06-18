@@ -76,6 +76,7 @@ interface GetExploreUrlParams {
   allowDomainSharding?: boolean;
   method?: 'GET' | 'POST';
   relative?: boolean;
+  includeAppRoot?: boolean;
 }
 
 interface BuildV1ChartDataPayloadParams {
@@ -98,6 +99,7 @@ interface ExportChartParams {
         url: string | null;
         payload: QueryFormData | ReturnType<typeof buildQueryContext>;
         exportType: string;
+        exportSource: 'chart';
       }) => void)
     | null;
 }
@@ -223,6 +225,7 @@ export function getExploreUrl({
   allowDomainSharding = false,
   method = 'POST',
   relative = false,
+  includeAppRoot = true,
 }: GetExploreUrlParams): string | null {
   if (!formData.datasource) {
     return null;
@@ -242,7 +245,7 @@ export function getExploreUrl({
     uri = URI(URI(curUrl).search());
   }
 
-  const directory = getURIDirectory(endpointType);
+  const directory = getURIDirectory(endpointType, includeAppRoot);
 
   // Building the querystring (search) part of the URI
   const search = uri.search(true) as Record<string, string>;
@@ -370,10 +373,11 @@ export const exportChart = async ({
       force,
       allowDomainSharding: false,
       relative: true,
+      includeAppRoot: false,
     });
     payload = formData;
   } else {
-    url = ensureAppRoot('/api/v1/chart/data');
+    url = '/api/v1/chart/data';
     payload = await buildV1ChartDataPayload({
       formData,
       force,
@@ -385,14 +389,17 @@ export const exportChart = async ({
 
   // Check if streaming export handler is provided (from dashboard Chart.jsx)
   if (onStartStreamingExport) {
-    // Streaming is handled by the caller - pass URL, payload, and export type
+    // Streaming uses native fetch — apply appRoot prefix here since useStreamingExport
+    // does not go through SupersetClient (which would add it automatically).
     onStartStreamingExport({
-      url,
+      url: url ? ensureAppRoot(url) : url,
       payload,
       exportType: resultFormat,
+      exportSource: 'chart',
     });
   } else {
-    // Fallback to original behavior for non-streaming exports
+    // SupersetClient.postForm calls getUrl({ endpoint }) internally, which prepends
+    // appRoot — so the URL must NOT be pre-prefixed here.
     SupersetClient.postForm(url as string, {
       form_data: safeStringify(payload),
     });
@@ -458,7 +465,8 @@ export const getSimpleSQLExpression = (
       isMulti && Array.isArray(comparator) ? comparator[0] : comparator;
     const comparatorArray = ensureIsArray(comparator);
     const isString =
-      firstValue !== undefined && Number.isNaN(Number(firstValue));
+      firstValue !== undefined &&
+      (typeof firstValue === 'boolean' || Number.isNaN(Number(firstValue)));
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
     if (comparatorArray.length > 0 && showComparator) {

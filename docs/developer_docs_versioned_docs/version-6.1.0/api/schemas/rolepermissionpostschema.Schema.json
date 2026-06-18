@@ -1,0 +1,1 @@
+{"schema":{"properties":{"permission_view_menu_ids":{"description":"List of permission view menu id","items":{"type":"integer"},"type":"array"}},"required":["permission_view_menu_ids"],"type":"object","title":"RolePermissionPostSchema"},"schemaType":"response"}

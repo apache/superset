@@ -29,14 +29,20 @@ import '@fontsource/ibm-plex-mono/600.css';
 /* eslint-enable import/extensions */
 
 import { css, useTheme, Global } from '@emotion/react';
+import { useThemeMode } from './utils/themeUtils';
 
 export const GlobalStyles = () => {
   const theme = useTheme();
+  const isDark = useThemeMode();
   return (
     <Global
       key={`global-${theme.colorLink}`}
       styles={css`
         // SPA
+        html {
+          color-scheme: ${isDark ? 'dark' : 'light'};
+        }
+
         html,
         body,
         #app {
@@ -108,6 +114,21 @@ export const GlobalStyles = () => {
         .ant-color-picker .ant-color-picker-slider-alpha {
           display: flex;
           margin-top: ${theme.marginXS}px;
+        }
+
+        .superset-explore-popover.ant-popover
+          .ant-popover-inner:has(.ant-popover-title) {
+          padding-top: 0;
+        }
+        .superset-explore-popover.ant-popover .ant-popover-title {
+          padding-top: ${theme.paddingXS}px;
+          margin-bottom: ${theme.paddingSM}px;
+          line-height: 1;
+        }
+        .superset-explore-popover.ant-popover
+          .ant-popover-inner:has(.ant-popover-title)
+          .ant-tabs-tab {
+          padding-top: 0;
         }
       `}
     />

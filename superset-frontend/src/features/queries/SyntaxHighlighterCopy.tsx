@@ -124,7 +124,11 @@ export default function SyntaxHighlighterCopy({
         onClick={handleCopyClick}
         onKeyDown={handleKeyDown}
       />
-      <CodeSyntaxHighlighter language={language} {...syntaxHighlighterProps}>
+      <CodeSyntaxHighlighter
+        language={language}
+        showCopyButton={false}
+        {...syntaxHighlighterProps}
+      >
         {children}
       </CodeSyntaxHighlighter>
     </SyntaxHighlighterWrapper>

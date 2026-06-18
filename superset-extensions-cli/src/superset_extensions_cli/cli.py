@@ -226,7 +226,7 @@ def copy_frontend_dist(cwd: Path) -> str:
 def copy_backend_files(cwd: Path) -> None:
     """Copy backend files based on pyproject.toml build configuration (validation already passed)."""
     dist_dir = cwd / "dist"
-    backend_dir = cwd / "backend"
+    backend_dir = (cwd / "backend").resolve()
 
     # Read build config from pyproject.toml
     pyproject = read_toml(backend_dir / "pyproject.toml")
@@ -239,11 +239,31 @@ def copy_backend_files(cwd: Path) -> None:
 
     # Process include patterns
     for pattern in include_patterns:
+        # Include patterns are only meant to select files within the backend
+        # directory. Reject absolute patterns or ones that walk outside it via
+        # parent ("..") components before handing them to glob().
+        pattern_parts = Path(pattern).parts
+        if Path(pattern).is_absolute() or ".." in pattern_parts:
+            raise click.ClickException(
+                f"Invalid include pattern {pattern!r}: patterns must be "
+                "relative to the backend directory and may not contain '..'."
+            )
         for f in backend_dir.glob(pattern):
             if not f.is_file():
                 continue
 
-            # Check exclude patterns
+            # Defense in depth: confirm the matched file resolves to a location
+            # inside the backend directory before copying it into the bundle.
+            resolved = f.resolve()
+            if not resolved.is_relative_to(backend_dir):
+                raise click.ClickException(
+                    f"Refusing to copy {f}: resolved path is outside the "
+                    f"backend directory {backend_dir}."
+                )
+
+            # Use the matched path (not the resolved target) for the bundle
+            # layout and exclude evaluation so symlinked files are staged at
+            # their configured path rather than their symlink target.
             relative_path = f.relative_to(backend_dir)
             should_exclude = any(
                 relative_path.match(excl_pattern) for excl_pattern in exclude_patterns
@@ -585,9 +605,9 @@ def bundle(ctx: click.Context, output: Path | None) -> None:
         sys.exit(1)
 
     manifest = json.loads(manifest_path.read_text())
-    id_ = manifest["id"]
+    name = manifest["name"]
     version = manifest["version"]
-    default_filename = f"{id_}-{version}.supx"
+    default_filename = f"{name}-{version}.supx"
 
     if output is None:
         zip_path = Path(default_filename)
@@ -824,7 +844,7 @@ def init(
         else click.confirm("Include backend?", default=True)
     )
 
-    target_dir = Path.cwd() / names["id"]
+    target_dir = Path.cwd() / names["name"]
     if target_dir.exists():
         click.secho(f"❌ Directory {target_dir} already exists.", fg="red")
         sys.exit(1)

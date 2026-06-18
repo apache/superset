@@ -1,0 +1,31 @@
+---
+title: Cloudflare D1
+sidebar_label: Cloudflare D1
+description: "Cloudflare D1 is a serverless SQLite database."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"cloudflare_d1","engine_name":"Cloudflare D1","module":"d1","documentation":{"description":"Cloudflare D1 is a serverless SQLite database.","logo":"cloudflare.png","homepage_url":"https://developers.cloudflare.com/d1/","pypi_packages":["superset-engine-d1"],"connection_string":"d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}","notes":"No additional library needed. SQLite is bundled with Python.","categories":["CLOUD_DATA_WAREHOUSES","TRADITIONAL_RDBMS","HOSTED_OPEN_SOURCE"],"parameters":{"cloudflare_account_id":"Cloudflare account ID","cloudflare_api_token":"Cloudflare API token","cloudflare_d1_database_id":"D1 database ID"},"install_instructions":"pip install superset-engine-d1"},"time_grains":{"SECOND":true,"FIVE_SECONDS":true,"THIRTY_SECONDS":true,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":true,"HALF_HOUR":true,"HOUR":true,"SIX_HOURS":true,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":true,"WEEK_STARTING_MONDAY":true,"WEEK_ENDING_SATURDAY":true,"WEEK_ENDING_SUNDAY":true,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":true,"YEAR":true},"score":41,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":false,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":false,"supports_file_upload":true,"query_cancelation":false,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Cloudflare D1" database={databaseInfo} />

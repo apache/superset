@@ -21,8 +21,8 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import redirect, request, Response, send_file, url_for
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask import current_app, redirect, request, Response, send_file, url_for
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -58,6 +58,7 @@ from superset.charts.schemas import (
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.delete import DeleteChartCommand
 from superset.commands.chart.exceptions import (
+    ChartAccessDeniedError,
     ChartCreateFailedError,
     ChartDeleteFailedError,
     ChartForbiddenError,
@@ -81,11 +82,12 @@ from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
 from superset.exceptions import ScreenshotImageNotAvailableException
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
+from superset.utils.core import sanitize_cookie_token
 from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
@@ -308,6 +310,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             dash = ChartDAO.get_by_id_or_uuid(id_or_uuid)
             result = self.chart_get_response_schema.dump(dash)
+            if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
+                result["extra_owners"] = resolver(dash)
             return self.response(200, result=result)
         except ChartNotFoundError:
             return self.response_404()
@@ -363,7 +367,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateChartCommand(item).run()
-            return self.response(201, id=new_model.id, result=item)
+            return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardsForbiddenError as ex:
             return self.response(ex.status, message=ex.message)
         except ChartInvalidError as ex:
@@ -440,6 +444,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             response = self.response_404()
         except ChartForbiddenError:
             response = self.response_403()
+        except DashboardsForbiddenError as ex:
+            response = self.response(ex.status, message=ex.message)
         except TagForbiddenError as ex:
             response = self.response(403, message=str(ex))
         except ChartInvalidError as ex:
@@ -514,7 +520,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
@@ -570,12 +576,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
     @protect()
-    @rison(screenshot_query_schema)
+    @parse_rison(screenshot_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".cache_screenshot",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.cache_screenshot"
+        ),
         log_to_statsd=False,
     )
     def cache_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
@@ -616,6 +623,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         rison_dict = kwargs["rison"]
         force = rison_dict.get("force")
         window_size = rison_dict.get("window_size") or DEFAULT_CHART_WINDOW_SIZE
@@ -699,6 +710,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         chart = self.datamodel.get(pk, self._base_filters)
 
         if not chart:
@@ -719,7 +734,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
     @protect()
-    @rison(thumbnail_query_schema)
+    @parse_rison(thumbnail_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -761,6 +776,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
@@ -811,7 +830,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -866,18 +885,19 @@ class ChartRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
     @expose("/favorite_status/", methods=("GET",))
     @protect()
     @safe
-    @rison(get_fav_star_ids_schema)
+    @parse_rison(get_fav_star_ids_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".favorite_status",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.favorite_status"
+        ),
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
@@ -958,7 +978,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             AddFavoriteChartCommand(pk).run()
         except ChartNotFoundError:
             return self.response_404()
-        except ChartForbiddenError:
+        except (ChartAccessDeniedError, ChartForbiddenError):
             return self.response_403()
 
         return self.response(200, result="OK")
@@ -968,8 +988,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".remove_favorite",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.remove_favorite"
+        ),
         log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:
@@ -1002,11 +1023,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             DelFavoriteChartCommand(pk).run()
         except ChartNotFoundError:
-            self.response_404()
-        except ChartForbiddenError:
-            self.response_403()
+            return self.response_404()
+        except (ChartAccessDeniedError, ChartForbiddenError):
+            return self.response_403()
 
         return self.response(200, result="OK")
+
+    def _pre_related_check(self, column_name: str) -> Optional[Response]:
+        """Restrict the owners related field to users with write access."""
+        if (
+            column_name == "owners"
+            and not security_manager.can_access_all_datasources()
+        ):
+            return self.response_403()
+        return None
 
     @expose("/warm_up_cache", methods=("PUT",))
     @protect()

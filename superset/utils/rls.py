@@ -34,9 +34,17 @@ def apply_rls(
     catalog: str | None,
     schema: str,
     parsed_statement: BaseSQLStatement[Any],
-) -> None:
+    exclude_dataset_id: int | None = None,
+) -> bool:
     """
     Modify statement inplace to ensure RLS rules are applied.
+
+    :param exclude_dataset_id: When applying RLS to a virtual dataset's inner SQL,
+        pass the virtual dataset's id here so its own RLS isn't injected again
+        on top of the outer-WHERE application (avoids double-apply when the
+        virtual dataset's table_name collides with a table in its own SQL — for
+        example, after converting a physical dataset with RLS to virtual).
+    :returns: True if any RLS predicates were actually applied, False otherwise.
     """
     # There are two ways to insert RLS: either replacing the table with a subquery
     # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
@@ -53,17 +61,21 @@ def apply_rls(
                 table,
                 database,
                 database.get_default_catalog(),
+                exclude_dataset_id=exclude_dataset_id,
             )
             if predicate
         ]
 
+    has_predicates = any(predicates.values())
     parsed_statement.apply_rls(catalog, schema, predicates, method)
+    return has_predicates
 
 
 def get_predicates_for_table(
     table: Table,
     database: Database,
     default_catalog: str | None,
+    exclude_dataset_id: int | None = None,
 ) -> list[str]:
     """
     Get the RLS predicates for a table.
@@ -83,18 +95,21 @@ def get_predicates_for_table(
             SqlaTable.catalog.is_(None),
         )
 
-    dataset = (
-        db.session.query(SqlaTable)
-        .filter(
-            and_(
-                SqlaTable.database_id == database.id,
-                catalog_predicate,
-                SqlaTable.schema == table.schema,
-                SqlaTable.table_name == table.table,
-            )
-        )
-        .one_or_none()
-    )
+    filters = [
+        SqlaTable.database_id == database.id,
+        catalog_predicate,
+        SqlaTable.schema == table.schema,
+        SqlaTable.table_name == table.table,
+    ]
+    # When applying RLS to a virtual dataset's inner SQL, skip a match against
+    # the dataset itself — its RLS is already applied on the outer WHERE via
+    # get_sqla_row_level_filters(). Without this, a virtual dataset whose
+    # table_name happens to equal a table in its own SQL (e.g. after a
+    # physical→virtual conversion) double-applies its own predicates.
+    if exclude_dataset_id is not None:
+        filters.append(SqlaTable.id != exclude_dataset_id)
+
+    dataset = db.session.query(SqlaTable).filter(and_(*filters)).one_or_none()
     if not dataset:
         return []
 
@@ -126,6 +141,7 @@ def collect_rls_predicates_for_sql(
     database: Database,
     catalog: str | None,
     schema: str,
+    exclude_dataset_id: int | None = None,
 ) -> list[str]:
     """
     Collect all RLS predicates that would be applied to tables in the given SQL.
@@ -137,6 +153,9 @@ def collect_rls_predicates_for_sql(
     :param database: The database the query runs against
     :param catalog: The default catalog for the query
     :param schema: The default schema for the query
+    :param exclude_dataset_id: Mirror of the same parameter on apply_rls — pass
+        the virtual dataset's id so its self-match is excluded from the cache key
+        (kept consistent with what's actually applied at query time).
     :return: List of RLS predicate strings that would be applied
     """
     from superset.sql.parse import SQLScript
@@ -157,6 +176,7 @@ def collect_rls_predicates_for_sql(
                     table,
                     database,
                     default_catalog,
+                    exclude_dataset_id=exclude_dataset_id,
                 )
             }
         )

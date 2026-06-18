@@ -68,6 +68,7 @@ from superset.daos.datasource import DatasourceDAO
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.exceptions import (
     CacheLoadError,
+    SupersetErrorException,
     SupersetException,
     SupersetSecurityException,
 )
@@ -266,6 +267,10 @@ class Superset(BaseSupersetView):
             )
 
             return self.generate_json(viz_obj, response_type)
+        except SupersetErrorException:
+            # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+            # so the global Flask error handler serializes them.
+            raise
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
@@ -290,7 +295,7 @@ class Superset(BaseSupersetView):
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
     @deprecated(eol_version="5.0.0")
-    def explore_json(
+    def explore_json(  # noqa: C901
         self, datasource_type: str | None = None, datasource_id: int | None = None
     ) -> FlaskResponse:
         """Serves all request that GET or POST form_data
@@ -377,6 +382,10 @@ class Superset(BaseSupersetView):
             )
 
             return self.generate_json(viz_obj, response_type)
+        except SupersetErrorException:
+            # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+            # so the global Flask error handler serializes them.
+            raise
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
@@ -855,12 +864,11 @@ class Superset(BaseSupersetView):
         )
         if url_params := state.get("urlParams"):
             for param_key, param_val in url_params:
-                if param_key == "native_filters":
-                    # native_filters doesnt need to be encoded here
-                    url = f"{url}&native_filters={param_val}"
-                else:
-                    params = parse.urlencode([(param_key, param_val)])
-                    url = f"{url}&{params}"
+                # URL-encode every param value (including native_filters) so a
+                # value containing '&'/'#'/'=' cannot inject extra parameters
+                # into the redirect target. Flask decodes the value back on read.
+                params = parse.urlencode([(param_key, param_val)])
+                url = f"{url}&{params}"
         if original_params := request.query_string.decode():
             url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
