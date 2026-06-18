@@ -213,7 +213,9 @@ def test_prophet_fit_error():
         mock_fit.side_effect = InvalidPostProcessingError(
             "Unable to generate forecast: Dataframe has fewer than 2 non-NaN rows."
         )
-        with pytest.raises(InvalidPostProcessingError, match="Unable to generate forecast"):
+        with pytest.raises(
+            InvalidPostProcessingError, match="Unable to generate forecast"
+        ):
             prophet(
                 df=prophet_df,
                 time_grain="P1D",

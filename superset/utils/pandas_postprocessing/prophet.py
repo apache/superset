@@ -85,7 +85,7 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     return forecast.join(df.set_index("ds"), on="ds").set_index(["ds"])
 
 
-def prophet(  # pylint: disable=too-many-arguments
+def prophet(  # pylint: disable=too-many-arguments  # noqa: C901
     df: DataFrame,
     time_grain: str,
     periods: int,
