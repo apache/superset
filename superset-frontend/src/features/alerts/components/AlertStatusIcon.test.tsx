@@ -63,6 +63,9 @@ test('labels the Not triggered state "Report not yet run" for reports', async ()
   renderIcon(AlertState.Noop, /* isReportEnabled */ true);
   userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByText('Report not yet run')).toBeInTheDocument();
+  // Guards the isReportEnabled split: before this fix the Noop label was
+  // unconditionally "Nothing triggered" for reports too.
+  expect(screen.queryByText('Nothing triggered')).not.toBeInTheDocument();
 });
 
 test('labels the Not triggered state "Nothing triggered" for alerts', async () => {
