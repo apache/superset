@@ -71,12 +71,12 @@ case "${1}" in
   worker)
     echo "Starting Celery worker..."
     # setting up only 2 workers by default to contain memory usage in dev environments
-    celery --app=superset.tasks.celery_app:app worker -O fair -l INFO --concurrency=${CELERYD_CONCURRENCY:-2}
+    celery --app=superset.tasks.celery_app:app worker -O fair -l INFO --concurrency=${CELERYD_CONCURRENCY:-2} ${WORKER_LOG_FILE:+--logfile=$WORKER_LOG_FILE}
     ;;
   beat)
     echo "Starting Celery beat..."
     rm -f /tmp/celerybeat.pid
-    celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid -l INFO -s "${SUPERSET_HOME}"/celerybeat-schedule
+    celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid -l INFO -s "${SUPERSET_HOME}"/celerybeat-schedule ${BEAT_LOG_FILE:+--logfile=$BEAT_LOG_FILE}
     ;;
   app)
     echo "Starting web app (using development server)..."
