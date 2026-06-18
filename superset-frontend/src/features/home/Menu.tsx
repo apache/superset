@@ -211,6 +211,16 @@ export function Menu({
     SavedQueries = '/savedqueryview',
   }
 
+  // Stable Flask-AppBuilder menu identifiers (`name`), used as menu item keys.
+  // These are locale-independent, unlike the displayed labels, so matching the
+  // active tab against them keeps highlighting working in every language.
+  enum MenuKeys {
+    Dashboards = 'Dashboards',
+    Charts = 'Charts',
+    Datasets = 'Datasets',
+    SqlLab = 'SQL Lab',
+  }
+
   const defaultTabSelection: string[] = [];
   const [activeTabs, setActiveTabs] = useState(defaultTabSelection);
   const location = useLocation();
@@ -218,16 +228,16 @@ export function Menu({
     const path = location.pathname;
     switch (true) {
       case path.startsWith(Paths.Dashboard):
-        setActiveTabs([t('Dashboards')]);
+        setActiveTabs([MenuKeys.Dashboards]);
         break;
       case path.startsWith(Paths.Chart) || path.startsWith(Paths.Explore):
-        setActiveTabs([t('Charts')]);
+        setActiveTabs([MenuKeys.Charts]);
         break;
       case path.startsWith(Paths.Datasets):
-        setActiveTabs([datasetsLabel()]);
+        setActiveTabs([MenuKeys.Datasets]);
         break;
       case path.startsWith(Paths.SqlLab) || path.startsWith(Paths.SavedQueries):
-        setActiveTabs(['SQL']);
+        setActiveTabs([MenuKeys.SqlLab]);
         break;
       default:
         setActiveTabs(defaultTabSelection);
@@ -242,10 +252,14 @@ export function Menu({
     childs,
     url,
     isFrontendRoute,
+    name,
   }: MenuObjectProps): MenuItem => {
+    // Key items by the stable FAB `name` so active-tab matching is independent
+    // of the localized label. Fall back to the label when no name is provided.
+    const key = name ?? label;
     if (url && isFrontendRoute) {
       return {
-        key: label,
+        key,
         label: (
           <NavLink role="button" to={url} activeClassName="is-active">
             {label}
@@ -256,7 +270,7 @@ export function Menu({
 
     if (url) {
       return {
-        key: label,
+        key,
         label: <Typography.Link href={url}>{label}</Typography.Link>,
       };
     }
@@ -281,7 +295,7 @@ export function Menu({
     });
 
     return {
-      key: label,
+      key,
       label,
       ...(screens.md && {
         icon: <Icons.DownOutlined iconSize="xs" />,
