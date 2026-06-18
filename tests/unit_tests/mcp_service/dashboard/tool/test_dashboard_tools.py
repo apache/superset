@@ -1436,7 +1436,7 @@ class TestDashboardDefaultColumnFiltering:
         dashboard.external_url = None
         dashboard.thumbnail_url = None
         dashboard.roles = []
-    dashboard.embedded = []
+        dashboard.embedded = []
         dashboard.charts = []
         mock_list.return_value = ([dashboard], 1)
 
