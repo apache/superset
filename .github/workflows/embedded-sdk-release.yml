@@ -26,12 +26,23 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
+      # Note: registry-url is intentionally omitted. When set, actions/setup-node
+      # writes an .npmrc with `_authToken=${NODE_AUTH_TOKEN}` and a placeholder
+      # token, which makes npm attempt token auth and skip the OIDC
+      # trusted-publishing exchange. With no .npmrc auth line, npm authenticates
+      # via OIDC against the default registry (registry.npmjs.org).
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: "./superset-embedded-sdk/.nvmrc"
-          registry-url: "https://registry.npmjs.org"
-      # Trusted publishing requires npm >= 11.5.1; ensure it regardless of the
-      # version bundled with the pinned Node release.
-      - run: npm install -g npm@latest
+      # Diagnostic: confirm GitHub OIDC is granted to this job. npm trusted
+      # publishing needs the id-token request env vars; "no" here means OIDC was
+      # not issued and publishing cannot authenticate.
+      - name: Check OIDC availability
+        run: |
+          if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL}" ]; then
+            echo "GitHub OIDC available to job: yes"
+          else
+            echo "GitHub OIDC available to job: no"
+          fi
       - run: npm ci
       - run: npm run ci:release
