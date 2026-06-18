@@ -1735,6 +1735,7 @@ class ImportV1ChartSchema(Schema):
     viz_type = fields.String(required=True)
     params = fields.Dict()
     query_context = fields.String(allow_none=True, validate=utils.validate_json)
+    extra = fields.String(allow_none=True, validate=utils.validate_json)
     cache_timeout = fields.Integer(allow_none=True)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)

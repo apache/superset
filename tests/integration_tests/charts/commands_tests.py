@@ -104,6 +104,7 @@ class TestExportChartsCommand(SupersetTestCase):
             "uuid": str(example_chart.uuid),
             "version": "1.0.0",
             "query_context": None,
+            "extra": None,
         }
 
     @patch("superset.utils.core.g")
@@ -152,6 +153,7 @@ class TestExportChartsCommand(SupersetTestCase):
             "viz_type",
             "params",
             "query_context",
+            "extra",
             "cache_timeout",
             "uuid",
             "version",

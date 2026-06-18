@@ -158,6 +158,7 @@ class Slice(  # pylint: disable=too-many-public-methods
             params=self.params,
             description=self.description,
             cache_timeout=self.cache_timeout,
+            extra=self.extra,
         )
 
     @renders("datasource_name")
