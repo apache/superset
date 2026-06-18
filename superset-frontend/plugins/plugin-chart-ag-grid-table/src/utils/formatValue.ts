@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  CurrencyFormatter,
   DataRecordValue,
   getSmallNumberFormatter,
   isDefined,
