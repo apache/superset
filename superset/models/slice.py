@@ -82,6 +82,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     viz_type = Column(String(250))
     params = Column(utils.MediumText())
     query_context = Column(utils.MediumText())
+    extra = Column(utils.MediumText())
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
@@ -134,6 +135,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         "viz_type",
         "params",
         "query_context",
+        "extra",
         "cache_timeout",
     ]
     export_parent = "table"
