@@ -716,9 +716,11 @@ test('skips non-editable dashboards and picks the first editable one from metada
   notMine.owners = [{ id: 99, first_name: 'Other', last_name: 'Owner' }];
   const editable = makeMetadataDashboard(editableId, editableTitle);
 
-  component.loadDashboard = jest.fn().mockImplementation((id: number) =>
-    Promise.resolve(id === 6 ? notMine : editable),
-  );
+  component.loadDashboard = jest
+    .fn()
+    .mockImplementation((id: number) =>
+      Promise.resolve(id === 6 ? notMine : editable),
+    );
   component.loadTabs = jest.fn().mockResolvedValue([]);
 
   const stateUpdates: any[] = [];

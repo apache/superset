@@ -54,7 +54,11 @@ import {
   isUserAdmin,
 } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
-import { SaveActionType, ChartStatusType, ExplorePageInitialData } from 'src/explore/types';
+import {
+  SaveActionType,
+  ChartStatusType,
+  ExplorePageInitialData,
+} from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   removeChartState,
