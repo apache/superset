@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { logging } from '@apache-superset/core/utils';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
@@ -48,24 +47,8 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
     ({ user }) => user.userId,
   );
 
-  // Log unhandled rejections that may originate from extension code.
-  // Registered once for the lifetime of the app; does not suppress the
-  // browser's default error surfacing so host error reporting is unaffected.
-  useEffect(() => {
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      logging.error('[extensions] Unhandled rejection:', event.reason);
-    };
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    return () => {
-      window.removeEventListener(
-        'unhandledrejection',
-        handleUnhandledRejection,
-      );
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
+useEffect(() => {
+    if (userId == null) return;
 
     // Provide the implementations for @apache-superset/core.
     // Namespaces are listed explicitly — do not spread the core package here,
