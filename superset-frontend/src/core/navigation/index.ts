@@ -72,7 +72,7 @@ const getPage: typeof navigationApi.getPage = () => pageEmitter.getCurrent();
 
 const onDidChangePage: typeof navigationApi.onDidChangePage = (
   listener: (page: Page) => void,
-  thisArgs?: any,
+  thisArgs?: unknown,
 ): Disposable => pageEmitter.subscribe(listener, thisArgs);
 
 /** Synchronizes the navigation module with React Router. Call once in the app shell. */

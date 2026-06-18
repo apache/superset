@@ -118,11 +118,14 @@ export const useMenu = (location: string): Menu | undefined =>
 
 export const onDidRegisterMenuItem: typeof menusApi.onDidRegisterMenuItem = (
   listener: (e: MenuItemRegisteredEvent) => void,
-): Disposable => registerEmitter.subscribe(listener);
+  thisArgs?: unknown,
+): Disposable => registerEmitter.subscribe(listener, thisArgs);
 
 export const onDidUnregisterMenuItem: typeof menusApi.onDidUnregisterMenuItem =
-  (listener: (e: MenuItemUnregisteredEvent) => void): Disposable =>
-    unregisterEmitter.subscribe(listener);
+  (
+    listener: (e: MenuItemUnregisteredEvent) => void,
+    thisArgs?: unknown,
+  ): Disposable => unregisterEmitter.subscribe(listener, thisArgs);
 
 export const menus: typeof menusApi = {
   registerMenuItem,

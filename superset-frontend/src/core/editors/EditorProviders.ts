@@ -184,8 +184,11 @@ class EditorProviders {
    * @param listener The listener function.
    * @returns A Disposable to unsubscribe.
    */
-  public onDidRegister(listener: Listener<EditorRegisteredEvent>): Disposable {
-    return this.registerEmitter.subscribe(listener);
+  public onDidRegister(
+    listener: Listener<EditorRegisteredEvent>,
+    thisArgs?: unknown,
+  ): Disposable {
+    return this.registerEmitter.subscribe(listener, thisArgs);
   }
 
   /**
@@ -195,8 +198,9 @@ class EditorProviders {
    */
   public onDidUnregister(
     listener: Listener<EditorUnregisteredEvent>,
+    thisArgs?: unknown,
   ): Disposable {
-    return this.unregisterEmitter.subscribe(listener);
+    return this.unregisterEmitter.subscribe(listener, thisArgs);
   }
 
   /**
@@ -206,6 +210,8 @@ class EditorProviders {
     this.providers.clear();
     this.languageToProvider.clear();
     this.syncListeners.clear();
+    this.registerEmitter = createEventEmitter<EditorRegisteredEvent>();
+    this.unregisterEmitter = createEventEmitter<EditorUnregisteredEvent>();
   }
 }
 

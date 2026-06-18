@@ -106,6 +106,7 @@ class ChatProvider {
       console.warn(
         `[Superset] Multiple chat extensions registered. Using "${chat.id}"; discarding "${this.chat.id}".`,
       );
+      this.unregisterEmitter.fire(this.chat);
       if (this.opened) this.closePanel();
     }
 
@@ -116,7 +117,7 @@ class ChatProvider {
     this.notifyState();
 
     return new Disposable(() => {
-      if (this.chat?.id !== chat.id) return;
+      if (this.chat !== chat) return;
       this.chat = undefined;
       this.trigger = undefined;
       this.panel = undefined;
@@ -194,6 +195,11 @@ class ChatProvider {
     this.trigger = undefined;
     this.panel = undefined;
     this.opened = false;
+    this.registerEmitter = createEventEmitter<Chat>();
+    this.unregisterEmitter = createEventEmitter<Chat>();
+    this.openEmitter = createEventEmitter<void>();
+    this.closeEmitter = createEventEmitter<void>();
+    this.resizePanelEmitter = createEventEmitter<{ width: number }>();
     this.modeEmitter = createValueEventEmitter<DisplayMode>('floating');
     this.stateSubscribers.clear();
     setItem(LocalStorageKeys.ChatState, { open: false, mode: 'floating' });
