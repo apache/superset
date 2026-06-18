@@ -75,7 +75,7 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
         model.fit(df)
         future = model.make_future_dataframe(periods=periods, freq=freq)
         forecast = model.predict(future)[["ds", "yhat", "yhat_lower", "yhat_upper"]]
-    except Exception as ex:
+    except Exception as ex:  # noqa: BLE001
         raise InvalidPostProcessingError(
             _(
                 "Unable to generate forecast: %(error)s",
@@ -145,9 +145,7 @@ def prophet(  # pylint: disable=too-many-arguments
     if len(df.columns) < 2:
         raise InvalidPostProcessingError(_("DataFrame include at least one series"))
     if len(df) < 2:
-        raise InvalidPostProcessingError(
-            _("Forecast requires at least 2 data points")
-        )
+        raise InvalidPostProcessingError(_("Forecast requires at least 2 data points"))
 
     target_df = DataFrame()
 
