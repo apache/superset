@@ -48,6 +48,7 @@ import {
   getLegendProps,
   sanitizeHtml,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
 import { convertInteger } from '../utils/convertInteger';
 import { getDefaultTooltip } from '../utils/tooltip';
@@ -380,11 +381,27 @@ export default function transformProps(
     show: showLabels,
     color: theme.colorText,
   };
+  const legendData = transformedData
+    .map(datum => datum.name)
+    .sort((a: string, b: string) => {
+      if (!legendSort) return 0;
+      return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+    });
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
 
   const chartPadding = getChartPadding(
     showLegend,
     legendOrientation,
-    legendMargin,
+    effectiveLegendMargin,
   );
 
   const series: PieSeriesOption[] = [
@@ -444,13 +461,13 @@ export default function transformProps(
       },
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: transformedData
-        .map(datum => datum.name)
-        .sort((a: string, b: string) => {
-          if (!legendSort) return 0;
-          return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
-        }),
+      ...getLegendProps(
+        effectiveLegendType,
+        legendOrientation,
+        showLegend,
+        theme,
+      ),
+      data: legendData,
     },
     graphic: showTotal
       ? {

@@ -229,3 +229,33 @@ test('ensureAppRoot should prefix unknown schemes instead of passing through', a
   // Unknown / custom schemes are treated as relative paths
   expect(ensureAppRoot('foo:bar')).toBe('/superset/foo:bar');
 });
+
+test('ensureAppRoot should be idempotent — not double-prefix an already-prefixed path', async () => {
+  const { ensureAppRoot } = await loadPathUtils('/superset/');
+
+  const once = ensureAppRoot('/sqllab');
+  const twice = ensureAppRoot(once);
+  expect(twice).toBe(once); // /superset/sqllab, NOT /superset/superset/sqllab
+});
+
+test('makeUrl should be idempotent with subdirectory prefix', async () => {
+  const { makeUrl } = await loadPathUtils('/superset/');
+
+  const once = makeUrl('/sqllab?new=true');
+  const twice = makeUrl(once);
+  expect(twice).toBe(once); // /superset/sqllab?new=true, NOT /superset/superset/sqllab?new=true
+});
+
+test('ensureAppRoot should fall back to application root when path is null or undefined', async () => {
+  const { ensureAppRoot } = await loadPathUtils('/superset/');
+
+  expect(ensureAppRoot(null)).toBe('/superset');
+  expect(ensureAppRoot(undefined)).toBe('/superset');
+});
+
+test('ensureAppRoot should fall back to "/" when path is null and no application root is configured', async () => {
+  const { ensureAppRoot } = await loadPathUtils();
+
+  expect(ensureAppRoot(null)).toBe('/');
+  expect(ensureAppRoot(undefined)).toBe('/');
+});

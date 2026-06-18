@@ -7,17 +7,20 @@ on:
 permissions:
   pull-requests: read
 
-# cancel previous workflow jobs for PRs
+# Let each label event run to completion. Cancelling in-progress runs leaves
+# CANCELLED entries in the PR's check-suite rollup, which poisons GitHub's
+# `status:success` search filter even though all real CI passed. The job is
+# a tiny no-op github-script call, so the wasted compute is negligible.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   check-hold-label:
     runs-on: ubuntu-24.04
     steps:
     - name: Check for 'hold' label
-      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |

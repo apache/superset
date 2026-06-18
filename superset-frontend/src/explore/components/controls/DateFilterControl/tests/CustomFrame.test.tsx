@@ -28,7 +28,7 @@ import {
 import { CustomFrame } from '../components';
 
 const TODAY = '2024-06-03';
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
 jest.setSystemTime(new Date(TODAY).getTime());
 
 const emptyValue = '';

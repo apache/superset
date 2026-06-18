@@ -18,6 +18,7 @@
  */
 /* eslint-disable camelcase */
 import { PureComponent, createRef } from 'react';
+import { useSelector } from 'react-redux';
 import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import type { editors } from '@apache-superset/core';
@@ -33,7 +34,6 @@ import {
   Tooltip,
 } from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
-import { noOp } from 'src/utils/common';
 import {
   AGGREGATES_OPTIONS,
   POPOVER_INITIAL_HEIGHT,
@@ -94,6 +94,8 @@ interface AdhocMetricEditPopoverProps {
   datasource?: DatasourceInfo;
   isNewMetric?: boolean;
   isLabelModified?: boolean;
+  /** Names of metrics the user may select; null means no filtering. */
+  compatibleMetrics?: string[] | null;
 }
 
 interface AdhocMetricEditPopoverState {
@@ -102,12 +104,6 @@ interface AdhocMetricEditPopoverState {
   width: number;
   height: number;
 }
-
-const defaultProps = {
-  columns: [],
-  getCurrentTab: noOp,
-  isNewMetric: false,
-};
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -123,7 +119,7 @@ const StyledSelect = styled(Select)`
 
 export const SAVED_TAB_KEY = 'SAVED';
 
-export default class AdhocMetricEditPopover extends PureComponent<
+class AdhocMetricEditPopover extends PureComponent<
   AdhocMetricEditPopoverProps,
   AdhocMetricEditPopoverState
 > {
@@ -196,8 +192,12 @@ export default class AdhocMetricEditPopover extends PureComponent<
   }
 
   getDefaultTab() {
-    const { adhocMetric, savedMetric, savedMetricsOptions, isNewMetric } =
-      this.props;
+    const {
+      adhocMetric,
+      savedMetric,
+      savedMetricsOptions,
+      isNewMetric = false,
+    } = this.props;
     if (isDefined(adhocMetric.column) || isDefined(adhocMetric.sqlExpression)) {
       return adhocMetric.expressionType;
     }
@@ -350,7 +350,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
       onClose,
       onResize,
       datasource,
-      isNewMetric,
+      isNewMetric = false,
       isLabelModified,
       ...popoverProps
     } = this.props;
@@ -438,15 +438,24 @@ export default class AdhocMetricEditPopover extends PureComponent<
                 ensureIsArray(savedMetricsOptions).length > 0 ? (
                   <FormItem label={t('Saved metric')}>
                     <StyledSelect
-                      options={ensureIsArray(savedMetricsOptions).map(
-                        savedMetric => ({
+                      options={[...ensureIsArray(savedMetricsOptions)]
+                        .sort((a, b) =>
+                          (a.metric_name ?? '').localeCompare(
+                            b.metric_name ?? '',
+                          ),
+                        )
+                        .map(savedMetric => ({
                           value: savedMetric.metric_name,
                           label: this.renderMetricOption(savedMetric),
                           key: savedMetric.id,
                           metric_name: savedMetric.metric_name,
                           verbose_name: savedMetric.verbose_name ?? '',
-                        }),
-                      )}
+                          disabled:
+                            this.props.compatibleMetrics != null &&
+                            !this.props.compatibleMetrics.includes(
+                              savedMetric.metric_name,
+                            ),
+                        }))}
                       optionFilterProps={['metric_name', 'verbose_name']}
                       {...savedSelectProps}
                     />
@@ -594,5 +603,20 @@ export default class AdhocMetricEditPopover extends PureComponent<
     );
   }
 }
-// @ts-expect-error - defaultProps for backward compatibility
-AdhocMetricEditPopover.defaultProps = defaultProps;
+
+// ---------------------------------------------------------------------------
+// Thin functional wrapper that injects compatibility data from Redux.
+// AdhocMetricEditPopover is a class component and cannot use hooks directly.
+// ---------------------------------------------------------------------------
+function AdhocMetricEditPopoverWithRedux(props: AdhocMetricEditPopoverProps) {
+  const compatibleMetrics = useSelector(
+    (state: any) =>
+      state.explore?.compatibleMetrics as string[] | null | undefined,
+  );
+  return (
+    <AdhocMetricEditPopover {...props} compatibleMetrics={compatibleMetrics} />
+  );
+}
+
+export { AdhocMetricEditPopover };
+export default AdhocMetricEditPopoverWithRedux;

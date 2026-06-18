@@ -25,7 +25,7 @@ from unittest.mock import MagicMock, Mock, patch
 from zipfile import ZipFile
 
 import pandas as pd
-import prison
+import rison
 import yaml
 from flask import g, Response
 from flask_appbuilder.security.sqla import models as ab_models
@@ -631,7 +631,7 @@ class SupersetTestCase(TestCase):
         Get list of assets, by default using admin account. Can be filtered.
         """
         self.login(username)
-        uri = f"api/v1/{asset_type}/?q={prison.dumps(filter)}"
+        uri = f"api/v1/{asset_type}/?q={rison.dumps(filter)}"
         response = self.get_assert_metric(uri, "get_list")
         return response
 

@@ -73,6 +73,52 @@ describe('FilterableTable', () => {
     expect(queryByText('b1')).not.toBeInTheDocument();
     expect(queryByText('b3')).not.toBeInTheDocument();
   });
+
+  test('shows all rows when filterText is empty', () => {
+    const props = {
+      ...mockedProps,
+      filterText: '',
+    };
+    const { getByText } = render(<FilterableTable {...props} />);
+    expect(getByText('b1')).toBeInTheDocument();
+    expect(getByText('b2')).toBeInTheDocument();
+    expect(getByText('b3')).toBeInTheDocument();
+  });
+
+  test('updates filtered rows when filterText prop changes', () => {
+    const props = {
+      ...mockedProps,
+      filterText: 'b1',
+    };
+    const { getByText, queryByText, rerender } = render(
+      <FilterableTable {...props} />,
+    );
+    expect(getByText('b1')).toBeInTheDocument();
+    expect(queryByText('b2')).not.toBeInTheDocument();
+    expect(queryByText('b3')).not.toBeInTheDocument();
+
+    rerender(<FilterableTable {...mockedProps} filterText="b2" />);
+    expect(queryByText('b1')).not.toBeInTheDocument();
+    expect(getByText('b2')).toBeInTheDocument();
+    expect(queryByText('b3')).not.toBeInTheDocument();
+  });
+
+  test('shows all rows when filterText is cleared', () => {
+    const props = {
+      ...mockedProps,
+      filterText: 'b1',
+    };
+    const { getByText, queryByText, rerender } = render(
+      <FilterableTable {...props} />,
+    );
+    expect(getByText('b1')).toBeInTheDocument();
+    expect(queryByText('b2')).not.toBeInTheDocument();
+
+    rerender(<FilterableTable {...mockedProps} filterText="" />);
+    expect(getByText('b1')).toBeInTheDocument();
+    expect(getByText('b2')).toBeInTheDocument();
+    expect(getByText('b3')).toBeInTheDocument();
+  });
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

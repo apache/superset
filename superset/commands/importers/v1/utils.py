@@ -30,6 +30,7 @@ from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import feature_flag_manager
 from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
+from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.tags.models import Tag, TaggedObject
 from superset.utils import json
 from superset.utils.core import check_is_safe_zip
@@ -151,9 +152,13 @@ def load_configs(
             try:
                 config = load_yaml(file_name, content)
 
-                # populate passwords from the request or from existing DBs
+                # populate passwords from the request, from YAML config,
+                # or from existing DBs
                 if file_name in passwords:
                     config["password"] = passwords[file_name]
+                elif prefix == "databases" and config.get("password"):
+                    # password already in YAML config, keep it
+                    pass
                 elif prefix == "databases" and config["uuid"] in db_passwords:
                     config["password"] = db_passwords[config["uuid"]]
 
@@ -357,7 +362,7 @@ def safe_insert_dashboard_chart_relationships(
     # Get existing relationships only for dashboards being updated
     dashboard_ids = {dashboard_id for dashboard_id, _ in dashboard_chart_ids}
     existing_relationships = db.session.execute(
-        select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id]).where(
+        select(dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id).where(
             dashboard_slices.c.dashboard_id.in_(dashboard_ids)
         )
     ).fetchall()
@@ -396,3 +401,49 @@ def get_resource_mappings_batched(
         mapping.update({str(x.uuid): value_func(x) for x in batch})
         offset += batch_size
     return mapping
+
+
+def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
+    """Look up an existing row by UUID for an import, including soft-deleted matches.
+
+    Bypasses the soft-delete visibility filter so a soft-deleted row with
+    the matching UUID is returned, not hidden. Side-effect-free: returns
+    the row as-is whether it's live or soft-deleted (or ``None`` if no
+    row exists). The caller is responsible for deciding what to do with
+    a soft-deleted match — typically calling
+    :func:`clear_soft_deleted_for_import` to remove it before re-import,
+    but only after the caller has validated overwrite/permission decisions.
+
+    Splitting the lookup from the destructive cleanup keeps the
+    destructive action explicit at the call site, so a future change
+    that adds a permission check on the overwrite path doesn't
+    silently leave a "duck around it via soft-delete" backdoor.
+    """
+    return (
+        db.session.query(model_cls)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {model_cls}})
+        .filter_by(uuid=uuid)
+        .first()
+    )
+
+
+def clear_soft_deleted_for_import(existing: Any) -> None:
+    """Hard-delete a soft-deleted row to free its UUID for re-import.
+
+    Uses ``db.session.delete()`` rather than a raw Core ``DELETE`` so
+    the ORM ``after_delete`` event listeners fire. Cleanup that depends
+    on those listeners would otherwise be skipped — notably tag rows in
+    ``tagged_object`` (cleaned up by ``ObjectUpdater.after_delete`` in
+    ``superset/tags/core.py``; the table's ``object_id`` is a plain
+    integer, not a foreign key, so the database cannot cascade them)
+    and dataset permission-view rows (cleaned up by
+    ``SqlaTable.after_delete`` in ``superset/connectors/sqla/models.py``).
+
+    Caller contract: ``existing`` must be a soft-deleted row returned
+    from :func:`find_existing_for_import`. Callers should run their
+    overwrite / permission validation *before* invoking this so the
+    destructive action only happens once the import path is committed
+    to proceeding.
+    """
+    db.session.delete(existing)
+    db.session.flush()

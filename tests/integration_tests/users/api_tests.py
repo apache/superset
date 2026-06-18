@@ -50,6 +50,8 @@ class TestCurrentUserApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         roles = list(response["result"]["roles"].keys())
         assert "Admin" == roles.pop()
+        assert "groups" in response["result"]
+        assert isinstance(response["result"]["groups"], list)
 
     @patch("superset.security.manager.g")
     def test_get_my_roles_anonymous(self, mock_g):

@@ -200,10 +200,7 @@ export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
     return false;
   }
 
-  const config = getMatrixifyConfig(formData);
-  if (!config) {
-    return false;
-  }
+  const config = getMatrixifyConfig(formData)!;
 
   const hasRowData =
     rowEnabled &&
@@ -247,11 +244,7 @@ export function getMatrixifyValidationErrors(
     return errors;
   }
 
-  const config = getMatrixifyConfig(formData);
-  if (!config) {
-    errors.push('Please configure at least one row or column axis');
-    return errors;
-  }
+  const config = getMatrixifyConfig(formData)!;
 
   // Check row configuration (only if explicitly set in form data)
   const hasRowMode = Boolean(formData.matrixify_mode_rows);

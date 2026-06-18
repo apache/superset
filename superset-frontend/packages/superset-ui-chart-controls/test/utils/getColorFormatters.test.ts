@@ -129,6 +129,11 @@ test('getReadableTextColor blends alpha over the provided surface', () => {
   );
 });
 
+test('getReadableTextColor returns undefined for invalid colors', () => {
+  expect(getReadableTextColor('not-a-color', '#ffffff')).toBeUndefined();
+  expect(getReadableTextColor('#111111', 'not-a-color')).toBeUndefined();
+});
+
 test('getTextColorForBackground prefers explicit text color', () => {
   expect(
     getTextColorForBackground(
@@ -143,6 +148,10 @@ test('getNormalizedTextColor removes alpha from explicit text colors', () => {
   expect(getNormalizedTextColor('rgba(172, 225, 196, 0.2)')).toBe(
     'rgb(172, 225, 196)',
   );
+});
+
+test('getNormalizedTextColor preserves invalid explicit text colors', () => {
+  expect(getNormalizedTextColor('not-a-color')).toBe('not-a-color');
 });
 
 test('getTextColorForBackground normalizes explicit text color alpha', () => {

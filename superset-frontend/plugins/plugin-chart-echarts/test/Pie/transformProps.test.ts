@@ -29,6 +29,7 @@ import type {
 } from 'echarts/types/src/util/types';
 import transformProps, { parseParams } from '../../src/Pie/transformProps';
 import { EchartsPieChartProps, PieChartDataItem } from '../../src/Pie/types';
+import { LegendOrientation, LegendType } from '../../src/types';
 
 describe('Pie transformProps', () => {
   const formData: SqlaFormData = {
@@ -82,6 +83,94 @@ describe('Pie transformProps', () => {
           ],
         }),
       }),
+    );
+  });
+
+  test('renders every slice when a NULL group value is mixed with named ones', () => {
+    // Regression guard for https://github.com/apache/superset/issues/33174:
+    // a Pie chart whose groupby dimension contains a NULL/empty value alongside
+    // named values reportedly dropped the named slices (or rendered only the
+    // NULL one). This asserts the transform keeps one slice per row, mapping the
+    // NULL group to the `<NULL>` placeholder and preserving every other slice.
+    const nullMixedChartProps = new ChartProps({
+      formData: {
+        colorScheme: 'bnbColors',
+        datasource: '3__table',
+        granularity_sqla: 'ds',
+        metric: 'sum__num',
+        groupby: ['region'],
+        viz_type: 'pie',
+      } as SqlaFormData,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { region: '국내', sum__num: 817280006121 },
+            { region: '해외', sum__num: 118777753521 },
+            { region: null, sum__num: 20596314924 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+
+    const series = (
+      transformProps(nullMixedChartProps as EchartsPieChartProps).echartOptions
+        .series as PieSeriesOption[]
+    )[0];
+    const data = series.data as PieChartDataItem[];
+
+    // every input row must still produce a slice -- none are dropped
+    expect(data).toHaveLength(3);
+    expect(data.map(d => d.name)).toEqual(['국내', '해외', '<NULL>']);
+    expect(data.map(d => d.value)).toEqual([
+      817280006121, 118777753521, 20596314924,
+    ]);
+  });
+
+  test('falls back to scroll for plain legends with overlong labels', () => {
+    const longLegendChartProps = new ChartProps({
+      formData: {
+        colorScheme: 'bnbColors',
+        datasource: '3__table',
+        granularity_sqla: 'ds',
+        metric: 'sum__num',
+        groupby: ['category'],
+        viz_type: 'pie',
+        legendType: LegendType.Plain,
+        legendOrientation: LegendOrientation.Top,
+        showLegend: true,
+      } as SqlaFormData,
+      width: 320,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            {
+              category: 'This is a very long pie legend label one',
+              sum__num: 10,
+            },
+            {
+              category: 'This is a very long pie legend label two',
+              sum__num: 20,
+            },
+            {
+              category: 'This is a very long pie legend label three',
+              sum__num: 30,
+            },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+
+    const transformed = transformProps(
+      longLegendChartProps as EchartsPieChartProps,
+    );
+
+    expect((transformed.echartOptions.legend as any).type).toBe(
+      LegendType.Scroll,
     );
   });
 });

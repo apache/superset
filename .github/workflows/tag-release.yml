@@ -16,11 +16,14 @@ on:
       force-latest:
         required: true
         type: choice
-        default: 'false'
+        default: "false"
         description: Whether to force a latest tag on the release
         options:
-          - 'true'
-          - 'false'
+          - "true"
+          - "false"
+permissions:
+  contents: read
+
 jobs:
   config:
     runs-on: ubuntu-24.04
@@ -31,24 +34,29 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [ -n "${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}" ]; then
+          if [ -n "${DOCKERHUB_USER}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
 
+        env:
+          DOCKERHUB_USER: ${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}
   docker-release:
     needs: config
     if: needs.config.outputs.has-secrets
     name: docker-release
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     strategy:
       matrix:
-        build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]
+        build_preset:
+          ["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]
       fail-fast: false
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Setup Docker Environment
@@ -60,9 +68,11 @@ jobs:
           build: "true"
 
       - name: Use Node.js 20
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        # zizmor: ignore[cache-poisoning] - node only runs the supersetbot CLI; no dependency cache is enabled
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 20
+          package-manager-cache: false
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
@@ -72,17 +82,21 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_RELEASE: ${{ github.event.inputs.release }}
+          INPUT_FORCE_LATEST: ${{ github.event.inputs.force-latest }}
+          INPUT_GIT_REF: ${{ github.event.inputs.git-ref }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          RELEASE="${{ github.event.release.tag_name }}"
+          RELEASE="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           FORCE_LATEST=""
           EVENT="${{github.event_name}}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
-            RELEASE="${{ github.event.inputs.release }}"
-            if [ "${{ github.event.inputs.force-latest }}" = "true" ]; then
+            RELEASE="${INPUT_RELEASE}"
+            if [ "${INPUT_FORCE_LATEST}" = "true" ]; then
               FORCE_LATEST="--force-latest"
             fi
-            git checkout "${{ github.event.inputs.git-ref }}"
+            git checkout "${INPUT_GIT_REF}"
             EVENT="release"
           fi
 
@@ -105,16 +119,18 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Use Node.js 20
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        # zizmor: ignore[cache-poisoning] - node only runs the supersetbot CLI; no dependency cache is enabled
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 20
+          package-manager-cache: false
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
@@ -122,13 +138,15 @@ jobs:
       - name: Label the PRs with the right release-related labels
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_RELEASE: ${{ github.event.inputs.release }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           export GITHUB_ACTOR=""
           git fetch --all --tags
           git checkout master
-          RELEASE="${{ github.event.release.tag_name }}"
+          RELEASE="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
-            RELEASE="${{ github.event.inputs.release }}"
+            RELEASE="${INPUT_RELEASE}"
           fi
           supersetbot release-label $RELEASE

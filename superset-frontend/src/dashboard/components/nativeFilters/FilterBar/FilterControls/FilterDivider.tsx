@@ -45,7 +45,7 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
         border-left: 1px solid ${theme.colorSplit};
         padding-left: ${4 * theme.sizeUnit}px;
 
-        .filter-item-wrapper:first-child & {
+        .filter-item-wrapper:first-of-type & {
           border-left: none;
           padding-left: 0;
         }

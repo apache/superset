@@ -24,7 +24,6 @@ import traceback
 from datetime import datetime
 from typing import Any, Callable, cast
 
-from babel import Locale
 from flask import (
     abort,
     current_app as app,
@@ -101,6 +100,7 @@ FRONTEND_CONF_KEYS = (
     "COLUMNAR_EXTENSIONS",
     "ALLOWED_EXTENSIONS",
     "SAMPLES_ROW_LIMIT",
+    "ROW_LIMIT",
     "DEFAULT_TIME_FILTER",
     "HTML_SANITIZATION",
     "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
@@ -122,6 +122,7 @@ FRONTEND_CONF_KEYS = (
     "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
     "TABLE_VIZ_MAX_ROW_SERVER",
     "MAPBOX_API_KEY",
+    "DEFAULT_MAP_RENDERER",
     "CSV_STREAMING_ROW_THRESHOLD",
 )
 
@@ -141,7 +142,9 @@ def get_error_msg() -> str:
 
 
 def json_success(json_msg: str, status: int = 200) -> FlaskResponse:
-    return Response(json_msg, status=status, mimetype="application/json")
+    return Response(
+        json_msg, status=status, content_type="application/json; charset=utf-8"
+    )
 
 
 def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskResponse:
@@ -214,7 +217,7 @@ class BaseSupersetView(BaseView):
         return Response(
             json.dumps(obj, default=json.json_int_dttm_ser, ignore_nan=True),
             status=status,
-            mimetype="application/json",
+            content_type="application/json; charset=utf-8",
         )
 
     def render_app_template(
@@ -408,37 +411,39 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
 
 def get_default_spinner_svg() -> str | None:
     """
-    Load and cache the default spinner SVG content from frontend assets.
+    Load and cache the default spinner SVG content from backend templates.
 
     Returns:
         str | None: SVG content as string, or None if file not found
     """
-    try:
-        # Path to frontend source SVG file (used by both frontend and backend)
-        svg_path = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            "superset-frontend",
-            "packages",
-            "superset-ui-core",
-            "src",
-            "components",
-            "assets",
-            "images",
-            "loading.svg",
-        )
+    # Path to backend templates SVG file
+    svg_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "templates",
+        "superset",
+        "loading.svg",
+    )
 
+    try:
         with open(svg_path, "r", encoding="utf-8") as f:
             return f.read().strip()
-    except (FileNotFoundError, OSError, UnicodeDecodeError) as e:
+    except (OSError, UnicodeDecodeError) as e:
         logger.warning("Could not load default spinner SVG: %s", e)
         return None
 
 
+def _get_frontend_config_value(key: str) -> Any:
+    """Get frontend config value, converting sets to lists for JSON compatibility."""
+    val = app.config.get(key)
+    if isinstance(val, set):
+        return list(val)
+    return val
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
-    user_id: int | None, locale: Locale | None
+    user_id: int | None, locale: str | None
 ) -> dict[str, Any]:
     """Common data always sent to the client
 
@@ -447,14 +452,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     """
 
     # should not expose API TOKEN to frontend
-    frontend_config = {
-        k: (
-            list(app.config.get(k))
-            if isinstance(app.config.get(k), set)
-            else app.config.get(k)
-        )
-        for k in FRONTEND_CONF_KEYS
-    }
+    frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
 
     if app.config.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
@@ -476,10 +474,16 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         and bool(available_specs[GSheetsEngineSpec])
     )
 
-    if isinstance(locale, Locale):
-        language = locale.language
-    elif isinstance(locale, str):
-        language = locale
+    if isinstance(locale, str):
+        normalized = locale.replace("-", "_")
+        languages = app.config.get("LANGUAGES") or {}
+        # Preserve region-specific locales (e.g. zh_TW, pt_BR) when they are
+        # configured as distinct language packs; otherwise fall back to the
+        # base language code.
+        if normalized in languages:
+            language = normalized
+        else:
+            language = normalized.split("_")[0]
     else:
         language = app.config.get("BABEL_DEFAULT_LOCALE", "en")
     auth_type = app.config["AUTH_TYPE"]
@@ -543,7 +547,10 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
 
 def common_bootstrap_payload() -> dict[str, Any]:
-    return cached_common_bootstrap_data(utils.get_user_id(), get_locale())
+    locale = get_locale()
+    # Convert locale to string for proper cache key hashing
+    locale_str = str(locale) if locale else None
+    return cached_common_bootstrap_data(utils.get_user_id(), locale_str)
 
 
 def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:

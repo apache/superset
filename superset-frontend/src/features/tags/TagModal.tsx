@@ -332,6 +332,7 @@ const TagModal: FC<TagModalProps> = ({
           onChange={value =>
             handleOptionChange(TaggableResources.Dashboard, value)
           }
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Dashboards')}</FormLabel>}
           allowClear
         />
@@ -344,6 +345,7 @@ const TagModal: FC<TagModalProps> = ({
           value={chartsToTag}
           options={loadCharts}
           onChange={value => handleOptionChange(TaggableResources.Chart, value)}
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Charts')}</FormLabel>}
           allowClear
         />
@@ -358,6 +360,7 @@ const TagModal: FC<TagModalProps> = ({
           onChange={value =>
             handleOptionChange(TaggableResources.SavedQuery, value)
           }
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Saved queries')}</FormLabel>}
           allowClear
         />
