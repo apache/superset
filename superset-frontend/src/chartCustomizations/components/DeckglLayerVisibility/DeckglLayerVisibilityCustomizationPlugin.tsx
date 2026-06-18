@@ -17,21 +17,19 @@
  * under the License.
  */
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { DataMask, ExtraFormData } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
 import {
   Select,
   FormItem,
   Tooltip,
-  Icons,
-  Flex,
+  type FormItemProps,
 } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { PluginDeckglLayerVisibilityProps } from './types';
 import { useDeckLayerMetadata } from './useDeckLayerMetadata';
-import { FilterPluginStyle } from '../common';
+import { FilterPluginStyle, StatusMessage } from '../common';
 import { Slice } from 'src/dashboard/types';
 
 type SliceEntitiesState = {
@@ -72,7 +70,6 @@ export default function DeckglLayerVisibilityCustomizationPlugin(
   props: PluginDeckglLayerVisibilityProps,
 ) {
   const { formData, filterState, setDataMask, width, height } = props;
-  const theme = useTheme();
   const [hiddenLayers, setHiddenLayers] = useState<number[]>(
     filterState?.value || [],
   );
@@ -128,6 +125,19 @@ export default function DeckglLayerVisibilityCustomizationPlugin(
     setDataMask,
   ]);
 
+  const formItemData: FormItemProps = useMemo(() => {
+    if (filterState.validateMessage) {
+      return {
+        extra: (
+          <StatusMessage status={filterState.validateStatus}>
+            {filterState.validateMessage}
+          </StatusMessage>
+        ),
+      };
+    }
+    return EMPTY_OBJECT as FormItemProps;
+  }, [filterState.validateMessage, filterState.validateStatus]);
+
   const handleLayerChange = useCallback(
     (selectedHiddenLayers: number[]) => {
       setHiddenLayers(selectedHiddenLayers);
@@ -157,48 +167,34 @@ export default function DeckglLayerVisibilityCustomizationPlugin(
     [apiLayers],
   );
 
-  if (isLoadingMetadata && apiLayers.length === 0) {
-    return (
-      <FilterPluginStyle height={height} width={width}>
-        <div>{t('Loading deck.gl layers...')}</div>
-      </FilterPluginStyle>
-    );
-  }
-
   return (
     <FilterPluginStyle height={height} width={width}>
-      {apiLayers.length === 0 ? (
-        <div>{t('No deck.gl multi layer charts found in this dashboard.')}</div>
-      ) : (
-        <FormItem
-          label={
-            <Flex gap={theme.sizeUnit}>
-              <span>{t('Exclude layers (deck.gl)')}</span>
-              <Tooltip
-                title={t(
-                  'Choose layers to hide from all deck.gl Multiple Layer charts in this dashboard.',
-                )}
-              >
-                <span className="tooltip-icon">
-                  <Icons.InfoCircleOutlined
-                    iconSize="m"
-                    iconColor={theme.colorIcon}
-                  />
-                </span>
-              </Tooltip>
-            </Flex>
+      <FormItem validateStatus={filterState.validateStatus} {...formItemData}>
+        <Tooltip
+          title={
+            !isLoadingMetadata && apiLayers.length === 0
+              ? t(
+                  'No multilayer deck.gl charts are currently added to this dashboard.',
+                )
+              : null
           }
         >
-          <Select
-            mode="multiple"
-            value={hiddenLayers}
-            onChange={handleLayerChange}
-            options={selectOptions}
-            placeholder={t('Select layers to hide')}
-            allowClear
-          />
-        </FormItem>
-      )}
+          <div>
+            <Select
+              data-test="deckgl-layer-visibility-select"
+              mode="multiple"
+              oneLine
+              value={hiddenLayers}
+              onChange={handleLayerChange}
+              options={selectOptions}
+              placeholder={t('Select layers to hide')}
+              allowClear
+              disabled={apiLayers.length === 0}
+              loading={isLoadingMetadata && apiLayers.length === 0}
+            />
+          </div>
+        </Tooltip>
+      </FormItem>
     </FilterPluginStyle>
   );
 }

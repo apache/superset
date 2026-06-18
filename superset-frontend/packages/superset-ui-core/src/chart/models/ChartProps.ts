@@ -19,7 +19,7 @@
 
 import { RefObject } from 'react';
 import { createSelector, lruMemoize } from 'reselect';
-import { supersetTheme, SupersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme, SupersetTheme } from '@apache-superset/core/theme';
 import {
   AppSection,
   Behavior,

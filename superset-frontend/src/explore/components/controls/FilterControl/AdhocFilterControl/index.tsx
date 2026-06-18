@@ -18,9 +18,9 @@
  */
 import { Component, ReactNode } from 'react';
 import { SupersetClient, ensureIsArray } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
-import { t } from '@apache-superset/core';
-import { withTheme, type SupersetTheme } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
+import { withTheme, type SupersetTheme } from '@apache-superset/core/theme';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 import AdhocMetric, {
@@ -69,7 +69,7 @@ interface Datasource {
   [key: string]: unknown;
 }
 
-interface AdhocFilterControlProps {
+export interface AdhocFilterControlProps {
   label?: ReactNode;
   name?: string;
   sections?: string[];
@@ -103,14 +103,6 @@ interface AdhocFilterControlState {
 }
 
 const { warning } = Modal;
-
-const defaultProps = {
-  name: '',
-  onChange: () => {},
-  columns: [],
-  savedMetrics: [],
-  selectedMetrics: [],
-};
 
 function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
   const options = [
@@ -391,7 +383,7 @@ class AdhocFilterControl extends Component<
     return (
       <div className="metrics-select" data-test="adhoc-filter-control">
         <HeaderContainer>
-          <ControlHeader {...this.props} />
+          <ControlHeader {...this.props} name={this.props.name ?? ''} />
         </HeaderContainer>
         <LabelsContainer>
           {[
@@ -412,8 +404,5 @@ class AdhocFilterControl extends Component<
     );
   }
 }
-
-// @ts-expect-error - defaultProps for backward compatibility
-AdhocFilterControl.defaultProps = defaultProps;
 
 export default withTheme(AdhocFilterControl);

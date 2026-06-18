@@ -184,13 +184,13 @@ test('passes keywords as objects to SQLEditorWithValidation for autocomplete', (
     expect(keyword).toHaveProperty('meta');
   });
 
-  // Verify column keywords specifically have docHTML for rich tooltips
+  // Verify column keywords specifically have documentation for rich tooltips
   const columnKeywords = keywords.filter(
     (k: Record<string, unknown>) => k.meta === 'column',
   );
   expect(columnKeywords.length).toBe(2); // We passed 2 columns
   columnKeywords.forEach((keyword: Record<string, unknown>) => {
-    expect(keyword).toHaveProperty('docHTML');
+    expect(keyword).toHaveProperty('documentation');
   });
 });
 

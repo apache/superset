@@ -47,9 +47,10 @@ describe('Layout Component', () => {
   });
 
   test('hides Header when headerVisible is false', () => {
+    const headerVisible = false;
     render(
       <Layout>
-        {false && <Layout.Header>Header</Layout.Header>}
+        {headerVisible && <Layout.Header>Header</Layout.Header>}
         <Layout.Content>Content Area</Layout.Content>
         <Layout.Footer>Ant Design Layout Footer</Layout.Footer>
       </Layout>,
@@ -59,11 +60,14 @@ describe('Layout Component', () => {
   });
 
   test('hides Footer when footerVisible is false', () => {
+    const footerVisible = false;
     render(
       <Layout>
         <Layout.Header>Header</Layout.Header>
         <Layout.Content>Content Area</Layout.Content>
-        {false && <Layout.Footer>Ant Design Layout Footer</Layout.Footer>}
+        {footerVisible && (
+          <Layout.Footer>Ant Design Layout Footer</Layout.Footer>
+        )}
       </Layout>,
     );
 

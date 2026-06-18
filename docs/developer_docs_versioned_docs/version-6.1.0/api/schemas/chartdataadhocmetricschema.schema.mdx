@@ -1,0 +1,31 @@
+---
+id: chartdataadhocmetricschema
+title: "ChartDataAdhocMetricSchema"
+description: ""
+sidebar_label: "ChartDataAdhocMetricSchema"
+hide_title: true
+hide_table_of_contents: true
+schema: true
+sample: {"aggregate":"AVG","column":{"column_name":"mycol","type":"BIGINT"},"expressionType":"SQL","hasCustomLabel":true,"isExtra":true,"label":"Weighted observations","optionName":"metric_aec60732-fac0-4b17-b736-93f1a5c93e30","sqlExpression":"SUM(weight * observations) / SUM(weight)","timeGrain":"PT1M"}
+custom_edit_url: null
+---
+
+import Schema from "@theme/Schema";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"ChartDataAdhocMetricSchema"}
+>
+</Heading>
+
+
+
+
+
+<Schema
+  {...require("./chartdataadhocmetricschema.Schema.json")}
+>
+
+</Schema>

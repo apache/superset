@@ -26,7 +26,7 @@ import {
   ThemeMode,
   themeObject as supersetThemeObject,
   normalizeThemeConfig,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import { makeApi } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
@@ -99,8 +99,15 @@ export class ThemeController {
 
   private dashboardCrudTheme: AnyThemeConfig | null = null;
 
+  // Tracks whether an explicit theme config override has been applied via
+  // setThemeConfig (e.g. from the Embedded SDK). When set, it must take
+  // precedence over a dashboard-level theme.
+  private themeConfigOverride = false;
+
   // Track loaded font URLs to avoid duplicate injections
   private loadedFontUrls: Set<string> = new Set();
+
+  private initialMode: ThemeMode | undefined;
 
   constructor({
     storage = new LocalStorageAdapter(),
@@ -108,9 +115,11 @@ export class ThemeController {
     themeObject = supersetThemeObject,
     defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
     onChange = undefined,
-  }: ThemeControllerOptions = {}) {
+    initialMode = undefined,
+  }: ThemeControllerOptions & { initialMode?: ThemeMode } = {}) {
     this.storage = storage;
     this.modeStorageKey = modeStorageKey;
+    this.initialMode = initialMode;
 
     // Controller creates and owns the global theme
     this.globalTheme = themeObject;
@@ -252,7 +261,7 @@ export class ThemeController {
 
       if (themeConfig) {
         // Controller creates and owns the dashboard theme
-        const { Theme } = await import('@apache-superset/core/ui');
+        const { Theme } = await import('@apache-superset/core/theme');
         const normalizedConfig = this.normalizeTheme(themeConfig);
 
         // Determine if this is a dark theme and get appropriate base
@@ -301,6 +310,20 @@ export class ThemeController {
    */
   public getCurrentMode(): ThemeMode {
     return this.currentMode;
+  }
+
+  /**
+   * Returns the resolved theme mode as 'dark' or 'light'.
+   * Takes into account SYSTEM mode and returns the actual resolved preference.
+   */
+  public getCurrentModeResolved(): 'dark' | 'light' {
+    const activeTheme = this.getThemeForMode(this.currentMode);
+    if (activeTheme) {
+      const normalizedTheme = this.normalizeTheme(activeTheme);
+      return isThemeConfigDark(normalizedTheme) ? 'dark' : 'light';
+    }
+
+    return this.currentMode === ThemeMode.DARK ? 'dark' : 'light';
   }
 
   /**
@@ -450,6 +473,15 @@ export class ThemeController {
   }
 
   /**
+   * Checks if an explicit theme config override has been applied via
+   * setThemeConfig (e.g. from the Embedded SDK). When true, this override
+   * takes precedence over any dashboard-level theme.
+   */
+  public hasThemeConfigOverride(): boolean {
+    return this.themeConfigOverride;
+  }
+
+  /**
    * Gets the applied theme ID (for UI display purposes).
    */
   public getAppliedThemeId(): number | null {
@@ -494,6 +526,7 @@ export class ThemeController {
   public setThemeConfig(config: SupersetThemeConfig): void {
     this.defaultTheme = config.theme_default;
     this.darkTheme = config.theme_dark || null;
+    this.themeConfigOverride = true;
 
     let newMode: ThemeMode;
     try {
@@ -742,6 +775,13 @@ export class ThemeController {
       this.storage.removeItem(this.modeStorageKey);
       return ThemeMode.DEFAULT;
     }
+
+    // Use explicit initial mode if provided (e.g. embedded dashboards default to light)
+    if (
+      this.initialMode !== undefined &&
+      this.isValidThemeMode(this.initialMode)
+    )
+      return this.initialMode;
 
     // Default to system preference when both themes are available
     return ThemeMode.SYSTEM;

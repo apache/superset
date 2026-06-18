@@ -18,7 +18,7 @@
  */
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Layout, LayoutItem, RootState } from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';

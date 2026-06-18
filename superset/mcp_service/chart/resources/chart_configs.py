@@ -80,7 +80,7 @@ def get_chart_configs_resource() -> str:
                 "y": [
                     {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
                 ],
-                "group_by": {"name": "region", "label": "Region"},
+                "group_by": [{"name": "region", "label": "Region"}],
                 "stacked": True,
                 "legend": {"show": True, "position": "right"},
             },
@@ -123,11 +123,34 @@ def get_chart_configs_resource() -> str:
                         "label": "Avg Conversion Rate",
                     }
                 ],
-                "group_by": {"name": "campaign_type", "label": "Campaign"},
+                "group_by": [{"name": "campaign_type", "label": "Campaign"}],
                 "x_axis": {"format": "$,.0f"},
                 "y_axis": {"format": ".2%"},
             },
             "use_cases": ["Correlation analysis", "Outlier detection"],
+        },
+        "horizontal_bar": {
+            "description": "Horizontal bar chart for categories with long names",
+            "config": {
+                "chart_type": "xy",
+                "kind": "bar",
+                "orientation": "horizontal",
+                "x": {"name": "department", "label": "Department"},
+                "y": [
+                    {
+                        "name": "headcount",
+                        "aggregate": "SUM",
+                        "label": "Headcount",
+                    }
+                ],
+                "y_axis": {"title": "Department"},
+                "x_axis": {"title": "Number of Employees"},
+            },
+            "use_cases": [
+                "Long category labels",
+                "Rankings and leaderboards",
+                "Survey results",
+            ],
         },
         "stacked_area": {
             "description": "Stacked area chart for volume composition over time",
@@ -136,7 +159,7 @@ def get_chart_configs_resource() -> str:
                 "kind": "area",
                 "x": {"name": "order_date", "label": "Date"},
                 "y": [{"name": "signups", "aggregate": "SUM", "label": "Signups"}],
-                "group_by": {"name": "channel", "label": "Channel"},
+                "group_by": [{"name": "channel", "label": "Channel"}],
                 "stacked": True,
                 "time_grain": "P1W",
             },
@@ -215,6 +238,7 @@ def get_chart_configs_resource() -> str:
             "Use group_by to split data into series for comparison",
             "Use stacked=true for bar/area charts showing composition",
             "Configure axis format for readability ($,.0f for currency, .2% for pct)",
+            "Use orientation='horizontal' for bar charts with long category names",
         ],
         "table_charts": [
             "Include only essential columns to avoid clutter",

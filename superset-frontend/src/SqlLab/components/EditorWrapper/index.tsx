@@ -17,9 +17,10 @@
  * under the License.
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { usePrevious } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 import type { editors } from '@apache-superset/core';
 
@@ -136,7 +137,7 @@ const EditorWrapper = ({
   height,
   hotkeys,
 }: EditorWrapperProps) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const queryEditor = useQueryEditor(queryEditorId, [
     'id',
     'dbId',
@@ -346,11 +347,6 @@ const EditorWrapper = ({
           // Use !important because Ace Editor applies extra CSS at the last second
           // when opening the autocomplete.
           width: ${theme.sizeUnit * 130}px !important;
-        }
-
-        .ace_completion-highlight {
-          color: ${theme.colorPrimaryText} !important;
-          background-color: ${theme.colorPrimaryBgHover};
         }
 
         .ace_tooltip {

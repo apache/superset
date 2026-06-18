@@ -136,6 +136,12 @@ class DB2(Postgres):
 
         TRANSFORMS = {
             **Postgres.Generator.TRANSFORMS,
+            # sqlglot 30 only auto-discovers <Name>_sql handlers for expression
+            # classes that live in sqlglot.expressions.EXPR_CLASSES (the
+            # registry is built once at module load via ``subclasses(__name__, Expr)``).
+            # Custom Expression subclasses defined outside that module — like
+            # DB2Interval below — must be wired up explicitly in TRANSFORMS.
+            DB2Interval: lambda self, e: self.db2interval_sql(e),
         }
 
         def db2interval_sql(self, expression: DB2Interval) -> str:

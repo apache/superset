@@ -28,6 +28,11 @@ import {
   isAppliedNativeFilterType,
   AppliedCrossFilterType,
   AppliedNativeFilterType,
+  isChartCustomization,
+  isChartCustomizationDivider,
+  ChartCustomization,
+  ChartCustomizationDivider,
+  ChartCustomizationType,
 } from '@superset-ui/core';
 
 const filter: Filter = {
@@ -95,4 +100,32 @@ test('applied cross filter type guard', () => {
 test('applied native filter type guard', () => {
   expect(isAppliedNativeFilterType(appliedNativeFilter)).toBeTruthy();
   expect(isAppliedNativeFilterType(appliedCrossFilter)).toBeFalsy();
+});
+
+const chartCustomization: ChartCustomization = {
+  id: 'custom_id',
+  type: ChartCustomizationType.ChartCustomization,
+  name: 'My Customization',
+  filterType: 'chart_customization',
+  targets: [],
+  scope: { rootPath: [], excluded: [] },
+  defaultDataMask: {},
+  controlValues: {},
+};
+
+const chartCustomizationDivider: ChartCustomizationDivider = {
+  id: 'divider_id',
+  type: ChartCustomizationType.Divider,
+  title: 'Divider',
+  description: 'A divider',
+};
+
+test('isChartCustomization type guard', () => {
+  expect(isChartCustomization(chartCustomization)).toBeTruthy();
+  expect(isChartCustomization(filter)).toBeFalsy();
+});
+
+test('isChartCustomizationDivider type guard', () => {
+  expect(isChartCustomizationDivider(chartCustomizationDivider)).toBeTruthy();
+  expect(isChartCustomizationDivider(chartCustomization)).toBeFalsy();
 });

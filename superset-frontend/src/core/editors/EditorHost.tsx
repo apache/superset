@@ -26,13 +26,12 @@
  * back to the default Ace editor.
  */
 
-import { useState, useEffect, forwardRef } from 'react';
-import type { editors, contributions } from '@apache-superset/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useSyncExternalStore, forwardRef } from 'react';
+import type { editors } from '@apache-superset/core';
+import { useTheme } from '@apache-superset/core/theme';
 import EditorProviders from './EditorProviders';
 import AceEditorProvider from './AceEditorProvider';
 
-type EditorLanguage = contributions.EditorLanguage;
 type EditorProps = editors.EditorProps;
 type EditorHandle = editors.EditorHandle;
 
@@ -41,49 +40,6 @@ type EditorHandle = editors.EditorHandle;
  * Uses the generic EditorProps interface that all editor implementations support.
  */
 export type EditorHostProps = EditorProps;
-
-/**
- * Hook to track editor provider changes.
- * Returns the provider for the specified language and re-renders when it changes.
- */
-const useEditorProvider = (language: EditorLanguage) => {
-  const manager = EditorProviders.getInstance();
-  const [provider, setProvider] = useState(() => manager.getProvider(language));
-
-  useEffect(() => {
-    // Helper to safely update provider state, always fetching latest from manager
-    const updateProvider = () => {
-      setProvider(prev => {
-        const current = manager.getProvider(language);
-        return current !== prev ? current : prev;
-      });
-    };
-
-    // Subscribe to provider changes
-    const registerDisposable = manager.onDidRegister(event => {
-      if (event.provider.contribution.languages.includes(language)) {
-        updateProvider();
-      }
-    });
-
-    const unregisterDisposable = manager.onDidUnregister(event => {
-      if (event.contribution.languages.includes(language)) {
-        updateProvider();
-      }
-    });
-
-    // Check for provider on mount (in case it was registered before this component mounted)
-    updateProvider();
-
-    return () => {
-      registerDisposable.dispose();
-      unregisterDisposable.dispose();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, manager]);
-
-  return provider;
-};
 
 /**
  * EditorHost component that dynamically resolves and renders the appropriate editor.
@@ -106,7 +62,12 @@ const useEditorProvider = (language: EditorLanguage) => {
 const EditorHost = forwardRef<EditorHandle, EditorHostProps>((props, ref) => {
   const { language } = props;
   const theme = useTheme();
-  const provider = useEditorProvider(language);
+  const manager = EditorProviders.getInstance();
+  const provider = useSyncExternalStore(
+    manager.subscribe,
+    () => manager.getProvider(language),
+    () => undefined,
+  );
 
   // Merge theme into props
   const propsWithTheme = { ...props, theme };

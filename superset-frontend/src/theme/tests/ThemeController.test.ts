@@ -24,7 +24,7 @@ import {
   Theme,
   ThemeAlgorithm,
   ThemeMode,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import type {
   BootstrapThemeDataConfig,
   CommonBootstrapData,
@@ -111,12 +111,15 @@ const createController = (
     ...options,
   });
 
-// Shared console spies
-const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+// Shared console spies — re-installed in beforeEach so each test starts
+// with a fresh call count and a clean implementation.
+let consoleSpy: jest.SpyInstance;
+let consoleErrorSpy: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
   // Setup DOM environment
   Object.defineProperty(window, 'localStorage', {
@@ -1082,6 +1085,24 @@ test('setThemeConfig sets complete theme configuration', () => {
   expect(controller.canSetMode()).toBe(true);
 });
 
+test('setThemeConfig flags an active theme config override', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: {}, dark: {} }),
+  );
+
+  const controller = createController({ defaultTheme: { token: {} } });
+
+  // No override until setThemeConfig is called (e.g. from the Embedded SDK).
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+});
+
 test('setThemeConfig handles theme_default only', () => {
   mockGetBootstrapData.mockReturnValue(
     createMockBootstrapData({
@@ -1685,4 +1706,151 @@ test('font loading: adds new font URLs when switching themes', () => {
   document
     .querySelectorAll('style[data-superset-fonts]')
     .forEach(el => el.remove());
+});
+
+test('ThemeController uses initialMode when provided and no saved mode exists', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: DEFAULT_THEME,
+      dark: DARK_THEME,
+    }),
+  );
+
+  const controller = createController({ initialMode: ThemeMode.DEFAULT });
+
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
+
+test('ThemeController defaults to SYSTEM when initialMode is not provided', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: DEFAULT_THEME,
+      dark: DARK_THEME,
+    }),
+  );
+
+  const controller = createController();
+
+  expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
+});
+
+test('ThemeController saved mode takes precedence over initialMode', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: DEFAULT_THEME,
+      dark: DARK_THEME,
+    }),
+  );
+
+  mockLocalStorage.getItem.mockReturnValue(ThemeMode.DARK);
+
+  const controller = createController({ initialMode: ThemeMode.DEFAULT });
+
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DARK);
+});
+
+test('ThemeController with initialMode DEFAULT applies light theme even when system prefers dark', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: DEFAULT_THEME,
+      dark: DARK_THEME,
+    }),
+  );
+
+  mockMatchMedia.mockReturnValue({
+    matches: true, // system prefers dark
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  });
+
+  const controller = createController({ initialMode: ThemeMode.DEFAULT });
+
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+  const lastCall =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  expect(lastCall.token.colorBgBase).toBe(DEFAULT_THEME.token!.colorBgBase);
+});
+
+test('ThemeController with initialMode still allows setThemeMode after init', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: DEFAULT_THEME,
+      dark: DARK_THEME,
+    }),
+  );
+
+  const controller = createController({ initialMode: ThemeMode.DEFAULT });
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+
+  controller.setThemeMode(ThemeMode.DARK);
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DARK);
+
+  controller.setThemeMode(ThemeMode.SYSTEM);
+  expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
+});
+
+test('ThemeController initialMode is ignored when no dark theme exists', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: DEFAULT_THEME,
+      dark: {},
+    }),
+  );
+
+  const controller = createController({ initialMode: ThemeMode.SYSTEM });
+
+  // Should still be DEFAULT because there's no dark theme available
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
+
+test('ThemeController invalid initialMode falls back to SYSTEM', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: DEFAULT_THEME,
+      dark: DARK_THEME,
+    }),
+  );
+
+  const controller = createController({
+    initialMode: 'invalid' as ThemeMode,
+  });
+
+  // Invalid initialMode should be rejected by isValidThemeMode,
+  // falling through to the default SYSTEM mode
+  expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
+});
+
+test('getCurrentModeResolved returns light for light theme', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: { token: { colorBgBase: '#ffffff' } },
+      dark: {
+        token: { colorBgBase: '#000000' },
+        algorithm: ThemeAlgorithm.DARK,
+      },
+    }),
+  );
+
+  const controller = createController();
+  expect(controller.getCurrentModeResolved()).toBe('light');
+  controller.setThemeMode(ThemeMode.DARK);
+  expect(controller.getCurrentModeResolved()).toBe('dark');
+});
+
+test('getResolvedThemeMode returns dark when default theme is dark but mode is DEFAULT', () => {
+  // Setup: default theme is dark (has dark algorithm)
+  // This simulates single-theme deployments where THEME_DARK=None but default is dark
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: {
+        token: { colorBgBase: '#000000' }, // dark background
+        algorithm: antdThemeImport.darkAlgorithm,
+      },
+      dark: {}, // empty - no separate dark theme
+    }),
+  );
+
+  const controller = createController();
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+  expect(controller.getCurrentModeResolved()).toBe('dark');
 });

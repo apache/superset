@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import cx from 'classnames';
 import { Interweave } from 'interweave';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -152,7 +158,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
         role="button"
         tabIndex={0}
         onClick={handleClosePress}
-        aria-label="Close"
+        aria-label={t('Close')}
         data-test="close-button"
       />
     </ToastContainer>

@@ -110,6 +110,34 @@ describe('getBootstrapData and helpers', () => {
       expect(staticAssetsPrefix()).toEqual(expectedStaticPrefix);
     });
 
+    test.each([
+      ['//evil.example.com', 'protocol-relative URL'],
+      // eslint-disable-next-line no-script-url -- intentional unsafe value under test
+      ['javascript:alert(1)', 'javascript scheme'],
+      ['https://evil.example.com', 'absolute URL'],
+      ['/foo"><img src=x>', 'path with HTML meta-characters'],
+    ])(
+      'should fall back to the default root when application_root is %s (%s)',
+      async unsafeRoot => {
+        const customData = {
+          common: {
+            application_root: unsafeRoot,
+            static_assets_prefix: '/custom-static/',
+          },
+        };
+        document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
+
+        jest.resetModules();
+        const { default: getBootstrapData, applicationRoot } =
+          await import('./getBootstrapData');
+        getBootstrapData();
+
+        const expectedAppRoot =
+          DEFAULT_BOOTSTRAP_DATA.common.application_root.replace(/\/$/, '');
+        expect(applicationRoot()).toEqual(expectedAppRoot);
+      },
+    );
+
     test('should defaults without trailing slashes when #app element does not include application_root or static_assets_prefix', async () => {
       // Set up the fake #app element
       const customData = {

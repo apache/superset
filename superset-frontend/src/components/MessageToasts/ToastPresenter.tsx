@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { ToastMeta } from 'src/components/MessageToasts/types';
 import Toast from './Toast';
 
@@ -37,7 +37,9 @@ const StyledToastPresenter = styled.div<VisualProps>(
     z-index: ${theme.zIndexPopupBase + 1};
     word-break: break-word;
 
-    height: calc(100vh - 100px);
+    /* Cap height for scrolling, but hug the toasts so the fixed overlay does not
+       reserve the full viewport and block controls underneath it. */
+    max-height: calc(100vh - 100px);
 
     display: flex;
     flex-direction: ${position === 'bottom' ? 'column-reverse' : 'column'};

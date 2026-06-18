@@ -16,29 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
-import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+import React from 'react';
+import { ensureIsArray } from '@superset-ui/core';
+import { views } from 'src/core';
+import { resolveView } from 'src/core/views';
 
 export interface ViewListExtensionProps {
   viewId: string;
 }
 
 const ViewListExtension = ({ viewId }: ViewListExtensionProps) => {
-  const maybeContributions =
-    ExtensionsManager.getInstance().getViewContributions(viewId);
-  const contributions = Array.isArray(maybeContributions)
-    ? maybeContributions
-    : [];
-  const { getView } = useExtensionsContext();
+  const viewItems = ensureIsArray(views.getViews(viewId));
 
   return (
     <>
-      {contributions
-        .filter(
-          contribution =>
-            contribution && typeof contribution.id !== 'undefined',
-        )
-        .map(contribution => getView(contribution.id))}
+      {viewItems
+        .filter(view => view && typeof view.id !== 'undefined')
+        .map(view => (
+          <React.Fragment key={view.id}>{resolveView(view.id)}</React.Fragment>
+        ))}
     </>
   );
 };

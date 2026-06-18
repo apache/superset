@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { AsyncSelect } from '@superset-ui/core/components';
 import { type TagType } from 'src/components';
@@ -32,6 +32,7 @@ import {
   OWNER_OPTION_FILTER_PROPS,
 } from 'src/features/owners/OwnerSelectLabel';
 import { useAccessOptions } from '../hooks/useAccessOptions';
+import { type OwnerOption } from '../utils';
 
 type Roles = { id: number; name: string }[];
 type Owners = {
@@ -47,10 +48,7 @@ interface AccessSectionProps {
   owners: Owners;
   roles: Roles;
   tags: TagType[];
-  onChangeOwners: (
-    owners: { value: number; label: string }[],
-    options: Record<string, unknown>[],
-  ) => void;
+  onChangeOwners: (owners: OwnerOption[], options: OwnerOption[]) => void;
   onChangeRoles: (roles: { value: number; label: string }[]) => void;
   onChangeTags: (tags: { label: string; value: number }[]) => void;
   onClearTags: () => void;

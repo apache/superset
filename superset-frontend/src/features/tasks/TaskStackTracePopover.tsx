@@ -18,8 +18,8 @@
  */
 
 import { useState, useCallback } from 'react';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { Popover, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';

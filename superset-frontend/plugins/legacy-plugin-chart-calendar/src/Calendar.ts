@@ -19,7 +19,8 @@
 import { extent as d3Extent, range as d3Range } from 'd3-array';
 import { select as d3Select } from 'd3-selection';
 import { getSequentialSchemeRegistry } from '@superset-ui/core';
-import { SupersetTheme, t } from '@apache-superset/core/ui';
+import { SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import CalHeatMapImport from './vendor/cal-heatmap';
 import { convertUTCTimestampToLocal } from './utils';
 

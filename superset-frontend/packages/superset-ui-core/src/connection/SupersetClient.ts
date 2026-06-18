@@ -51,6 +51,7 @@ const SupersetClient: SupersetClientInterface = {
   reAuthenticate: () => getInstance().reAuthenticate(),
   request: request => getInstance().request(request),
   getCSRFToken: () => getInstance().getCSRFToken(),
+  getUrl: (...args) => getInstance().getUrl(...args),
 };
 
 export default SupersetClient;

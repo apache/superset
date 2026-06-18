@@ -20,7 +20,7 @@
 import { PureComponent } from 'react';
 import { extent as d3Extent } from 'd3-array';
 import { ensureIsArray } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import HorizonRow, { DEFAULT_COLORS } from './HorizonRow';
 
 interface DataValue {

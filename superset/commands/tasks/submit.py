@@ -23,7 +23,7 @@ from typing import Any, TYPE_CHECKING
 
 from flask import current_app
 from marshmallow import ValidationError
-from superset_core.api.tasks import TaskScope
+from superset_core.tasks.types import TaskScope
 
 from superset.commands.base import BaseCommand
 from superset.commands.tasks.exceptions import (
