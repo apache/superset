@@ -147,6 +147,24 @@ class Theme(AuditMixinNullable, ImportExportMixin, Model):
     export_fields = ["theme_name", "json_data"]
 
 
+# Event listeners to clear the memoized bootstrap data cache when a theme is modified
+@sqla.event.listens_for(Theme, "after_insert")
+@sqla.event.listens_for(Theme, "after_update")
+@sqla.event.listens_for(Theme, "after_delete")
+def clear_bootstrap_cache(
+    _mapper: sqla.orm.Mapper,
+    _connection: sqla.engine.Connection,
+    _target: Theme,
+) -> None:
+    from superset.extensions import cache_manager
+    from superset.views.base import cached_common_bootstrap_data
+
+    try:
+        cache_manager.cache.delete_memoized(cached_common_bootstrap_data)
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.warning("Failed to clear theme bootstrap cache: %s", ex)
+
+
 class ConfigurationMethod(StrEnum):
     SQLALCHEMY_FORM = "sqlalchemy_form"
     DYNAMIC_FORM = "dynamic_form"
