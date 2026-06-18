@@ -81,9 +81,12 @@ export default function transformProps(
     : (subheaderFontSize ?? subtitleFontSize ?? PROPORTION.SUBHEADER);
   const rawValue = data.length === 0 ? null : data[0][metricName];
   const parsedValue = rawValue == null ? null : parseMetricValue(rawValue);
-  // Preserve non-date strings for display-only path
+
   const bigNumber =
-    parsedValue === null && typeof rawValue === 'string' && rawValue !== ''
+    parsedValue === null &&
+    typeof rawValue === 'string' &&
+    rawValue !== '' &&
+    Number.isNaN(Number(rawValue))
       ? rawValue
       : parsedValue;
 
