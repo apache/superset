@@ -22,11 +22,7 @@ import { Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { AlertState } from '../types';
 
-function getStatusColor(
-  status: string,
-  isReportEnabled: boolean,
-  theme: SupersetTheme,
-) {
+function getStatusColor(status: string, theme: SupersetTheme) {
   switch (status) {
     case AlertState.Working:
       return theme.colorPrimaryText;
@@ -56,6 +52,9 @@ export default function AlertStatusIcon({
   isReportEnabled: boolean;
 }) {
   const theme = useTheme();
+  const noopLabel = isReportEnabled
+    ? t('Report not yet run')
+    : t('Nothing triggered');
   const lastStateConfig = {
     icon: Icons.CheckOutlined,
     label: '',
@@ -85,9 +84,7 @@ export default function AlertStatusIcon({
       break;
     case AlertState.Noop:
       lastStateConfig.icon = Icons.CalendarOutlined;
-      lastStateConfig.label = isReportEnabled
-        ? t('Report not yet run')
-        : t('Nothing triggered');
+      lastStateConfig.label = noopLabel;
       lastStateConfig.status = AlertState.Noop;
       break;
     case AlertState.Grace:
@@ -97,9 +94,7 @@ export default function AlertStatusIcon({
       break;
     default:
       lastStateConfig.icon = Icons.CalendarOutlined;
-      lastStateConfig.label = isReportEnabled
-        ? t('Report not yet run')
-        : t('Nothing triggered');
+      lastStateConfig.label = noopLabel;
       lastStateConfig.status = AlertState.Noop;
   }
   const Icon = lastStateConfig.icon;
@@ -120,11 +115,7 @@ export default function AlertStatusIcon({
       >
         <Icon
           iconSize="m"
-          iconColor={getStatusColor(
-            lastStateConfig.status,
-            isReportEnabled,
-            theme,
-          )}
+          iconColor={getStatusColor(lastStateConfig.status, theme)}
         />
       </span>
     </Tooltip>
