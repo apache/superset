@@ -402,6 +402,22 @@ describe('should collect control values and create SFD', () => {
     expect(formData.time_compare).toBeNull();
   });
 
+  test('strips a scalar time shift after getControlsState coerces it to an array', () => {
+    // Table/Big Number store `time_compare` as a scalar string; getControlsState
+    // coerces it to an array before the strip runs, so a lone unsupported marker
+    // must still serialize to null on the target viz (SC-99170).
+    const store = {
+      ...sourceMockStore,
+      form_data: {
+        ...sourceMockFormData,
+        time_compare: 'inherit',
+      },
+    };
+    const sfd = new StandardizedFormData(store.form_data);
+    const { formData } = sfd.transform('target_viz', store);
+    expect(formData.time_compare).toBeNull();
+  });
+
   test('should inherit standardizedFormData and memorizedFormData is LIFO', () => {
     // from source_viz to target_viz
     const sfd = new StandardizedFormData(sourceMockFormData);
