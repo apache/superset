@@ -20,7 +20,7 @@
 /**
  * @fileoverview Chat contribution API for Superset extensions.
  *
- * Chat is a dedicated contribution type (not a view): an extension registers
+ * Chat is a dedicated contribution type: an extension registers
  * a chat via {@link registerChat} and the host owns where and how it is
  * mounted. The host applies singleton resolution — multiple chat extensions
  * may register, but exactly one is active at a time.
@@ -31,13 +31,13 @@
  *
  * chat.registerChat(
  *   { id: 'acme.chat', name: 'Acme Chat' },
- *   () => <AcmeTrigger />,
- *   () => <AcmePanel />,
+ *   AcmeTrigger,
+ *   AcmePanel,
  * );
  * ```
  */
 
-import { ReactElement } from 'react';
+import { ComponentType } from 'react';
 import type { Disposable, Event } from '../common';
 
 export interface Chat {
@@ -45,55 +45,42 @@ export interface Chat {
   id: string;
   /** The display name of the chat. */
   name: string;
-  /** Optional description of the chat, for display in contribution manifests. */
+  /** Optional description of the chat. */
   description?: string;
 }
 
 export type DisplayMode = 'floating' | 'panel';
 
 /**
- * Registers a chat provider. The host applies singleton resolution — only one
- * chat is active at a time: the most recently registered chat wins, and
- * disposing it restores the previously registered one. Re-registering an id
- * replaces that registration in place.
- *
- * When a registration with a different id takes over the active slot (or the
- * active chat is disposed), the host closes the panel first, firing
- * {@link onDidClose}; an in-place same-id replacement keeps the open state.
- *
- * Disposing the returned Disposable unregisters the chat.
+ * Registers a chat provider. Only one chat is active at a time; the most
+ * recently registered chat wins. Disposing the returned Disposable unregisters
+ * the chat.
  *
  * @param chat The chat descriptor (id, name).
- * @param trigger A function returning the collapsed bubble element. Owned by
- *   the extension — dynamic state such as unread counts and badges lives here.
- *   Hidden by the host when in panel mode.
- * @param panel A function returning the chat panel element. Mounted by the
- *   host as a floating overlay in 'floating' mode, or docked at the side of
- *   the viewport in 'panel' mode (the reference host docks a fixed-width
- *   overlay at the right edge; hosts may integrate a true layout slot
- *   instead). Same component in both modes.
+ * @param trigger The trigger component — the collapsed bubble entry point.
+ *   Owns dynamic state such as unread counts.
+ * @param panel The panel component, rendered in either display mode. In
+ *   'floating' mode it appears as an overlay; in 'panel' mode it is docked
+ *   alongside the main content.
  * @returns A Disposable that unregisters the chat when disposed.
  *
  * @example
  * ```typescript
  * chat.registerChat(
  *   { id: 'acme.chat', name: 'Acme Chat' },
- *   () => <AcmeTrigger />,
- *   () => <AcmePanel />,
+ *   AcmeTrigger,
+ *   AcmePanel,
  * );
  * ```
  */
 export declare function registerChat(
   chat: Chat,
-  trigger: () => ReactElement,
-  panel: () => ReactElement,
+  trigger: ComponentType,
+  panel: ComponentType,
 ): Disposable;
 
 /**
- * Returns the active chat descriptor.
- *
- * @returns A copy of the active Chat descriptor, or undefined if none is
- *   registered. Mutating the returned object has no effect on the registry.
+ * Returns the active chat descriptor, or undefined if none is registered.
  */
 export declare function getChat(): Chat | undefined;
 
@@ -125,8 +112,6 @@ export declare function close(): void;
 
 /**
  * Returns whether the active chat's panel is currently open.
- *
- * @returns True if the chat panel is open.
  */
 export declare function isOpen(): boolean;
 
@@ -137,28 +122,20 @@ export declare function isOpen(): boolean;
 export declare const onDidOpen: Event<void>;
 
 /**
- * Event fired when the chat panel closes. Also fired when the host closes the
- * panel itself, e.g. because the active chat was disposed or displaced by a
- * different chat.
+ * Event fired when the chat panel closes, whether triggered by an extension
+ * or by the host.
  */
 export declare const onDidClose: Event<void>;
 
 /**
  * Returns the current display mode.
- *
- * @returns The current DisplayMode.
  */
 export declare function getDisplayMode(): DisplayMode;
 
 /**
- * Sets the display mode.
- *
- * The mode is host-global and applies to whichever chat is active, regardless
- * of which extension calls it. Hosts may also change the mode through their
- * own controls — use onDidChangeDisplayMode to observe all changes rather than
- * assuming the last setDisplayMode() call won.
- *
- * @param displayMode The display mode to switch to.
+ * Sets the display mode. The mode is host-global and applies to whichever
+ * chat is active. Use {@link onDidChangeDisplayMode} to observe all changes,
+ * including those triggered by the host.
  */
 export declare function setDisplayMode(displayMode: DisplayMode): void;
 
@@ -169,13 +146,8 @@ export declare function setDisplayMode(displayMode: DisplayMode): void;
 export declare const onDidChangeDisplayMode: Event<DisplayMode>;
 
 /**
- * Event fired when the panel is resized in panel mode.
- *
- * The host owns the resizer handle and drag interaction; a host without a
- * resizer never fires this event. (The reference host mounts the panel at a
- * fixed width and does not provide a resizer, so subscribers receive no
- * events there.) Listen to this event to adapt internal layout to the
- * available width; do not rely on it firing.
+ * Event fired when the panel is resized in panel mode. Not all hosts provide
+ * a resizer — do not rely on this event firing.
  */
 export declare const onDidResizePanel: Event<{ width: number }>;
 

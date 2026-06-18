@@ -18,60 +18,75 @@
  */
 
 /**
- * Host-internal implementation of the `navigation` namespace.
+ * @fileoverview Host-internal implementation of the `navigation` namespace.
  *
- * Backed by browser location — no Redux dependency.
- * The app shell calls `notifyPageChange(pathname)` whenever the route changes.
+ * Derives the current {@link Page} from the browser location by matching
+ * against {@link RoutePaths}. Call {@link useNavigationTracker} once in the
+ * app shell to keep the page in sync with React Router.
  */
 
+import { useEffect, useRef } from 'react';
+import { useLocation, matchPath } from 'react-router-dom';
 import type { navigation as navigationApi } from '@apache-superset/core';
+import { RoutePaths } from '../../views/routePaths';
 import { Disposable } from '../models';
-import { createEventEmitter } from '../utils';
+import { createValueEventEmitter } from '../utils';
 
 type Page = navigationApi.Page;
 
-const pageChangeEmitter = createEventEmitter<Page>();
+/** Maps route path patterns to their corresponding Page type. */
+const PAGE_ROUTES: { path: string; page: Page }[] = [
+  { path: RoutePaths.DASHBOARD, page: 'dashboard' },
+  { path: RoutePaths.DASHBOARD_LIST, page: 'dashboard_list' },
+  { path: RoutePaths.QUERY_HISTORY, page: 'query_history' },
+  { path: RoutePaths.SAVED_QUERIES, page: 'saved_queries' },
+  { path: RoutePaths.SQLLAB, page: 'sqllab' },
+  { path: RoutePaths.CHART_ADD, page: 'explore' },
+  { path: RoutePaths.CHART_LIST, page: 'chart_list' },
+  { path: RoutePaths.EXPLORE, page: 'explore' },
+  { path: RoutePaths.EXPLORE_PERMALINK, page: 'explore' },
+  { path: RoutePaths.DATASET_LIST, page: 'dataset_list' },
+  { path: RoutePaths.DATASET_ADD, page: 'dataset' },
+  { path: RoutePaths.DATASET, page: 'dataset' },
+];
 
 function derivePage(pathname: string): Page {
-  if (pathname.startsWith('/superset/dashboard/')) return 'dashboard';
-  if (pathname.startsWith('/dashboard/list')) return 'dashboard_list';
-  if (pathname.startsWith('/explore/')) return 'explore';
-  if (pathname.startsWith('/superset/explore/')) return 'explore';
-  if (pathname.startsWith('/chart/add')) return 'explore';
-  if (pathname.startsWith('/chart/list')) return 'chart_list';
-  if (pathname.startsWith('/sqllab/history')) return 'query_history';
-  if (pathname.startsWith('/savedqueryview/list')) return 'saved_queries';
-  if (pathname === '/sqllab' || pathname.startsWith('/sqllab/'))
-    return 'sqllab';
-  if (pathname.startsWith('/tablemodelview/list')) return 'dataset_list';
-  if (pathname.startsWith('/dataset/')) return 'dataset';
-  // The welcome page and any route not explicitly enumerated fall back to home.
+  for (const { path, page } of PAGE_ROUTES) {
+    if (matchPath(pathname, { path, exact: false })) return page;
+  }
   return 'home';
 }
 
-let currentPage: Page | undefined;
+const pageEmitter = createValueEventEmitter<Page>(
+  derivePage(window.location.pathname),
+);
 
-function getOrInitPage(): Page {
-  if (currentPage === undefined) {
-    currentPage = derivePage(window.location.pathname);
-  }
-  return currentPage;
-}
-
-/** Called by ExtensionsStartup whenever the React Router location changes. */
-export const notifyPageChange = (pathname: string): void => {
+/** Updates the current page from a pathname. No-op when the page is unchanged. */
+export const notifyLocationChanged = (pathname: string): void => {
   const next = derivePage(pathname);
-  if (next === getOrInitPage()) return;
-  currentPage = next;
-  pageChangeEmitter.fire(next);
+  if (next === pageEmitter.getCurrent()) return;
+  pageEmitter.fire(next);
 };
 
-const getPage: typeof navigationApi.getPage = () => getOrInitPage();
+const getPage: typeof navigationApi.getPage = () => pageEmitter.getCurrent();
 
 const onDidChangePage: typeof navigationApi.onDidChangePage = (
   listener: (page: Page) => void,
   thisArgs?: any,
-): Disposable => pageChangeEmitter.subscribe(listener, thisArgs);
+): Disposable => pageEmitter.subscribe(listener, thisArgs);
+
+/** Synchronizes the navigation module with React Router. Call once in the app shell. */
+export const useNavigationTracker = () => {
+  const location = useLocation();
+  const prevPathname = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (prevPathname.current !== location.pathname) {
+      prevPathname.current = location.pathname;
+      notifyLocationChanged(location.pathname);
+    }
+  }, [location.pathname]);
+};
 
 export const navigation: typeof navigationApi = {
   getPage,

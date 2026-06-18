@@ -24,7 +24,7 @@
  * Extensions register views as side effects at import time.
  */
 
-import React, { ReactElement, useSyncExternalStore } from 'react';
+import React, { ComponentType, useSyncExternalStore } from 'react';
 import type { views as viewsApi } from '@apache-superset/core';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
@@ -37,7 +37,7 @@ type ViewUnregisteredEvent = viewsApi.ViewUnregisteredEvent;
 
 const viewRegistry: Map<
   string,
-  { view: View; location: string; provider: () => ReactElement }
+  { view: View; location: string; component: ComponentType }
 > = new Map();
 
 const locationIndex: Map<string, Set<string>> = new Map();
@@ -66,11 +66,11 @@ const notifyUnregister = (event: ViewUnregisteredEvent) => {
 const registerView: typeof viewsApi.registerView = (
   view: View,
   location: string,
-  provider: () => ReactElement,
+  component: ComponentType,
 ): Disposable => {
   const { id } = view;
 
-  viewRegistry.set(id, { view, location, provider });
+  viewRegistry.set(id, { view, location, component });
 
   const ids = locationIndex.get(location) ?? new Set();
   ids.add(id);
@@ -84,12 +84,16 @@ const registerView: typeof viewsApi.registerView = (
   });
 };
 
-export const resolveView = (id: string): ReactElement => {
-  const provider = viewRegistry.get(id)?.provider;
-  if (!provider) {
+export const resolveView = (id: string): React.ReactElement => {
+  const entry = viewRegistry.get(id);
+  if (!entry) {
     return React.createElement(ExtensionPlaceholder, { id });
   }
-  return React.createElement(ErrorBoundary, null, provider());
+  return React.createElement(
+    ErrorBoundary,
+    null,
+    React.createElement(entry.component),
+  );
 };
 
 const getViews: typeof viewsApi.getViews = (
