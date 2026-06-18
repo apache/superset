@@ -174,14 +174,15 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         // metadata). Pre-populate with the first dashboard the user can edit so the
         // "Save & go to dashboard" button works out of the box.
         try {
-          const loaded = await Promise.all(
-            metadataDashboards.map(({ id }) =>
-              this.loadDashboard(id).catch(() => null),
-            ),
-          );
-          const editable = (loaded as (Dashboard | null)[]).find(
-            d => d && canUserEditDashboard(d, this.props.user),
-          ) as Dashboard | undefined;
+          let editable: Dashboard | undefined;
+          for (const { id } of metadataDashboards) {
+            // eslint-disable-next-line no-await-in-loop
+            const result = await this.loadDashboard(id).catch(() => null);
+            if (result && canUserEditDashboard(result, this.props.user)) {
+              editable = result as Dashboard;
+              break;
+            }
+          }
           if (editable) {
             this.setState({
               dashboard: {
