@@ -16,16 +16,19 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock
 
-from flask import current_app, Flask, g
+from flask import Flask, g
 
 from superset.charts.data.dashboard_filter_context import (
     apply_dashboard_filter_context,
 )
 from superset.jinja_context import ExtraCache
 from superset.utils import json
+
+if TYPE_CHECKING:
+    from superset.app import SupersetApp
 
 
 def test_get_data_sets_g_form_data_without_dashboard_filter() -> None:
@@ -78,7 +81,9 @@ def test_get_data_sets_g_form_data_without_dashboard_filter() -> None:
         assert g.form_data["queries"][0]["columns"] == ["col1"]
 
 
-def test_apply_dashboard_filter_context_does_not_duplicate_filters() -> None:
+def test_apply_dashboard_filter_context_does_not_duplicate_filters(
+    app: SupersetApp,
+) -> None:
     """
     Regression test for the ``filters_dashboard_id`` parameter.
 
@@ -103,7 +108,7 @@ def test_apply_dashboard_filter_context_does_not_duplicate_filters() -> None:
     assert "filters" not in query["extra_form_data"]
 
     # filter_values() therefore returns the dashboard value exactly once.
-    with current_app.test_request_context("/api/v1/chart/1/data/"):
+    with app.test_request_context("/api/v1/chart/1/data/"):
         g.form_data = query_context_json
         assert ExtraCache().filter_values("country") == ["USA"]
 

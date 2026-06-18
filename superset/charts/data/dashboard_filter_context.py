@@ -323,8 +323,8 @@ def apply_dashboard_filter_context(
     """
     Apply dashboard filter context.
 
-    Filters are removed from `extra_form_data` to avoid duplicated values when
-    using `filter_values()` macro.
+    Filters are removed from ``extra_form_data`` to avoid duplicated values when
+    using ``filter_values()`` macro.
 
     :param query_context: The chart's query context (mutated in place)
     :param extra_form_data: The dashboard's merged extra_form_data to apply. It's
