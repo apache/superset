@@ -75,43 +75,38 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
                 ),
                 status=404,
             )
-        table = SqlaTable(table_name=table_name, editors=editors)
+        table = SqlaTable()
+        table.override(self._base_model)
+        table.table_name = table_name
+        table.editors = editors
         table.database = database
-        table.schema = self._base_model.schema
-        table.catalog = self._base_model.catalog
-        table.template_params = self._base_model.template_params
-        table.normalize_columns = self._base_model.normalize_columns
-        table.always_filter_main_dttm = self._base_model.always_filter_main_dttm
         table.is_sqllab_view = True
-        table.sql = self._base_model.sql.strip().strip(";")
+        if table.sql:
+            table.sql = table.sql.strip().strip(";")
         db.session.add(table)
-        cols = []
-        for config_ in self._base_model.columns:
-            column_name = config_.column_name
-            col = TableColumn(
-                column_name=column_name,
-                verbose_name=config_.verbose_name,
-                expression=config_.expression,
+        table.columns = [
+            TableColumn(
+                column_name=c.column_name,
+                verbose_name=c.verbose_name,
+                expression=c.expression,
                 filterable=True,
                 groupby=True,
-                is_dttm=config_.is_dttm,
-                type=config_.type,
-                description=config_.description,
+                is_dttm=c.is_dttm,
+                type=c.type,
+                description=c.description,
             )
-            cols.append(col)
-        table.columns = cols
-        mets = []
-        for config_ in self._base_model.metrics:
-            metric_name = config_.metric_name
-            met = SqlMetric(
-                metric_name=metric_name,
-                verbose_name=config_.verbose_name,
-                expression=config_.expression,
-                metric_type=config_.metric_type,
-                description=config_.description,
+            for c in self._base_model.columns
+        ]
+        table.metrics = [
+            SqlMetric(
+                metric_name=m.metric_name,
+                verbose_name=m.verbose_name,
+                expression=m.expression,
+                metric_type=m.metric_type,
+                description=m.description,
             )
-            mets.append(met)
-        table.metrics = mets
+            for m in self._base_model.metrics
+        ]
         return table
 
     def validate(self) -> None:
