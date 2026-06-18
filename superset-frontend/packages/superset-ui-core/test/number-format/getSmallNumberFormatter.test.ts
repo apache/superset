@@ -27,38 +27,38 @@ import {
 const defaultFormatter = getNumberFormatter('.8%');
 
 describe('getSmallNumberFormatter', () => {
-  it('returns defaultFormatter when d3SmallNumberFormat is undefined', () => {
+  test('returns defaultFormatter when d3SmallNumberFormat is undefined', () => {
     expect(getSmallNumberFormatter(defaultFormatter, undefined)).toBe(
       defaultFormatter,
     );
   });
 
-  it('returns defaultFormatter when d3SmallNumberFormat is null (JSON round-trip)', () => {
+  test('returns defaultFormatter when d3SmallNumberFormat is null (JSON round-trip)', () => {
     expect(getSmallNumberFormatter(defaultFormatter, null)).toBe(
       defaultFormatter,
     );
   });
 
-  it('returns defaultFormatter when d3SmallNumberFormat is empty string (cleared Select)', () => {
+  test('returns defaultFormatter when d3SmallNumberFormat is empty string (cleared Select)', () => {
     expect(getSmallNumberFormatter(defaultFormatter, '')).toBe(
       defaultFormatter,
     );
   });
 
-  it('returns defaultFormatter when d3SmallNumberFormat is whitespace', () => {
+  test('returns defaultFormatter when d3SmallNumberFormat is whitespace', () => {
     expect(getSmallNumberFormatter(defaultFormatter, '  ')).toBe(
       defaultFormatter,
     );
   });
 
-  it('returns a NumberFormatter when d3SmallNumberFormat is a valid format', () => {
+  test('returns a NumberFormatter when d3SmallNumberFormat is a valid format', () => {
     const result = getSmallNumberFormatter(defaultFormatter, ',.4f');
     expect(result).toBeInstanceOf(NumberFormatter);
     expect(result).not.toBe(defaultFormatter);
     expect(result!(0.12345)).toBe('0.1235');
   });
 
-  it('returns a CurrencyFormatter when currencyFormat is provided', () => {
+  test('returns a CurrencyFormatter when currencyFormat is provided', () => {
     const result = getSmallNumberFormatter(defaultFormatter, ',.4f', {
       symbol: 'USD',
       symbolPosition: 'prefix',
@@ -68,13 +68,13 @@ describe('getSmallNumberFormatter', () => {
     expect(result!(0.12345)).toContain('$');
   });
 
-  it('preserves percentage formatter output for small numbers when d3SmallNumberFormat is null', () => {
+  test('preserves percentage formatter output for small numbers when d3SmallNumberFormat is null', () => {
     const pctFormatter = getNumberFormatter('.8%');
     const result = getSmallNumberFormatter(pctFormatter, null);
     expect(result!(-0.00001229)).toBe('-0.00122900%');
   });
 
-  it('returns undefined when defaultFormatter is undefined and d3SmallNumberFormat is nullish', () => {
+  test('returns undefined when defaultFormatter is undefined and d3SmallNumberFormat is nullish', () => {
     expect(getSmallNumberFormatter(undefined, null)).toBeUndefined();
     expect(getSmallNumberFormatter(undefined, undefined)).toBeUndefined();
     expect(getSmallNumberFormatter(undefined, '')).toBeUndefined();
