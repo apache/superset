@@ -282,7 +282,11 @@ export function Menu({
       } else if (typeof child !== 'string') {
         Object.assign(child, { label: t(child.label) });
         childItems.push({
-          key: `${child.label}`,
+          // Key children by the stable FAB `name` as well, so a child whose
+          // localized label coincides with a parent key (e.g. the "SQL Editor"
+          // child labeled "SQL Lab" under the "SQL Lab" category) doesn't
+          // collide with that parent. Fall back to the label when no name.
+          key: child.name ?? `${child.label}`,
           label: child.isFrontendRoute ? (
             <NavLink to={child.url || ''} exact activeClassName="is-active">
               {child.label}
