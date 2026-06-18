@@ -71,9 +71,17 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     )
     if df["ds"].dt.tz:
         df["ds"] = df["ds"].dt.tz_convert(None)
-    model.fit(df)
-    future = model.make_future_dataframe(periods=periods, freq=freq)
-    forecast = model.predict(future)[["ds", "yhat", "yhat_lower", "yhat_upper"]]
+    try:
+        model.fit(df)
+        future = model.make_future_dataframe(periods=periods, freq=freq)
+        forecast = model.predict(future)[["ds", "yhat", "yhat_lower", "yhat_upper"]]
+    except Exception as ex:
+        raise InvalidPostProcessingError(
+            _(
+                "Unable to generate forecast: %(error)s",
+                error=str(ex),
+            )
+        ) from ex
     return forecast.join(df.set_index("ds"), on="ds").set_index(["ds"])
 
 
@@ -136,6 +144,10 @@ def prophet(  # pylint: disable=too-many-arguments
         raise InvalidPostProcessingError(_("DataFrame must include temporal column"))
     if len(df.columns) < 2:
         raise InvalidPostProcessingError(_("DataFrame include at least one series"))
+    if len(df) < 2:
+        raise InvalidPostProcessingError(
+            _("Forecast requires at least 2 data points")
+        )
 
     target_df = DataFrame()
 
