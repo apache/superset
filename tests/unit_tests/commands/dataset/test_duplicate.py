@@ -111,14 +111,14 @@ def test_duplicate_dataset_copies_catalog_and_schema() -> None:
     mock_base_dataset.id = 1
     mock_base_dataset.kind = "virtual"
     mock_base_dataset.database_id = 42
-    mock_base_dataset.schema = "my_schema"
-    mock_base_dataset.catalog = "my-bq-project"
-    mock_base_dataset.template_params = None
-    mock_base_dataset.normalize_columns = False
-    mock_base_dataset.always_filter_main_dttm = False
-    mock_base_dataset.sql = "SELECT 1"
     mock_base_dataset.columns = []
     mock_base_dataset.metrics = []
+
+    mock_copy = MagicMock()
+    mock_copy.catalog = "my-bq-project"
+    mock_copy.schema = "my_schema"
+    mock_copy.sql = "SELECT 1"
+    mock_base_dataset.copy.return_value = mock_copy
 
     mock_database = MagicMock()
 
