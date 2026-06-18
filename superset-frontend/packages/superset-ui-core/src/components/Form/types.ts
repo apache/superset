@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { SerializedStyles } from '@emotion/react';
+
 export type { FormProps, FormInstance, FormItemProps } from 'antd/es/form';
+export type { SerializedStyles };
 
 export interface LabeledErrorBoundInputProps {
   label?: string;
@@ -32,6 +35,6 @@ export interface LabeledErrorBoundInputProps {
   classname?: string;
   visibilityToggle?: boolean;
   renderAsTextArea?: boolean;
-  textAreaCss?: any;
+  textAreaCss?: SerializedStyles;
   [x: string]: any;
 }
