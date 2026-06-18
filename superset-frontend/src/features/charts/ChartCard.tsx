@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
 import { Link, useHistory } from 'react-router-dom';
 import {
   ConfirmStatusChange,
@@ -33,6 +34,8 @@ import Chart from 'src/types/Chart';
 import { FacePile } from 'src/components';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
+import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
+import { TableTab } from 'src/views/CRUD/types';
 
 interface ChartCardProps {
   chart: Chart;
@@ -41,7 +44,7 @@ interface ChartCardProps {
   bulkSelectEnabled: boolean;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  refreshData: () => void;
+  refreshData: (config?: FetchDataConfig | null) => void;
   loading?: boolean;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
@@ -49,6 +52,7 @@ interface ChartCardProps {
   userId?: string | number;
   showThumbnails?: boolean;
   handleBulkChartExport: (chartsToExport: Chart[]) => void;
+  getData?: (tab: TableTab) => void;
 }
 
 export default function ChartCard({
@@ -66,6 +70,7 @@ export default function ChartCard({
   chartFilter,
   userId,
   handleBulkChartExport,
+  getData,
 }: ChartCardProps) {
   const history = useHistory();
   const canEdit = hasPerm('can_write');
@@ -135,6 +140,7 @@ export default function ChartCard({
               refreshData,
               chartFilter,
               userId,
+              getData,
             )
           }
         >

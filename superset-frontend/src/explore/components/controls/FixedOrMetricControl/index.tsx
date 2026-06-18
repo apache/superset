@@ -17,8 +17,7 @@
  * under the License.
  */
 import { Component } from 'react';
-import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Collapse, Label } from '@superset-ui/core/components';
 import TextControl from 'src/explore/components/controls/TextControl';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
@@ -65,21 +64,7 @@ interface FixedOrMetricControlState {
   metricValue: MetricValue | null;
 }
 
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.object,
-  isFloat: PropTypes.bool,
-  datasource: PropTypes.object.isRequired,
-  default: PropTypes.shape({
-    type: PropTypes.oneOf(['fix', 'metric']),
-    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  }),
-};
-
-const defaultProps = {
-  onChange: () => {},
-  default: { type: controlTypes.fixed, value: 5 },
-};
+const DEFAULT_VALUE: ControlValue = { type: controlTypes.fixed, value: 5 };
 
 export default class FixedOrMetricControl extends Component<
   FixedOrMetricControlProps,
@@ -91,10 +76,11 @@ export default class FixedOrMetricControl extends Component<
     this.setType = this.setType.bind(this);
     this.setFixedValue = this.setFixedValue.bind(this);
     this.setMetric = this.setMetric.bind(this);
+    const defaultValue = props.default ?? DEFAULT_VALUE;
     const type = (props.value?.type ??
-      props.default?.type ??
+      defaultValue.type ??
       controlTypes.fixed) as 'fix' | 'metric';
-    const rawValue = props.value?.value ?? props.default?.value ?? '100';
+    const rawValue = props.value?.value ?? defaultValue.value ?? '100';
     const fixedValue =
       type === controlTypes.fixed && typeof rawValue !== 'object'
         ? rawValue
@@ -133,7 +119,7 @@ export default class FixedOrMetricControl extends Component<
   }
 
   render() {
-    const value = this.props.value ?? this.props.default;
+    const value = this.props.value ?? this.props.default ?? DEFAULT_VALUE;
     const type = value?.type ?? controlTypes.fixed;
     const columns = this.props.datasource
       ? this.props.datasource.columns
@@ -215,8 +201,3 @@ export default class FixedOrMetricControl extends Component<
     );
   }
 }
-
-// @ts-expect-error - propTypes are defined for runtime validation but TypeScript handles type checking
-FixedOrMetricControl.propTypes = propTypes;
-// @ts-expect-error - defaultProps for backward compatibility with PropTypes
-FixedOrMetricControl.defaultProps = defaultProps;

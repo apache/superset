@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { normalizeTimestamp, QueryState, t } from '@superset-ui/core';
+import { normalizeTimestamp, QueryState } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { isEqual, omit } from 'lodash';
 import { shallowEqual } from 'react-redux';
 import { now } from '@superset-ui/core/utils/dates';
@@ -41,7 +42,10 @@ function alterUnsavedQueryEditorState(
   id: string,
   silent = false,
 ): Partial<SqlLabState> {
-  if (state.tabHistory[state.tabHistory.length - 1] !== id) {
+  if (
+    state.tabHistory.length > 0 &&
+    state.tabHistory[state.tabHistory.length - 1] !== id
+  ) {
     const { queryEditors } = alterInArr(
       state,
       'queryEditors',
@@ -758,6 +762,13 @@ export default function sqlLabReducer(
                   ? prevState
                   : currentState,
             };
+            if (
+              newQueries[id].state === QueryState.Success &&
+              newQueries[id].runAsync === false &&
+              !newQueries[id].results
+            ) {
+              newQueries[id].state = QueryState.Fetching;
+            }
             if (
               shallowEqual(
                 omit(newQueries[id], ['extra']),

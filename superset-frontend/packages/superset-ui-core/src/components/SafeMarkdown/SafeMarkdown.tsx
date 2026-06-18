@@ -18,6 +18,9 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+// TODO: Upgrade to remark-gfm v4+ after migrating to React 18.
+// remark-gfm v4+ requires react-markdown v9+, which requires React 18.
+// Currently pinned to v3.0.1 for compatibility with react-markdown v8 and React 17.
 import remarkGfm from 'remark-gfm';
 import { mergeWith } from 'lodash';
 import { FeatureFlag, isFeatureEnabled } from '../../utils';
@@ -26,6 +29,53 @@ interface SafeMarkdownProps {
   source: string;
   htmlSanitization?: boolean;
   htmlSchemaOverrides?: typeof defaultSchema;
+}
+
+// Link protocols that can execute script when used as an href.
+const DANGEROUS_LINK_PROTOCOLS = ['javascript', 'vbscript', 'data'];
+
+/**
+ * Sanitize link hrefs without using react-markdown's default protocol
+ * allowlist, which would strip the custom link schemes that Superset markdown
+ * is expected to support (see #26211). Instead of allowlisting known-safe
+ * protocols, this blocks the protocols that enable script execution and leaves
+ * everything else (http(s), mailto, relative URLs, anchors and custom schemes)
+ * untouched. Applied regardless of the EscapeMarkdownHtml feature flag.
+ */
+export function transformLinkUri(uri: string): string {
+  // Per the WHATWG URL parser, browsers strip leading C0 control
+  // characters (\x00-\x1f) and space before resolving the scheme, so e.g.
+  // "\x01javascript:alert(1)" executes on click. Strip them here too,
+  // otherwise the blocklist check below could be bypassed with a leading
+  // control character. The pattern is anchored at the start so it runs in
+  // linear time; trailing whitespace does not affect the scheme and is
+  // left for the renderer to handle.
+  // eslint-disable-next-line no-control-regex
+  const url = (uri || '').replace(/^[\u0000-\u0020]+/, '');
+  const first = url.charAt(0);
+  // Anchors and absolute/relative paths have no protocol.
+  if (first === '#' || first === '/') {
+    return url;
+  }
+  const colon = url.indexOf(':');
+  if (colon === -1) {
+    return url;
+  }
+  // A ':' after a '?' or '#' belongs to the query/fragment, not a scheme.
+  const queryIndex = url.indexOf('?');
+  if (queryIndex !== -1 && colon > queryIndex) {
+    return url;
+  }
+  const hashIndex = url.indexOf('#');
+  if (hashIndex !== -1 && colon > hashIndex) {
+    return url;
+  }
+  // Whitespace and C0 control characters inside the scheme (e.g.
+  // "java\tscript:" or "java\x01script:") are ignored by browsers, so strip
+  // them before comparing against the blocklist.
+  // eslint-disable-next-line no-control-regex
+  const scheme = url.slice(0, colon).replace(/[\u0000-\u0020]/g, '').toLowerCase();
+  return DANGEROUS_LINK_PROTOCOLS.includes(scheme) ? '' : url;
 }
 
 export function getOverrideHtmlSchema(
@@ -79,7 +129,7 @@ export function SafeMarkdown({
       rehypePlugins={rehypePlugins}
       remarkPlugins={[remarkGfm]}
       skipHtml={false}
-      transformLinkUri={null}
+      transformLinkUri={transformLinkUri}
     >
       {source}
     </ReactMarkdown>

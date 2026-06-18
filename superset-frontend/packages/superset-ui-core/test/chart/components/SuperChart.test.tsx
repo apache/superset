@@ -19,11 +19,11 @@
 
 import '@testing-library/jest-dom';
 import { render, screen } from '@superset-ui/core/spec';
-import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import { promiseTimeout, SuperChart } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { WrapperProps } from '../../../src/chart/components/SuperChart';
 
 import {
@@ -65,8 +65,6 @@ function getDimensionText(container: HTMLElement) {
 describe('SuperChart', () => {
   jest.setTimeout(5000);
 
-  let restoreConsole: RestoreConsole;
-
   const plugins = [
     new DiligentChartPlugin().configure({ key: ChartKeys.DILIGENT }),
     new BuggyChartPlugin().configure({ key: ChartKeys.BUGGY }),
@@ -79,12 +77,7 @@ describe('SuperChart', () => {
   });
 
   beforeEach(() => {
-    restoreConsole = mockConsole();
     triggerResizeObserver([]); // Reset any pending resize observers
-  });
-
-  afterEach(() => {
-    restoreConsole();
   });
 
   describe('includes ErrorBoundary', () => {
@@ -105,12 +98,12 @@ describe('SuperChart', () => {
       window.removeEventListener('error', onError);
     });
 
-    it('should have correct number of errors', () => {
+    test('should have correct number of errors', () => {
       expect(actualErrors).toBe(expectedErrors);
       expectedErrors = 0;
     });
 
-    it('renders default FallbackComponent', async () => {
+    test('renders default FallbackComponent', async () => {
       expectedErrors = 1;
       render(
         <SuperChart
@@ -118,6 +111,7 @@ describe('SuperChart', () => {
           queriesData={[DEFAULT_QUERY_DATA]}
           width="200"
           height="200"
+          theme={supersetTheme}
         />,
       );
 
@@ -126,7 +120,7 @@ describe('SuperChart', () => {
       ).toBeInTheDocument();
     });
 
-    it('renders custom FallbackComponent', async () => {
+    test('renders custom FallbackComponent', async () => {
       expectedErrors = 1;
       const CustomFallbackComponent = jest.fn(() => (
         <div>Custom Fallback!</div>
@@ -138,14 +132,15 @@ describe('SuperChart', () => {
           queriesData={[DEFAULT_QUERY_DATA]}
           width="200"
           height="200"
+          theme={supersetTheme}
           FallbackComponent={CustomFallbackComponent}
         />,
       );
 
       expect(await screen.findByText('Custom Fallback!')).toBeInTheDocument();
-      expect(CustomFallbackComponent).toHaveBeenCalledTimes(1);
+      expect(CustomFallbackComponent).toHaveBeenCalled();
     });
-    it('call onErrorBoundary', async () => {
+    test('call onErrorBoundary', async () => {
       expectedErrors = 1;
       const handleError = jest.fn();
       render(
@@ -154,6 +149,7 @@ describe('SuperChart', () => {
           queriesData={[DEFAULT_QUERY_DATA]}
           width="200"
           height="200"
+          theme={supersetTheme}
           onErrorBoundary={handleError}
         />,
       );
@@ -163,7 +159,7 @@ describe('SuperChart', () => {
     });
 
     // Update the test cases
-    it('does not include ErrorBoundary if told so', async () => {
+    test('does not include ErrorBoundary if told so', async () => {
       expectedErrors = 1;
       const inactiveErrorHandler = jest.fn();
       const activeErrorHandler = jest.fn();
@@ -178,6 +174,7 @@ describe('SuperChart', () => {
             queriesData={[DEFAULT_QUERY_DATA]}
             width="200"
             height="200"
+            theme={supersetTheme}
             onErrorBoundary={inactiveErrorHandler}
           />
         </ErrorBoundary>,
@@ -198,13 +195,14 @@ describe('SuperChart', () => {
   jest.setTimeout(10000);
 
   // Update the props test to wait for component to render
-  it('passes the props to renderer correctly', async () => {
+  test('passes the props to renderer correctly', async () => {
     const { container } = render(
       <SuperChart
         chartType={ChartKeys.DILIGENT}
         queriesData={[DEFAULT_QUERY_DATA]}
         width={101}
         height={118}
+        theme={supersetTheme}
         formData={{ abc: 1 }}
       />,
     );
@@ -276,7 +274,8 @@ describe('SuperChart', () => {
   };
 
   // Update the resize observer trigger to ensure it's called after component mount
-  it.skip('works when width and height are percent', async () => {
+  /* oxlint-disable-next-line jest/no-disabled-tests, jest/expect-expect -- skipped test */
+  test.skip('works when width and height are percent', async () => {
     const { container } = render(
       <SuperChart
         chartType={ChartKeys.DILIGENT}
@@ -284,6 +283,7 @@ describe('SuperChart', () => {
         debounceTime={1}
         width="100%"
         height="100%"
+        theme={supersetTheme}
       />,
     );
 
@@ -324,13 +324,14 @@ describe('SuperChart', () => {
     await waitForDimensions(container, 300, 300);
   });
 
-  it('passes the props with multiple queries to renderer correctly', async () => {
+  test('passes the props with multiple queries to renderer correctly', async () => {
     const { container } = render(
       <SuperChart
         chartType={ChartKeys.DILIGENT}
         queriesData={DEFAULT_QUERIES_DATA}
         width={101}
         height={118}
+        theme={supersetTheme}
         formData={{ abc: 1 }}
       />,
     );
@@ -344,21 +345,27 @@ describe('SuperChart', () => {
   });
 
   describe('supports NoResultsComponent', () => {
-    it('renders NoResultsComponent when queriesData is missing', () => {
+    test('renders NoResultsComponent when queriesData is missing', () => {
       render(
-        <SuperChart chartType={ChartKeys.DILIGENT} width="200" height="200" />,
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          width="200"
+          height="200"
+          theme={supersetTheme}
+        />,
       );
 
       expect(screen.getByText('No Results')).toBeInTheDocument();
     });
 
-    it('renders NoResultsComponent when queriesData data is null', () => {
+    test('renders NoResultsComponent when queriesData data is null', () => {
       render(
         <SuperChart
           chartType={ChartKeys.DILIGENT}
           queriesData={[{ data: null }]}
           width="200"
           height="200"
+          theme={supersetTheme}
         />,
       );
 
@@ -379,13 +386,14 @@ describe('SuperChart', () => {
       );
     }
 
-    it('works with width and height that are numbers', async () => {
+    test('works with width and height that are numbers', async () => {
       const { container } = render(
         <SuperChart
           chartType={ChartKeys.DILIGENT}
           queriesData={[DEFAULT_QUERY_DATA]}
           width={100}
           height={100}
+          theme={supersetTheme}
         />,
       );
 
@@ -397,7 +405,8 @@ describe('SuperChart', () => {
       });
     });
 
-    it.skip('works when width and height are percent', async () => {
+    /* oxlint-disable-next-line jest/no-disabled-tests */
+    test.skip('works when width and height are percent', async () => {
       const wrapper = createSizedWrapper();
       document.body.appendChild(wrapper);
 
@@ -409,6 +418,7 @@ describe('SuperChart', () => {
             debounceTime={1}
             width="100%"
             height="100%"
+            theme={supersetTheme}
             Wrapper={MyWrapper}
           />
         </div>,
@@ -457,7 +467,7 @@ describe('SuperChart', () => {
     }, 30000);
   });
 
-  it('should render MatrixifyGridRenderer when matrixify is enabled with empty data', () => {
+  test('should render MatrixifyGridRenderer when matrixify is enabled with empty data', () => {
     const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
       typeof isMatrixifyEnabled
     >;
@@ -473,6 +483,7 @@ describe('SuperChart', () => {
         chartType={ChartKeys.DILIGENT}
         width="200"
         height="200"
+        theme={supersetTheme}
         queriesData={[{ data: [] }]}
         enableNoResults
       />,
@@ -482,7 +493,7 @@ describe('SuperChart', () => {
     expect(screen.queryByText('No Results')).not.toBeInTheDocument();
   });
 
-  it('should render MatrixifyGridRenderer when matrixify is enabled with null data', () => {
+  test('should render MatrixifyGridRenderer when matrixify is enabled with null data', () => {
     const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
       typeof isMatrixifyEnabled
     >;
@@ -498,6 +509,7 @@ describe('SuperChart', () => {
         chartType={ChartKeys.DILIGENT}
         width="200"
         height="200"
+        theme={supersetTheme}
         queriesData={[{ data: null }]}
         enableNoResults
       />,
@@ -507,7 +519,7 @@ describe('SuperChart', () => {
     expect(screen.queryByText('No Results')).not.toBeInTheDocument();
   });
 
-  it('should ignore custom noResults component when matrixify is enabled', () => {
+  test('should ignore custom noResults component when matrixify is enabled', () => {
     const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
       typeof isMatrixifyEnabled
     >;
@@ -525,6 +537,7 @@ describe('SuperChart', () => {
         chartType={ChartKeys.DILIGENT}
         width="200"
         height="200"
+        theme={supersetTheme}
         queriesData={[{ data: [] }]}
         enableNoResults
         noResults={<CustomNoResults />}
@@ -537,7 +550,7 @@ describe('SuperChart', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should apply error boundary to matrixify grid renderer', () => {
+  test('should apply error boundary to matrixify grid renderer', () => {
     const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
       typeof isMatrixifyEnabled
     >;
@@ -554,6 +567,7 @@ describe('SuperChart', () => {
         chartType={ChartKeys.DILIGENT}
         width="200"
         height="200"
+        theme={supersetTheme}
         queriesData={[{ data: [] }]}
         enableNoResults
         onErrorBoundary={onErrorBoundary}

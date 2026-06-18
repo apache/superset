@@ -98,6 +98,7 @@ interface SectionHeaderProps {
   title: string;
   subtitle?: string | ReactNode;
   dark?: boolean;
+  link?: string;
 }
 
 const SectionHeader = ({
@@ -105,15 +106,24 @@ const SectionHeader = ({
   title,
   subtitle,
   dark,
+  link,
 }: SectionHeaderProps) => {
   const Heading = level;
 
   const StyledRoot =
     level === 'h1' ? StyledSectionHeaderH1 : StyledSectionHeaderH2;
 
+  const titleContent = link ? (
+    <a href={link} style={{ color: 'inherit', textDecoration: 'none' }}>
+      {title}
+    </a>
+  ) : (
+    title
+  );
+
   return (
     <StyledRoot dark={!!dark}>
-      <Heading className="title">{title}</Heading>
+      <Heading className="title">{titleContent}</Heading>
       <img className="line" src="/img/community/line.png" alt="line" />
       {subtitle && <div className="subtitle">{subtitle}</div>}
     </StyledRoot>

@@ -62,7 +62,7 @@ describe('ExploreCtasResultsButton', () => {
     const { getByText } = setup({}, mockStore(initialState));
 
     postFormSpy.mockClear();
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.post(getOrCreateTableEndpoint, { result: { table_id: 1234 } });
 
     fireEvent.click(getByText('Explore'));
@@ -80,7 +80,7 @@ describe('ExploreCtasResultsButton', () => {
     const { getByText } = setup({}, mockStore(initialState));
 
     postFormSpy.mockClear();
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.post(getOrCreateTableEndpoint, {
       throws: new Error('Unexpected all to v1 API'),
     });

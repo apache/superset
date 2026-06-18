@@ -18,7 +18,8 @@
  */
 
 import { useMemo, useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
@@ -39,7 +40,6 @@ export type UserRegistration = {
   last_name: string;
   email: string;
   registration_date: string;
-  registration_hash: string;
 };
 
 export default function UserRegistrations() {
@@ -110,12 +110,6 @@ export default function UserRegistrations() {
         Cell: ({ row: { original } }: any) => original.email,
       },
       {
-        accessor: 'registration_hash',
-        id: 'registration_hash',
-        Header: t('Registration hash'),
-        Cell: ({ row: { original } }: any) => original.registration_hash,
-      },
-      {
         accessor: 'registration_date',
         id: 'registration_date',
         Header: t('Registration date'),
@@ -173,13 +167,6 @@ export default function UserRegistrations() {
         Header: t('Email'),
         key: 'email',
         id: 'email',
-        input: 'search',
-        operator: ListViewFilterOperator.Contains,
-      },
-      {
-        Header: t('Registration hash'),
-        key: 'registration_hash',
-        id: 'registration_hash',
         input: 'search',
         operator: ListViewFilterOperator.Contains,
       },

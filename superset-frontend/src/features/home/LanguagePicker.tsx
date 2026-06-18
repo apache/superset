@@ -18,16 +18,16 @@
  */
 import { useMemo } from 'react';
 import { MenuItem } from '@superset-ui/core/components/Menu';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
 
 export interface Languages {
   [key: string]: {
-    flag: string;
-    url: string;
-    name: string;
+    flag?: string;
+    url?: string;
+    name?: string;
   };
 }
 
@@ -61,9 +61,9 @@ export const useLanguageMenuItems = ({
       key: langKey,
       label: (
         <StyledLabel className="f16">
-          <i className={`flag ${languages[langKey].flag}`} />
-          <Typography.Link href={languages[langKey].url}>
-            {languages[langKey].name}
+          <i className={`flag ${languages[langKey]?.flag ?? 'us'}`} />
+          <Typography.Link href={languages[langKey]?.url}>
+            {languages[langKey]?.name}
           </Typography.Link>
         </StyledLabel>
       ),
@@ -75,7 +75,7 @@ export const useLanguageMenuItems = ({
       type: 'submenu' as const,
       label: (
         <span className="f16" aria-label={t('Languages')}>
-          <i className={`flag ${languages[locale].flag}`} />
+          <i className={`flag ${languages[locale]?.flag ?? 'us'}`} />
         </span>
       ),
       icon: <Icons.CaretDownOutlined iconSize="xs" />,

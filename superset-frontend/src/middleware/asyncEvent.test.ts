@@ -95,11 +95,11 @@ describe('asyncEvent middleware', () => {
   });
 
   afterEach(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     mockedIsFeatureEnabled.mockRestore();
   });
 
-  afterAll(() => fetchMock.reset());
+  afterAll(() => fetchMock.clearHistory().removeRoutes());
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('polling transport', () => {
@@ -126,12 +126,12 @@ describe('asyncEvent middleware', () => {
         await asyncEvent.waitForAsyncData(asyncPendingEvent);
       expect(actualResolved).toEqual([chartData]);
 
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
     });
 
     test('rejects on event error status', async () => {
-      fetchMock.reset();
+      fetchMock.clearHistory().removeRoutes();
       fetchMock.get(EVENTS_ENDPOINT, {
         status: 200,
         body: { result: [asyncErrorEvent] },
@@ -146,12 +146,12 @@ describe('asyncEvent middleware', () => {
         expect(error).toEqual(errorResponse);
       }
 
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
     });
 
     test('rejects on cached data fetch error', async () => {
-      fetchMock.reset();
+      fetchMock.clearHistory().removeRoutes();
       fetchMock.get(EVENTS_ENDPOINT, {
         status: 200,
         body: { result: [asyncDoneEvent] },
@@ -169,9 +169,37 @@ describe('asyncEvent middleware', () => {
         expect(error).toEqual('Bad request');
       }
 
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
     });
+
+    // Regression guard for the motivating CodeQL case: a job_id that collides
+    // with a built-in Object property (e.g. "__proto__"/"constructor") must be
+    // routed through the Map-based registries without triggering prototype
+    // pollution or losing the listener to a prototype-bearing lookup.
+    test.each(['__proto__', 'constructor', 'prototype', 'hasOwnProperty'])(
+      'resolves listeners keyed by reserved job_id "%s"',
+      async jobId => {
+        fetchMock.clearHistory().removeRoutes();
+        fetchMock.get(EVENTS_ENDPOINT, {
+          status: 200,
+          body: { result: [{ ...asyncDoneEvent, job_id: jobId }] },
+        });
+        fetchMock.get(CACHED_DATA_ENDPOINT, {
+          status: 200,
+          body: { result: chartData },
+        });
+
+        const actualResolved = await asyncEvent.waitForAsyncData({
+          ...asyncPendingEvent,
+          job_id: jobId,
+        });
+        expect(actualResolved).toEqual([chartData]);
+        expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(
+          1,
+        );
+      },
+    );
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -210,8 +238,8 @@ describe('asyncEvent middleware', () => {
 
       await expect(promise).resolves.toEqual([chartData]);
 
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(0);
     });
 
     test('rejects on event error status', async () => {
@@ -225,12 +253,12 @@ describe('asyncEvent middleware', () => {
 
       await expect(promise).rejects.toEqual(errorResponse);
 
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(0);
     });
 
     test('rejects on cached data fetch error', async () => {
-      fetchMock.reset();
+      fetchMock.clearHistory().removeRoutes();
       fetchMock.get(CACHED_DATA_ENDPOINT, {
         status: 400,
       });
@@ -250,8 +278,8 @@ describe('asyncEvent middleware', () => {
         expect(error).toEqual('Bad request');
       }
 
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(0);
     });
 
     test('resolves when events are received before listener', async () => {
@@ -262,8 +290,8 @@ describe('asyncEvent middleware', () => {
       const promise = asyncEvent.waitForAsyncData(asyncPendingEvent);
       await expect(promise).resolves.toEqual([chartData]);
 
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(0);
     });
   });
 });

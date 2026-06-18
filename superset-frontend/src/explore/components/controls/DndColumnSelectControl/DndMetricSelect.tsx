@@ -19,16 +19,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nanoid } from 'nanoid';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isAdhocMetricSimple,
   isSavedMetric,
   Metric,
   QueryFormMetric,
-  t,
-  tn,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { tn } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger';
@@ -41,6 +41,7 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import { AGGREGATES } from 'src/explore/constants';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
@@ -77,7 +78,10 @@ const coerceMetrics = (
     ) {
       return {
         metric_name: metric,
-        error_text: t('This metric might be incompatible with current dataset'),
+        error_text: t(
+          'This metric might be incompatible with current %s',
+          datasetLabelLower(),
+        ),
         uuid: nanoid(),
       };
     }
@@ -128,6 +132,26 @@ const DndMetricSelect = (props: any) => {
     return extra;
   }, [datasource?.extra]);
 
+  // Semantic views do not support arbitrary SQL expressions as metrics.
+  const disallowAdhocMetrics =
+    extra.disallow_adhoc_metrics || datasource?.type === 'semantic_view';
+
+  // AdhocMetricEditPopover reads `datasource.extra.disallow_adhoc_metrics`
+  // directly, so we need to inject the flag there too — not just in canDrop.
+  const datasourceForPopover = useMemo(() => {
+    if (!disallowAdhocMetrics || !datasource) return datasource;
+    let parsedExtra: Record<string, unknown> = {};
+    if (datasource.extra) {
+      try {
+        parsedExtra = JSON.parse(datasource.extra as string);
+      } catch {} // eslint-disable-line no-empty
+    }
+    return {
+      ...datasource,
+      extra: JSON.stringify({ ...parsedExtra, disallow_adhoc_metrics: true }),
+    };
+  }, [disallowAdhocMetrics, datasource]);
+
   const savedMetricSet = useMemo(
     () =>
       new Set(
@@ -139,7 +163,7 @@ const DndMetricSelect = (props: any) => {
   );
 
   const handleChange = useCallback(
-    opts => {
+    (opts: ValueType | ValueType[] | null) => {
       // if clear out options
       if (opts === null) {
         onChange(null);
@@ -150,7 +174,11 @@ const DndMetricSelect = (props: any) => {
       const optionValues = transformedOpts
         .map(option => {
           // pre-defined metric
-          if (option.metric_name) {
+          if (
+            typeof option === 'object' &&
+            'metric_name' in option &&
+            option.metric_name
+          ) {
             return option.metric_name;
           }
           return option;
@@ -180,7 +208,7 @@ const DndMetricSelect = (props: any) => {
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
       if (
-        extra.disallow_adhoc_metrics &&
+        disallowAdhocMetrics &&
         (item.type !== DndItemType.Metric ||
           !savedMetricSet.has(item.value.metric_name))
       ) {
@@ -263,7 +291,7 @@ const DndMetricSelect = (props: any) => {
   );
 
   const getSavedMetricOptionsForMetric = useCallback(
-    index =>
+    (index: number) =>
       getOptionsForSavedMetrics(
         props.savedMetrics,
         props.value,
@@ -289,14 +317,17 @@ const DndMetricSelect = (props: any) => {
         columns={props.columns}
         savedMetrics={props.savedMetrics}
         savedMetricsOptions={getSavedMetricOptionsForMetric(index)}
-        datasource={props.datasource}
+        datasource={datasourceForPopover}
         onMoveLabel={moveLabel}
         onDropLabel={handleDropLabel}
         type={`${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`}
         multi={multi}
         datasourceWarningMessage={
           option instanceof AdhocMetric && option.datasourceWarning
-            ? t('This metric might be incompatible with current dataset')
+            ? t(
+                'This metric might be incompatible with current %s',
+                datasetLabelLower(),
+              )
             : undefined
         }
       />
@@ -377,6 +408,9 @@ const DndMetricSelect = (props: any) => {
     multi ? 2 : 1,
   );
 
+  // Generate sortable type that matches MetricDefinitionValue's type
+  const sortableType = `${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`;
+
   return (
     <div className="metrics-select">
       <DndSelectLabel
@@ -387,6 +421,8 @@ const DndMetricSelect = (props: any) => {
         ghostButtonText={ghostButtonText}
         displayGhostButton={multi || value.length === 0}
         onClickGhostButton={handleClickGhostButton}
+        sortableType={sortableType}
+        itemCount={value.length}
         {...props}
       />
       <AdhocMetricPopoverTrigger
@@ -395,7 +431,7 @@ const DndMetricSelect = (props: any) => {
         columns={props.columns}
         savedMetricsOptions={newSavedMetricOptions}
         savedMetric={EMPTY_OBJECT as savedMetricType}
-        datasource={props.datasource}
+        datasource={datasourceForPopover}
         isControlledComponent
         visible={newMetricPopoverVisible}
         togglePopover={togglePopover}

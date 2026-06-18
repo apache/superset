@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import copy
 import functools
 import logging
 import os
@@ -23,7 +24,6 @@ import traceback
 from datetime import datetime
 from typing import Any, Callable, cast
 
-from babel import Locale
 from flask import (
     abort,
     current_app as app,
@@ -35,11 +35,10 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH
+from flask_appbuilder.const import AUTH_OAUTH, AUTH_SAML
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
-from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.form import FlaskForm
@@ -94,12 +93,14 @@ FRONTEND_CONF_KEYS = (
     "DASHBOARD_AUTO_REFRESH_MODE",
     "DASHBOARD_AUTO_REFRESH_INTERVALS",
     "DASHBOARD_VIRTUALIZATION",
+    "DASHBOARD_VIRTUALIZATION_DEFER_DATA",
     "SCHEDULED_QUERIES",
     "EXCEL_EXTENSIONS",
     "CSV_EXTENSIONS",
     "COLUMNAR_EXTENSIONS",
     "ALLOWED_EXTENSIONS",
     "SAMPLES_ROW_LIMIT",
+    "ROW_LIMIT",
     "DEFAULT_TIME_FILTER",
     "HTML_SANITIZATION",
     "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
@@ -121,6 +122,7 @@ FRONTEND_CONF_KEYS = (
     "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
     "TABLE_VIZ_MAX_ROW_SERVER",
     "MAPBOX_API_KEY",
+    "DEFAULT_MAP_RENDERER",
     "CSV_STREAMING_ROW_THRESHOLD",
 )
 
@@ -140,7 +142,9 @@ def get_error_msg() -> str:
 
 
 def json_success(json_msg: str, status: int = 200) -> FlaskResponse:
-    return Response(json_msg, status=status, mimetype="application/json")
+    return Response(
+        json_msg, status=status, content_type="application/json; charset=utf-8"
+    )
 
 
 def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskResponse:
@@ -213,7 +217,7 @@ class BaseSupersetView(BaseView):
         return Response(
             json.dumps(obj, default=json.json_int_dttm_ser, ignore_nan=True),
             status=status,
-            mimetype="application/json",
+            content_type="application/json; charset=utf-8",
         )
 
     def render_app_template(
@@ -407,37 +411,39 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
 
 def get_default_spinner_svg() -> str | None:
     """
-    Load and cache the default spinner SVG content from frontend assets.
+    Load and cache the default spinner SVG content from backend templates.
 
     Returns:
         str | None: SVG content as string, or None if file not found
     """
-    try:
-        # Path to frontend source SVG file (used by both frontend and backend)
-        svg_path = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            "superset-frontend",
-            "packages",
-            "superset-ui-core",
-            "src",
-            "components",
-            "assets",
-            "images",
-            "loading.svg",
-        )
+    # Path to backend templates SVG file
+    svg_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "templates",
+        "superset",
+        "loading.svg",
+    )
 
+    try:
         with open(svg_path, "r", encoding="utf-8") as f:
             return f.read().strip()
-    except (FileNotFoundError, OSError, UnicodeDecodeError) as e:
+    except (OSError, UnicodeDecodeError) as e:
         logger.warning("Could not load default spinner SVG: %s", e)
         return None
 
 
+def _get_frontend_config_value(key: str) -> Any:
+    """Get frontend config value, converting sets to lists for JSON compatibility."""
+    val = app.config.get(key)
+    if isinstance(val, set):
+        return list(val)
+    return val
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
-    user_id: int | None, locale: Locale | None
+    user_id: int | None, locale: str | None
 ) -> dict[str, Any]:
     """Common data always sent to the client
 
@@ -446,14 +452,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     """
 
     # should not expose API TOKEN to frontend
-    frontend_config = {
-        k: (
-            list(app.config.get(k))
-            if isinstance(app.config.get(k), set)
-            else app.config.get(k)
-        )
-        for k in FRONTEND_CONF_KEYS
-    }
+    frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
 
     if app.config.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
@@ -475,11 +474,24 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         and bool(available_specs[GSheetsEngineSpec])
     )
 
-    language = locale.language if locale else "en"
+    if isinstance(locale, str):
+        normalized = locale.replace("-", "_")
+        languages = app.config.get("LANGUAGES") or {}
+        # Preserve region-specific locales (e.g. zh_TW, pt_BR) when they are
+        # configured as distinct language packs; otherwise fall back to the
+        # base language code.
+        if normalized in languages:
+            language = normalized
+        else:
+            language = normalized.split("_")[0]
+    else:
+        language = app.config.get("BABEL_DEFAULT_LOCALE", "en")
     auth_type = app.config["AUTH_TYPE"]
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
-    should_show_recaptcha = auth_user_registration and (auth_type != AUTH_OAUTH)
+    should_show_recaptcha = auth_user_registration and (
+        auth_type not in (AUTH_OAUTH, AUTH_SAML)
+    )
 
     if auth_user_registration:
         frontend_config["AUTH_USER_REGISTRATION_ROLE"] = app.config[
@@ -499,6 +511,16 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
                 }
             )
         frontend_config["AUTH_PROVIDERS"] = oauth_providers
+    elif auth_type == AUTH_SAML:
+        saml_providers = []
+        for provider in appbuilder.sm.saml_providers:
+            saml_providers.append(
+                {
+                    "name": provider["name"],
+                    "icon": provider.get("icon", "fa-sign-in"),
+                }
+            )
+        frontend_config["AUTH_PROVIDERS"] = saml_providers
 
     bootstrap_data = {
         "application_root": app.config["APPLICATION_ROOT"],
@@ -525,7 +547,10 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
 
 def common_bootstrap_payload() -> dict[str, Any]:
-    return cached_common_bootstrap_data(utils.get_user_id(), get_locale())
+    locale = get_locale()
+    # Convert locale to string for proper cache key hashing
+    locale_str = str(locale) if locale else None
+    return cached_common_bootstrap_data(utils.get_user_id(), locale_str)
 
 
 def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -567,10 +592,39 @@ def get_spa_template_context(
     """
     payload = get_spa_payload(extra_bootstrap_data)
 
-    # Extract theme data for template access
-    theme_data = get_theme_bootstrap_data().get("theme", {})
+    # Deep copy theme data to avoid mutating cached bootstrap payload
+    theme_data = copy.deepcopy(payload.get("common", {}).get("theme", {}))
     default_theme = theme_data.get("default", {})
-    theme_tokens = default_theme.get("token", {})
+    dark_theme = theme_data.get("dark", {})
+
+    # Apply brandAppName fallback to both default and dark themes
+    # Priority: theme brandAppName > APP_NAME config > "Superset" default
+    app_name_from_config = app.config.get("APP_NAME", "Superset")
+    for theme_config in [default_theme, dark_theme]:
+        if not theme_config:
+            continue
+        # Get or create token dict
+        if "token" not in theme_config:
+            theme_config["token"] = {}
+        theme_tokens = theme_config["token"]
+
+        if (
+            not theme_tokens.get("brandAppName")
+            or theme_tokens.get("brandAppName") == "Superset"
+        ):
+            # If brandAppName not set or is default, check if APP_NAME customized
+            if app_name_from_config != "Superset":
+                # User has customized APP_NAME, use it as brandAppName
+                theme_tokens["brandAppName"] = app_name_from_config
+
+    # Write the modified theme data back to payload
+    if "common" not in payload:
+        payload["common"] = {}
+    payload["common"]["theme"] = theme_data
+
+    # Extract theme tokens for template access (after fallback applied)
+    # Use the direct reference to ensure we get the modified token dict
+    theme_tokens = default_theme.get("token", {}) if default_theme else {}
 
     # Determine spinner content with precedence: theme SVG > theme URL > default SVG
     spinner_svg = None
@@ -581,24 +635,28 @@ def get_spa_template_context(
         # No custom URL either, use default SVG
         spinner_svg = get_default_spinner_svg()
 
+    # Determine default title using the (potentially updated) brandAppName
+    default_title = theme_tokens.get("brandAppName", "Superset")
+
+    # Extract dark theme background for the initial page load CSS.
+    dark_theme_tokens = dark_theme.get("token", {}) if dark_theme else {}
+    dark_theme_bg = dark_theme_tokens.get("colorBgBase", "#000") if dark_theme else None
+
     return {
         "entry": entry,
         "bootstrap_data": json.dumps(
             payload, default=json.pessimistic_json_iso_dttm_ser
         ),
         "theme_tokens": theme_tokens,
+        "dark_theme_bg": dark_theme_bg,
         "spinner_svg": spinner_svg,
+        "default_title": default_title,
         **template_kwargs,
     }
 
 
-class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
-    template = "superset/fab_overrides/list.html"
-
-
 class SupersetModelView(ModelView):
     page_size = 100
-    list_widget = SupersetListWidget
 
     def render_app_template(self) -> FlaskResponse:
         context = get_spa_template_context()

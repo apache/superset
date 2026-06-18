@@ -22,7 +22,7 @@ import { TooltipFrame } from '@superset-ui/core';
 import { render, screen } from '@testing-library/react';
 
 describe('TooltipFrame', () => {
-  it('sets className', () => {
+  test('sets className', () => {
     const { container } = render(
       <TooltipFrame className="test-class">
         <span>Hi!</span>
@@ -32,7 +32,7 @@ describe('TooltipFrame', () => {
     expect(container.querySelector('.test-class')).toBeInTheDocument();
   });
 
-  it('renders', () => {
+  test('renders', () => {
     const { container } = render(
       <TooltipFrame>
         <span>Hi!</span>

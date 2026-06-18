@@ -76,6 +76,10 @@ import {
   FileOutlined,
   FileTextOutlined,
   FireOutlined,
+  FolderAddOutlined,
+  FolderOpenOutlined,
+  FolderOutlined,
+  FolderViewOutlined,
   FormOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
@@ -86,6 +90,7 @@ import {
   InfoCircleFilled,
   InsertRowAboveOutlined,
   InsertRowBelowOutlined,
+  LeftOutlined,
   LineChartOutlined,
   LineOutlined,
   LinkOutlined,
@@ -94,17 +99,25 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MinusCircleOutlined,
+  MinusSquareOutlined,
   MoonOutlined,
   LoadingOutlined,
   LoginOutlined,
   MonitorOutlined,
   MoreOutlined,
   OrderedListOutlined,
-  PieChartOutlined,
+  PartitionOutlined,
+  PauseCircleOutlined,
+  PauseOutlined,
   PicCenterOutlined,
+  PieChartOutlined,
+  PlayCircleOutlined,
   PlusCircleOutlined,
+  PlusSquareOutlined,
   PlusOutlined,
   ProfileOutlined,
+  PushpinFilled,
+  PushpinOutlined,
   QuestionCircleOutlined,
   ReloadOutlined,
   RightOutlined,
@@ -114,6 +127,7 @@ import {
   ShareAltOutlined,
   StarOutlined,
   StarFilled,
+  StepForwardOutlined,
   StopOutlined,
   SunOutlined,
   SyncOutlined,
@@ -151,7 +165,7 @@ import {
   SlackOutlined,
   ApiOutlined,
 } from '@ant-design/icons';
-import { FC } from 'react';
+import { ForwardRefExoticComponent, RefAttributes, forwardRef } from 'react';
 import { IconType } from './types';
 import { BaseIconComponent } from './BaseIcon';
 
@@ -216,6 +230,10 @@ const AntdIcons = {
   FileOutlined,
   FileTextOutlined,
   FireOutlined,
+  FolderAddOutlined,
+  FolderOpenOutlined,
+  FolderOutlined,
+  FolderViewOutlined,
   FormOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
@@ -229,6 +247,7 @@ const AntdIcons = {
   InfoCircleFilled,
   InsertRowAboveOutlined,
   InsertRowBelowOutlined,
+  LeftOutlined,
   LineChartOutlined,
   LineOutlined,
   LinkOutlined,
@@ -239,15 +258,23 @@ const AntdIcons = {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MinusCircleOutlined,
+  MinusSquareOutlined,
   MonitorOutlined,
   MoonOutlined,
   MoreOutlined,
   OrderedListOutlined,
-  PieChartOutlined,
+  PartitionOutlined,
+  PauseCircleOutlined,
+  PauseOutlined,
   PicCenterOutlined,
+  PieChartOutlined,
+  PlayCircleOutlined,
   PlusCircleOutlined,
+  PlusSquareOutlined,
   PlusOutlined,
   ProfileOutlined,
+  PushpinFilled,
+  PushpinOutlined,
   ReloadOutlined,
   QuestionCircleOutlined,
   RightOutlined,
@@ -258,6 +285,7 @@ const AntdIcons = {
   SunOutlined,
   StarOutlined,
   StarFilled,
+  StepForwardOutlined,
   StopOutlined,
   SyncOutlined,
   TagOutlined,
@@ -295,19 +323,25 @@ type AntdIconNames = keyof typeof AntdIcons;
 
 export const antdEnhancedIcons: Record<
   AntdIconNames,
-  FC<IconType>
+  ForwardRefExoticComponent<IconType & RefAttributes<HTMLSpanElement>>
 > = Object.keys(AntdIcons)
   .filter(key => !EXCLUDED_ICONS.some(excluded => key.includes(excluded)))
   .reduce(
     (acc, key) => {
-      acc[key as AntdIconNames] = (props: IconType) => (
-        <BaseIconComponent
-          component={AntdIcons[key as AntdIconNames]}
-          fileName={key}
-          {...props}
-        />
+      acc[key as AntdIconNames] = forwardRef<HTMLSpanElement, IconType>(
+        (props, ref) => (
+          <BaseIconComponent
+            ref={ref}
+            component={AntdIcons[key as AntdIconNames]}
+            fileName={key}
+            {...props}
+          />
+        ),
       );
       return acc;
     },
-    {} as Record<AntdIconNames, FC<IconType>>,
+    {} as Record<
+      AntdIconNames,
+      ForwardRefExoticComponent<IconType & RefAttributes<HTMLSpanElement>>
+    >,
   );

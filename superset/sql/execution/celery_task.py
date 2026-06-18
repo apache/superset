@@ -25,8 +25,9 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import traceback
 import uuid
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
@@ -55,9 +56,6 @@ from superset.utils import json
 from superset.utils.core import override_user, zlib_compress
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +103,9 @@ def _handle_query_error(
     payload.update(
         {"status": query.status.value, "error": msg, "errors": errors_payload}
     )
+    if app.config.get("SHOW_STACKTRACE"):
+        if stacktrace := traceback.format_exc():
+            payload["stacktrace"] = stacktrace
     if troubleshooting_link := app.config.get("TROUBLESHOOTING_LINK"):
         payload["link"] = troubleshooting_link
     return payload
@@ -350,7 +351,7 @@ def execute_sql_task(
                     start_time=start_time,
                 )
             except Exception as ex:
-                logger.debug("Query %d: %s", query_id, ex)
+                logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 query = _get_query(query_id=query_id)

@@ -67,7 +67,7 @@ const getDashboardPermalink = async ({
     chartStates &&
     Object.keys(chartStates).length > 0;
 
-  return getDashboardPermalinkUtil({
+  const { url } = await getDashboardPermalinkUtil({
     dashboardId,
     dataMask,
     activeTabs,
@@ -75,6 +75,8 @@ const getDashboardPermalink = async ({
     chartStates: includeChartState ? chartStates : undefined,
     includeChartState,
   });
+
+  return url;
 };
 
 const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];

@@ -30,6 +30,7 @@ import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import QueryLimitSelect, {
   QueryLimitSelectProps,
   convertToNumWithSpaces,
+  convertToShortNum,
 } from 'src/SqlLab/components/QueryLimitSelect';
 
 const middlewares = [thunk];
@@ -102,7 +103,7 @@ describe('QueryLimitSelect', () => {
         },
       }),
     );
-    expect(getByText(convertToNumWithSpaces(queryLimit))).toBeInTheDocument();
+    expect(getByText(convertToShortNum(queryLimit))).toBeInTheDocument();
   });
 
   test('renders dropdown select', async () => {

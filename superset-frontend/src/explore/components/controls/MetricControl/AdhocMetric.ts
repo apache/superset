@@ -87,33 +87,6 @@ function inferSqlExpressionAggregate(
   return null;
 }
 
-/**
- * Adapter function to create an AdhocMetric instance from a core AdhocMetric type.
- * This bridges the type gap between @superset-ui/core's AdhocMetric and the local class.
- */
-export function fromCoreAdhocMetric(metric: CoreAdhocMetric): AdhocMetric {
-  return new AdhocMetric(metric as AdhocMetricInput);
-}
-
-/**
- * Type guard to check if an object can be used to construct an AdhocMetric.
- * Returns true for plain objects that have metric-like properties.
- */
-export function isDictionaryForAdhocMetric(
-  value: unknown,
-): value is AdhocMetricInput {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    !(value instanceof AdhocMetric) &&
-    ('expressionType' in value ||
-      'column' in value ||
-      'aggregate' in value ||
-      'sqlExpression' in value ||
-      'metric_name' in value)
-  );
-}
-
 export default class AdhocMetric {
   expressionType: string;
   column?: ColumnType | null;
@@ -223,4 +196,31 @@ export default class AdhocMetric {
   inferSqlExpressionColumn(): string | null {
     return inferSqlExpressionColumn(this as unknown as AdhocMetricInput);
   }
+}
+
+/**
+ * Type guard to check if an object can be used to construct an AdhocMetric.
+ * Returns true for plain objects that have metric-like properties.
+ */
+export function isDictionaryForAdhocMetric(
+  value: unknown,
+): value is AdhocMetricInput {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !(value instanceof AdhocMetric) &&
+    ('expressionType' in value ||
+      'column' in value ||
+      'aggregate' in value ||
+      'sqlExpression' in value ||
+      'metric_name' in value)
+  );
+}
+
+/**
+ * Adapter function to create an AdhocMetric instance from a core AdhocMetric type.
+ * This bridges the type gap between @superset-ui/core's AdhocMetric and the local class.
+ */
+export function fromCoreAdhocMetric(metric: CoreAdhocMetric): AdhocMetric {
+  return new AdhocMetric(metric as AdhocMetricInput);
 }

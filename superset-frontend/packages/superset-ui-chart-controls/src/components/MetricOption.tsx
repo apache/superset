@@ -19,7 +19,7 @@
 import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
 
 import { Metric } from '@superset-ui/core';
-import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import {
   SafeMarkdown,
   Typography,
@@ -95,7 +95,7 @@ export function MetricOption({
 
   return (
     <FlexRowContainer className="metric-option">
-      {showType && <ColumnTypeLabel type="expression" />}
+      {showType && <ColumnTypeLabel type="metric" />}
       {shouldShowTooltip ? (
         <Tooltip id="metric-name-tooltip" title={tooltipText}>
           {label}

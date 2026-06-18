@@ -109,21 +109,20 @@ export const fastRender = (renderProps: DatasourceEditorProps) =>
  * Mocks the 3 endpoints called on component mount to prevent test hangs and async warnings.
  */
 export const setupDatasourceEditorMocks = () => {
-  fetchMock.get(
-    url => url.includes('/api/v1/chart/'),
-    { result: [], count: 0, ids: [] },
-    { overwriteRoutes: true },
-  );
-  fetchMock.get(
-    url => url.includes('/api/v1/database/'),
-    { result: [], count: 0, ids: [] },
-    { overwriteRoutes: true },
-  );
-  fetchMock.get(
-    url => url.includes('/api/v1/dataset/related/owners'),
-    { result: [], count: 0 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(call => call.url.includes('/api/v1/chart/'), {
+    result: [],
+    count: 0,
+    ids: [],
+  });
+  fetchMock.get(call => call.url.includes('/api/v1/database/'), {
+    result: [],
+    count: 0,
+    ids: [],
+  });
+  fetchMock.get(call => call.url.includes('/api/v1/dataset/related/owners'), {
+    result: [],
+    count: 0,
+  });
 };
 
 /**

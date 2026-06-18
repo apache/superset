@@ -30,11 +30,11 @@ const defaultProps = {
 const setup = (props: CacheLabelProps) => <CachedLabel {...props} />;
 
 describe('CachedLabel', () => {
-  it('is valid', () => {
+  test('is valid', () => {
     expect(isValidElement(<CachedLabel {...defaultProps} />)).toBe(true);
   });
 
-  it('renders', () => {
+  test('renders', () => {
     render(setup(defaultProps));
 
     const label = screen.getByText(/cached/i);

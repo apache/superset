@@ -68,6 +68,7 @@ from superset.daos.datasource import DatasourceDAO
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.exceptions import (
     CacheLoadError,
+    SupersetErrorException,
     SupersetException,
     SupersetSecurityException,
 )
@@ -86,6 +87,7 @@ from superset.utils import core as utils, json
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
     DatasourceType,
+    GenericDataType,
     get_user_id,
     ReservedUrlParameters,
 )
@@ -99,6 +101,7 @@ from superset.views.base import (
     generate_download_headers,
     json_error_response,
     json_success,
+    XlsxResponse,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.utils import (
@@ -168,17 +171,16 @@ class Superset(BaseSupersetView):
         payload = viz_obj.get_df_payload()
         if viz_obj.has_error(payload):
             return json_error_response(payload=payload, status=400)
-        return self.json_response(
-            {
-                "data": payload["df"].to_dict("records")
-                if payload["df"] is not None
-                else [],
-                "colnames": payload.get("colnames"),
-                "coltypes": payload.get("coltypes"),
-                "rowcount": payload.get("rowcount"),
-                "sql_rowcount": payload.get("sql_rowcount"),
-            },
-        )
+        response = {
+            "data": payload["df"].to_dict("records")
+            if payload["df"] is not None
+            else [],
+            "colnames": payload.get("colnames"),
+            "coltypes": payload.get("coltypes"),
+            "rowcount": payload.get("rowcount"),
+            "sql_rowcount": payload.get("sql_rowcount"),
+        }
+        return self.json_response(response)
 
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
         return self.json_response(viz_obj.get_samples())
@@ -195,6 +197,9 @@ class Superset(BaseSupersetView):
                 viz_obj.get_csv(), headers=generate_download_headers("csv")
             )
 
+        if response_type == ChartDataResultFormat.XLSX:
+            return self._generate_xlsx(viz_obj)
+
         if response_type == ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
 
@@ -206,6 +211,24 @@ class Superset(BaseSupersetView):
 
         payload = viz_obj.get_payload()
         return self.send_data_payload_response(viz_obj, payload)
+
+    @staticmethod
+    def _generate_xlsx(viz_obj: BaseViz) -> FlaskResponse:
+        import pandas as pd
+
+        from superset.utils.excel import apply_column_types, df_to_excel
+
+        payload = viz_obj.get_df_payload()
+        df = payload.get("df")
+        if df is None:
+            df = pd.DataFrame()
+            coltypes: list[GenericDataType] = []
+        else:
+            coltypes = payload.get("coltypes") or []
+            if coltypes:
+                df = apply_column_types(df, coltypes)
+        xlsx_data = df_to_excel(df, index=False)
+        return XlsxResponse(xlsx_data, headers=generate_download_headers("xlsx"))
 
     @event_logger.log_this
     @api
@@ -244,6 +267,10 @@ class Superset(BaseSupersetView):
             )
 
             return self.generate_json(viz_obj, response_type)
+        except SupersetErrorException:
+            # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+            # so the global Flask error handler serializes them.
+            raise
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
@@ -268,7 +295,7 @@ class Superset(BaseSupersetView):
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
     @deprecated(eol_version="5.0.0")
-    def explore_json(
+    def explore_json(  # noqa: C901
         self, datasource_type: str | None = None, datasource_id: int | None = None
     ) -> FlaskResponse:
         """Serves all request that GET or POST form_data
@@ -291,15 +318,20 @@ class Superset(BaseSupersetView):
                 response_type = response_option
                 break
 
-        # Verify user has permission to export CSV file
-        if (
-            response_type == ChartDataResultFormat.CSV
-            and not security_manager.can_access("can_csv", "Superset")
+        # Verify user has permission to export data files
+        if response_type in (
+            ChartDataResultFormat.CSV,
+            ChartDataResultFormat.XLSX,
         ):
-            return json_error_response(
-                _("You don't have the rights to download as csv"),
-                status=403,
-            )
+            if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+                can_export = security_manager.can_access("can_export_data", "Superset")
+            else:
+                can_export = security_manager.can_access("can_csv", "Superset")
+            if not can_export:
+                return json_error_response(
+                    _("You don't have the rights to export data"),
+                    status=403,
+                )
 
         form_data = get_form_data()[0]
         try:
@@ -350,6 +382,10 @@ class Superset(BaseSupersetView):
             )
 
             return self.generate_json(viz_obj, response_type)
+        except SupersetErrorException:
+            # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+            # so the global Flask error handler serializes them.
+            raise
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
@@ -490,7 +526,12 @@ class Superset(BaseSupersetView):
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
         slice_overwrite_perm = security_manager.is_owner(slc) if slc else False
-        slice_download_perm = security_manager.can_access("can_csv", "Superset")
+        if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+            slice_download_perm = security_manager.can_access(
+                "can_export_data", "Superset"
+            )
+        else:
+            slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
 
@@ -823,12 +864,11 @@ class Superset(BaseSupersetView):
         )
         if url_params := state.get("urlParams"):
             for param_key, param_val in url_params:
-                if param_key == "native_filters":
-                    # native_filters doesnt need to be encoded here
-                    url = f"{url}&native_filters={param_val}"
-                else:
-                    params = parse.urlencode([(param_key, param_val)])
-                    url = f"{url}&{params}"
+                # URL-encode every param value (including native_filters) so a
+                # value containing '&'/'#'/'=' cannot inject extra parameters
+                # into the redirect target. Flask decodes the value back on read.
+                params = parse.urlencode([(param_key, param_val)])
+                url = f"{url}&{params}"
         if original_params := request.query_string.decode():
             url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
@@ -900,6 +940,21 @@ class Superset(BaseSupersetView):
             .scalar()
         ):
             return self.dashboard(dashboard_id_or_slug=str(welcome_dashboard_id))
+
+        payload = {
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "common": common_bootstrap_payload(),
+        }
+
+        return self.render_app_template(extra_bootstrap_data=payload)
+
+    @has_access
+    @event_logger.log_this
+    @expose("/file-handler")
+    def file_handler(self) -> FlaskResponse:
+        """File handler page for PWA file handling"""
+        if not g.user or not get_user_id():
+            return redirect_to_login()
 
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),

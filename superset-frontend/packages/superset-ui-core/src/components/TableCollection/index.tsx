@@ -25,12 +25,12 @@ import {
   TableBodyPropGetter,
   TablePropGetter,
 } from 'react-table';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Table, TableSize } from '@superset-ui/core/components/Table';
 import { TableRowSelection, SorterResult } from 'antd/es/table/interface';
 import { mapColumns, mapRows } from './utils';
 
-interface TableCollectionProps<T extends object> {
+export interface TableCollectionProps<T extends object> {
   getTableProps: TablePropGetter<T>;
   getTableBodyProps: TableBodyPropGetter<T>;
   prepareRow: (row: Row<T>) => void;
@@ -53,6 +53,7 @@ interface TableCollectionProps<T extends object> {
   onPageChange?: (page: number, pageSize: number) => void;
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
+  expandable?: Record<string, unknown>;
 }
 
 const StyledTable = styled(Table)<{
@@ -177,6 +178,7 @@ function TableCollection<T extends object>({
   onPageChange,
   isPaginationSticky = false,
   showRowCount = true,
+  expandable,
 }: TableCollectionProps<T>) {
   const mappedColumns = useMemo(
     () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
@@ -196,6 +198,14 @@ function TableCollection<T extends object>({
   const rowSelection: TableRowSelection | undefined = useMemo(() => {
     if (!bulkSelectEnabled) return undefined;
 
+    // antd Table's `rowSelection` API renders its own checkbox column.
+    // The select-all `data-test` lives on the `<th>` via `header.cell`
+    // below (keyed on antd's `ant-table-selection-column` className), NOT
+    // via `columnTitle` — rc-table's MeasureCell renders the column
+    // `title` verbatim inside `<tbody>`, so a `columnTitle` wrapper leaks
+    // any `data-test` attr into the measure row and breaks Playwright
+    // strict-mode selectors. `renderCell` only renders in real body rows,
+    // so wrapping per-row checkboxes there is safe.
     return {
       selectedRowKeys,
       onSelect: (record, selected) => {
@@ -204,6 +214,9 @@ function TableCollection<T extends object>({
       onSelectAll: (selected: boolean) => {
         toggleAllRowsSelected?.(selected);
       },
+      renderCell: (_value, _record, _index, originNode) => (
+        <span data-test="row-select-checkbox">{originNode}</span>
+      ),
     };
   }, [
     bulkSelectEnabled,
@@ -304,11 +317,21 @@ function TableCollection<T extends object>({
       isPaginationSticky={isPaginationSticky}
       showRowCount={showRowCount}
       rowClassName={getRowClassName}
+      expandable={expandable}
       components={{
         header: {
-          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
-            <th {...props} data-test="sort-header" role="columnheader" />
-          ),
+          cell: (props: HTMLAttributes<HTMLTableCellElement>) => {
+            const isSelectionColumn =
+              props.className?.includes('ant-table-selection-column') ?? false;
+            return (
+              <th
+                {...props}
+                data-test={
+                  isSelectionColumn ? 'header-toggle-all' : 'sort-header'
+                }
+              />
+            );
+          },
         },
         body: {
           row: (props: HTMLAttributes<HTMLTableRowElement>) => (

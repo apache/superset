@@ -18,8 +18,9 @@
  */
 import { useState, useMemo } from 'react';
 import { Button, Row, Col, InputNumber } from '@superset-ui/core/components';
-import { t, validateNumber } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { validateNumber } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import ControlHeader from '../../ControlHeader';
 import ColorPickerControl from '../ColorPickerControl';
 import {

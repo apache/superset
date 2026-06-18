@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import rison from 'rison';
-import contentDisposition from 'content-disposition';
-import { ensureAppRoot } from './pathUtils';
+import { parse as parseContentDisposition } from 'content-disposition';
 
 // Maximum blob size for in-memory downloads (100MB)
 const MAX_BLOB_SIZE = 100 * 1024 * 1024;
@@ -49,9 +49,7 @@ export default async function handleResourceExport(
   ids: number[],
   done: () => void,
 ): Promise<void> {
-  const endpoint = ensureAppRoot(
-    `/api/v1/${resource}/export/?q=${rison.encode(ids)}`,
-  );
+  const endpoint = `/api/v1/${resource}/export/?q=${rison.encode(ids)}`;
 
   try {
     // Use fetch with blob response instead of iframe to avoid CSP frame-src violations
@@ -77,7 +75,7 @@ export default async function handleResourceExport(
 
     if (disposition) {
       try {
-        const parsed = contentDisposition.parse(disposition);
+        const parsed = parseContentDisposition(disposition);
         if (parsed?.parameters?.filename) {
           fileName = parsed.parameters.filename;
         }

@@ -19,19 +19,14 @@
  */
 
 import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import {
-  DatasourceType,
-  SupersetClient,
-  t,
-  Datasource,
-} from '@superset-ui/core';
+import { DatasourceType, SupersetClient, Datasource } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   css,
   styled,
   withTheme,
   type SupersetTheme,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import {
@@ -45,11 +40,13 @@ import {
   DatasourceModal,
   ErrorAlert,
 } from 'src/components';
+import SemanticViewEditModal from 'src/features/semanticViews/SemanticViewEditModal';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 import {
   userHasPermission,
   isUserAdmin,
@@ -73,6 +70,7 @@ interface ExtendedDatasource extends Datasource {
   }>;
   extra?: string;
   health_check_message?: string;
+  cache_timeout?: number | null;
   database?: {
     id: number;
     database_name: string;
@@ -96,7 +94,7 @@ interface FormData {
   [key: string]: unknown;
 }
 
-interface DatasourceControlProps {
+export interface DatasourceControlProps {
   actions: DatasourceControlActions;
   onChange?: () => void;
   value?: string | null;
@@ -122,25 +120,6 @@ interface DatasourceControlState {
   showSaveDatasetModal: boolean;
   showDatasource?: boolean;
 }
-
-const propTypes = {
-  actions: PropTypes.object.isRequired,
-  onChange: PropTypes.func,
-  value: PropTypes.string,
-  datasource: PropTypes.object.isRequired,
-  form_data: PropTypes.object.isRequired,
-  isEditable: PropTypes.bool,
-  onDatasourceSave: PropTypes.func,
-  user: PropTypes.object.isRequired,
-  // ControlHeader-related props
-  hovered: PropTypes.bool,
-  type: PropTypes.string,
-  label: PropTypes.string,
-  default: PropTypes.any,
-  description: PropTypes.string,
-  validationErrors: PropTypes.array,
-  name: PropTypes.string,
-};
 
 const defaultProps = {
   onChange: () => {},
@@ -262,8 +241,6 @@ class DatasourceControl extends PureComponent<
   DatasourceControlProps,
   DatasourceControlState
 > {
-  static propTypes = propTypes;
-
   static defaultProps = defaultProps;
 
   constructor(props: DatasourceControlProps) {
@@ -401,7 +378,7 @@ class DatasourceControl extends PureComponent<
 
     const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');
 
-    const editText = t('Edit dataset');
+    const editText = t('Edit %s', datasetLabelLower());
     const requestedQuery = {
       datasourceKey: `${datasource.id}__${datasource.type}`,
       sql: datasource.sql,
@@ -413,7 +390,9 @@ class DatasourceControl extends PureComponent<
         label: !allowEdit ? (
           <Tooltip
             title={t(
-              'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
+              'You must be a %s owner in order to edit. Please reach out to a %s owner to request modifications or edit access.',
+              datasetLabelLower(),
+              datasetLabelLower(),
             )}
           >
             {editText}
@@ -428,7 +407,7 @@ class DatasourceControl extends PureComponent<
 
     defaultDatasourceMenuItems.push({
       key: CHANGE_DATASET,
-      label: t('Swap dataset'),
+      label: t('Swap %s', datasetLabelLower()),
     });
 
     if (!isMissingDatasource && canAccessSqlLab) {
@@ -507,7 +486,7 @@ class DatasourceControl extends PureComponent<
 
     queryDatasourceMenuItems.push({
       key: SAVE_AS_DATASET,
-      label: <span>{t('Save as dataset')}</span>,
+      label: <span>{t('Save as %s', datasetLabelLower())}</span>,
     });
 
     const queryDatasourceMenu = (
@@ -521,7 +500,7 @@ class DatasourceControl extends PureComponent<
 
     const titleText =
       isMissingDatasource && !datasource.name
-        ? t('Missing dataset')
+        ? t('Missing %s', datasetLabelLower())
         : getDatasourceTitle(datasource);
 
     const tooltip = titleText;
@@ -587,14 +566,15 @@ class DatasourceControl extends PureComponent<
             ) : (
               <ErrorAlert
                 type="warning"
-                message={t('Missing dataset')}
+                message={t('Missing %s', datasetLabelLower())}
                 descriptionPre={false}
                 descriptionDetailsCollapsed={false}
                 descriptionDetails={
                   <>
                     <p>
                       {t(
-                        'The dataset linked to this chart may have been deleted.',
+                        'The %s linked to this chart may have been deleted.',
+                        datasetLabelLower(),
                       )}
                     </p>
                     <p>
@@ -604,7 +584,7 @@ class DatasourceControl extends PureComponent<
                           this.handleMenuItemClick({ key: CHANGE_DATASET })
                         }
                       >
-                        {t('Swap dataset')}
+                        {t('Swap %s', datasetLabelLower())}
                       </Button>
                     </p>
                   </>
@@ -613,14 +593,27 @@ class DatasourceControl extends PureComponent<
             )}
           </div>
         )}
-        {showEditDatasourceModal && (
-          <DatasourceModal
-            datasource={datasource}
-            show={showEditDatasourceModal}
-            onDatasourceSave={this.onDatasourceSave}
-            onHide={this.toggleEditDatasourceModal}
-          />
-        )}
+        {showEditDatasourceModal &&
+          (String(datasource.type) === 'semantic_view' ? (
+            <SemanticViewEditModal
+              show={showEditDatasourceModal}
+              onHide={this.toggleEditDatasourceModal}
+              onSave={() => this.onDatasourceSave(datasource)}
+              semanticView={{
+                id: datasource.id,
+                table_name: datasource.name,
+                description: datasource.description,
+                cache_timeout: datasource.cache_timeout,
+              }}
+            />
+          ) : (
+            <DatasourceModal
+              datasource={datasource}
+              show={showEditDatasourceModal}
+              onDatasourceSave={this.onDatasourceSave}
+              onHide={this.toggleEditDatasourceModal}
+            />
+          ))}
         {showChangeDatasourceModal && (
           <ChangeDatasourceModal
             onDatasourceSave={this.onDatasourceSave}

@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import {
   FormLabel,
   LabeledErrorBoundInput as ValidatedInput,
@@ -25,7 +25,7 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
-import { CatalogObject, FieldPropTypes } from '../../types';
+import { CatalogObject, Engines, FieldPropTypes } from '../../types';
 
 export const TableCatalog = ({
   required,
@@ -33,9 +33,11 @@ export const TableCatalog = ({
   getValidation,
   validationErrors,
   db,
+  isPublic = true,
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
   const catalogError = validationErrors || {};
+  const showCredentialsHelper = db?.engine !== Engines.GSheet || !isPublic;
   return (
     <StyledCatalogTable>
       <Typography.Title level={4} className="gsheet-title">
@@ -109,13 +111,15 @@ export const TableCatalog = ({
           + {t('Add sheet')}
         </StyledFooterButton>
       </div>
-      <div className="helper">
-        <div>
-          {t(
-            'In order to connect to non-public sheets you need to either provide a service account or configure an OAuth2 client.',
-          )}
+      {showCredentialsHelper && (
+        <div className="helper">
+          <div>
+            {t(
+              'In order to connect to non-public sheets you need to either provide a service account or configure an OAuth2 client.',
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </StyledCatalogTable>
   );
 };

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { JsonObject, StrictJsonValue } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { ControlFormItemSpec } from '@superset-ui/chart-controls';
 import {
   SHARED_COLUMN_CONFIG_PROPS,

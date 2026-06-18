@@ -25,12 +25,12 @@ import {
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps,
 } from '../../../src/Timeseries/types';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
 } from '@superset-ui/chart-controls';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 
 describe('Scatter Chart X-axis Time Formatting', () => {
   const baseFormData: EchartsTimeseriesFormData = {
@@ -70,14 +70,13 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     });
 
     const transformedProps = transformProps(
-      // @ts-ignore
       chartProps as EchartsTimeseriesChartProps,
     );
 
     expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
     const xAxis = transformedProps.echartOptions.xAxis as any;
     expect(xAxis.axisLabel).toHaveProperty('formatter');
-    expect(xAxis.axisLabel.formatter).toBeUndefined();
+    expect(typeof xAxis.axisLabel.formatter).toBe('function');
   });
 
   test.each(D3_TIME_FORMAT_OPTIONS.map(([id]) => id))(
@@ -92,16 +91,13 @@ describe('Scatter Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(
-        // @ts-ignore
         chartProps as EchartsTimeseriesChartProps,
       );
 
       const xAxis = transformedProps.echartOptions.xAxis as any;
       expect(xAxis.axisLabel).toHaveProperty('formatter');
-      if (format === SMART_DATE_ID) {
-        expect(xAxis.axisLabel.formatter).toBeUndefined();
-      } else {
-        expect(typeof xAxis.axisLabel.formatter).toBe('function');
+      expect(typeof xAxis.axisLabel.formatter).toBe('function');
+      if (format !== SMART_DATE_ID) {
         expect(xAxis.axisLabel.formatter.id).toBe(format);
       }
     },
@@ -146,7 +142,6 @@ describe('Scatter Chart X-axis Number Formatting', () => {
     });
 
     const transformedProps = transformProps(
-      // @ts-ignore
       chartProps as EchartsTimeseriesChartProps,
     );
 
@@ -169,7 +164,6 @@ describe('Scatter Chart X-axis Number Formatting', () => {
       });
 
       const transformedProps = transformProps(
-        // @ts-ignore
         chartProps as EchartsTimeseriesChartProps,
       );
 

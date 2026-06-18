@@ -37,7 +37,11 @@ from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.constants import (
+    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
+    CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
+    CHANGE_ME_SECRET_KEY,
+)
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
@@ -59,7 +63,9 @@ from superset.extensions import (
     stats_logger_manager,
     talisman,
 )
+from superset.extensions.context import extension_context
 from superset.security import SupersetSecurityManager
+from superset.semantic_layers.labels import database_connections_menu_label
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import is_test, pessimistic_connection_handling
@@ -206,6 +212,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.groups import GroupsListView
         from superset.views.log.api import LogRestApi
         from superset.views.logs import ActionLogView
+        from superset.views.redirect import RedirectView
         from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
             SavedQueryView,
@@ -218,6 +225,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
+        from superset.views.tasks import TaskModelView
         from superset.views.themes import ThemeModelView
         from superset.views.user_info import UserInfoView
         from superset.views.user_registrations import UserRegistrationsView
@@ -265,6 +273,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        if feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"):
+            from superset.semantic_layers.api import (
+                SemanticLayerRestApi,
+                SemanticViewRestApi,
+            )
+
+            appbuilder.add_api(SemanticLayerRestApi)
+            appbuilder.add_api(SemanticViewRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
@@ -275,10 +291,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             appbuilder.add_api(ExtensionsRestApi)
 
+        if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+            from superset.tasks.api import TaskRestApi
+
+            appbuilder.add_api(TaskRestApi)
+
         #
         # Setup regular views
         #
-        app_root = appbuilder.app.config["APPLICATION_ROOT"]
+        app_root = current_app.config["APPLICATION_ROOT"]
         if app_root.endswith("/"):
             app_root = app_root.rstrip("/")
 
@@ -292,7 +313,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             DatabaseView,
             "Databases",
-            label=_("Database Connections"),
+            label=database_connections_menu_label(),
             icon="fa-database",
             category="Data",
             category_label=_("Data"),
@@ -330,7 +351,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -340,7 +361,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=_("User Registrations"),
             category="Security",
             category_label=_("Security"),
-            menu_cond=lambda: bool(appbuilder.app.config["AUTH_USER_REGISTRATION"]),
+            menu_cond=lambda: bool(current_app.config["AUTH_USER_REGISTRATION"]),
         )
 
         appbuilder.add_view(
@@ -350,7 +371,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -361,7 +382,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -408,6 +429,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
 
+        appbuilder.add_view(
+            TaskModelView,
+            "Tasks",
+            label=_("Tasks"),
+            icon="fa-clock-o",
+            category="Manage",
+            category_label=_("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "GLOBAL_TASK_FRAMEWORK"
+            ),
+        )
+
         #
         # Setup views with no menu
         #
@@ -427,6 +460,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
+        appbuilder.add_view_no_menu(RedirectView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
 
@@ -562,17 +596,21 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         for extension in extensions.values():
             if backend_files := extension.backend:
-                install_in_memory_importer(backend_files)
+                install_in_memory_importer(
+                    backend_files,
+                    source_base_path=extension.source_base_path,
+                )
 
             backend = extension.manifest.backend
 
-            if backend and (entrypoints := backend.entryPoints):
-                for entrypoint in entrypoints:
-                    try:
-                        eager_import(entrypoint)
-                    except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
-                        # Surface exceptions during initialization of extensions
-                        print(ex)
+            if backend and backend.entrypoint:
+                try:
+                    with extension_context(extension.manifest):
+                        eager_import(backend.entrypoint)
+
+                except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
+                    # Surface exceptions during initialization of extensions
+                    print(ex)
 
     def init_app_in_ctx(self) -> None:
         """
@@ -585,6 +623,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_async_queries()
         self.configure_ssh_manager()
         self.configure_stats_manager()
+        self.configure_task_manager()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -599,12 +638,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.init_all_dependencies_and_extensions()
 
+    @staticmethod
+    def _log_config_warning(message: str) -> None:
+        top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
+        bottom_banner = 80 * "-" + "\n" + 80 * "-"
+        logger.warning(top_banner)
+        logger.warning(message)
+        logger.warning(bottom_banner)
+
     def check_secret_key(self) -> None:
-        def log_default_secret_key_warning() -> None:
-            top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
-            bottom_banner = 80 * "-" + "\n" + 80 * "-"
-            logger.warning(top_banner)
-            logger.warning(
+        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+            warning = (
                 "A Default SECRET_KEY was detected, please use superset_config.py "
                 "to override it.\n"
                 "Use a strong complex alphanumeric string and use a tool to help"
@@ -613,20 +657,69 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "For more info, see: https://superset.apache.org/docs/"
                 "configuration/configuring-superset#specifying-a-secret_key"
             )
-            logger.warning(bottom_banner)
-
-        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
             if (
                 self.superset_app.debug
                 or self.superset_app.config["TESTING"]
                 or is_test()
             ):
                 logger.warning("Debug mode identified with default secret key")
-                log_default_secret_key_warning()
+                self._log_config_warning(warning)
                 return
-            log_default_secret_key_warning()
+            self._log_config_warning(warning)
             logger.error("Refusing to start due to insecure SECRET_KEY")
             sys.exit(1)
+
+    def check_guest_token_secret(self) -> None:
+        """Refuse to start with default guest JWT secret when embedding is enabled."""
+        if not feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
+            return
+        if (
+            self.config.get("GUEST_TOKEN_JWT_SECRET")
+            != CHANGE_ME_GUEST_TOKEN_JWT_SECRET
+        ):
+            return
+        self._log_config_warning(
+            "EMBEDDED_SUPERSET is enabled but GUEST_TOKEN_JWT_SECRET has not "
+            "been changed from its default value.\n"
+            "The default value is publicly known and must be replaced before "
+            "running in production.\n"
+            "Set a strong random value in superset_config.py:\n"
+            "  GUEST_TOKEN_JWT_SECRET = "
+            "'<output of: openssl rand -base64 42>'"
+        )
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            return
+        logger.error(
+            "Refusing to start: insecure GUEST_TOKEN_JWT_SECRET "
+            "with EMBEDDED_SUPERSET enabled"
+        )
+        sys.exit(1)
+
+    def check_async_query_secret(self) -> None:
+        """Refuse to start with the default async JWT secret when GAQ is enabled."""
+        if not feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            return
+        if (
+            self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
+            != CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+        ):
+            return
+        self._log_config_warning(
+            "GLOBAL_ASYNC_QUERIES is enabled but GLOBAL_ASYNC_QUERIES_JWT_SECRET "
+            "has not been changed from its default value.\n"
+            "The default value is publicly known and must be replaced before "
+            "running in production.\n"
+            "Set a strong random value (at least 32 bytes) in superset_config.py:\n"
+            "  GLOBAL_ASYNC_QUERIES_JWT_SECRET = "
+            "'<output of: openssl rand -base64 42>'"
+        )
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            return
+        logger.error(
+            "Refusing to start: insecure GLOBAL_ASYNC_QUERIES_JWT_SECRET "
+            "with GLOBAL_ASYNC_QUERIES enabled"
+        )
+        sys.exit(1)
 
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
@@ -634,7 +727,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def register_request_handlers(self) -> None:
         """Register app-level request handlers"""
-        from flask import Response
+        from flask import request, Response
+
+        from superset.security.password_change import (
+            register_password_change_enforcement,
+        )
+
+        # Redirect users with a pending forced password change to the reset
+        # page (no-op unless ENABLE_FORCE_PASSWORD_CHANGE is enabled).
+        register_password_change_enforcement(self.superset_app)
 
         @self.superset_app.after_request
         def apply_http_headers(response: Response) -> Response:
@@ -650,6 +751,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             for k, v in self.superset_app.config["DEFAULT_HTTP_HEADERS"].items():
                 if k not in response.headers:
                     response.headers[k] = v
+
+            # Allow service worker to control the root scope for PWA file handling
+            if (
+                request.path.endswith("service-worker.js")
+                and "Service-Worker-Allowed" not in response.headers
+            ):
+                response.headers["Service-Worker-Allowed"] = "/"
+
             return response
 
         @self.superset_app.after_request
@@ -662,6 +771,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
                 gc.collect()
             return response
+
+        @self.superset_app.before_request
+        def enforce_session_validity() -> Any:
+            """Force logout of sessions invalidated by a per-user epoch."""
+            from superset.security.session_invalidation import (
+                enforce_session_validity as _enforce,
+            )
+
+            return _enforce()
+
+        # Stamp the per-user invalidation epoch when an account is disabled,
+        # so outstanding sessions are terminated on their next request.
+        from superset.security.session_invalidation import (
+            register_session_invalidation_events,
+        )
+
+        register_session_invalidation_events(appbuilder.sm.user_model)
 
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
@@ -704,6 +830,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Configuration of feature_flags must be done first to allow init features
         # conditionally
         self.configure_feature_flags()
+        self.check_guest_token_secret()
+        self.check_async_query_secret()
         self.configure_db_encrypt()
         self.setup_db()
 
@@ -724,6 +852,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         with self.superset_app.app_context():
             self.init_app_in_ctx()
 
+        # Registered outside ``init_app_in_ctx`` because the SQLAlchemy
+        # event hook attaches to the ``Session`` *class* (a process-wide
+        # global), not to a Session instance — it has no dependency on
+        # the Flask app context. ``setup_db()`` ran earlier in
+        # ``init_app``, so the ``Session`` import has already been
+        # initialised by the time we get here.
+        self.setup_soft_delete_listener()
         self.post_init()
 
     def set_db_default_isolation(self) -> None:
@@ -906,6 +1041,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         migrate.init_app(self.superset_app, db=db, directory=APP_DIR + "/migrations")
 
+    def setup_soft_delete_listener(self) -> None:
+        """Register the global soft-delete filter on the SQLAlchemy Session.
+
+        Must be called after ``setup_db()`` so the Session class is
+        available. Uses the ``do_orm_execute`` + ``with_loader_criteria``
+        pattern recommended by SQLAlchemy maintainer Mike Bayer for
+        soft deletion in SQLAlchemy 1.4+:
+        https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295
+        """
+        from sqlalchemy import event
+        from sqlalchemy.orm import Session
+
+        from superset.models.helpers import _add_soft_delete_filter
+
+        if not event.contains(Session, "do_orm_execute", _add_soft_delete_filter):
+            event.listen(Session, "do_orm_execute", _add_soft_delete_filter)
+
     def configure_wtf(self) -> None:
         if self.config["WTF_CSRF_ENABLED"]:
             csrf.init_app(self.superset_app)
@@ -915,7 +1067,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            # In production, check_async_query_secret() already aborts startup when
+            # the default secret is present, so this branch is never reached with it.
+            # In debug/testing the check only warns, so skip async-query init here to
+            # avoid AsyncQueryManager.init_app() hard-failing on the too-short default
+            # secret and crashing startup despite the warn-only intent.
+            if (
+                self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
+                == CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+            ):
+                return
             async_query_manager_factory.init_app(self.superset_app)
+
+    def configure_task_manager(self) -> None:
+        """Initialize the TaskManager for GTF realtime notifications."""
+        if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+            from superset.tasks.manager import TaskManager
+
+            TaskManager.init_app(self.superset_app)
 
     def register_blueprints(self) -> None:
         # Register custom blueprints from config

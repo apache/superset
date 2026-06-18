@@ -18,9 +18,11 @@
  */
 /* eslint-disable camelcase */
 import { PureComponent, createRef } from 'react';
-import PropTypes from 'prop-types';
-import { isDefined, t, ensureIsArray, DatasourceType } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { useSelector } from 'react-redux';
+import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import type { editors } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Button,
@@ -32,14 +34,11 @@ import {
   Tooltip,
 } from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
-import { noOp } from 'src/utils/common';
 import {
   AGGREGATES_OPTIONS,
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
-import columnType from 'src/explore/components/controls/MetricControl/columnType';
-import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric, {
   EXPRESSION_TYPES,
 } from 'src/explore/components/controls/MetricControl/AdhocMetric';
@@ -95,6 +94,8 @@ interface AdhocMetricEditPopoverProps {
   datasource?: DatasourceInfo;
   isNewMetric?: boolean;
   isLabelModified?: boolean;
+  /** Names of metrics the user may select; null means no filtering. */
+  compatibleMetrics?: string[] | null;
 }
 
 interface AdhocMetricEditPopoverState {
@@ -103,27 +104,6 @@ interface AdhocMetricEditPopoverState {
   width: number;
   height: number;
 }
-
-const propTypes = {
-  onChange: PropTypes.func.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onResize: PropTypes.func.isRequired,
-  getCurrentTab: PropTypes.func,
-  getCurrentLabel: PropTypes.func,
-  adhocMetric: PropTypes.instanceOf(AdhocMetric).isRequired,
-  columns: PropTypes.arrayOf(columnType),
-  savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
-  savedMetric: savedMetricType,
-  datasource: PropTypes.object,
-  isNewMetric: PropTypes.bool,
-  isLabelModified: PropTypes.bool,
-};
-
-const defaultProps = {
-  columns: [],
-  getCurrentTab: noOp,
-  isNewMetric: false,
-};
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -139,14 +119,14 @@ const StyledSelect = styled(Select)`
 
 export const SAVED_TAB_KEY = 'SAVED';
 
-export default class AdhocMetricEditPopover extends PureComponent<
+class AdhocMetricEditPopover extends PureComponent<
   AdhocMetricEditPopoverProps,
   AdhocMetricEditPopoverState
 > {
   // "Saved" is a default tab unless there are no saved metrics for dataset
   defaultActiveTabKey = this.getDefaultTab();
 
-  aceEditorRef: RefObject<HTMLDivElement>;
+  editorRef: RefObject<editors.EditorHandle>;
 
   dragStartX = 0;
 
@@ -168,8 +148,8 @@ export default class AdhocMetricEditPopover extends PureComponent<
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
     this.onTabChange = this.onTabChange.bind(this);
-    this.aceEditorRef = createRef();
-    this.refreshAceEditor = this.refreshAceEditor.bind(this);
+    this.editorRef = createRef();
+    this.refreshEditor = this.refreshEditor.bind(this);
     this.getDefaultTab = this.getDefaultTab.bind(this);
 
     this.state = {
@@ -212,8 +192,12 @@ export default class AdhocMetricEditPopover extends PureComponent<
   }
 
   getDefaultTab() {
-    const { adhocMetric, savedMetric, savedMetricsOptions, isNewMetric } =
-      this.props;
+    const {
+      adhocMetric,
+      savedMetric,
+      savedMetricsOptions,
+      isNewMetric = false,
+    } = this.props;
     if (isDefined(adhocMetric.column) || isDefined(adhocMetric.sqlExpression)) {
       return adhocMetric.expressionType;
     }
@@ -329,20 +313,13 @@ export default class AdhocMetricEditPopover extends PureComponent<
   }
 
   onTabChange(tab: string): void {
-    this.refreshAceEditor();
+    this.refreshEditor();
     this.props.getCurrentTab?.(tab);
   }
 
-  refreshAceEditor(): void {
+  refreshEditor(): void {
     setTimeout(() => {
-      if (this.aceEditorRef.current) {
-        // Cast to access ace editor API
-        (
-          this.aceEditorRef.current as unknown as {
-            editor?: { resize?: () => void };
-          }
-        ).editor?.resize?.();
-      }
+      this.editorRef.current?.resize();
     }, 0);
   }
 
@@ -373,7 +350,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
       onClose,
       onResize,
       datasource,
-      isNewMetric,
+      isNewMetric = false,
       isLabelModified,
       ...popoverProps
     } = this.props;
@@ -461,13 +438,25 @@ export default class AdhocMetricEditPopover extends PureComponent<
                 ensureIsArray(savedMetricsOptions).length > 0 ? (
                   <FormItem label={t('Saved metric')}>
                     <StyledSelect
-                      options={ensureIsArray(savedMetricsOptions).map(
-                        savedMetric => ({
+                      options={[...ensureIsArray(savedMetricsOptions)]
+                        .sort((a, b) =>
+                          (a.metric_name ?? '').localeCompare(
+                            b.metric_name ?? '',
+                          ),
+                        )
+                        .map(savedMetric => ({
                           value: savedMetric.metric_name,
                           label: this.renderMetricOption(savedMetric),
                           key: savedMetric.id,
-                        }),
-                      )}
+                          metric_name: savedMetric.metric_name,
+                          verbose_name: savedMetric.verbose_name ?? '',
+                          disabled:
+                            this.props.compatibleMetrics != null &&
+                            !this.props.compatibleMetrics.includes(
+                              savedMetric.metric_name,
+                            ),
+                        }))}
+                      optionFilterProps={['metric_name', 'verbose_name']}
                       {...savedSelectProps}
                     />
                   </FormItem>
@@ -525,7 +514,10 @@ export default class AdhocMetricEditPopover extends PureComponent<
                         value: column.column_name,
                         key: (column as { id?: unknown }).id,
                         label: this.renderColumnOption(column),
+                        column_name: column.column_name,
+                        verbose_name: column.verbose_name ?? '',
                       }))}
+                      optionFilterProps={['column_name', 'verbose_name']}
                       {...columnSelectProps}
                     />
                   </FormItem>
@@ -559,21 +551,17 @@ export default class AdhocMetricEditPopover extends PureComponent<
               children: (
                 <SQLEditorWithValidation
                   data-test="sql-editor"
-                  showLoadingForImport
-                  ref={this.aceEditorRef}
+                  ref={this.editorRef}
                   keywords={keywords}
                   height={`${this.state.height - 120}px`}
                   onChange={this.onSqlExpressionChange}
                   width="100%"
-                  showGutter={false}
+                  lineNumbers={false}
                   value={
                     adhocMetric.sqlExpression ||
                     adhocMetric.translateToSql({ transformCountDistinct: true })
                   }
-                  editorProps={{ $blockScrolling: true }}
-                  enableLiveAutocompletion
-                  className="filter-sql-editor"
-                  wrapEnabled
+                  wordWrap
                   showValidation
                   expressionType="metric"
                   datasourceId={datasource?.id}
@@ -605,7 +593,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
           </Button>
           <Icons.ArrowsAltOutlined
             role="button"
-            aria-label="Resize"
+            aria-label={t('Resize')}
             tabIndex={0}
             onMouseDown={this.onDragDown}
             className="edit-popover-resize"
@@ -615,7 +603,20 @@ export default class AdhocMetricEditPopover extends PureComponent<
     );
   }
 }
-// @ts-expect-error - propTypes are defined for runtime validation but TypeScript handles type checking
-AdhocMetricEditPopover.propTypes = propTypes;
-// @ts-expect-error - defaultProps for backward compatibility with PropTypes
-AdhocMetricEditPopover.defaultProps = defaultProps;
+
+// ---------------------------------------------------------------------------
+// Thin functional wrapper that injects compatibility data from Redux.
+// AdhocMetricEditPopover is a class component and cannot use hooks directly.
+// ---------------------------------------------------------------------------
+function AdhocMetricEditPopoverWithRedux(props: AdhocMetricEditPopoverProps) {
+  const compatibleMetrics = useSelector(
+    (state: any) =>
+      state.explore?.compatibleMetrics as string[] | null | undefined,
+  );
+  return (
+    <AdhocMetricEditPopover {...props} compatibleMetrics={compatibleMetrics} />
+  );
+}
+
+export { AdhocMetricEditPopover };
+export default AdhocMetricEditPopoverWithRedux;

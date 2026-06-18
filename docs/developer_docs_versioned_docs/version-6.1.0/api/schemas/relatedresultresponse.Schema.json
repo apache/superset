@@ -1,0 +1,1 @@
+{"schema":{"properties":{"extra":{"description":"The extra metadata for related item","type":"object"},"text":{"description":"The related item string representation","type":"string"},"value":{"description":"The related item identifier","type":"integer"}},"type":"object","title":"RelatedResultResponse"},"schemaType":"response"}

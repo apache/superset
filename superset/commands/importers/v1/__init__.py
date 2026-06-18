@@ -63,6 +63,9 @@ class ImportModelsCommand(BaseCommand):
         self.ssh_tunnel_priv_key_passwords: dict[str, str] = (
             kwargs.get("ssh_tunnel_priv_key_passwords") or {}
         )
+        self.encrypted_extra_secrets: dict[str, dict[str, str]] = (
+            kwargs.get("encrypted_extra_secrets") or {}
+        )
         self.overwrite: bool = kwargs.get("overwrite", False)
         self._configs: dict[str, Any] = {}
 
@@ -111,6 +114,7 @@ class ImportModelsCommand(BaseCommand):
             self.ssh_tunnel_passwords,
             self.ssh_tunnel_private_keys,
             self.ssh_tunnel_priv_key_passwords,
+            self.encrypted_extra_secrets,
         )
         self._prevent_overwrite_existing_model(exceptions)
 

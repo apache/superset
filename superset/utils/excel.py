@@ -15,11 +15,31 @@
 # specific language governing permissions and limitations
 # under the License.
 import io
+from datetime import datetime
 from typing import Any
 
 import pandas as pd
 
 from superset.utils.core import GenericDataType
+
+# Fixed, neutral timestamp applied to workbook document properties so that
+# exported files do not carry an environment-specific generation time.
+NEUTRAL_TIMESTAMP = datetime(2000, 1, 1)
+
+# Document properties that are reset to empty values on export so that
+# exported workbooks do not carry identifying information.
+NEUTRAL_DOCUMENT_PROPERTIES: dict[str, Any] = {
+    "title": "",
+    "subject": "",
+    "author": "",
+    "manager": "",
+    "company": "",
+    "category": "",
+    "keywords": "",
+    "comments": "",
+    "status": "",
+    "created": NEUTRAL_TIMESTAMP,
+}
 
 
 def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
@@ -50,6 +70,10 @@ def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, **kwargs)
 
+        # Reset workbook document properties so the exported file does not
+        # carry identifying details (authoring info, generation timestamps).
+        writer.book.set_properties(NEUTRAL_DOCUMENT_PROPERTIES)
+
     return output.getvalue()
 
 
@@ -76,7 +100,7 @@ def apply_column_types(
                 )
             except ValueError:
                 df[column] = df[column].astype(str)
-        elif pd.api.types.is_datetime64tz_dtype(df[column]):
+        elif isinstance(df[column].dtype, pd.DatetimeTZDtype):
             # timezones are not supported
             df[column] = df[column].astype(str)
     return df

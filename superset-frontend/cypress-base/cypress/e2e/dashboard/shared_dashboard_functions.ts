@@ -22,6 +22,50 @@ import { interceptCharts, interceptDatasets, interceptGet } from './utils';
 
 export const SAMPLE_CHART = { name: 'Most Populated Countries', viz: 'table' };
 
+/**
+ * Look up a dataset ID by table name
+ */
+export function getDatasetId(tableName: string): Cypress.Chainable<number> {
+  return cy
+    .request({
+      method: 'GET',
+      url: `/api/v1/dataset/?q=${encodeURIComponent(
+        JSON.stringify({
+          filters: [{ col: 'table_name', opr: 'eq', value: tableName }],
+        }),
+      )}`,
+    })
+    .then(response => {
+      const datasets = response.body.result;
+      if (datasets && datasets.length > 0) {
+        return datasets[0].id;
+      }
+      throw new Error(`Dataset with table name "${tableName}" not found`);
+    });
+}
+
+/**
+ * Look up a chart ID by slice name
+ */
+export function getChartId(sliceName: string): Cypress.Chainable<number> {
+  return cy
+    .request({
+      method: 'GET',
+      url: `/api/v1/chart/?q=${encodeURIComponent(
+        JSON.stringify({
+          filters: [{ col: 'slice_name', opr: 'eq', value: sliceName }],
+        }),
+      )}`,
+    })
+    .then(response => {
+      const charts = response.body.result;
+      if (charts && charts.length > 0) {
+        return charts[0].id;
+      }
+      throw new Error(`Chart with slice name "${sliceName}" not found`);
+    });
+}
+
 export function visitDashboard(createSample = true) {
   interceptCharts();
   interceptGet();
@@ -39,112 +83,118 @@ export function visitDashboard(createSample = true) {
 }
 
 export function prepareDashboardFilters(
-  filters: { name: string; column: string; datasetId: number }[],
+  filters: { name: string; column: string; datasetId?: number }[],
 ) {
   cy.createSampleDashboards([0]);
-  cy.request({
-    method: 'GET',
-    url: `api/v1/dashboard/1-sample-dashboard`,
-  }).then(res => {
-    const { body } = res;
-    const dashboardId = body.result.id;
-    const allFilters: Record<string, unknown>[] = [];
-    filters.forEach((f, i) => {
-      allFilters.push({
-        id: `NATIVE_FILTER-fLH0pxFQ${i}`,
-        controlValues: {
-          enableEmptyFilter: false,
-          defaultToFirstItem: false,
-          creatable: true,
-          multiSelect: true,
-          searchAllOptions: false,
-          inverseSelection: false,
-        },
-        name: f.name,
-        filterType: 'filter_select',
-        targets: [
-          {
-            datasetId: f.datasetId,
-            column: { name: f.column },
-          },
-        ],
-        defaultDataMask: {
-          extraFormData: {},
-          filterState: {},
-          ownState: {},
-        },
-        cascadeParentIds: [],
-        scope: {
-          rootPath: ['ROOT_ID'],
-          excluded: [],
-        },
-        type: 'NATIVE_FILTER',
-        description: '',
-        chartsInScope: [5],
-        tabsInScope: [],
+
+  // First, look up the dataset ID and chart ID dynamically
+  getDatasetId('wb_health_population').then(datasetId => {
+    getChartId('Most Populated Countries').then(chartId => {
+      cy.request({
+        method: 'GET',
+        url: `api/v1/dashboard/1-sample-dashboard`,
+      }).then(res => {
+        const { body } = res;
+        const dashboardId = body.result.id;
+        const allFilters: Record<string, unknown>[] = [];
+        filters.forEach((f, i) => {
+          allFilters.push({
+            id: `NATIVE_FILTER-fLH0pxFQ${i}`,
+            controlValues: {
+              enableEmptyFilter: false,
+              defaultToFirstItem: false,
+              creatable: true,
+              multiSelect: true,
+              searchAllOptions: false,
+              inverseSelection: false,
+            },
+            name: f.name,
+            filterType: 'filter_select',
+            targets: [
+              {
+                datasetId: f.datasetId ?? datasetId,
+                column: { name: f.column },
+              },
+            ],
+            defaultDataMask: {
+              extraFormData: {},
+              filterState: {},
+              ownState: {},
+            },
+            cascadeParentIds: [],
+            scope: {
+              rootPath: ['ROOT_ID'],
+              excluded: [],
+            },
+            type: 'NATIVE_FILTER',
+            description: '',
+            chartsInScope: [chartId],
+            tabsInScope: [],
+          });
+        });
+        if (dashboardId) {
+          const jsonMetadata = {
+            native_filter_configuration: allFilters,
+            chart_customization_config: [],
+            timed_refresh_immune_slices: [],
+            expanded_slices: {},
+            refresh_frequency: 0,
+            color_scheme: '',
+            label_colors: {},
+            shared_label_colors: [],
+            color_scheme_domain: [],
+            cross_filters_enabled: false,
+            positions: {
+              DASHBOARD_VERSION_KEY: 'v2',
+              ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
+              GRID_ID: {
+                type: 'GRID',
+                id: 'GRID_ID',
+                children: ['ROW-0rHnUz4nMA'],
+                parents: ['ROOT_ID'],
+              },
+              HEADER_ID: {
+                id: 'HEADER_ID',
+                type: 'HEADER',
+                meta: { text: '1 - Sample dashboard' },
+              },
+              'CHART-DF6EfI55F-': {
+                type: 'CHART',
+                id: 'CHART-DF6EfI55F-',
+                children: [],
+                parents: ['ROOT_ID', 'GRID_ID', 'ROW-0rHnUz4nMA'],
+                meta: {
+                  width: 4,
+                  height: 50,
+                  chartId,
+                  sliceName: 'Most Populated Countries',
+                },
+              },
+              'ROW-0rHnUz4nMA': {
+                type: 'ROW',
+                id: 'ROW-0rHnUz4nMA',
+                children: ['CHART-DF6EfI55F-'],
+                parents: ['ROOT_ID', 'GRID_ID'],
+                meta: { background: 'BACKGROUND_TRANSPARENT' },
+              },
+            },
+            default_filters: '{}',
+            filter_scopes: {},
+            chart_configuration: {},
+          };
+
+          return cy
+            .request({
+              method: 'PUT',
+              url: `api/v1/dashboard/${dashboardId}`,
+              body: {
+                json_metadata: JSON.stringify(jsonMetadata),
+              },
+            })
+            .then(() => visitDashboard(false));
+        }
+        return cy;
       });
     });
-    if (dashboardId) {
-      const jsonMetadata = {
-        native_filter_configuration: allFilters,
-        chart_customization_config: [],
-        timed_refresh_immune_slices: [],
-        expanded_slices: {},
-        refresh_frequency: 0,
-        color_scheme: '',
-        label_colors: {},
-        shared_label_colors: [],
-        color_scheme_domain: [],
-        cross_filters_enabled: false,
-        positions: {
-          DASHBOARD_VERSION_KEY: 'v2',
-          ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-          GRID_ID: {
-            type: 'GRID',
-            id: 'GRID_ID',
-            children: ['ROW-0rHnUz4nMA'],
-            parents: ['ROOT_ID'],
-          },
-          HEADER_ID: {
-            id: 'HEADER_ID',
-            type: 'HEADER',
-            meta: { text: '1 - Sample dashboard' },
-          },
-          'CHART-DF6EfI55F-': {
-            type: 'CHART',
-            id: 'CHART-DF6EfI55F-',
-            children: [],
-            parents: ['ROOT_ID', 'GRID_ID', 'ROW-0rHnUz4nMA'],
-            meta: {
-              width: 4,
-              height: 50,
-              chartId: 5,
-              sliceName: 'Most Populated Countries',
-            },
-          },
-          'ROW-0rHnUz4nMA': {
-            type: 'ROW',
-            id: 'ROW-0rHnUz4nMA',
-            children: ['CHART-DF6EfI55F-'],
-            parents: ['ROOT_ID', 'GRID_ID'],
-            meta: { background: 'BACKGROUND_TRANSPARENT' },
-          },
-        },
-        default_filters: '{}',
-        filter_scopes: {},
-        chart_configuration: {},
-      };
-
-      return cy
-        .request({
-          method: 'PUT',
-          url: `api/v1/dashboard/${dashboardId}`,
-          body: {
-            json_metadata: JSON.stringify(jsonMetadata),
-          },
-        })
-        .then(() => visitDashboard(false));
-    }
-    return cy;
   });
 }

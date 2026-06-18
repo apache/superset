@@ -31,7 +31,7 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Growth Rate', viz: 'echarts_timeseries_line' },
   { name: 'Rural Breakdown', viz: 'sunburst_v2' },
   { name: "World's Pop Growth", viz: 'echarts_area' },
-  { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
+  { name: 'Life Expectancy VS Rural %', viz: 'bubble_v2' },
   { name: 'Treemap', viz: 'treemap_v2' },
   { name: 'Box plot', viz: 'box_plot' },
 ] as ChartSpec[];
@@ -160,18 +160,6 @@ export function interceptLog() {
   cy.intercept('**/superset/log/?explode=events&dashboard_id=*').as('logs');
 }
 
-export function interceptFav() {
-  cy.intercept({ url: `**/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
-    'select',
-  );
-}
-
-export function interceptUnfav() {
-  cy.intercept({ url: `**/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
-    'unselect',
-  );
-}
-
 export function interceptDataset() {
   cy.intercept('GET', `**/api/v1/dataset/*`).as('getDataset');
 }
@@ -237,6 +225,7 @@ export function enterNativeFilterEditModal(waitForDataset = true) {
   cy.get(nativeFilters.filtersPanel.filterGear).click({
     force: true,
   });
+  cy.get('.ant-dropdown-menu').should('be.visible');
   cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click({
     force: true,
   });
@@ -252,7 +241,9 @@ export function enterNativeFilterEditModal(waitForDataset = true) {
  * @summary helper for adding new filter
  ************************************************************************* */
 export function clickOnAddFilterInModal() {
-  return cy.get(nativeFilters.modal.addNewFilterButton).click({ force: true });
+  cy.get('[data-test="new-item-dropdown-button"]').trigger('mouseover');
+  cy.get('.ant-dropdown-menu').should('be.visible');
+  cy.contains('.ant-dropdown-menu-item', 'Add filter').click();
 }
 
 /** ************************************************************************
@@ -459,10 +450,13 @@ export function checkNativeFilterTooltip(index: number, value: string) {
   cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
     .eq(index)
     .trigger('mouseover');
-  cy.contains(`${value}`);
+  cy.contains(`${value}`).should('be.visible');
+  cy.wait(100);
   cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
     .eq(index)
     .trigger('mouseout');
+  cy.get('body').trigger('mousemove', { clientX: 0, clientY: 0 });
+  cy.wait(500);
 }
 
 /** ************************************************************************

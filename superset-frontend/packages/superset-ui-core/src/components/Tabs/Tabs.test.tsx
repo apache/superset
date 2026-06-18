@@ -40,7 +40,7 @@ const defaultItems = [
 
 describe('Tabs', () => {
   describe('Basic Tabs', () => {
-    it('should render tabs with default props', () => {
+    test('should render tabs with default props', () => {
       const { getByText, container } = render(<Tabs items={defaultItems} />);
 
       expect(getByText('Tab 1')).toBeInTheDocument();
@@ -57,7 +57,7 @@ describe('Tabs', () => {
       ).toBeDefined();
     });
 
-    it('should render tabs component structure', () => {
+    test('should render tabs component structure', () => {
       const { container } = render(<Tabs items={defaultItems} />);
       const tabsElement = container.querySelector('.ant-tabs');
       const tabsNav = container.querySelector('.ant-tabs-nav');
@@ -68,7 +68,7 @@ describe('Tabs', () => {
       expect(tabsContent).toBeDefined();
     });
 
-    it('should apply default tabBarStyle with padding', () => {
+    test('should apply default tabBarStyle with padding', () => {
       const { container } = render(<Tabs items={defaultItems} />);
       const tabsNav = container.querySelector('.ant-tabs-nav') as HTMLElement;
 
@@ -76,7 +76,7 @@ describe('Tabs', () => {
       expect(tabsNav?.style?.paddingLeft).toBeDefined();
     });
 
-    it('should merge custom tabBarStyle with defaults', () => {
+    test('should merge custom tabBarStyle with defaults', () => {
       const customStyle = { paddingRight: '20px', backgroundColor: 'red' };
       const { container } = render(
         <Tabs items={defaultItems} tabBarStyle={customStyle} />,
@@ -88,7 +88,7 @@ describe('Tabs', () => {
       expect(tabsNav?.style?.backgroundColor).toBe('red');
     });
 
-    it('should handle allowOverflow prop', () => {
+    test('should handle allowOverflow prop', () => {
       const { container: allowContainer } = render(
         <Tabs items={defaultItems} allowOverflow />,
       );
@@ -100,14 +100,14 @@ describe('Tabs', () => {
       expect(disallowContainer.querySelector('.ant-tabs')).toBeDefined();
     });
 
-    it('should disable animation by default', () => {
+    test('should disable animation by default', () => {
       const { container } = render(<Tabs items={defaultItems} />);
       const tabsElement = container.querySelector('.ant-tabs');
 
       expect(tabsElement?.className).not.toContain('ant-tabs-animated');
     });
 
-    it('should handle tab change events', () => {
+    test('should handle tab change events', () => {
       const onChangeMock = jest.fn();
       const { getByText } = render(
         <Tabs items={defaultItems} onChange={onChangeMock} />,
@@ -118,7 +118,7 @@ describe('Tabs', () => {
       expect(onChangeMock).toHaveBeenCalledWith('2');
     });
 
-    it('should pass through additional props to Antd Tabs', () => {
+    test('should pass through additional props to Antd Tabs', () => {
       const onTabClickMock = jest.fn();
       const { getByText } = render(
         <Tabs
@@ -136,7 +136,7 @@ describe('Tabs', () => {
   });
 
   describe('EditableTabs', () => {
-    it('should render with editable features', () => {
+    test('should render with editable features', () => {
       const { container } = render(<EditableTabs items={defaultItems} />);
 
       const tabsElement = container.querySelector('.ant-tabs');
@@ -145,7 +145,7 @@ describe('Tabs', () => {
       expect(tabsElement?.className).toContain('ant-tabs-editable-card');
     });
 
-    it('should handle onEdit callback for add/remove actions', () => {
+    test('should handle onEdit callback for add/remove actions', () => {
       const onEditMock = jest.fn();
       const itemsWithRemove = defaultItems.map(item => ({
         ...item,
@@ -163,7 +163,7 @@ describe('Tabs', () => {
       expect(onEditMock).toHaveBeenCalledWith(expect.any(String), 'remove');
     });
 
-    it('should have default props set correctly', () => {
+    test('should have default props set correctly', () => {
       expect(EditableTabs.defaultProps?.type).toBe('editable-card');
       expect(EditableTabs.defaultProps?.animated).toEqual({
         inkBar: true,
@@ -173,7 +173,7 @@ describe('Tabs', () => {
   });
 
   describe('LineEditableTabs', () => {
-    it('should render as line-style editable tabs', () => {
+    test('should render as line-style editable tabs', () => {
       const { container } = render(<LineEditableTabs items={defaultItems} />);
 
       const tabsElement = container.querySelector('.ant-tabs');
@@ -182,7 +182,7 @@ describe('Tabs', () => {
       expect(tabsElement?.className).toContain('ant-tabs-editable-card');
     });
 
-    it('should render with line-specific styling', () => {
+    test('should render with line-specific styling', () => {
       const { container } = render(<LineEditableTabs items={defaultItems} />);
 
       const inkBar = container.querySelector('.ant-tabs-ink-bar');
@@ -191,13 +191,13 @@ describe('Tabs', () => {
   });
 
   describe('TabPane Legacy Support', () => {
-    it('should support TabPane component access', () => {
+    test('should support TabPane component access', () => {
       expect(Tabs.TabPane).toBeDefined();
       expect(EditableTabs.TabPane).toBeDefined();
       expect(LineEditableTabs.TabPane).toBeDefined();
     });
 
-    it('should render using legacy TabPane syntax', () => {
+    test('should render using legacy TabPane syntax', () => {
       const { getByText, container } = render(
         <Tabs>
           <Tabs.TabPane tab="Legacy Tab 1" key="1">
@@ -222,21 +222,21 @@ describe('Tabs', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle empty items array', () => {
+    test('should handle empty items array', () => {
       const { container } = render(<Tabs items={[]} />);
       const tabsElement = container.querySelector('.ant-tabs');
 
       expect(tabsElement).toBeDefined();
     });
 
-    it('should handle undefined items', () => {
+    test('should handle undefined items', () => {
       const { container } = render(<Tabs />);
       const tabsElement = container.querySelector('.ant-tabs');
 
       expect(tabsElement).toBeDefined();
     });
 
-    it('should handle tabs with no content', () => {
+    test('should handle tabs with no content', () => {
       const itemsWithoutContent = [
         { key: '1', label: 'Tab 1' },
         { key: '2', label: 'Tab 2' },
@@ -248,14 +248,14 @@ describe('Tabs', () => {
       expect(getByText('Tab 2')).toBeInTheDocument();
     });
 
-    it('should handle allowOverflow default value', () => {
+    test('should handle allowOverflow default value', () => {
       const { container } = render(<Tabs items={defaultItems} />);
       expect(container.querySelector('.ant-tabs')).toBeDefined();
     });
   });
 
   describe('Accessibility', () => {
-    it('should render with proper ARIA roles', () => {
+    test('should render with proper ARIA roles', () => {
       const { container } = render(<Tabs items={defaultItems} />);
 
       const tablist = container.querySelector('[role="tablist"]');
@@ -265,7 +265,7 @@ describe('Tabs', () => {
       expect(tabs.length).toBe(3);
     });
 
-    it('should support keyboard navigation', () => {
+    test('should support keyboard navigation', () => {
       const { container, getByText } = render(<Tabs items={defaultItems} />);
 
       const firstTab = container.querySelector('[role="tab"]');
@@ -282,7 +282,7 @@ describe('Tabs', () => {
   });
 
   describe('Styling Integration', () => {
-    it('should accept and apply custom CSS classes', () => {
+    test('should accept and apply custom CSS classes', () => {
       const { container } = render(
         // eslint-disable-next-line react/forbid-component-props
         <Tabs items={defaultItems} className="custom-tabs-class" />,
@@ -293,7 +293,7 @@ describe('Tabs', () => {
       expect(tabsElement?.className).toContain('custom-tabs-class');
     });
 
-    it('should accept and apply custom styles', () => {
+    test('should accept and apply custom styles', () => {
       const customStyle = { minHeight: '200px' };
       const { container } = render(
         // eslint-disable-next-line react/forbid-component-props

@@ -18,8 +18,8 @@
  */
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import {
   Input,
   Button,
@@ -30,7 +30,6 @@ import {
   Col,
   Icons,
 } from '@superset-ui/core/components';
-import { Menu } from '@superset-ui/core/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 import {
   SaveDatasetModal,
@@ -63,10 +62,11 @@ export type QueryPayload = {
 } & Pick<QueryEditor, 'dbId' | 'catalog' | 'schema' | 'sql'>;
 
 const Styles = styled.span`
+  display: contents;
+  white-space: nowrap;
   span[role='img']:not([aria-label='down']) {
     display: flex;
     margin: 0;
-    color: ${({ theme }) => theme.colorIcon};
     svg {
       vertical-align: -${({ theme }) => theme.sizeUnit * 1.25}px;
       margin: 0;
@@ -116,20 +116,10 @@ const SaveQuery = ({
   const shouldShowSaveButton =
     database?.allows_virtual_table_explore !== undefined;
 
-  const overlayMenu = (
-    <Menu
-      items={[
-        {
-          label: t('Save dataset'),
-          key: 'save-dataset',
-          onClick: () => {
-            logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
-            setShowSaveDatasetModal(true);
-          },
-        },
-      ]}
-    />
-  );
+  const onSaveAsExplore = () => {
+    logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
+    setShowSaveDatasetModal(true);
+  };
 
   const queryPayload = () => ({
     name: label,
@@ -209,7 +199,7 @@ const SaveQuery = ({
       {shouldShowSaveButton && (
         <SaveDatasetActionButton
           setShowSave={setShowSave}
-          overlayMenu={canExploreDatabase ? overlayMenu : null}
+          onSaveAsExplore={canExploreDatabase ? onSaveAsExplore : undefined}
         />
       )}
       <SaveDatasetModal
@@ -243,7 +233,7 @@ const SaveQuery = ({
               {t('Cancel')}
             </Button>
             <Button
-              buttonStyle={isSaved ? undefined : 'primary'}
+              buttonStyle={isSaved ? 'secondary' : 'primary'}
               onClick={onSaveWrapper}
               cta
             >

@@ -29,8 +29,7 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 
-import { mergeReplaceArrays } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -57,6 +56,7 @@ import {
   VisualMapComponent,
   LegendComponent,
   DataZoomComponent,
+  type DataZoomComponentOption,
   ToolboxComponent,
   GraphicComponent,
   AriaComponent,
@@ -66,12 +66,16 @@ import {
 import { LabelLayout } from 'echarts/features';
 import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
 import { DEFAULT_LOCALE } from '../constants';
+import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
 interface ExplorePageState {
-  common: {
-    locale: string;
+  common?: {
+    locale?: string;
+  };
+  dashboardState?: {
+    isRefreshing?: boolean;
   };
 }
 
@@ -156,6 +160,9 @@ function Echart(
   const locale = useSelector(
     (state: ExplorePageState) => state?.common?.locale ?? DEFAULT_LOCALE,
   ).toUpperCase();
+  const isDashboardRefreshing = useSelector((state: ExplorePageState) =>
+    Boolean(state?.dashboardState?.isRefreshing),
+  );
 
   const handleSizeChange = useCallback(
     ({ width, height }: { width: number; height: number }) => {
@@ -173,7 +180,13 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        chartRef.current = init(divRef.current, null, { locale });
+        // Pass width and height to init to avoid "Can't get DOM width or height" warning
+        // since the DOM element may not have its dimensions yet when init is called
+        chartRef.current = init(divRef.current, null, {
+          locale,
+          width,
+          height,
+        });
       }
       // did mount
       handleSizeChange({ width, height });
@@ -226,6 +239,9 @@ function Echart(
             axisLine: { lineStyle: { color: antdTheme.colorSplit } },
             axisLabel: { color: antdTheme.colorTextSecondary },
             splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            minorSplitLine: {
+              lineStyle: { color: antdTheme.colorBorderSecondary },
+            },
           };
         }
         if (options?.yAxis) {
@@ -233,6 +249,9 @@ function Echart(
             axisLine: { lineStyle: { color: antdTheme.colorSplit } },
             axisLabel: { color: antdTheme.colorTextSecondary },
             splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            minorSplitLine: {
+              lineStyle: { color: antdTheme.colorBorderSecondary },
+            },
           };
         }
         return echartsTheme;
@@ -244,16 +263,91 @@ function Echart(
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
         : {};
 
-      const themedEchartOptions = mergeReplaceArrays(
+      // Disable animations during auto-refresh to reduce visual noise
+      const animationOverride = isDashboardRefreshing
+        ? {
+            animation: false,
+            animationDuration: 0,
+          }
+        : {};
+
+      const themedEchartOptions = mergeEchartsThemeOverrides(
         baseTheme,
         echartOptions,
         globalOverrides,
         chartOverrides,
+        animationOverride,
       );
 
-      chartRef.current?.setOption(themedEchartOptions, true);
+      const notMerge = !isDashboardRefreshing;
+      chartRef.current?.dispatchAction({ type: 'hideTip' });
+      // setOption(notMerge:true) replaces the dataZoom config, dropping any
+      // range the user has engaged. Preserve it across the call.
+      const previousZoom = notMerge
+        ? (
+            chartRef.current?.getOption() as {
+              dataZoom?: DataZoomComponentOption[];
+            }
+          )?.dataZoom
+        : undefined;
+      chartRef.current?.setOption(themedEchartOptions, {
+        notMerge,
+        replaceMerge: notMerge ? undefined : ['series'],
+        // lazyUpdate defers render, causing tooltip crashes on stale shapes (#39247)
+        lazyUpdate: false,
+      });
+      if (previousZoom?.length) {
+        // Skip restore when the new option reshapes dataZoom (different count
+        // means index-based restore could land on the wrong component).
+        const newZoom = (
+          chartRef.current?.getOption() as {
+            dataZoom?: DataZoomComponentOption[];
+          }
+        )?.dataZoom;
+        if (newZoom?.length === previousZoom.length) {
+          const batch = previousZoom
+            .map((dz, dataZoomIndex) => ({
+              dataZoomIndex,
+              start: dz.start,
+              end: dz.end,
+              startValue: dz.startValue,
+              endValue: dz.endValue,
+            }))
+            .filter(b => {
+              const hasAny =
+                b.start !== undefined ||
+                b.end !== undefined ||
+                b.startValue !== undefined ||
+                b.endValue !== undefined;
+              if (!hasAny) return false;
+              // Default full-range zoom is functionally identical to the
+              // fresh state setOption already produces — skip the dispatch.
+              const isDefaultRange =
+                b.start === 0 &&
+                b.end === 100 &&
+                b.startValue === undefined &&
+                b.endValue === undefined;
+              return !isDefaultRange;
+            });
+          if (batch.length) {
+            chartRef.current?.dispatchAction({ type: 'dataZoom', batch });
+          }
+        }
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isDashboardRefreshing intentionally excluded to prevent extra setOption calls
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
+
+  // Clear tooltip on refresh start to avoid stale content (#39247)
+  useEffect(() => {
+    if (didMount && isDashboardRefreshing && chartRef.current) {
+      chartRef.current.dispatchAction({ type: 'hideTip' });
+      chartRef.current.dispatchAction({
+        type: 'updateAxisPointer',
+        currTrigger: 'leave',
+      });
+    }
+  }, [didMount, isDashboardRefreshing]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);
 
