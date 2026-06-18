@@ -96,6 +96,7 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
     dashboard.uuid = "test-dashboard-uuid-1"
     dashboard.thumbnail_url = None
     dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -162,6 +163,7 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
     dashboard.uuid = None
     dashboard.thumbnail_url = None
     dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -257,6 +259,7 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
     dashboard.uuid = None
     dashboard.thumbnail_url = None
     dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -351,6 +354,7 @@ async def test_get_dashboard_info_success(
     dashboard.owners = []
     dashboard.tags = []
     dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -429,6 +433,7 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
     dashboard.owners = []
     dashboard.tags = []
     dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     mock_info.return_value = dashboard
     permalink_value = {
@@ -838,6 +843,7 @@ async def test_get_dashboard_info_restricted_user_redacts_data_model_metadata(
     dashboard.owners = []
     dashboard.tags = []
     dashboard.roles = []
+    dashboard.embedded = []
 
     mock_info.return_value = dashboard
 
@@ -890,6 +896,7 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
     dashboard.owners = []
     dashboard.tags = []
     dashboard.roles = []
+    dashboard.embedded = []
 
     mock_info.return_value = dashboard
 
@@ -1012,6 +1019,88 @@ async def test_list_dashboards_omits_requested_user_directory_fields(
         assert field not in data["columns_available"]
 
 
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_includes_embedded_uuid(mock_find_object, mcp_server):
+    """Test that get_dashboard_info returns embedded_uuid when set."""
+    from superset.models.embedded_dashboard import EmbeddedDashboard
+
+    dashboard = Mock()
+    dashboard.id = 1
+    dashboard.dashboard_title = "Embedded Dashboard"
+    dashboard.slug = ""
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = "{}"
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_on_humanized = None
+    dashboard.changed_on_humanized = None
+    dashboard.uuid = "94b826a5-dbd5-473d-ab58-1af676ee07e4"
+    dashboard.url = "/dashboard/1"
+    dashboard.slices = []
+    dashboard.owners = []
+    dashboard.tags = []
+    dashboard.roles = []
+    dashboard.embedded = []
+
+    embedded = Mock(spec=EmbeddedDashboard)
+    embedded.uuid = "37c56048-d3f1-452d-b3ae-0879802dcb1f"
+    dashboard.embedded = [embedded]
+
+    mock_find_object.return_value = dashboard
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"identifier": 1}}
+        )
+        assert result.data["uuid"] == "94b826a5-dbd5-473d-ab58-1af676ee07e4"
+        assert result.data["embedded_uuid"] == "37c56048-d3f1-452d-b3ae-0879802dcb1f"
+
+
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_embedded_uuid_none_when_not_embedded(
+    mock_find_object, mcp_server
+):
+    """Test that embedded_uuid is None when the dashboard has not been configured
+    for embedding."""
+    dashboard = Mock()
+    dashboard.id = 2
+    dashboard.dashboard_title = "Non-Embedded Dashboard"
+    dashboard.slug = ""
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = "{}"
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_on_humanized = None
+    dashboard.changed_on_humanized = None
+    dashboard.uuid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    dashboard.url = "/dashboard/2"
+    dashboard.slices = []
+    dashboard.owners = []
+    dashboard.tags = []
+    dashboard.roles = []
+    dashboard.embedded = []
+
+    mock_find_object.return_value = dashboard
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"identifier": 2}}
+        )
+        assert result.data.get("embedded_uuid") is None
+
+
 # TODO (Phase 3+): Add tests for get_dashboard_available_filters tool
 
 
@@ -1044,6 +1133,7 @@ async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
     dashboard.owners = []
     dashboard.tags = []
     dashboard.roles = []
+    dashboard.embedded = []
 
     mock_find_object.return_value = dashboard
     async with Client(mcp_server) as client:
@@ -1083,6 +1173,7 @@ async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
     dashboard.owners = []
     dashboard.tags = []
     dashboard.roles = []
+    dashboard.embedded = []
 
     mock_find_object.return_value = dashboard
     async with Client(mcp_server) as client:
@@ -1122,6 +1213,7 @@ async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
     dashboard.external_url = None
     dashboard.thumbnail_url = None
     dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -1203,6 +1295,7 @@ async def test_list_dashboards_sanitizes_dashboard_descriptions_and_filter_text(
     dashboard.external_url = None
     dashboard.thumbnail_url = None
     dashboard.roles = []
+    dashboard.embedded = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -1343,6 +1436,7 @@ class TestDashboardDefaultColumnFiltering:
         dashboard.external_url = None
         dashboard.thumbnail_url = None
         dashboard.roles = []
+    dashboard.embedded = []
         dashboard.charts = []
         mock_list.return_value = ([dashboard], 1)
 

@@ -425,6 +425,18 @@ class DashboardInfo(BaseModel):
     created_on: str | datetime | None = None
     changed_on: str | datetime | None = None
     uuid: str | None = None
+    embedded_uuid: str | None = Field(
+        None,
+        description=(
+            "Embedded UUID for this dashboard. This is the UUID required when "
+            "generating guest tokens for embedded dashboards "
+            "(resources[].id in the guest token payload). "
+            "Only present when the dashboard has been configured for embedding "
+            "via the Embed Dashboard UI. Distinct from `uuid` (the internal "
+            "dashboard UUID) — using the wrong one causes 403 errors in guest "
+            "token validation."
+        ),
+    )
     url: str | None = None
     created_on_humanized: str | None = None
     changed_on_humanized: str | None = None
@@ -1137,6 +1149,9 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
+            embedded_uuid=str(dashboard.embedded[0].uuid)
+            if dashboard.embedded
+            else None,
             url=absolute_url,
             created_on_humanized=dashboard.created_on_humanized,
             changed_on_humanized=dashboard.changed_on_humanized,
