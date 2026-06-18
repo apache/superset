@@ -46,3 +46,8 @@ jobs:
           fi
       - run: npm ci
       - run: npm run ci:release
+        env:
+          # Temporary diagnostic: surface npm's OIDC trusted-publishing attempt
+          # and any registry rejection (npm redacts auth tokens in its logs).
+          # Remove once publishing is confirmed working.
+          NPM_CONFIG_LOGLEVEL: verbose
