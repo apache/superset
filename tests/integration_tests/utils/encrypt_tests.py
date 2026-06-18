@@ -31,6 +31,28 @@ from superset.utils.encrypt import (
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
+def make_row(values: dict[str, Any]) -> Any:
+    """Build a genuine SQLAlchemy ``Row`` from a mapping.
+
+    ``SecretsMigrator._re_encrypt_row`` consumes the ``Row`` objects yielded by
+    ``conn.execute(...)``, reading column values through ``row._mapping`` per the
+    SQLAlchemy 2.0 Row API. Tests must therefore pass a real ``Row`` rather than a
+    plain ``dict`` (which lacks ``_mapping``). The constructor signature differs
+    between SQLAlchemy 1.4 and 2.0, so both are handled here.
+    """
+    from sqlalchemy.engine.result import SimpleResultMetaData
+    from sqlalchemy.engine.row import Row
+
+    metadata = SimpleResultMetaData(tuple(values))
+    data = tuple(values.values())
+    try:
+        # SQLAlchemy 2.0: Row(parent, processors, key_to_index, data)
+        return Row(metadata, None, metadata._key_to_index, data)
+    except AttributeError:
+        # SQLAlchemy 1.4: Row(parent, processors, keymap, key_style, data)
+        return Row(metadata, None, metadata._keymap, Row._default_key_style, data)
+
+
 class CustomEncFieldAdapter(AbstractEncryptedFieldAdapter):
     def create(
         self,
@@ -224,7 +246,8 @@ class EncryptedFieldTest(SupersetTestCase):
 
         current_field = encrypted_field_factory.create(String(1024))
         conn = MagicMock()
-        row = {"uuid": b"\x00" * 16, "configuration": ciphertext}
+        pk_value = b"\x00" * 16
+        row = make_row({"uuid": pk_value, "configuration": ciphertext})
         stats = ReEncryptStats()
 
         migrator._re_encrypt_row(  # noqa: SLF001
@@ -240,7 +263,7 @@ class EncryptedFieldTest(SupersetTestCase):
         stmt = str(conn.execute.call_args.args[0])
         assert "WHERE uuid = :_pk_uuid" in stmt
         kwargs = conn.execute.call_args.kwargs
-        assert kwargs["_pk_uuid"] == row["uuid"]
+        assert kwargs["_pk_uuid"] == pk_value
         assert "configuration" in kwargs
         assert stats == ReEncryptStats(re_encrypted=1, skipped=0, failed=0)
 
@@ -264,7 +287,7 @@ class EncryptedFieldTest(SupersetTestCase):
         assert field.process_result_value(ciphertext, dialect) == "hunter2"
 
         conn = MagicMock()
-        row = {"uuid": b"\x00" * 16, "configuration": ciphertext}
+        row = make_row({"uuid": b"\x00" * 16, "configuration": ciphertext})
         stats = ReEncryptStats()
 
         migrator._re_encrypt_row(  # noqa: SLF001
@@ -308,7 +331,7 @@ class EncryptedFieldTest(SupersetTestCase):
         ciphertext = field.process_bind_param("hunter2", dialect)
 
         conn = MagicMock()
-        row = {"uuid": b"\x00" * 16, "configuration": ciphertext}
+        row = make_row({"uuid": b"\x00" * 16, "configuration": ciphertext})
         stats = ReEncryptStats()
 
         migrator._re_encrypt_row(  # noqa: SLF001
@@ -342,7 +365,7 @@ class EncryptedFieldTest(SupersetTestCase):
 
         field = encrypted_field_factory.create(String(1024))
         conn = MagicMock()
-        row = {"uuid": b"\x00" * 16, "configuration": b"not-valid-ciphertext"}
+        row = make_row({"uuid": b"\x00" * 16, "configuration": b"not-valid-ciphertext"})
         stats = ReEncryptStats()
 
         migrator._re_encrypt_row(  # noqa: SLF001
@@ -374,7 +397,7 @@ class EncryptedFieldTest(SupersetTestCase):
 
         field = encrypted_field_factory.create(String(1024))
         conn = MagicMock()
-        row = {"uuid": b"\x00" * 16, "configuration": None}
+        row = make_row({"uuid": b"\x00" * 16, "configuration": None})
         stats = ReEncryptStats()
 
         migrator._re_encrypt_row(  # noqa: SLF001
