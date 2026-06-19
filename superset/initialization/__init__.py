@@ -35,7 +35,6 @@ from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
-from sqlalchemy.engine import URL
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import (

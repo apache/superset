@@ -23,7 +23,7 @@ from superset.cli.test_db import collect_connection_info
 from superset.commands.database.exceptions import DatabaseInvalidError
 
 
-def test_collect_connection_info_masking():
+def test_collect_connection_info_masking() -> None:
     """Test that passwords are masked in CLI output."""
     console = Console()
     uri = "postgresql://user:pass@host/db"
@@ -40,7 +40,7 @@ def test_collect_connection_info_masking():
             assert "host" in output
 
 
-def test_collect_connection_info_malformed_uri():
+def test_collect_connection_info_malformed_uri() -> None:
     """Test that malformed URIs are handled gracefully in CLI output."""
     console = Console()
     uri = "not-a-valid-uri"
@@ -54,7 +54,7 @@ def test_collect_connection_info_malformed_uri():
         assert info == {}
 
 
-def test_collect_connection_info_database_invalid_error():
+def test_collect_connection_info_database_invalid_error() -> None:
     """Test that DatabaseInvalidError is handled gracefully in CLI output."""
     console = Console()
     uri = "invalid-uri"

@@ -189,7 +189,7 @@ class TestSupersetAppInitializer:
             == "postgresql://realuser:realpass@realhost:5432/realdb"
         )
 
-    def test_check_and_warn_database_connection_masks_password(self):
+    def test_check_and_warn_database_connection_masks_password(self) -> None:
         mock_app = MagicMock()
         mock_app.app_context.return_value.__enter__.return_value = MagicMock()
 
