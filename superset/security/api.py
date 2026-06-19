@@ -24,7 +24,15 @@ from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
 from flask_wtf.csrf import generate_csrf
-from marshmallow import EXCLUDE, fields, post_load, RAISE, Schema, ValidationError
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    RAISE,
+    Schema,
+    validate,
+    ValidationError,
+)
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import selectinload
 
@@ -80,21 +88,27 @@ class RlsRuleSchema(Schema):
 
     Unlike the other guest-token schemas, this one rejects unknown fields
     instead of silently dropping them. A rule is scoped to a dataset only when
-    it carries a valid integer ``dataset`` key; a rule with no ``dataset`` is
-    treated as global and its ``clause`` is applied to every dataset the
-    embedded resource can reach (see ``get_guest_rls_filters``). Silently
-    excluding an unexpected field -- most commonly a mistyped or legacy scope
-    key such as ``datasource`` -- would therefore turn an intended
+    it carries a valid positive integer ``dataset`` key; a rule with no
+    ``dataset`` is treated as global and its ``clause`` is applied to every
+    dataset the embedded resource can reach (see ``get_guest_rls_filters``).
+    Silently excluding an unexpected field -- most commonly a mistyped or
+    legacy scope key such as ``datasource`` -- would therefore turn an intended
     dataset-scoped rule into a global one without any feedback to the caller.
     Raising on unknown fields surfaces the mistake as an HTTP 400 before a
     token is ever issued and keeps the accepted payload aligned with the
     documented ``RlsRule`` contract (``dataset`` and ``clause``).
+
+    For the same reason ``dataset`` is constrained to strict, positive
+    integers: a falsy value such as ``0`` (or ``false``, which marshmallow
+    coerces to ``0``) would pass a bare ``Integer`` field but then read as
+    falsy in ``get_guest_rls_filters``, silently widening a scoped rule to
+    every dataset.
     """
 
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = RAISE
 
-    dataset = fields.Integer()
+    dataset = fields.Integer(strict=True, validate=validate.Range(min=1))
     clause = fields.String(required=True)  # todo other options?
 
 

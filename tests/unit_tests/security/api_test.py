@@ -103,3 +103,15 @@ def test_rls_rule_schema_requires_clause() -> None:
     with pytest.raises(ValidationError) as exc_info:
         RlsRuleSchema().load({"dataset": 41})
     assert "clause" in exc_info.value.messages
+
+
+@pytest.mark.parametrize("dataset", [0, -1, False])
+def test_rls_rule_schema_rejects_falsy_dataset(dataset: Any) -> None:
+    """
+    A falsy ``dataset`` (``0``, a negative id, or ``false`` which marshmallow
+    coerces to ``0``) would read as falsy in ``get_guest_rls_filters`` and
+    silently widen a scoped rule to every dataset. It is rejected at load time.
+    """
+    with pytest.raises(ValidationError) as exc_info:
+        RlsRuleSchema().load({"dataset": dataset, "clause": "tenant_id = 1"})
+    assert "dataset" in exc_info.value.messages
