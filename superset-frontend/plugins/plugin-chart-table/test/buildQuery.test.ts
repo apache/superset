@@ -234,6 +234,51 @@ describe('plugin-chart-table', () => {
         expect(queries).toHaveLength(1);
         expect(queries[0].post_processing).toEqual([]);
       });
+
+      test('should reapply contribution op to totals query in row_limit mode', () => {
+        // Regression test for #37627: with a percent metric and Show Summary
+        // (show_totals) enabled, the totals query must rename percent-metric
+        // columns (`metric` -> `%metric`) so the footer can look them up.
+        // Otherwise the totals row renders 0.000%.
+        const formData = {
+          ...baseFormDataWithPercents,
+          show_totals: true,
+        };
+
+        const { queries } = buildQuery(formData);
+
+        // row_limit mode + show_totals -> [main, totals].
+        expect(queries).toHaveLength(2);
+
+        const contributionRule = {
+          operation: 'contribution',
+          options: {
+            columns: ['sum_sales'],
+            rename_columns: ['%sum_sales'],
+          },
+        };
+
+        expect(queries[1]).toMatchObject({
+          columns: [],
+          post_processing: [contributionRule],
+        });
+      });
+
+      test('should leave totals post_processing empty without percent metrics', () => {
+        const formData = {
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: ['count'],
+          percent_metrics: [],
+          groupby: ['category'],
+          show_totals: true,
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(2);
+        expect(queries[1].post_processing).toEqual([]);
+      });
     });
 
     describe('Testing for server pagination with search filter', () => {
