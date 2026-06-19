@@ -37,7 +37,7 @@ from flask import current_app, g
 
 from superset import db, security_manager
 from superset.charts.data.dashboard_filter_context import (
-    apply_extra_form_data_to_query_context_json,
+    apply_dashboard_filter_context,
     get_dashboard_filter_context,
 )
 from superset.charts.schemas import ChartDataQueryContextSchema
@@ -86,9 +86,8 @@ def _write_chart_sheets(
         chart_id=chart.id,
         active_data_mask=active_data_mask,
     )
-    apply_extra_form_data_to_query_context_json(
-        json_body, filter_context.extra_form_data
-    )
+    if filter_context.extra_form_data:
+        apply_dashboard_filter_context(json_body, filter_context.extra_form_data)
 
     # Jinja macros resolve form data from g.form_data; expose the saved context.
     g.form_data = json_body

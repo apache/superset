@@ -32,7 +32,7 @@ from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
 from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.dashboard_filter_context import (
-    apply_extra_form_data_to_query_context_json,
+    apply_dashboard_filter_context,
     DashboardFilterContext,
     get_dashboard_filter_context,
 )
@@ -201,15 +201,16 @@ class ChartDataRestApi(ChartRestApi):
             except SupersetSecurityException:
                 return self.response_403()
 
-            # Merge the scoped native filters and extra_form_data into the saved
-            # query context so get_sqla_query constructs the final, filtered query.
-            apply_extra_form_data_to_query_context_json(
-                json_body, dashboard_filter_context.extra_form_data
-            )
+            if efd := dashboard_filter_context.extra_form_data:
+                # Note: this helper currently mutates `json_body` and `efd` in place.
+                # Changes won't persist as these are dicts detached from the ORM state,
+                # but highlighting in case they're further used (mind the changes).
+                apply_dashboard_filter_context(json_body, efd)
 
-        # Jinja macros like metric() resolve dataset context from g.form_data
-        # when not given an explicit dataset_id. For GET requests there is no
-        # JSON body, so we must always expose the saved query context here.
+        # We need to apply the form data to the global context as jinja
+        # templating pulls form data from the request globally, so this
+        # fallback ensures it has the filters and extra_form_data applied
+        # when used in get_sqla_query which constructs the final query.
         g.form_data = json_body
 
         try:

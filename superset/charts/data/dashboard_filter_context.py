@@ -351,48 +351,37 @@ def get_dashboard_filter_context(
     return context
 
 
-def apply_extra_form_data_to_query_context_json(
-    json_body: dict[str, Any],
+def apply_dashboard_filter_context(
+    query_context: dict[str, Any],
     extra_form_data: dict[str, Any],
 ) -> None:
     """
-    Merge a dashboard filter context's ``extra_form_data`` into a raw query
-    context JSON body, mutating ``json_body`` in place.
+    Apply dashboard filter context.
 
-    For each query it appends scoped native filters (flagged ``isExtra``),
-    overrides ``extras`` keys (e.g. ``relative_start``) and regular mappings
-    (e.g. ``time_range``), and exposes the full ``extra_form_data`` so Jinja
-    templating can resolve it in ``get_sqla_query``. Shared by the chart data
-    API (GET) and the dashboard Excel export task.
+    Filters are removed from ``extra_form_data`` to avoid duplicated values when
+    using ``filter_values()`` macro.
 
-    :param json_body: The query context JSON body (mutated in place)
-    :param extra_form_data: The merged extra_form_data to apply
+    :param query_context: The chart's query context (mutated in place)
+    :param extra_form_data: The dashboard's merged extra_form_data to apply. It's
+    also mutated in place.
     """
-    if not extra_form_data:
-        return
-
-    efd = extra_form_data
-    extra_filters = efd.get("filters", [])
-
-    for query in json_body.get("queries", []):
+    extra_filters = extra_form_data.pop("filters", [])
+    for query in query_context.get("queries", []):
         if extra_filters:
-            existing = query.get("filters") or []
-            query["filters"] = existing + [
-                {**f, "isExtra": True} for f in extra_filters
+            existing_filters = query.get("filters") or []
+            query["filters"] = existing_filters + [
+                {**flt, "isExtra": True} for flt in extra_filters
             ]
 
         extras = query.get("extras") or {}
         for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
-            if key in efd:
-                extras[key] = efd[key]
+            if key in extra_form_data:
+                extras[key] = extra_form_data[key]
         if extras:
             query["extras"] = extras
 
-        for (
-            src_key,
-            target_key,
-        ) in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
-            if src_key in efd:
-                query[target_key] = efd[src_key]
+        for src_key, target_key in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
+            if src_key in extra_form_data:
+                query[target_key] = extra_form_data[src_key]
 
-        query["extra_form_data"] = efd
+        query["extra_form_data"] = extra_form_data

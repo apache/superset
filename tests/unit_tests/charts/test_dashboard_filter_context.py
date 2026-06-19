@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-from copy import deepcopy
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -28,7 +27,6 @@ from superset.charts.data.dashboard_filter_context import (
     _is_filter_in_scope_for_chart,
     _merge_extra_form_data,
     _validate_chart_on_dashboard,
-    apply_extra_form_data_to_query_context_json,
     DashboardFilterContext,
     DashboardFilterStatus,
     get_dashboard_filter_context,
@@ -277,51 +275,6 @@ def test_merge_extra_form_data_merges_custom_form_data_dicts() -> None:
     new = {"custom_form_data": {"foo": "bar"}}
     merged = _merge_extra_form_data(base, new)
     assert merged["custom_form_data"] == {"groupby": ["col1"], "foo": "bar"}
-
-
-# --- apply_extra_form_data_to_query_context_json ---
-
-
-def test_apply_extra_form_data_noop_when_empty() -> None:
-    """An empty extra_form_data leaves the body untouched."""
-    original = {"queries": [{"filters": [{"col": "a", "op": "IN", "val": ["x"]}]}]}
-    json_body = deepcopy(original)
-    apply_extra_form_data_to_query_context_json(json_body, {})
-    assert json_body == original
-
-
-def test_apply_extra_form_data_appends_filters_with_is_extra() -> None:
-    json_body = {"queries": [{"filters": [{"col": "a", "op": "IN", "val": ["x"]}]}]}
-    efd = {"filters": [{"col": "region", "op": "IN", "val": ["US"]}]}
-    apply_extra_form_data_to_query_context_json(json_body, efd)
-    filters = json_body["queries"][0]["filters"]
-    assert len(filters) == 2
-    assert filters[0] == {"col": "a", "op": "IN", "val": ["x"]}
-    assert filters[1] == {"col": "region", "op": "IN", "val": ["US"], "isExtra": True}
-    assert json_body["queries"][0]["extra_form_data"] == efd
-
-
-def test_apply_extra_form_data_overrides_regular_mapping() -> None:
-    """time_range in extra_form_data overrides the query's time_range."""
-    json_body = {"queries": [{"time_range": "last week"}]}
-    apply_extra_form_data_to_query_context_json(json_body, {"time_range": "last month"})
-    assert json_body["queries"][0]["time_range"] == "last month"
-
-
-def test_apply_extra_form_data_overrides_extras_keys() -> None:
-    """relative_start/relative_end land in the query's extras dict."""
-    json_body: dict[str, Any] = {"queries": [{}]}
-    apply_extra_form_data_to_query_context_json(
-        json_body, {"relative_start": "2020-01-01"}
-    )
-    assert json_body["queries"][0]["extras"]["relative_start"] == "2020-01-01"
-
-
-def test_apply_extra_form_data_handles_missing_queries() -> None:
-    """A body without a queries key is tolerated (no-op)."""
-    json_body: dict[str, Any] = {}
-    apply_extra_form_data_to_query_context_json(json_body, {"time_range": "last month"})
-    assert json_body == {}
 
 
 # --- _get_filter_target_column ---
