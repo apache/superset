@@ -158,6 +158,14 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Alpha", self.assertNotIn)
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
 
+    def test_legacy_fab_password_views_are_not_registered(self):
+        from flask import current_app
+
+        endpoints = {rule.endpoint for rule in current_app.url_map.iter_rules()}
+
+        assert "ResetPasswordView.this_form_get" not in endpoints
+        assert "ResetMyPasswordView.this_form_get" not in endpoints
+
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
         self.login(ADMIN_USERNAME)

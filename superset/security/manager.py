@@ -4215,6 +4215,35 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
+    def _skip_legacy_fab_password_view_registration(self) -> Callable[..., Any]:
+        original_add_view_no_menu = self.appbuilder.add_view_no_menu
+
+        if current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
+            return original_add_view_no_menu
+
+        from flask_appbuilder.security.views import (
+            ResetMyPasswordView,
+            ResetPasswordView,
+        )
+
+        legacy_password_views = (ResetPasswordView, ResetMyPasswordView)
+
+        def add_view_no_menu_without_legacy_password_views(
+            baseview: Any, *args: Any, **kwargs: Any
+        ) -> Any:
+            if (
+                isinstance(baseview, legacy_password_views)
+                or isinstance(baseview, type)
+                and issubclass(baseview, legacy_password_views)
+            ):
+                return baseview
+            return original_add_view_no_menu(baseview, *args, **kwargs)
+
+        self.appbuilder.add_view_no_menu = (  # type: ignore[method-assign]
+            add_view_no_menu_without_legacy_password_views
+        )
+        return original_add_view_no_menu
+
     def register_views(self) -> None:
         from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
 
@@ -4244,16 +4273,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         original_auth_rate_limited = current_app.config["AUTH_RATE_LIMITED"]
         current_app.config["AUTH_RATE_LIMITED"] = False
 
+        original_add_view_no_menu = self._skip_legacy_fab_password_view_registration()
+
         try:
             super().register_views()
         finally:
-            # Restore original value even if an exception occurs
+            # Restore original values even if an exception occurs
             current_app.config["AUTH_RATE_LIMITED"] = original_auth_rate_limited
-
-        from flask_appbuilder.security.views import (
-            ResetMyPasswordView,
-            ResetPasswordView,
-        )
+            self.appbuilder.add_view_no_menu = (  # type: ignore[method-assign]
+                original_add_view_no_menu
+            )
 
         for view in list(self.appbuilder.baseviews):
             route_base = getattr(view, "route_base", None)
@@ -4266,16 +4295,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ]:
                 self.appbuilder.baseviews.remove(view)
                 continue
-            # When legacy FAB password views are disabled, unregister and remove them
-            # so legacy password reset routes are not directly accessible.
-            if not current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
-                if isinstance(view, (ResetPasswordView, ResetMyPasswordView)):
-                    blueprint = getattr(view, "blueprint", None)
-                    if blueprint is not None and hasattr(
-                        current_app, "unregister_blueprint"
-                    ):
-                        current_app.unregister_blueprint(blueprint)
-                    self.appbuilder.baseviews.remove(view)
 
         security_menu = next(
             (m for m in self.appbuilder.menu.get_list() if m.name == "Security"), None
