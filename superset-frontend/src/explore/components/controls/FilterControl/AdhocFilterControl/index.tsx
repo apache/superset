@@ -104,14 +104,6 @@ interface AdhocFilterControlState {
 
 const { warning } = Modal;
 
-const defaultProps = {
-  name: '',
-  onChange: () => {},
-  columns: [],
-  savedMetrics: [],
-  selectedMetrics: [],
-};
-
 function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
   const options = [
     ...(props.columns || []),
@@ -391,7 +383,7 @@ class AdhocFilterControl extends Component<
     return (
       <div className="metrics-select" data-test="adhoc-filter-control">
         <HeaderContainer>
-          <ControlHeader {...this.props} />
+          <ControlHeader {...this.props} name={this.props.name ?? ''} />
         </HeaderContainer>
         <LabelsContainer>
           {[
@@ -412,8 +404,5 @@ class AdhocFilterControl extends Component<
     );
   }
 }
-
-// @ts-expect-error - defaultProps for backward compatibility
-AdhocFilterControl.defaultProps = defaultProps;
 
 export default withTheme(AdhocFilterControl);
