@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import io
 import logging
 from collections.abc import Sequence
 from io import IOBase
@@ -98,9 +99,13 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             for channel in channels:
                 if len(files) > 0:
                     for file in files:
+                        # Slack's files_upload_v2 expects a file-like object or a
+                        # path; report content is delivered as raw bytes, so wrap
+                        # it in a BytesIO stream before uploading.
+                        file_obj = io.BytesIO(file) if isinstance(file, bytes) else file
                         client.files_upload_v2(
                             channel=channel,
-                            file=file,
+                            file=file_obj,
                             initial_comment=body,
                             title=title,
                             filename=file_name,
