@@ -264,6 +264,38 @@ describe('plugin-chart-table', () => {
         });
       });
 
+      test('should omit time-comparison op from totals post_processing', () => {
+        // The totals query must reuse ONLY the contribution rule; the
+        // time-comparison operator from the main query must not run against
+        // the single-row totals query.
+        const formData = {
+          ...baseFormDataWithPercents,
+          show_totals: true,
+          time_compare: ['1 year ago'],
+          comparison_type: 'values',
+        };
+
+        const { queries } = buildQuery(formData);
+
+        // row_limit mode + show_totals -> [main, totals].
+        expect(queries).toHaveLength(2);
+
+        const totalsQuery = queries[1];
+
+        // Exactly one op (contribution) — the time-comparison operator from the
+        // main query must not be carried over to the single-row totals query.
+        expect(totalsQuery.post_processing).toHaveLength(1);
+        expect(totalsQuery.post_processing?.[0]).toMatchObject({
+          operation: 'contribution',
+        });
+        // The reused rule matches the main query's contribution rule verbatim.
+        expect(totalsQuery.post_processing?.[0]).toEqual(
+          queries[0].post_processing?.find(
+            op => op?.operation === 'contribution',
+          ),
+        );
+      });
+
       test('should leave totals post_processing empty without percent metrics', () => {
         const formData = {
           ...basicFormData,
