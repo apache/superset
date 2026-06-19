@@ -1288,6 +1288,32 @@ def test_query_context_modified_orderby_empty(mocker: MockerFixture) -> None:
     assert not query_context_modified(query_context)
 
 
+def test_query_context_modified_orderby_legacy_singular_metric(
+    mocker: MockerFixture,
+) -> None:
+    """A guest sorting by a legacy ``metric`` (singular) field is allowed."""
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[("num_sold", False)],
+        stored_metrics=[],
+        with_stored_query_context=False,
+    )
+    query_context.slice_.params_dict = {
+        "columns": ["gender"],
+        "groupby": ["gender"],
+        "metric": "num_sold",
+    }
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_malformed_entry(
+    mocker: MockerFixture,
+) -> None:
+    """A malformed order-by entry (not a ``(term, bool)`` pair) is rejected."""
+    query_context = _table_sort_query_context(mocker, orderby=[["gender"]])
+    assert query_context_modified(query_context)
+
+
 def test_query_context_modified_time_grain_native_filter(
     mocker: MockerFixture,
 ) -> None:

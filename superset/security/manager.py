@@ -549,6 +549,8 @@ def _collect_sortable_identifiers(
     params = stored_chart.params_dict
     for key in ("columns", "groupby", "metrics", "all_columns"):
         add(params.get(key))
+    # Legacy charts store a single metric under the singular ``metric`` key.
+    add([params["metric"]] if params.get("metric") is not None else None)
     add_orderby(params.get("orderby"))
 
     if stored_query_context:
@@ -580,8 +582,17 @@ def _orderby_modified(
         requested.extend(getattr(query, "orderby", None) or [])
 
     for entry in requested:
-        term = entry[0] if isinstance(entry, (list, tuple)) and entry else entry
-        if freeze_value(term) not in allowed:
+        # Order-by entries must be ``(column_or_metric, ascending)`` pairs. A
+        # malformed shape (e.g. a bare string or nested list) is not a valid
+        # sort the chart could have produced, so treat it as tampering rather
+        # than letting it crash query building when it is later unpacked.
+        if not (
+            isinstance(entry, (list, tuple))
+            and len(entry) == 2
+            and isinstance(entry[1], bool)
+        ):
+            return True
+        if freeze_value(entry[0]) not in allowed:
             return True
     return False
 
