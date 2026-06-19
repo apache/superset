@@ -1987,9 +1987,10 @@ def test_extra_cache_regex(sql: str, expected: bool) -> None:
 
 def test_get_guest_user_attribute_no_request_context(mocker: MockerFixture) -> None:
     """
-    Test that get_guest_user_attribute returns default when no request context.
+    Test that get_guest_user_attribute returns default when there is no guest user
+    (e.g. outside of a request context).
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=False)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=False)
 
     cache = ExtraCache()
     result = cache.get_guest_user_attribute("department", "default_dept")
@@ -2000,9 +2001,7 @@ def test_get_guest_user_attribute_no_user(mocker: MockerFixture) -> None:
     """
     Test that get_guest_user_attribute returns default when no user in context.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
-    mock_g = mocker.patch("superset.jinja_context.g")
-    mock_g.user = None
+    mocker.patch("superset.security_manager.is_guest_user", return_value=False)
 
     cache = ExtraCache()
     result = cache.get_guest_user_attribute("department", "default_dept")
@@ -2013,13 +2012,7 @@ def test_get_guest_user_attribute_not_guest_user(mocker: MockerFixture) -> None:
     """
     Test that get_guest_user_attribute returns default when user is not a guest user.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
-    mock_g = mocker.patch("superset.jinja_context.g")
-
-    # Create a regular user (not guest)
-    regular_user = mocker.Mock()
-    regular_user.is_guest_user = False
-    mock_g.user = regular_user
+    mocker.patch("superset.security_manager.is_guest_user", return_value=False)
 
     cache = ExtraCache()
     result = cache.get_guest_user_attribute("department", "default_dept")
@@ -2030,7 +2023,7 @@ def test_get_guest_user_attribute_with_attributes(mocker: MockerFixture) -> None
     """
     Test that get_guest_user_attribute returns correct attribute value for guest user.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create guest user with attributes
@@ -2070,7 +2063,7 @@ def test_get_guest_user_attribute_without_attributes(mocker: MockerFixture) -> N
     Test that get_guest_user_attribute returns default when guest user has no
     attributes.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create guest user without attributes
@@ -2093,7 +2086,7 @@ def test_get_guest_user_attribute_empty_attributes(mocker: MockerFixture) -> Non
     Test that get_guest_user_attribute returns default when guest user has empty
     attributes.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create guest user with empty attributes
@@ -2116,7 +2109,7 @@ def test_get_guest_user_attribute_null_attributes(mocker: MockerFixture) -> None
     Test that get_guest_user_attribute returns default when guest user has null
     attributes.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create guest user with null attributes
@@ -2138,7 +2131,7 @@ def test_get_guest_user_attribute_cache_key_behavior(mocker: MockerFixture) -> N
     """
     Test that get_guest_user_attribute correctly handles cache key behavior.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create guest user with attributes
@@ -2179,7 +2172,7 @@ def test_get_guest_user_attribute_none_value_no_cache(mocker: MockerFixture) -> 
     """
     Test that None values are not added to cache keys.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create guest user with attributes including None value
@@ -2206,30 +2199,11 @@ def test_get_guest_user_attribute_none_value_no_cache(mocker: MockerFixture) -> 
     mock_cache_wrapper.assert_not_called()
 
 
-def test_get_guest_user_attribute_no_guest_token(mocker: MockerFixture) -> None:
-    """
-    Test that get_guest_user_attribute returns default when guest user has no
-    guest_token attribute.
-    """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
-    mock_g = mocker.patch("superset.jinja_context.g")
-
-    # Create mock guest user without guest_token
-    guest_user = mocker.Mock()
-    guest_user.is_guest_user = True
-    del guest_user.guest_token  # Remove guest_token attribute
-    mock_g.user = guest_user
-
-    cache = ExtraCache()
-    result = cache.get_guest_user_attribute("department", "default_dept")
-    assert result == "default_dept"
-
-
 def test_get_guest_user_attribute_various_data_types(mocker: MockerFixture) -> None:
     """
     Test that get_guest_user_attribute handles various data types in attributes.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create guest user with various data types in attributes
@@ -2457,7 +2431,7 @@ def test_get_guest_user_attribute_integration(mocker: MockerFixture) -> None:
         GuestUser,
     )
 
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create a real GuestUser object with attributes
@@ -2517,7 +2491,7 @@ def test_get_guest_user_attribute_json_value_types(mocker: MockerFixture) -> Non
     """
     Test that get_guest_user_attribute properly handles all JSON-native types.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create guest user with attributes of various JSON-native types
@@ -2613,7 +2587,7 @@ def test_get_guest_user_attribute_json_value_defaults(mocker: MockerFixture) -> 
     Test that get_guest_user_attribute properly handles default values of all
     JSON-native types.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create guest user with empty attributes
@@ -2690,7 +2664,7 @@ def test_get_guest_user_attribute_json_cache_key_serialization(
     Test that get_guest_user_attribute properly serializes different JSON types
     for cache keys.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create guest user with various attribute types
@@ -2778,7 +2752,7 @@ def test_get_guest_user_attribute_json_cache_key_consistency(
     Test that identical data structures produce identical cache keys regardless
     of order.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create two guest users with identical dict data but different key order
@@ -2837,7 +2811,7 @@ def test_get_guest_user_attribute_json_edge_cases(mocker: MockerFixture) -> None
     """
     Test edge cases for JSON value handling in get_guest_user_attribute.
     """
-    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
     mock_g = mocker.patch("superset.jinja_context.g")
 
     # Create guest user with edge case attributes
@@ -2913,8 +2887,6 @@ def test_guest_token_serialization_with_attributes() -> None:
     """
     Test that guest tokens with attributes can be serialized/deserialized.
     """
-    import json
-
     guest_token_data = {
         "user": {
             "username": "test_user",

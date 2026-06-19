@@ -128,14 +128,14 @@ class ExtraCache:
     # be added to the cache key.
     regex = re.compile(
         r"(\{\{|\{%)[^{}]*?("
-        r"current_user_id\([^()]*\)|"
-        r"current_username\([^()]*\)|"
-        r"current_user_email\([^()]*\)|"
-        r"current_user_rls_rules\([^()]*\)|"
-        r"current_user_roles\([^()]*\)|"
-        r"cache_key_wrapper\([^()]*\)|"
-        r"url_param\([^()]*\)|"
-        r"get_guest_user_attribute\([^()]*\)|"
+        r"current_user_id\([^)]*\)|"
+        r"current_username\([^)]*\)|"
+        r"current_user_email\([^)]*\)|"
+        r"current_user_rls_rules\([^)]*\)|"
+        r"current_user_roles\([^)]*\)|"
+        r"cache_key_wrapper\([^)]*\)|"
+        r"url_param\([^)]*\)|"
+        r"get_guest_user_attribute\([^)]*\)"
         r")"
         r"[^{}]*?(\}\}|\%\})"
     )
@@ -341,44 +341,26 @@ class ExtraCache:
             {{ get_guest_user_attribute('missing', 'default') }} # Returns: "default"
         """
 
-        # Check if we have a request context and user
-        if not has_request_context():
+        # The macro only applies to guest users (embedded). is_guest_user()
+        # handles the feature-flag and request-context checks internally.
+        if not security_manager.is_guest_user():
             return default
 
-        if not hasattr(g, "user") or g.user is None:
+        token = g.user.guest_token
+        user_attributes = token.get("user", {}).get("attributes") or {}
+
+        # Only add to the cache key if the attribute exists in the guest token
+        if attribute_name not in user_attributes:
             return default
 
-        user = g.user
-
-        # Check if current user is a guest user
-        if not (hasattr(user, "is_guest_user") and user.is_guest_user):
-            return default
-
-        # Get attributes from guest token
-        if hasattr(user, "guest_token") and user.guest_token:
-            token = user.guest_token
-            # ensure token is a mapping before calling .get
-            if not isinstance(token, dict):
-                return default
-            token_user = token.get("user", {})
-            if not isinstance(token_user, dict):
-                return default
-            user_attributes = token_user.get("attributes") or {}
-
-            # Only add to cache key if the variable actually exists in guest token
-            if attribute_name in user_attributes:
-                result = user_attributes[attribute_name]
-                if add_to_cache_keys and result is not None:
-                    # Use json.dumps for consistent serialization of all types
-                    cache_value = json.dumps(result, sort_keys=True)
-                    self.cache_key_wrapper(
-                        f"guest_user_attribute:{attribute_name}:{cache_value}"
-                    )
-                return result
-            else:
-                return default
-
-        return default
+        result = user_attributes[attribute_name]
+        if add_to_cache_keys and result is not None:
+            # Use json.dumps for consistent serialization of all JSON-native types
+            cache_value = json.dumps(result, sort_keys=True)
+            self.cache_key_wrapper(
+                f"guest_user_attribute:{attribute_name}:{cache_value}"
+            )
+        return result
 
     def filter_values(
         self, column: str, default: str | None = None, remove_filter: bool = False
