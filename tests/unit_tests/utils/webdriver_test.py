@@ -877,27 +877,23 @@ class TestWebDriverPlaywrightErrorHandling:
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
-    @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.logger")
     @patch("superset.utils.webdriver.take_tiled_screenshot")
     def test_tiled_screenshot_failure_returns_none_without_fallback(
-        self, mock_take_tiled, mock_logger, mock_sync_playwright
+        self, mock_take_tiled, mock_logger, mock_browser_manager
     ) -> None:
         """When take_tiled_screenshot fails, return None rather than fall back to a
         potentially blank standard screenshot."""
         mock_user = MagicMock()
         mock_user.username = "test_user"
 
-        mock_playwright_instance = MagicMock()
         mock_browser = MagicMock()
         mock_context = MagicMock()
         mock_page = MagicMock()
         mock_element = MagicMock()
 
-        mock_sync_playwright.return_value.__enter__.return_value = (
-            mock_playwright_instance
-        )
-        mock_playwright_instance.chromium.launch.return_value = mock_browser
+        mock_browser_manager.get_browser.return_value = mock_browser
         mock_browser.new_context.return_value = mock_context
         mock_context.new_page.return_value = mock_page
         mock_page.locator.return_value = mock_element
