@@ -44,7 +44,7 @@ test('xAxisForceCategoricalControl should not treat temporal columns as categori
       x_axis: { value: 'date_column' },
       datasource: { datasource: {} },
     } as unknown as ControlStateMapping,
-  } as ControlPanelState;
+  } as unknown as ControlPanelState;
 
   const result = xAxisForceCategoricalControl.config.initialValue!(
     control,
