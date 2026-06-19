@@ -488,6 +488,8 @@ LANGUAGES = {
     "cs": {"flag": "cz", "name": "Czech"},
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
+    "sr": {"flag": "rs", "name": "Serbian (Cyrillic)"},
+    "sr_Latn": {"flag": "rs", "name": "Serbian (Latin)"},
     "lv": {"flag": "lv", "name": "Latvian"},
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "ua", "name": "Ukrainian"},
@@ -2630,6 +2632,27 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 
 
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
+
+
+# Extra access query filters inject additional OR conditions into
+# ChartFilter and DashboardAccessFilter, enabling external systems
+# (e.g. folder permissions) to grant asset visibility.
+# The callable receives the current user ID and returns a subquery of asset IDs.
+class ExtraAccessQueryFilters(TypedDict, total=False):
+    charts: Callable[[int], Query]
+    dashboards: Callable[[int], Query]
+
+
+# Extension hooks for deployments to plug in custom access logic.
+# Additional query filters for chart/dashboard list views.
+EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
+# Bypass raise_for_access for specific assets. Return True to skip checks.
+EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
+# Resolve extra owners for a resource. Also used for ownership checks and
+# to skip auto-adding the current user to owners on create.
+EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
+# Post-create hook for charts/dashboards. Receives (model, asset_type).
+AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
 
 
 # The migrations that add catalog permissions might take a considerably long time

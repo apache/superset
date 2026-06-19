@@ -193,52 +193,57 @@ export default function getControlItemsMap({
               t('Populate "Default value" to enable this control')
             }
           >
-            <StyledRowFormItem
-              expanded={expanded}
-              key={controlItem.name}
-              name={['filters', filterId, 'controlValues', controlItem.name]}
-              initialValue={initialValue}
-              valuePropName="checked"
-              colon={false}
-            >
-              <Checkbox
-                disabled={controlItem.config.affectsDataMask && disabled}
-                onChange={checked => {
-                  if (controlItem.config.requiredFirst) {
-                    setNativeFilterFieldValues(form, filterId, {
-                      requiredFirst: {
-                        ...formFilter?.requiredFirst,
-                        [controlItem.name]: checked,
-                      },
-                    });
-                  }
-                  if (controlItem.config.resetConfig) {
-                    setNativeFilterFieldValues(form, filterId, {
-                      defaultDataMask: null,
-                    });
-                  }
-                  formChanged();
-                  forceUpdate();
-                }}
+            {/* Wrap in span so antd Tooltip can attach a ref without
+                relying on findDOMNode (deprecated in React 18+). */}
+            <span>
+              <StyledRowFormItem
+                expanded={expanded}
+                key={controlItem.name}
+                name={['filters', filterId, 'controlValues', controlItem.name]}
+                initialValue={initialValue}
+                valuePropName="checked"
+                colon={false}
               >
-                <>
-                  {typeof controlItem.config.label === 'function'
-                    ? (controlItem.config.label as Function)()
-                    : controlItem.config.label}
-                  &nbsp;
-                  {controlItem.config.description && (
-                    <InfoTooltip
-                      placement="top"
-                      tooltip={
-                        typeof controlItem.config.description === 'function'
-                          ? (controlItem.config.description as Function)()
-                          : (controlItem.config.description as React.ReactNode)
-                      }
-                    />
-                  )}
-                </>
-              </Checkbox>
-            </StyledRowFormItem>
+                <Checkbox
+                  disabled={controlItem.config.affectsDataMask && disabled}
+                  onChange={checked => {
+                    if (controlItem.config.requiredFirst) {
+                      setNativeFilterFieldValues(form, filterId, {
+                        requiredFirst: {
+                          ...formFilter?.requiredFirst,
+                          [controlItem.name]: checked,
+                        },
+                      });
+                    }
+                    if (controlItem.config.resetConfig) {
+                      setNativeFilterFieldValues(form, filterId, {
+                        defaultDataMask: null,
+                      });
+                    }
+                    formChanged();
+                    forceUpdate();
+                  }}
+                >
+                  <>
+                    {typeof controlItem.config.label === 'function'
+                      ? (controlItem.config.label as Function)()
+                      : controlItem.config.label}
+                    &nbsp;
+                    {controlItem.config.description && (
+                      <InfoTooltip
+                        placement="top"
+                        tooltip={
+                          typeof controlItem.config.description === 'function'
+                            ? (controlItem.config.description as Function)()
+                            : (controlItem.config
+                                .description as React.ReactNode)
+                        }
+                      />
+                    )}
+                  </>
+                </Checkbox>
+              </StyledRowFormItem>
+            </span>
           </Tooltip>
         </>
       );

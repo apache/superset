@@ -1986,7 +1986,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             fields = cls._get_fields(cols)
 
         full_table_name = cls.quote_table(table, dialect)
-        qry = select(fields).select_from(text(full_table_name))
+        qry = select(*fields if isinstance(fields, list) else fields).select_from(
+            text(full_table_name)
+        )
 
         qry = qry.limit(limit)
         if latest_partition:
