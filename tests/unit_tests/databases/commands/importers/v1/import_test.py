@@ -17,6 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, invalid-name
 
 import copy
+import uuid
 
 import pytest
 from flask import current_app
@@ -56,7 +57,7 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     assert database.allow_dml is True
     assert database.allow_file_upload is True
     assert database.extra == "{}"
-    assert database.uuid == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
+    assert database.uuid == uuid.UUID("b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89")
     assert database.is_managed_externally is False
     assert database.external_url is None
 
@@ -89,7 +90,7 @@ def test_import_database_no_creds(mocker: MockerFixture, session: Session) -> No
     assert database.database_name == "imported_database_no_creds"
     assert database.sqlalchemy_uri == "bigquery://test-db/"
     assert database.extra == "{}"
-    assert database.uuid == "2ff17edc-f3fa-4609-a5ac-b484281225bc"
+    assert database.uuid == uuid.UUID("2ff17edc-f3fa-4609-a5ac-b484281225bc")
 
 
 def test_import_database_sqlite_invalid(

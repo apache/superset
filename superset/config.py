@@ -1247,7 +1247,11 @@ CORS_OPTIONS: dict[Any, Any] = {
     "origins": [
         "https://tile.openstreetmap.org",
         "https://tile.osm.ch",
-    ]
+    ],
+    # Make the entity-version-history `ETag` header readable by cross-origin
+    # browser clients. Without this, `fetch()` callers cannot read the header
+    # even when CORS is otherwise permissive.
+    "expose_headers": ["ETag"],
 }
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
@@ -1426,6 +1430,19 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
+
+# Master switch for entity-version-history capture. Default ``True`` —
+# every save of a chart, dashboard, or dataset writes shadow rows + a
+# ``version_changes`` record. Set to ``False`` in ``superset_config.py``
+# (or via the env var of the same name) to disable the two before-flush
+# listeners that drive capture; existing shadow tables stay intact and
+# the /versions/ + /activity/ endpoints continue to work read-only.
+# This is an operational escape hatch — for use when a versioning-induced
+# regression needs a 30-second recovery instead of revert-and-redeploy —
+# not a feature flag. New deployments leave it on.
+ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
+)
 
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None

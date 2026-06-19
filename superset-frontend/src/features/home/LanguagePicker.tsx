@@ -75,7 +75,7 @@ export const useLanguageMenuItems = ({
       type: 'submenu' as const,
       label: (
         <span className="f16" aria-label={t('Languages')}>
-          <i className={`flag ${languages[locale]?.flag ?? 'us'}`} />
+          <i className={`flag ${languages[locale]?.flag ?? ''}`} />
         </span>
       ),
       icon: <Icons.CaretDownOutlined iconSize="xs" />,

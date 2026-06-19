@@ -81,7 +81,10 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
-from superset.exceptions import ScreenshotImageNotAvailableException
+from superset.daos.version import VersionDAO
+from superset.exceptions import (
+    ScreenshotImageNotAvailableException,
+)
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -95,6 +98,14 @@ from superset.utils.screenshots import (
     StatusValues,
 )
 from superset.utils.urls import get_url_path
+from superset.versioning.api_helpers import (
+    get_version_endpoint,
+    list_versions_endpoint,
+    restore_version_endpoint,
+    RestoreEndpointSpec,
+)
+from superset.versioning.etag import set_version_etag
+from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -105,6 +116,26 @@ from superset.views.base_api import (
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
+
+
+def _chart_restore_spec() -> RestoreEndpointSpec:
+    """Build the per-resource restore spec lazily.
+
+    Inline import: the restore command lives in
+    ``superset.commands.chart.restore_version``, which carries the
+    versioning bootstrap path. Defer the import to the method-scope to
+    keep this module's load graph clean of versioning init effects.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.chart.restore_version import RestoreChartVersionCommand
+
+    return RestoreEndpointSpec(
+        command_cls=RestoreChartVersionCommand,
+        not_found_exc=ChartNotFoundError,
+        forbidden_exc=ChartForbiddenError,
+        update_failed_exc=ChartUpdateFailedError,
+        resource_label="chart",
+    )
 
 
 class ChartRestApi(BaseSupersetModelRestApi):
@@ -132,6 +163,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "screenshot",
         "cache_screenshot",
         "warm_up_cache",
+        "list_versions",
+        "get_version",
+        "restore_version",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -238,7 +272,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = CHART_SCHEMAS
+    openapi_spec_component_schemas = CHART_SCHEMAS + (VersionListItemSchema,)
 
     apispec_parameter_schemas = {
         "screenshot_query_schema": screenshot_query_schema,
@@ -312,7 +346,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
             result = self.chart_get_response_schema.dump(dash)
             if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
                 result["extra_owners"] = resolver(dash)
-            return self.response(200, result=result)
+
+            return set_version_etag(
+                self.response(200, result=result),
+                VersionDAO.current_live_version_uuid(Slice, dash.id, dash.uuid),
+            )
         except ChartNotFoundError:
             return self.response_404()
 
@@ -419,6 +457,34 @@ class ChartRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+                      old_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the live row before this
+                          update. Unstable under retention pruning — see
+                          old_transaction_id for a stable identifier.
+                      new_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the newly-live row after
+                          this update. Can equal old_version when no
+                          versioned column changed, or when retention
+                          pruning dropped an older closed row in the same
+                          commit.
+                      old_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: Continuum transaction_id of the live
+                          row before this update. Stable across pruning.
+                      new_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: Continuum transaction_id of the live
+                          row after this update. Differs from
+                          old_transaction_id when the update produced a new
+                          version row.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -437,9 +503,40 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        # pylint: disable=import-outside-toplevel
+        from superset.extensions import db as _db
+
+        pre_chart = _db.session.query(Slice).filter(Slice.id == pk).one_or_none()
+        old_version = VersionDAO.current_version_number(Slice, pk)
+        old_transaction_id = VersionDAO.current_live_transaction_id(Slice, pk)
+        old_version_uuid = (
+            VersionDAO.current_live_version_uuid(Slice, pk, pre_chart.uuid)
+            if pre_chart is not None
+            else None
+        )
+
         try:
             changed_model = UpdateChartCommand(pk, item).run()
-            response = self.response(200, id=changed_model.id, result=item)
+            new_version = VersionDAO.current_version_number(Slice, changed_model.id)
+            new_transaction_id = VersionDAO.current_live_transaction_id(
+                Slice, changed_model.id
+            )
+            new_version_uuid = VersionDAO.current_live_version_uuid(
+                Slice, changed_model.id, changed_model.uuid
+            )
+            response = self.response(
+                200,
+                id=changed_model.id,
+                result=item,
+                old_version=old_version,
+                new_version=new_version,
+                old_transaction_id=old_transaction_id,
+                new_transaction_id=new_transaction_id,
+                old_version_uuid=str(old_version_uuid) if old_version_uuid else None,
+                new_version_uuid=str(new_version_uuid) if new_version_uuid else None,
+            )
+            set_version_etag(response, new_version_uuid)
         except ChartNotFoundError:
             response = self.response_404()
         except ChartForbiddenError:
@@ -1214,3 +1311,165 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/<uuid_str>/versions/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
+        log_to_statsd=False,
+    )
+    def list_versions(self, uuid_str: str) -> Response:
+        """List version history for a chart.
+        ---
+        get:
+          summary: Return the version history for a chart
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Chart UUID
+          responses:
+            200:
+              description: Version history ordered by oldest first
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VersionListItemSchema'
+                      count:
+                        type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return list_versions_endpoint(self, Slice, uuid_str, access_kwarg="chart")
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/",
+        methods=("GET",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
+        log_to_statsd=False,
+    )
+    def get_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Return the chart's state at a specific version.
+        ---
+        get:
+          summary: Read-only snapshot of the chart at a given version
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Chart UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: Version UUID as returned by the list endpoint
+          responses:
+            200:
+              description: Snapshot of the chart at the target version
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        description: >-
+                          The chart's scalar fields at the target version
+                          (entity-specific keys), plus a `_version` block
+                          with the version-level metadata.
+                        properties:
+                          _version:
+                            $ref: '#/components/schemas/VersionListItemSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return get_version_endpoint(
+            self, Slice, uuid_str, version_uuid_str, access_kwarg="chart"
+        )
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/restore",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),  # noqa: E501
+        log_to_statsd=False,
+    )
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a chart to a previous version.
+        ---
+        post:
+          summary: Revert a chart to an earlier version (non-destructive)
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Chart UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: >-
+              Version UUID as returned by the list-versions endpoint.
+              Stable across retention pruning.
+          responses:
+            200:
+              description: Chart was restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        return restore_version_endpoint(
+            self, Slice, uuid_str, version_uuid_str, _chart_restore_spec()
+        )

@@ -167,6 +167,58 @@ Both default to empty (no behavior change). They apply to both the `LOCAL_EXTENS
 ### Dynamic Group By respects the sort toggle for display values
 
 The Dynamic Group By chart customization now orders its display values according to the "Sort display control values" toggle: ascending (A–Z), descending (Z–A), or the dataset's source order when the toggle is unset. Previously the dropdown always sorted alphabetically. Existing dashboards where the toggle was never set will show options in source order instead of A–Z; open the customization and enable the toggle to restore alphabetical ordering.
+### Entity version history for charts, dashboards, and datasets
+
+Saves of charts, dashboards, and datasets now automatically produce a version history — browsable and restorable via new API endpoints. No frontend UI in this release; the backend plumbing is the deliverable.
+
+**New endpoints** (per entity type — same pattern for `chart`, `dashboard`, and `dataset`):
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/{resource}/<uuid>/versions/` | List the entity's version history (0-based `version_number`, `version_uuid`, `issued_at`, `changed_by`) |
+| `GET` | `/api/v1/{resource}/<uuid>/versions/<version_uuid>/` | Get a single version snapshot (scalar fields at that version; plus `columns` / `metrics` for datasets) |
+| `POST` | `/api/v1/{resource}/<uuid>/versions/<version_uuid>/restore` | Restore the entity to the state captured by that version |
+
+`<version_uuid>` is a deterministic `UUIDv5` derived from the entity's UUID and the Continuum transaction id — stable across replicas and retention pruning. Authorisation reuses the resource's existing FAB permissions: list/get require `can_read`; restore requires `can_write`. Object-level access is enforced via `security_manager.raise_for_access`, so viewers who can see the entity can also see its history; only writers can restore.
+
+**Version response shape — `changes` array:**
+
+Each entry returned by `GET /api/v1/{resource}/<uuid>/versions/` and `GET .../versions/<version_uuid>/` includes a `changes` array describing what changed relative to the previous version:
+
+```json
+"changes": [
+  {"kind": "field", "path": "slice_name", "from_value": "Old", "to_value": "New"}
+]
+```
+
+The array is empty for baseline (`operation_type=0`) transactions. `kind` enumerates structured record types (`field`, layout-walker records for dashboards, dataset child diffs for `TableColumn` / `SqlMetric`); `path` is a dotted JSON-pointer-style locator; `from_value` / `to_value` are JSON-safe scalars or compact records.
+
+**Save-response and ETag headers:**
+
+- Save responses (`PUT /api/v1/{resource}/<pk>`) include `old_version_uuid` and `new_version_uuid` body fields so the client can correlate a save with its resulting version row.
+- All entity GETs (`GET /api/v1/{chart,dashboard,dataset}/<pk>`), version-list GETs, single-version GETs, and save responses emit an `ETag: "<version_uuid>"` header reflecting the entity's current live version. The default `CORS_OPTIONS` now sets `expose_headers: ["ETag"]` so cross-origin browser clients can read the header. **No `If-Match` enforcement in v1** — `ETag` is informational; concurrent-edit detection is deferred to a follow-up SIP.
+- **Operators overriding `CORS_OPTIONS` in `superset_config.py` MUST include `"expose_headers": ["ETag"]`** (or merge with the default) for cross-origin clients to read the ETag. A bare `CORS_OPTIONS = {"origins": [...]}` will silently drop the expose-headers default.
+
+**Behaviour changes on save:**
+
+- Every save of a chart, dashboard, or dataset produces one new version row. Rows preserve the full post-save state (scalar fields for all three entity types; `TableColumn` / `SqlMetric` children for datasets; `dashboard_slices` chart membership for dashboards — children versioned via SQLAlchemy-Continuum shadow tables `table_columns_version`, `sql_metrics_version`, and `dashboard_slices_version`).
+- First save after an entity already exists in the DB creates a retroactive baseline version so the UI can show "what this looked like before I edited it."
+- Tags, owners, and roles are **not** versioned in v1 (ADR-005). A restore leaves those at their live values.
+
+**New config keys:**
+
+| Key | Default | Purpose |
+|---|---|---|
+| `ENABLE_VERSIONING_CAPTURE` | `True` | Master switch for the two before-flush listeners that drive version capture. Default-on; set to `False` in `superset_config.py` (or via the env var of the same name) for an operational kill-switch — when a versioning-induced save-path regression needs a 30-second recovery (restart workers, capture stops) instead of revert + redeploy. Existing shadow tables stay; `/versions/` endpoints continue to work read-only against captured history. New deployments leave it on. |
+
+The `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` config key and its nightly retention Celery beat task ship separately in sc-111099 (version-history retention).
+
+**Impact on external integrations:**
+
+- New tables populated on every save — `dashboards_version`, `slices_version`, `tables_version` (parent shadow tables for the three entity types), `table_columns_version`, `sql_metrics_version`, `dashboard_slices_version` (child shadow tables), plus the shared `version_transaction` and `version_changes` tables. External tooling that queries Superset's DB directly will see writes to these tables proportional to save traffic.
+- On MySQL, the large-payload shadow columns (`dashboards_version.{position_json,css,json_metadata}`, `slices_version.params`, `tables_version.sql`, `{table_columns,sql_metrics}_version.{description,expression}`) are declared `MEDIUMTEXT` to match their live counterparts (16 MB) — Postgres `TEXT` is unbounded and SQLite ignores the length. Operators inspecting the schema will see this dialect-specific type; no operator action is required for new deployments.
+- Existing entity endpoints (`GET`/`PUT /api/v1/{chart,dashboard,dataset}/<pk>`) gain an `ETag` response header and the save response gains `old_version_uuid` / `new_version_uuid` body fields. No existing fields are removed or repurposed.
+- Version capture is on by default but operationally disable-able via `ENABLE_VERSIONING_CAPTURE=False` — an escape hatch for capture-induced regressions, not a feature flag. The migrations and the endpoints are not gated; only the listeners that write new shadow rows on save.
 
 ### Selectable encryption engine for app-encrypted fields (AES-GCM)
 
@@ -197,6 +249,27 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
 Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
 
 The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
+
+**Querying the shadow tables — audit columns are frozen at capture time:**
+
+The parent shadow tables (`dashboards_version`, `slices_version`, `tables_version`) deliberately exclude the audit columns `changed_on`, `created_on`, `changed_by_fk`, and `created_by_fk` from version capture. The "who changed this version, and when?" facts live on `version_transaction.user_id` and `version_transaction.issued_at` instead — every shadow row carries a `transaction_id` FK to that row.
+
+Consequence for external tooling: a query that joins a shadow table to `ab_user` via `changed_by_fk` (e.g. `SELECT u.username FROM dashboards_version v JOIN ab_user u ON v.changed_by_fk = u.id`) returns whatever audit metadata was captured at *baseline* time — typically stale or null — not the user who produced the version. The correct join is through the transaction row:
+
+```sql
+SELECT u.username, t.issued_at, v.dashboard_title
+FROM dashboards_version v
+JOIN version_transaction t ON v.transaction_id = t.id
+LEFT JOIN ab_user u ON t.user_id = u.id
+```
+
+The exclusion is deliberate (the audit columns would otherwise grow proportional to save count with redundant data) — but operators writing reports against the shadow tables need to know which join carries the version's authorship.
+
+**Behavior change — `ImportExportMixin.reset_ownership`:**
+
+The ownership-reset helper used by every import/clone/duplicate path was rewritten so that when a Flask user is present in `g.user`, `created_by` and `changed_by` are assigned to that user explicitly. Previously the helper left both fields `None` and relied on the FAB column default to backfill at flush time. The new shape was forced by the versioning capture path: when Continuum-attached relationships are present, the `None` propagates through to the FK and suppresses the column default, leaving the imported entity with no recorded author.
+
+The behavior change applies to **every** `ImportModelsCommand` / `CopyDashboardCommand` / `DuplicateDatasetCommand` invocation, not just versioning-adjacent ones. Operators who notice imported entities now consistently carry the importing user as `created_by` / `changed_by` (where previously some imports landed with `None` audit fields under specific FAB session configurations) are seeing this change.
 
 ### Granular Export Controls
 
@@ -483,6 +556,246 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
     }
   }
   ```
+
+### Composite primary keys on many-to-many association tables
+
+The eight M:N association tables listed below have been changed from a synthetic surrogate `id INTEGER PRIMARY KEY` to a composite `PRIMARY KEY (fk1, fk2)` on the two foreign-key columns. The `id` column is dropped, and the two tables that previously carried a redundant `UNIQUE (fk1, fk2)` constraint have that constraint removed (it is now subsumed by the composite primary key).
+
+**Affected tables and their composite-PK column pairs:**
+
+| Table | Composite PK |
+|---|---|
+| `dashboard_roles` | `(dashboard_id, role_id)` |
+| `dashboard_slices` | `(dashboard_id, slice_id)` |
+| `dashboard_user` | `(user_id, dashboard_id)` |
+| `report_schedule_user` | `(user_id, report_schedule_id)` |
+| `rls_filter_roles` | `(role_id, rls_filter_id)` |
+| `rls_filter_tables` | `(table_id, rls_filter_id)` |
+| `slice_user` | `(user_id, slice_id)` |
+| `sqlatable_user` | `(user_id, table_id)` |
+
+**Impact on external readers:** Any BI tool, custom report, backup script, or external integration that references these tables by their old surrogate `id` column (e.g., `SELECT id FROM dashboard_slices WHERE …`, `WHERE dashboard_slices.id IN (…)`) will break. Update such queries to project or filter on the FK pair (`dashboard_id, slice_id`) instead. The FK columns themselves are unchanged.
+
+**Pre-flight inventory queries.** Before applying the upgrade, operators are encouraged to run the queries below against their database to assess what the migration will change. Two classes of pre-existing data are not preserved by the migration: duplicate `(fk1, fk2)` rows (the migration keeps `MIN(id)` and deletes the rest) and rows with `NULL` in either FK column (the migration deletes them, since FK columns are promoted to `NOT NULL` for the composite PK). Compliance- or audit-sensitive operators should also `\copy` (Postgres) or `SELECT … INTO OUTFILE` (MySQL) the affected rows for their own records before upgrading.
+
+```sql
+-- Duplicate (fk1, fk2) pairs (the migration will keep MIN(id) per group, delete the rest)
+SELECT dashboard_id, role_id, COUNT(*) FROM dashboard_roles GROUP BY dashboard_id, role_id HAVING COUNT(*) > 1;
+SELECT dashboard_id, slice_id, COUNT(*) FROM dashboard_slices GROUP BY dashboard_id, slice_id HAVING COUNT(*) > 1;
+SELECT user_id, dashboard_id, COUNT(*) FROM dashboard_user GROUP BY user_id, dashboard_id HAVING COUNT(*) > 1;
+SELECT user_id, report_schedule_id, COUNT(*) FROM report_schedule_user GROUP BY user_id, report_schedule_id HAVING COUNT(*) > 1;
+SELECT role_id, rls_filter_id, COUNT(*) FROM rls_filter_roles GROUP BY role_id, rls_filter_id HAVING COUNT(*) > 1;
+SELECT table_id, rls_filter_id, COUNT(*) FROM rls_filter_tables GROUP BY table_id, rls_filter_id HAVING COUNT(*) > 1;
+SELECT user_id, slice_id, COUNT(*) FROM slice_user GROUP BY user_id, slice_id HAVING COUNT(*) > 1;
+SELECT user_id, table_id, COUNT(*) FROM sqlatable_user GROUP BY user_id, table_id HAVING COUNT(*) > 1;
+
+-- Rows with a NULL in either FK (the migration will delete these)
+SELECT COUNT(*) FROM dashboard_roles WHERE dashboard_id IS NULL OR role_id IS NULL;
+SELECT COUNT(*) FROM dashboard_slices WHERE dashboard_id IS NULL OR slice_id IS NULL;
+SELECT COUNT(*) FROM dashboard_user WHERE user_id IS NULL OR dashboard_id IS NULL;
+SELECT COUNT(*) FROM report_schedule_user WHERE user_id IS NULL OR report_schedule_id IS NULL;
+SELECT COUNT(*) FROM rls_filter_roles WHERE role_id IS NULL OR rls_filter_id IS NULL;
+SELECT COUNT(*) FROM rls_filter_tables WHERE table_id IS NULL OR rls_filter_id IS NULL;
+SELECT COUNT(*) FROM slice_user WHERE user_id IS NULL OR slice_id IS NULL;
+SELECT COUNT(*) FROM sqlatable_user WHERE user_id IS NULL OR table_id IS NULL;
+```
+
+**Sizing the maintenance window on PostgreSQL.** The queries above are dialect-portable but only count rows. Operators on PostgreSQL can run the diagnostic queries below to characterize the migration's runtime cost ahead of time: per-table row count and on-disk size, an aggregated duplicate roll-up, the external-FK pre-flight check (the migration runs the same check and aborts if it returns rows), and a rewrite-time estimate for the two tables that go through the slower full-table-rebuild path.
+
+```sql
+-- Per-table size, row count, and which migration path each will take.
+-- Two tables ("dashboard_slices", "report_schedule_user") have a
+-- redundant UNIQUE constraint that the migration drops via a full
+-- table rewrite (op.batch_alter_table(recreate="always")). The other
+-- six use direct ALTER TABLE, which is much cheaper.
+WITH affected(name, has_unique) AS (
+  VALUES
+    ('dashboard_roles',       false),
+    ('dashboard_slices',      true),
+    ('dashboard_user',        false),
+    ('report_schedule_user',  true),
+    ('rls_filter_roles',      false),
+    ('rls_filter_tables',     false),
+    ('slice_user',            false),
+    ('sqlatable_user',        false)
+)
+SELECT
+  a.name                                                AS table_name,
+  CASE WHEN a.has_unique THEN 'recreate (full rewrite)'
+       ELSE 'direct ALTER' END                          AS migration_path,
+  c.reltuples::bigint                                   AS estimated_rows,
+  pg_size_pretty(pg_total_relation_size(c.oid))         AS total_size,
+  pg_size_pretty(pg_relation_size(c.oid))               AS heap_size,
+  pg_size_pretty(pg_indexes_size(c.oid))                AS index_size
+FROM affected a
+JOIN pg_class c ON c.relname = a.name AND c.relkind = 'r'
+ORDER BY pg_total_relation_size(c.oid) DESC;
+```
+
+```sql
+-- Aggregated duplicate-row roll-up.
+-- "dup_groups" is the number of (fk1, fk2) pairs that appear more
+-- than once; "rows_dropped" is the total number of rows the
+-- migration will delete during the dedupe pass (it keeps MIN(id) per
+-- group and discards the rest).
+SELECT 'dashboard_roles'      AS t, COUNT(*) AS dup_groups, SUM(c) - COUNT(*) AS rows_dropped
+  FROM (SELECT COUNT(*) c FROM dashboard_roles      GROUP BY dashboard_id, role_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_slices',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_slices     GROUP BY dashboard_id, slice_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_user       GROUP BY user_id, dashboard_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'report_schedule_user',COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM report_schedule_user GROUP BY user_id, report_schedule_id      HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_roles',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_roles     GROUP BY role_id, rls_filter_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_tables',   COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_tables    GROUP BY table_id, rls_filter_id          HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'slice_user',          COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM slice_user           GROUP BY user_id, slice_id                HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'sqlatable_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM sqlatable_user       GROUP BY user_id, table_id                HAVING COUNT(*) > 1) g
+ORDER BY rows_dropped DESC NULLS LAST;
+```
+
+```sql
+-- External-FK pre-flight check.
+-- The migration runs the equivalent check at upgrade time and aborts
+-- if any external FK references one of the soon-to-be-removed `id`
+-- columns. Running it ahead of time lets you discover (and migrate)
+-- any such reference before the maintenance window. On a stock
+-- Superset install this should return zero rows. (Default schema
+-- only; multi-schema deployments need to broaden the lookup.)
+SELECT
+  rc.constraint_name,
+  kcu.table_schema || '.' || kcu.table_name AS referencing_table,
+  kcu.column_name                           AS referencing_column,
+  ccu.table_name                            AS referenced_table,
+  ccu.column_name                           AS referenced_column
+FROM information_schema.referential_constraints rc
+JOIN information_schema.key_column_usage      kcu
+  ON kcu.constraint_name = rc.constraint_name
+ AND kcu.constraint_schema = rc.constraint_schema
+JOIN information_schema.constraint_column_usage ccu
+  ON ccu.constraint_name = rc.constraint_name
+ AND ccu.constraint_schema = rc.constraint_schema
+WHERE ccu.table_name IN (
+        'dashboard_roles','dashboard_slices','dashboard_user',
+        'report_schedule_user','rls_filter_roles','rls_filter_tables',
+        'slice_user','sqlatable_user')
+  AND ccu.column_name = 'id';
+```
+
+```sql
+-- Lock-window estimate for the two full-rewrite tables.
+-- recreate="always" takes ACCESS EXCLUSIVE on the table for the full
+-- rewrite. Use heap size combined with your hardware's effective
+-- write throughput (~100-200 MB/s on commodity SSD; faster on NVMe)
+-- to size the maintenance window. The other six tables use direct
+-- ALTER and are dominated by composite-index build time, typically
+-- seconds for tables in the low millions of rows.
+SELECT
+  c.relname                                              AS table_name,
+  pg_size_pretty(pg_relation_size(c.oid))                AS heap_size,
+  pg_relation_size(c.oid) / 1024 / 1024                  AS heap_size_mb,
+  ROUND(pg_relation_size(c.oid) / 1024 / 1024 / 100.0, 1) AS est_rewrite_seconds_at_100mbs
+FROM pg_class c
+WHERE c.relname IN ('dashboard_slices', 'report_schedule_user');
+```
+
+**Sizing the maintenance window on MySQL.** Equivalent diagnostic queries for MySQL/InnoDB. One important difference from PostgreSQL: InnoDB rebuilds the clustered index on every PK change, so *all eight* tables undergo a full table rebuild on MySQL — not just the two that go through the explicit `recreate="always"` path. The lock-window estimate query below therefore covers all eight tables.
+
+```sql
+-- Per-table size, row count, and which migration path each will take.
+-- TABLE_ROWS is an InnoDB estimate (analogous to PostgreSQL's reltuples);
+-- run SELECT COUNT(*) per table for an exact count if needed.
+SELECT
+  TABLE_NAME AS table_name,
+  CASE WHEN TABLE_NAME IN ('dashboard_slices', 'report_schedule_user')
+       THEN 'recreate (explicit, drops UNIQUE)'
+       ELSE 'direct ALTER (still rebuilds InnoDB clustered index)'
+  END AS migration_path,
+  TABLE_ROWS                                                  AS estimated_rows,
+  CONCAT(ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 1), ' MB') AS total_size,
+  CONCAT(ROUND(DATA_LENGTH / 1024 / 1024, 1), ' MB')          AS heap_size,
+  CONCAT(ROUND(INDEX_LENGTH / 1024 / 1024, 1), ' MB')         AS index_size
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN (
+    'dashboard_roles', 'dashboard_slices', 'dashboard_user',
+    'report_schedule_user', 'rls_filter_roles', 'rls_filter_tables',
+    'slice_user', 'sqlatable_user'
+  )
+ORDER BY (DATA_LENGTH + INDEX_LENGTH) DESC;
+```
+
+```sql
+-- Aggregated duplicate-row roll-up. Same SQL as the PostgreSQL version
+-- (standard SQL); included here for copy-paste convenience.
+SELECT 'dashboard_roles'      AS t, COUNT(*) AS dup_groups, SUM(c) - COUNT(*) AS rows_dropped
+  FROM (SELECT COUNT(*) c FROM dashboard_roles      GROUP BY dashboard_id, role_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_slices',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_slices     GROUP BY dashboard_id, slice_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_user       GROUP BY user_id, dashboard_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'report_schedule_user',COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM report_schedule_user GROUP BY user_id, report_schedule_id      HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_roles',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_roles     GROUP BY role_id, rls_filter_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_tables',   COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_tables    GROUP BY table_id, rls_filter_id          HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'slice_user',          COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM slice_user           GROUP BY user_id, slice_id                HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'sqlatable_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM sqlatable_user       GROUP BY user_id, table_id                HAVING COUNT(*) > 1) g
+ORDER BY rows_dropped DESC;
+```
+
+```sql
+-- External-FK pre-flight check. KEY_COLUMN_USAGE on MySQL carries
+-- both sides of the FK in a single row, so this is simpler than the
+-- PostgreSQL version. Should return zero rows on a stock install.
+SELECT
+  CONSTRAINT_NAME,
+  CONCAT(TABLE_SCHEMA, '.', TABLE_NAME)        AS referencing_table,
+  COLUMN_NAME                                  AS referencing_column,
+  REFERENCED_TABLE_NAME                        AS referenced_table,
+  REFERENCED_COLUMN_NAME                       AS referenced_column
+FROM information_schema.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = DATABASE()
+  AND REFERENCED_TABLE_NAME IN (
+    'dashboard_roles', 'dashboard_slices', 'dashboard_user',
+    'report_schedule_user', 'rls_filter_roles', 'rls_filter_tables',
+    'slice_user', 'sqlatable_user'
+  )
+  AND REFERENCED_COLUMN_NAME = 'id';
+```
+
+```sql
+-- Lock-window estimate for ALL EIGHT tables (InnoDB rebuilds the
+-- clustered index on PK change, so even "direct ALTER" is a rewrite).
+-- ADD PRIMARY KEY is INPLACE but not LOCK=NONE — it allows concurrent
+-- reads but blocks writes. Use heap size combined with your effective
+-- rebuild throughput (~100-200 MB/s on commodity SSD; higher on NVMe).
+SELECT
+  TABLE_NAME                                            AS table_name,
+  CONCAT(ROUND(DATA_LENGTH / 1024 / 1024, 1), ' MB')    AS heap_size,
+  ROUND(DATA_LENGTH / 1024 / 1024, 1)                   AS heap_size_mb,
+  ROUND(DATA_LENGTH / 1024 / 1024 / 100.0, 1)           AS est_rewrite_seconds_at_100mbs
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN (
+    'dashboard_roles', 'dashboard_slices', 'dashboard_user',
+    'report_schedule_user', 'rls_filter_roles', 'rls_filter_tables',
+    'slice_user', 'sqlatable_user'
+  )
+ORDER BY DATA_LENGTH DESC;
+```
+
+**Restoring an old `pg_dump` (or equivalent) against the new schema.** A dump taken before the migration includes `INSERT` statements that populate the now-removed `id` column. Restoring such a dump against the post-migration schema will fail. The supported workaround is to dump only the schema and reference data, then re-create the M:N associations from application data after restore — for example with `pg_dump --exclude-table-data` (or per-table `--exclude-table-data=dashboard_slices` etc.) for the eight junction tables, restore the rest, then run a one-shot script that re-INSERTs `(fk1, fk2)` pairs derived from your application export. Operators who need to restore an old dump verbatim should restore against a pre-migration Superset and then re-run the upgrade.
+
+**Intentional downgrade asymmetry.** The migration's `downgrade()` restores the surrogate `id` column and (for `dashboard_slices` and `report_schedule_user`) the original `UNIQUE (fk1, fk2)` constraint, but it does **not** restore the original `NULL`-allowed state on the FK columns — they remain `NOT NULL`. This is intentional: under SQLAlchemy's `secondary=` semantics, a `NULL` in either FK column of a junction table is meaningless (it cannot participate in either side of the relationship). Operators downgrading are not expected to need this restored. The asymmetry is documented for completeness so that round-trip schema diffs are not mistaken for migration bugs.
+
+**Constraint-name divergence between upgrade and downgrade.** The composite primary key created on upgrade is named `pk_<table>` (Alembic's default for `op.create_primary_key("pk_<table>", ...)`), while the surrogate `id` primary key restored on downgrade is named `<table>_pkey` (PostgreSQL's default convention for `PrimaryKeyConstraint("id")`). The two names alternate so that a round-trip (upgrade → downgrade → upgrade) does not collide on a pre-existing constraint name. Operators using schema-comparison tools (e.g. `pg_diff`, `migra`) against a downgraded database may see this as drift versus a fresh-install schema. It is cosmetic — no application code references either constraint name.
 
 ## 6.0.0
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.

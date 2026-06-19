@@ -16,6 +16,7 @@
 # under the License.
 
 import os
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sqlalchemy.exc import OperationalError
@@ -257,3 +258,67 @@ class TestCreateAppRoot:
 
         assert isinstance(app.wsgi_app, AppRootMiddleware)
         assert app.wsgi_app.app_root == "/from-param"
+
+
+class TestInitVersioning:
+    """Cover the operational instrumentation added to ``init_versioning``
+    in the v4→v5 cycle: the ``ENABLE_VERSIONING_CAPTURE`` kill-switch.
+
+    The happy path (capture on, listeners attach) is exercised by the
+    integration tests; this file pins the behavioural contract on the
+    kill-switch branch that the v5 continuous-delivery review surfaced as
+    load-bearing for operator alerting and recovery.
+
+    (The retention beat-schedule warning check moved to
+    sc-111099-version-history-retention.)"""
+
+    def _initializer(self, config: dict[str, Any]) -> SupersetAppInitializer:
+        """Build a ``SupersetAppInitializer`` against a minimal mock app
+        whose only meaningful attribute is the config dict. The method
+        under test (the kill-switch branch of `init_versioning`) only
+        reads from ``self.config``; nothing about the full Flask app
+        lifecycle is needed."""
+        app = MagicMock()
+        app.config = config
+        return SupersetAppInitializer(app)
+
+    @patch.object(SupersetAppInitializer, "_remove_continuum_write_listeners")
+    @patch("superset.initialization.logger")
+    @patch("superset.versioning.changes.register_change_record_listener")
+    @patch("superset.versioning.baseline.register_baseline_listener")
+    def test_kill_switch_off_skips_listener_registration(
+        self, mock_baseline, mock_change, mock_logger, mock_remove
+    ):
+        """``ENABLE_VERSIONING_CAPTURE=False`` MUST short-circuit
+        ``init_versioning`` before either listener registers, AND detach
+        Continuum's own write listeners — ``make_versioned()`` runs at
+        import of ``superset.extensions``, so skipping only the custom
+        listeners would leave shadow tables silently accumulating,
+        contradicting the documented operator contract. The teardown is
+        patched here because it mutates process-global SQLAlchemy event
+        state (verified empirically against a real app: with the flag off,
+        a chart save grows neither ``slices_version`` nor
+        ``version_transaction``, while ``version_class()`` reads survive).
+
+        The operator's 30-second recovery story relies on both halves."""
+        initializer = self._initializer(
+            {
+                "ENABLE_VERSIONING_CAPTURE": False,
+                "CELERY_CONFIG": None,  # avoid the warn-log noise
+            }
+        )
+
+        initializer.init_versioning()
+
+        mock_baseline.assert_not_called()
+        mock_change.assert_not_called()
+        # Continuum's write listeners must be detached, not just skipped.
+        mock_remove.assert_called_once()
+        # One WARNING explaining the skip — operator-visible in deploy log.
+        assert any(
+            "ENABLE_VERSIONING_CAPTURE is False" in str(call)
+            for call in mock_logger.warning.call_args_list
+        ), (
+            "Expected a WARNING log when ENABLE_VERSIONING_CAPTURE=False; "
+            f"got {mock_logger.warning.call_args_list}"
+        )

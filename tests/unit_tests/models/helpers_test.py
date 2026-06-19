@@ -3193,3 +3193,57 @@ def test_process_sql_expression_no_gate_when_denylists_empty(
         template_processor=None,
     )
     assert result is not None
+
+
+# ---- UUIDMixin._coerce_uuid -----------------------------------------------
+
+
+def test_coerce_uuid_converts_valid_uuid_string() -> None:
+    """The validator coerces a well-formed UUID string to a ``uuid.UUID``
+    instance — that's the primary contract that makes downstream callers
+    (importers, test fixtures, ad-hoc construction) see a consistent
+    ``UUID`` regardless of what they assigned."""
+    import uuid
+
+    from superset.connectors.sqla.models import SqlMetric
+
+    metric = SqlMetric(uuid="00000000-0000-0000-0000-000000000001")
+    assert isinstance(metric.uuid, uuid.UUID)
+    assert metric.uuid == uuid.UUID("00000000-0000-0000-0000-000000000001")
+
+
+def test_coerce_uuid_preserves_uuid_instance_unchanged() -> None:
+    """Already-UUID values must not be re-wrapped or copied."""
+    import uuid
+
+    from superset.connectors.sqla.models import SqlMetric
+
+    u = uuid.uuid4()
+    metric = SqlMetric(uuid=u)
+    # ``is`` check: the validator MUST return the exact instance for UUIDs,
+    # not a copy. Round-tripping through ``uuid.UUID(str(u))`` would also
+    # equal-compare, but defeats this performance contract.
+    assert metric.uuid is u
+
+
+def test_coerce_uuid_passes_non_uuid_strings_through() -> None:
+    """Non-UUID-shaped strings pass through unchanged. This keeps test
+    mocks that use placeholder strings (e.g.
+    ``test_dashboard_schemas.py``'s ``"dashboard-uuid-7"``) working.
+    The SQL bind layer surfaces a clearer error if such a value ever
+    reaches the database. If this contract is ever tightened to raise,
+    the placeholder-using tests need to migrate to ``uuid.uuid4()``."""
+    from superset.connectors.sqla.models import SqlMetric
+
+    metric = SqlMetric(uuid="dashboard-uuid-7")
+    assert metric.uuid == "dashboard-uuid-7"
+
+
+def test_coerce_uuid_passes_none_through() -> None:
+    """``None`` (the unset case before the column default fires) must
+    pass through. ``isinstance(None, str)`` returning False already
+    covers this, but the test pins the contract."""
+    from superset.connectors.sqla.models import SqlMetric
+
+    metric = SqlMetric(uuid=None)
+    assert metric.uuid is None

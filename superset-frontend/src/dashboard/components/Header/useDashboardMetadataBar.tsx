@@ -37,7 +37,7 @@ export const useDashboardMetadataBar = (dashboardInfo: DashboardInfo) => {
         type: MetadataType.Owner as const,
         createdBy: getOwnerName(dashboardInfo.created_by) || t('Not available'),
         owners:
-          dashboardInfo.owners.length > 0
+          dashboardInfo.owners && dashboardInfo.owners.length > 0
             ? dashboardInfo.owners.map(getOwnerName)
             : t('None'),
         createdOn: dashboardInfo.created_on_delta_humanized,

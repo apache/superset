@@ -18918,3 +18918,132 @@ msgstr "© Attribution de la couche"
 
 msgid "№"
 msgstr ""
+msgid "Show Value"
+msgstr "Afficher la valeur"
+
+msgid "Truncate Axis"
+msgstr "Tronquer l'axe"
+
+msgid "deck.gl charts"
+msgstr "Graphiques deck.gl"
+
+# sc-103156 entity-versioning UI strings
+msgid "Removed"
+msgstr "Supprimé"
+
+msgid "Changed"
+msgstr "Modifié"
+
+msgid "Moved"
+msgstr "Déplacé"
+
+msgid "Edited"
+msgstr "Modifié"
+
+msgid "Baseline"
+msgstr "Version initiale"
+
+msgid "Cleared %(field)s"
+msgstr "%(field)s effacé"
+
+msgid "title"
+msgstr "titre"
+
+msgid "chart name"
+msgstr "nom du graphique"
+
+msgid "table name"
+msgstr "nom de la table"
+
+msgid "chart"
+msgstr "graphique"
+
+msgid "row"
+msgstr "ligne"
+
+msgid "column"
+msgstr "colonne"
+
+msgid "tab"
+msgstr "onglet"
+
+msgid "tabs"
+msgstr "onglets"
+
+msgid "header"
+msgstr "en-tête"
+
+msgid "markdown"
+msgstr "markdown"
+
+msgid "divider"
+msgstr "séparateur"
+
+msgid "metric"
+msgstr "mesure"
+
+msgid "Added %(kind)s"
+msgstr "%(kind)s ajouté(e)"
+
+msgid "Added %(kind)s \"%(name)s\""
+msgstr "%(kind)s « %(name)s » ajouté(e)"
+
+msgid "Removed %(kind)s"
+msgstr "%(kind)s supprimé(e)"
+
+msgid "Removed %(kind)s \"%(name)s\""
+msgstr "%(kind)s « %(name)s » supprimé(e)"
+
+msgid "Moved %(kind)s"
+msgstr "%(kind)s déplacé(e)"
+
+msgid "Moved %(kind)s \"%(name)s\""
+msgstr "%(kind)s « %(name)s » déplacé(e)"
+
+msgid "Edited %(kind)s"
+msgstr "%(kind)s modifié(e)"
+
+msgid "Edited %(kind)s \"%(name)s\""
+msgstr "%(kind)s « %(name)s » modifié(e)"
+
+msgid "Changed %(kind)s"
+msgstr "%(kind)s modifié(e)"
+
+msgid "Changed %(kind)s \"%(name)s\""
+msgstr "%(kind)s « %(name)s » modifié(e)"
+
+msgid "Added %(kind)s %(detail)s"
+msgstr "%(kind)s %(detail)s ajouté(e)"
+
+msgid "Removed %(kind)s %(detail)s"
+msgstr "%(kind)s %(detail)s supprimé(e)"
+
+msgid "Changed %(kind)s %(detail)s"
+msgstr "%(kind)s %(detail)s modifié(e)"
+
+msgid "Added chart %(id)s"
+msgstr "Graphique %(id)s ajouté"
+
+msgid "Removed chart %(id)s"
+msgstr "Graphique %(id)s supprimé"
+
+msgid "Changed chart %(id)s"
+msgstr "Graphique %(id)s modifié"
+
+msgid "Added %(field)s"
+msgstr "%(field)s ajouté"
+
+msgid "Removed %(field)s"
+msgstr "%(field)s supprimé"
+
+msgid "Changed %(field)s"
+msgstr "%(field)s modifié"
+
+msgid "Changed %(field)s to \"%(value)s\""
+msgstr "%(field)s changé en « %(value)s »"
+
+msgid "Set %(field)s to \"%(value)s\""
+msgstr "%(field)s défini à « %(value)s »"
+
+msgid "%(first)s (+%(more)s more)"
+msgstr "%(first)s (+%(more)s autres)"
