@@ -17,7 +17,7 @@
 """Regression tests for marshmallow 4.x compatibility.
 
 Marshmallow 4.x requires **kwargs on @validates-decorated methods and
-ships with marshmallow-sqlalchemy >= 1.4.2. These tests confirm that
+ships with marshmallow-sqlalchemy >= 1.5.0. These tests confirm that
 the codebase handles those requirements correctly.
 """
 # pylint: disable=import-outside-toplevel
@@ -148,16 +148,17 @@ def test_fab_field_stubbing_is_single_pass() -> None:
 
 
 def test_marshmallow_sqlalchemy_version() -> None:
-    """Regression: marshmallow-sqlalchemy >= 1.4.2 is required for marshmallow 4.x.
+    """Regression: marshmallow-sqlalchemy >= 1.5.0 is required.
 
-    Versions before 1.4.2 are incompatible with marshmallow 4.x. This test
-    ensures the installed version satisfies the minimum requirement.
+    marshmallow 4.x needs marshmallow-sqlalchemy >= 1.4.x, but 1.4.1/1.4.2 carry
+    a memory regression (issue #665) that exhausts memory in the test suite; only
+    1.5.0 fixes it. This test ensures the installed version is recent enough.
     """
     import marshmallow_sqlalchemy  # noqa: F401  # import to confirm it's installed
 
     installed = version("marshmallow-sqlalchemy")
     parts = [int(x) for x in installed.split(".")[:3]]
-    minimum = [1, 4, 2]
+    minimum = [1, 5, 0]
     assert parts >= minimum, (
-        f"marshmallow-sqlalchemy {installed} is too old; need >= 1.4.2"
+        f"marshmallow-sqlalchemy {installed} is too old; need >= 1.5.0"
     )
