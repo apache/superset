@@ -32,6 +32,7 @@ from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
 from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.dashboard_filter_context import (
+    apply_dashboard_filter_context,
     DashboardFilterContext,
     get_dashboard_filter_context,
 )
@@ -50,11 +51,7 @@ from superset.commands.chart.exceptions import (
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.sqla.models import BaseDatasource
-from superset.constants import (
-    CACHE_DISABLED_TIMEOUT,
-    EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
-    EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
-)
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import event_logger
@@ -204,41 +201,16 @@ class ChartDataRestApi(ChartRestApi):
             except SupersetSecurityException:
                 return self.response_403()
 
-            if dashboard_filter_context.extra_form_data:
-                efd = dashboard_filter_context.extra_form_data
-                extra_filters = efd.get("filters", [])
+            if efd := dashboard_filter_context.extra_form_data:
+                # Note: this helper currently mutates `json_body` and `efd` in place.
+                # Changes won't persist as these are dicts detached from the ORM state,
+                # but highlighting in case they're further used (mind the changes).
+                apply_dashboard_filter_context(json_body, efd)
 
-                for query in json_body.get("queries", []):
-                    if extra_filters:
-                        existing = query.get("filters") or []
-                        query["filters"] = existing + [
-                            {**f, "isExtra": True} for f in extra_filters
-                        ]
-
-                    extras = query.get("extras") or {}
-                    for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
-                        if key in efd:
-                            extras[key] = efd[key]
-                    if extras:
-                        query["extras"] = extras
-
-                    for (
-                        src_key,
-                        target_key,
-                    ) in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
-                        if src_key in efd:
-                            query[target_key] = efd[src_key]
-
-                    query["extra_form_data"] = efd
-
-                # We need to apply the form data to the global context as jinja
-                # templating pulls form data from the request globally, so this
-                # fallback ensures it has the filters and extra_form_data applied
-                # when used in get_sqla_query which constructs the final query.
-
-        # Jinja macros like metric() resolve dataset context from g.form_data
-        # when not given an explicit dataset_id. For GET requests there is no
-        # JSON body, so we must always expose the saved query context here.
+        # We need to apply the form data to the global context as jinja
+        # templating pulls form data from the request globally, so this
+        # fallback ensures it has the filters and extra_form_data applied
+        # when used in get_sqla_query which constructs the final query.
         g.form_data = json_body
 
         try:
