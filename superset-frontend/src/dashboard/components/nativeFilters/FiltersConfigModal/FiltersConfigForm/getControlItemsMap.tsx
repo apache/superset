@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CustomControlItem } from '@superset-ui/chart-controls';
+import {
+  BaseControlConfig,
+  CustomControlItem,
+} from '@superset-ui/chart-controls';
 import { ReactNode, useState, useEffect } from 'react';
 import rison from 'rison';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
@@ -86,8 +89,8 @@ function ControlLabel({
   label,
   description,
 }: {
-  label?: ReactNode | (() => ReactNode);
-  description?: ReactNode | (() => ReactNode);
+  label?: BaseControlConfig['label'];
+  description?: BaseControlConfig['description'];
 }) {
   const resolvedLabel =
     typeof label === 'function' ? (label as () => ReactNode)() : label;
@@ -299,39 +302,43 @@ export default function getControlItemsMap({
               t('Populate "Default value" to enable this control')
             }
           >
-            <StyledRowFormItem
-              expanded={expanded}
-              key={controlItem.name}
-              name={['filters', filterId, 'controlValues', controlItem.name]}
-              initialValue={initialValue}
-              valuePropName="checked"
-              colon={false}
-            >
-              <Checkbox
-                disabled={controlItem.config.affectsDataMask && disabled}
-                onChange={checked => {
-                  if (controlItem.config.requiredFirst) {
-                    setNativeFilterFieldValues(form, filterId, {
-                      requiredFirst: {
-                        ...formFilter?.requiredFirst,
-                        [controlItem.name]: checked,
-                      },
-                    });
-                  }
-                  if (controlItem.config.resetConfig) {
-                    setNativeFilterFieldValues(form, filterId, {
-                      defaultDataMask: null,
-                    });
-                  }
-                  notifyChange();
-                }}
+            {/* Wrap in span so antd Tooltip can attach a ref without
+                relying on findDOMNode (deprecated in React 18+). */}
+            <span>
+              <StyledRowFormItem
+                expanded={expanded}
+                key={controlItem.name}
+                name={['filters', filterId, 'controlValues', controlItem.name]}
+                initialValue={initialValue}
+                valuePropName="checked"
+                colon={false}
               >
-                <ControlLabel
-                  label={controlItem.config.label}
-                  description={controlItem.config.description}
-                />
-              </Checkbox>
-            </StyledRowFormItem>
+                <Checkbox
+                  disabled={controlItem.config.affectsDataMask && disabled}
+                  onChange={checked => {
+                    if (controlItem.config.requiredFirst) {
+                      setNativeFilterFieldValues(form, filterId, {
+                        requiredFirst: {
+                          ...formFilter?.requiredFirst,
+                          [controlItem.name]: checked,
+                        },
+                      });
+                    }
+                    if (controlItem.config.resetConfig) {
+                      setNativeFilterFieldValues(form, filterId, {
+                        defaultDataMask: null,
+                      });
+                    }
+                    notifyChange();
+                  }}
+                >
+                  <ControlLabel
+                    label={controlItem.config.label}
+                    description={controlItem.config.description}
+                  />
+                </Checkbox>
+              </StyledRowFormItem>
+            </span>
           </Tooltip>
         </>
       );

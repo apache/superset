@@ -1437,10 +1437,9 @@ const FiltersConfigForm = (
                                             )}
                                             onChange={value => {
                                               const previous =
-                                                form.getFieldValue(
-                                                  'filters',
-                                                )?.[filterId]?.controlValues ||
-                                                {};
+                                                form.getFieldValue('filters')?.[
+                                                  filterId
+                                                ]?.controlValues || {};
                                               setNativeFilterFieldValues(
                                                 form,
                                                 filterId,

@@ -22,7 +22,9 @@ from marshmallow import ValidationError
 from superset.charts.schemas import (
     ChartDataProphetOptionsSchema,
     ChartDataQueryObjectSchema,
+    ChartDataRollingOptionsSchema,
     ChartPostSchema,
+    ChartPutSchema,
     DEFAULT_MAX_PROPHET_PERIODS,
     get_max_prophet_periods,
     get_time_grain_choices,
@@ -94,6 +96,79 @@ def test_chart_data_prophet_options_schema_time_grain_validation(
     assert "time_grain" in exc_info.value.messages
 
 
+def test_chart_put_schema_query_context_json_validation(
+    app_context: None,
+) -> None:
+    """ChartPutSchema.query_context must reject invalid JSON (parity with POST)."""
+    schema = ChartPutSchema()
+
+    # Valid JSON passes
+    assert schema.load({"query_context": '{"a": 1}'})["query_context"] == '{"a": 1}'
+
+    # None is allowed (allow_none)
+    assert schema.load({"query_context": None})["query_context"] is None
+
+    # Invalid JSON is rejected
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"query_context": "{not valid json"})
+    assert "query_context" in exc_info.value.messages
+
+
+def test_chart_data_prophet_options_schema_periods_range(
+    app_context: None,
+) -> None:
+    """`periods` must be a bounded positive integer."""
+    schema = ChartDataProphetOptionsSchema()
+    base = {"time_grain": "P1D", "confidence_interval": 0.8}
+
+    # Valid value passes
+    assert schema.load({**base, "periods": 7})["periods"] == 7
+
+    # Inclusive boundaries are accepted
+    assert schema.load({**base, "periods": 1})["periods"] == 1
+    assert schema.load({**base, "periods": 10000})["periods"] == 10000
+
+    # Zero rejected (at least one period must be forecast)
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({**base, "periods": 0})
+    assert "periods" in exc_info.value.messages
+
+    # Negative value rejected
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({**base, "periods": -1})
+    assert "periods" in exc_info.value.messages
+
+    # Excessively large value rejected (resource-exhaustion guard)
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({**base, "periods": 1_000_000})
+    assert "periods" in exc_info.value.messages
+
+
+def test_chart_data_rolling_options_schema_window_range(
+    app_context: None,
+) -> None:
+    """`window` must be a bounded positive integer."""
+    schema = ChartDataRollingOptionsSchema()
+    base = {"rolling_type": "mean"}
+
+    # Valid value passes
+    assert schema.load({**base, "window": 7})["window"] == 7
+
+    # Inclusive boundaries are accepted
+    assert schema.load({**base, "window": 1})["window"] == 1
+    assert schema.load({**base, "window": 10000})["window"] == 10000
+
+    # Zero window rejected (rolling requires window > 0)
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({**base, "window": 0})
+    assert "window" in exc_info.value.messages
+
+    # Excessively large window rejected
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({**base, "window": 1_000_000})
+    assert "window" in exc_info.value.messages
+
+
 def test_chart_data_query_object_schema_time_grain_sqla_validation(
     app_context: None,
 ) -> None:
@@ -136,6 +211,53 @@ def test_chart_data_query_object_schema_time_grain_sqla_validation(
     }
     result = schema.load(none_data)
     assert result["extras"]["time_grain_sqla"] is None
+
+
+def test_chart_data_query_object_schema_deprecated_fields_renamed(
+    app_context: None,
+) -> None:
+    """Deprecated query object fields are renamed to their canonical names."""
+    schema = ChartDataQueryObjectSchema()
+
+    # groupby alone → becomes columns
+    result = schema.load({"groupby": ["country_name"]})
+    assert result.get("columns") == ["country_name"]
+    assert "groupby" not in result
+
+    # groupby overwrites columns when both are provided
+    result = schema.load({"groupby": ["region"], "columns": ["country_name"]})
+    assert result.get("columns") == ["region"]
+    assert "groupby" not in result
+
+    # empty groupby is discarded; existing columns is preserved
+    result = schema.load({"groupby": [], "columns": ["country_name"]})
+    assert result.get("columns") == ["country_name"]
+    assert "groupby" not in result
+
+    # null groupby is discarded; existing columns is preserved (allow_none=True)
+    result = schema.load({"groupby": None, "columns": ["country_name"]})
+    assert result.get("columns") == ["country_name"]
+    assert "groupby" not in result
+
+    # no groupby → columns passes through unchanged
+    result = schema.load({"columns": ["country_name"]})
+    assert result.get("columns") == ["country_name"]
+    assert "groupby" not in result
+
+    # granularity_sqla → granularity
+    result = schema.load({"granularity_sqla": "ds"})
+    assert result.get("granularity") == "ds"
+    assert "granularity_sqla" not in result
+
+    # timeseries_limit → series_limit
+    result = schema.load({"timeseries_limit": 5})
+    assert result.get("series_limit") == 5
+    assert "timeseries_limit" not in result
+
+    # timeseries_limit_metric → series_limit_metric
+    result = schema.load({"timeseries_limit_metric": "count"})
+    assert result.get("series_limit_metric") == "count"
+    assert "timeseries_limit_metric" not in result
 
 
 @pytest.mark.parametrize(

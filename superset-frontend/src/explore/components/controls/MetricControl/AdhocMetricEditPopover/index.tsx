@@ -34,7 +34,6 @@ import {
   Tooltip,
 } from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
-import { noOp } from 'src/utils/common';
 import {
   AGGREGATES_OPTIONS,
   POPOVER_INITIAL_HEIGHT,
@@ -105,12 +104,6 @@ interface AdhocMetricEditPopoverState {
   width: number;
   height: number;
 }
-
-const defaultProps = {
-  columns: [],
-  getCurrentTab: noOp,
-  isNewMetric: false,
-};
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -199,8 +192,12 @@ class AdhocMetricEditPopover extends PureComponent<
   }
 
   getDefaultTab() {
-    const { adhocMetric, savedMetric, savedMetricsOptions, isNewMetric } =
-      this.props;
+    const {
+      adhocMetric,
+      savedMetric,
+      savedMetricsOptions,
+      isNewMetric = false,
+    } = this.props;
     if (isDefined(adhocMetric.column) || isDefined(adhocMetric.sqlExpression)) {
       return adhocMetric.expressionType;
     }
@@ -353,7 +350,7 @@ class AdhocMetricEditPopover extends PureComponent<
       onClose,
       onResize,
       datasource,
-      isNewMetric,
+      isNewMetric = false,
       isLabelModified,
       ...popoverProps
     } = this.props;
@@ -606,8 +603,6 @@ class AdhocMetricEditPopover extends PureComponent<
     );
   }
 }
-// @ts-expect-error - defaultProps for backward compatibility
-AdhocMetricEditPopover.defaultProps = defaultProps;
 
 // ---------------------------------------------------------------------------
 // Thin functional wrapper that injects compatibility data from Redux.

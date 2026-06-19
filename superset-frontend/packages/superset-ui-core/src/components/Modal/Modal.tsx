@@ -371,6 +371,9 @@ const CustomModal = ({
             disabled={!draggable || dragDisabled}
             bounds={bounds ?? false}
             onStart={(event, uiData) => onDragStart(event, uiData)}
+            // Pass nodeRef so react-draggable does not fall back to
+            // ReactDOM.findDOMNode (deprecated in React 18+ Strict Mode).
+            nodeRef={draggableRef}
             {...draggableConfig}
           >
             {resizable ? (
