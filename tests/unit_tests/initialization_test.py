@@ -212,6 +212,35 @@ class TestSupersetAppInitializer:
                 assert "secretpass" not in output
                 assert "postgresql://user:***@localhost:5432/db" in output
 
+    def test_check_and_warn_database_connection_invalid_uri(self) -> None:
+        """Test that invalid URIs are handled safely without crashing."""
+        mock_app = MagicMock()
+        mock_app.app_context.return_value.__enter__.return_value = MagicMock()
+
+        with patch("superset.initialization.db") as mock_db:
+            mock_db.engine.execute.side_effect = Exception("Connection Failed")
+
+            with patch.object(
+                SupersetAppInitializer,
+                "database_uri",
+                new_callable=PropertyMock,
+            ) as mock_uri:
+                mock_uri.return_value = "sqlite://"
+                app_initializer = SupersetAppInitializer(mock_app)
+
+                from superset.commands.database.exceptions import DatabaseInvalidError
+
+                with patch(
+                    "superset.initialization.make_url_safe",
+                    side_effect=DatabaseInvalidError(),
+                ):
+                    with patch("builtins.print") as mock_print:
+                        app_initializer.check_and_warn_database_connection()
+
+                mock_print.assert_called_once()
+                output = mock_print.call_args[0][0]
+                assert "ERROR: Cannot connect to database <invalid database URI>" in output
+
 
 class TestCreateAppRoot:
     """Test app root resolution precedence in create_app."""
