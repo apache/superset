@@ -38,7 +38,6 @@ from flask_session import Session
 from sqlalchemy.engine import URL
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import (
     CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
@@ -813,13 +812,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 db.engine.execute("SELECT 1")
         except Exception:
             db_uri = self.database_uri
-            try:
-                safe_uri = make_url_safe(db_uri) if db_uri else "Not configured"
-
-                if isinstance(safe_uri, URL):
-                    safe_uri = safe_uri.render_as_string(hide_password=True)
-            except DatabaseInvalidError:
-                safe_uri = ""
+            safe_uri = (
+                make_url_safe(db_uri).render_as_string(hide_password=True)
+                if db_uri
+                else "Not configured"
+            )
 
             print(
                 f"{Fore.RED}ERROR: Cannot connect to database {safe_uri}\n"

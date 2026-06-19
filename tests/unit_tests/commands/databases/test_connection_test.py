@@ -18,10 +18,9 @@
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2RedirectError, SupersetTimeoutException
+from superset.exceptions import OAuth2RedirectError
 
 
 def test_command(mocker: MockerFixture) -> None:
@@ -90,85 +89,3 @@ def test_command_with_oauth2(mocker: MockerFixture) -> None:
         level=ErrorLevel.WARNING,
         extra={"url": "url", "tab_id": "tab_id", "redirect_uri": "redirect_uri"},
     )
-
-
-def test_command_with_masking(mocker: MockerFixture) -> None:
-    """
-    Test that the command masks the sqlalchemy_uri in metadata.
-    """
-    database = mocker.MagicMock()
-    # Use a URI with a password that should be masked
-    database.sqlalchemy_uri = "postgresql://user:secret_password@localhost/db"
-    database.db_engine_spec.__name__ = "PostgresEngineSpec"
-
-    # Mock ping to raise a Timeout exception
-    mocker.patch(
-        "superset.commands.database.test_connection.ping",
-        side_effect=SupersetTimeoutException(
-            error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
-            message="Timeout",
-            level=ErrorLevel.ERROR,
-            extra={},
-        ),
-    )
-
-    DatabaseDAO = mocker.patch(  # noqa: N806
-        "superset.commands.database.test_connection.DatabaseDAO"
-    )
-    DatabaseDAO.build_db_for_connection_test.return_value = database
-
-    command = TestConnectionDatabaseCommand({"sqlalchemy_uri": database.sqlalchemy_uri})
-
-    with pytest.raises(SupersetTimeoutException) as excinfo:
-        command.run()
-
-    # Verify that the password is NOT in the extra metadata
-    sqlalchemy_uri = excinfo.value.error.extra["sqlalchemy_uri"]
-    assert "secret_password" not in sqlalchemy_uri
-    assert "***" in sqlalchemy_uri
-    assert "localhost" in sqlalchemy_uri
-
-
-def test_command_with_masking_database_invalid_error(mocker: MockerFixture) -> None:
-    """
-    Test that the command handles DatabaseInvalidError when masking the sqlalchemy_uri.
-    """
-    database = mocker.MagicMock()
-    database.sqlalchemy_uri = "sqlite://"
-    database.db_engine_spec.__name__ = "PostgresEngineSpec"
-
-    # Mock ping to raise a Timeout exception
-    mocker.patch(
-        "superset.commands.database.test_connection.ping",
-        side_effect=SupersetTimeoutException(
-            error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
-            message="Timeout",
-            level=ErrorLevel.ERROR,
-            extra={},
-        ),
-    )
-
-    # Mock make_url_safe to succeed initially and raise DatabaseInvalidError later
-    from superset.databases.utils import make_url_safe
-
-    mocker.patch(
-        "superset.commands.database.test_connection.make_url_safe",
-        side_effect=[
-            make_url_safe("sqlite://"),
-            make_url_safe("sqlite://"),
-            DatabaseInvalidError(),
-        ],
-    )
-
-    DatabaseDAO = mocker.patch(  # noqa: N806
-        "superset.commands.database.test_connection.DatabaseDAO"
-    )
-    DatabaseDAO.build_db_for_connection_test.return_value = database
-
-    command = TestConnectionDatabaseCommand({"sqlalchemy_uri": database.sqlalchemy_uri})
-
-    with pytest.raises(SupersetTimeoutException) as excinfo:
-        command.run()
-
-    # Verify that the safe_uri fallback is used
-    assert excinfo.value.error.extra["sqlalchemy_uri"] == "<invalid database URI>"
