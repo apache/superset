@@ -274,7 +274,7 @@ class TestWebDriverSelenium:
         mock_driver_class.assert_called_once()
 
     @patch("superset.utils.webdriver.app")
-    def test_driver_sets_page_load_timeout(self, mock_app_patch):
+    def test_driver_sets_page_load_timeout(self, mock_app_patch: MagicMock) -> None:
         """driver.get() must be bounded so it can't block forever (#40047)."""
         mock_app_patch.config = {
             "SCREENSHOT_LOCATE_WAIT": 10,
@@ -288,7 +288,9 @@ class TestWebDriverSelenium:
         mock_driver.set_page_load_timeout.assert_called_once_with(120)
 
     @patch("superset.utils.webdriver.app")
-    def test_driver_skips_page_load_timeout_when_none(self, mock_app_patch):
+    def test_driver_skips_page_load_timeout_when_none(
+        self, mock_app_patch: MagicMock
+    ) -> None:
         """Setting SCREENSHOT_PAGE_LOAD_WAIT to None disables the bound."""
         mock_app_patch.config = {
             "SCREENSHOT_LOCATE_WAIT": 10,

@@ -16,6 +16,7 @@
 # under the License.
 
 
+from typing import Any
 from unittest import mock
 
 import pandas as pd
@@ -78,19 +79,31 @@ def test_escape_value():
     assert result == "'\rfoo"
 
 
-def fake_get_chart_csv_data_none(chart_url, auth_cookies=None, timeout=None):
+def fake_get_chart_csv_data_none(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: int | None = None,
+) -> bytes | None:
     return None
 
 
-def fake_get_chart_csv_data_empty(chart_url, auth_cookies=None, timeout=None):
+def fake_get_chart_csv_data_empty(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: int | None = None,
+) -> bytes | None:
     # Return JSON with empty data so that the resulting DataFrame is empty
-    fake_result = {
+    fake_result: dict[str, Any] = {
         "result": [{"data": {}, "coltypes": [], "colnames": [], "indexnames": []}]
     }
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_valid(chart_url, auth_cookies=None, timeout=None):
+def fake_get_chart_csv_data_valid(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: int | None = None,
+) -> bytes | None:
     # Return JSON with non-temporal data and valid indexnames so that they are used.
     fake_result = {
         "result": [
@@ -106,7 +119,11 @@ def fake_get_chart_csv_data_valid(chart_url, auth_cookies=None, timeout=None):
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_temporal(chart_url, auth_cookies=None, timeout=None):
+def fake_get_chart_csv_data_temporal(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: int | None = None,
+) -> bytes | None:
     """
     Return JSON with a temporal column and valid indexnames
     so that a MultiIndex is built.
@@ -125,7 +142,11 @@ def fake_get_chart_csv_data_temporal(chart_url, auth_cookies=None, timeout=None)
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_hierarchical(chart_url, auth_cookies=None, timeout=None):
+def fake_get_chart_csv_data_hierarchical(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: int | None = None,
+) -> bytes | None:
     # Return JSON with hierarchical column (list-based) and matching index names.
     fake_result = {
         "result": [
@@ -141,7 +162,11 @@ def fake_get_chart_csv_data_hierarchical(chart_url, auth_cookies=None, timeout=N
     return json.dumps(fake_result).encode("utf-8")
 
 
-def fake_get_chart_csv_data_with_na_values(chart_url, auth_cookies=None, timeout=None):
+def fake_get_chart_csv_data_with_na_values(
+    chart_url: str,
+    auth_cookies: dict[str, str] | None = None,
+    timeout: int | None = None,
+) -> bytes | None:
     # Return JSON with data containing "NA" string value that will be treated as null
     fake_result = {
         "result": [
@@ -387,7 +412,8 @@ def test_get_chart_dataframe_preserves_na_string_values(
 
 def test_get_chart_csv_data_passes_timeout_to_opener(
     monkeypatch: pytest.MonkeyPatch,
-):
+) -> None:
+    """The timeout argument must reach the urllib opener's open() call."""
     # Without a timeout the request blocks forever when the webserver is
     # unreachable, wedging the report schedule in WORKING (issue #40047).
     mock_response = mock.Mock()
@@ -405,10 +431,14 @@ def test_get_chart_csv_data_passes_timeout_to_opener(
     mock_opener.open.assert_called_once_with("http://dummy-url", timeout=42)
 
 
-def test_get_chart_dataframe_forwards_timeout(monkeypatch: pytest.MonkeyPatch):
-    captured = {}
+def test_get_chart_dataframe_forwards_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, int | None] = {}
 
-    def fake(chart_url, auth_cookies=None, timeout=None):
+    def fake(
+        chart_url: str,
+        auth_cookies: dict[str, str] | None = None,
+        timeout: int | None = None,
+    ) -> bytes | None:
         captured["timeout"] = timeout
         return None
 
