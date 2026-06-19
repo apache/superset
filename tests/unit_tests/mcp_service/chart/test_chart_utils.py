@@ -1176,13 +1176,25 @@ class TestGenerateExploreLink:
         self, mock_command, mock_get_base_url
     ) -> None:
         """Test generate_explore_link creates form_data_key when dataset exists"""
+        from superset.explore.permalink.exceptions import (
+            ExplorePermalinkCreateFailedError,
+        )
+
         mock_get_base_url.return_value = "http://localhost:9001"
         mock_command.return_value.run.return_value = "test_form_data_key"
 
-        # Mock dataset exists
+        # Mock dataset exists; force the durable-permalink path to fail so the
+        # function falls back to the ephemeral form_data_key.
         mock_dataset = type("Dataset", (), {"id": 123})()
-        with patch(
-            "superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_dataset
+        with (
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_dataset
+            ),
+            patch(
+                "superset.commands.explore.permalink.create."
+                "CreateExplorePermalinkCommand.run",
+                side_effect=ExplorePermalinkCreateFailedError("permalink unavailable"),
+            ),
         ):
             result = generate_explore_link(123, {"viz_type": "table"})
 
@@ -1190,6 +1202,36 @@ class TestGenerateExploreLink:
             result == "http://localhost:9001/explore/?form_data_key=test_form_data_key"
         )
         mock_command.assert_called_once()
+
+    @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
+    @patch("superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand")
+    def test_generate_explore_link_prefer_permalink_false(
+        self, mock_command, mock_get_base_url
+    ) -> None:
+        """prefer_permalink=False skips the permalink path and returns a
+        form_data_key URL, so preview callers that re-parse the key keep working."""
+        mock_get_base_url.return_value = "http://localhost:9001"
+        mock_command.return_value.run.return_value = "test_form_data_key"
+
+        mock_dataset = type("Dataset", (), {"id": 123})()
+        with (
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_dataset
+            ),
+            patch(
+                "superset.commands.explore.permalink.create."
+                "CreateExplorePermalinkCommand.run"
+            ) as mock_permalink,
+        ):
+            result = generate_explore_link(
+                123, {"viz_type": "table"}, prefer_permalink=False
+            )
+
+        assert (
+            result == "http://localhost:9001/explore/?form_data_key=test_form_data_key"
+        )
+        mock_command.assert_called_once()
+        mock_permalink.assert_not_called()
 
     @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
     def test_generate_explore_link_exception_handling(self, mock_get_base_url) -> None:
