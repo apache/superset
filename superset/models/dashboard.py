@@ -53,6 +53,7 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils, json
+from superset.utils.i18n import translate
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -205,6 +206,21 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         return f"/superset/dashboard/{slug or id_}/"
 
     @property
+    def localized_title(self) -> str | None:
+        """``dashboard_title`` resolved for the viewer's locale.
+
+        Returns the canonical ``dashboard_title`` unchanged unless
+        asset-metadata translation is enabled and a translation exists; see
+        ``superset.utils.i18n``. This is a read-only display value -- editing
+        flows continue to use ``dashboard_title``.
+        """
+        return translate(
+            self.dashboard_title,
+            model_name="Dashboard",
+            field_name="dashboard_title",
+        )
+
+    @property
     def datasources(self) -> set[BaseDatasource]:
         return {slc.datasource for slc in self.slices if slc.datasource}
 
@@ -258,7 +274,11 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
             "certified_by": self.certified_by,
             "certification_details": self.certification_details,
             "css": self.css,
+            # ``dashboard_title`` stays canonical: the layout header seeds
+            # ``meta.text`` from it and persists it on save. The localized value
+            # is exposed separately for display only.
             "dashboard_title": self.dashboard_title,
+            "localized_title": self.localized_title,
             "published": self.published,
             "slug": self.slug,
             "slices": [slc.data for slc in self.slices],

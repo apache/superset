@@ -55,6 +55,9 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   annotationQuery?: object;
   annotationError?: object;
   sliceName?: string;
+  // Display-only localized name. Shown when not editing; editing always
+  // operates on the canonical sliceName.
+  localizedName?: string;
   filters: object;
   handleToggleFullSize: () => void;
   formData: object;
@@ -155,6 +158,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       isCached = [],
       isExpanded = false,
       sliceName = '',
+      localizedName,
       supersetCanExplore = false,
       supersetCanShare = false,
       supersetCanCSV = false,
@@ -267,7 +271,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
             <div>
               <EditableTitle
                 title={
-                  sliceName ||
+                  // Editing operates on the canonical name; display localizes.
+                  (editMode ? sliceName : (localizedName ?? sliceName)) ||
                   (editMode
                     ? '---' // this makes an empty title clickable
                     : '')

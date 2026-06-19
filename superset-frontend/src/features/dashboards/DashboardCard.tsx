@@ -133,7 +133,7 @@ function DashboardCard({
     >
       <ListViewCard
         loading={dashboard.loading || false}
-        title={dashboard.dashboard_title}
+        title={dashboard.localized_title ?? dashboard.dashboard_title}
         certifiedBy={dashboard.certified_by}
         certificationDetails={dashboard.certification_details}
         titleRight={<PublishedLabel isPublished={dashboard.published} />}

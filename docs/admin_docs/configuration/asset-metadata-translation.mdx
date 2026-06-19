@@ -1,0 +1,190 @@
+---
+title: Asset Metadata Translation
+hide_title: true
+sidebar_position: 16
+version: 1
+---
+
+# Asset Metadata Translation
+
+Superset's built-in internationalization (Flask-Babel / gettext) translates the
+application's **UI chrome** — buttons, menus, labels, error messages. It does
+**not** translate user-authored content such as chart names, dashboard titles,
+or axis/metric labels, because those are stored as data rather than as
+translatable source strings.
+
+This feature lets a deployment localize that user-authored metadata, so a chart
+named "Sales" can display as "Ventes" to a French viewer and "Hokohoko" to a
+Māori viewer — while the canonical stored name stays unchanged.
+
+:::info Background
+This implements the read path discussed in
+[SIP-161](https://github.com/apache/superset/issues/32854). Superset core does
+**not** store these translations. It calls a deployment-provided
+`TRANSLATION_HOOK` at render time; where the translations live and how they are
+authored is entirely up to the deployment (a static map, an external machine
+translation service, a database table, gettext `.po` catalogs, …). This keeps
+core minimal and the storage/authoring strategy pluggable.
+:::
+
+## Enabling
+
+Two conditions must both be true, otherwise translation is skipped entirely
+(single-language deployments pay zero cost):
+
+1. The `ENABLE_I18N_ASSET_TRANSLATIONS` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags)
+   is enabled.
+2. More than one language is configured in `LANGUAGES`.
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {
+    "ENABLE_I18N_ASSET_TRANSLATIONS": True,
+}
+
+BABEL_DEFAULT_LOCALE = "en"
+LANGUAGES = {
+    "en": {"flag": "us", "name": "English"},
+    "fr": {"flag": "fr", "name": "French"},
+}
+```
+
+When enabled, the canonical text is always returned unchanged if:
+
+- the active locale is the default locale (`BABEL_DEFAULT_LOCALE`), or
+- no `TRANSLATION_HOOK` is configured, or
+- the hook returns a falsy value (no translation found), or
+- the hook raises (the error is logged; the original text is preserved).
+
+The canonical text is **always** a safe fallback, so a missing or broken
+translation never blanks out a chart or dashboard name.
+
+## The `TRANSLATION_HOOK`
+
+Define a callable in `superset_config.py`. It receives the default (canonical)
+text and the target locale, plus keyword context to disambiguate identical
+strings, and returns the translated text — or a falsy value to fall back.
+
+```python
+def TRANSLATION_HOOK(
+    default_text: str,
+    locale: str,
+    **kwargs,  # e.g. model_name="Dashboard", field_name="dashboard_title"
+) -> str | None:
+    ...
+```
+
+:::tip
+Keep `**kwargs` last so future context can be added without breaking your
+implementation. Treat the hook as a pure, deterministic lookup where possible.
+:::
+
+## The `i18n` Jinja macro
+
+Templated fields (for example a chart axis label or a native filter name, when
+[SQL templating](/admin-docs/configuration/sql-templating) is enabled) can opt
+into translation explicitly:
+
+```jinja
+{{ i18n('Sales') }}
+```
+
+This resolves through the same `TRANSLATION_HOOK` and the same enable gate;
+when the feature is off it simply returns the original text.
+
+## Reference hook implementations
+
+These are starting points — copy one into `superset_config.py` and adapt it.
+
+### 1. Static dictionary
+
+Best for a small, fixed set of strings managed by an administrator.
+
+```python
+_TRANSLATIONS = {
+    ("fr", "Sales"): "Ventes",
+    ("fr", "Sales Dashboard"): "Tableau de bord des ventes",
+    ("mi", "Sales"): "Hokohoko",
+}
+
+def TRANSLATION_HOOK(default_text, locale, **kwargs):
+    return _TRANSLATIONS.get((locale, default_text))
+```
+
+### 2. External machine-translation service
+
+No human authoring; strings are translated on demand. Cache aggressively, since
+the hook is called per field per render.
+
+```python
+from functools import lru_cache
+# from google.cloud import translate_v2 as translate
+# _client = translate.Client()
+
+@lru_cache(maxsize=10_000)
+def _translate(text, locale):
+    # return _client.translate(text, target_language=locale)["translatedText"]
+    ...
+
+def TRANSLATION_HOOK(default_text, locale, **kwargs):
+    try:
+        return _translate(default_text, locale)
+    except Exception:
+        return None  # fall back to canonical text
+```
+
+### 3. gettext `.po` catalogs
+
+Reuse the standard translation toolchain (Poedit, Transifex, Weblate) that
+Superset already uses for UI chrome, keyed by the source string. Maintain a
+separate catalog domain (e.g. `assets`) so content strings don't collide with
+UI strings.
+
+```python
+import gettext
+
+_CATALOGS = {
+    locale: gettext.translation(
+        "assets", localedir="/app/asset_translations", languages=[locale]
+    )
+    for locale in ("fr", "mi")
+}
+
+def TRANSLATION_HOOK(default_text, locale, **kwargs):
+    catalog = _CATALOGS.get(locale)
+    if not catalog:
+        return None
+    translated = catalog.gettext(default_text)
+    return translated if translated != default_text else None
+```
+
+### 4. Database-backed (with authoring)
+
+For deployments that need editors to enter translations in-app, back the hook
+with a table and build (or generate) a small admin surface that writes to it.
+A self-contained reference for this pattern — table model, hook, and a minimal
+seeding/admin flow — is provided as an example rather than shipped in core; see
+the example referenced from the project repository.
+
+```python
+def TRANSLATION_HOOK(default_text, locale, **kwargs):
+    return my_translation_store.lookup(
+        locale=locale,
+        text=default_text,
+        model_name=kwargs.get("model_name"),
+        field_name=kwargs.get("field_name"),
+    )
+```
+
+## What gets translated
+
+| Surface | Field |
+| --- | --- |
+| Chart / dashboard list & cards | `slice_name` / `dashboard_title` |
+| Dashboard view header & chart panel titles | `dashboard_title` / `slice_name` |
+| Home page "Recents" cards | recent-activity item titles |
+| Templated fields via `{{ i18n(...) }}` | any wrapped string |
+
+Editing flows (the chart/dashboard Properties modals, inline title editing)
+always operate on the **canonical** name, so a save can never overwrite the
+stored name with a translation.

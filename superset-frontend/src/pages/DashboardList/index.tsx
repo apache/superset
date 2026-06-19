@@ -108,6 +108,9 @@ export interface Dashboard {
   changed_by: string;
   changed_on?: string;
   dashboard_title: string;
+  // Title resolved for the viewer's locale (read-only); falls back to
+  // dashboard_title. Present only when asset-metadata translation is enabled.
+  localized_title?: string;
   id: number;
   published: boolean;
   url: string;
@@ -123,6 +126,7 @@ const Actions = styled.div`
 const DASHBOARD_COLUMNS_TO_FETCH = [
   'id',
   'dashboard_title',
+  'localized_title',
   'published',
   'url',
   'slug',
@@ -338,24 +342,28 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: {
               url,
-              dashboard_title: dashboardTitle,
+              dashboard_title: canonicalTitle,
+              localized_title: localizedTitle,
               certified_by: certifiedBy,
               certification_details: certificationDetails,
             },
           },
-        }: any) => (
-          <Link to={url} title={dashboardTitle}>
-            {certifiedBy && (
-              <>
-                <CertifiedBadge
-                  certifiedBy={certifiedBy}
-                  details={certificationDetails}
-                />{' '}
-              </>
-            )}
-            {dashboardTitle}
-          </Link>
-        ),
+        }: any) => {
+          const dashboardTitle = localizedTitle ?? canonicalTitle;
+          return (
+            <Link to={url} title={dashboardTitle}>
+              {certifiedBy && (
+                <>
+                  <CertifiedBadge
+                    certifiedBy={certifiedBy}
+                    details={certificationDetails}
+                  />{' '}
+                </>
+              )}
+              {dashboardTitle}
+            </Link>
+          );
+        },
         Header: t('Name'),
         accessor: 'dashboard_title',
         id: 'dashboard_title',

@@ -60,7 +60,11 @@ export interface Dashboard {
   changed_on_utc?: string;
   changed_by: string;
   dashboard_title: string;
+  // Title resolved for the viewer's locale (read-only); falls back to
+  // dashboard_title. Present only when asset-metadata translation is enabled.
+  localized_title?: string;
   slice_name?: string;
+  localized_name?: string;
   id: number;
   published: boolean;
   url: string;

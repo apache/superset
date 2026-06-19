@@ -207,6 +207,57 @@ class TestLogApi(SupersetTestCase):
             ]
         }
 
+    @with_feature_flags(ENABLE_I18N_ASSET_TRANSLATIONS=True)
+    def test_get_recent_activity_localized_title(self):
+        """
+        Log API: recent activity localizes item_title via TRANSLATION_HOOK
+        when asset-metadata translation is enabled and a non-default locale
+        is active. The canonical title is preserved as the translation source.
+        """
+        admin_user = self.get_user("admin")
+        self.login(ADMIN_USERNAME)
+        dash = create_dashboard("loc_slug", "Sales Dashboard", "{}", [])
+        log1 = self.insert_log(
+            "log",
+            admin_user,
+            dashboard_id=dash.id,
+            json='{"event_name": "mount_dashboard"}',
+        )
+
+        def _hook(default_text, locale, **kwargs):
+            if locale == "mi" and default_text == "Sales Dashboard":
+                return "Papatohu Hokohoko"
+            return None
+
+        languages = {
+            "en": {"flag": "us", "name": "English"},
+            "mi": {"flag": "nz", "name": "Māori"},
+        }
+        with (
+            patch.dict(
+                app.config,
+                {"LANGUAGES": languages, "TRANSLATION_HOOK": _hook},
+            ),
+            patch("superset.utils.i18n.get_locale", return_value="mi"),
+        ):
+            rv = self.client.get("api/v1/log/recent_activity/")
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+
+        db.session.delete(log1)
+        db.session.delete(dash)
+        db.session.commit()
+
+        # Find our dashboard's entry by URL rather than assuming ordering, since
+        # the shared test database may contain other recent activity.
+        ours = [
+            item
+            for item in response["result"]
+            if item.get("item_url") == "/superset/dashboard/loc_slug/"
+        ]
+        assert ours, "expected the seeded dashboard in recent activity"
+        assert ours[0]["item_title"] == "Papatohu Hokohoko"
+
     def test_get_recent_activity_actions_filter(self):
         """
         Log API: Test recent activity actions argument

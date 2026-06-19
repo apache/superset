@@ -130,6 +130,10 @@ get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
 #
 id_description = "The id of the chart."
 slice_name_description = "The name of the chart."
+localized_name_description = (
+    "The chart name resolved for the viewer's locale (read-only). "
+    "Falls back to slice_name when no translation applies."
+)
 description_description = "A description of the chart propose."
 viz_type_description = "The type of chart visualization used."
 owners_description = (
@@ -208,6 +212,9 @@ class ChartEntityResponseSchema(Schema):
 
     id = fields.Integer(metadata={"description": id_description})
     slice_name = fields.String(metadata={"description": slice_name_description})
+    localized_name = fields.String(
+        dump_only=True, metadata={"description": localized_name_description}
+    )
     cache_timeout = fields.Integer(metadata={"description": cache_timeout_description})
     changed_on = fields.DateTime(metadata={"description": changed_on_description})
     description = fields.String(metadata={"description": description_description})
@@ -1809,6 +1816,7 @@ class ChartGetResponseSchema(Schema):
     description = fields.String()
     params = fields.String()
     slice_name = fields.String()
+    localized_name = fields.String(dump_only=True)
     thumbnail_url = fields.String()
     viz_type = fields.String()
     query_context = fields.String()

@@ -48,6 +48,7 @@ from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
 from superset.utils import core as utils, json
+from superset.utils.i18n import translate
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
@@ -146,6 +147,21 @@ class Slice(  # pylint: disable=too-many-public-methods
     def datasource(self) -> SqlaTable | None:
         return self.table
 
+    @property
+    def localized_name(self) -> str | None:
+        """``slice_name`` resolved for the viewer's locale.
+
+        Returns the canonical ``slice_name`` unchanged unless asset-metadata
+        translation is enabled and a translation exists; see
+        ``superset.utils.i18n``. This is a read-only display value -- editing
+        flows continue to use ``slice_name``.
+        """
+        return translate(
+            self.slice_name,
+            model_name="Slice",
+            field_name="slice_name",
+        )
+
     def clone(self) -> Slice:
         return Slice(
             slice_name=self.slice_name,
@@ -232,7 +248,11 @@ class Slice(  # pylint: disable=too-many-public-methods
                 else []
             ),
             "slice_id": self.id,
+            # ``slice_name`` stays canonical: the dashboard layout seeds
+            # ``meta.sliceName`` from it and persists it on save. The localized
+            # value is exposed separately for display only.
             "slice_name": self.slice_name,
+            "localized_name": self.localized_name,
             "slice_url": self.slice_url,
             "certified_by": self.certified_by,
             "certification_details": self.certification_details,
