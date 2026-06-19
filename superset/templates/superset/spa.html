@@ -152,6 +152,13 @@
         bootstrap div is the single source of truth; we parse it once and
         stash the pack on a global that the translator reads lazily.
         See upstream issue #35330.
+
+        Trade-off: this ships the full Jed pack inline in every full-page
+        HTML response (only for non-English locales; English injects null)
+        rather than via the separately-cacheable `/language_pack/` fetch.
+        That synchronous availability is the whole point — the async fetch
+        can't guarantee the pack is configured before a code-split chunk
+        evaluates. Acceptable for an SPA where hard reloads are rare.
       #}
       <script nonce="{{ macros.get_nonce() }}">
         (function () {
