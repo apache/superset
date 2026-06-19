@@ -748,10 +748,11 @@ def test_fetch_data_converts_bigquery_row_objects(mocker: MockerFixture) -> None
 def test_string_literal_with_apostrophe() -> None:
     """
     Test that string literals containing apostrophes are properly escaped
-    for BigQuery.
+    for BigQuery using backslash escaping.
 
-    BigQuery uses standard SQL quoting where single quotes delimit string
-    literals and embedded single quotes are escaped by doubling them.
+    BigQuery requires backslash escaping for single quotes ('O\\'Brien').
+    Doubled single quotes ('O''Brien') are NOT valid — BigQuery parses them
+    as two concatenated string literals, causing a syntax error.
     The upstream sqlalchemy-bigquery dialect uses ``repr()`` which switches
     to double-quote delimiters when the value contains an apostrophe.
     Double-quoted tokens are identifiers in BigQuery, causing syntax errors.
@@ -770,11 +771,13 @@ def test_string_literal_with_apostrophe() -> None:
         stmt.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
     )
 
-    # The compiled SQL must use single-quoted literal with doubled apostrophes.
-    # It must NOT contain backslash-escaped or double-quoted forms.
-    assert "= 'Fernando''s'" in compiled_sql
+    # The compiled SQL must use single-quoted literal with backslash-escaped
+    # apostrophes.  Doubled single quotes are NOT valid in BigQuery.
+    assert "= 'Fernando\\'s'" in compiled_sql
+    # Must NOT contain doubled-quote escaping (BigQuery rejects this)
+    assert "''" not in compiled_sql
+    # Must NOT contain double-quoted identifiers
     assert '\\"' not in compiled_sql
-    assert "\\'" not in compiled_sql
 
 
 def test_string_literal_without_apostrophe() -> None:
@@ -800,7 +803,8 @@ def test_string_literal_without_apostrophe() -> None:
 
 def test_string_literal_in_filter_with_apostrophe() -> None:
     """
-    Test that IN filters with apostrophes in values compile correctly.
+    Test that IN filters with apostrophes in values compile correctly
+    using backslash escaping.
     """
     from sqlalchemy import column as sa_column
 
@@ -817,21 +821,27 @@ def test_string_literal_in_filter_with_apostrophe() -> None:
         stmt.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
     )
 
-    assert "'Fernando''s'" in compiled_sql
-    assert "'O''Brien'" in compiled_sql
+    assert "'Fernando\\'s'" in compiled_sql
+    assert "'O\\'Brien'" in compiled_sql
+    # Must NOT contain doubled-quote escaping
+    assert "''" not in compiled_sql
 
 
 def test_process_string_literal_directly() -> None:
     """
-    Test _process_string_literal covers apostrophe doubling and percent
-    escaping for format-string safety.
+    Test _process_string_literal covers backslash escaping for apostrophes
+    and proper handling of existing backslashes.
     """
     from superset.db_engine_specs.bigquery import _process_string_literal
 
     assert _process_string_literal("hello") == "'hello'"
-    assert _process_string_literal("O'Brien") == "'O''Brien'"
-    assert _process_string_literal("100%") == "'100%%'"
-    assert _process_string_literal("it's 100%") == "'it''s 100%%'"
+    assert _process_string_literal("O'Brien") == "'O\\'Brien'"
+    assert _process_string_literal("it's a test") == "'it\\'s a test'"
+    # Backslashes must be escaped before apostrophes
+    assert _process_string_literal("C:\\path") == "'C:\\\\path'"
+    assert _process_string_literal("it's C:\\path") == "'it\\'s C:\\\\path'"
+    # Percent signs are NOT escaped (BigQuery doesn't require it)
+    assert _process_string_literal("100%") == "'100%'"
 
 
 def test_literal_processor_non_bigquery_dialect() -> None:
@@ -897,7 +907,7 @@ def test_literal_processor_returns_process_string_literal_for_bigquery() -> None
     processor = instance.literal_processor(dialect)
 
     assert processor is _process_string_literal
-    assert processor("O'Brien") == "'O''Brien'"
+    assert processor("O'Brien") == "'O\\'Brien'"
     assert processor("plain") == "'plain'"
 
 

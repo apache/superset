@@ -88,18 +88,22 @@ def _process_string_literal(value: str) -> str:
     """
     Escape a string value for use as a BigQuery SQL literal.
 
-    BigQuery uses standard SQL quoting: single quotes delimit string literals,
-    and embedded single quotes are escaped by doubling them.  The upstream
-    sqlalchemy-bigquery dialect relies on Python's ``repr()`` to quote values,
-    which switches to double-quote delimiters when the string contains an
-    apostrophe (e.g. ``repr("O'Brien")`` -> ``"O'Brien"``).  In BigQuery SQL,
-    double-quoted tokens are *identifiers*, not string literals, so the query
-    fails with a syntax error.
+    BigQuery requires backslash escaping for single quotes inside string
+    literals (``'O\\'Brien'``).  Doubled single quotes (``'O''Brien'``) are
+    **not** valid — BigQuery parses them as two concatenated string literals
+    without whitespace, causing a syntax error:
+    ``concatenated string literals must be separated by whitespace``.
 
-    This helper always produces a single-quoted literal with properly doubled
-    internal quotes.
+    The upstream ``sqlalchemy-bigquery`` dialect relies on Python's ``repr()``
+    to quote values, which switches to double-quote delimiters when the string
+    contains an apostrophe (e.g. ``repr("O'Brien")`` → ``"O'Brien"``).
+    In BigQuery SQL, double-quoted tokens are *identifiers*, not string
+    literals, so the query also fails.
+
+    This helper always produces a single-quoted literal with backslash-escaped
+    internal quotes, following BigQuery's lexical rules.
     """
-    escaped = value.replace("'", "''").replace("%", "%%")
+    escaped = value.replace("\\", "\\\\").replace("'", "\\'")
     return f"'{escaped}'"
 
 
@@ -110,7 +114,10 @@ def _monkeypatch_bigquery_string_literal() -> None:
 
     Without this patch, a filter value like ``O'Brien`` is compiled as the
     double-quoted identifier ``"O'Brien"`` instead of the single-quoted literal
-    ``'O''Brien'``, causing BigQuery to return a syntax error.
+    ``'O\\'Brien'``, causing BigQuery to return a syntax error.
+
+    This follows the same pattern used for the Databricks dialect fix in
+    ``superset/db_engine_specs/databricks.py``.
     """
     try:
         from sqlalchemy_bigquery import BigQueryDialect
