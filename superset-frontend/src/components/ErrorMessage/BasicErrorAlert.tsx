@@ -17,7 +17,11 @@
  * under the License.
  */
 import { ErrorLevel } from '@superset-ui/core';
-import { styled, useTheme, getColorVariants } from '@apache-superset/core/ui';
+import {
+  styled,
+  useTheme,
+  getColorVariants,
+} from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components';
 
 const StyledContent = styled.div`

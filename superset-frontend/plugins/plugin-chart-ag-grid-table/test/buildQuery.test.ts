@@ -90,7 +90,7 @@ describe('plugin-chart-ag-grid-table', () => {
         },
       ).queries[0];
 
-      expect(query.orderby).toEqual([['degree_type', true]]);
+      expect(query.orderby).toEqual([['Highest Degree', true]]);
     });
 
     test('should map string metric colId to backend identifier', () => {
@@ -265,6 +265,25 @@ describe('plugin-chart-ag-grid-table', () => {
         ['state', true],
         ['city', false],
       ]);
+    });
+
+    test('should use label (not sqlExpression) for adhoc column in CSV export sortModel', () => {
+      const adhocColumn = createAdhocColumn('sales / 100', 'Margin');
+
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          groupby: [adhocColumn],
+          result_format: 'csv',
+        },
+        {
+          ownState: {
+            sortModel: [{ colId: 'Margin', sort: 'desc' }],
+          },
+        },
+      ).queries[0];
+
+      expect(query.orderby?.[0]).toEqual(['Margin', false]);
     });
 
     test('should not add tie-breaker for non-download queries with server pagination', () => {
@@ -1088,6 +1107,260 @@ describe('plugin-chart-ag-grid-table', () => {
       }).queries[0];
 
       expect(query.metrics).toEqual([]);
+    });
+  });
+
+  describe('buildQuery - label-to-SQL resolution in WHERE/HAVING', () => {
+    test('should resolve inline SQL metric labels in WHERE clause', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          metrics: [
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'SUM(revenue)',
+              label: 'Total Revenue',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridComplexWhere: 'Total Revenue > 1000',
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toBe('(SUM(revenue)) > 1000');
+    });
+
+    test('should resolve SIMPLE metric labels in HAVING clause', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          metrics: [
+            {
+              expressionType: 'SIMPLE',
+              aggregate: 'SUM',
+              column: { column_name: 'revenue' },
+              label: 'Total Revenue',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridHavingClause: 'Total Revenue > 1000',
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.having).toBe('(SUM(revenue)) > 1000');
+    });
+
+    test('should resolve adhoc column SQL expressions in WHERE clause', () => {
+      const adhocColumn = createAdhocColumn('UPPER(city)', 'City Upper');
+
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          groupby: [adhocColumn],
+        },
+        {
+          ownState: {
+            agGridComplexWhere: "City Upper = 'NEW YORK'",
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toContain('UPPER(city)');
+    });
+
+    test('should wrap CASE expressions in parentheses', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+        },
+        {
+          ownState: {
+            agGridComplexWhere: "degree_level = 'High'",
+            metricSqlExpressions: {
+              degree_level:
+                "CASE WHEN degree = 'PhD' THEN 'High' ELSE 'Low' END",
+            },
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toBe(
+        "(CASE WHEN degree = 'PhD' THEN 'High' ELSE 'Low' END) = 'High'",
+      );
+    });
+
+    test('should wrap aggregate expressions in parentheses', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+        },
+        {
+          ownState: {
+            agGridHavingClause: 'total_count > 100',
+            metricSqlExpressions: {
+              total_count: 'COUNT(*)',
+            },
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.having).toBe('(COUNT(*)) > 100');
+    });
+
+    test('should quote simple column names without parentheses', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+        },
+        {
+          ownState: {
+            agGridComplexWhere: "status = 'active'",
+            metricSqlExpressions: {
+              status: 'user_status',
+            },
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toBe("user_status = 'active'");
+    });
+
+    test('should resolve longer labels before shorter ones', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          metrics: [
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'COUNT(*)',
+              label: 'count',
+            },
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'COUNT(DISTINCT id)',
+              label: 'count_distinct',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridHavingClause: 'count_distinct > 5 AND count > 10',
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.having).toContain('(COUNT(DISTINCT id)) > 5');
+      expect(query.extras?.having).toContain('(COUNT(*)) > 10');
+    });
+
+    test('should prefer query-level expressions over datasource-level', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          metrics: [
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'SUM(amount)',
+              label: 'total',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridHavingClause: 'total > 500',
+            metricSqlExpressions: {
+              total: 'SUM(old_amount)',
+            },
+          },
+        },
+      ).queries[0];
+
+      // Query-level SUM(amount) should win over datasource-level SUM(old_amount)
+      expect(query.extras?.having).toBe('(SUM(amount)) > 500');
+    });
+
+    test('should not modify clause when no labels match', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+        },
+        {
+          ownState: {
+            agGridComplexWhere: 'physical_column > 10',
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toBe('physical_column > 10');
+    });
+
+    test('should resolve labels in both WHERE and HAVING simultaneously', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: true,
+          metrics: [
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'SUM(sales)',
+              label: 'Total Sales',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridComplexWhere: "region = 'West'",
+            agGridHavingClause: 'Total Sales > 1000',
+            metricSqlExpressions: {
+              region: "CASE WHEN area = 'W' THEN 'West' ELSE 'East' END",
+            },
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where).toContain('CASE WHEN');
+      expect(query.extras?.having).toBe('(SUM(sales)) > 1000');
+    });
+
+    test('should not resolve labels when server pagination is disabled', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          server_pagination: false,
+          metrics: [
+            {
+              expressionType: 'SQL',
+              sqlExpression: 'SUM(revenue)',
+              label: 'Total Revenue',
+            },
+          ],
+        },
+        {
+          ownState: {
+            agGridComplexWhere: 'Total Revenue > 1000',
+            metricSqlExpressions: {
+              some_col: 'COUNT(*)',
+            },
+          },
+        },
+      ).queries[0];
+
+      expect(query.extras?.where || undefined).toBeUndefined();
     });
   });
 });

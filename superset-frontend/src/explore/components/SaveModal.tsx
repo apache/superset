@@ -33,14 +33,26 @@ import {
   Input,
   Loading,
   Divider,
+  Flex,
+  Typography,
   TreeSelect,
 } from '@superset-ui/core/components';
-import { t, logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import { DatasourceType, isDefined, SupersetClient } from '@superset-ui/core';
-import { css, styled, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import {
+  css,
+  styled,
+  withTheme,
+  type SupersetTheme,
+} from '@apache-superset/core/theme';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
-import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
+import {
+  canUserEditDashboard,
+  isUserAdmin,
+} from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType, ChartStatusType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -63,10 +75,12 @@ interface SaveModalProps extends RouteComponentProps {
   alert?: string;
   sliceName?: string;
   slice?: Record<string, any>;
+  can_overwrite?: boolean;
   datasource?: Record<string, any>;
   dashboardId: '' | number | null;
   isVisible: boolean;
   dispatch: Dispatch;
+  theme: SupersetTheme;
 }
 
 type SaveModalState = {
@@ -83,11 +97,6 @@ type SaveModalState = {
 export const StyledModal = styled(Modal)`
   .ant-modal-body {
     overflow: visible;
-  }
-  i {
-    position: absolute;
-    top: -${({ theme }) => theme.sizeUnit * 5.25}px;
-    left: ${({ theme }) => theme.sizeUnit * 26.75}px;
   }
 `;
 
@@ -120,7 +129,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   canOverwriteSlice(): boolean {
     return (
-      this.props.slice?.owners?.includes(this.props.user.userId) &&
+      (this.props.can_overwrite ||
+        isUserAdmin(this.props.user) ||
+        this.props.slice?.owners?.includes(this.props.user.userId)) &&
       !this.props.slice?.is_managed_externally
     );
   }
@@ -163,17 +174,21 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     this.setState({ newSliceName: event.target.value });
   }
 
-  onDashboardChange = async (dashboard: {
-    label: string;
-    value: string | number;
-  }) => {
+  onDashboardChange = async (
+    dashboard:
+      | {
+          label: string;
+          value: string | number;
+        }
+      | undefined,
+  ) => {
     this.setState({
       dashboard,
       tabsData: [],
       selectedTab: undefined,
     });
 
-    if (typeof dashboard.value === 'number') {
+    if (dashboard && typeof dashboard.value === 'number') {
       await this.loadTabs(dashboard.value);
     }
   };
@@ -187,10 +202,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   handleRedirect = (windowLocationSearch: string, chart: any) => {
     const searchParams = new URLSearchParams(windowLocationSearch);
-    searchParams.set('save_action', this.state.action);
-
     searchParams.delete('form_data_key');
-
     searchParams.set('slice_id', chart.id.toString());
     return searchParams;
   };
@@ -334,7 +346,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         return;
       }
       const searchParams = this.handleRedirect(window.location.search, value);
-      this.props.history.replace(`/explore/?${searchParams.toString()}`);
+      this.props.history.replace(`/explore/?${searchParams.toString()}`, {
+        saveAction: this.state.action,
+      });
 
       this.setState({ isLoading: false });
       this.onHide();
@@ -590,18 +604,32 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   renderSaveChartModal = () => {
     const info = this.info();
+    const canOverwriteSlice = this.canOverwriteSlice();
     return (
       <Form data-test="save-modal-body" layout="vertical">
         <FormItem data-test="radio-group">
           <Radio
             id="overwrite-radio"
-            disabled={!this.canOverwriteSlice()}
+            disabled={!canOverwriteSlice}
             checked={this.state.action === 'overwrite'}
             onChange={() => this.changeAction('overwrite')}
             data-test="save-overwrite-radio"
           >
             {t('Save (Overwrite)')}
           </Radio>
+          {this.props.slice && !canOverwriteSlice && (
+            <div>
+              <Typography.Text type="secondary">
+                {this.props.slice.is_managed_externally
+                  ? t(
+                      "This chart is managed externally and can't be overwritten in Superset.",
+                    )
+                  : t(
+                      'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+                    )}
+              </Typography.Text>
+            </div>
+          )}
           <Radio
             id="saveas-radio"
             data-test="saveas-radio"
@@ -616,22 +644,32 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           <Input
             name="new_slice_name"
             type="text"
-            placeholder="Name"
+            placeholder={t('Name')}
             value={this.state.newSliceName}
             onChange={this.onSliceNameChange}
             data-test="new-chart-name"
           />
         </FormItem>
         {this.props.datasource?.type === 'query' && (
-          <FormItem label={t('Dataset Name')} required>
-            <InfoTooltip
-              tooltip={t('A reusable dataset will be saved with your chart.')}
-              placement="right"
-            />
+          <FormItem
+            label={
+              <Flex align="center" gap={this.props.theme.sizeUnit}>
+                {t('Dataset Name')}
+                <InfoTooltip
+                  data-test="info-tooltip-icon"
+                  tooltip={t(
+                    'A reusable dataset will be saved with your chart.',
+                  )}
+                  placement="right"
+                />
+              </Flex>
+            }
+            required
+          >
             <Input
               name="dataset_name"
               type="text"
-              placeholder="Dataset Name"
+              placeholder={t('Dataset Name')}
               value={this.state.datasetName}
               onChange={this.handleDatasetNameChange}
               data-test="new-dataset-name"
@@ -783,6 +821,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 interface StateProps {
   datasource: any;
   slice: any;
+  can_overwrite: boolean;
   user: UserWithPermissionsAndRoles;
   dashboards: any;
   alert: any;
@@ -797,6 +836,7 @@ function mapStateToProps({
   return {
     datasource: explore.datasource,
     slice: explore.slice,
+    can_overwrite: explore.can_overwrite,
     user,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
@@ -804,7 +844,7 @@ function mapStateToProps({
   };
 }
 
-export default withRouter(connect(mapStateToProps)(SaveModal));
+export default withRouter(connect(mapStateToProps)(withTheme(SaveModal)));
 
 // User for testing purposes need to revisit once we convert this to functional component
 export { SaveModal as PureSaveModal };

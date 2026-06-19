@@ -111,5 +111,5 @@ InteractiveMenu.parameters = {
 
 - **Generator**: `docs/scripts/generate-superset-components.mjs`
 - **Wrapper**: `docs/src/components/StorybookWrapper.jsx`
-- **Output**: `docs/developer_portal/components/`
+- **Output**: `docs/developer_docs/components/`
 - **Stories**: `superset-frontend/packages/superset-ui-core/src/components/*/`

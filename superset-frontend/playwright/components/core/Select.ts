@@ -18,6 +18,7 @@
  */
 
 import { Locator, Page } from '@playwright/test';
+import { TIMEOUT } from '../../utils/constants';
 
 /**
  * Ant Design Select component selectors
@@ -87,7 +88,7 @@ export class Select {
     await this.page
       .locator(`${SELECT_SELECTORS.DROPDOWN}:not(.ant-select-dropdown-hidden)`)
       .last()
-      .waitFor({ state: 'hidden', timeout: 5000 })
+      .waitFor({ state: 'hidden', timeout: TIMEOUT.UI_TRANSITION })
       .catch(error => {
         // Only ignore TimeoutError (dropdown may already be closed); re-throw others
         if (!(error instanceof Error) || error.name !== 'TimeoutError') {

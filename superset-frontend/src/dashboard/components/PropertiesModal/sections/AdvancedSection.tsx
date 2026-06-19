@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import type { editors } from '@apache-superset/core';
 import { EditorHost } from 'src/core/editors';
 import { ModalFormField } from 'src/components/Modal';
@@ -84,7 +84,7 @@ const AdvancedSection = ({
       tabSize={2}
       wordWrap
       width="100%"
-      height="200px"
+      height="60vh"
       annotations={toEditorAnnotations(jsonAnnotations)}
     />
   </ModalFormField>

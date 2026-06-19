@@ -71,16 +71,32 @@ case "${1}" in
   worker)
     echo "Starting Celery worker..."
     # setting up only 2 workers by default to contain memory usage in dev environments
-    celery --app=superset.tasks.celery_app:app worker -O fair -l INFO --concurrency=${CELERYD_CONCURRENCY:-2}
+    celery --app=superset.tasks.celery_app:app worker -O fair -l INFO --concurrency=${CELERYD_CONCURRENCY:-2} ${WORKER_LOG_FILE:+--logfile=$WORKER_LOG_FILE}
     ;;
   beat)
     echo "Starting Celery beat..."
     rm -f /tmp/celerybeat.pid
-    celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid -l INFO -s "${SUPERSET_HOME}"/celerybeat-schedule
+    celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid -l INFO -s "${SUPERSET_HOME}"/celerybeat-schedule ${BEAT_LOG_FILE:+--logfile=$BEAT_LOG_FILE}
     ;;
   app)
     echo "Starting web app (using development server)..."
-    flask run -p $PORT --reload --debugger --without-threads --host=0.0.0.0 --exclude-patterns "*/node_modules/*:*/.venv/*:*/build/*:*/__pycache__/*"
+
+    # Environment-based debugger control for security
+    # Only enable Werkzeug interactive debugger when explicitly requested
+    # Modern Werkzeug (3.0+) includes PIN protection, but defense-in-depth approach
+    # Override FLASK_DEBUG so the effective state matches SUPERSET_DEBUG_ENABLED even
+    # when FLASK_DEBUG=true is inherited from docker/.env or .flaskenv
+    if [[ "${SUPERSET_DEBUG_ENABLED:-}" == "true" ]]; then
+        export FLASK_DEBUG=1
+        DEBUGGER_FLAG="--debugger"
+        echo "  ⚠️  Werkzeug debugger enabled (requires PIN for /console access)"
+    else
+        export FLASK_DEBUG=0
+        DEBUGGER_FLAG="--no-debugger"
+        echo "  🔒 Werkzeug debugger disabled (set SUPERSET_DEBUG_ENABLED=true to enable)"
+    fi
+
+    flask run -p $PORT --reload $DEBUGGER_FLAG --host=0.0.0.0 --exclude-patterns "*/node_modules/*:*/.venv/*:*/build/*:*/__pycache__/*:*/superset-frontend/*"
     ;;
   app-gunicorn)
     echo "Starting web app..."

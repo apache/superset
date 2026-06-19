@@ -19,7 +19,7 @@
 import { isValidElement } from 'react';
 import { render, screen } from '@superset-ui/core/spec';
 import '@testing-library/jest-dom';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { ColumnTypeLabel, ColumnTypeLabelProps } from '../../src';
 
 describe('ColumnOption', () => {

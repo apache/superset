@@ -19,11 +19,15 @@
 import {
   AnnotationStyle,
   AnnotationType,
+  AnnotationSourceType,
+  AxisType,
   DataRecord,
   FormulaAnnotationLayer,
+  IntervalAnnotationLayer,
   VizType,
   ChartDataResponseResult,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   LegendOrientation,
   LegendType,
@@ -108,11 +112,11 @@ const formData: EchartsMixedTimeseriesFormData = {
   truncateYAxisSecondary: false,
   xAxisLabelRotation: 0,
   xAxisTitle: '',
-  xAxisTitleMargin: 0,
+  xAxisTitleMargin: 40,
   yAxisBounds: [undefined, undefined],
   yAxisBoundsSecondary: [undefined, undefined],
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 50,
   yAxisTitlePosition: '',
   yAxisTitleSecondary: '',
   zoomable: false,
@@ -366,6 +370,67 @@ test('legend margin: right orientation sets grid.right correctly', () => {
   expect((transformed.echartOptions.grid as any).right).toEqual(270);
 });
 
+test('should exclude unnamed annotation helper series from legend data', () => {
+  const interval: IntervalAnnotationLayer = {
+    annotationType: AnnotationType.Interval,
+    name: 'My Interval',
+    show: true,
+    showLabel: true,
+    sourceType: AnnotationSourceType.Table,
+    titleColumn: '',
+    timeColumn: 'start',
+    intervalEndColumn: 'end',
+    descriptionColumns: [],
+    style: AnnotationStyle.Dashed,
+    value: 2,
+  };
+
+  const annotationData = {
+    'My Interval': {
+      columns: ['start', 'end', 'title'],
+      records: [
+        {
+          start: 2000,
+          end: 3000,
+          title: 'My Title',
+        },
+      ],
+    },
+  };
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [],
+    formData: {
+      ...formData,
+      annotationLayers: [interval],
+      showLegend: true,
+      showQueryIdentifiers: true,
+    },
+    queriesData: [
+      createTestQueryData(defaultQueryRows, {
+        label_map: defaultLabelMap,
+        annotation_data: annotationData,
+      }),
+      createTestQueryData(defaultQueryRows, {
+        label_map: defaultLabelMap,
+        annotation_data: annotationData,
+      }),
+    ],
+  });
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.legend as any).data).toEqual([
+    'sum__num (Query A), girl',
+    'sum__num (Query A), boy',
+    'sum__num (Query B), girl',
+    'sum__num (Query B), boy',
+  ]);
+});
+
 test('should add a formula annotation when X-axis column has dataset-level label', () => {
   const formula: FormulaAnnotationLayer = {
     name: 'My Formula',
@@ -431,5 +496,135 @@ test('should add a formula annotation when X-axis column has dataset-level label
   expect(formulaSeries).toBeDefined();
   expect(formulaSeries?.data).toBeDefined();
   expect(Array.isArray(formulaSeries?.data)).toBe(true);
-  expect((formulaSeries?.data as unknown[]).length).toBeGreaterThan(0);
+  expect((formulaSeries!.data as unknown[]).length).toBeGreaterThan(0);
+});
+
+test('numeric x coltype never gets silently coerced to the Time axis', () => {
+  // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation.
+  // Mixed Timeseries must follow the reported coltype: Numeric values stay
+  // off the Time axis and are not silently reinterpreted as Date instances.
+  // A future change that coerces Numeric → Time would bring back the "NaN"
+  // label symptom we were investigating. We also assert that whichever
+  // formatter is picked, it produces a string and does not emit "NaN".
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const epochRows = [
+    { __timestamp: ts1, metric: 10 },
+    { __timestamp: ts2, metric: 20 },
+  ];
+  const epochQueryData = createTestQueryData(epochRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [epochQueryData, epochQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+    },
+    queriesData: [epochQueryData, epochQueryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: number) => string };
+  };
+
+  expect(xAxis.type).not.toBe(AxisType.Time);
+  const label = xAxis.axisLabel.formatter(ts1);
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
+});
+
+test('xAxisForceCategorical forces Category axis regardless of Numeric coltype', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const epochRows = [
+    { __timestamp: ts1, metric: 10 },
+    { __timestamp: ts2, metric: 20 },
+  ];
+  const epochQueryData = createTestQueryData(epochRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [epochQueryData, epochQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+      xAxisForceCategorical: true,
+    },
+    queriesData: [epochQueryData, epochQueryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as { type: string };
+
+  expect(xAxis.type).toBe(AxisType.Category);
+});
+
+test('temporal x coltype wires the time formatter and Time axis', () => {
+  // Regression guard: the happy path for mixed-timeseries charts. Ensures
+  // Temporal coltype still routes through the TimeFormatter so the time axis
+  // rendering path is exercised by the test suite.
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const temporalRows = [
+    { __timestamp: ts1, metric: 10 },
+    { __timestamp: ts2, metric: 20 },
+  ];
+  const temporalQueryData = createTestQueryData(temporalRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [temporalQueryData, temporalQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+    },
+    queriesData: [temporalQueryData, temporalQueryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: Date) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Time);
+  const label = xAxis.axisLabel.formatter(new Date(ts1));
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
 });

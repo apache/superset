@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           ref: ${{ inputs.ref || github.ref_name }}
           persist-credentials: true
@@ -42,7 +42,7 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Install Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
         with:
           version: v3.5.4
 
@@ -62,6 +62,8 @@ jobs:
         run: echo "branch_name=helm-publish-${GITHUB_SHA:0:7}" >> $GITHUB_ENV
 
       - name: Force recreate branch from gh-pages
+        env:
+          BRANCH_NAME: ${{ env.branch_name }}
         run: |
           # Ensure a clean working directory
           git reset --hard
@@ -73,13 +75,13 @@ jobs:
           git fetch origin gh-pages
 
           # Check out and reset the target branch based on gh-pages
-          git checkout -B ${{ env.branch_name }} origin/gh-pages
+          git checkout -B "$BRANCH_NAME" origin/gh-pages
 
           # Remove submodules from the branch
           git submodule deinit -f --all
 
           # Force push to the remote branch
-          git push origin ${{ env.branch_name }} --force
+          git push origin "$BRANCH_NAME" --force
 
           # Return to the original branch
           git checkout local_gha_temp
@@ -101,10 +103,10 @@ jobs:
           CR_RELEASE_NAME_TEMPLATE: "superset-helm-chart-{{ .Version }}"
 
       - name: Open Pull Request
-        uses: actions/github-script@v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const branchName = '${{ env.branch_name }}';
+            const branchName = process.env.BRANCH_NAME;
             const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
 
             if (!branchName) {

@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import {
   extendedDayjs as dayjs,
   fDuration,

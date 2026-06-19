@@ -1,0 +1,1 @@
+{"parameters":[{"description":"The annotation layer pk for this annotation","in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}

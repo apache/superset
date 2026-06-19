@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AriaAttributes } from 'react';
+import { AriaAttributes, Ref } from 'react';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import jQuery from 'jquery';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
-import { configure as configureTranslation } from '@apache-superset/core/ui';
+import { configure as configureTranslation } from '@apache-superset/core/translation';
 import fetchMock from 'fetch-mock';
 import { Worker } from './Worker';
 import { IntersectionObserver } from './IntersectionObserver';
@@ -98,31 +98,39 @@ jest.mock('rehype-raw', () => () => jest.fn());
 // Tests should override this when needed
 jest.mock('@superset-ui/core/components/Icons/AsyncIcon', () => ({
   __esModule: true,
-  default: ({
-    fileName,
-    role,
-    'aria-label': ariaLabel,
-    onClick,
-    ...rest
-  }: {
-    fileName: string;
-    role?: string;
-    'aria-label'?: AriaAttributes['aria-label'];
-    onClick?: () => void;
-  }) => {
-    // Simple mock that provides the essential attributes for testing
-    const label = ariaLabel || fileName?.replace(/_/g, '-').toLowerCase() || '';
-    return (
-      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-      <span
-        role={role || (onClick ? 'button' : 'img')}
-        aria-label={label}
-        data-test={label}
-        onClick={onClick}
-        {...rest}
-      />
-    );
-  },
+  // eslint-disable-next-line global-require
+  default: require('react').forwardRef(
+    (
+      {
+        fileName,
+        role,
+        'aria-label': ariaLabel,
+        onClick,
+        ...rest
+      }: {
+        fileName: string;
+        role?: string;
+        'aria-label'?: AriaAttributes['aria-label'];
+        onClick?: () => void;
+      },
+      ref: Ref<HTMLSpanElement>,
+    ) => {
+      // Simple mock that provides the essential attributes for testing
+      const label =
+        ariaLabel || fileName?.replace(/_/g, '-').toLowerCase() || '';
+      return (
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+        <span
+          ref={ref}
+          role={role || (onClick ? 'button' : 'img')}
+          aria-label={label}
+          data-test={label}
+          onClick={onClick}
+          {...rest}
+        />
+      );
+    },
+  ),
   StyledIcon: ({
     component: Component,
     role,

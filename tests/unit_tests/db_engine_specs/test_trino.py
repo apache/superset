@@ -859,6 +859,64 @@ def test_get_oauth2_token(
     )
 
 
+def test_needs_oauth2_with_401_error(mocker: MockerFixture) -> None:
+    """
+    Test that needs_oauth2 returns True when Trino raises an HTTP 401 error.
+    """
+    from trino.exceptions import HttpError
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.trino.g")
+    g.user = mocker.MagicMock()
+
+    ex = HttpError("error 401: Unauthorized")
+    assert TrinoEngineSpec.needs_oauth2(ex) is True
+
+
+def test_needs_oauth2_without_401_error(mocker: MockerFixture) -> None:
+    """
+    Test that needs_oauth2 returns False when the error is not a 401.
+    """
+    from trino.exceptions import HttpError
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.trino.g")
+    g.user = mocker.MagicMock()
+
+    ex = HttpError("error 500: Internal Server Error")
+    assert TrinoEngineSpec.needs_oauth2(ex) is False
+
+
+def test_needs_oauth2_with_non_http_error(mocker: MockerFixture) -> None:
+    """
+    Test that needs_oauth2 returns False for non-HttpError exceptions.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.trino.g")
+    g.user = mocker.MagicMock()
+
+    ex = RuntimeError("error 401: something else")
+    assert TrinoEngineSpec.needs_oauth2(ex) is False
+
+
+def test_needs_oauth2_without_user(mocker: MockerFixture) -> None:
+    """
+    Test that needs_oauth2 returns False when there is no authenticated user.
+    """
+    from trino.exceptions import HttpError
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.trino.g")
+    del g.user
+
+    ex = HttpError("error 401: Unauthorized")
+    assert TrinoEngineSpec.needs_oauth2(ex) is False
+
+
 @pytest.mark.parametrize(
     "time_grain,expected_result",
     [
@@ -1385,3 +1443,47 @@ def test_handle_cursor_commits_on_progress_text_change(
 
     # There should be commits for progress_text changes
     assert mock_db.session.commit.call_count >= 2
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that Trino uses equality operators for boolean filters instead of IS,
+    since `col IS TRUE` can fail on computed boolean expressions like
+    `(expiration = 1) AS expiration`.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = TrinoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    result_false = TrinoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+    # Regression: the original bug was on computed boolean columns like
+    # `(expiration = 1) AS expiration`. Verify the equality operator also
+    # compiles correctly when the "column" is a computed expression.
+    from sqlalchemy import literal_column
+
+    computed_col = literal_column("(expiration = 1)")
+    result_computed = TrinoEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_computed.compile(compile_kwargs={"literal_binds": True}))
+        == "(expiration = 1) = true"
+    )

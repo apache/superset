@@ -34,7 +34,7 @@ def DistributedLock(  # noqa: N802
     """
     Distributed lock for coordinating operations across workers.
 
-    Automatically uses Redis-based locking when SIGNAL_CACHE_CONFIG is
+    Automatically uses Redis-based locking when DISTRIBUTED_COORDINATION_CONFIG is
     configured, falling back to database-backed locking otherwise.
 
     Redis locking uses SET NX EX for atomic acquisition with automatic expiration.

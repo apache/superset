@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { Dispatch, SetStateAction } from 'react';
@@ -28,6 +28,7 @@ interface FetchPaginatedOptions {
   setData: (data: any[]) => void;
   setLoadingState: Dispatch<SetStateAction<any>>;
   filters?: SupersetFilter[];
+  orderBy?: { column: string; direction: 'asc' | 'desc' };
   loadingKey: string;
   addDangerToast: (message: string) => void;
   errorMessage?: string;
@@ -38,6 +39,8 @@ interface QueryObj {
   page_size: number;
   page: number;
   filters?: SupersetFilter[];
+  order_column?: string;
+  order_direction?: 'asc' | 'desc';
 }
 
 interface SupersetFilter {
@@ -51,6 +54,7 @@ export const fetchPaginatedData = async ({
   pageSize = 100,
   setData,
   filters,
+  orderBy,
   setLoadingState,
   loadingKey,
   addDangerToast,
@@ -65,6 +69,10 @@ export const fetchPaginatedData = async ({
       };
       if (filters) {
         queryObj.filters = filters;
+      }
+      if (orderBy) {
+        queryObj.order_column = orderBy.column;
+        queryObj.order_direction = orderBy.direction;
       }
       const encodedQuery = rison.encode(queryObj);
 
@@ -88,16 +96,21 @@ export const fetchPaginatedData = async ({
     }
 
     const totalPages = Math.ceil(totalItems / pageSize);
+    const concurrencyLimit = 5;
+    const allResults = [...firstPageResults];
 
-    const requests = Array.from({ length: totalPages - 1 }, (_, i) =>
-      fetchPage(i + 1),
-    );
-    const remainingResults = await Promise.all(requests);
+    for (let batch = 1; batch < totalPages; batch += concurrencyLimit) {
+      const batchEnd = Math.min(batch + concurrencyLimit, totalPages);
+      // eslint-disable-next-line no-await-in-loop
+      const batchResults = await Promise.all(
+        Array.from({ length: batchEnd - batch }, (_, i) =>
+          fetchPage(batch + i),
+        ),
+      );
+      allResults.push(...batchResults.flatMap(res => res.results));
+    }
 
-    setData([
-      ...firstPageResults,
-      ...remainingResults.flatMap(res => res.results),
-    ]);
+    setData(allResults);
   } catch (err) {
     addDangerToast(t(errorMessage));
   } finally {

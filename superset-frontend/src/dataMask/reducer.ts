@@ -36,7 +36,15 @@ import {
   isChartCustomization,
 } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import {
+  HYDRATE_EXPLORE,
+  HydrateExplore,
+} from 'src/explore/actions/hydrateExplore';
 import { SaveFilterChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
+import {
+  migrateChartCustomizationArray,
+  isLegacyChartCustomizationFormat,
+} from 'src/dashboard/util/migrateChartCustomization';
 import { isEqual } from 'lodash';
 import {
   AnyDataMaskAction,
@@ -58,7 +66,7 @@ interface DashboardMetadata {
   chart_customization_config?: ChartCustomization[];
 }
 
-interface HydrateDashboardAction {
+export interface HydrateDataMaskAction {
   type: typeof HYDRATE_DASHBOARD;
   data: {
     dashboardInfo: {
@@ -101,10 +109,50 @@ function fillNativeFilters(
 ) {
   filterConfig.forEach((filter: Filter) => {
     const dataMask = initialDataMask || {};
+    const loaded = dataMask[filter.id];
+
+    // The shallow spread of `loaded` would override `filter.defaultDataMask`
+    // even when the loaded mask is incomplete (e.g. a permalink captured
+    // mid-initialization), wiping out a valid default. For REQUIRED filters
+    // with a default, fall back to the default when the loaded mask carries
+    // no real value OR is missing the extraFormData needed to filter charts.
+    // Non-required filters keep current behavior so a user's explicit clear
+    // isn't undone.
+    const isRequired = !!filter.controlValues?.enableEmptyFilter;
+    const loadedValue = loaded?.filterState?.value;
+    const loadedHasValue =
+      loadedValue !== undefined &&
+      loadedValue !== null &&
+      !(
+        // Treat all-null arrays (range filters use [null, null] as their
+        // canonical cleared value) and empty arrays as "no value".
+        (Array.isArray(loadedValue) && loadedValue.every(v => v === null))
+      );
+    const loadedHasExtraFormData =
+      !!loaded?.extraFormData && Object.keys(loaded.extraFormData).length > 0;
+    const defaultHasExtraFormData =
+      !!filter.defaultDataMask?.extraFormData &&
+      Object.keys(filter.defaultDataMask.extraFormData).length > 0;
+    // Restore when:
+    //  (1) loaded value is empty — classic "default wiped by stale permalink", OR
+    //  (2) loaded has a value but no extraFormData and the default does — the
+    //      "value present in UI but not applied to charts" gap-window case where
+    //      a permalink was captured before FilterValue produced extraFormData.
+    const shouldRestoreDefault =
+      isRequired &&
+      !!filter.defaultDataMask &&
+      (!loadedHasValue || (!loadedHasExtraFormData && defaultHasExtraFormData));
+
     mergedDataMask[filter.id] = {
       ...getInitialDataMask(filter.id), // take initial data
       ...filter.defaultDataMask, // if something new came from BE - take it
-      ...dataMask[filter.id],
+      ...loaded,
+      ...(shouldRestoreDefault
+        ? {
+            filterState: filter.defaultDataMask?.filterState,
+            extraFormData: filter.defaultDataMask?.extraFormData,
+          }
+        : {}),
     };
     if (
       currentFilters &&
@@ -147,12 +195,28 @@ function updateDataMaskForFilterChanges(
     // Check if targets are equal
     const areTargetsEqual = isEqual(prevFilterDef?.targets, filter?.targets);
 
-    // Preserve state only if filter exists, has enableEmptyFilter=true and targets match
+    // For required filters, only preserve existing state when it actually has
+    // a value — otherwise the empty existing state would wipe the (possibly
+    // newly-defined) default. defaultToFirstItem filters keep the old behavior:
+    // FilterValue re-resolves the first item at runtime, so preserving the
+    // mid-init empty state is fine.
+    const isRequired = !!filter.controlValues?.enableEmptyFilter;
+    const isFirstItem = !!filter.controlValues?.defaultToFirstItem;
+    const existingValue = existingFilter?.filterState?.value;
+    const hasExistingValue =
+      existingValue !== undefined &&
+      existingValue !== null &&
+      // Treat all-null arrays (range filters use [null, null] as their
+      // canonical cleared value) and empty arrays as "no value", consistent
+      // with `loadedHasValue` in fillNativeFilters above. `[].every()` is
+      // true, so this also covers the empty-array case.
+      !(Array.isArray(existingValue) && existingValue.every(v => v === null));
+
     const shouldPreserveState =
       existingFilter &&
       areTargetsEqual &&
-      (filter.controlValues?.enableEmptyFilter ||
-        filter.controlValues?.defaultToFirstItem);
+      (isRequired || isFirstItem) &&
+      (isFirstItem || hasExistingValue);
 
     mergedDataMask[filter.id] = {
       ...getInitialDataMask(filter.id),
@@ -191,7 +255,7 @@ function updateDataMaskForFilterChanges(
 const dataMaskReducer = produce(
   (
     draft: DataMaskStateWithId,
-    action: AnyDataMaskAction | HydrateDashboardAction,
+    action: AnyDataMaskAction | HydrateDataMaskAction | HydrateExplore,
   ) => {
     const cleanState: DataMaskStateWithId = {};
     switch (action.type) {
@@ -205,7 +269,7 @@ const dataMaskReducer = produce(
         };
         return draft;
       case HYDRATE_DASHBOARD: {
-        const hydrateDashboardAction = action as HydrateDashboardAction;
+        const hydrateDashboardAction = action as HydrateDataMaskAction;
         const metadata = hydrateDashboardAction.data.dashboardInfo?.metadata;
         const loadedDataMask = hydrateDashboardAction.data.dataMask;
 
@@ -222,8 +286,17 @@ const dataMaskReducer = produce(
           loadedDataMask,
         );
 
-        const chartCustomizationConfig =
-          metadata?.chart_customization_config || [];
+        const rawChartCustomizationConfig = (
+          metadata?.chart_customization_config || []
+        ).filter(Boolean);
+
+        const hasLegacyFormat = rawChartCustomizationConfig.some(item =>
+          isLegacyChartCustomizationFormat(item),
+        );
+
+        const chartCustomizationConfig = hasLegacyFormat
+          ? migrateChartCustomizationArray(rawChartCustomizationConfig)
+          : (rawChartCustomizationConfig as ChartCustomization[]);
 
         chartCustomizationConfig.forEach(item => {
           if (!isChartCustomizationItem(item)) {
@@ -273,6 +346,20 @@ const dataMaskReducer = produce(
         });
 
         return cleanState;
+      }
+      case HYDRATE_EXPLORE: {
+        const hydrateExploreAction = action as HydrateExplore;
+        const loadedDataMask = hydrateExploreAction.data.dataMask;
+        if (loadedDataMask) {
+          Object.entries(loadedDataMask).forEach(([id, mask]) => {
+            draft[id] = {
+              ...getInitialDataMask(id),
+              ...draft[id],
+              ...mask,
+            };
+          });
+        }
+        return draft;
       }
       case SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE:
         updateDataMaskForFilterChanges(

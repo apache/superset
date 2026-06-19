@@ -24,7 +24,7 @@ import {
   isProbablyHTML,
   sanitizeHtml,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ValueFormatterParams,
   ValueGetterParams,

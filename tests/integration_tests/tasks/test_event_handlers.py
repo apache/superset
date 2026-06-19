@@ -26,7 +26,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from superset_core.api.tasks import TaskScope, TaskStatus
+from superset_core.tasks.types import TaskScope, TaskStatus
 
 from superset.commands.tasks.cancel import CancelTaskCommand
 from superset.daos.tasks import TaskDAO

@@ -102,7 +102,7 @@ export default function webpackExtendPlugin(): Plugin<void> {
       return {
         devtool: isDev ? false : config.devtool,
         cache: {
-          type: 'filesystem',
+          type: 'filesystem' as const,
           buildDependencies: {
             config: [__filename],
           },
@@ -129,10 +129,15 @@ export default function webpackExtendPlugin(): Plugin<void> {
             'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
             // Allow importing from superset-frontend
             src: path.resolve(__dirname, '../../superset-frontend/src'),
-            // '@superset-ui/core': path.resolve(
-            //   __dirname,
-            //   '../../superset-frontend/packages/superset-ui-core',
-            // ),
+            // Lightweight shim for @superset-ui/core that re-exports only the
+            // utilities needed by components (ensureIsArray, usePrevious, etc.).
+            // Avoids pulling in the full barrel which includes d3, color, query
+            // modules and causes OOM. Required for Rspack which is stricter about
+            // module resolution than webpack.
+            '@superset-ui/core$': path.resolve(
+              __dirname,
+              './shims/superset-ui-core.ts',
+            ),
             // Add aliases for our components to make imports easier
             '@docs/components': path.resolve(__dirname, '../src/components'),
             '@superset/components': path.resolve(
@@ -151,9 +156,9 @@ export default function webpackExtendPlugin(): Plugin<void> {
             // to source so the docs build doesn't depend on pre-built lib/ artifacts.
             // More specific sub-path aliases must come first; webpack matches the
             // longest prefix.
-            '@apache-superset/core/ui': path.resolve(
+            '@apache-superset/core/components': path.resolve(
               __dirname,
-              '../../superset-frontend/packages/superset-core/src/ui',
+              '../../superset-frontend/packages/superset-core/src/components',
             ),
             '@apache-superset/core/api/core': path.resolve(
               __dirname,

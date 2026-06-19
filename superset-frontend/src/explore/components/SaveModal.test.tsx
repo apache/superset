@@ -179,6 +179,33 @@ test('renders the right footer buttons', () => {
   ).toBeInTheDocument();
 });
 
+test('initializes chart name from current Explore slice name', () => {
+  const previewSliceName = 'RENAMED - Bug Evidence';
+  const savedSliceName = 'Most Populated Countries';
+  const { getByTestId } = setup(
+    {
+      ...defaultProps,
+      form_data: {
+        ...defaultProps.form_data,
+        slice_name: previewSliceName,
+      },
+      sliceName: previewSliceName,
+    },
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          slice_name: savedSliceName,
+        },
+      },
+    }),
+  );
+
+  expect(getByTestId('new-chart-name')).toHaveValue(previewSliceName);
+});
+
 test('does not render a message when overriding', () => {
   const { getByRole, queryByRole } = setup();
 
@@ -255,7 +282,7 @@ test('disables overwrite option for new slice', () => {
 });
 
 test('disables overwrite option for non-owner', () => {
-  const { getByRole } = setup(
+  const { getByRole, getByText } = setup(
     {},
     mockStore({
       ...initialState,
@@ -263,6 +290,49 @@ test('disables overwrite option for non-owner', () => {
     }),
   );
   expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+  expect(
+    getByText(
+      'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('disables overwrite option for externally managed slice', () => {
+  const { getByRole, getByText } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          is_managed_externally: true,
+        },
+      },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+  expect(
+    getByText(
+      "This chart is managed externally and can't be overwritten in Superset.",
+    ),
+  ).toBeInTheDocument();
+});
+
+test('enables overwrite option for admin non-owner', () => {
+  const { getByRole } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      user: {
+        userId: 2,
+        username: 'Admin2',
+        roles: { Admin: Array(173) },
+        permissions: {},
+      },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeEnabled();
 });
 
 test('updates slice name and selected dashboard', async () => {
@@ -317,6 +387,19 @@ test('set dataset name when chart source is query', () => {
   expect(getByTestId('new-dataset-name')).toHaveValue('test');
 });
 
+test('renders InfoTooltip icon next to Dataset Name label when datasource type is query', () => {
+  const { getByTestId, getByText } = setup({}, queryStore);
+
+  const datasetNameLabel = getByText('Dataset Name');
+  expect(datasetNameLabel).toBeInTheDocument();
+
+  const infoTooltip = getByTestId('info-tooltip-icon');
+  expect(infoTooltip).toBeInTheDocument();
+
+  const labelContainer = datasetNameLabel.parentElement;
+  expect(labelContainer).toContainElement(infoTooltip);
+});
+
 test('make sure slice_id in the URLSearchParams before the redirect', () => {
   const myProps = {
     ...defaultProps,
@@ -368,7 +451,7 @@ test('removes form_data_key from URL parameters after save', () => {
   // other parameters should remain
   expect(result.get('other_param')).toEqual('value');
   expect(result.get('slice_id')).toEqual('1');
-  expect(result.get('save_action')).toEqual('overwrite');
+  expect(result.has('save_action')).toBe(false);
 });
 
 test('dispatches removeChartState when saving and going to dashboard', async () => {

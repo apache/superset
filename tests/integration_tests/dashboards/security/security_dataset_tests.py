@@ -16,8 +16,8 @@
 # under the License.
 """Unit tests for Superset"""
 
-import prison
 import pytest
+import rison
 from flask import (
     current_app,
     escape,  # noqa: F401
@@ -189,7 +189,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         arguments = {
             "filters": [{"col": "dashboard_title", "opr": "sw", "value": title[0:8]}]
         }
-        uri = DASHBOARDS_API_URL_WITH_QUERY_FORMAT.format(prison.dumps(arguments))  # noqa: F405
+        uri = DASHBOARDS_API_URL_WITH_QUERY_FORMAT.format(rison.dumps(arguments))  # noqa: F405
         rv = self.client.get(uri)
         self.assert200(rv)
         data = json.loads(rv.data.decode("utf-8"))

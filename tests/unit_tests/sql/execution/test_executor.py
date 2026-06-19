@@ -37,7 +37,7 @@ import pandas as pd
 import pytest
 from flask import current_app
 from pytest_mock import MockerFixture
-from superset_core.api.types import (
+from superset_core.queries.types import (
     CacheOptions,
     QueryOptions,
     QueryStatus,
@@ -642,6 +642,78 @@ def test_execute_error(
     assert result.status == QueryStatus.FAILED
     assert result.error_message is not None
     assert "Database error" in result.error_message
+
+
+def test_execute_oauth2_redirect_error_propagates(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that OAuth2RedirectError propagates instead of being swallowed."""
+    from superset.exceptions import OAuth2RedirectError
+
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+    mock_conn.__enter__ = MagicMock(return_value=mock_conn)
+    mock_conn.__exit__ = MagicMock(return_value=False)
+    mocker.patch.object(database, "get_raw_connection", return_value=mock_conn)
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql, **kw: sql
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "execute",
+        side_effect=OAuth2RedirectError(
+            url="https://oauth.example.com/authorize",
+            tab_id="test-tab",
+            redirect_uri="https://superset.example.com/callback",
+        ),
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        database.execute("SELECT 1")
+
+
+def test_execute_oauth2_error_propagates(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that OAuth2Error propagates instead of being swallowed."""
+    from superset.exceptions import OAuth2Error
+
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+    mock_conn.__enter__ = MagicMock(return_value=mock_conn)
+    mock_conn.__exit__ = MagicMock(return_value=False)
+    mocker.patch.object(database, "get_raw_connection", return_value=mock_conn)
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql, **kw: sql
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "execute",
+        side_effect=OAuth2Error("No configuration found for OAuth2"),
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    with pytest.raises(OAuth2Error):
+        database.execute("SELECT 1")
 
 
 # =============================================================================
@@ -1907,7 +1979,7 @@ def test_store_in_cache_with_failed_status(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that failed queries are not cached."""
-    from superset_core.api.types import QueryResult as QueryResultType
+    from superset_core.queries.types import QueryResult as QueryResultType
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -1930,7 +2002,10 @@ def test_store_in_cache_with_no_data(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that DML queries (with no data) are cached."""
-    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -1960,7 +2035,10 @@ def test_create_cached_async_result_cancel(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that cached async result cancel returns False."""
-    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
 
     from superset.sql.execution.executor import SQLExecutor
 
@@ -2144,7 +2222,10 @@ def test_cached_async_result_get_result_returns_cached(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
     """Test that cached async result returns the original cached result."""
-    from superset_core.api.types import QueryResult as QueryResultType, StatementResult
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
 
     from superset.sql.execution.executor import SQLExecutor
 

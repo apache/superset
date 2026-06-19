@@ -16,31 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { FormModal, Icons } from '@superset-ui/core/components';
 import { createRole, updateRolePermissions } from './utils';
 import { PermissionsField, RoleNameField } from './RoleFormItems';
-import { BaseModalProps, FormattedPermission, RoleForm } from './types';
+import { BaseModalProps, RoleForm } from './types';
 
-export interface RoleListAddModalProps extends BaseModalProps {
-  permissions: FormattedPermission[];
-}
+export type RoleListAddModalProps = BaseModalProps;
 
-function RoleListAddModal({
-  show,
-  onHide,
-  onSave,
-  permissions,
-}: RoleListAddModalProps) {
+function RoleListAddModal({ show, onHide, onSave }: RoleListAddModalProps) {
   const { addDangerToast, addSuccessToast } = useToasts();
   const handleFormSubmit = async (values: RoleForm) => {
     try {
       const { json: roleResponse } = await createRole(values.roleName);
+      const permissionIds =
+        values.rolePermissions?.map(({ value }) => value) || [];
 
-      if (values.rolePermissions?.length > 0) {
-        await updateRolePermissions(roleResponse.id, values.rolePermissions);
+      if (permissionIds.length > 0) {
+        await updateRolePermissions(roleResponse.id, permissionIds);
       }
 
       addSuccessToast(t('The role has been created successfully.'));
@@ -70,7 +65,7 @@ function RoleListAddModal({
     >
       <>
         <RoleNameField />
-        <PermissionsField permissions={permissions} />
+        <PermissionsField addDangerToast={addDangerToast} />
       </>
     </FormModal>
   );
