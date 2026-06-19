@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -4297,6 +4297,9 @@ msgstr "データベース設定を更新しました"
 
 msgid "Database type does not support file uploads."
 msgstr "このデータベース種類はファイルアップロードをサポートしていません。"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "データベースへのファイルアップロードに失敗しました"
@@ -16820,10 +16823,6 @@ msgstr "値の昇順"
 
 msgid "value descending"
 msgstr "値の降順"
-
-#, fuzzy
-msgid "valuename"
-msgstr "テーブル名"
 
 msgid "var"
 msgstr "分散"

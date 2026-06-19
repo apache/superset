@@ -375,15 +375,12 @@ class WebDriverPlaywright(WebDriverProxy):
                             animation_wait=selenium_animation_wait,
                         )
                         if img is None:
-                            logger.warning(
-                                (
-                                    "Tiled screenshot failed, "
-                                    "falling back to standard screenshot"
-                                )
+                            logger.error(
+                                "Tiled screenshot failed at url %s; "
+                                "not falling back to avoid sending a blank PDF",
+                                url,
                             )
-                            img = WebDriverPlaywright._get_screenshot(
-                                page, element, element_name
-                            )
+                            return None
                     else:
                         # Standard screenshot captures the full element including
                         # below-the-fold content, so wait for all spinners globally.
