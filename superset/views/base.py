@@ -730,11 +730,20 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
 class CsvResponse(Response):
     """
-    Override Response to take into account csv encoding from config.py
+    Response that encodes its body with the configured CSV_EXPORT encoding.
+
+    Werkzeug 3.0 removed ``Response.charset``, which this class relied on,
+    so the configured encoding (e.g. the default "utf-8-sig") was silently
+    ignored and bodies were always plain utf-8.
     """
 
-    charset = app.config["CSV_EXPORT"].get("encoding", "utf-8")
     default_mimetype = "text/csv"
+
+    def __init__(self, response: Any = None, *args: Any, **kwargs: Any) -> None:
+        if isinstance(response, str):
+            encoding = app.config["CSV_EXPORT"].get("encoding", "utf-8")
+            response = response.encode(encoding)
+        super().__init__(response, *args, **kwargs)
 
 
 class XlsxResponse(Response):
