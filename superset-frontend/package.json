@@ -160,7 +160,7 @@
     "@types/react-google-recaptcha": "^2.1.9",
     "@visx/axis": "^4.0.0",
     "@visx/grid": "^3.5.0",
-    "@visx/responsive": "^3.0.0",
+    "@visx/responsive": "^4.0.0",
     "@visx/scale": "^3.5.0",
     "@visx/tooltip": "^4.0.0",
     "@visx/xychart": "^4.0.0",
