@@ -1773,6 +1773,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "echarts_area": ("xy", "area"),
     "scatter": ("xy", "scatter"),
     "echarts_timeseries_scatter": ("xy", "scatter"),
+    "ag-grid-table": ("table", None),
     "big_number_total": ("big_number", None),
     "pivot_table_v2": ("pivot_table", None),
 }
@@ -1793,19 +1794,21 @@ def _normalize_chart_request_input(data: Any) -> Any:
         data["dataset_id"] = data.pop("datasource_id")
     config = data.get("config")
     if isinstance(config, dict):
-        if "viz_type" in config:
-            viz_type = config["viz_type"]
-            if "chart_type" not in config:
-                config["chart_type"] = viz_type
-                config.pop("viz_type")
-            elif config.get("chart_type") != "table":
-                config.pop("viz_type")
+        viz_type = config.get("viz_type")
+        if isinstance(viz_type, str) and "chart_type" not in config:
+            config["chart_type"] = viz_type
         chart_type = config.get("chart_type")
         if isinstance(chart_type, str) and chart_type in _VIZ_TYPE_TO_CHART_TYPE:
             mapped_type, kind = _VIZ_TYPE_TO_CHART_TYPE[chart_type]
             config["chart_type"] = mapped_type
             if kind is not None:
                 config.setdefault("kind", kind)
+            if mapped_type == "table":
+                config.setdefault("viz_type", chart_type)
+            else:
+                config.pop("viz_type", None)
+        elif config.get("chart_type") != "table":
+            config.pop("viz_type", None)
     return data
 
 
@@ -1815,6 +1818,7 @@ class ChartRequestNormalizerMixin(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _normalize_request_vocabulary(cls, data: Any) -> Any:
+        """Normalize Superset-style request keys before Pydantic validation."""
         return _normalize_chart_request_input(data)
 
 

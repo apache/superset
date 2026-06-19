@@ -46,6 +46,8 @@ XY_BAR_CONFIG = {
 
 
 class TestDatasourceIdAlias:
+    """Datasource alias normalization for chart request models."""
+
     def test_generate_chart_accepts_datasource_id(self) -> None:
         request = GenerateChartRequest.model_validate(
             {"datasource_id": 23, "config": dict(XY_BAR_CONFIG)}
@@ -60,6 +62,8 @@ class TestDatasourceIdAlias:
 
 
 class TestVizTypeTranslation:
+    """Superset viz plugin names map to MCP chart config discriminators."""
+
     @pytest.mark.parametrize(
         "viz_type,expected_kind",
         [
@@ -116,6 +120,33 @@ class TestVizTypeTranslation:
         assert isinstance(request.config, TableChartConfig)
         assert request.config.viz_type == "ag-grid-table"
 
+    def test_table_viz_type_key_maps_to_table_config(self) -> None:
+        request = GenerateExploreLinkRequest.model_validate(
+            {
+                "dataset_id": 23,
+                "config": {
+                    "viz_type": "ag-grid-table",
+                    "columns": [{"name": "genre"}],
+                },
+            }
+        )
+        assert isinstance(request.config, TableChartConfig)
+        assert request.config.chart_type == "table"
+        assert request.config.viz_type == "ag-grid-table"
+
+    def test_explicit_invalid_chart_type_wins_over_viz_type(self) -> None:
+        with pytest.raises(ValidationError, match="xyy"):
+            GenerateChartRequest.model_validate(
+                {
+                    "dataset_id": 23,
+                    "config": {
+                        **XY_BAR_CONFIG,
+                        "chart_type": "xyy",
+                        "viz_type": "echarts_timeseries_bar",
+                    },
+                }
+            )
+
     def test_explicit_kind_is_preserved(self) -> None:
         config = dict(XY_BAR_CONFIG)
         config["chart_type"] = "echarts_timeseries_bar"
@@ -139,6 +170,8 @@ class TestVizTypeTranslation:
 
 
 class TestRequestModelsShareNormalization:
+    """Request models share chart vocabulary normalization behavior."""
+
     def test_update_chart_request(self) -> None:
         request = UpdateChartRequest.model_validate(
             {"identifier": 409, "config": {**XY_BAR_CONFIG, "chart_type": "bar"}}
@@ -163,6 +196,8 @@ class TestRequestModelsShareNormalization:
 
 
 class TestXYFieldCoercion:
+    """XY chart config accepts common Superset form-data field shapes."""
+
     def test_x_accepts_bare_column_name(self) -> None:
         config = XYChartConfig.model_validate({**XY_BAR_CONFIG, "x": "genre"})
         assert config.x is not None
@@ -194,6 +229,8 @@ class TestXYFieldCoercion:
 
 
 class TestQueryDatasetMetricGuidance:
+    """Metric validation errors guide callers toward saved metric names."""
+
     def test_no_saved_metrics_hint(self) -> None:
         errors = _validate_names(
             ["sum__global_sales"],
