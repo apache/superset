@@ -80,20 +80,11 @@ def _is_filter_in_scope_for_chart(
     """
     Determines whether a native filter applies to a given chart.
 
-    When chartsInScope is present on the filter config, uses that directly.
-    Otherwise falls back to scope.rootPath and scope.excluded with the
-    dashboard layout. Also considers charts that were added to the dashboard
-    but were not instantiated in the layout.
+    A chart is in scope when one of its layout ancestors is in ``rootPath`` and
+    it's not excluded. The persisted ``chartsInScope`` is intentionally NOT used
+    here (it's a denormalized cache that the frontend recomputes from ``scope``
+    on every load, so it can be stale).
     """
-    if (charts_in_scope := filter_config.get("chartsInScope")) is not None:
-        if chart_id in charts_in_scope:
-            return True
-
-        # If the chart is found in position_json and not in chartsInScope,
-        # it was explicitly excluded by the filter scope config.
-        if _find_chart_layout_item(chart_id, position_json) is not None:
-            return False
-
     scope = filter_config.get("scope", {})
     root_path: list[str] = scope.get("rootPath", [])
     excluded: list[int] = scope.get("excluded", [])
@@ -107,8 +98,7 @@ def _is_filter_in_scope_for_chart(
 
     # If the chart doesn't exist in the dashboard layout, treat it as a
     # root-level chart.
-    else:
-        return "ROOT_ID" in root_path
+    return "ROOT_ID" in root_path
 
 
 def _find_chart_layout_item(

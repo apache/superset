@@ -29,7 +29,7 @@
     "@babel/runtime": "^7.29.7",
     "@braintree/sanitize-url": "^7.1.2",
     "@types/json-bigint": "^1.0.4",
-    "@visx/responsive": "^3.12.0",
+    "@visx/responsive": "^4.0.0",
     "ace-builds": "^1.44.0",
     "ag-grid-community": "35.3.1",
     "ag-grid-react": "35.3.1",
