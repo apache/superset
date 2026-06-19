@@ -260,10 +260,10 @@ const createEnhancedClone = (
   processCloneForVisibility(clone);
 
   const cleanup = () => {
-  if (tempContainer.parentElement) {
-    tempContainer.parentElement.removeChild(tempContainer);
-  }
-};
+    if (tempContainer.parentElement) {
+      tempContainer.parentElement.removeChild(tempContainer);
+    }
+  };
 
   return { clone, cleanup };
 };
