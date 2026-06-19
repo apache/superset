@@ -18,10 +18,15 @@
 """
 Marshmallow 4.x compatibility patch for Flask-AppBuilder.
 
-Flask-AppBuilder auto-generates schema fields from SQLAlchemy relationships.
-In marshmallow 4.x, _init_fields is stricter and raises KeyError for
-FAB-generated field references that don't map to declared fields.
-This patch intercepts those specific KeyErrors and creates Raw field stubs.
+Flask-AppBuilder auto-generates schema classes (via
+``Model2SchemaConverter._meta_schema_factory``) whose ``Meta.fields`` reference
+SQLAlchemy relationship names that are never declared as marshmallow fields.
+
+Marshmallow 3 tolerated this: ``_init_fields`` resolved each name with
+``declared_fields.get(name, Inferred())``. Marshmallow 4 made the lookup strict
+(``declared_fields[name]``) and raises ``KeyError`` for those names. This patch
+restores the lenient behaviour by stubbing the missing FAB names with ``Raw``
+fields before ``_init_fields`` runs.
 """
 
 import logging
@@ -33,9 +38,15 @@ logger = logging.getLogger(__name__)
 def patch_marshmallow_for_flask_appbuilder() -> None:
     """Apply a compatibility patch to marshmallow for Flask-AppBuilder.
 
-    This patch handles KeyErrors raised by marshmallow 4.x's stricter
-    _init_fields method when FAB auto-generates schema fields from
-    SQLAlchemy relationships that don't map to declared marshmallow fields.
+    Wraps ``marshmallow.Schema._init_fields`` so that any name referenced by a
+    schema's ``Meta.fields``/``Meta.additional`` that is not backed by a declared
+    field is stubbed with a ``Raw`` field. This mirrors marshmallow 3 semantics
+    and keeps Flask-AppBuilder's auto-generated schemas working under
+    marshmallow 4, where the field lookup became strict.
+
+    The stubbing happens in a single pass per instantiation (no retry loop), so
+    it stays cheap even though FAB mints a fresh schema class on every call and
+    marshmallow rebuilds ``declared_fields`` for every instance.
 
     The patch is idempotent and will not apply twice.
     """
@@ -47,29 +58,21 @@ def patch_marshmallow_for_flask_appbuilder() -> None:
     original_init_fields = marshmallow.Schema._init_fields
 
     def patched_init_fields(self: "marshmallow.Schema") -> Any:
-        max_retries = 10
-        retries = 0
-        while retries < max_retries:
-            try:
-                return original_init_fields(self)
-            except KeyError as exc:
-                missing_field = str(exc).strip("'\"")
-                # Only auto-create fields for FAB-generated relationship names,
-                # not for arbitrary KeyErrors that indicate real schema bugs.
-                if not missing_field or not _looks_like_fab_field(missing_field):
-                    raise
+        opts = self.opts
+        # ``_init_fields`` iterates Meta.fields (falling back to declared field
+        # names) plus Meta.additional, then strictly looks each up in
+        # ``declared_fields``. Pre-stub the FAB relationship names it would
+        # otherwise choke on; unknown non-FAB names are left to raise so genuine
+        # schema bugs still surface.
+        candidates = set(opts.fields or ()) | set(getattr(opts, "additional", ()) or ())
+        for name in candidates:
+            if name not in self.declared_fields and _looks_like_fab_field(name):
                 logger.debug(
-                    "marshmallow FAB compat: auto-creating Raw field for %r on %s",
-                    missing_field,
+                    "marshmallow FAB compat: stubbing Raw field for %r on %s",
+                    name,
                     type(self).__name__,
                 )
-                self.declared_fields[missing_field] = marshmallow.fields.Raw()
-                retries += 1
-        logger.warning(
-            "marshmallow FAB compat: exceeded retry limit on %s; "
-            "schema initialization may be incomplete",
-            type(self).__name__,
-        )
+                self.declared_fields[name] = marshmallow.fields.Raw()
         return original_init_fields(self)
 
     patched_init_fields._fab_patched = True  # type: ignore[attr-defined]

@@ -91,6 +91,62 @@ def test_patch_marshmallow_for_flask_appbuilder_idempotent() -> None:
     mm.Schema._init_fields = original_init_fields
 
 
+@pytest.mark.skipif(
+    tuple(int(p) for p in version("marshmallow").split(".")[:1]) < (4,),
+    reason="FAB _init_fields KeyError only occurs on marshmallow >= 4",
+)
+def test_fab_field_stubbing_is_single_pass() -> None:
+    """Regression: FAB compat must stub missing fields in one pass per instance.
+
+    Flask-AppBuilder mints a fresh schema class on every call and marshmallow
+    rebuilds ``declared_fields`` for every instance, so any approach that re-runs
+    ``_init_fields`` on KeyError (a retry loop) re-pays its cost on every single
+    instantiation. Under coverage tracing that blew the unit-test job past its
+    timeout. The patch must instead stub the undeclared FAB names before the
+    original runs, so ``_init_fields`` executes exactly once per instance.
+    """
+    import marshmallow as mm
+
+    from superset.marshmallow_compatibility import (
+        patch_marshmallow_for_flask_appbuilder,
+    )
+
+    # Count invocations of the underlying (pre-patch) _init_fields, then patch.
+    base_init_fields = mm.Schema._init_fields
+    calls = {"n": 0}
+
+    def counting(self: mm.Schema) -> object:
+        calls["n"] += 1
+        return base_init_fields(self)
+
+    mm.Schema._init_fields = counting
+    try:
+        patch_marshmallow_for_flask_appbuilder()
+
+        # FAB-style schema: Meta.fields references undeclared relationship names,
+        # which marshmallow 4.x rejects with KeyError.
+        class FabStyleSchema(mm.Schema):
+            a = mm.fields.String()
+
+            class Meta:
+                fields = ("a", "related_model", "owner", "parent_id")
+
+        calls["n"] = 0
+        for _ in range(50):
+            FabStyleSchema()
+        # Exactly one underlying _init_fields per instance — no retry blowup.
+        assert calls["n"] == 50, (
+            f"expected 50 _init_fields calls for 50 instances, got {calls['n']} "
+            "— single-pass stubbing regressed into a retry loop"
+        )
+
+        # The undeclared FAB names resolve to Raw stubs in the built field set.
+        instance = FabStyleSchema()
+        assert isinstance(instance.fields["related_model"], mm.fields.Raw)
+    finally:
+        mm.Schema._init_fields = base_init_fields
+
+
 def test_marshmallow_sqlalchemy_version() -> None:
     """Regression: marshmallow-sqlalchemy >= 1.4.2 is required for marshmallow 4.x.
 
