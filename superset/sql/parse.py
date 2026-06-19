@@ -32,9 +32,11 @@ from sqlglot import exp
 from sqlglot.dialects.dialect import (
     Dialect,
     Dialects,
+    DialectType,
 )
 from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import ParseError
+from sqlglot.generator import Generator
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
 )
@@ -135,6 +137,32 @@ class LimitMethod(enum.Enum):
 class CTASMethod(enum.Enum):
     TABLE = enum.auto()
     VIEW = enum.auto()
+
+
+def _normalized_generator(
+    dialect_name: DialectType,
+    *,
+    pretty: bool,
+    comments: bool,
+) -> Generator:
+    """
+    Generator that preserves multi-argument DISTINCT expressions.
+
+    Build a sqlglot generator that preserves user-written multi-argument
+    DISTINCT expressions verbatim. Postgres, Presto, Trino, and DuckDB
+    set ``MULTI_ARG_DISTINCT = False`` to emulate the unsupported
+    ``COUNT(DISTINCT a, b)`` idiom via a ``CASE WHEN`` row-expression, which
+    silently corrupts user-defined aggregates that natively accept multiple
+    arguments. Superset's sanitize / format paths normalize user SQL — they
+    do not transpile — so the emulation is undesirable here.
+    """
+    dialect = Dialect.get_or_raise(dialect_name)
+    normalized_cls = type(
+        f"Normalized{dialect.generator_class.__name__}",
+        (dialect.generator_class,),
+        {"MULTI_ARG_DISTINCT": True},
+    )
+    return normalized_cls(dialect=dialect, pretty=pretty, comments=comments)
 
 
 class RLSMethod(enum.Enum):
@@ -911,12 +939,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Pretty-format the SQL statement.
         """
-        return Dialect.get_or_raise(self._dialect).generate(
-            self._parsed,
-            copy=True,
-            comments=comments,
+        return _normalized_generator(
+            self._dialect,
             pretty=True,
-        )
+            comments=comments,
+        ).generate(self._parsed, copy=True)
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -1817,14 +1844,13 @@ def sanitize_clause(clause: str, engine: str) -> str:
     """
     try:
         statement = SQLStatement(clause, engine)
-        dialect = SQLGLOT_DIALECTS.get(engine)
-        from sqlglot.dialects.dialect import Dialect
-
-        return Dialect.get_or_raise(dialect).generate(
+        return _normalized_generator(
+            SQLGLOT_DIALECTS.get(engine),
+            pretty=False,
+            comments=True,
+        ).generate(
             statement._parsed,  # pylint: disable=protected-access
             copy=True,
-            comments=True,
-            pretty=False,
         )
     except SupersetParseError as ex:
         raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex
