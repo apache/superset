@@ -1153,6 +1153,12 @@ SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
 # Time before selenium times out after waiting for all DOM class elements named
 # "loading" are gone.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
+# Maximum time (in seconds) selenium waits for an initial page navigation
+# (driver.get) to complete. Without it the navigation blocks indefinitely when
+# the target page never finishes loading (e.g. an unreachable WEBDRIVER_BASEURL),
+# which leaves the report schedule stuck in the WORKING state. Set to None to
+# disable (not recommended).
+SCREENSHOT_PAGE_LOAD_WAIT = int(timedelta(minutes=2).total_seconds())
 # Selenium destroy retries
 SCREENSHOT_SELENIUM_RETRIES = 5
 # Give selenium an headstart, in seconds
@@ -1736,6 +1742,11 @@ SMTP_MAIL_FROM = "superset@superset.com"
 # If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
 # default system root CA certificates.
 SMTP_SSL_SERVER_AUTH = False
+# Socket timeout (in seconds) for the SMTP connection used when sending
+# alert/report emails. Without a timeout the underlying socket blocks
+# indefinitely if the SMTP server becomes unreachable, which leaves report
+# schedules stuck in the WORKING state. Set to None to disable (not recommended).
+SMTP_TIMEOUT = 30
 ENABLE_CHUNK_ENCODING = False
 
 # Whether to bump the logging level to ERROR on the flask_appbuilder package
@@ -2084,6 +2095,12 @@ ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 # Max tries to run queries to prevent false errors caused by transient errors
 # being returned to users. Set to a value >1 to enable retries.
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
+# Socket timeout (in seconds) for the HTTP request that fetches chart data when
+# generating CSV/dataframe report attachments. Without a timeout the request
+# blocks indefinitely if the Superset webserver is unreachable from the worker,
+# which leaves the report schedule stuck in the WORKING state. Set to None to
+# disable (not recommended).
+ALERT_REPORTS_CSV_REQUEST_TIMEOUT = int(timedelta(seconds=60).total_seconds())
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400

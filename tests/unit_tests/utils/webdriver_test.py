@@ -273,6 +273,34 @@ class TestWebDriverSelenium:
         # Should create driver without errors
         mock_driver_class.assert_called_once()
 
+    @patch("superset.utils.webdriver.app")
+    def test_driver_sets_page_load_timeout(self, mock_app_patch):
+        """driver.get() must be bounded so it can't block forever (#40047)."""
+        mock_app_patch.config = {
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 10,
+            "SCREENSHOT_PAGE_LOAD_WAIT": 120,
+        }
+        mock_driver = MagicMock()
+        driver = WebDriverSelenium(driver_type="chrome", window=(800, 600))
+        with patch.object(driver, "_create", return_value=mock_driver):
+            assert driver.driver is mock_driver
+        mock_driver.set_page_load_timeout.assert_called_once_with(120)
+
+    @patch("superset.utils.webdriver.app")
+    def test_driver_skips_page_load_timeout_when_none(self, mock_app_patch):
+        """Setting SCREENSHOT_PAGE_LOAD_WAIT to None disables the bound."""
+        mock_app_patch.config = {
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 10,
+            "SCREENSHOT_PAGE_LOAD_WAIT": None,
+        }
+        mock_driver = MagicMock()
+        driver = WebDriverSelenium(driver_type="chrome", window=(800, 600))
+        with patch.object(driver, "_create", return_value=mock_driver):
+            assert driver.driver is mock_driver
+        mock_driver.set_page_load_timeout.assert_not_called()
+
 
 class TestPlaywrightAvailabilityCheck:
     """Test comprehensive Playwright availability checking."""
