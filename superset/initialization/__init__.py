@@ -38,7 +38,6 @@ from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.commands.database.exceptions import DatabaseInvalidError
-
 from superset.constants import (
     CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,

@@ -239,7 +239,9 @@ class TestSupersetAppInitializer:
 
                 mock_print.assert_called_once()
                 output = mock_print.call_args[0][0]
-                assert "ERROR: Cannot connect to database <invalid database URI>" in output
+                assert (
+                    "ERROR: Cannot connect to database <invalid database URI>" in output
+                )
 
 
 class TestCreateAppRoot:
