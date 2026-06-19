@@ -161,7 +161,7 @@
     "@visx/axis": "^4.0.0",
     "@visx/grid": "^4.0.0",
     "@visx/responsive": "^4.0.0",
-    "@visx/scale": "^3.5.0",
+    "@visx/scale": "^4.0.0",
     "@visx/tooltip": "^4.0.0",
     "@visx/xychart": "^4.0.0",
     "ag-grid-community": "35.3.1",
