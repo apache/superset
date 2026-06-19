@@ -18,20 +18,18 @@
  */
 import { sanitizeDocumentTitle } from './sanitizeDocumentTitle';
 
-describe('sanitizeDocumentTitle', () => {
-  it('removes all C0 control characters including tab/LF/CR', () => {
-    expect(sanitizeDocumentTitle('a\x08b')).toBe('ab');
-    expect(sanitizeDocumentTitle('x\x09y')).toBe('xy');
-    expect(sanitizeDocumentTitle('x\ny')).toBe('xy');
-    expect(sanitizeDocumentTitle('x\ry')).toBe('xy');
-  });
+test('removes all C0 control characters including tab/LF/CR', () => {
+  expect(sanitizeDocumentTitle('a\x08b')).toBe('ab');
+  expect(sanitizeDocumentTitle('x\x09y')).toBe('xy');
+  expect(sanitizeDocumentTitle('x\ny')).toBe('xy');
+  expect(sanitizeDocumentTitle('x\ry')).toBe('xy');
+});
 
-  it('removes DEL and C1 controls', () => {
-    expect(sanitizeDocumentTitle('a\x7fb')).toBe('ab');
-    expect(sanitizeDocumentTitle('a\x9fb')).toBe('ab');
-  });
+test('removes DEL and C1 controls', () => {
+  expect(sanitizeDocumentTitle('a\x7Fb')).toBe('ab');
+  expect(sanitizeDocumentTitle('a\x9Fb')).toBe('ab');
+});
 
-  it('leaves normal text unchanged', () => {
-    expect(sanitizeDocumentTitle('Dashboard 你好')).toBe('Dashboard 你好');
-  });
+test('leaves normal text unchanged', () => {
+  expect(sanitizeDocumentTitle('Dashboard 你好')).toBe('Dashboard 你好');
 });

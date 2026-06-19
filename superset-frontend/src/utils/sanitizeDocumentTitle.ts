@@ -23,5 +23,5 @@
  * contains characters such as U+0008 (backspace).
  */
 export function sanitizeDocumentTitle(title: string): string {
-  return title.replace(/[\x00-\x1f\x7f-\x9f]/g, '');
+  return title.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
 }
