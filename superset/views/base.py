@@ -559,10 +559,12 @@ def common_bootstrap_payload() -> dict[str, Any]:
     # (upstream issue #35330).
     language = payload.get("locale")
     if language and language != "en":
-        # `get_language_pack` falls back to an empty English pack on miss;
-        # treat empty as "no pack" so the frontend can fall through to the
-        # async fetch instead of configuring with an empty translator.
-        pack = get_language_pack(language) or None
+        # Respect a pack already provided via COMMON_BOOTSTRAP_OVERRIDES_FUNC
+        # (the workaround in #35330 does exactly that), otherwise load the
+        # shared one. `get_language_pack` returns the empty English pack on a
+        # miss, which is the right result (English) when no translation file
+        # exists.
+        pack = payload.get("language_pack") or get_language_pack(language)
     else:
         pack = None
     payload["language_pack"] = pack
