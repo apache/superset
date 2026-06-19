@@ -578,8 +578,11 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     return Promise.resolve();
   };
 
-  const validateDatabase = (_: any, value: string) => {
-    if (!currentDatabaseId) {
+  const validateDatabase = (
+    _: any,
+    value: { value: number; label: string } | null | undefined,
+  ) => {
+    if (!value?.value) {
       return Promise.reject(t('Selecting a database is required'));
     }
     return Promise.resolve();

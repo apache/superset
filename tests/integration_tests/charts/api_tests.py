@@ -556,6 +556,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Slice).get(data.get("id"))
+        # uuid should be returned in the response
+        assert "uuid" in data
+        assert str(model.uuid) == str(data["uuid"])
         db.session.delete(model)
         db.session.commit()
 
@@ -1237,6 +1240,76 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 chart["id"] for chart in data_by_name["result"]
             ), set(chart.id for chart in expected_charts)  # noqa: C401
 
+    def test_get_charts_changed_on_delta_humanized_sort_monotonic(self):
+        """Regression for #27500: sorting the chart list by
+        `changed_on_delta_humanized` desc must yield results whose underlying
+        `changed_on` timestamps are monotonically non-increasing. The original
+        report shows the humanized column visually out of order, suggesting
+        the sort key didn't actually reflect the timestamp."""
+        from datetime import datetime, timedelta
+
+        admin = self.get_user("admin")
+        # Insert two charts with distinct changed_on timestamps. Use raw UPDATE
+        # to force the values since assignment alone can be overridden by the
+        # before-update hook.
+        chart_older = self.insert_chart(
+            "regression_27500_older", [admin.id], 1, description="z"
+        )
+        chart_newer = self.insert_chart(
+            "regression_27500_newer", [admin.id], 1, description="z"
+        )
+        # Use timestamps whose humanized strings sort DIFFERENTLY from their
+        # real timestamps under a naive lexical sort. "3 hours ago" vs
+        # "5 hours ago": lexical-desc puts "5..." first (older), but
+        # timestamp-desc must put "3..." first (newer). If the API ever
+        # accidentally sorts by the humanized text instead of the column,
+        # this test fails. (Pairs like "now"/"2 days ago" don't discriminate
+        # because 'n' > '2' lexically agrees with newest-first.)
+        now = datetime.utcnow()
+        chart_older.changed_on = now - timedelta(hours=5)
+        chart_newer.changed_on = now - timedelta(hours=3)
+        db.session.commit()
+
+        try:
+            self.login(ADMIN_USERNAME)
+            arguments = {
+                "order_column": "changed_on_delta_humanized",
+                "order_direction": "desc",
+                "filters": [
+                    {
+                        "col": "slice_name",
+                        "opr": "sw",
+                        "value": "regression_27500_",
+                    }
+                ],
+            }
+            uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
+            rv = self.get_assert_metric(uri, "get_list")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+
+            results = data["result"]
+            assert len(results) >= 2, f"expected at least 2 results, got {results}"
+
+            # The two inserted charts should appear in newest-first order.
+            indices = {
+                row["slice_name"]: i
+                for i, row in enumerate(results)
+                if row["slice_name"].startswith("regression_27500_")
+            }
+            ordering = [
+                row["slice_name"]
+                for row in results
+                if row["slice_name"].startswith("regression_27500_")
+            ]
+            assert (
+                indices["regression_27500_newer"] < indices["regression_27500_older"]
+            ), f"changed_on_delta_humanized desc sort is wrong: {ordering}; see #27500"
+        finally:
+            db.session.delete(chart_older)
+            db.session.delete(chart_newer)
+            db.session.commit()
+
     def test_get_charts_changed_on(self):
         """
         Dashboard API: Test get charts changed on
@@ -1695,9 +1768,55 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert rv.content_type == "application/json"
+        assert rv.content_type == "application/json; charset=utf-8"
         if slice:
             assert data["slice_id"] == slice.id
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_query_form_data_no_data_access(self):
+        """
+        Chart API: query_form_data must refuse callers without
+        datasource_access on the chart's underlying dataset. Mirrors
+        the existing test_get_chart_no_data_access guard on
+        ChartRestApi (which also returns 404 to avoid leaking chart
+        existence to unauthorised callers).
+        """
+        self.login(GAMMA_USERNAME)
+        chart_no_access = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        assert chart_no_access is not None, (
+            "fixture load_birth_names_dashboard_with_slices did not "
+            "create the 'Girl Name Cloud' slice"
+        )
+        uri = f"api/v1/form_data/?slice_id={chart_no_access.id}"
+        rv = self.client.get(uri)
+        # Match ChartRestApi.get: 404 for both missing AND forbidden so
+        # the endpoint cannot be used to enumerate chart IDs.
+        assert rv.status_code == 404, (
+            f"Gamma user without datasource_access should get 404 "
+            f"(status={rv.status_code}, body={rv.data[:200]!r})"
+        )
+        # Defence in depth: even if a future regression returns a non-
+        # 200 status with a partially-filled error envelope, ensure the
+        # caller cannot recover form_data fields.
+        assert b"datasource" not in rv.data
+        assert b"adhoc_filters" not in rv.data
+        assert b"viz_type" not in rv.data
+
+    def test_query_form_data_missing_slice(self):
+        """
+        Chart API: a non-existent slice_id must return the same 404 as a
+        forbidden one, so the status code cannot be used to enumerate
+        which slice IDs exist.
+        """
+        self.login(ADMIN_USERNAME)
+        max_id = db.session.query(func.max(Slice.id)).scalar() or 0
+        uri = f"api/v1/form_data/?slice_id={max_id + 10_000}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_slice",
@@ -2320,3 +2439,11 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
         security_manager.add_permission_role(alpha_role, tag_charts_perm)
+
+    def test_related_owners_allowed_for_write_user(self):
+        """
+        Chart API: GET /api/v1/chart/related/owners returns 200 for Admin.
+        """
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get("api/v1/chart/related/owners")
+        assert rv.status_code == 200

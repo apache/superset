@@ -37,7 +37,7 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
 
-SQL_LAB_QUERY_PARAMS_TO_SANITIZE = frozenset({"sql", "title"})
+SQL_LAB_QUERY_PARAMS_TO_SANITIZE = frozenset({"sql", "name"})
 
 
 def _sanitize_sql_lab_url_for_llm_context(url: str) -> str:
@@ -103,7 +103,8 @@ def open_sql_lab_with_context(
             database = DatabaseDAO.find_by_id(request.database_connection_id)
         if not database:
             error_message = (
-                f"Database with ID {request.database_connection_id} not found"
+                f"Database with ID {request.database_connection_id} not found."
+                " Use list_databases to get valid database IDs."
             )
             return _sanitize_sql_lab_response_for_llm_context(
                 SqlLabResponse(
@@ -127,7 +128,10 @@ def open_sql_lab_with_context(
             params["sql"] = request.sql
 
         if request.title:
-            params["title"] = request.title
+            # SQL Lab's PopEditorTab reads `name` from query string to set the
+            # tab label; keep the MCP-facing field as `title` (more natural for
+            # LLMs) but emit `name` on the URL.
+            params["name"] = request.title
 
         if request.dataset_in_context:
             # Add dataset context as a comment in the SQL if no SQL provided

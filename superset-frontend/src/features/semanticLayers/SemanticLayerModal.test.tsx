@@ -62,7 +62,7 @@ const props = {
 
 beforeEach(() => {
   mockJsonFormsChangeTriggered = false;
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   mockedGet.mockReset();
   mockedPost.mockReset();
 

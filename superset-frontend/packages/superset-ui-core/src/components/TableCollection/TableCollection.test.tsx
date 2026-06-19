@@ -214,6 +214,12 @@ test('Bulk selection should work with pagination', () => {
   // Check that selection checkboxes are rendered
   const checkboxes = screen.getAllByRole('checkbox');
   expect(checkboxes.length).toBeGreaterThan(0);
+
+  // Guard: the select-all column header carries `data-test="header-toggle-all"`,
+  // which the `header.cell` slot keys on antd's internal `ant-table-selection-column`
+  // class. If antd renames that class, this assertion fails fast at the unit level
+  // instead of leaking into Playwright as a flake.
+  expect(screen.getByTestId('header-toggle-all')).toBeInTheDocument();
 });
 
 test('should call setSortBy when clicking sortable column header', () => {

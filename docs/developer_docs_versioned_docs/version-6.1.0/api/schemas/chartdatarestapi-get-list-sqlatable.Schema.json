@@ -1,0 +1,1 @@
+{"schema":{"properties":{"default_endpoint":{"nullable":true,"type":"string"},"table_name":{"maxLength":250,"type":"string"}},"required":["table_name"],"type":"object","title":"ChartDataRestApi.get_list.SqlaTable"},"schemaType":"response"}

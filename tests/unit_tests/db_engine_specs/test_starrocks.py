@@ -169,6 +169,11 @@ def test_impersonation_username(mocker: MockerFixture) -> None:
         'EXECUTE AS "alice" WITH NO REVERT;'
     ]
 
+    database.get_effective_user.return_value = 'evil" WITH NO REVERT; DROP TABLE x--'
+    assert StarRocksEngineSpec.get_prequeries(database) == [
+        'EXECUTE AS "evil"" WITH NO REVERT; DROP TABLE x--" WITH NO REVERT;'
+    ]
+
 
 def test_impersonation_disabled(mocker: MockerFixture) -> None:
     """

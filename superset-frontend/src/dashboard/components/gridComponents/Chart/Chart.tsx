@@ -27,6 +27,7 @@ import {
   RefObject,
 } from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
+import { VizType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { debounce } from 'lodash';
@@ -126,6 +127,10 @@ const SliceContainer = styled.div`
 `;
 
 const EMPTY_OBJECT: Record<string, never> = {};
+
+// Stable no-op fallback for optional callbacks so we don't allocate a new
+// function on every render (keeps referential equality for memoized children).
+const NOOP = () => {};
 
 // Helper function to get chart state with fallback
 const getChartStateWithFallback = (
@@ -495,7 +500,9 @@ const Chart = (props: ChartProps) => {
       const resultType = isPivot ? 'post_processed' : 'full';
 
       let actualRowCount: number | undefined;
-      const isTableViz = (formData as JsonObject)?.viz_type === 'table';
+      const vizType = (formData as JsonObject)?.viz_type;
+      const isTableViz =
+        vizType === VizType.Table || vizType === VizType.TableAgGrid;
 
       if (
         isTableViz &&
@@ -760,11 +767,11 @@ const Chart = (props: ChartProps) => {
             },
             slice.viz_type,
           )}
-          queriesResponse={chart.queriesResponse ?? undefined}
+          queriesResponse={chart.queriesResponse ?? null}
           timeout={timeout}
           triggerQuery={chart.triggerQuery}
           vizType={slice.viz_type}
-          setControlValue={props.setControlValue}
+          setControlValue={props.setControlValue ?? NOOP}
           datasetsStatus={
             datasetsStatus as 'loading' | 'error' | 'complete' | undefined
           }

@@ -19,7 +19,7 @@ from datetime import datetime
 from functools import partial
 from typing import Any, Optional
 
-from flask import g
+from flask import current_app, g
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -27,6 +27,7 @@ from superset import security_manager
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.chart.exceptions import (
     ChartCreateFailedError,
+    ChartForbiddenError,
     ChartInvalidError,
     DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
@@ -34,6 +35,8 @@ from superset.commands.chart.exceptions import (
 from superset.commands.utils import get_datasource_by_id
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
+from superset.exceptions import SupersetSecurityException
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -43,12 +46,22 @@ class CreateChartCommand(CreateMixin, BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
+        if params_str := self._properties.get("params"):
+            params = json.loads(params_str)
+            if isinstance(params, dict) and "viz_type" in params:
+                # Only fall back to params when no top-level viz_type was supplied;
+                # an explicit top-level field takes precedence.
+                self._properties.setdefault("viz_type", params["viz_type"])
+
     @transaction(on_error=partial(on_error, reraise=ChartCreateFailedError))
     def run(self) -> Model:
         self.validate()
         self._properties["last_saved_at"] = datetime.now()
         self._properties["last_saved_by"] = g.user
-        return ChartDAO.create(attributes=self._properties)
+        chart = ChartDAO.create(attributes=self._properties)
+        if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
+            after_create(chart, "chart")
+        return chart
 
     def validate(self) -> None:
         exceptions = []
@@ -61,6 +74,9 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         try:
             datasource = get_datasource_by_id(datasource_id, datasource_type)
             self._properties["datasource_name"] = datasource.name
+            security_manager.raise_for_access(datasource=datasource)
+        except SupersetSecurityException as ex:
+            raise ChartForbiddenError() from ex
         except ValidationError as ex:
             exceptions.append(ex)
 

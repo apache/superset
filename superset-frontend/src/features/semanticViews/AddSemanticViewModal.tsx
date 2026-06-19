@@ -254,7 +254,10 @@ export default function AddSemanticViewModal({
           !schema?.properties ||
           Object.keys(schema.properties).length === 0
         ) {
-          // No runtime config needed — fetch views right away
+          // Preserve top-level runtime metadata (e.g. x-singleView) even when
+          // there are no form fields, then fetch views right away.  Skip the
+          // apply call entirely if the backend returned no schema at all.
+          if (schema) applyRuntimeSchema(schema);
           fetchViews(uuid, {}, gen);
         } else {
           applyRuntimeSchema(schema);
@@ -456,6 +459,31 @@ export default function AddSemanticViewModal({
   const viewsDisabled =
     loadingViews || (!loadingViews && availableViews.length === 0);
 
+  // When ``x-singleView: true`` the runtime form fully describes a single
+  // semantic view (e.g. a MetricFlow cube).  Hide the picker and auto-select
+  // whatever ``get_semantic_views`` returned so the Add button can fire
+  // without an extra user click.
+  const singleViewMode =
+    (runtimeSchema as Record<string, unknown> | null)?.['x-singleView'] ===
+    true;
+
+  useEffect(() => {
+    if (!singleViewMode) return;
+    const namesToAdd = availableViews
+      .filter(v => !v.already_added)
+      .map(v => v.name)
+      .slice(0, 1);
+    setSelectedViewNames(prev => {
+      if (
+        prev.length === namesToAdd.length &&
+        prev.every((n, i) => n === namesToAdd[i])
+      ) {
+        return prev;
+      }
+      return namesToAdd;
+    });
+  }, [singleViewMode, availableViews]);
+
   return (
     <StandardModal
       show={show}
@@ -511,8 +539,12 @@ export default function AddSemanticViewModal({
           </>
         )}
 
-        {/* Semantic Views — always visible once a layer is selected */}
-        {selectedLayerUuid && !loadingRuntime && (
+        {/* Semantic Views — always visible once a layer is selected, unless
+            the runtime schema declares ``x-singleView: true``: extensions
+            (e.g. MetricFlow cubes) whose runtime form fully describes a
+            single view set that flag so the picker disappears and the
+            view is auto-selected when ``get_semantic_views`` returns it. */}
+        {selectedLayerUuid && !loadingRuntime && !singleViewMode && (
           <ModalFormField label={t('Semantic Views')}>
             <Select
               ariaLabel={t('Semantic views')}

@@ -92,6 +92,26 @@ class Dimension:
     grain: Grain | None = None
 
 
+class AggregationType(str, enum.Enum):
+    """
+    Aggregation function applied by a metric.
+
+    Additivity (across an arbitrary set of grouping dimensions):
+    * ``SUM``, ``COUNT``: fully additive — sub-group sums roll up via ``sum``.
+    * ``MIN``, ``MAX``: roll up via ``min`` / ``max`` of sub-group values.
+    * ``AVG``, ``COUNT_DISTINCT``, ``OTHER``: not safely roll-uppable from
+      sub-aggregates without auxiliary data.
+    """
+
+    SUM = "SUM"
+    COUNT = "COUNT"
+    MIN = "MIN"
+    MAX = "MAX"
+    AVG = "AVG"
+    COUNT_DISTINCT = "COUNT_DISTINCT"
+    OTHER = "OTHER"
+
+
 @dataclass(frozen=True)
 class Metric:
     id: str
@@ -100,6 +120,7 @@ class Metric:
 
     definition: str
     description: str | None = None
+    aggregation: AggregationType | None = None
 
 
 @dataclass(frozen=True)

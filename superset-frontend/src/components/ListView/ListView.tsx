@@ -33,7 +33,6 @@ import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
   Button,
   Tooltip,
-  Checkbox,
   Icons,
   EmptyState,
   Loading,
@@ -65,13 +64,43 @@ const ListViewStyles = styled.div`
 
       .header {
         display: flex;
+        align-items: center;
         padding-bottom: ${theme.sizeUnit * 4}px;
 
         & .controls {
           display: flex;
           flex-wrap: wrap;
-          column-gap: ${theme.sizeUnit * 7}px;
-          row-gap: ${theme.sizeUnit * 4}px;
+          align-items: center;
+          column-gap: ${theme.sizeUnit * 2}px;
+          row-gap: ${theme.sizeUnit * 2}px;
+
+          /* Search input — fixed width/height matching pill height, label hidden */
+          [data-test='search-filter-container'] {
+            width: ${theme.sizeUnit * 44}px;
+            flex-shrink: 0;
+            height: ${theme.controlHeight}px;
+            align-self: center;
+            /* Hide the FormLabel Flex wrapper entirely so it doesn't affect
+               the column's justify-content centering calculation. */
+            > .ant-flex {
+              display: none;
+            }
+            label {
+              display: none;
+            }
+            .ant-input-affix-wrapper {
+              width: 100%;
+              height: 100%;
+            }
+          }
+
+          /* Select filter pill wrappers — make them proper flex items so the
+             inline-flex button inside doesn't introduce line-box quirks. */
+          [data-test='select-filter-container'] {
+            display: flex;
+            align-items: center;
+            align-self: center;
+          }
         }
       }
 
@@ -149,25 +178,9 @@ const BulkSelectWrapper = styled(Alert)`
   `}
 `;
 
-const bulkSelectColumnConfig = {
-  Cell: ({ row }: any) => (
-    <Checkbox {...row.getToggleRowSelectedProps()} id={row.id} />
-  ),
-  Header: ({ getToggleAllRowsSelectedProps }: any) => (
-    <Checkbox
-      {...getToggleAllRowsSelectedProps()}
-      id="header-toggle-all"
-      data-test="header-toggle-all"
-    />
-  ),
-  id: 'selection',
-  size: 'sm',
-};
-
 const ViewModeContainer = styled.div`
   ${({ theme }) => `
     padding-right: ${theme.sizeUnit * 4}px;
-    margin-top: ${theme.sizeUnit * 5 + 1}px;
     white-space: nowrap;
     display: inline-block;
 
@@ -188,6 +201,29 @@ const ViewModeContainer = styled.div`
       svg {
         color: ${theme.colorBgLayout};
       }
+    }
+  `}
+`;
+
+const ClearAllButton = styled.button`
+  ${({ theme }) => `
+    background: none;
+    border: none;
+    padding: 0 ${theme.sizeUnit}px;
+    color: ${theme.colorPrimary};
+    font-size: ${theme.fontSizeSM}px;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: ${theme.controlHeight}px;
+
+    &:hover:not(:disabled) {
+      color: ${theme.colorPrimaryHover};
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      color: ${theme.colorTextDisabled};
+      cursor: not-allowed;
     }
   `}
 `;
@@ -259,6 +295,7 @@ export interface ListViewProps<T extends object = any> {
     name: ReactNode;
     onSelect: (rows: any[]) => any;
     type?: 'primary' | 'secondary' | 'danger';
+    hidden?: (rows: any[]) => boolean;
   }>;
   bulkSelectEnabled?: boolean;
   disableBulkSelect?: () => void;
@@ -277,6 +314,10 @@ export interface ListViewProps<T extends object = any> {
     clearFilters: () => void;
     clearFilterById: (id: string) => void;
   }>;
+  /** Optional expandable row configuration, passed through to antd Table. */
+  expandable?: Record<string, unknown>;
+  /** Content rendered between the filter bar and the table/card body. */
+  headerContent?: ReactNode;
 }
 
 export function ListView<T extends object = any>({
@@ -304,6 +345,8 @@ export function ListView<T extends object = any>({
   enableBulkTag = false,
   bulkTagResourceName,
   filtersRef,
+  expandable,
+  headerContent,
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
@@ -323,8 +366,6 @@ export function ListView<T extends object = any>({
     state: { pageIndex, pageSize, internalFilters, sortBy, viewMode },
     query,
   } = useListViewState({
-    bulkSelectColumnConfig,
-    bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
     columns,
     count,
     data,
@@ -355,6 +396,14 @@ export function ListView<T extends object = any>({
     clearFilters: () => void;
     clearFilterById: (id: string) => void;
   }>(null);
+
+  const hasActiveFilters = internalFilters.some(f => {
+    if (f.value === null || f.value === undefined || f.value === '')
+      return false;
+    if (Array.isArray(f.value))
+      return f.value.some(v => v !== null && v !== undefined && v !== '');
+    return true;
+  });
 
   // Wire the optional external filtersRef to our internal filterControlsRef.
   // useLayoutEffect fires synchronously after DOM mutations, guaranteeing the
@@ -421,8 +470,24 @@ export function ListView<T extends object = any>({
                 options={cardSortSelectOptions}
               />
             )}
+            {filterable && (
+              <Tooltip
+                title={!hasActiveFilters ? t('No filters applied') : undefined}
+              >
+                <span>
+                  <ClearAllButton
+                    type="button"
+                    disabled={!hasActiveFilters}
+                    onClick={() => filterControlsRef.current?.clearFilters()}
+                  >
+                    {t('Clear all')}
+                  </ClearAllButton>
+                </span>
+              </Tooltip>
+            )}
           </div>
         </div>
+        {headerContent}
         <div className={`body ${rows.length === 0 ? 'empty' : ''} `}>
           {bulkSelectEnabled && (
             <BulkSelectWrapper
@@ -449,21 +514,29 @@ export function ListView<T extends object = any>({
                         {t('Deselect all')}
                       </span>
                       <div className="divider" />
-                      {bulkActions.map(action => (
-                        <Button
-                          data-test="bulk-select-action"
-                          key={action.key}
-                          buttonStyle={action.type}
-                          cta
-                          onClick={() =>
-                            action.onSelect(
+                      {bulkActions
+                        .filter(
+                          action =>
+                            !action.hidden?.(
                               selectedFlatRows.map((r: any) => r.original),
-                            )
-                          }
-                        >
-                          {action.name}
-                        </Button>
-                      ))}
+                            ),
+                        )
+                        .map(action => (
+                          <Button
+                            data-test="bulk-select-action"
+                            data-test-action-key={action.key}
+                            key={action.key}
+                            buttonStyle={action.type}
+                            cta
+                            onClick={() =>
+                              action.onSelect(
+                                selectedFlatRows.map((r: any) => r.original),
+                              )
+                            }
+                          >
+                            {action.name}
+                          </Button>
+                        ))}
                       {enableBulkTag && (
                         <span
                           data-test="bulk-select-tag-btn"
@@ -535,6 +608,7 @@ export function ListView<T extends object = any>({
                   loading={loading && rows.length > 0}
                   highlightRowId={highlightRowId}
                   columnsForWrapText={columnsForWrapText}
+                  expandable={expandable}
                   bulkSelectEnabled={bulkSelectEnabled}
                   selectedFlatRows={selectedFlatRows}
                   toggleRowSelected={(rowId, value) => {

@@ -251,3 +251,28 @@ class TestRuntimeValidatorNonBlocking:
             mock_cardinality.assert_not_called()
             assert is_valid is True
             assert error is None
+
+    def test_validate_cardinality_returns_cleanly_when_x_name_is_none(self) -> None:
+        """The dimension-rejection guard on XYChartConfig normally forbids
+        x.name=None, but a model_construct bypass (or a future code path)
+        could land us here. The defensive guard must return cleanly without
+        calling into CardinalityValidator (which assumes a real column)."""
+        col = ColumnRef.model_construct(name=None)
+        config = XYChartConfig.model_construct(
+            chart_type="xy",
+            x=col,
+            y=[ColumnRef(name="val", aggregate="SUM")],
+            kind="line",
+        )
+
+        with patch(
+            "superset.mcp_service.chart.validation.runtime."
+            "cardinality_validator.CardinalityValidator.check_cardinality"
+        ) as mock_check:
+            warnings, suggestions = RuntimeValidator._validate_cardinality(
+                config, dataset_id=1
+            )
+
+        assert warnings == []
+        assert suggestions == []
+        mock_check.assert_not_called()

@@ -763,6 +763,123 @@ test('Should show row count warning for table chart with server pagination when 
   mockUseUiConfig.mockRestore();
 });
 
+test('Should show row count warning for non-table chart when row limit is reached', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      viz_type: VizType.Bar,
+      row_limit: 10,
+    },
+    slice: {
+      ...createProps().slice,
+      form_data: {
+        ...createProps().slice.form_data,
+        viz_type: VizType.Bar,
+        row_limit: 10,
+      },
+      viz_type: VizType.Bar,
+    },
+  });
+  const barChartState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        id: MOCKED_CHART_ID,
+        chartStatus: 'rendered',
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+            data: Array(10).fill({}),
+          },
+        ],
+      },
+    },
+  };
+
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: barChartState,
+  });
+
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+
+  mockUseUiConfig.mockRestore();
+});
+
+test('Should show row count warning for ag-grid table chart with server pagination when limit is reached', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      viz_type: VizType.TableAgGrid,
+      row_limit: 10,
+      server_pagination: true,
+    },
+    slice: {
+      ...createProps().slice,
+      form_data: {
+        ...createProps().slice.form_data,
+        viz_type: VizType.TableAgGrid,
+        row_limit: 10,
+        server_pagination: true,
+      },
+      viz_type: VizType.TableAgGrid,
+    },
+  });
+  const agGridWithPaginationState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        id: MOCKED_CHART_ID,
+        chartStatus: 'rendered',
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+            data: Array(10).fill({}),
+          },
+          {
+            data: [{ rowcount: 50 }],
+          },
+        ],
+      },
+    },
+  };
+
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: agGridWithPaginationState,
+  });
+
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+
+  mockUseUiConfig.mockRestore();
+});
+
 test('Should NOT show row count warning for table chart with server pagination when limit is NOT reached', () => {
   const props = createProps({
     formData: {

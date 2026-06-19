@@ -21,7 +21,7 @@ import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot } from 'src/utils/pathUtils';
-import { getUrlParam } from 'src/utils/urlUtils';
+import { getUrlParam, isUrlExternal } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
@@ -153,7 +153,7 @@ const StyledBrandWrapper = styled.div<{ margin?: string }>`
   `}
 `;
 
-const StyledBrandLink = styled(Typography.Link)`
+const StyledBrandLink = styled(GenericLink)`
   ${({ theme }) => css`
     align-items: center;
     display: flex;
@@ -218,10 +218,10 @@ export function Menu({
     const path = location.pathname;
     switch (true) {
       case path.startsWith(Paths.Dashboard):
-        setActiveTabs(['Dashboards']);
+        setActiveTabs([t('Dashboards')]);
         break;
       case path.startsWith(Paths.Chart) || path.startsWith(Paths.Explore):
-        setActiveTabs(['Charts']);
+        setActiveTabs([t('Charts')]);
         break;
       case path.startsWith(Paths.Datasets):
         setActiveTabs([datasetsLabel()]);
@@ -263,9 +263,10 @@ export function Menu({
 
     const childItems: MenuItem[] = [];
     childs?.forEach((child: MenuObjectChildProps | string, index1: number) => {
-      if (typeof child === 'string' && child === '-' && label !== 'Data') {
+      if (typeof child === 'string' && child === '-' && label !== t('Data')) {
         childItems.push({ type: 'divider', key: `divider-${index1}` });
       } else if (typeof child !== 'string') {
+        Object.assign(child, { label: t(child.label) });
         childItems.push({
           key: `${child.label}`,
           label: child.isFrontendRoute ? (
@@ -292,16 +293,24 @@ export function Menu({
   const renderBrand = () => {
     let link;
     if (theme.brandLogoUrl) {
+      const brandHref = ensureAppRoot(theme.brandLogoHref);
+      const brandImage = (
+        <StyledImage
+          preview={false}
+          src={ensureStaticPrefix(theme.brandLogoUrl)}
+          alt={theme.brandLogoAlt || 'Apache Superset'}
+          height={theme.brandLogoHeight}
+        />
+      );
       link = (
         <StyledBrandWrapper margin={theme.brandLogoMargin}>
-          <StyledBrandLink href={ensureAppRoot(theme.brandLogoHref)}>
-            <StyledImage
-              preview={false}
-              src={ensureStaticPrefix(theme.brandLogoUrl)}
-              alt={theme.brandLogoAlt || 'Apache Superset'}
-              height={theme.brandLogoHeight}
-            />
-          </StyledBrandLink>
+          {isUrlExternal(brandHref) ? (
+            <Typography.Link className="navbar-brand" href={brandHref}>
+              {brandImage}
+            </Typography.Link>
+          ) : (
+            <StyledBrandLink to={brandHref}>{brandImage}</StyledBrandLink>
+          )}
         </StyledBrandWrapper>
       );
     } else if (isFrontendRoute(window.location.pathname)) {
@@ -366,6 +375,7 @@ export function Menu({
             items={menu.map(item => {
               const props = {
                 ...item,
+                label: t(item.label),
                 isFrontendRoute: isFrontendRoute(item.url),
                 childs: item.childs?.map(c => {
                   if (typeof c === 'string') {
@@ -429,15 +439,16 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
       // Apply any label override for this item (keyed by FAB internal name).
       ...(item.name && labelOverrides[item.name]
         ? { label: labelOverrides[item.name]() }
-        : {}),
+        : { label: t(item.label) }),
     };
 
     // Filter childs
     if (item.childs) {
       item.childs.forEach((child: MenuObjectChildProps | string) => {
         if (typeof child === 'string') {
-          children.push(child);
+          children.push(t(child));
         } else if ((child as MenuObjectChildProps).label) {
+          Object.assign(child, { label: t(child.label) });
           children.push(child);
         }
       });
