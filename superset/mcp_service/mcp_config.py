@@ -20,7 +20,6 @@ import logging
 import secrets
 from typing import Any, Dict, Optional, Sequence
 
-from authlib.jose.errors import JoseError
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from flask import Flask
 
@@ -379,7 +378,7 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                     public_key=public_key,
                     secret=secret,
                 )
-            except (ValueError, JoseError):
+            except Exception:
                 # Do not log the exception — it may contain secrets (e.g., key material)
                 logger.error("Failed to create MCP JWT verifier")
                 if not api_key_enabled:
