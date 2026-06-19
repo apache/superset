@@ -580,41 +580,57 @@ def _get_visible_columns(stored_chart: "Slice") -> set[str]:
     params = stored_chart.params_dict
     visible: set[str] = set()
 
-    for col in params.get("columns") or []:
-        if isinstance(col, str):
-            visible.add(col)
-        elif isinstance(col, dict) and (label := col.get("label")):
-            visible.add(label)
-
-    for col in params.get("groupby") or []:
-        if isinstance(col, str):
-            visible.add(col)
-        elif isinstance(col, dict) and (label := col.get("label")):
-            visible.add(label)
-
-    for metric in params.get("metrics") or []:
-        if isinstance(metric, str):
-            visible.add(metric)
-        elif isinstance(metric, dict) and (label := metric.get("label")):
-            visible.add(label)
+    # Column-like controls. ``all_columns`` is the Table plugin's raw "Query
+    # mode" dimension list, so raw-records tables (a common source of the guest
+    # sort error) expose their columns there rather than under ``columns``.
+    for field in ("columns", "groupby", "all_columns", "metrics"):
+        for item in params.get(field) or []:
+            if isinstance(item, str):
+                visible.add(item)
+            elif isinstance(item, dict) and (label := item.get("label")):
+                visible.add(label)
 
     return visible
+
+
+def _stored_orderby_frozen(stored_chart: "Slice") -> set[str]:
+    """
+    Frozen representations of the orderby entries the chart already sorts by.
+
+    A guest may re-send these (including a guest-overridable change such as a
+    different time grain on a temporal x-axis) without it counting as tampering,
+    mirroring the default subset comparison. ``freeze_value`` strips the
+    overridable keys, so a pure time-grain change matches the stored entry.
+    """
+    allowed = {
+        freeze_value(entry) for entry in stored_chart.params_dict.get("orderby") or []
+    }
+    if stored_chart.query_context:
+        stored = json.loads(cast(str, stored_chart.query_context))
+        for query in stored.get("queries") or []:
+            allowed.update(freeze_value(entry) for entry in query.get("orderby") or [])
+    return allowed
 
 
 def _validate_orderby_list(
     orderby: Any,
     visible_columns: set[str],
+    allowed_frozen: set[str],
 ) -> bool:
     """
     Validate a single orderby list against visible columns.
 
-    Returns True if invalid (should block), False if valid.
+    An entry is allowed when it sorts by a visible column or matches an entry the
+    chart already sorts by (``allowed_frozen``). Returns True if invalid (should
+    block), False if valid.
     """
     if orderby is not None and not isinstance(orderby, list):
         return True
     for orderby_tuple in orderby or []:
         if not isinstance(orderby_tuple, (list, tuple)) or len(orderby_tuple) < 1:
             return True
+        if freeze_value(orderby_tuple) in allowed_frozen:
+            continue
         col_name = _extract_orderby_column_name(orderby_tuple[0])
         if col_name is None or col_name not in visible_columns:
             return True
@@ -637,14 +653,19 @@ def _orderby_whitelist_compare(
     - If orderby element is not a tuple/list, block (fail-closed)
     """
     form_data = query_context.form_data or {}
+    allowed_frozen = _stored_orderby_frozen(stored_chart)
 
     # Check form_data orderby
-    if _validate_orderby_list(form_data.get("orderby"), visible_columns):
+    if _validate_orderby_list(
+        form_data.get("orderby"), visible_columns, allowed_frozen
+    ):
         return True
 
     # Check queries orderby
     for query in query_context.queries:
-        if _validate_orderby_list(getattr(query, "orderby", None), visible_columns):
+        if _validate_orderby_list(
+            getattr(query, "orderby", None), visible_columns, allowed_frozen
+        ):
             return True
 
     return False

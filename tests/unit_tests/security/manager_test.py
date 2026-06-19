@@ -1472,6 +1472,32 @@ def test_query_context_modified_orderby_direction_change_allowed(
     assert not query_context_modified(query_context)
 
 
+def test_query_context_modified_orderby_raw_table_all_columns_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a raw-records Table chart can be sorted by its `all_columns`.
+
+    The Table plugin's raw "Query mode" stores its selected columns under
+    `all_columns` rather than `columns`, so guests must be able to sort by them.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "query_mode": "raw",
+        "all_columns": ["name", "country"],
+        "orderby": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "orderby": [["country", True]],  # Sort by a raw-mode column
+    }
+    query_context.queries = []
+
+    assert not query_context_modified(query_context)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.
