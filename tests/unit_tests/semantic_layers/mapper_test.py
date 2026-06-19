@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime
+from datetime import date, datetime, time, timezone
+from typing import Any
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import pyarrow as pa
@@ -40,6 +42,7 @@ from superset_core.semantic_layers.types import (
 from superset_core.semantic_layers.view import SemanticViewFeature
 
 from superset.semantic_layers.mapper import (
+    _coerce_scalar_filter_value,
     _convert_query_object_filter,
     _convert_time_grain,
     _get_filters_from_extras,
@@ -1204,6 +1207,91 @@ def test_convert_query_object_filter_like() -> None:
     }
 
 
+def test_convert_query_object_filter_coerces_integer_string_value() -> None:
+    """Test scalar filter values are coerced to dimension type."""
+    all_dimensions = {
+        "birthyear": Dimension(
+            "birthyear",
+            "birthyear",
+            pa.int64(),
+            "birthyear",
+            "Birthyear",
+        )
+    }
+
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
+        "col": "birthyear",
+        "val": "1982",
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["birthyear"],
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=1982,
+        )
+    }
+
+
+def test_convert_query_object_filter_coerces_in_integer_values() -> None:
+    """Test IN filter list values are coerced element-wise."""
+    all_dimensions = {
+        "order_id__amount": Dimension(
+            "order_id__amount",
+            "order_id__amount",
+            pa.int64(),
+            "order_id__amount",
+            "Order amount",
+        )
+    }
+
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.IN.value,
+        "col": "order_id__amount",
+        "val": ["58", "61"],
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_id__amount"],
+            operator=Operator.IN,
+            value=frozenset({58, 61}),
+        )
+    }
+
+
+def test_convert_query_object_filter_invalid_integer_value_raises() -> None:
+    """Test invalid integer value raises a clear error."""
+    all_dimensions = {
+        "birthyear": Dimension(
+            "birthyear",
+            "birthyear",
+            pa.int64(),
+            "birthyear",
+            "Birthyear",
+        )
+    }
+
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
+        "col": "birthyear",
+        "val": "nineteen-eighty-two",
+    }
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid integer value 'nineteen-eighty-two' for filter column birthyear",
+    ):
+        _convert_query_object_filter(filter_, all_dimensions)
+
+
 def test_get_results_without_time_offsets(
     mock_datasource: MagicMock,
     mocker: MockerFixture,
@@ -1921,6 +2009,86 @@ def test_convert_query_object_filter_temporal_range_with_value() -> None:
             value="2025-12-31",
         ),
     }
+
+
+def test_convert_query_object_filter_temporal_range_coerces_date_bounds() -> None:
+    """
+    TEMPORAL_RANGE bounds should be coerced against the dimension's dtype so
+    date/timestamp columns are not compared against raw strings.
+    """
+    all_dimensions = {
+        "order_date": Dimension(
+            "order_date", "order_date", pa.date32(), "order_date", "Order date"
+        )
+    }
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.TEMPORAL_RANGE.value,
+        "col": "order_date",
+        "val": "2025-01-01 : 2025-12-31",
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=date(2025, 1, 1),
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.LESS_THAN,
+            value=date(2025, 12, 31),
+        ),
+    }
+
+
+def test_convert_query_object_filter_temporal_range_open_ended() -> None:
+    """
+    Open-ended TEMPORAL_RANGE bounds should emit only the bounded predicate.
+    """
+    all_dimensions = {
+        "order_date": Dimension(
+            "order_date", "order_date", pa.date32(), "order_date", "Order date"
+        )
+    }
+
+    only_start: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.TEMPORAL_RANGE.value,
+        "col": "order_date",
+        "val": "2025-01-01 : ",
+    }
+    assert _convert_query_object_filter(only_start, all_dimensions) == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=date(2025, 1, 1),
+        ),
+    }
+
+    only_end: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.TEMPORAL_RANGE.value,
+        "col": "order_date",
+        "val": " : 2025-12-31",
+    }
+    assert _convert_query_object_filter(only_end, all_dimensions) == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["order_date"],
+            operator=Operator.LESS_THAN,
+            value=date(2025, 12, 31),
+        ),
+    }
+
+    empty: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.TEMPORAL_RANGE.value,
+        "col": "order_date",
+        "val": " : ",
+    }
+    assert _convert_query_object_filter(empty, all_dimensions) is None
 
 
 def test_get_order_adhoc_with_none_sql_expression(mock_datasource: MagicMock) -> None:
@@ -2741,3 +2909,205 @@ def test_get_group_limit_filters_no_granularity(
 
     # Should return None - no granularity means no time filters added
     assert result is None
+
+
+# ---------------------------------------------------------------------------
+# _coerce_scalar_filter_value: per-dtype branches
+# ---------------------------------------------------------------------------
+
+
+def _dim(dtype: pa.DataType, name: str = "d") -> Dimension:
+    return Dimension(name, name, dtype, name, name.capitalize())
+
+
+def test_coerce_none_returns_none() -> None:
+    assert _coerce_scalar_filter_value(None, _dim(pa.int64())) is None
+
+
+def test_coerce_unsupported_dtype_passes_through() -> None:
+    # utf8 (and any dtype not branched in the function) returns the value as-is.
+    assert _coerce_scalar_filter_value("abc", _dim(pa.utf8())) == "abc"
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        (True, True),
+        (False, False),
+        (1, True),
+        (0, False),
+        (1.0, True),
+        (0.0, False),
+        ("true", True),
+        ("T", True),
+        (" 1 ", True),
+        ("yes", True),
+        ("Y", True),
+        ("on", True),
+        ("false", False),
+        ("F", False),
+        ("0", False),
+        ("no", False),
+        ("N", False),
+        ("off", False),
+    ],
+)
+def test_coerce_boolean(raw: Any, expected: bool) -> None:
+    assert _coerce_scalar_filter_value(raw, _dim(pa.bool_())) is expected
+
+
+@pytest.mark.parametrize("raw", ["maybe", 2, 0.5, -1])
+def test_coerce_boolean_invalid_raises(raw: Any) -> None:
+    with pytest.raises(ValueError, match="Invalid boolean value"):
+        _coerce_scalar_filter_value(raw, _dim(pa.bool_()))
+
+
+def test_coerce_integer_passthrough() -> None:
+    assert _coerce_scalar_filter_value(42, _dim(pa.int64())) == 42
+
+
+def test_coerce_integer_accepts_integer_valued_float() -> None:
+    # JSON round-trips can turn an int into ``42.0``; accept losslessly.
+    assert _coerce_scalar_filter_value(42.0, _dim(pa.int64())) == 42
+
+
+def test_coerce_integer_rejects_bool() -> None:
+    # bool is a subclass of int; we explicitly reject it.
+    with pytest.raises(ValueError, match="Invalid integer value"):
+        _coerce_scalar_filter_value(True, _dim(pa.int64()))
+
+
+def test_coerce_integer_rejects_non_integer_float() -> None:
+    with pytest.raises(ValueError, match="Invalid integer value"):
+        _coerce_scalar_filter_value(1.5, _dim(pa.int64()))
+
+
+def test_coerce_integer_rejects_other_types() -> None:
+    with pytest.raises(ValueError, match="Invalid integer value"):
+        _coerce_scalar_filter_value([1], _dim(pa.int64()))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [pa.float64(), pa.decimal128(10, 2)],
+)
+def test_coerce_floating_or_decimal(dtype: pa.DataType) -> None:
+    assert _coerce_scalar_filter_value(1, _dim(dtype)) == 1.0
+    assert _coerce_scalar_filter_value(1.5, _dim(dtype)) == 1.5
+    assert _coerce_scalar_filter_value(" 2.5 ", _dim(dtype)) == 2.5
+
+
+def test_coerce_floating_rejects_bool() -> None:
+    with pytest.raises(ValueError, match="Invalid numeric value"):
+        _coerce_scalar_filter_value(True, _dim(pa.float64()))
+
+
+def test_coerce_floating_invalid_string_raises() -> None:
+    with pytest.raises(ValueError, match="Invalid numeric value"):
+        _coerce_scalar_filter_value("not-a-number", _dim(pa.float64()))
+
+
+def test_coerce_floating_rejects_other_types() -> None:
+    with pytest.raises(ValueError, match="Invalid numeric value"):
+        _coerce_scalar_filter_value([1.0], _dim(pa.float64()))
+
+
+def test_coerce_date_from_datetime() -> None:
+    out = _coerce_scalar_filter_value(datetime(2025, 1, 2, 12, 0), _dim(pa.date32()))
+    assert out == date(2025, 1, 2)
+
+
+def test_coerce_date_passthrough() -> None:
+    out = _coerce_scalar_filter_value(date(2025, 1, 2), _dim(pa.date32()))
+    assert out == date(2025, 1, 2)
+
+
+def test_coerce_date_from_iso_string() -> None:
+    out = _coerce_scalar_filter_value(" 2025-01-02 ", _dim(pa.date32()))
+    assert out == date(2025, 1, 2)
+
+
+def test_coerce_date_invalid_string_raises() -> None:
+    with pytest.raises(ValueError, match="Invalid date value"):
+        _coerce_scalar_filter_value("not-a-date", _dim(pa.date32()))
+
+
+def test_coerce_date_rejects_other_types() -> None:
+    with pytest.raises(ValueError, match="Invalid date value"):
+        _coerce_scalar_filter_value(20250102, _dim(pa.date32()))
+
+
+def test_coerce_timestamp_from_datetime_passthrough() -> None:
+    dt = datetime(2025, 1, 2, 3, 4, 5)
+    # Naive dtype: returned as-is, still naive.
+    assert _coerce_scalar_filter_value(dt, _dim(pa.timestamp("us"))) == dt
+
+
+def test_coerce_timestamp_from_date() -> None:
+    out = _coerce_scalar_filter_value(date(2025, 1, 2), _dim(pa.timestamp("us")))
+    assert out == datetime(2025, 1, 2, 0, 0)
+
+
+def test_coerce_timestamp_from_iso_string_with_z() -> None:
+    out = _coerce_scalar_filter_value("2025-01-02T03:04:05Z", _dim(pa.timestamp("us")))
+    assert out == datetime.fromisoformat("2025-01-02T03:04:05+00:00")
+
+
+def test_coerce_timestamp_invalid_string_raises() -> None:
+    with pytest.raises(ValueError, match="Invalid timestamp value"):
+        _coerce_scalar_filter_value("not-a-ts", _dim(pa.timestamp("us")))
+
+
+def test_coerce_timestamp_rejects_other_types() -> None:
+    with pytest.raises(ValueError, match="Invalid timestamp value"):
+        _coerce_scalar_filter_value(1234567890, _dim(pa.timestamp("us")))
+
+
+def test_coerce_timestamp_tz_aware_dtype_attaches_tz_to_naive_datetime() -> None:
+    dt = datetime(2025, 1, 2, 3, 4, 5)
+    out = _coerce_scalar_filter_value(dt, _dim(pa.timestamp("us", tz="UTC")))
+    assert out == datetime(2025, 1, 2, 3, 4, 5, tzinfo=ZoneInfo("UTC"))
+
+
+def test_coerce_timestamp_tz_aware_dtype_converts_aware_datetime() -> None:
+    dt = datetime(2025, 1, 2, 12, 0, tzinfo=timezone.utc)
+    out = _coerce_scalar_filter_value(
+        dt, _dim(pa.timestamp("us", tz="America/New_York"))
+    )
+    # 12:00 UTC == 07:00 in New York
+    assert out == datetime(2025, 1, 2, 7, 0, tzinfo=ZoneInfo("America/New_York"))
+
+
+def test_coerce_timestamp_tz_aware_dtype_attaches_tz_to_date() -> None:
+    out = _coerce_scalar_filter_value(
+        date(2025, 1, 2), _dim(pa.timestamp("us", tz="UTC"))
+    )
+    assert out == datetime(2025, 1, 2, 0, 0, tzinfo=ZoneInfo("UTC"))
+
+
+def test_coerce_timestamp_tz_aware_dtype_parses_string_with_tz() -> None:
+    out = _coerce_scalar_filter_value(
+        "2025-01-02T03:04:05", _dim(pa.timestamp("us", tz="UTC"))
+    )
+    # Naive string gets UTC attached.
+    assert out == datetime(2025, 1, 2, 3, 4, 5, tzinfo=ZoneInfo("UTC"))
+
+
+def test_coerce_time_passthrough() -> None:
+    out = _coerce_scalar_filter_value(time(3, 4, 5), _dim(pa.time64("us")))
+    assert out == time(3, 4, 5)
+
+
+def test_coerce_time_from_iso_string() -> None:
+    out = _coerce_scalar_filter_value(" 03:04:05 ", _dim(pa.time64("us")))
+    assert out == time(3, 4, 5)
+
+
+def test_coerce_time_invalid_string_raises() -> None:
+    with pytest.raises(ValueError, match="Invalid time value"):
+        _coerce_scalar_filter_value("not-a-time", _dim(pa.time64("us")))
+
+
+def test_coerce_time_rejects_other_types() -> None:
+    with pytest.raises(ValueError, match="Invalid time value"):
+        _coerce_scalar_filter_value(123, _dim(pa.time64("us")))

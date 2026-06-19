@@ -18,7 +18,6 @@
  */
 import 'src/public-path';
 
-import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { logging } from '@apache-superset/core/utils';
 import initPreamble from 'src/preamble';
@@ -32,11 +31,7 @@ if (appMountPoint) {
       await initPreamble();
     } finally {
       const { default: App } = await import(/* webpackMode: "eager" */ './App');
-      root.render(
-        <StrictMode>
-          <App />
-        </StrictMode>,
-      );
+      root.render(<App />);
     }
   })().catch(err => {
     logging.error('Unhandled error during app initialization', err);

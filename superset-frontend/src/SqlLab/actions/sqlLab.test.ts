@@ -582,16 +582,25 @@ describe('async actions', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('runQuery with query params', () => {
-    const { location } = window;
+    let locationSpy: jest.SpyInstance;
 
     beforeAll(() => {
-      delete (window as any).location;
-      (window as any).location = new URL('http://localhost/sqllab/?foo=bar');
+      const u = new URL('http://localhost/sqllab/?foo=bar');
+      locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+        href: u.href,
+        pathname: u.pathname,
+        search: u.search,
+        hash: u.hash,
+        origin: u.origin,
+        host: u.host,
+        hostname: u.hostname,
+        port: u.port,
+        protocol: u.protocol,
+      } as Location);
     });
 
     afterAll(() => {
-      delete (window as any).location;
-      window.location = location;
+      locationSpy.mockRestore();
     });
 
     const makeRequest = () => {
@@ -1408,39 +1417,6 @@ describe('async actions', () => {
             }),
           }),
         );
-      });
-    });
-
-    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-    describe('syncTable', () => {
-      test('updates the table schema state in the backend', () => {
-        expect.assertions(4);
-
-        const tableName = 'table';
-        const schemaName = 'schema';
-        const store = mockStore(initialState);
-        const expectedActionTypes = [
-          actions.MERGE_TABLE, // syncTable
-        ];
-        const request = actions.syncTable(
-          query as any,
-          tableName as any,
-          schemaName,
-        );
-        return request(store.dispatch, store.getState, undefined).then(() => {
-          expect(store.getActions().map(a => a.type)).toEqual(
-            expectedActionTypes,
-          );
-          expect(store.getActions()[0].prepend).toBeFalsy();
-          expect(
-            fetchMock.callHistory.calls(updateTableSchemaEndpoint),
-          ).toHaveLength(1);
-
-          // tab state is not updated, since no query was run
-          expect(
-            fetchMock.callHistory.calls(updateTabStateEndpoint),
-          ).toHaveLength(0);
-        });
       });
     });
 

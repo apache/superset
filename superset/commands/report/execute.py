@@ -289,19 +289,27 @@ class BaseReportState:
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
 
-            # Merge native_filters into existing urlParams instead of
-            # overwriting — dashboard_state may already have urlParams
-            # (e.g. standalone=true) that must be preserved.
-            state: DashboardPermalinkState = {**dashboard_state}
-            state["urlParams"] = self._merge_native_filters_into_url_params(
-                state.get("urlParams"), native_filter_params
-            )
-            return [
-                self._get_tab_url(
-                    state,
-                    user_friendly=user_friendly,
+            # Skip the permalink when there is nothing meaningful to encode —
+            # an empty dashboard_state falls through to the plain URL below.
+            # A non-empty anchor means a single tab was selected (it failed
+            # JSON list parsing above) and still needs a permalink. Non-filter
+            # state such as urlParams (e.g. standalone=true) must also be
+            # preserved via a permalink.
+            if (
+                anchor
+                or dashboard_state.get("urlParams")
+                or (native_filter_params and native_filter_params != "()")
+            ):
+                state: DashboardPermalinkState = {**dashboard_state}
+                state["urlParams"] = self._merge_native_filters_into_url_params(
+                    state.get("urlParams"), native_filter_params
                 )
-            ]
+                return [
+                    self._get_tab_url(
+                        state,
+                        user_friendly=user_friendly,
+                    )
+                ]
 
         native_filter_params, filter_warnings = (
             self._report_schedule.get_native_filters_params()
@@ -457,8 +465,12 @@ class BaseReportState:
         try:
             imges = []
             for screenshot in screenshots:
-                if imge := screenshot.get_screenshot(user=user):
-                    imges.append(imge)
+                imge = screenshot.get_screenshot(user=user)
+                if imge is None:
+                    raise ReportScheduleScreenshotFailedError(
+                        "Screenshot failed; aborting to avoid sending a partial report"
+                    )
+                imges.append(imge)
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "Screenshot capture took %.2fs - execution_id: %s",
@@ -1030,16 +1042,49 @@ class ReportSuccessState(BaseReportState):
                     )
                     return
             except Exception as ex:
-                self.send_error(
-                    f"Error occurred for {self._report_schedule.type}:"
-                    f" {self._report_schedule.name}",
-                    str(ex),
-                )
-                self.update_report_schedule_and_log(
-                    ReportState.ERROR,
-                    error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
-                )
+                # Ensure the schedule always transitions out of WORKING to
+                # ERROR, even if sending the error notification itself fails —
+                # otherwise the schedule is stuck in WORKING until the working
+                # timeout. Mirrors ReportNotTriggeredErrorState.next().
+                # Only record the marker when the notification was actually
+                # delivered; otherwise record the send failure so the grace-
+                # period check doesn't incorrectly suppress future notifications.
+                error_message = REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+                try:
+                    self.send_error(
+                        f"Error occurred for {self._report_schedule.type}:"
+                        f" {self._report_schedule.name}",
+                        str(ex),
+                    )
+                except Exception as send_ex:  # noqa: BLE001  # pylint: disable=broad-except
+                    error_message = str(send_ex) or str(ex)
+                    logger.warning(
+                        "Failed to send error notification for report schedule "
+                        "(execution %s)",
+                        self._execution_id,
+                        exc_info=True,
+                    )
+                finally:
+                    try:
+                        self.update_report_schedule_and_log(
+                            ReportState.ERROR,
+                            error_message=error_message,
+                        )
+                    except ReportScheduleUnexpectedError:
+                        logger.warning(
+                            "Failed to log ERROR state for report schedule "
+                            "(execution %s) due to database issue",
+                            self._execution_id,
+                            exc_info=True,
+                        )
                 raise
+
+        # For REPORT types the ALERT branch above is skipped, so WORKING has not
+        # been set yet. Set it before the (potentially slow) send() so a
+        # concurrent scheduler tick is blocked by ReportWorkingState, preventing
+        # duplicate notifications. ALERT types already set WORKING above.
+        if self._report_schedule.type != ReportScheduleType.ALERT:
+            self.update_report_schedule_and_log(ReportState.WORKING)
 
         try:
             self.send()

@@ -166,11 +166,14 @@ describe('RuleList RTL', () => {
   test('renders filter options', async () => {
     await renderAndWait();
 
+    // Compact filter UI: only the first search filter renders (Name),
+    // subsequent search filters (Group Key) are hidden — one search box per page.
     const searchFilters = screen.queryAllByTestId('filters-search');
-    expect(searchFilters).toHaveLength(2);
+    expect(searchFilters).toHaveLength(1);
 
-    const typeFilter = screen.queryAllByTestId('filters-select');
-    expect(typeFilter).toHaveLength(3); // Update to expect 3 select filters
+    // Select filters render as compact pill buttons (Filter Type, Modified by)
+    const selectContainers = screen.queryAllByTestId('select-filter-container');
+    expect(selectContainers).toHaveLength(2);
   });
 
   test('renders correct list columns', async () => {

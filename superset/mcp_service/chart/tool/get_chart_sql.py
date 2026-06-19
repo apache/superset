@@ -32,6 +32,13 @@ from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_helpers import (
+    build_query_context_from_form_data,
+    extract_x_axis_col,
+    resolve_groupby,
+    resolve_metrics,
+    resolve_metrics_and_groupby,
+)
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartError,
@@ -73,160 +80,25 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
 
 def _resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     """Extract metrics from form_data, handling chart-type-specific fields."""
-    # Bubble charts store measures in x, y, size fields
-    if viz_type == "bubble":
-        return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
-
-    metrics = form_data.get("metrics", [])
-    # Fallback: some chart types store the measure as singular "metric"
-    if not metrics and (metric := form_data.get("metric")):
-        metrics = [metric]
-    return metrics
+    return resolve_metrics(form_data, viz_type)
 
 
-def _resolve_groupby(form_data: dict[str, Any]) -> list[str]:
-    """Extract groupby columns from form_data with fallback aliases.
-
-    Normalises scalar strings (e.g. heatmap_v2 migrated from legacy
-    ``all_columns_y``) so that ``list("country")`` does not split into
-    individual characters.
-    """
-    raw_groupby = form_data.get("groupby") or []
-    if isinstance(raw_groupby, str):
-        groupby: list[str] = [raw_groupby]
-    else:
-        groupby = list(raw_groupby)
-
-    if groupby:
-        return groupby
-
-    # Fallback: some chart types store dimensions in entity/series/columns
-    for field in ("entity", "series"):
-        value = form_data.get(field)
-        if isinstance(value, str) and value not in groupby:
-            groupby.append(value)
-
-    form_columns = form_data.get("columns")
-    if isinstance(form_columns, list):
-        for col in form_columns:
-            if isinstance(col, str) and col not in groupby:
-                groupby.append(col)
-
-    return groupby
+def _resolve_groupby(form_data: dict[str, Any]) -> list[Any]:
+    """Extract groupby columns from form_data with fallback aliases."""
+    return resolve_groupby(form_data)
 
 
 def _resolve_metrics_and_groupby(
     form_data: dict[str, Any],
     chart: "Slice | None",
-) -> tuple[list[Any], list[str]]:
-    """Resolve metrics and groupby columns from form_data.
-
-    Handles chart-type-specific field names: singular ``metric`` for
-    big-number variants, bubble ``x``/``y``/``size``, and fallback
-    fields ``entity``, ``series``, and ``columns`` for dimensions.
-    """
-    viz_type = form_data.get(
-        "viz_type", getattr(chart, "viz_type", "") if chart else ""
-    )
-
-    singular_metric_no_groupby = (
-        "big_number",
-        "big_number_total",
-        "pop_kpi",
-    )
-    if viz_type in singular_metric_no_groupby:
-        metrics: list[Any] = [metric] if (metric := form_data.get("metric")) else []
-        return metrics, []
-
-    return _resolve_metrics(form_data, viz_type), _resolve_groupby(form_data)
+) -> tuple[list[Any], list[Any]]:
+    """Resolve metrics and groupby columns from form_data."""
+    return resolve_metrics_and_groupby(form_data, chart)
 
 
 def _extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
-    """Return the x_axis column name from form_data, or None if not set.
-
-    ``x_axis`` may be stored as a plain column-name string or as an adhoc
-    column dict (``{"column_name": "...", ...}``).
-    """
-    x_axis = form_data.get("x_axis")
-    if isinstance(x_axis, str) and x_axis:
-        return x_axis
-    if isinstance(x_axis, dict):
-        col_name = x_axis.get("column_name")
-        return col_name if isinstance(col_name, str) and col_name else None
-    return None
-
-
-def _resolve_engine(
-    datasource_id: Any,
-    datasource_type: str,
-) -> str:
-    """Return the DB engine name for *datasource_id*, or ``"base"`` on any error."""
-    if not isinstance(datasource_id, (int, str)):
-        return "base"
-    try:
-        from superset.daos.datasource import DatasourceDAO
-        from superset.utils.core import DatasourceType
-
-        ds = DatasourceDAO.get_datasource(
-            datasource_type=DatasourceType(datasource_type),
-            database_id_or_uuid=datasource_id,
-        )
-        return ds.database.db_engine_spec.engine
-    except Exception:  # noqa: BLE001
-        logger.debug("Could not resolve engine for datasource %s", datasource_id)
-        return "base"
-
-
-def _build_single_query_dict(
-    form_data: dict[str, Any],
-    columns: list[Any],
-    metrics: list[Any],
-) -> dict[str, Any]:
-    """Build one query entry for QueryContextFactory from form_data fields."""
-    qd: dict[str, Any] = {"columns": columns, "metrics": metrics}
-    if time_range := form_data.get("time_range"):
-        qd["time_range"] = time_range
-    if filters := form_data.get("filters"):
-        qd["filters"] = filters
-    if (row_limit := form_data.get("row_limit")) is not None:
-        qd["row_limit"] = row_limit
-    return qd
-
-
-def _build_mixed_timeseries_secondary(
-    form_data: dict[str, Any],
-    x_axis_col: str | None,
-    engine: str = "base",
-) -> dict[str, Any]:
-    """Build the secondary query dict for the ``mixed_timeseries`` viz type.
-
-    ``mixed_timeseries`` has two independent series layers; the secondary
-    layer uses ``metrics_b`` / ``groupby_b`` instead of the primary fields.
-    Secondary-specific overrides (``time_range_b``, ``row_limit_b``,
-    ``adhoc_filters_b``) replace the corresponding primary values so the
-    generated SQL accurately reflects each series' independent configuration.
-    """
-    metrics_b: list[Any] = list(form_data.get("metrics_b") or [])
-    raw_b = form_data.get("groupby_b") or []
-    groupby_b: list[Any] = [raw_b] if isinstance(raw_b, str) else list(raw_b)
-    if x_axis_col and x_axis_col not in groupby_b:
-        groupby_b = [x_axis_col] + groupby_b
-    qd = _build_single_query_dict(form_data, groupby_b, metrics_b)
-    if time_range_b := form_data.get("time_range_b"):
-        qd["time_range"] = time_range_b
-    if (row_limit_b := form_data.get("row_limit_b")) is not None:
-        qd["row_limit"] = row_limit_b
-    # Process adhoc_filters_b into concrete filter clauses for the secondary
-    # query, mirroring how split_adhoc_filters_into_base_filters handles the
-    # primary adhoc_filters in _build_query_context_from_form_data.
-    if adhoc_filters_b := form_data.get("adhoc_filters_b"):
-        from superset.utils.core import split_adhoc_filters_into_base_filters
-
-        secondary_fd: dict[str, Any] = {"adhoc_filters": adhoc_filters_b}
-        split_adhoc_filters_into_base_filters(secondary_fd, engine)
-        if secondary_filters := secondary_fd.get("filters"):
-            qd["filters"] = secondary_filters
-    return qd
+    """Return the x_axis column name from form_data, or None if not set."""
+    return extract_x_axis_col(form_data)
 
 
 def _build_query_context_from_form_data(
@@ -239,85 +111,10 @@ def _build_query_context_from_form_data(
     instead of executing the query.
     """
     from superset.common.chart_data import ChartDataResultType
-    from superset.common.query_context_factory import QueryContextFactory
 
-    factory = QueryContextFactory()
-
-    datasource_id = form_data.get("datasource_id")
-    datasource_type = form_data.get("datasource_type")
-
-    # Unsaved Explore state often stores datasource as a combined field
-    # like "123__table" instead of separate datasource_id/datasource_type.
-    if not datasource_id and (combined := form_data.get("datasource")):
-        if isinstance(combined, str) and "__" in combined:
-            parts = combined.split("__", 1)
-            datasource_id = int(parts[0]) if parts[0].isdigit() else parts[0]
-            datasource_type = parts[1] if len(parts) > 1 else None
-
-    if not datasource_id and chart:
-        datasource_id = getattr(chart, "datasource_id", None)
-    if not datasource_type and chart:
-        datasource_type = getattr(chart, "datasource_type", None)
-
-    metrics, groupby = _resolve_metrics_and_groupby(form_data, chart)
-
-    # Preprocess adhoc_filters into where/having/filters on form_data so
-    # that the QueryObject receives concrete filter clauses.  This mirrors
-    # the view-layer call in viz.py:process_query_filters.
-    from superset.utils.core import (
-        merge_extra_filters,
-        split_adhoc_filters_into_base_filters,
-    )
-
-    resolved_type_str: str = (
-        datasource_type if isinstance(datasource_type, str) else "table"
-    )
-    engine = _resolve_engine(datasource_id, resolved_type_str)
-    merge_extra_filters(form_data)
-    split_adhoc_filters_into_base_filters(form_data, engine)
-
-    viz_type: str = (
-        form_data.get("viz_type")
-        or (getattr(chart, "viz_type", "") if chart else "")
-        or ""
-    )
-    is_timeseries = (
-        viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
-    )
-
-    # For echarts_timeseries_* and mixed_timeseries charts the temporal
-    # column is stored in x_axis rather than groupby.  Prepend it so the
-    # generated SQL includes the time axis.
-    x_axis_col: str | None = None
-    if is_timeseries:
-        x_axis_col = _extract_x_axis_col(form_data)
-        if x_axis_col and x_axis_col not in groupby:
-            groupby = [x_axis_col] + groupby
-
-    queries: list[dict[str, Any]] = [
-        _build_single_query_dict(form_data, groupby, metrics)
-    ]
-
-    # mixed_timeseries exposes two independent query layers (primary and
-    # secondary).  Build the second query from metrics_b / groupby_b so
-    # that get_chart_sql returns SQL for both and neither is silently lost.
-    if viz_type == "mixed_timeseries":
-        queries.append(_build_mixed_timeseries_secondary(form_data, x_axis_col, engine))
-
-    # Ensure datasource fields satisfy DatasourceDict typing requirements.
-    # datasource_id must be int | str; datasource_type must be str.
-    if not isinstance(datasource_id, (int, str)):
-        raise ValueError(
-            "Cannot determine datasource ID from form_data. "
-            "Provide a chart identifier or ensure form_data contains "
-            "'datasource_id' or 'datasource'."
-        )
-    resolved_id: int | str = datasource_id
-
-    return factory.create(
-        datasource={"id": resolved_id, "type": resolved_type_str},
-        queries=queries,
-        form_data=form_data,
+    return build_query_context_from_form_data(
+        form_data,
+        chart=chart,
         result_type=ChartDataResultType.QUERY,
         force=False,
     )

@@ -37,10 +37,12 @@ class ColumnMetadata(BaseModel):
     """Metadata for a selectable column."""
 
     name: str = Field(..., description="Column name to use in select_columns")
-    description: str | None = Field(None, description="Column description")
-    type: str | None = Field(None, description="Data type (str, int, datetime, etc.)")
+    description: str | None = Field(default=None, description="Column description")
+    type: str | None = Field(
+        default=None, description="Data type (str, int, datetime, etc.)"
+    )
     is_default: bool = Field(
-        False, description="Whether this column is included by default"
+        default=False, description="Whether this column is included by default"
     )
 
 
@@ -500,6 +502,12 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "charts": ColumnMetadata(
         name="charts", description="Charts in dashboard", type="list", is_default=False
     ),
+    "native_filters": ColumnMetadata(
+        name="native_filters",
+        description="Native filter configuration (name, type, targets)",
+        type="list",
+        is_default=False,
+    ),
 }
 
 
@@ -633,3 +641,98 @@ CHART_ALL_COLUMNS: list[str] = []
 DATASET_ALL_COLUMNS: list[str] = []
 DASHBOARD_ALL_COLUMNS: list[str] = []
 DATABASE_ALL_COLUMNS: list[str] = []
+
+
+# Report (alerts & reports) configuration
+REPORT_DEFAULT_COLUMNS = ["id", "name", "type", "active", "crontab"]
+REPORT_SORTABLE_COLUMNS = [
+    "id",
+    "name",
+    "type",
+    "active",
+    "last_eval_dttm",
+    "changed_on",
+    "created_on",
+]
+REPORT_SEARCH_COLUMNS = ["name", "description"]
+# Allowlist of filter columns exposed via get_schema and accepted by ReportFilter.
+# Must stay in sync with the Literal in ReportFilter.col (schemas.py).
+REPORT_FILTER_COLUMNS: frozenset[str] = frozenset(
+    {
+        "name",
+        "type",
+        "active",
+        "dashboard_id",
+        "chart_id",
+        "last_state",
+        "creation_method",
+    }
+)
+
+
+def _annotation_to_type_str(annotation: Any) -> str:
+    """Extract a simple type string from a Python type annotation."""
+    import types as _builtin_types
+    import typing
+
+    if annotation is None:
+        return "str"
+
+    # Python 3.10+ union syntax: X | Y | None → extract first non-None
+    if isinstance(annotation, _builtin_types.UnionType):
+        non_none = [a for a in annotation.__args__ if a is not type(None)]
+        return _annotation_to_type_str(non_none[0]) if non_none else "str"
+
+    # typing.Union (e.g. Optional[X] or Union[X, Y, None])
+    if getattr(annotation, "__origin__", None) is typing.Union:
+        non_none = [a for a in annotation.__args__ if a is not type(None)]
+        return _annotation_to_type_str(non_none[0]) if non_none else "str"
+
+    # Generic list/dict
+    origin = getattr(annotation, "__origin__", None)
+    if origin is list:
+        return "list"
+    if origin is dict:
+        return "dict"
+
+    _simple: dict[type, str] = {
+        int: "int",
+        str: "str",
+        bool: "bool",
+        float: "float",
+    }
+    if annotation in _simple:
+        return _simple[annotation]
+
+    from datetime import datetime
+
+    if annotation is datetime:
+        return "datetime"
+
+    return "str"
+
+
+def get_report_info_columns() -> list[ColumnMetadata]:
+    """Get column metadata derived from the ReportInfo serializer fields.
+
+    Uses ReportInfo.model_fields as the authoritative source so that
+    get_schema(model_type='report') advertises only columns that
+    list_reports can actually serialize.
+    """
+    from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
+    from superset.mcp_service.report.schemas import ReportInfo
+
+    columns = []
+    for name, field_info in ReportInfo.model_fields.items():
+        if name in USER_DIRECTORY_FIELDS:
+            continue
+        col_type = _annotation_to_type_str(field_info.annotation)
+        columns.append(
+            ColumnMetadata(
+                name=name,
+                description=field_info.description,
+                type=col_type,
+                is_default=name in REPORT_DEFAULT_COLUMNS,
+            )
+        )
+    return columns

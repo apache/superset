@@ -1,0 +1,1 @@
+{"schema":{"properties":{"actions":{"items":{"type":"string"},"type":"array"},"distinct":{"type":"boolean"},"page":{"type":"number"},"page_size":{"type":"number"}},"type":"object","title":"get_recent_activity_schema"},"schemaType":"response"}

@@ -8,6 +8,10 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 # cancel previous workflow jobs for PRs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -16,15 +20,18 @@ concurrency:
 jobs:
   test-superset-extensions-cli-package:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     strategy:
       matrix:
-        python-version: ["previous", "current", "next"]
+        # Full version spread on push (master/release) + nightly; current only
+        # on PRs to cut runner cost (cross-version breaks are caught at merge).
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["previous", "current", "next"]') }}
     defaults:
       run:
         working-directory: superset-extensions-cli
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           submodules: recursive
@@ -49,7 +56,7 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         if: steps.check.outputs.superset-extensions-cli
-        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           file: ./coverage.xml
           flags: superset-extensions-cli

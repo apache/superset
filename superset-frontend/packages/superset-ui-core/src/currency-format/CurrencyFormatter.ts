@@ -18,7 +18,11 @@
  */
 
 import { ExtensibleFunction } from '../models';
-import { getNumberFormatter, NumberFormats } from '../number-format';
+// Import from the concrete modules rather than the `number-format` barrel to
+// avoid a circular dependency (the barrel pulls in getSmallNumberFormatter,
+// which imports CurrencyFormatter).
+import { getNumberFormatter } from '../number-format/NumberFormatterRegistrySingleton';
+import NumberFormats from '../number-format/NumberFormats';
 import { Currency } from '../query';
 import { RowData, RowDataValue } from './types';
 import { AUTO_CURRENCY_SYMBOL, ISO_4217_REGEX } from './CurrencyFormats';
