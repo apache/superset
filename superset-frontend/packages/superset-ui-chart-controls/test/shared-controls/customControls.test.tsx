@@ -55,3 +55,27 @@ test('xAxisForceCategoricalControl should not treat temporal columns as categori
 
   mockCheckColumnType.mockClear();
 });
+
+test('xAxisForceCategoricalControl is visible for numeric and temporal x-axes', () => {
+  const mockCheckColumnType = jest.mocked(checkColumnType);
+  mockCheckColumnType.mockReturnValue(true);
+
+  const controls = {
+    x_axis: { value: 'date_column' },
+    datasource: { datasource: {} },
+  };
+
+  const visible = xAxisForceCategoricalControl.config.visibility!({
+    controls,
+  } as any);
+
+  expect(visible).toBe(true);
+  // Temporal columns must be included so the toggle is exposed for time-grain
+  // charts (e.g. weekly grain), where the time scale misaligns ticks/markers.
+  expect(mockCheckColumnType).toHaveBeenCalledWith('date_column', {}, [
+    GenericDataType.Numeric,
+    GenericDataType.Temporal,
+  ]);
+
+  mockCheckColumnType.mockClear();
+});
