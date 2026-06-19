@@ -42,33 +42,25 @@ test('RoleNameField renders label and input', () => {
 });
 
 test('PermissionsField renders label and select', () => {
-  render(
-    <PermissionsField addDangerToast={addDangerToast} />,
-  );
+  render(<PermissionsField addDangerToast={addDangerToast} />);
   expect(screen.getByText('Permissions')).toBeInTheDocument();
   expect(screen.getByTestId('permissions-select')).toBeInTheDocument();
 });
 
 test('PermissionsField renders loading state', () => {
-  render(
-    <PermissionsField addDangerToast={addDangerToast} loading />,
-  );
+  render(<PermissionsField addDangerToast={addDangerToast} loading />);
   expect(screen.getByText('Permissions')).toBeInTheDocument();
   expect(screen.getByTestId('permissions-select')).toBeInTheDocument();
 });
 
 test('UsersField renders label and select', () => {
-  render(
-    <UsersField addDangerToast={addDangerToast} loading={false} />,
-  );
+  render(<UsersField addDangerToast={addDangerToast} loading={false} />);
   expect(screen.getByText('Users')).toBeInTheDocument();
   expect(screen.getByTestId('roles-select')).toBeInTheDocument();
 });
 
 test('GroupsField renders label and select', () => {
-  render(
-    <GroupsField addDangerToast={addDangerToast} />,
-  );
+  render(<GroupsField addDangerToast={addDangerToast} />);
   expect(screen.getByText('Groups')).toBeInTheDocument();
   expect(screen.getByTestId('groups-select')).toBeInTheDocument();
 });
