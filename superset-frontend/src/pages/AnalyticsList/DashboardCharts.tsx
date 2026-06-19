@@ -16,23 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/theme';
-import { Empty } from '@superset-ui/core/components';
+import { Empty, Loading } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
-interface DashboardChartsProps {
-  /** Numeric id of the dashboard whose charts to summarize. */
-  dashboardId: number;
-  addDangerToast: (msg: string) => void;
-}
-
-interface ChartEntity {
+export interface ChartEntity {
   id: number;
   slice_name: string;
   form_data?: { viz_type?: string };
+}
+
+interface DashboardChartsProps {
+  dashboardId: number;
+  charts: ChartEntity[];
+  loading: boolean;
+  /** Ask the parent to lazily load this dashboard's charts. */
+  onRequest: (dashboardId: number) => void;
 }
 
 /**
@@ -68,40 +69,18 @@ const ChartList = styled.ul`
   `}
 `;
 
-const Status = styled.div`
-  ${({ theme }) => css`
-    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit}px;
-    color: ${theme.colorTextTertiary};
-  `}
-`;
-
 export default function DashboardCharts({
   dashboardId,
-  addDangerToast,
+  charts,
+  loading,
+  onRequest,
 }: DashboardChartsProps) {
-  const [charts, setCharts] = useState<ChartEntity[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchCharts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { json } = await SupersetClient.get({
-        endpoint: `/api/v1/dashboard/${dashboardId}/charts`,
-      });
-      setCharts((json.result as ChartEntity[]) || []);
-    } catch {
-      addDangerToast(t('Error loading dashboard charts'));
-    } finally {
-      setLoading(false);
-    }
-  }, [dashboardId, addDangerToast]);
-
   useEffect(() => {
-    fetchCharts();
-  }, [fetchCharts]);
+    onRequest(dashboardId);
+  }, [dashboardId, onRequest]);
 
   if (loading) {
-    return <Status>{t('Loading charts…')}</Status>;
+    return <Loading />;
   }
 
   if (charts.length === 0) {

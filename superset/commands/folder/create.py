@@ -14,28 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
+from __future__ import annotations
+
 from functools import partial
 from typing import Any
 
 from flask import g
 from marshmallow import ValidationError
-
 from superset import security_manager
 from superset.commands.base import BaseCommand
+from superset.extensions import db
+from superset.utils.decorators import on_error, transaction
+
 from superset.commands.folder.exceptions import (
     FolderCreateFailedError,
     FolderInvalidError,
     FolderNameUniquenessValidationError,
     FolderParentNotFoundValidationError,
     FolderParentTypeMismatchValidationError,
+    FolderTypeValidationError,
 )
+from superset.folders.constants import FOLDER_TYPE_ASSETS
 from superset.daos.folder import FolderDAO
-from superset.extensions import db
 from superset.folders.models import Folder
-from superset.utils.decorators import on_error, transaction
-
-logger = logging.getLogger(__name__)
 
 
 class CreateFolderCommand(BaseCommand):
@@ -68,6 +69,9 @@ class CreateFolderCommand(BaseCommand):
         exceptions: list[ValidationError] = []
         name = self._properties["name"]
         folder_type = self._properties["folder_type"]
+
+        if folder_type not in FOLDER_TYPE_ASSETS:
+            exceptions.append(FolderTypeValidationError(folder_type))
 
         if parent_uuid := self._properties.get("parent_uuid"):
             self._parent = FolderDAO.find_by_id_or_uuid(parent_uuid)

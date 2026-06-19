@@ -17,7 +17,6 @@
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose
 from flask_appbuilder.security.decorators import has_access
-
 from superset import event_logger
 from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
@@ -28,17 +27,21 @@ class FolderView(BaseSupersetView):
 
     route_base = "/analytics"
     class_permission_name = "Folder"
+    method_permission_name = {
+        "root": "read",
+        "folder": "read",
+    }
 
-    @expose("/")
     @has_access
     @permission_name("read")
+    @expose("/")
     @event_logger.log_this
     def root(self) -> FlaskResponse:
         return super().render_app_template()
 
-    @expose("/<folder_uuid>/")
     @has_access
     @permission_name("read")
+    @expose("/<folder_uuid>/")
     @event_logger.log_this
     def folder(self, folder_uuid: str) -> FlaskResponse:
         return super().render_app_template()

@@ -2676,6 +2676,10 @@ EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
 EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
+# When True, folder viewers/editors can access all charts and datasources on a
+# dashboard that is in their folder, even if those charts are not individually
+# in any folder. Disabled by default.
+FOLDER_DASHBOARD_TRANSITIVE_ACCESS: bool = False
 
 
 # The migrations that add catalog permissions might take a considerably long time

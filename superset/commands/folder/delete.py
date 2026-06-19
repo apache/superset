@@ -14,31 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
+from __future__ import annotations
+
 from functools import partial
-from typing import Optional
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
+from superset.utils.core import get_user_id
+from superset.utils.decorators import on_error, transaction
+
 from superset.commands.folder.exceptions import (
     FolderDeleteFailedError,
     FolderForbiddenError,
     FolderNotFoundError,
 )
 from superset.daos.folder import FolderDAO
-from superset.daos.folder_permissions import FolderPermissionDAO
 from superset.folders.models import Folder
-from superset.utils.core import get_user_id
-from superset.utils.decorators import on_error, transaction
-
-logger = logging.getLogger(__name__)
+from superset.daos.folder_permissions import FolderPermissionDAO
 
 
 class DeleteFolderCommand(BaseCommand):
     def __init__(self, folder_id_or_uuid: str, archive_items: bool = False):
         self._id = folder_id_or_uuid
         self._archive_items = archive_items
-        self._model: Optional[Folder] = None
+        self._model: Folder | None = None
 
     @transaction(on_error=partial(on_error, reraise=FolderDeleteFailedError))
     def run(self) -> None:

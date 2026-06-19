@@ -14,9 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Preset-owned folder models.
+
+These tables live in the Superset metadata DB but belong to Preset's separate
+``MetaData``/Alembic history (see ``preset/migrations_preset``). Columns that
+reference Superset-owned tables (``ab_user``, ``dashboards``, ``slices``,
+``tables``) are plain integer columns *without* a declarative ``ForeignKey``:
+the DB-level constraints are created by the Preset migration, not the ORM. This
+avoids ``NoReferencedTableError``, which fires when SQLAlchemy tries to resolve
+a ``ForeignKey`` target that doesn't exist in Preset's ``MetaData``. Only
+``folders``-internal references (which *are* in Preset's ``MetaData``) keep a
+declarative ``ForeignKey``.
+"""
+
 from __future__ import annotations
 
-from flask_appbuilder import Model
+import uuid
+
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -31,13 +46,17 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
+from sqlalchemy_utils import UUIDType
 
-from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+from flask_appbuilder import Model
+from superset.models.helpers import AuditMixinNullable
 
 metadata = Model.metadata  # pylint: disable=no-member
 
 
-# Junction table: folder editors (users who can manage folder contents)
+# Junction table: folder editors (users who can manage folder contents).
+# ``user_id`` references ``ab_user`` (Superset-owned); the FK constraint is
+# created by the Preset migration, so no declarative ``ForeignKey`` here.
 folder_editors = Table(
     "folder_editors",
     metadata,
@@ -48,17 +67,12 @@ folder_editors = Table(
         ForeignKey("folders.id", ondelete="CASCADE"),
         nullable=False,
     ),
-    Column(
-        "user_id",
-        Integer,
-        ForeignKey("ab_user.id", ondelete="CASCADE"),
-        nullable=False,
-    ),
+    Column("user_id", Integer, nullable=False),
     UniqueConstraint("folder_id", "user_id"),
     Index("ix_folder_editors_user_id", "user_id"),
 )
 
-# Junction table: folder viewers (users who can see folder and its assets)
+# Junction table: folder viewers (users who can see folder and its assets).
 folder_viewers = Table(
     "folder_viewers",
     metadata,
@@ -69,24 +83,22 @@ folder_viewers = Table(
         ForeignKey("folders.id", ondelete="CASCADE"),
         nullable=False,
     ),
-    Column(
-        "user_id",
-        Integer,
-        ForeignKey("ab_user.id", ondelete="CASCADE"),
-        nullable=False,
-    ),
+    Column("user_id", Integer, nullable=False),
     UniqueConstraint("folder_id", "user_id"),
     Index("ix_folder_viewers_user_id", "user_id"),
 )
 
 
-class Folder(AuditMixinNullable, ImportExportMixin, Model):
+class Folder(AuditMixinNullable, Model):
     """A folder for organizing dashboards, charts, and datasets."""
 
     __tablename__ = "folders"
     __table_args__ = (UniqueConstraint("parent_id", "name", "folder_type"),)
 
     id = Column(Integer, primary_key=True)
+    uuid = Column(
+        UUIDType(binary=True), unique=True, nullable=False, default=uuid.uuid4
+    )
     name = Column(String(250), nullable=False)
     description = Column(Text, nullable=True)
     parent_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
@@ -98,23 +110,35 @@ class Folder(AuditMixinNullable, ImportExportMixin, Model):
     parent = relationship(
         "Folder",
         remote_side=[id],
-        backref="children",
+        back_populates="children",
     )
-    editors = relationship(
-        "User",
-        secondary=folder_editors,
-    )
-    viewers = relationship(
-        "User",
-        secondary=folder_viewers,
+    children = relationship(
+        "Folder",
+        back_populates="parent",
     )
     objects = relationship(
         "FolderObject",
         back_populates="folder",
         cascade="all, delete-orphan",
     )
-
-    export_fields = ["name", "description", "folder_type"]
+    # ``editors``/``viewers`` cross into Superset's ``ab_user`` via the junction
+    # tables. They are ``viewonly`` (writes go through ``FolderPermissionDAO``
+    # Core queries) and use the ``User`` class object with explicit joins so
+    # SQLAlchemy never resolves ``ab_user`` inside Preset's MetaData.
+    editors = relationship(
+        User,
+        secondary=folder_editors,
+        primaryjoin=lambda: Folder.id == folder_editors.c.folder_id,
+        secondaryjoin=lambda: folder_editors.c.user_id == User.id,
+        viewonly=True,
+    )
+    viewers = relationship(
+        User,
+        secondary=folder_viewers,
+        primaryjoin=lambda: Folder.id == folder_viewers.c.folder_id,
+        secondaryjoin=lambda: folder_viewers.c.user_id == User.id,
+        viewonly=True,
+    )
 
     def __repr__(self) -> str:
         return f"Folder<{self.id or self.name}>"
@@ -126,6 +150,10 @@ class FolderObject(Model):
     Uses separate FK columns instead of polymorphic object_id/object_type
     so that ON DELETE CASCADE works at the DB level.
     Only one of dashboard_id, chart_id, dataset_id is set per row.
+
+    ``dashboard_id``/``chart_id``/``dataset_id`` reference Superset-owned tables;
+    their FK constraints are created by the Preset migration (no declarative
+    ``ForeignKey`` here, see module docstring).
     """
 
     __tablename__ = "folder_objects"
@@ -147,21 +175,9 @@ class FolderObject(Model):
         ForeignKey("folders.id", ondelete="CASCADE"),
         nullable=False,
     )
-    dashboard_id = Column(
-        Integer,
-        ForeignKey("dashboards.id", ondelete="CASCADE"),
-        nullable=True,
-    )
-    chart_id = Column(
-        Integer,
-        ForeignKey("slices.id", ondelete="CASCADE"),
-        nullable=True,
-    )
-    dataset_id = Column(
-        Integer,
-        ForeignKey("tables.id", ondelete="CASCADE"),
-        nullable=True,
-    )
+    dashboard_id = Column(Integer, nullable=True)
+    chart_id = Column(Integer, nullable=True)
+    dataset_id = Column(Integer, nullable=True)
     created_on = Column(DateTime, nullable=True)
 
     # Relationships
@@ -183,6 +199,9 @@ class FolderPin(Model):
 
     Max 3 pins per user (enforced by UNIQUE on user_id + position).
     Pins are user-specific and only shown on the main Analytics view.
+
+    ``user_id`` references ``ab_user`` (Superset-owned); the FK constraint is
+    created by the Preset migration (no declarative ``ForeignKey`` here).
     """
 
     __tablename__ = "folder_pins"
@@ -196,11 +215,7 @@ class FolderPin(Model):
     )
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(
-        Integer,
-        ForeignKey("ab_user.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    user_id = Column(Integer, nullable=False)
     object_id = Column(Integer, nullable=False)
     object_type = Column(String(50), nullable=False)
     position = Column(Integer, nullable=False)

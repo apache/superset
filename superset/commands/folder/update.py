@@ -14,14 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
+from __future__ import annotations
+
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 from marshmallow import ValidationError
-
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
+from superset.utils.core import get_user_id
+from superset.utils.decorators import on_error, transaction
+
 from superset.commands.folder.exceptions import (
     FolderCycleValidationError,
     FolderForbiddenError,
@@ -33,21 +36,17 @@ from superset.commands.folder.exceptions import (
     FolderUpdateFailedError,
 )
 from superset.daos.folder import FolderDAO
-from superset.daos.folder_permissions import FolderPermissionDAO
 from superset.folders.models import Folder
-from superset.utils.core import get_user_id
-from superset.utils.decorators import on_error, transaction
-
-logger = logging.getLogger(__name__)
+from superset.daos.folder_permissions import FolderPermissionDAO
 
 
 class UpdateFolderCommand(BaseCommand):
     def __init__(self, folder_id_or_uuid: str, data: dict[str, Any]):
         self._id = folder_id_or_uuid
         self._properties = data.copy()
-        self._model: Optional[Folder] = None
+        self._model: Folder | None = None
         self._parent_changed = False
-        self._new_parent_id: Optional[int] = None
+        self._new_parent_id: int | None = None
 
     @transaction(on_error=partial(on_error, reraise=FolderUpdateFailedError))
     def run(self) -> Folder:
@@ -66,14 +65,11 @@ class UpdateFolderCommand(BaseCommand):
 
         folder = FolderDAO.update(self._model, attributes)
 
-        # Copy permissions from new parent when moving a folder
+        # When moving to a new parent: copy permissions and remove root pins
         if self._parent_changed and self._new_parent_id is not None:
             FolderPermissionDAO.copy_permissions_to_subfolder(
                 self._new_parent_id, folder.id
             )
-
-        # Remove pins when a folder moves away from root
-        if self._parent_changed and self._new_parent_id is not None:
             from superset.folders.models import FolderPin
 
             db.session.query(FolderPin).filter(
@@ -90,7 +86,7 @@ class UpdateFolderCommand(BaseCommand):
             return new_parent_id
 
         self._parent_changed = True
-        parent: Optional[Folder] = None
+        parent: Folder | None = None
         if parent_uuid := self._properties["parent_uuid"]:
             parent = FolderDAO.find_by_id_or_uuid(parent_uuid)
             if parent is None:
@@ -99,6 +95,10 @@ class UpdateFolderCommand(BaseCommand):
                 exceptions.append(FolderParentTypeMismatchValidationError())
             elif FolderDAO.is_descendant(parent, self._model):  # type: ignore[arg-type]
                 exceptions.append(FolderCycleValidationError())
+            elif not security_manager.is_admin():
+                user_id = get_user_id()
+                if not FolderPermissionDAO.user_is_folder_editor(user_id, parent.id):
+                    raise FolderForbiddenError()
         new_parent_id = parent.id if parent else None
         self._new_parent_id = new_parent_id
         return new_parent_id
@@ -120,13 +120,14 @@ class UpdateFolderCommand(BaseCommand):
 
         new_name = self._properties.get("name", self._model.name)
         if new_name != self._model.name or new_parent_id != self._model.parent_id:
-            if not FolderDAO.validate_name_uniqueness(
+            resolved = FolderDAO.resolve_name_conflict(
                 new_name,
                 new_parent_id,
                 self._model.folder_type,
                 exclude_id=self._model.id,
-            ):
-                exceptions.append(FolderNameUniquenessValidationError())
+            )
+            if resolved != new_name:
+                self._properties["name"] = resolved
 
         if exceptions:
             raise FolderInvalidError(exceptions=exceptions)

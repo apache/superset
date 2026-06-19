@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_babel import lazy_gettext as _
-
 from superset.commands.exceptions import (
     CommandException,
     CommandInvalidError,
@@ -86,6 +85,16 @@ class FolderCycleValidationError(ValidationError):
         super().__init__(
             [_("Cannot move a folder into itself or one of its descendants")],
             field_name="parent_uuid",
+        )
+
+
+class FolderTypeValidationError(ValidationError):
+    """The folder_type is not a recognised namespace."""
+
+    def __init__(self, folder_type: str) -> None:
+        super().__init__(
+            [_("Unknown folder type: '%(type)s'", type=folder_type)],
+            field_name="folder_type",
         )
 
 

@@ -21,15 +21,15 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy import and_
-
 from superset import db
+from superset.utils import json as json_utils
+
 from superset.folders.models import (
     Folder,
     folder_editors,
     folder_viewers,
     FolderObject,
 )
-from superset.utils import json as json_utils
 
 
 class FolderPermissionDAO:
@@ -338,6 +338,39 @@ class FolderPermissionDAO:
                     return True
 
         return False
+
+    @staticmethod
+    def user_has_transitive_dashboard_access(
+        user_id: int,
+        datasource_id: int,
+    ) -> bool:
+        """Check if a datasource is reachable via: datasource → chart → dashboard → folder.
+
+        Grants access when a dashboard in the user's folder contains a chart
+        that uses this datasource, even if the chart itself is not in any folder.
+        """
+        from superset.models.dashboard import dashboard_slices
+        from superset.models.slice import Slice as SliceModel
+
+        # Find dashboards that contain a chart using this datasource
+        # and are in a folder the user has access to.
+        rows = (
+            db.session.query(FolderObject.folder_id)
+            .join(
+                dashboard_slices,
+                dashboard_slices.c.dashboard_id == FolderObject.dashboard_id,
+            )
+            .join(SliceModel, SliceModel.id == dashboard_slices.c.slice_id)
+            .filter(
+                FolderObject.dashboard_id.isnot(None),
+                SliceModel.datasource_id == datasource_id,
+            )
+            .all()
+        )
+        return any(
+            FolderPermissionDAO.user_has_folder_access(user_id, row.folder_id)
+            for row in rows
+        )
 
     @staticmethod
     def user_is_folder_editor_for_asset(

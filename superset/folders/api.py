@@ -23,7 +23,13 @@ from datetime import datetime
 from typing import Any
 
 from flask import g, request, Response
-from flask_appbuilder.api import expose, permission_name, protect, safe
+from flask_appbuilder.api import (
+    expose,
+    permission_name,
+    protect,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.security.sqla.models import Role, User
 from marshmallow import ValidationError
 
@@ -63,6 +69,7 @@ from superset.folders.schemas import (
     FolderSubjectPostSchema,
     FolderSubjectPutSchema,
 )
+from superset.folders.utils import can_manage_folders
 from superset.utils.core import get_user_id
 from superset.utils.decorators import transaction
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
@@ -167,52 +174,78 @@ def serialize_assets(assets: list[ResolvedAsset]) -> list[dict[str, Any]]:
     return serialized
 
 
-def _parse_contents_filters() -> dict[str, Any]:
-    """Parse the filtering/pagination query params for the contents endpoints.
+def _positive_int(key: str, default: int, maximum: int = 100) -> int:
+    """Parse a non-negative integer query param, clamped to ``maximum``."""
+    raw = request.args.get(key)
+    if raw is not None and raw.isdigit():
+        return min(int(raw), maximum)
+    return default
 
-    Tolerant of malformed input — unparseable filters are ignored rather than
-    raising, and pagination falls back to sensible defaults.
+
+def _parse_rison_args(rison_args: dict[str, Any]) -> dict[str, Any]:
+    """Convert rison-encoded query params into ``get_contents()`` kwargs.
+
+    Expected rison format (matches ``useListViewResource``)::
+
+        {
+          "order_column": "changed_on",
+          "order_direction": "desc",
+          "page": 0,
+          "page_size": 25,
+          "filters": [
+            {"col": "name", "opr": "ct", "value": "sales"},
+            {"col": "type", "opr": "in", "value": ["chart", "dashboard"]},
+            {"col": "owners", "opr": "rel_m_m", "value": 1},
+            {"col": "changed_on", "opr": "gt", "value": "2025-01-01"},
+            {"col": "changed_on", "opr": "lt", "value": "2025-12-31"},
+            {"col": "viz_type", "opr": "in", "value": ["pie", "bar"]},
+            {"col": "dataset", "opr": "in", "value": [1, 2, 3]},
+          ]
+        }
     """
-    args = request.args
-
-    def csv(key: str) -> list[str] | None:
-        raw = args.get(key)
-        values = [v.strip() for v in raw.split(",") if v.strip()] if raw else []
-        return values or None
-
-    def csv_int(key: str) -> list[int] | None:
-        values = csv(key)
-        if not values:
-            return None
-        ints = [int(v) for v in values if v.lstrip("-").isdigit()]
-        return ints or None
-
-    def dt(key: str) -> datetime | None:
-        raw = args.get(key)
-        if not raw:
-            return None
-        try:
-            return datetime.fromisoformat(raw)
-        except ValueError:
-            return None
-
-    def positive_int(key: str, default: int, maximum: int = 100) -> int:
-        raw = args.get(key)
-        if raw is not None and raw.isdigit():
-            return min(int(raw), maximum)
-        return default
-
-    return {
-        "search": args.get("search") or None,
-        "types": csv("types"),
-        "viz_types": csv("viz_types"),
-        "datasets": csv_int("datasets"),
-        "owners": csv_int("owners"),
-        "modified_start": dt("modified_start"),
-        "modified_end": dt("modified_end"),
-        "page": positive_int("page", 0),
-        "page_size": positive_int("page_size", 25),
+    result: dict[str, Any] = {
+        "search": None,
+        "types": None,
+        "viz_types": None,
+        "datasets": None,
+        "owners": None,
+        "modified_start": None,
+        "modified_end": None,
+        "page": min(int(rison_args.get("page", 0)), 10000),
+        "page_size": min(int(rison_args.get("page_size", 25)), 100),
+        "sort_column": rison_args.get("order_column", "changed_on"),
+        "sort_order": rison_args.get("order_direction", "desc"),
     }
+    for f in rison_args.get("filters", []):
+        col = f.get("col")
+        opr = f.get("opr")
+        val = f.get("value")
+        if val is None or val == "":
+            continue
+        if col == "name" and opr == "ct":
+            result["search"] = str(val)[:255]
+        elif col == "type" and opr == "in":
+            result["types"] = val if isinstance(val, list) else [val]
+        elif col == "owners" and opr == "rel_m_m":
+            owners = result["owners"] or []
+            owners.append(int(val))
+            result["owners"] = owners
+        elif col == "changed_on":
+            try:
+                dt = datetime.fromisoformat(str(val))
+            except ValueError:
+                continue
+            if opr == "gt":
+                result["modified_start"] = dt
+            elif opr == "lt":
+                result["modified_end"] = dt
+        elif col == "viz_type" and opr == "in":
+            result["viz_types"] = val if isinstance(val, list) else [val]
+        elif col == "dataset" and opr == "in":
+            result["datasets"] = [
+                int(v) for v in (val if isinstance(val, list) else [val])
+            ]
+    return result
 
 
 class FolderRestApi(BaseSupersetApi):
@@ -309,7 +342,8 @@ class FolderRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.root_assets",
         log_to_statsd=False,
     )
-    def root_assets(self) -> Response:
+    @parse_rison()
+    def root_assets(self, **kwargs: Any) -> Response:
         """Root view: top-level folders plus unfoldered assets.
         ---
         get:
@@ -321,6 +355,13 @@ class FolderRestApi(BaseSupersetApi):
               type: string
               default: analytics
             description: Folder type namespace to scope the view to.
+          - in: query
+            name: q
+            schema:
+              type: string
+            description: >
+              Rison-encoded query parameters (order_column, order_direction,
+              page, page_size, filters).
           responses:
             200:
               description: Top-level folders and assets not in any folder
@@ -334,14 +375,14 @@ class FolderRestApi(BaseSupersetApi):
               $ref: '#/components/responses/500'
         """
         folder_type = request.args.get("folder_type", DEFAULT_FOLDER_TYPE)
-        filters = _parse_contents_filters()
-        rows, count = FolderDAO.get_contents(None, folder_type, **filters)
+        parsed = _parse_rison_args(kwargs.get("rison", {}))
+        rows, count = FolderDAO.get_contents(None, folder_type, **parsed)
         return self.response(
             200,
             result=[serialize_row(kind, obj) for kind, obj in rows],
             count=count,
-            page=filters["page"],
-            page_size=filters["page_size"],
+            page=parsed["page"],
+            page_size=parsed["page_size"],
         )
 
     @expose("/<string:folder_uuid>", methods=("GET",))
@@ -396,7 +437,8 @@ class FolderRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_assets",
         log_to_statsd=False,
     )
-    def get_assets(self, folder_uuid: str) -> Response:
+    @parse_rison()
+    def get_assets(self, folder_uuid: str, **kwargs: Any) -> Response:
         """List the subfolders and assets inside a folder.
         ---
         get:
@@ -407,6 +449,13 @@ class FolderRestApi(BaseSupersetApi):
             required: true
             schema:
               type: string
+          - in: query
+            name: q
+            schema:
+              type: string
+            description: >
+              Rison-encoded query parameters (order_column, order_direction,
+              page, page_size, filters).
           responses:
             200:
               description: Subfolders and assets inside the folder
@@ -428,15 +477,15 @@ class FolderRestApi(BaseSupersetApi):
             self._raise_for_folder_access(folder)
         except FolderForbiddenError:
             return self.response_403()
-        filters = _parse_contents_filters()
-        rows, count = FolderDAO.get_contents(folder, folder.folder_type, **filters)
+        parsed = _parse_rison_args(kwargs.get("rison", {}))
+        rows, count = FolderDAO.get_contents(folder, folder.folder_type, **parsed)
         return self.response(
             200,
             folder=serialize_folder(folder),
             result=[serialize_row(kind, obj) for kind, obj in rows],
             count=count,
-            page=filters["page"],
-            page_size=filters["page_size"],
+            page=parsed["page"],
+            page_size=parsed["page_size"],
         )
 
     @expose("/", methods=("POST",))
@@ -476,6 +525,8 @@ class FolderRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if not can_manage_folders(g.user):
+            return self.response_403()
         try:
             data = self.add_model_schema.load(request.json)
         except ValidationError as ex:
@@ -538,6 +589,8 @@ class FolderRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if not can_manage_folders(g.user):
+            return self.response_403()
         try:
             data = self.edit_model_schema.load(request.json)
         except ValidationError as ex:
@@ -594,6 +647,8 @@ class FolderRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if not can_manage_folders(g.user):
+            return self.response_403()
         archive_items = request.args.get("archive_items", "").lower() == "true"
         try:
             DeleteFolderCommand(folder_uuid, archive_items).run()
@@ -650,6 +705,8 @@ class FolderRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if not can_manage_folders(g.user):
+            return self.response_403()
         try:
             data = self.assets_model_schema.load(request.json)
         except ValidationError as ex:
@@ -715,6 +772,8 @@ class FolderRestApi(BaseSupersetApi):
             422:
               $ref: '#/components/responses/422'
         """
+        if not can_manage_folders(g.user):
+            return self.response_403()
         try:
             data = self.assets_model_schema.load(request.json)
         except ValidationError as ex:
@@ -730,6 +789,56 @@ class FolderRestApi(BaseSupersetApi):
             return self.response(422, message=ex.normalized_messages())
         except FolderUpdateFailedError as ex:
             return self.response_422(message=str(ex))
+
+    @expose("/<string:folder_uuid>/assets", methods=("DELETE",))
+    @protect()
+    @safe
+    @permission_name("write")
+    @statsd_metrics
+    @transaction()
+    def delete_assets(self, folder_uuid: str) -> Response:
+        """Remove specific assets from a folder (back to root).
+        ---
+        delete:
+          summary: Remove assets from a folder
+          parameters:
+          - in: path
+            name: folder_uuid
+            required: true
+            schema:
+              type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/FolderAssetsPutSchema'
+          responses:
+            200:
+              description: Assets removed
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        folder = FolderDAO.get_by_uuid(folder_uuid)
+        if not folder:
+            return self.response_404()
+        try:
+            self._raise_for_folder_edit(folder)
+        except FolderForbiddenError:
+            return self.response_403()
+        import prison
+
+        raw_q = request.args.get("q")
+        if not raw_q:
+            return self.response(400, message="Missing q parameter")
+        try:
+            assets = prison.loads(raw_q)
+        except Exception:
+            return self.response(400, message="Invalid q parameter")
+        FolderDAO.remove_assets(folder, assets)
+        return self.response(200, message="OK")
 
     # ------------------------------------------------------------------ #
     # Pins
@@ -902,7 +1011,6 @@ class FolderRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
-
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
@@ -1059,9 +1167,8 @@ class FolderRestApi(BaseSupersetApi):
         except FolderForbiddenError:
             return self.response_403()
 
-        search = request.args.get("q", "").strip()
-        page = int(request.args.get("page", 0))
-        page_size = min(int(request.args.get("page_size", 25)), 100)
+        page = _positive_int("page", 0)
+        page_size = _positive_int("page_size", 25)
 
         assigned_ids = {s["user_id"] for s in FolderDAO.get_subjects(folder.id)}
 
@@ -1073,7 +1180,7 @@ class FolderRestApi(BaseSupersetApi):
         if assigned_ids:
             query = query.filter(~User.id.in_(assigned_ids))
 
-        if search:
+        if search := request.args.get("q", "").strip()[:255]:
             like = f"%{search}%"
             query = query.filter(
                 db.or_(

@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/theme';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
 import {
   AsyncSelect,
   Input,
@@ -104,6 +104,7 @@ export default function FolderPermissionsModal({
   addDangerToast,
   addSuccessToast,
 }: FolderPermissionsModalProps) {
+  const theme = useTheme();
   const [serverSubjects, setServerSubjects] = useState<LocalSubject[]>([]);
   const [localSubjects, setLocalSubjects] = useState<LocalSubject[]>([]);
   const [loading, setLoading] = useState(false);
@@ -305,7 +306,9 @@ export default function FolderPermissionsModal({
           <span>
             {label}
             {record.isCurrentUser && (
-              <span css={{ opacity: 0.5, marginLeft: 4 }}>({t('you')})</span>
+              <span css={{ opacity: 0.5, marginLeft: theme.sizeUnit }}>
+                ({t('you')})
+              </span>
             )}
           </span>
         ),
@@ -343,16 +346,16 @@ export default function FolderPermissionsModal({
               onClick={() => handleRemoveSubject(record.user_id)}
               css={css`
                 cursor: pointer;
-                color: var(--color-icon);
+                color: ${theme.colorIcon};
                 &:hover {
-                  color: var(--color-error);
+                  color: ${theme.colorError};
                 }
               `}
             />
           ),
       },
     ],
-    [handleChangePermission, handleRemoveSubject],
+    [theme, handleChangePermission, handleRemoveSubject],
   );
 
   return (
@@ -364,6 +367,7 @@ export default function FolderPermissionsModal({
       saveText={t('Save')}
       saveLoading={saving}
       saveDisabled={!hasChanges}
+      contentLoading={loading}
     >
       <ModalContent>
         <div>
@@ -389,21 +393,16 @@ export default function FolderPermissionsModal({
             value={memberSearch}
             onChange={e => setMemberSearch(e.target.value)}
             allowClear
-            css={{ marginBottom: 8 }}
+            css={{ marginBottom: theme.sizeUnit * 2 }}
           />
-          {loading ? (
-            <p css={{ opacity: 0.5, padding: 8 }}>{t('Loading…')}</p>
-          ) : (
-            <Table<LocalSubject>
-              data={filtered}
-              columns={columns}
-              loading={false}
-              usePagination
-              defaultPageSize={10}
-              size={TableSize.Small}
-              height={300}
-            />
-          )}
+          <Table<LocalSubject>
+            data={filtered}
+            columns={columns}
+            usePagination
+            defaultPageSize={10}
+            size={TableSize.Small}
+            height={300}
+          />
         </div>
       </ModalContent>
     </StandardModal>

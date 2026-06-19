@@ -55,11 +55,10 @@ import ChartPropertiesModal from 'src/explore/components/PropertiesModal';
 import DashboardPropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { type Slice } from 'src/types/Chart';
 import CreateFolderModal from './CreateFolderModal';
-import FolderAssetsModal from './FolderAssetsModal';
+import TransferModal from './TransferModal';
 import FolderPermissionsModal from './FolderPermissionsModal';
 import DeleteFolderModal from './DeleteFolderModal';
-import MoveToModal from './MoveToModal';
-import DashboardCharts from './DashboardCharts';
+import DashboardCharts, { type ChartEntity } from './DashboardCharts';
 
 type ItemType = 'folder' | 'chart' | 'dashboard' | 'dataset';
 
@@ -90,11 +89,18 @@ interface ContentItem {
 interface Crumb {
   uuid: string | null;
   name: string;
+  user_permission?: 'editor' | 'viewer' | null;
+}
+
+interface SortColumn {
+  id: string;
+  desc?: boolean;
 }
 
 interface FetchConfig {
   pageIndex: number;
   pageSize: number;
+  sortBy: SortColumn[];
   filters: { id: string; operator?: string; value?: unknown }[];
 }
 
@@ -166,9 +172,7 @@ function AnalyticsList({
   const history = useHistory();
   const { folderUuid } = useParams<{ folderUuid?: string }>();
   const theme = useTheme();
-  const currentUserId: number = useSelector<any, number>(
-    state => state.user?.userId,
-  );
+  const currentUserId = useSelector<any, number>(state => state.user?.userId);
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ContentItem[]>([]);
   const [count, setCount] = useState(0);
@@ -177,9 +181,12 @@ function AnalyticsList({
   ]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
+  // Charts per expanded dashboard, owned here so they survive antd remounting
+  // the expanded-row subtree (which would otherwise re-flash the loader).
+  const [chartsByDashboard, setChartsByDashboard] = useState<
+    Record<number, { loading: boolean; charts: ChartEntity[] }>
+  >({});
   const [showCreateFolder, setShowCreateFolder] = useState(false);
-  const [folderToAddAssets, setFolderToAddAssets] =
-    useState<ContentItem | null>(null);
   const [folderToManagePerms, setFolderToManagePerms] =
     useState<ContentItem | null>(null);
   const [editChart, setEditChart] = useState<Slice | null>(null);
@@ -245,6 +252,7 @@ function AnalyticsList({
         });
         addSuccessToast(t('Pinned: %s', item.name));
         fetchPins();
+        refreshData();
       } catch {
         addDangerToast(t('Error pinning item'));
       }
@@ -264,6 +272,7 @@ function AnalyticsList({
         });
         addSuccessToast(t('Unpinned: %s', item.name));
         fetchPins();
+        refreshData();
       } catch {
         addDangerToast(t('Error unpinning item'));
       }
@@ -273,22 +282,24 @@ function AnalyticsList({
 
   const currentFolder = breadcrumb[breadcrumb.length - 1];
   const isAtRoot = currentFolder.uuid === null;
+  const canEditCurrentFolder =
+    isAtRoot || currentFolder.user_permission === 'editor';
+  // True while the breadcrumb effect is still resolving the URL folder UUID.
+  // Prevents ListView from firing a fetch against the root endpoint on reload.
+  const breadcrumbLoading = !!folderUuid && isAtRoot;
 
   const fetchData = useCallback(
-    async ({ pageIndex, pageSize, filters }: FetchConfig) => {
+    async ({ pageIndex, pageSize, sortBy, filters }: FetchConfig) => {
       setLoading(true);
-      const params = new URLSearchParams();
-      params.set('page', String(pageIndex));
-      params.set('page_size', String(pageSize));
-      if (!currentFolder.uuid) {
-        params.set('folder_type', FOLDER_TYPE);
-      }
+      setExpandedKeys([]);
+      // Drop cached charts so a re-expand after the list changes refetches.
+      setChartsByDashboard({});
+
+      // Build rison-encoded filters matching the standard {col, opr, value} format
+      const filterExps: Array<{ col: string; opr: string; value: unknown }> =
+        [];
       filters.forEach(({ id, operator, value }) => {
-        if (value === undefined || value === null || value === '') {
-          return;
-        }
-        // Select/relation filters store the chosen option object
-        // ({ label, value }); unwrap it to the scalar the API expects.
+        if (value === undefined || value === null || value === '') return;
         const scalar =
           typeof value === 'object' &&
           !Array.isArray(value) &&
@@ -298,30 +309,40 @@ function AnalyticsList({
             : value;
         switch (id) {
           case 'name':
-            params.set('search', String(scalar));
+            filterExps.push({ col: 'name', opr: 'ct', value: scalar });
             break;
           case 'type':
-            params.set('types', String(scalar));
+            filterExps.push({ col: 'type', opr: 'in', value: scalar });
             break;
           case 'owners':
-            params.set('owners', String(scalar));
+            filterExps.push({ col: 'owners', opr: 'rel_m_m', value: scalar });
             break;
           case 'changed_on':
-            // A "between" range is split into gt/lt entries by ListView.
-            if (operator === 'gt') params.set('modified_start', String(scalar));
+            if (operator === 'gt')
+              filterExps.push({ col: 'changed_on', opr: 'gt', value: scalar });
             else if (operator === 'lt')
-              params.set('modified_end', String(scalar));
+              filterExps.push({ col: 'changed_on', opr: 'lt', value: scalar });
             break;
           default:
             break;
         }
       });
+
+      const queryParams = rison.encode_uri({
+        order_column: sortBy[0]?.id ?? 'changed_on',
+        order_direction: sortBy[0]?.desc === false ? 'asc' : 'desc',
+        page: pageIndex,
+        page_size: pageSize,
+        ...(filterExps.length ? { filters: filterExps } : {}),
+      });
+
       const base = currentFolder.uuid
         ? `/api/v1/folders/${currentFolder.uuid}/assets`
-        : '/api/v1/folders/assets';
+        : `/api/v1/folders/assets?folder_type=${FOLDER_TYPE}&`;
+      const separator = base.includes('?') ? '' : '?';
       try {
         const { json } = await SupersetClient.get({
-          endpoint: `${base}?${params.toString()}`,
+          endpoint: `${base}${separator}q=${queryParams}`,
         });
         setItems((json.result as ContentItem[]) || []);
         setCount((json.count as number) || 0);
@@ -359,8 +380,13 @@ function AnalyticsList({
             uuid: string;
             name: string;
             parent_uuid: string | null;
+            user_permission?: 'editor' | 'viewer' | null;
           };
-          crumbs.unshift({ uuid: folder.uuid, name: folder.name });
+          crumbs.unshift({
+            uuid: folder.uuid,
+            name: folder.name,
+            user_permission: folder.user_permission,
+          });
           uuid = folder.parent_uuid;
         }
         crumbs.unshift({ uuid: null, name: t('Analytics') });
@@ -380,7 +406,14 @@ function AnalyticsList({
   const drillInto = useCallback(
     (item: ContentItem) => {
       setExpandedKeys([]);
-      setBreadcrumb(prev => [...prev, { uuid: item.uuid, name: item.name }]);
+      setBreadcrumb(prev => [
+        ...prev,
+        {
+          uuid: item.uuid,
+          name: item.name,
+          user_permission: item.user_permission,
+        },
+      ]);
       history.push(`/analytics/${item.uuid}/`);
     },
     [history],
@@ -408,6 +441,36 @@ function AnalyticsList({
         : [...prev, rowId],
     );
   }, []);
+
+  // Lazily load a dashboard's charts, deduped via the functional updater so
+  // repeated remounts of DashboardCharts don't refetch an already-loaded entry.
+  const requestDashboardCharts = useCallback(
+    (dashboardId: number) => {
+      setChartsByDashboard(prev => {
+        if (prev[dashboardId]) return prev;
+        (async () => {
+          try {
+            const { json } = await SupersetClient.get({
+              endpoint: `/api/v1/dashboard/${dashboardId}/charts`,
+            });
+            const charts = (json.result as ChartEntity[]) || [];
+            setChartsByDashboard(curr => ({
+              ...curr,
+              [dashboardId]: { loading: false, charts },
+            }));
+          } catch {
+            addDangerToast(t('Error loading dashboard charts'));
+            setChartsByDashboard(curr => ({
+              ...curr,
+              [dashboardId]: { loading: false, charts: [] },
+            }));
+          }
+        })();
+        return { ...prev, [dashboardId]: { loading: true, charts: [] } };
+      });
+    },
+    [addDangerToast],
+  );
 
   // Mirror ChartList: PropertiesModal fetches the chart itself by `slice_id`,
   // so it only needs a minimal slice built from the row (no pre-fetch).
@@ -509,7 +572,7 @@ function AnalyticsList({
           }
           const pinIcon =
             isAtRoot && isPinned(original) ? (
-              <Icons.PushpinFilled
+              <Icons.PushpinOutlined
                 iconSize="s"
                 css={{ color: theme.colorPrimary }}
               />
@@ -539,11 +602,13 @@ function AnalyticsList({
               });
             }
           }
-          contextMenuItems.push({
-            key: 'move',
-            label: t('Move to…'),
-            onClick: () => setMoveTarget(original),
-          });
+          if (canEditCurrentFolder) {
+            contextMenuItems.push({
+              key: 'move',
+              label: t('Move to…'),
+              onClick: () => setMoveTarget(original),
+            });
+          }
 
           const nameContent = (() => {
             if (original.type === 'folder') {
@@ -626,7 +691,6 @@ function AnalyticsList({
         Header: t('Type'),
         id: 'type',
         size: 'sm',
-        disableSortBy: true,
         Cell: ({ row: { original } }: CellProps<ContentItem>) =>
           original.type
             ? original.type.charAt(0).toUpperCase() + original.type.slice(1)
@@ -636,7 +700,6 @@ function AnalyticsList({
         accessor: 'database',
         Header: t('Database'),
         id: 'database',
-        disableSortBy: true,
         Cell: ({ row: { original } }: CellProps<ContentItem>) =>
           original.database || '-',
       },
@@ -644,7 +707,6 @@ function AnalyticsList({
         accessor: 'schema',
         Header: t('Schema'),
         id: 'schema',
-        disableSortBy: true,
         Cell: ({ row: { original } }: CellProps<ContentItem>) =>
           original.schema || '-',
       },
@@ -661,7 +723,6 @@ function AnalyticsList({
         accessor: 'changed_on',
         Header: t('Last modified'),
         id: 'changed_on',
-        disableSortBy: true,
         Cell: ({ row: { original } }: CellProps<ContentItem>) =>
           original.changed_on ? (
             <ModifiedInfo
@@ -684,18 +745,6 @@ function AnalyticsList({
             const canEdit = original.user_permission === 'editor';
             return (
               <Actions className="actions">
-                {canEdit && (
-                  <Tooltip title={t('Manage assets')} placement="bottom">
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      onClick={() => setFolderToAddAssets(original)}
-                    >
-                      <Icons.PlusSquareOutlined iconSize="l" />
-                    </span>
-                  </Tooltip>
-                )}
                 {canEdit && (
                   <Tooltip title={t('Manage permissions')} placement="bottom">
                     <span
@@ -726,23 +775,25 @@ function AnalyticsList({
           // chart / dashboard rows: mirror the CRUD lists' row actions.
           return (
             <Actions className="actions">
-              <Tooltip title={t('Edit')} placement="bottom">
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={() =>
-                    original.type === 'chart'
-                      ? openChartEdit(original)
-                      : setEditDashboard({
-                          id: original.id,
-                          title: original.name,
-                        })
-                  }
-                >
-                  <Icons.EditOutlined iconSize="l" />
-                </span>
-              </Tooltip>
+              {canEditCurrentFolder && (
+                <Tooltip title={t('Edit')} placement="bottom">
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={() =>
+                      original.type === 'chart'
+                        ? openChartEdit(original)
+                        : setEditDashboard({
+                            id: original.id,
+                            title: original.name,
+                          })
+                    }
+                  >
+                    <Icons.EditOutlined iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
               <Tooltip title={t('Export')} placement="bottom">
                 <span
                   role="button"
@@ -753,27 +804,29 @@ function AnalyticsList({
                   <Icons.UploadOutlined iconSize="l" />
                 </span>
               </Tooltip>
-              <ConfirmStatusChange
-                title={t('Please confirm')}
-                description={t(
-                  'Are you sure you want to delete %s?',
-                  original.name,
-                )}
-                onConfirm={() => deleteAsset(original)}
-              >
-                {confirmDelete => (
-                  <Tooltip title={t('Delete')} placement="bottom">
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      onClick={confirmDelete}
-                    >
-                      <Icons.DeleteOutlined iconSize="l" />
-                    </span>
-                  </Tooltip>
-                )}
-              </ConfirmStatusChange>
+              {canEditCurrentFolder && (
+                <ConfirmStatusChange
+                  title={t('Please confirm')}
+                  description={t(
+                    'Are you sure you want to delete %s?',
+                    original.name,
+                  )}
+                  onConfirm={() => deleteAsset(original)}
+                >
+                  {confirmDelete => (
+                    <Tooltip title={t('Delete')} placement="bottom">
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className="action-button"
+                        onClick={confirmDelete}
+                      >
+                        <Icons.DeleteOutlined iconSize="l" />
+                      </span>
+                    </Tooltip>
+                  )}
+                </ConfirmStatusChange>
+              )}
             </Actions>
           );
         },
@@ -788,6 +841,7 @@ function AnalyticsList({
       deleteAsset,
       isPinned,
       isAtRoot,
+      canEditCurrentFolder,
       pinnedKeys.size,
       pinItem,
       unpinItem,
@@ -846,15 +900,8 @@ function AnalyticsList({
     [addDangerToast],
   );
 
-  // Sort pinned items to the top (root level only)
-  const sortedItems = useMemo(() => {
-    if (!isAtRoot || pinnedKeys.size === 0) return items;
-    return [...items].sort((a, b) => {
-      const aPinned = pinnedKeys.has(`${a.type}-${a.id}`) ? 0 : 1;
-      const bPinned = pinnedKeys.has(`${b.type}-${b.id}`) ? 0 : 1;
-      return aPinned - bPinned;
-    });
-  }, [items, pinnedKeys, isAtRoot]);
+  // Pinned-on-top sorting is handled by the backend
+  const sortedItems = items;
 
   const expandable = useMemo(
     () => ({
@@ -866,23 +913,40 @@ function AnalyticsList({
         setExpandedKeys(keys.map(String)),
       rowExpandable: (record: Record<string, unknown>) =>
         record.type === 'dashboard',
-      expandedRowRender: (record: Record<string, unknown>) => (
-        <DashboardCharts
-          dashboardId={record.id as number}
-          addDangerToast={addDangerToast}
-        />
-      ),
+      expandedRowRender: (record: Record<string, unknown>) => {
+        const dashboardId = record.id as number;
+        const entry = chartsByDashboard[dashboardId];
+        return (
+          <DashboardCharts
+            dashboardId={dashboardId}
+            charts={entry?.charts ?? []}
+            loading={entry?.loading ?? true}
+            onRequest={requestDashboardCharts}
+          />
+        );
+      },
     }),
-    [addDangerToast, expandedKeys],
+    [chartsByDashboard, requestDashboardCharts, expandedKeys],
   );
 
   const breadcrumbItems: FolderBreadcrumbItem[] = useMemo(
     () =>
-      breadcrumb.map((crumb, index) => ({
-        key: crumb.uuid ?? 'root',
-        title: crumb.name,
-        onClick: () => navigateToCrumb(index),
-      })),
+      breadcrumb.map((crumb, index) => {
+        const isRoot = index === 0 && !crumb.uuid;
+        return {
+          key: crumb.uuid ?? 'root',
+          title: isRoot ? (
+            <>
+              <Icons.HomeOutlined iconSize="m" aria-hidden />
+              {crumb.name}
+            </>
+          ) : (
+            crumb.name
+          ),
+          hideIcon: isRoot,
+          onClick: () => navigateToCrumb(index),
+        };
+      }),
     [breadcrumb, navigateToCrumb],
   );
 
@@ -948,17 +1012,6 @@ function AnalyticsList({
           addSuccessToast={addSuccessToast}
         />
       )}
-      {folderToAddAssets && (
-        <FolderAssetsModal
-          folderUuid={folderToAddAssets.uuid ?? ''}
-          folderName={folderToAddAssets.name}
-          show
-          onHide={() => setFolderToAddAssets(null)}
-          onSuccess={refreshData}
-          addDangerToast={addDangerToast}
-          addSuccessToast={addSuccessToast}
-        />
-      )}
       {folderToManagePerms && (
         <FolderPermissionsModal
           folderUuid={folderToManagePerms.uuid ?? ''}
@@ -971,9 +1024,10 @@ function AnalyticsList({
         />
       )}
       {moveTarget && (
-        <MoveToModal
-          item={moveTarget}
+        <TransferModal
           currentFolderUuid={currentFolder.uuid}
+          currentFolderName={currentFolder.name}
+          preSelectedKeys={[`${moveTarget.type}-${moveTarget.id}`]}
           show
           onHide={() => setMoveTarget(null)}
           onSuccess={refreshData}
@@ -1018,63 +1072,72 @@ function AnalyticsList({
         />
       )}
       <SubMenu {...menuData} />
-      <BreadcrumbWrap>
-        <FolderBreadcrumb items={breadcrumbItems} />
-      </BreadcrumbWrap>
-      <ConfirmStatusChange
-        title={t('Please confirm')}
-        description={t('Are you sure you want to delete the selected items?')}
-        onConfirm={handleBulkDelete}
-      >
-        {confirmDelete => (
-          <ListView<ContentItem>
-            key={`${currentFolder.uuid ?? 'root'}-${refreshKey}`}
-            className="analytics-list-view"
-            columns={columns}
-            count={count}
-            data={sortedItems}
-            fetchData={fetchData}
-            refreshData={refreshData}
-            loading={loading}
-            pageSize={PAGE_SIZE}
-            filters={filters}
-            expandable={expandable}
-            defaultViewMode="table"
-            bulkSelectEnabled={bulkSelectEnabled}
-            disableBulkSelect={() => setBulkSelectEnabled(false)}
-            bulkActions={[
-              {
-                key: 'delete',
-                name: t('Delete'),
-                type: 'danger',
-                onSelect: confirmDelete,
-              },
-              {
-                key: 'export',
-                name: (
-                  <Tooltip
-                    title={t(
-                      'Export is only available for dashboards and charts',
-                    )}
-                  >
-                    <Icons.WarningOutlined
-                      iconSize="s"
-                      css={{ marginRight: 4 }}
-                    />
-                    {t('Export')}
-                  </Tooltip>
-                ),
-                type: 'primary',
-                onSelect: handleBulkExport,
-                hidden: (rows: ContentItem[]) =>
-                  rows.every(r => r.type === 'folder'),
-              },
-            ]}
-            addSuccessToast={addSuccessToast}
-            addDangerToast={addDangerToast}
-          />
-        )}
-      </ConfirmStatusChange>
+      {!breadcrumbLoading && (
+        <ConfirmStatusChange
+          title={t('Please confirm')}
+          description={t('Are you sure you want to delete the selected items?')}
+          onConfirm={handleBulkDelete}
+        >
+          {confirmDelete => (
+            <ListView<ContentItem>
+              key={`${currentFolder.uuid ?? 'root'}-${refreshKey}`}
+              className="analytics-list-view"
+              columns={columns}
+              count={count}
+              data={sortedItems}
+              fetchData={fetchData}
+              refreshData={refreshData}
+              loading={loading}
+              initialSort={[{ id: 'changed_on', desc: true }]}
+              pageSize={PAGE_SIZE}
+              filters={filters}
+              expandable={expandable}
+              defaultViewMode="table"
+              headerContent={
+                <BreadcrumbWrap>
+                  <FolderBreadcrumb items={breadcrumbItems} />
+                </BreadcrumbWrap>
+              }
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={() => setBulkSelectEnabled(false)}
+              bulkActions={[
+                ...(canEditCurrentFolder
+                  ? [
+                      {
+                        key: 'delete',
+                        name: t('Delete'),
+                        type: 'danger' as const,
+                        onSelect: confirmDelete,
+                      },
+                    ]
+                  : []),
+                {
+                  key: 'export',
+                  name: (
+                    <Tooltip
+                      title={t(
+                        'Export is only available for dashboards and charts',
+                      )}
+                    >
+                      <Icons.WarningOutlined
+                        iconSize="s"
+                        css={{ marginRight: theme.sizeUnit }}
+                      />
+                      {t('Export')}
+                    </Tooltip>
+                  ),
+                  type: 'primary',
+                  onSelect: handleBulkExport,
+                  hidden: (rows: ContentItem[]) =>
+                    rows.every(r => r.type === 'folder'),
+                },
+              ]}
+              addSuccessToast={addSuccessToast}
+              addDangerToast={addDangerToast}
+            />
+          )}
+        </ConfirmStatusChange>
+      )}
     </>
   );
 }

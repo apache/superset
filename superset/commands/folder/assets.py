@@ -14,14 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
+from __future__ import annotations
+
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 from marshmallow import ValidationError
-
 from superset import security_manager
 from superset.commands.base import BaseCommand
+from superset.utils.core import get_user_id
+from superset.utils.decorators import on_error, transaction
+
 from superset.commands.folder.exceptions import (
     FolderAssetNotFoundValidationError,
     FolderAssetTypeValidationError,
@@ -30,14 +33,44 @@ from superset.commands.folder.exceptions import (
     FolderNotFoundError,
     FolderUpdateFailedError,
 )
-from superset.daos.folder import FolderDAO
-from superset.daos.folder_permissions import FolderPermissionDAO
 from superset.folders.constants import asset_types_for_folder_type
+from superset.daos.folder import FolderDAO
 from superset.folders.models import Folder
-from superset.utils.core import get_user_id
-from superset.utils.decorators import on_error, transaction
+from superset.daos.folder_permissions import FolderPermissionDAO
 
-logger = logging.getLogger(__name__)
+
+def _validate_folder_assets(
+    folder_id_or_uuid: str, assets: list[dict[str, Any]]
+) -> Folder:
+    """Validate folder existence, editor permissions, and asset references."""
+    model = FolderDAO.find_by_id_or_uuid(folder_id_or_uuid)
+    if not model:
+        raise FolderNotFoundError()
+
+    if not security_manager.is_admin():
+        user_id = get_user_id()
+        if not user_id or not FolderPermissionDAO.user_is_folder_editor(
+            user_id, model.id
+        ):
+            raise FolderForbiddenError()
+
+    exceptions: list[ValidationError] = []
+    allowed = set(asset_types_for_folder_type(model.folder_type))
+    for asset in assets:
+        asset_type = asset["type"]
+        if asset_type not in allowed:
+            exceptions.append(
+                FolderAssetTypeValidationError(asset_type, model.folder_type)
+            )
+        elif not FolderDAO.asset_exists(asset_type, asset["id"]):
+            exceptions.append(
+                FolderAssetNotFoundValidationError(asset_type, asset["id"])
+            )
+
+    if exceptions:
+        raise FolderInvalidError(exceptions=exceptions)
+
+    return model
 
 
 class UpdateFolderAssetsCommand(BaseCommand):
@@ -51,7 +84,7 @@ class UpdateFolderAssetsCommand(BaseCommand):
     def __init__(self, folder_id_or_uuid: str, assets: list[dict[str, Any]]):
         self._id = folder_id_or_uuid
         self._assets = assets
-        self._model: Optional[Folder] = None
+        self._model: Folder | None = None
 
     @transaction(on_error=partial(on_error, reraise=FolderUpdateFailedError))
     def run(self) -> Folder:
@@ -61,32 +94,7 @@ class UpdateFolderAssetsCommand(BaseCommand):
         return self._model
 
     def validate(self) -> None:
-        self._model = FolderDAO.find_by_id_or_uuid(self._id)
-        if not self._model:
-            raise FolderNotFoundError()
-
-        if not security_manager.is_admin():
-            user_id = get_user_id()
-            if not user_id or not FolderPermissionDAO.user_is_folder_editor(
-                user_id, self._model.id
-            ):
-                raise FolderForbiddenError()
-
-        exceptions: list[ValidationError] = []
-        allowed = set(asset_types_for_folder_type(self._model.folder_type))
-        for asset in self._assets:
-            asset_type = asset["type"]
-            if asset_type not in allowed:
-                exceptions.append(
-                    FolderAssetTypeValidationError(asset_type, self._model.folder_type)
-                )
-            elif not FolderDAO.asset_exists(asset_type, asset["id"]):
-                exceptions.append(
-                    FolderAssetNotFoundValidationError(asset_type, asset["id"])
-                )
-
-        if exceptions:
-            raise FolderInvalidError(exceptions=exceptions)
+        self._model = _validate_folder_assets(self._id, self._assets)
 
 
 class AddFolderAssetsCommand(BaseCommand):
@@ -100,7 +108,7 @@ class AddFolderAssetsCommand(BaseCommand):
     def __init__(self, folder_id_or_uuid: str, assets: list[dict[str, Any]]):
         self._id = folder_id_or_uuid
         self._assets = assets
-        self._model: Optional[Folder] = None
+        self._model: Folder | None = None
 
     @transaction(on_error=partial(on_error, reraise=FolderUpdateFailedError))
     def run(self) -> Folder:
@@ -110,29 +118,4 @@ class AddFolderAssetsCommand(BaseCommand):
         return self._model
 
     def validate(self) -> None:
-        self._model = FolderDAO.find_by_id_or_uuid(self._id)
-        if not self._model:
-            raise FolderNotFoundError()
-
-        if not security_manager.is_admin():
-            user_id = get_user_id()
-            if not user_id or not FolderPermissionDAO.user_is_folder_editor(
-                user_id, self._model.id
-            ):
-                raise FolderForbiddenError()
-
-        exceptions: list[ValidationError] = []
-        allowed = set(asset_types_for_folder_type(self._model.folder_type))
-        for asset in self._assets:
-            asset_type = asset["type"]
-            if asset_type not in allowed:
-                exceptions.append(
-                    FolderAssetTypeValidationError(asset_type, self._model.folder_type)
-                )
-            elif not FolderDAO.asset_exists(asset_type, asset["id"]):
-                exceptions.append(
-                    FolderAssetNotFoundValidationError(asset_type, asset["id"])
-                )
-
-        if exceptions:
-            raise FolderInvalidError(exceptions=exceptions)
+        self._model = _validate_folder_assets(self._id, self._assets)

@@ -16,19 +16,18 @@
 # under the License.
 """Data access for folders and the assets they contain.
 
-Validation and orchestration live in ``superset.commands.folder``; this DAO is
+Validation and orchestration live in ``preset.folders.commands``; this DAO is
 limited to queries and persistence.
 """
 
 from __future__ import annotations
 
-import logging
 from collections import defaultdict
 from datetime import datetime
 from typing import Any
 
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy import func, literal, or_, select, union_all
+from sqlalchemy import and_, func, literal, or_, select, union_all
 from sqlalchemy.orm import joinedload
 
 from superset.daos.base import BaseDAO
@@ -41,8 +40,6 @@ from superset.folders.models import (
     FolderObject,
     FolderPin,
 )
-
-logger = logging.getLogger(__name__)
 
 # A resolved asset: its type label paired with the underlying model instance.
 ResolvedAsset = tuple[str, Any]
@@ -102,19 +99,6 @@ class FolderDAO(BaseDAO[Folder]):
         return cls._load_assets(ids_by_type)
 
     @classmethod
-    def get_unfoldered_assets(cls, folder_type: str) -> list[ResolvedAsset]:
-        """Assets of the given folder type that are not in any folder."""
-        resolved: list[ResolvedAsset] = []
-        for name in asset_types_for_folder_type(folder_type):
-            config = ASSET_TYPE_CONFIGS[name]
-            model = config.model
-            link_column = getattr(FolderObject, config.fk_column)
-            used = db.session.query(link_column).filter(link_column.isnot(None))
-            rows = db.session.query(model).filter(model.id.notin_(used)).all()
-            resolved.extend((name, row) for row in rows)
-        return resolved
-
-    @classmethod
     def get_contents(  # noqa: C901
         cls,
         folder: Folder | None,
@@ -129,6 +113,8 @@ class FolderDAO(BaseDAO[Folder]):
         modified_end: datetime | None = None,
         page: int = 0,
         page_size: int = 25,
+        sort_column: str = "changed_on",
+        sort_order: str = "desc",
     ) -> tuple[list[ResolvedAsset], int]:
         """Paginated, filtered contents of a folder (or the root).
 
@@ -138,7 +124,7 @@ class FolderDAO(BaseDAO[Folder]):
         recently changed), so callers get exactly one page plus the total count.
         """
         from superset import security_manager
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import Database as ConnDatabase, SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
         from superset.utils.core import get_user_id
@@ -161,6 +147,9 @@ class FolderDAO(BaseDAO[Folder]):
                 literal("folder").label("item_type"),
                 Folder.id.label("item_id"),
                 Folder.changed_on.label("changed_on"),
+                Folder.name.label("sort_name"),
+                literal("").label("sort_database"),
+                literal("").label("sort_schema"),
             ).where(Folder.folder_type == folder_type)
             fq = fq.where(
                 Folder.parent_id.is_(None)
@@ -200,12 +189,32 @@ class FolderDAO(BaseDAO[Folder]):
                 continue
             model = ASSET_TYPE_CONFIGS[name].model
             fk_col = getattr(FolderObject, ASSET_TYPE_CONFIGS[name].fk_column)
-            aq = select(
-                literal(1).label("kind_order"),
-                literal(name).label("item_type"),
-                model.id.label("item_id"),
-                model.changed_on.label("changed_on"),
-            )
+            if name == "chart":
+                aq = (
+                    select(
+                        literal(1).label("kind_order"),
+                        literal(name).label("item_type"),
+                        model.id.label("item_id"),
+                        model.changed_on.label("changed_on"),
+                        title_attrs[name].label("sort_name"),
+                        func.coalesce(ConnDatabase.database_name, "").label(
+                            "sort_database"
+                        ),
+                        func.coalesce(SqlaTable.schema, "").label("sort_schema"),
+                    )
+                    .outerjoin(SqlaTable, Slice.datasource_id == SqlaTable.id)
+                    .outerjoin(ConnDatabase, SqlaTable.database_id == ConnDatabase.id)
+                )
+            else:
+                aq = select(
+                    literal(1).label("kind_order"),
+                    literal(name).label("item_type"),
+                    model.id.label("item_id"),
+                    model.changed_on.label("changed_on"),
+                    title_attrs[name].label("sort_name"),
+                    literal("").label("sort_database"),
+                    literal("").label("sort_schema"),
+                )
             if folder_id is None:
                 used = select(fk_col).where(fk_col.isnot(None))
                 aq = aq.where(model.id.notin_(used))
@@ -230,9 +239,6 @@ class FolderDAO(BaseDAO[Folder]):
 
             # Access filter: non-admins only see assets they can access
             if not is_admin and user_id:
-                from superset.connectors.sqla.models import (
-                    Database as ConnDatabase,
-                )
                 from superset.utils.filters import get_dataset_access_filters
 
                 access_conditions = []
@@ -312,9 +318,40 @@ class FolderDAO(BaseDAO[Folder]):
         total = (
             db.session.execute(select(func.count()).select_from(unioned)).scalar() or 0
         )
+        sort_map = {
+            "name": unioned.c.sort_name,
+            "type": unioned.c.item_type,
+            "changed_on": unioned.c.changed_on,
+            "database": unioned.c.sort_database,
+            "schema": unioned.c.sort_schema,
+        }
+        sort_col = sort_map.get(sort_column, unioned.c.changed_on)
+        order = sort_col.asc() if sort_order == "asc" else sort_col.desc()
+
+        # Pinned items always on top (root level only, per-user)
+        pin_order = literal(1).label("pin_order")
+        if folder_id is None and user_id:
+            pin_sub = (
+                select(FolderPin.object_type, FolderPin.object_id)
+                .where(FolderPin.user_id == user_id)
+                .subquery()
+            )
+            pin_order = (
+                func.coalesce(
+                    select(literal(0))
+                    .where(
+                        pin_sub.c.object_type == unioned.c.item_type,
+                        pin_sub.c.object_id == unioned.c.item_id,
+                    )
+                    .correlate(unioned)
+                    .scalar_subquery(),
+                    1,
+                )
+            ).label("pin_order")
+
         page_rows = db.session.execute(
             select(unioned.c.item_type, unioned.c.item_id)
-            .order_by(unioned.c.kind_order, unioned.c.changed_on.desc())
+            .order_by(pin_order, order)
             .limit(page_size)
             .offset(page * page_size)
         ).all()
@@ -381,6 +418,9 @@ class FolderDAO(BaseDAO[Folder]):
         """
         for child in list(folder.children):
             child.parent_id = folder.parent_id
+            child.name = cls.resolve_name_conflict(
+                child.name, folder.parent_id, folder.folder_type, exclude_id=child.id
+            )
         db.session.flush()
 
         if archive_items:
@@ -413,7 +453,7 @@ class FolderDAO(BaseDAO[Folder]):
             if link:
                 link.folder_id = folder.id
             else:
-                link = FolderObject(folder_id=folder.id, created_on=datetime.now())
+                link = FolderObject(folder_id=folder.id, created_on=datetime.now())  # type: ignore[call-arg]
                 setattr(link, config.fk_column, asset["id"])
                 db.session.add(link)
 
@@ -441,6 +481,23 @@ class FolderDAO(BaseDAO[Folder]):
         db.session.flush()
         cls.assign_assets(folder, assets)
 
+    @classmethod
+    def remove_assets(cls, folder: Folder, assets: list[dict[str, Any]]) -> None:
+        """Remove specific assets from ``folder`` (back to root)."""
+        for asset in assets:
+            config = ASSET_TYPE_CONFIGS[asset["type"]]
+            link_column = getattr(FolderObject, config.fk_column)
+            link = (
+                db.session.query(FolderObject)
+                .filter(
+                    FolderObject.folder_id == folder.id,
+                    link_column == asset["id"],
+                )
+                .one_or_none()
+            )
+            if link:
+                db.session.delete(link)
+
     # ------------------------------------------------------------------ #
     # Validation helpers (used by commands)
     # ------------------------------------------------------------------ #
@@ -463,6 +520,26 @@ class FolderDAO(BaseDAO[Folder]):
         if exclude_id is not None:
             query = query.filter(Folder.id != exclude_id)
         return query.first() is None
+
+    @classmethod
+    def resolve_name_conflict(
+        cls,
+        name: str,
+        parent_id: int | None,
+        folder_type: str,
+        exclude_id: int | None = None,
+    ) -> str:
+        """Return a unique name by appending a numeric suffix if needed."""
+        if cls.validate_name_uniqueness(name, parent_id, folder_type, exclude_id):
+            return name
+        counter = 1
+        while True:
+            candidate = f"{name} ({counter})"
+            if cls.validate_name_uniqueness(
+                candidate, parent_id, folder_type, exclude_id
+            ):
+                return candidate
+            counter += 1
 
     @classmethod
     def is_descendant(cls, candidate: Folder, ancestor: Folder) -> bool:
@@ -502,9 +579,7 @@ class FolderDAO(BaseDAO[Folder]):
         object_type: str,
         position: int,
     ) -> FolderPin:
-        from datetime import datetime
-
-        pin = FolderPin(
+        pin = FolderPin(  # type: ignore[call-arg]
             user_id=user_id,
             object_id=object_id,
             object_type=object_type,
@@ -580,8 +655,6 @@ class FolderDAO(BaseDAO[Folder]):
 
     @classmethod
     def add_subject(cls, folder_id: int, user_id: int, permission: str) -> None:
-        from superset.folders.models import folder_editors, folder_viewers
-
         if permission == "editor":
             db.session.execute(
                 folder_editors.insert().values(folder_id=folder_id, user_id=user_id)
@@ -594,10 +667,6 @@ class FolderDAO(BaseDAO[Folder]):
 
     @classmethod
     def update_subject(cls, folder_id: int, user_id: int, permission: str) -> None:
-        from sqlalchemy import and_
-
-        from superset.folders.models import folder_editors, folder_viewers
-
         # Remove from both, then add to the correct one
         db.session.execute(
             folder_editors.delete().where(
@@ -619,10 +688,6 @@ class FolderDAO(BaseDAO[Folder]):
 
     @classmethod
     def remove_subject(cls, folder_id: int, user_id: int) -> None:
-        from sqlalchemy import and_
-
-        from superset.folders.models import folder_editors, folder_viewers
-
         db.session.execute(
             folder_editors.delete().where(
                 and_(
