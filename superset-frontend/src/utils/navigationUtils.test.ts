@@ -122,16 +122,13 @@ describe('openInNewTab', () => {
     ['https:evil.example.com/phish'],
     ['HTTP:evil.example.com/phish'],
     ['ftp:evil.example.com/file'],
-  ])(
-    'refuses scheme-without-authority URL %s',
-    async (unsafeUrl: string) => {
-      await withApplicationRoot('/superset/', async () => {
-        const { openInNewTab } = await import('src/utils/navigationUtils');
-        expect(() => openInNewTab(unsafeUrl)).toThrow(/refused unsafe URL/);
-        expect(openSpy).not.toHaveBeenCalled();
-      });
-    },
-  );
+  ])('refuses scheme-without-authority URL %s', async (unsafeUrl: string) => {
+    await withApplicationRoot('/superset/', async () => {
+      const { openInNewTab } = await import('src/utils/navigationUtils');
+      expect(() => openInNewTab(unsafeUrl)).toThrow(/refused unsafe URL/);
+      expect(openSpy).not.toHaveBeenCalled();
+    });
+  });
 
   // C0/C1 controls and zero-width / bidi
   // formatting marks are stripped by browsers before URL parsing, so a
