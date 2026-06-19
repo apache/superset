@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from '@superset-ui/core/spec';
+import { Menu } from 'antd';
 import { ModalTrigger } from '.';
 
 const mockedProps = {
@@ -75,8 +76,6 @@ test('should render a modal after click', async () => {
   expect(screen.getByRole('dialog')).toBeInTheDocument();
 });
 
-import { Menu } from 'antd';
-
 test('trigger click should preventDefault to allow dropdown to close', async () => {
   render(<ModalTrigger {...mockedProps} />);
   const trigger = screen.getByTestId('span-modal-trigger');
@@ -108,7 +107,9 @@ test('should not block arrow key default behavior inside modal input when render
   await userEvent.click(screen.getByTestId('trigger'));
   expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-  const input = screen.getByRole('textbox', { name: 'test-input' }) as HTMLInputElement;
+  const input = screen.getByRole('textbox', {
+    name: 'test-input',
+  }) as HTMLInputElement;
 
   // Focus and place cursor
   input.focus();
@@ -120,13 +121,13 @@ test('should not block arrow key default behavior inside modal input when render
     bubbles: true,
     cancelable: true,
   });
-  
+
   const wasPrevented = !input.dispatchEvent(arrowEvent);
-  
+
   // jsdom might not fully support native cursor movement, so we check defaultPrevented
   // meaning our wrapper successfully stopped propagation before it reached rc-menu.
   expect(wasPrevented).toBe(false);
-  
+
   // If jsdom ever supports it, cursor should be at 1
   if (input.selectionStart === 1) {
     expect(input.selectionStart).toBe(1);
