@@ -430,6 +430,76 @@ class CreateDatasetCalculatedColumn(BaseModel):
     is_dttm: bool | None = None
 
 
+class CreateDatasetRequest(BaseModel):
+    """Request schema for create_dataset to register a physical table as a dataset."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    database_id: Annotated[
+        int,
+        Field(
+            description="ID of the database connection to register the table against"
+        ),
+    ]
+    schema_: Annotated[
+        str | None,
+        Field(
+            default=None,
+            alias="schema",
+            serialization_alias="schema",
+            max_length=250,
+            description="Schema (namespace) where the table lives, e.g. 'public'. "
+            "Omit or pass None for databases without schema namespaces (e.g. SQLite).",
+        ),
+    ]
+    catalog: Annotated[
+        str | None,
+        Field(
+            default=None,
+            max_length=250,
+            description="Catalog where the table lives. Omit for databases without "
+            "catalog support.",
+        ),
+    ]
+    table_name: Annotated[
+        str,
+        Field(
+            min_length=1,
+            max_length=250,
+            description="Name of the physical table to register as a dataset",
+        ),
+    ]
+    owners: Annotated[
+        List[int] | None,
+        Field(
+            default=None,
+            description="Optional list of owner user IDs. "
+            "Defaults to the calling user.",
+        ),
+    ]
+
+    @field_validator("schema_", "catalog", mode="before")
+    @classmethod
+    def _normalize_optional_str(cls, v: object) -> object:
+        """Strip whitespace and convert blank strings to None.
+
+        Non-string values pass through unchanged so Pydantic's type validation
+        rejects them, rather than silently treating a malformed value (e.g. an
+        int or dict) as an omitted namespace.
+        """
+        if isinstance(v, str):
+            return v.strip() or None
+        return v
+
+    @field_validator("table_name", mode="before")
+    @classmethod
+    def _strip_table_name(cls, v: object) -> object:
+        """Strip leading/trailing whitespace from table_name."""
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
+
 class CreateVirtualDatasetRequest(BaseModel):
     """Request schema for create_virtual_dataset."""
 
