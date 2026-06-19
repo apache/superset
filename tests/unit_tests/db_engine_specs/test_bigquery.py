@@ -744,13 +744,14 @@ def test_fetch_data_converts_bigquery_row_objects(mocker: MockerFixture) -> None
     assert result == [(1, "a"), (2, "b")]
     assert flask_g.bq_memory_limited is False
 
+
 def test_compile_bind_param_bigquery_string_literal() -> None:
     """
     Test that string literal bind parameters are compiled properly for BigQuery.
     """
-    from sqlalchemy import select, table, column
+    from sqlalchemy import column, select, table
     from sqlalchemy_bigquery import BigQueryDialect
-    
+
     # We must import BigQueryEngineSpec to ensure the @compiles decorator is executed
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F401
 
