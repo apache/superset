@@ -162,7 +162,7 @@
     "@visx/grid": "^3.5.0",
     "@visx/responsive": "^3.0.0",
     "@visx/scale": "^3.5.0",
-    "@visx/tooltip": "^3.0.0",
+    "@visx/tooltip": "^4.0.0",
     "@visx/xychart": "^4.0.0",
     "ag-grid-community": "35.3.1",
     "ag-grid-react": "35.3.1",
