@@ -24,7 +24,7 @@ from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
 from flask_wtf.csrf import generate_csrf
-from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
+from marshmallow import EXCLUDE, fields, post_load, RAISE, Schema, ValidationError
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import selectinload
 
@@ -74,7 +74,26 @@ class ResourceSchema(PermissiveSchema):
         return data
 
 
-class RlsRuleSchema(PermissiveSchema):
+class RlsRuleSchema(Schema):
+    """
+    Schema for a single row-level security rule attached to a guest token.
+
+    Unlike the other guest-token schemas, this one rejects unknown fields
+    instead of silently dropping them. A rule is scoped to a dataset only when
+    it carries a valid integer ``dataset`` key; a rule with no ``dataset`` is
+    treated as global and its ``clause`` is applied to every dataset the
+    embedded resource can reach (see ``get_guest_rls_filters``). Silently
+    excluding an unexpected field -- most commonly a mistyped or legacy scope
+    key such as ``datasource`` -- would therefore turn an intended
+    dataset-scoped rule into a global one without any feedback to the caller.
+    Raising on unknown fields surfaces the mistake as an HTTP 400 before a
+    token is ever issued and keeps the accepted payload aligned with the
+    documented ``RlsRule`` contract (``dataset`` and ``clause``).
+    """
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        unknown = RAISE
+
     dataset = fields.Integer()
     clause = fields.String(required=True)  # todo other options?
 
