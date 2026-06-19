@@ -25,8 +25,8 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
-import { css } from '@apache-superset/core/theme';
-import { Layout, Loading } from '@superset-ui/core/components';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { Flex, Layout, Loading } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
 import Menu from 'src/features/home/Menu';
@@ -87,24 +87,27 @@ const LocationPathnameLogger = () => {
 const CHAT_PANEL_DEFAULT_WIDTH = 400;
 const CHAT_PANEL_MIN_WIDTH = 280;
 
-const RouteSwitch = () => (
-  <Switch>
-    {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-      <Route path={path} key={path}>
-        <Suspense fallback={<Fallback />}>
-          <ErrorBoundary
-            css={css`
-              margin: 16px;
-            `}
-          >
-            <Component user={bootstrapData.user} {...props} />
-          </ErrorBoundary>
-        </Suspense>
-      </Route>
-    ))}
-    <Redirect from="/" to="/superset/welcome/" exact />
-  </Switch>
-);
+const RouteSwitch = () => {
+  const theme = useTheme();
+  return (
+    <Switch>
+      {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+        <Route path={path} key={path}>
+          <Suspense fallback={<Fallback />}>
+            <ErrorBoundary
+              css={css`
+                margin: ${theme.sizeUnit * 4}px;
+              `}
+            >
+              <Component user={bootstrapData.user} {...props} />
+            </ErrorBoundary>
+          </Suspense>
+        </Route>
+      ))}
+      <Redirect from="/" to="/superset/welcome/" exact />
+    </Switch>
+  );
+};
 
 const layoutCss = css`
   flex: 1;
@@ -199,10 +202,9 @@ const App = () => (
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
-      <div
+      <Flex
+        vertical
         css={css`
-          display: flex;
-          flex-direction: column;
           height: 100vh;
           overflow: hidden;
         `}
@@ -214,7 +216,7 @@ const App = () => (
         <ExtensionsStartup>
           <AppContent />
         </ExtensionsStartup>
-      </div>
+      </Flex>
       <ToastContainer />
     </RootContextProviders>
   </Router>

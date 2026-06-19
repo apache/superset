@@ -133,6 +133,7 @@ All methods are available on the `chat` namespace from `@apache-superset/core`:
 | `onDidChangeDisplayMode(listener)` | Subscribe to display mode changes. Returns a `Disposable`. |
 | `onDidRegisterChat(listener)` | Subscribe to registration events. |
 | `onDidUnregisterChat(listener)` | Subscribe to unregistration events. |
+| `onDidResizePanel(listener)` | Subscribe to panel resize events (panel mode only). Not all hosts provide a resizer — do not rely on this firing. Returns a `Disposable`. |
 
 ## Next Steps
 

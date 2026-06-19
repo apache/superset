@@ -26,9 +26,7 @@ export function createActionListener<V, A = unknown>(
   valueParser: (action: A, state: RootState) => V | null | undefined,
   thisArgs?: unknown,
 ): core.Disposable {
-  const boundListener = thisArgs
-    ? listener.bind(thisArgs as object)
-    : listener;
+  const boundListener = thisArgs ? listener.bind(thisArgs as object) : listener;
 
   const unsubscribe = listenerMiddleware.startListening({
     predicate,

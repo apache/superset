@@ -47,7 +47,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
     ({ user }) => user.userId,
   );
 
-useEffect(() => {
+  useEffect(() => {
     if (userId == null) return;
 
     // Provide the implementations for @apache-superset/core.
