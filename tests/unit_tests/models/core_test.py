@@ -1378,3 +1378,29 @@ def test_apply_limit_to_sql(
 
     limited = db.apply_limit_to_sql(sql, limit, force)
     assert limited == expected
+
+
+def test_execute_sql_preserves_line_comments_single_statement(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A single statement is executed verbatim, so the ``--`` line comments added by
+    ``SQL_QUERY_MUTATOR`` are not round-tripped through sqlglot (which would rewrite
+    them into ``/* */`` blocks). Regression test for the comment-mangling bug.
+    """
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_sqla_engine")
+    mocker.patch.object(database, "get_raw_connection")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[])
+    # Identity mutator so the test isolates whether the SQL got reformatted.
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql, **kwargs: sql
+    )
+    execute = mocker.patch.object(database.db_engine_spec, "execute")
+
+    sql = "SELECT 1 AS one\n-- user: alice\n-- company: dunder mifflin"
+    database._execute_sql_with_mutation_and_logging(sql, fetch_last_result=True)
+
+    executed_sql = execute.call_args.args[1]
+    assert executed_sql == sql
+    assert "/*" not in executed_sql
