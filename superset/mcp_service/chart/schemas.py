@@ -1794,8 +1794,12 @@ def _normalize_chart_request_input(data: Any) -> Any:
     config = data.get("config")
     if isinstance(config, dict):
         if "viz_type" in config:
-            viz_type = config.pop("viz_type")
-            config.setdefault("chart_type", viz_type)
+            viz_type = config["viz_type"]
+            if "chart_type" not in config:
+                config["chart_type"] = viz_type
+                config.pop("viz_type")
+            elif config.get("chart_type") != "table":
+                config.pop("viz_type")
         chart_type = config.get("chart_type")
         if isinstance(chart_type, str) and chart_type in _VIZ_TYPE_TO_CHART_TYPE:
             mapped_type, kind = _VIZ_TYPE_TO_CHART_TYPE[chart_type]

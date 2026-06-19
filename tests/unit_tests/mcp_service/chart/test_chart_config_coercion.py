@@ -30,6 +30,7 @@ from pydantic import ValidationError
 from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
     GenerateExploreLinkRequest,
+    TableChartConfig,
     UpdateChartPreviewRequest,
     UpdateChartRequest,
     XYChartConfig,
@@ -100,6 +101,20 @@ class TestVizTypeTranslation:
             {"dataset_id": 23, "config": config}
         )
         assert request.config.chart_type == "xy"
+
+    def test_table_viz_type_is_preserved_with_explicit_chart_type(self) -> None:
+        request = GenerateExploreLinkRequest.model_validate(
+            {
+                "dataset_id": 23,
+                "config": {
+                    "chart_type": "table",
+                    "viz_type": "ag-grid-table",
+                    "columns": [{"name": "genre"}],
+                },
+            }
+        )
+        assert isinstance(request.config, TableChartConfig)
+        assert request.config.viz_type == "ag-grid-table"
 
     def test_explicit_kind_is_preserved(self) -> None:
         config = dict(XY_BAR_CONFIG)
