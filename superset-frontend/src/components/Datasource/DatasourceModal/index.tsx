@@ -113,7 +113,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
-      database_id: datasource.database?.id ?? null,
+      database_id: datasource.database?.id,
       sql: datasource.sql,
       filter_select_enabled: datasource.filter_select_enabled,
       fetch_values_predicate: datasource.fetch_values_predicate,
