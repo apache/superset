@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 from sqlalchemy.exc import OperationalError
 
 from superset.app import AppRootMiddleware, create_app, SupersetApp
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.initialization import SupersetAppInitializer
 
 
@@ -227,8 +228,6 @@ class TestSupersetAppInitializer:
             ) as mock_uri:
                 mock_uri.return_value = "sqlite://"
                 app_initializer = SupersetAppInitializer(mock_app)
-
-                from superset.commands.database.exceptions import DatabaseInvalidError
 
                 with patch(
                     "superset.initialization.make_url_safe",
