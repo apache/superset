@@ -16,9 +16,13 @@ jobs:
     steps:
       - name: Fetch Dependabot metadata
         id: dependabot-metadata
-        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
-        with:
-          skip-verification: true
+        shell: bash
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          # Get current branch name, extract the package ecosystem and return as GHA step output
+          packageEcosystem=$(echo "$BRANCH_NAME" | cut -d'/' -f2)
+          echo "package-ecosystem=$packageEcosystem" >> $GITHUB_OUTPUT
 
       # zizmor: ignore[artipacked] - required persisted credentials to push synced requirement changes back to remote
       - name: Checkout source code
