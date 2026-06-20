@@ -30,6 +30,58 @@ from superset.mcp_service.dataset.schemas import (
 logger = logging.getLogger(__name__)
 
 
+def _build_update_props(
+    request: CreateVirtualDatasetRequest, dataset: Any
+) -> dict[str, Any]:
+    update_props: dict[str, Any] = {}
+    if request.metrics:
+        # Merge existing metrics with new ones
+        existing_metrics = [
+            {"id": m.id, "metric_name": m.metric_name} for m in dataset.metrics
+        ]
+        update_props["metrics"] = existing_metrics + [
+            m.model_dump(exclude_none=True) for m in request.metrics
+        ]
+    if request.calculated_columns:
+        # Merge existing columns with new ones
+        existing_cols = [
+            {"id": c.id, "column_name": c.column_name} for c in dataset.columns
+        ]
+        update_props["columns"] = existing_cols + [
+            c.model_dump(exclude_none=True) for c in request.calculated_columns
+        ]
+    return update_props
+
+
+def _cleanup_failed_dataset(dataset_id: int) -> None:
+    from superset.commands.dataset.delete import DeleteDatasetCommand
+
+    try:
+        DeleteDatasetCommand([dataset_id]).run()
+    except Exception as cleanup_exc:
+        logger.error(
+            "Failed to clean up dataset %s after update error: %s",
+            dataset_id,
+            cleanup_exc,
+        )
+
+
+def _update_virtual_dataset(dataset_id: int, update_props: dict[str, Any]) -> Any:
+    from superset.commands.dataset.exceptions import (
+        DatasetInvalidError,
+        DatasetUpdateFailedError,
+    )
+    from superset.commands.dataset.update import UpdateDatasetCommand
+
+    try:
+        return UpdateDatasetCommand(dataset_id, update_props).run()
+    except Exception as exc:
+        _cleanup_failed_dataset(dataset_id)
+        if not isinstance(exc, (DatasetUpdateFailedError, DatasetInvalidError)):
+            raise DatasetUpdateFailedError() from exc
+        raise
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dataset",
@@ -62,13 +114,11 @@ async def create_virtual_dataset(
 
     try:
         from superset.commands.dataset.create import CreateDatasetCommand
-        from superset.commands.dataset.delete import DeleteDatasetCommand
         from superset.commands.dataset.exceptions import (
             DatasetCreateFailedError,
             DatasetInvalidError,
             DatasetUpdateFailedError,
         )
-        from superset.commands.dataset.update import UpdateDatasetCommand
         from superset.mcp_service.utils.url_utils import get_superset_base_url
 
         # Create the virtual dataset — CreateDatasetCommand enforces access control
@@ -89,46 +139,12 @@ async def create_virtual_dataset(
             dataset = CreateDatasetCommand(properties).run()
 
             if request.metrics or request.calculated_columns:
-                update_props: dict[str, Any] = {}
-                if request.metrics:
-                    # Merge existing metrics with new ones
-                    existing_metrics = [
-                        {"id": m.id, "metric_name": m.metric_name}
-                        for m in dataset.metrics
-                    ]
-                    update_props["metrics"] = existing_metrics + [
-                        m.model_dump(exclude_none=True) for m in request.metrics
-                    ]
-                if request.calculated_columns:
-                    # Merge existing columns with new ones
-                    existing_cols = [
-                        {"id": c.id, "column_name": c.column_name}
-                        for c in dataset.columns
-                    ]
-                    update_props["columns"] = existing_cols + [
-                        c.model_dump(exclude_none=True)
-                        for c in request.calculated_columns
-                    ]
+                update_props = _build_update_props(request, dataset)
 
                 with event_logger.log_context(
                     action="mcp.create_virtual_dataset.update"
                 ):
-                    try:
-                        dataset = UpdateDatasetCommand(dataset.id, update_props).run()
-                    except Exception as exc:
-                        try:
-                            DeleteDatasetCommand([dataset.id]).run()
-                        except Exception as cleanup_exc:
-                            logger.error(
-                                "Failed to clean up dataset %s after update error: %s",
-                                dataset.id,
-                                cleanup_exc,
-                            )
-                        if not isinstance(
-                            exc, (DatasetUpdateFailedError, DatasetInvalidError)
-                        ):
-                            raise DatasetUpdateFailedError() from exc
-                        raise
+                    dataset = _update_virtual_dataset(dataset.id, update_props)
 
         # Build response
         columns = [col.column_name for col in dataset.columns]

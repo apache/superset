@@ -2169,7 +2169,10 @@ async def test_create_virtual_dataset_with_metrics_and_columns(
 async def test_create_virtual_dataset_update_failure_rollback(
     mcp_server: object,
 ) -> None:
-    """If UpdateDatasetCommand fails, DeleteDatasetCommand should clean up the orphan dataset."""
+    """
+    If UpdateDatasetCommand fails,
+    DeleteDatasetCommand should clean up the orphan dataset.
+    """
     from superset.commands.dataset.exceptions import DatasetUpdateFailedError
 
     mock_dataset = _make_mock_virtual_dataset()
