@@ -1,0 +1,154 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { ActionCreators } from 'redux-undo';
+
+import undoableLayoutReducer from 'src/dashboard/reducers/undoableDashboardLayout';
+import { UPDATE_COMPONENTS } from 'src/dashboard/actions/dashboardLayout';
+import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import {
+  DASHBOARD_ROOT_ID,
+  DASHBOARD_GRID_ID,
+  DASHBOARD_HEADER_ID,
+} from 'src/dashboard/util/constants';
+import {
+  DASHBOARD_ROOT_TYPE,
+  DASHBOARD_GRID_TYPE,
+  DASHBOARD_HEADER_TYPE,
+  CHART_TYPE,
+} from 'src/dashboard/util/componentTypes';
+
+// Cast reducer to accept partial mock data and inspect history fields in tests
+const reducer = undoableLayoutReducer as (state: any, action: any) => any;
+
+// A minimal but valid dashboard layout always contains the root component.
+const makeValidLayout = () => ({
+  [DASHBOARD_ROOT_ID]: {
+    id: DASHBOARD_ROOT_ID,
+    type: DASHBOARD_ROOT_TYPE,
+    children: [DASHBOARD_GRID_ID],
+  },
+  [DASHBOARD_GRID_ID]: {
+    id: DASHBOARD_GRID_ID,
+    type: DASHBOARD_GRID_TYPE,
+    parents: [DASHBOARD_ROOT_ID],
+    children: [],
+  },
+  [DASHBOARD_HEADER_ID]: {
+    id: DASHBOARD_HEADER_ID,
+    type: DASHBOARD_HEADER_TYPE,
+    meta: { text: '[ untitled dashboard ]' },
+  },
+});
+
+const hydrate = (present: Record<string, unknown>) => ({
+  type: HYDRATE_DASHBOARD,
+  data: { dashboardLayout: { present } },
+});
+
+const updateComponents = (nextComponents: Record<string, unknown>) => ({
+  type: UPDATE_COMPONENTS,
+  payload: { nextComponents },
+});
+
+const init = () => reducer(undefined, { type: '@@INIT' });
+
+test('hydrating a dashboard leaves an empty, disabled undo history', () => {
+  const state = reducer(init(), hydrate(makeValidLayout()));
+
+  expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
+  // Hydration is not a user edit, so Undo (past) and Redo (future) start empty
+  expect(state.past).toHaveLength(0);
+  expect(state.future).toHaveLength(0);
+});
+
+test('a stale/empty baseline left by a premature clearHistory does not survive hydration', () => {
+  // Reproduces the issue: clearing history while the layout is still the
+  // pre-hydration `{}` arms redux-undo to capture that empty layout on the next
+  // tracked action (it resets `_latestUnfiltered` to the current, empty present).
+  let state = init();
+  state = reducer(state, ActionCreators.clearHistory());
+
+  // Without the fix, HYDRATE_DASHBOARD would now push the empty `{}` into `past`,
+  // enabling an Undo that reverts to an empty layout and crashes the dashboard.
+  state = reducer(state, hydrate(makeValidLayout()));
+
+  expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
+  expect(state.past).toHaveLength(0);
+});
+
+test('re-hydrating with a new dashboard drops the previous dashboard from the undo stack', () => {
+  // Simulates SPA navigation between dashboards without a full reload.
+  let state = reducer(init(), hydrate(makeValidLayout()));
+
+  // A genuine edit on the first dashboard creates real undo history.
+  state = reducer(
+    state,
+    updateComponents({
+      'CHART-abc': { id: 'CHART-abc', type: CHART_TYPE, children: [] },
+    }),
+  );
+  expect(state.past.length).toBeGreaterThan(0);
+
+  // Opening another dashboard re-hydrates and must reset the history so the
+  // previous dashboard's layout is no longer undoable.
+  const nextLayout = makeValidLayout();
+  state = reducer(state, hydrate(nextLayout));
+
+  expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
+  expect(state.past).toHaveLength(0);
+  expect(state.future).toHaveLength(0);
+});
+
+test('undo never reverts the layout to an invalid state and drops corrupt history', () => {
+  // Build a corrupt history (valid present, empty baseline in `past`) the same
+  // way it arises in the wild, then exercise Undo.
+  let state = init();
+  state = reducer(state, ActionCreators.clearHistory()); // arms the empty baseline
+  // A tracked action other than hydrate captures the empty `{}` into `past`.
+  state = reducer(state, updateComponents(makeValidLayout()));
+  expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
+  expect(state.past).toHaveLength(1); // the corrupt, empty baseline
+
+  state = reducer(state, ActionCreators.undo());
+
+  // The guard keeps a valid layout instead of exposing the empty one...
+  expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
+  // ...and clears the corrupt history so Undo becomes disabled.
+  expect(state.past).toHaveLength(0);
+});
+
+test('undo still reverts a genuine layout edit', () => {
+  let state = reducer(init(), hydrate(makeValidLayout()));
+
+  state = reducer(
+    state,
+    updateComponents({
+      'CHART-abc': { id: 'CHART-abc', type: CHART_TYPE, children: [] },
+    }),
+  );
+  expect(state.present['CHART-abc']).toBeDefined();
+  expect(state.past).toHaveLength(1);
+
+  state = reducer(state, ActionCreators.undo());
+
+  // The added chart is undone, and the layout is still valid.
+  expect(state.present['CHART-abc']).toBeUndefined();
+  expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
+  expect(state.past).toHaveLength(0);
+});
