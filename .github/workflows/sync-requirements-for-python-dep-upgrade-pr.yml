@@ -10,19 +10,21 @@ permissions:
 
 jobs:
   sync-python-dep-requirements:
-    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
+    # This action is limited to upstream repo only due to write contents
+    if: github.repository == 'apache/superset' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.fork == false
     runs-on: ubuntu-slim
     steps:
       - name: Fetch Dependabot metadata
         id: dependabot-metadata
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
 
+      # zizmor: ignore[artipacked] - required persisted credentials to push synced requirement changes back to remote
       - name: Checkout source code
         if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'pip' }}
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Setup Python
         if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'pip' }}
@@ -31,7 +33,8 @@ jobs:
           python-version-file: 'pyproject.toml'
 
       - name: Install uv
-        run: pip install uv==0.11.17
+        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'pip' }}
+        run: pip install uv
 
       - name: Sync requirements
         if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'pip' }}
@@ -44,7 +47,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add requirements
           git diff --cached --quiet && exit 0
-          git commit --signoff "build(deps) sync pinned requirements for Dependabot pip PRs"
+          git commit --signoff --message "build(deps) sync pinned requirements for Dependabot pip PRs"
           git push origin "HEAD:refs/heads/${GITHUB_EVENT_PULL_REQUEST_HEAD_REF}"
         env:
-          GITHUB_EVENT_PULL_REQUEST_HEAD_REF: ${{github.event.pull_request.head.ref}}
+          GITHUB_EVENT_PULL_REQUEST_HEAD_REF: ${{ github.event.pull_request.head.ref }}
