@@ -34,9 +34,7 @@ jobs:
 
       # Authenticate the Docker daemon so the python:slim pull in
       # uv-pip-compile.sh uses our (much higher) authenticated rate limit
-      # instead of the shared-runner anonymous one. Best-effort: on fork PRs the
-      # secrets are unavailable, so this no-ops and the pull falls back to
-      # anonymous (covered by the retry loop in the script).
+      # instead of the shared-runner anonymous one.
       - name: Login to Docker Hub
         if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'pip' }}
         continue-on-error: true
