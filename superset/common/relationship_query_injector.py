@@ -44,6 +44,7 @@ import logging
 from typing import Any, Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
+from flask import current_app
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.expression import Select
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -270,6 +271,16 @@ class RelationshipQueryInjector:
         if not relationships:
             return sqla_query
 
+        max_rels = current_app.config.get("RELATIONSHIP_MAX_PER_DATASET", 0)
+        if max_rels > 0 and len(relationships) > max_rels:
+            logger.warning(
+                "Dataset has %d active relationships, truncating to %d",
+                len(relationships),
+                max_rels,
+                extra={"component": "hibi"},
+            )
+            relationships = relationships[:max_rels]
+
         joined = source_table
         for rel in relationships:
             join_type = cls.validate_join_type(rel.join_type)
@@ -281,6 +292,7 @@ class RelationshipQueryInjector:
                     "Skipping JOIN injection.",
                     rel.name,
                     rel.id,
+                extra={"component": "hibi"},
                 )
                 continue
 
@@ -297,6 +309,7 @@ class RelationshipQueryInjector:
                 logger.debug(
                     "RIGHT JOIN detected; swapping source/target for relationship %s",
                     rel.name,
+                extra={"component": "hibi"},
                 )
                 joined = target_tbl.join(
                     joined,
@@ -319,6 +332,7 @@ class RelationshipQueryInjector:
                 rel.id,
                 rel.source_dataset_id,
                 rel.target_dataset_id,
+            extra={"component": "hibi"},
             )
 
         # Replace the FROM clause of the original query
@@ -342,6 +356,15 @@ class RelationshipQueryInjector:
         target_ds = relationship.target_dataset
         if target_ds is None:
             return None
+
+        # Virtual datasets: wrap raw SQL in a subquery
+        if getattr(target_ds, "is_virtual", False):
+            sql = getattr(target_ds, "sql", None)
+            if sql:
+                from sqlalchemy.sql import text
+                from sqlalchemy.sql.selectable import TextAsFrom
+
+                return TextAsFrom(text(sql), []).alias(target_ds.table_name)
 
         # Build a fully-qualified table reference
         table_name = target_ds.table_name

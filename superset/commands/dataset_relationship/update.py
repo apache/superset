@@ -201,5 +201,18 @@ class UpdateDatasetRelationshipCommand(BaseCommand):
                 source_dataset.database_id != target_dataset.database_id
             )
 
+        # 8. Cycle check (D2) — exclude current relationship
+        if source_dataset_id is not None and target_dataset_id is not None:
+            if DatasetRelationshipDAO.would_create_cycle(
+                source_dataset_id,
+                target_dataset_id,
+                exclude_id=self._model.id,
+            ):
+                exceptions.append(
+                    DatasetRelationshipCycleValidationError(
+                        source_dataset_id, target_dataset_id
+                    )
+                )
+
         if exceptions:
             raise DatasetRelationshipInvalidError(exceptions=exceptions)

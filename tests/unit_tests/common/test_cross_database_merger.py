@@ -294,3 +294,63 @@ class TestMergeResultMetadata:
         assert result.target_rows == 3
         assert result.duration_ms > 0
         assert result.column_pairs == [("customer_id", "id")]
+
+    def test_type_cast_int32_int64(self, merger: CrossDatabaseMerger) -> None:
+        """Regression test for B9: int32 and int64 join columns are
+        promoted to float64 silently."""
+        import pandas as pd
+
+        src = pd.DataFrame({"id": pd.array([1, 2, 3], dtype="int32"), "val": [10, 20, 30]})
+        tgt = pd.DataFrame({"id": pd.array([2, 3, 4], dtype="int64"), "name": ["a", "b", "c"]})
+
+        result = merger.merge_dataframes(
+            src, tgt, [("id", "id")], "INNER"
+        )
+        assert result.df is not None
+        assert len(result.df) == 2
+        # Both should have been cast to float64
+        assert result.df["id"].dtype == "float64"
+
+    def test_type_string_numeric_converts(self, merger: CrossDatabaseMerger) -> None:
+        """Regression test for B9: when one side is object (string
+        numeric) and the other is numeric, conversion is attempted."""
+        import pandas as pd
+
+        src = pd.DataFrame(
+            {"id": ["1", "2", "3"], "val": [10, 20, 30]}
+        )
+        tgt = pd.DataFrame(
+            {"id": [2, 3, 4], "name": ["a", "b", "c"]}
+        )
+
+        result = merger.merge_dataframes(
+            src, tgt, [("id", "id")], "INNER"
+        )
+        assert result.df is not None
+        assert len(result.df) == 2
+
+    def test_type_mismatch_emits_warning(self) -> None:
+        """Regression test for B9: _validate_dtypes emits a warning
+        when types cannot be safely converted."""
+        import pandas as pd
+
+        src = pd.DataFrame(
+            {"id": ["one", "two", "three"], "val": [10, 20, 30]}
+        )
+        tgt = pd.DataFrame(
+            {"id": [2, 3, 4], "name": ["a", "b", "c"]}
+        )
+
+        from superset.common.cross_database_merger import CrossDatabaseMerger
+
+        from unittest.mock import patch
+        import logging
+
+        with patch.object(logging.getLogger("superset.common.cross_database_merger"), "warning") as mock_warn:
+            CrossDatabaseMerger._validate_dtypes(
+                src, tgt, [("id", "id")]
+            )
+            assert mock_warn.called
+            call_args = mock_warn.call_args[0] if mock_warn.call_args else ""
+            formatted = call_args[0] % call_args[1:] if len(call_args) > 1 else str(call_args)
+            assert "cannot be safely cast" in str(formatted) or "Type mismatch" in str(formatted)

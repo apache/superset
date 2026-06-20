@@ -65,10 +65,14 @@ class RelationshipQueryCache:
         extra: dict[str, Any] | None = None,
     ) -> str:
         """Build a deterministic cache key from merge parameters."""
+        src_ver = RelationshipQueryCache.get_dataset_version(source_dataset_id)
+        tgt_ver = RelationshipQueryCache.get_dataset_version(target_dataset_id)
         payload = json.dumps(
             {
                 "src": source_dataset_id,
+                "src_ver": src_ver,
                 "tgt": target_dataset_id,
+                "tgt_ver": tgt_ver,
                 "cols": sorted(column_pairs),
                 "join": join_type,
                 "extra": extra or {},
@@ -96,10 +100,10 @@ class RelationshipQueryCache:
         try:
             cached = cache_manager.cache.get(key)
             if cached is not None:
-                logger.debug("Cache hit for key %s", key)
+                logger.debug("Cache hit for key %s", key, extra={"component": "hibi"})
                 return cached
         except Exception:
-            logger.warning("Cache read error for key %s", key, exc_info=True)
+            logger.warning("Cache read error for key %s", key, exc_info=True, extra={"component": "hibi"})
         return None
 
     @staticmethod
@@ -129,9 +133,9 @@ class RelationshipQueryCache:
         }
         try:
             cache_manager.cache.set(key, entry, timeout=ttl)
-            logger.debug("Cached merge result at key %s (ttl=%ds)", key, ttl)
+            logger.debug("Cached merge result at key %s (ttl=%ds)", key, ttl, extra={"component": "hibi"})
         except Exception:
-            logger.warning("Cache write error for key %s", key, exc_info=True)
+            logger.warning("Cache write error for key %s", key, exc_info=True, extra={"component": "hibi"})
 
     @staticmethod
     def invalidate_dataset(dataset_id: int) -> int:
@@ -179,6 +183,7 @@ class RelationshipQueryCache:
                 "Relationship cache invalidation error for id=%d",
                 relationship_id,
                 exc_info=True,
+            extra={"component": "hibi"},
             )
 
     @staticmethod

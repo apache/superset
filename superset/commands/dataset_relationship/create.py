@@ -222,5 +222,16 @@ class CreateDatasetRelationshipCommand(BaseCommand):
                 source_dataset.database_id != target_dataset.database_id
             )
 
+        # 9. Cycle check (D2)
+        if source_dataset_id is not None and target_dataset_id is not None:
+            if DatasetRelationshipDAO.would_create_cycle(
+                source_dataset_id, target_dataset_id
+            ):
+                exceptions.append(
+                    DatasetRelationshipCycleValidationError(
+                        source_dataset_id, target_dataset_id
+                    )
+                )
+
         if exceptions:
             raise DatasetRelationshipInvalidError(exceptions=exceptions)

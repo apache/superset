@@ -1426,6 +1426,11 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute=0, hour=0),
         #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
         # },
+        # Dataset relationship schema-drift check (daily at 03:00)
+        "dataset_relationships.check_schemas": {
+            "task": "dataset_relationships.check_schemas",
+            "schedule": crontab(minute=0, hour=3),
+        },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
@@ -2596,6 +2601,12 @@ RELATIONSHIP_MAX_MERGE_ROWS = 100_000
 # Wall-clock timeout (seconds) for a single cross-database merge operation.
 # Set to 0 to disable.
 RELATIONSHIP_QUERY_TIMEOUT = 30
+
+# Maximum number of active relationships allowed per dataset when injecting
+# JOINs.  If a dataset has more active relationships than this limit, excess
+# ones are logged and skipped during query injection.  Set to 0 to disable
+# the limit entirely (not recommended).
+RELATIONSHIP_MAX_PER_DATASET = 5
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

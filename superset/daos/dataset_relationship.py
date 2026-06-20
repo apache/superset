@@ -277,5 +277,57 @@ class DatasetRelationshipDAO(BaseDAO[DatasetRelationship]):
             items: The list of :class:`DatasetRelationship` instances to
                 remove.  Associated columns are removed via cascade.
         """
+    @classmethod
+    def would_create_cycle(
+        cls,
+        source_id: int,
+        target_id: int,
+        *,
+        exclude_id: int | None = None,
+    ) -> bool:
+        """Return ``True`` if adding a relationship *source* → *target*
+        would create a directed cycle through existing active relationships.
+
+        Uses a simple BFS starting from *target_id* following existing
+        source → target edges.  If we reach *source_id* then a cycle
+        would be formed.
+
+        Parameters
+        ----------
+        exclude_id:
+            When updating an existing relationship, pass its id so that
+            the edge in question is not traversed.
+        """
+        # Build adjacency list: source_id -> [target_id, ...]
+        all_rels = cls.find_active()
+        graph: dict[int, list[int]] = {}
+        for rel in all_rels:
+            if exclude_id is not None and rel.id == exclude_id:
+                continue
+            src = rel.source_dataset_id
+            tgt = rel.target_dataset_id
+            if src is None or tgt is None:
+                continue
+            graph.setdefault(src, []).append(tgt)
+
+        # BFS from target towards deeper targets
+        visited: set[int] = set()
+        queue: list[int] = [target_id]
+        while queue:
+            current = queue.pop(0)
+            if current == source_id:
+                return True
+            if current in visited:
+                continue
+            visited.add(current)
+            for neighbor in graph.get(current, []):
+                if neighbor not in visited:
+                    queue.append(neighbor)
+
+        return False
+
+
+    @classmethod
+    def delete(cls, items: list[DatasetRelationship]) -> None:
         for item in items:
             db.session.delete(item)

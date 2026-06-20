@@ -118,3 +118,20 @@ class DatasetRelationshipColumnsValidationError(ValidationError):
             [_(message or "Column mappings are invalid.")],
             field_name="columns",
         )
+
+
+class DatasetRelationshipCycleValidationError(ValidationError):
+    """Marshmallow validation error when a relationship would create a cycle."""
+
+    def __init__(self, source_id: int, target_id: int) -> None:
+        super().__init__(
+            [
+                _(
+                    "Relationship from #%(src)d to #%(tgt)d would create a "
+                    "cyclic dependency. Each target must not already reach the "
+                    "source through existing relationships.",
+                )
+                % {"src": source_id, "tgt": target_id}
+            ],
+            field_name="target_dataset_id",
+        )

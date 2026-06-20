@@ -143,8 +143,18 @@ class CrossDatabaseMerger:
         join_type: str = "LEFT",
         source_prefix: Optional[str] = None,
         target_prefix: Optional[str] = None,
+        target_filters: Optional[list[tuple[str, str, object]]] = None,
     ) -> MergeResult:
         """Execute a Pandas merge between *source_df* and *target_df*.
+
+        Parameters
+        ----------
+        target_filters:
+            Optional list of ``(column, operator, value)`` tuples applied to
+            the merged result as a post-merge filter.  Use this for
+            translating relationship source-filters to the target side.
+            Supported operators: ``==``, ``!=``, ``>``, ``>=``, ``<``,
+            ``<=``, ``in``, ``not in``.
 
         Parameters
         ----------
@@ -209,6 +219,11 @@ class CrossDatabaseMerger:
             target_prefix,
         )
 
+        # -- Type coercion (B9) ----------------------------------------------
+        source_df, target_df = self._validate_dtypes(
+            source_df, target_df, column_pairs
+        )
+
         # -- Execute merge --------------------------------------------------
         logger.info(
             "Cross-database merge: %s JOIN on %s | source=%d rows, target=%d rows",
@@ -236,6 +251,49 @@ class CrossDatabaseMerger:
             raise CrossDatabaseMergeError(
                 f"Merge operation failed: {ex}"
             ) from ex
+
+        # -- Post-merge target filters (B3) --------------------------------
+        if target_filters:
+            for col, op, val in target_filters:
+                if col not in merged_df.columns:
+                    logger.debug(
+                        "Filter column '%s' not in merged result, skipping",
+                        col,
+                        extra={"component": "hibi"},
+                    )
+                    continue
+                try:
+                    if op in ("==", "="):
+                        merged_df = merged_df[merged_df[col] == val]
+                    elif op == "!=":
+                        merged_df = merged_df[merged_df[col] != val]
+                    elif op == ">":
+                        merged_df = merged_df[merged_df[col] > val]
+                    elif op == ">=":
+                        merged_df = merged_df[merged_df[col] >= val]
+                    elif op == "<":
+                        merged_df = merged_df[merged_df[col] < val]
+                    elif op == "<=":
+                        merged_df = merged_df[merged_df[col] <= val]
+                    elif op.lower() == "in":
+                        merged_df = merged_df[merged_df[col].isin(val)]
+                    elif op.lower() == "not in":
+                        merged_df = merged_df[~merged_df[col].isin(val)]
+                    else:
+                        logger.debug(
+                            "Unsupported filter operator '%s', skipping",
+                            op,
+                            extra={"component": "hibi"},
+                        )
+                except Exception as ex:
+                    logger.warning(
+                        "Failed to apply filter %s %s %s: %s",
+                        col,
+                        op,
+                        val,
+                        ex,
+                        extra={"component": "hibi"},
+                    )
 
         # -- Post-merge row-count check ------------------------------------
         warnings: list[str] = []
@@ -341,7 +399,7 @@ class CrossDatabaseMerger:
         ) - join_src_cols - join_tgt_cols
 
         if overlapping:
-            logger.debug("Overlapping columns detected: %s", overlapping)
+            logger.debug("Overlapping columns detected: %s", overlapping, extra={"component": "hibi"})
 
         suffix_left = f"_{source_prefix}" if source_prefix else "_source"
         suffix_right = f"_{target_prefix}" if target_prefix else "_target"
@@ -409,6 +467,69 @@ class CrossDatabaseMerger:
             kwargs["right_on"] = right_on
 
         return pd.merge(left, right, **kwargs)
+
+    @staticmethod
+    def _validate_dtypes(
+        source_df: pd.DataFrame,
+        target_df: pd.DataFrame,
+        column_pairs: list[tuple[str, str]],
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Coerce join column dtypes so ``pd.merge`` doesn't choke.
+
+        Returns the (potentially modified) DataFrames.
+        """
+        warnings_list: list[str] = []
+
+        for src_col, tgt_col in column_pairs:
+            if src_col not in source_df.columns or tgt_col not in target_df.columns:
+                continue
+
+            left_dtype = source_df[src_col].dtype
+            right_dtype = target_df[tgt_col].dtype
+
+            if left_dtype == right_dtype:
+                continue
+
+            # Both numeric?  Promote to float64 to avoid int32/int64 conflict
+            if pd.api.types.is_numeric_dtype(left_dtype) and pd.api.types.is_numeric_dtype(right_dtype):
+                target_dtype = "float64"
+                source_df[src_col] = source_df[src_col].astype(target_dtype)
+                target_df[tgt_col] = target_df[tgt_col].astype(target_dtype)
+                continue
+
+            # String (object) → numeric: attempt conversion
+            if pd.api.types.is_string_dtype(left_dtype) and pd.api.types.is_numeric_dtype(right_dtype):
+                try:
+                    source_df[src_col] = pd.to_numeric(source_df[src_col])
+                except (ValueError, TypeError):
+                    warnings_list.append(
+                        f"Type mismatch on column '{src_col}': "
+                        f"cannot be safely cast from {left_dtype} to {right_dtype}"
+                    )
+                continue
+
+            if pd.api.types.is_numeric_dtype(left_dtype) and pd.api.types.is_string_dtype(right_dtype):
+                try:
+                    target_df[tgt_col] = pd.to_numeric(target_df[tgt_col])
+                except (ValueError, TypeError):
+                    warnings_list.append(
+                        f"Type mismatch on column '{tgt_col}': "
+                        f"cannot be safely cast from {right_dtype} to {left_dtype}"
+                    )
+                continue
+
+            warnings_list.append(
+                f"Type mismatch on column '{src_col}': {left_dtype} vs {right_dtype}"
+            )
+
+        if warnings_list:
+            logger.warning(
+                "_validate_dtypes: %s",
+                "; ".join(warnings_list),
+                extra={"component": "hibi"},
+            )
+
+        return source_df, target_df
 
     @staticmethod
     def _timeout_handler(signum: int, frame: object) -> None:  # noqa: ARG004

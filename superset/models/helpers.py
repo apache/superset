@@ -19,6 +19,10 @@
 
 from __future__ import annotations
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 import builtins
 import copy
 import dataclasses
@@ -255,6 +259,90 @@ class UUIDMixin:  # pylint: disable=too-few-public-methods
     @property
     def short_uuid(self) -> str:
         return str(self.uuid)[:8]
+
+
+def _build_target_filter_sql(
+    relationship: Any,
+    target_ds: Any,
+    column_pairs: list[tuple[str, str]],
+) -> str | None:
+    """Build a ``WHERE`` clause from the source filters of a relationship.
+
+    Translates source-column filter conditions into target-column
+    conditions so that the same filtering is applied on both sides of
+    a cross-database merge.
+
+    Returns ``None`` when there are no applicable source filters.
+    """
+    source_filters: list[dict] | None = getattr(relationship, "source_filters", None)
+    if not source_filters:
+        return None
+
+    source_ds: Any = getattr(relationship, "source_dataset", None)
+    if source_ds is None:
+        return None
+
+    # Build a lookup: source col -> target col
+    col_map: dict[str, str] = {src: tgt for src, tgt in column_pairs}
+
+    # Quote helper
+    quote = target_ds.database.db_engine_spec.quote_identifier
+
+    clauses: list[str] = []
+    for filt in source_filters:
+        col = filt.get("col")
+        op = filt.get("op", "==")
+        val = filt.get("val")
+
+        if col is None or val is None:
+            continue
+
+        # Only translate filters for source columns in the relationship
+        if col not in col_map:
+            logger.debug(
+                "Skipping filter on source column '%s': not in relationship pairs",
+                col,
+                extra={"component": "hibi"},
+            )
+            continue
+
+        target_col = col_map[col]
+        quoted_col = quote(target_col)
+
+        # Map simple operators (expand as needed)
+        op_map = {
+            "==": "=",
+            "!=": "!=",
+            ">": ">",
+            ">=": ">=",
+            "<": "<",
+            "<=": "<=",
+            "in": "IN",
+            "not in": "NOT IN",
+            "like": "LIKE",
+            "regex": "~*",
+        }
+        sql_op = op_map.get(op.lower() if isinstance(op, str) else op, "=")
+
+        if sql_op in ("IN", "NOT IN"):
+            if isinstance(val, (list, tuple)):
+                formatted = (
+                    "(" + ", ".join(repr(v) for v in val) + ")"
+                )
+            else:
+                formatted = f"({repr(val)})"
+            clauses.append(f"{quoted_col} {sql_op} {formatted}")
+        elif sql_op == "LIKE":
+            clauses.append(f"{quoted_col} LIKE {repr(val)}")
+        elif sql_op == "~*":
+            clauses.append(f"{quoted_col} ~* {repr(val)}")
+        else:
+            clauses.append(f"{quoted_col} {sql_op} {repr(val)}")
+
+    if not clauses:
+        return None
+
+    return " AND ".join(clauses)
 
 
 class ImportExportMixin(UUIDMixin):

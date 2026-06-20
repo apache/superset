@@ -166,13 +166,62 @@ class TestRelationshipQueryCache:
         )
         assert key1 == key2
 
+    def test_cache_key_includes_version(self) -> None:
+        """Regression test for B7: the cache key must include source and
+        target version numbers so that toggling a relationship on/off
+        (or invalidating a dataset) busts the cache."""
+        from superset.common.relationship_query_cache import (
+            RelationshipQueryCache,
+        )
+
+        with patch.object(
+            RelationshipQueryCache, "get_dataset_version"
+        ) as mock_ver:
+            mock_ver.side_effect = [5, 7]  # src_ver, tgt_ver
+            key = RelationshipQueryCache._make_cache_key(
+                1, 2, [("col_a", "col_b")], "LEFT"
+            )
+
+        # The key should be a non-empty string
+        assert key
+        assert isinstance(key, str)
+        # Verify the version was queried
+        assert mock_ver.call_count == 2
+
+    def test_different_version_produces_different_key(self) -> None:
+        """Regression test for B7: same inputs but different version
+        numbers should produce a different cache key."""
+        from superset.common.relationship_query_cache import (
+            RelationshipQueryCache,
+        )
+
+        with patch.object(
+            RelationshipQueryCache, "get_dataset_version"
+        ) as mock_ver:
+            mock_ver.side_effect = [1, 1]
+            key_a = RelationshipQueryCache._make_cache_key(
+                1, 2, [("col_a", "col_b")], "LEFT"
+            )
+
+        with patch.object(
+            RelationshipQueryCache, "get_dataset_version"
+        ) as mock_ver:
+            mock_ver.side_effect = [2, 1]
+            key_b = RelationshipQueryCache._make_cache_key(
+                1, 2, [("col_a", "col_b")], "LEFT"
+            )
+
+        assert key_a != key_b
+
+    @patch("superset.common.relationship_query_cache.RelationshipQueryCache.get_dataset_version")
     @patch("superset.common.relationship_query_cache.cache_manager")
-    def test_set_and_get(self, mock_cm: MagicMock) -> None:
+    def test_set_and_get(self, mock_cm: MagicMock, mock_ver: MagicMock) -> None:
         """Should store and retrieve cache entries."""
         from superset.common.relationship_query_cache import (
             RelationshipQueryCache,
         )
 
+        mock_ver.return_value = 0
         mock_cache = MagicMock()
         mock_cm.cache = mock_cache
 
