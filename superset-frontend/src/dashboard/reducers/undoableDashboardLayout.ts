@@ -128,9 +128,11 @@ const isValidLayout = (layout?: DashboardLayout): boolean =>
  *    component — guarantees the Undo control starts disabled and that no layout
  *    from a previously edited dashboard lingers in the stack after navigation.
  * 2. As defense in depth, undo/redo is never allowed to replace a valid layout
- *    with an invalid one. If that would happen the corrupt history is dropped
- *    and the last valid layout is kept, so clicking Undo can never crash the
- *    dashboard.
+ *    with an invalid (rootless) one. Such a transition is rejected and the
+ *    current valid layout is kept, so clicking Undo can never crash the
+ *    dashboard. History is left untouched on rejection so callers that inspect
+ *    it (e.g. undoLayoutAction) don't misread an emptied stack as a clean,
+ *    fully-reverted dashboard and silently drop the unsaved-changes guard.
  */
 const undoableReducer: Reducer<StateWithHistory<DashboardLayout>, AnyAction> = (
   state,
@@ -147,7 +149,7 @@ const undoableReducer: Reducer<StateWithHistory<DashboardLayout>, AnyAction> = (
     isValidLayout(state.present) &&
     !isValidLayout(nextState.present)
   ) {
-    return baseUndoableReducer(state, ActionCreators.clearHistory());
+    return state;
   }
 
   return nextState;
