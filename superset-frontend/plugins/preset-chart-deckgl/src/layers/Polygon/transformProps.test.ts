@@ -409,6 +409,90 @@ describe('Polygon transformProps', () => {
     ]);
   });
 
+  test('should explode a MultiPolygon into one feature per polygon', () => {
+    const multiPolygonProps = {
+      ...mockChartProps,
+      queriesData: [
+        {
+          data: [
+            {
+              geom: JSON.stringify({
+                type: 'MultiPolygon',
+                coordinates: [
+                  [
+                    [
+                      [-122.4, 37.8],
+                      [-122.3, 37.8],
+                      [-122.3, 37.9],
+                      [-122.4, 37.8],
+                    ],
+                  ],
+                  [
+                    [
+                      [-121.4, 36.8],
+                      [-121.3, 36.8],
+                      [-121.3, 36.9],
+                      [-121.4, 36.8],
+                    ],
+                  ],
+                ],
+              }),
+              population: 50000,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = transformProps(multiPolygonProps as ChartProps);
+
+    const features = result.payload.data.features as PolygonFeature[];
+    expect(features).toHaveLength(2);
+    expect(features[0]?.polygon).toEqual([
+      [-122.4, 37.8],
+      [-122.3, 37.8],
+      [-122.3, 37.9],
+      [-122.4, 37.8],
+    ]);
+    expect(features[1]?.polygon).toEqual([
+      [-121.4, 36.8],
+      [-121.3, 36.8],
+      [-121.3, 36.9],
+      [-121.4, 36.8],
+    ]);
+  });
+
+  test('should explode a MultiPolygon wrapped in a GeoJSON Feature', () => {
+    const featureProps = {
+      ...mockChartProps,
+      queriesData: [
+        {
+          data: [
+            {
+              geom: JSON.stringify({
+                type: 'Feature',
+                geometry: {
+                  type: 'MultiPolygon',
+                  coordinates: [
+                    [[[0, 0], [1, 0], [1, 1], [0, 0]]],
+                    [[[2, 2], [3, 2], [3, 3], [2, 2]]],
+                  ],
+                },
+              }),
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = transformProps(featureProps as ChartProps);
+
+    const features = result.payload.data.features as PolygonFeature[];
+    expect(features).toHaveLength(2);
+    expect(features[0]?.polygon).toEqual([[0, 0], [1, 0], [1, 1], [0, 0]]);
+    expect(features[1]?.polygon).toEqual([[2, 2], [3, 2], [3, 3], [2, 2]]);
+  });
+
   test('should handle geohash decoding successfully', () => {
     const props = {
       ...mockedChartPropsWithGeoHash,

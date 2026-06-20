@@ -33,7 +33,7 @@ function parseElevationValue(value: string): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-interface PolygonFeature {
+interface PolygonFeature extends Record<string, unknown> {
   polygon?: number[][];
   name?: string;
   elevation?: number;
@@ -83,98 +83,92 @@ function processPolygonData(
 
   const excludeKeys = new Set([line_column, ...(js_columns || [])]);
 
-  return records
-    .map(record => {
-      let feature: PolygonFeature = {
-        extraProps: {},
-        metrics: {},
-      };
+  return records.flatMap(record => {
+    let feature: PolygonFeature = {
+      extraProps: {},
+      metrics: {},
+    };
 
-      feature = addJsColumnsToExtraProps(feature, record, js_columns);
-      const updatedFeature = addPropertiesToFeature(
-        feature as unknown as Record<string, unknown>,
-        record,
-        excludeKeys,
-      );
-      feature = updatedFeature as unknown as PolygonFeature;
+    feature = addJsColumnsToExtraProps(feature, record, js_columns);
+    feature = addPropertiesToFeature(feature, record, excludeKeys);
 
-      const rawPolygonData = record[line_column];
-      if (!rawPolygonData) {
-        return null;
+    const rawPolygonData = record[line_column];
+    if (!rawPolygonData) {
+      return [];
+    }
+
+    try {
+      // One ring per polygon; a MultiPolygon yields several rings, all other
+      // shapes yield exactly one.
+      let rings: number[][][];
+
+      switch (line_type) {
+        case 'json': {
+          const parsed =
+            typeof rawPolygonData === 'string'
+              ? JSON.parse(rawPolygonData)
+              : rawPolygonData;
+          // Unwrap GeoJSON Feature ({ geometry: { type, coordinates } })
+          const geom = parsed.geometry ?? parsed;
+
+          if (geom.type === 'MultiPolygon') {
+            // Only the outer ring of each polygon is used; inner rings (holes) are
+            // intentionally ignored because the downstream layer does not support them.
+            rings = geom.coordinates.map((poly: number[][][]) => poly[0]);
+          } else if (geom.coordinates) {
+            // coordinates[0] is the outer ring for Polygon; holes are not rendered.
+            rings = [geom.coordinates[0] || geom.coordinates];
+          } else if (Array.isArray(geom)) {
+            rings = [geom];
+          } else {
+            return [];
+          }
+          break;
+        }
+        case 'geohash': {
+          const decoded = decode_bbox(String(rawPolygonData));
+          if (!decoded) {
+            return [];
+          }
+          rings = [
+            [
+              [decoded[1], decoded[0]], // SW
+              [decoded[1], decoded[2]], // NW
+              [decoded[3], decoded[2]], // NE
+              [decoded[3], decoded[0]], // SE
+              [decoded[1], decoded[0]], // close
+            ],
+          ];
+          break;
+        }
+        case 'zipcode':
+        default:
+          rings = [Array.isArray(rawPolygonData) ? rawPolygonData : []];
       }
 
-      try {
-        let polygonCoords: number[][];
-
-        switch (line_type) {
-          case 'json': {
-            const parsed =
-              typeof rawPolygonData === 'string'
-                ? JSON.parse(rawPolygonData)
-                : rawPolygonData;
-
-            if (parsed.coordinates) {
-              polygonCoords = parsed.coordinates[0] || parsed.coordinates;
-            } else if (parsed.geometry?.coordinates) {
-              // Non-standard format with nested geometry
-              polygonCoords =
-                parsed.geometry.coordinates[0] || parsed.geometry.coordinates;
-            } else if (Array.isArray(parsed)) {
-              polygonCoords = parsed;
-            } else {
-              return null;
-            }
-            break;
-          }
-          case 'geohash':
-            polygonCoords = [];
-            const decoded = decode_bbox(String(rawPolygonData));
-            if (decoded) {
-              polygonCoords.push([decoded[1], decoded[0]]); // SW (minLon, minLat)
-              polygonCoords.push([decoded[1], decoded[2]]); // NW (minLon, maxLat)
-              polygonCoords.push([decoded[3], decoded[2]]); // NE (maxLon, maxLat)
-              polygonCoords.push([decoded[3], decoded[0]]); // SE (maxLon, minLat)
-              polygonCoords.push([decoded[1], decoded[0]]); // SW (close polygon)
-            }
-            break;
-          case 'zipcode':
-          default: {
-            polygonCoords = Array.isArray(rawPolygonData) ? rawPolygonData : [];
-            break;
-          }
-        }
-
-        if (reverse_long_lat && polygonCoords.length > 0) {
-          polygonCoords = polygonCoords.map(coord => [coord[1], coord[0]]);
-        }
-
-        feature.polygon = polygonCoords;
-
-        if (fixedElevationValue !== undefined) {
-          feature.elevation = fixedElevationValue;
-        } else if (elevationLabel && record[elevationLabel] != null) {
-          const elevationValue = parseMetricValue(record[elevationLabel]);
-          if (elevationValue !== undefined) {
-            feature.elevation = elevationValue;
-          }
-        }
-
-        if (metricLabel && record[metricLabel] != null) {
-          const metricValue = record[metricLabel];
-          if (
-            typeof metricValue === 'string' ||
-            typeof metricValue === 'number'
-          ) {
-            feature.metrics![metricLabel] = metricValue;
-          }
-        }
-      } catch {
-        return null;
+      let elevation: number | undefined;
+      if (fixedElevationValue !== undefined) {
+        elevation = fixedElevationValue;
+      } else if (elevationLabel && record[elevationLabel] != null) {
+        elevation = parseMetricValue(record[elevationLabel]);
       }
 
-      return feature;
-    })
-    .filter((feature): feature is PolygonFeature => feature !== null);
+      const metrics = { ...feature.metrics };
+      const metricValue = metricLabel ? record[metricLabel] : undefined;
+      if (typeof metricValue === 'string' || typeof metricValue === 'number') {
+        metrics[metricLabel!] = metricValue;
+      }
+
+      return rings.map(ring => ({
+        ...feature,
+        polygon: reverse_long_lat ? ring.map(c => [c[1], c[0]]) : ring,
+        elevation,
+        metrics,
+      }));
+    } catch {
+      return [];
+    }
+  });
 }
 
 export default function transformProps(chartProps: ChartProps) {
