@@ -16,11 +16,11 @@ on:
       force-latest:
         required: true
         type: choice
-        default: 'false'
+        default: "false"
         description: Whether to force a latest tag on the release
         options:
-          - 'true'
-          - 'false'
+          - "true"
+          - "false"
 permissions:
   contents: read
 
@@ -49,12 +49,12 @@ jobs:
       contents: write
     strategy:
       matrix:
-        build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]
+        build_preset:
+          ["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]
       fail-fast: false
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -68,9 +68,11 @@ jobs:
           build: "true"
 
       - name: Use Node.js 20
+        # zizmor: ignore[cache-poisoning] - node only runs the supersetbot CLI; no dependency cache is enabled
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 20
+          package-manager-cache: false
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
@@ -117,17 +119,18 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           fetch-depth: 0
 
       - name: Use Node.js 20
+        # zizmor: ignore[cache-poisoning] - node only runs the supersetbot CLI; no dependency cache is enabled
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 20
+          package-manager-cache: false
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/

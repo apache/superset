@@ -1,6 +1,7 @@
 name: Welcome New Contributor
 
 on:
+  # zizmor: ignore[dangerous-triggers] - posts a welcome comment only; does not check out or execute PR-provided code
   pull_request_target:
     types: [opened]
 
