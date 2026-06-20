@@ -2277,7 +2277,10 @@ async def test_create_virtual_dataset_metrics_only(
 async def test_create_virtual_dataset_columns_only(
     mcp_server: object,
 ) -> None:
-    """If only calculated_columns are provided, metrics are omitted in the update props."""
+    """
+    If only calculated_columns are provided, 
+    metrics are omitted in the update props.
+    """
     mock_dataset = _make_mock_virtual_dataset()
     mock_create_instance = MagicMock()
     mock_create_instance.run.return_value = mock_dataset
