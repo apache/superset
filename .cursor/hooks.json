@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/block-dangerous-commands.sh",
+        "failClosed": true
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/block-dangerous-commands.sh",
+        "failClosed": true
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": ".cursor/hooks/audit-tool-calls.sh"
+      }
+    ],
+    "postToolUseFailure": [
+      {
+        "command": ".cursor/hooks/audit-tool-calls.sh"
+      }
+    ]
+  }
+}

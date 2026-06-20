@@ -141,3 +141,6 @@ PROJECT.md
 oxc-custom-build/
 *.code-workspace
 *.duckdb
+
+# Cursor agent audit logs (may contain tool output with sensitive data)
+.cursor/audit-logs/*.jsonl
