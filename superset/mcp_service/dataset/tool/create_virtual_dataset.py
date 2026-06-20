@@ -62,11 +62,13 @@ async def create_virtual_dataset(
 
     try:
         from superset.commands.dataset.create import CreateDatasetCommand
+        from superset.commands.dataset.delete import DeleteDatasetCommand
         from superset.commands.dataset.exceptions import (
             DatasetCreateFailedError,
             DatasetInvalidError,
             DatasetUpdateFailedError,
         )
+        from superset.commands.dataset.update import UpdateDatasetCommand
         from superset.mcp_service.utils.url_utils import get_superset_base_url
 
         # Create the virtual dataset — CreateDatasetCommand enforces access control
@@ -87,26 +89,22 @@ async def create_virtual_dataset(
             dataset = CreateDatasetCommand(properties).run()
 
             if request.metrics or request.calculated_columns:
-                from superset.commands.dataset.update import UpdateDatasetCommand
-
                 update_props: dict[str, Any] = {}
                 if request.metrics:
                     # Merge existing metrics with new ones
-                    existing_metrics = (
-                        [{"id": m.id} for m in dataset.metrics]
-                        if getattr(dataset, "metrics", None)
-                        else []
-                    )
+                    existing_metrics = [
+                        {"id": m.id, "metric_name": m.metric_name}
+                        for m in dataset.metrics
+                    ]
                     update_props["metrics"] = existing_metrics + [
                         m.model_dump(exclude_none=True) for m in request.metrics
                     ]
                 if request.calculated_columns:
                     # Merge existing columns with new ones
-                    existing_cols = (
-                        [{"id": c.id} for c in dataset.columns]
-                        if getattr(dataset, "columns", None)
-                        else []
-                    )
+                    existing_cols = [
+                        {"id": c.id, "column_name": c.column_name}
+                        for c in dataset.columns
+                    ]
                     update_props["columns"] = existing_cols + [
                         c.model_dump(exclude_none=True)
                         for c in request.calculated_columns
@@ -118,8 +116,6 @@ async def create_virtual_dataset(
                     try:
                         dataset = UpdateDatasetCommand(dataset.id, update_props).run()
                     except Exception as exc:
-                        from superset.commands.dataset.delete import DeleteDatasetCommand
-
                         try:
                             DeleteDatasetCommand([dataset.id]).run()
                         except Exception as cleanup_exc:

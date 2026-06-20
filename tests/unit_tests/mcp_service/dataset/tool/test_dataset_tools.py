@@ -1805,14 +1805,34 @@ def _make_mock_virtual_dataset(
     id: int = 21,
     table_name: str = "Customer Revenue",
     column_names: list[str] | None = None,
+    metric_names: list[str] | None = None,
 ) -> MagicMock:
-    """Create a mock virtual dataset object with configurable columns."""
+    """Create a mock virtual dataset object with configurable columns and metrics."""
     if column_names is None:
         column_names = ["name", "revenue"]
+    if metric_names is None:
+        metric_names = []
+
     dataset = MagicMock()
     dataset.id = id
     dataset.table_name = table_name
-    dataset.columns = [MagicMock(column_name=c) for c in column_names]
+
+    cols = []
+    for i, c in enumerate(column_names):
+        col = MagicMock()
+        col.id = i + 1
+        col.column_name = c
+        cols.append(col)
+    dataset.columns = cols
+
+    metrics = []
+    for i, m in enumerate(metric_names):
+        metric = MagicMock()
+        metric.id = i + 100
+        metric.metric_name = m
+        metrics.append(metric)
+    dataset.metrics = metrics
+
     return dataset
 
 
@@ -2082,7 +2102,9 @@ async def test_create_virtual_dataset_with_metrics_and_columns(
     mcp_server: object,
 ) -> None:
     """metrics and calculated_columns are forwarded to UpdateDatasetCommand."""
-    mock_dataset = _make_mock_virtual_dataset(column_names=["col1"])
+    mock_dataset = _make_mock_virtual_dataset(
+        column_names=["col1"], metric_names=["existing_m"]
+    )
     mock_create_instance = MagicMock()
     mock_create_instance.run.return_value = mock_dataset
     mock_create_cls = MagicMock(return_value=mock_create_instance)
@@ -2125,12 +2147,21 @@ async def test_create_virtual_dataset_with_metrics_and_columns(
     mock_update_cls.assert_called_once()
     update_id, update_props = mock_update_cls.call_args[0]
     assert update_id == mock_dataset.id
+
     assert "metrics" in update_props
-    assert len(update_props["metrics"]) == 1
-    assert update_props["metrics"][0]["metric_name"] == "m1"
+    assert len(update_props["metrics"]) == 2
+    # Verify existing metric is preserved with id and metric_name
+    assert update_props["metrics"][0]["id"] == 100
+    assert update_props["metrics"][0]["metric_name"] == "existing_m"
+    # Verify new metric is appended
+    assert update_props["metrics"][1]["metric_name"] == "m1"
+
     assert "columns" in update_props
-    # 1 column from the mock dataset + 1 newly added column
     assert len(update_props["columns"]) == 2
+    # Verify existing column is preserved with id and column_name
+    assert update_props["columns"][0]["id"] == 1
+    assert update_props["columns"][0]["column_name"] == "col1"
+    # Verify new column is appended
     assert update_props["columns"][1]["column_name"] == "c1"
 
 
@@ -2184,10 +2215,9 @@ async def test_create_virtual_dataset_update_failure_rollback(
 
     # Verify create was called normally
     mock_create_cls.assert_called_once()
-    
+
     # Verify update was attempted
     mock_update_cls.assert_called_once()
-    
     # Verify delete was called to rollback
     mock_delete_cls.assert_called_once_with([mock_dataset.id])
     mock_delete_instance.run.assert_called_once()
