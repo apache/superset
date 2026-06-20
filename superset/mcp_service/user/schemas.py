@@ -19,7 +19,6 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime, timezone
 from typing import Annotated, Any, List, Literal
 
@@ -46,7 +45,7 @@ from superset.mcp_service.utils.schema_utils import (
     parse_json_or_model_list,
 )
 
-logger = logging.getLogger(__name__)
+logger = __import__("logging").getLogger(__name__)
 
 DEFAULT_USER_COLUMNS = ["id", "username", "first_name", "last_name", "active"]
 
@@ -123,13 +122,13 @@ class UserInfo(BaseModel):
                 result.append(escape_llm_context_delimiters(item))
                 continue
             try:
-                if hasattr(item, "name") and isinstance(item.name, str):
-                    result.append(escape_llm_context_delimiters(item.name))
-            except DetachedInstanceError:
+                name = item.name
+                if isinstance(name, str):
+                    result.append(escape_llm_context_delimiters(name))
+            except (AttributeError, DetachedInstanceError):
                 logger.debug(
                     "Skipping role with detached instance in UserInfo.roles coercion"
                 )
-                continue
         return result
 
     changed_on: str | datetime | None = Field(
@@ -329,6 +328,6 @@ def serialize_user_object(
         email=escape_llm_context_delimiters(getattr(user, "email", None))
         if include_sensitive
         else None,
-        roles=roles,
+        roles=roles if roles is not None else None,
         changed_on=getattr(user, "changed_on", None),
     )
