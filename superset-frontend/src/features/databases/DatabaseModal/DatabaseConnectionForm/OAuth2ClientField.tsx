@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -97,24 +97,23 @@ export const OAuth2ClientField = ({
     return null;
   }
 
-  const handleChange =
-    (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      const updatedInfo = {
-        ...oauth2ClientInfo,
-        [key]: e.target.value,
-      };
-
-      setOauth2ClientInfo(updatedInfo);
-
-      const event: CustomParametersChangeType = {
-        target: {
-          type: 'object',
-          name: 'oauth2_client_info',
-          value: updatedInfo,
-        },
-      };
-      changeMethods.onParametersChange(event);
+  const handleChange = (key: any) => (e: any) => {
+    const updatedInfo = {
+      ...oauth2ClientInfo,
+      [key]: e.target.value,
     };
+
+    setOauth2ClientInfo(updatedInfo);
+
+    const event: CustomParametersChangeType = {
+      target: {
+        type: 'object',
+        name: 'oauth2_client_info',
+        value: updatedInfo,
+      },
+    };
+    changeMethods.onParametersChange(event);
+  };
 
   return (
     <Collapse
@@ -142,7 +141,7 @@ export const OAuth2ClientField = ({
               <FormItem label={LABELS.AUTH_URI}>
                 <Input
                   data-test="client-authorization-request-uri"
-                  placeholder={t('https://')}
+                  placeholder="https://"
                   value={oauth2ClientInfo.authorization_request_uri}
                   onChange={handleChange('authorization_request_uri')}
                 />
@@ -150,7 +149,7 @@ export const OAuth2ClientField = ({
               <FormItem label={LABELS.TOKEN_URI}>
                 <Input
                   data-test="client-token-request-uri"
-                  placeholder={t('https://')}
+                  placeholder="https://"
                   value={oauth2ClientInfo.token_request_uri}
                   onChange={handleChange('token_request_uri')}
                 />
