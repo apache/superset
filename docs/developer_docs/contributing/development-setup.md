@@ -103,7 +103,7 @@ Affecting the Docker build process:
 - **SUPERSET_LOG_LEVEL (default=info)**: Can be set to debug, info, warning, error, critical
   for more verbose logging
 - **SUPERSET_DEBUG_ENABLED (default=true)**: Enable Werkzeug debugger with interactive console.
-  Set to `false` for simulate production environment: `SUPERSET_DEBUG_ENABLED=true docker compose up`
+  Set to `false` for simulate production environment: `SUPERSET_DEBUG_ENABLED=false docker compose up`
 
 For more env vars that affect your configuration, see this
 [superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
