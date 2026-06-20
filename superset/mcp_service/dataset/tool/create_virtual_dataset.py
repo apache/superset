@@ -93,7 +93,7 @@ async def create_virtual_dataset(
                 if request.metrics:
                     # Merge existing metrics with new ones
                     existing_metrics = (
-                        [m.to_dict() for m in dataset.metrics]
+                        [{"id": m.id} for m in dataset.metrics]
                         if getattr(dataset, "metrics", None)
                         else []
                     )
@@ -103,7 +103,7 @@ async def create_virtual_dataset(
                 if request.calculated_columns:
                     # Merge existing columns with new ones
                     existing_cols = (
-                        [c.to_dict() for c in dataset.columns]
+                        [{"id": c.id} for c in dataset.columns]
                         if getattr(dataset, "columns", None)
                         else []
                     )
@@ -115,7 +115,24 @@ async def create_virtual_dataset(
                 with event_logger.log_context(
                     action="mcp.create_virtual_dataset.update"
                 ):
-                    dataset = UpdateDatasetCommand(dataset.id, update_props).run()
+                    try:
+                        dataset = UpdateDatasetCommand(dataset.id, update_props).run()
+                    except Exception as exc:
+                        from superset.commands.dataset.delete import DeleteDatasetCommand
+
+                        try:
+                            DeleteDatasetCommand([dataset.id]).run()
+                        except Exception as cleanup_exc:
+                            logger.error(
+                                "Failed to clean up dataset %s after update error: %s",
+                                dataset.id,
+                                cleanup_exc,
+                            )
+                        if not isinstance(
+                            exc, (DatasetUpdateFailedError, DatasetInvalidError)
+                        ):
+                            raise DatasetUpdateFailedError() from exc
+                        raise
 
         # Build response
         columns = [col.column_name for col in dataset.columns]
@@ -150,8 +167,8 @@ async def create_virtual_dataset(
             url=None,
             error=str(messages),
         )
-    except (DatasetCreateFailedError, DatasetUpdateFailedError) as exc:
-        await ctx.error(f"Virtual dataset creation/update failed: {exc}")
+    except DatasetCreateFailedError as exc:
+        await ctx.error(f"Virtual dataset creation failed: {exc}")
         return CreateVirtualDatasetResponse(
             id=None,
             dataset_name=request.dataset_name,
@@ -160,6 +177,17 @@ async def create_virtual_dataset(
             columns=[],
             url=None,
             error=f"Failed to create dataset: {exc}",
+        )
+    except DatasetUpdateFailedError as exc:
+        await ctx.error(f"Virtual dataset update failed: {exc}")
+        return CreateVirtualDatasetResponse(
+            id=None,
+            dataset_name=request.dataset_name,
+            sql=request.sql,
+            database_id=request.database_id,
+            columns=[],
+            url=None,
+            error=f"Failed to update dataset metadata (creation rolled back): {exc}",
         )
     except Exception as exc:
         await ctx.error(

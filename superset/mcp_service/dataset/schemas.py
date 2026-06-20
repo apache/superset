@@ -411,6 +411,8 @@ class GetDatasetInfoRequest(MetadataCacheControl):
 
 
 class CreateDatasetMetric(BaseModel):
+    """Metric definition for dataset creation."""
+
     metric_name: str = Field(..., description="Name of the metric")
     expression: str = Field(..., description="SQL expression for the metric")
     verbose_name: str | None = None
@@ -421,6 +423,8 @@ class CreateDatasetMetric(BaseModel):
 
 
 class CreateDatasetCalculatedColumn(BaseModel):
+    """Calculated column definition for dataset creation."""
+
     column_name: str = Field(..., description="Name of the calculated column")
     expression: str = Field(..., description="SQL expression for the column")
     verbose_name: str | None = None
@@ -534,12 +538,12 @@ class CreateVirtualDatasetRequest(BaseModel):
         None,
         description="Human-readable description of the dataset (optional).",
     )
-    metrics: List[CreateDatasetMetric] | None = Field(
+    metrics: list[CreateDatasetMetric] | None = Field(
         None,
         description="Optional list of saved metrics to create. Each metric "
         "must have 'metric_name' and 'expression'.",
     )
-    calculated_columns: List[CreateDatasetCalculatedColumn] | None = Field(
+    calculated_columns: list[CreateDatasetCalculatedColumn] | None = Field(
         None,
         description="Optional list of calculated columns to create. Each column "
         "must have 'column_name' and 'expression'.",
