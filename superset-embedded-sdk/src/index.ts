@@ -24,7 +24,11 @@ import {
 
 // We can swap this out for the actual switchboard package once it gets published
 import { Switchboard } from '@superset-ui/switchboard';
-import { getGuestTokenRefreshTiming } from './guestTokenRefresh';
+import {
+  getGuestTokenRefreshTiming,
+  DEFAULT_TOKEN_REFRESH_RETRY_MS,
+} from './guestTokenRefresh';
+import { withTimeout } from './withTimeout';
 
 /**
  * The function to fetch a guest token from your Host App's backend server.
@@ -48,6 +52,9 @@ export type UiConfigType = {
   };
   showRowLimitWarning?: boolean;
 };
+
+/** Default per-call timeout (ms) applied to the host `fetchGuestToken` callback. */
+const DEFAULT_GUEST_TOKEN_FETCH_TIMEOUT_MS = 30_000;
 
 export type EmbedDashboardParams = {
   /** The id provided by the embed configuration UI in Superset */
@@ -73,6 +80,10 @@ export type EmbedDashboardParams = {
   /** Callback to resolve permalink URLs. If provided, this will be called when generating permalinks
    * to allow the host app to customize the URL. If not provided, Superset's default URL is used. */
   resolvePermalinkUrl?: ResolvePermalinkUrlFn;
+  /** Timeout, in milliseconds, applied to each `fetchGuestToken` call so a host
+   * callback that never resolves cannot hang the embed/refresh cycle. Defaults
+   * to 30000ms. Set to 0 to disable the timeout. */
+  guestTokenFetchTimeoutMs?: number;
 };
 
 export type Size = {
@@ -127,11 +138,22 @@ export async function embedDashboard({
   iframeAllowExtras = [],
   referrerPolicy,
   resolvePermalinkUrl,
+  guestTokenFetchTimeoutMs = DEFAULT_GUEST_TOKEN_FETCH_TIMEOUT_MS,
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     if (debug) {
       console.debug(`[superset-embedded-sdk][dashboard ${id}]`, ...info);
     }
+  }
+
+  // Wrap the host-provided fetchGuestToken so a callback that never settles
+  // cannot hang the initial embed or a later refresh cycle.
+  function fetchGuestTokenWithTimeout(): Promise<string> {
+    return withTimeout(
+      fetchGuestToken(),
+      guestTokenFetchTimeoutMs,
+      'fetchGuestToken',
+    );
   }
 
   log('embedding');
@@ -247,21 +269,57 @@ export async function embedDashboard({
     });
   }
 
-  const [guestToken, ourPort]: [string, Switchboard] = await Promise.all([
-    fetchGuestToken(),
-    mountIframe(),
-  ]);
+  let guestToken: string;
+  let ourPort: Switchboard;
+  try {
+    [guestToken, ourPort] = await Promise.all([
+      fetchGuestTokenWithTimeout(),
+      mountIframe(),
+    ]);
+  } catch (err) {
+    // If the initial token fetch (or timeout) rejects after the iframe has
+    // already been mounted, tear down the partially initialized iframe so the
+    // host isn't left with an orphaned embedded dashboard before rethrowing.
+    //@ts-ignore
+    mountPoint.replaceChildren();
+    throw err;
+  }
 
   ourPort.emit('guestToken', { guestToken });
   log('sent guest token');
 
+  // Track the pending refresh timer so it can be cancelled on unmount, and
+  // stop the cycle once unmounted so it cannot leak across mount/unmount cycles.
+  let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+  let unmounted = false;
+
   async function refreshGuestToken() {
-    const newGuestToken = await fetchGuestToken();
-    ourPort.emit('guestToken', { guestToken: newGuestToken });
-    setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(newGuestToken));
+    if (unmounted) return;
+    try {
+      const newGuestToken = await fetchGuestTokenWithTimeout();
+      if (unmounted) return;
+      ourPort.emit('guestToken', { guestToken: newGuestToken });
+      refreshTimer = setTimeout(
+        refreshGuestToken,
+        getGuestTokenRefreshTiming(newGuestToken),
+      );
+    } catch (err) {
+      // A transient fetch failure or timeout must not permanently stop the
+      // refresh cycle. Log it and retry so the session can recover once the
+      // host callback succeeds again.
+      log('failed to refresh guest token, will retry:', err);
+      if (unmounted) return;
+      refreshTimer = setTimeout(
+        refreshGuestToken,
+        DEFAULT_TOKEN_REFRESH_RETRY_MS,
+      );
+    }
   }
 
-  setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(guestToken));
+  refreshTimer = setTimeout(
+    refreshGuestToken,
+    getGuestTokenRefreshTiming(guestToken),
+  );
 
   // Register the resolvePermalinkUrl method for the iframe to call
   // Returns null if no callback provided or on error, allowing iframe to use default URL
@@ -283,6 +341,11 @@ export async function embedDashboard({
 
   function unmount() {
     log('unmounting');
+    unmounted = true;
+    if (refreshTimer !== undefined) {
+      clearTimeout(refreshTimer);
+      refreshTimer = undefined;
+    }
     //@ts-ignore
     mountPoint.replaceChildren();
   }

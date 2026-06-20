@@ -16,9 +16,12 @@
 # under the License.
 import gzip
 import logging
+import os
 import re
 from typing import Any
 from urllib import request
+from urllib.parse import urljoin, urlparse
+from urllib.request import HTTPRedirectHandler
 
 import pandas as pd
 from flask import current_app as app
@@ -31,6 +34,7 @@ from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
+    MultiCatalogDisabledValidationError,
 )
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
@@ -39,8 +43,34 @@ from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
+from superset.utils.network import is_safe_host
 
 logger = logging.getLogger(__name__)
+
+
+class _ValidatingRedirectHandler(HTTPRedirectHandler):
+    """Re-validates the redirect target URL before following any HTTP redirect.
+
+    Prevents bypasses where an initial URL passes validation but a subsequent
+    redirect points to a disallowed destination.
+    """
+
+    def redirect_request(
+        self,
+        req: request.Request,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> request.Request | None:
+        """Validate each redirect target before delegating to the parent handler."""
+        # Resolve relative redirects against the originating request URL so that
+        # validate_data_uri receives a fully-qualified URL in all cases.
+        absolute_url = urljoin(req.full_url, newurl)
+        validate_data_uri(absolute_url)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
 
 CHUNKSIZE = 512
 VARCHAR = re.compile(r"VARCHAR\((\d+)\)", re.IGNORECASE)
@@ -87,12 +117,37 @@ def get_dtype(df: pd.DataFrame, dataset: SqlaTable) -> dict[str, VisitableType]:
 
 def validate_data_uri(data_uri: str) -> None:
     """
-    Validate that the data URI is configured on DATASET_IMPORT_ALLOWED_URLS
-    has a valid URL.
+    Validate that the data URI is permitted for dataset import.
 
-    :param data_uri:
-    :return:
+    Local ``file://`` URIs are allowed only when the path is confined to the
+    bundled examples folder.  All other URIs must match a pattern in
+    ``DATASET_IMPORT_ALLOWED_DATA_URLS`` *and* resolve to a publicly-routable host.
+
+    :param data_uri: the URI to validate
+    :raises DatasetForbiddenDataURI: if the URI is not permitted
     """
+    parsed = urlparse(data_uri)
+    # ``urlparse`` lower-cases the scheme, so gating on it (rather than a
+    # case-sensitive ``startswith("file://")``) also rejects mixed-case
+    # variants like ``FiLe://`` that would otherwise skip the local-file
+    # sandbox check below.
+    if parsed.scheme == "file":
+        from urllib.request import url2pathname
+
+        from superset.examples.helpers import get_examples_folder
+
+        # Reject non-local authority components (e.g. file://remotehost/path).
+        if parsed.netloc and parsed.netloc.lower() != "localhost":
+            raise DatasetForbiddenDataURI()
+        # url2pathname handles URL-encoded characters and platform path separators.
+        file_path = url2pathname(parsed.path)
+        # Resolve symlinks and relative components before comparing.
+        real_path = os.path.realpath(file_path)
+        examples_folder = os.path.realpath(get_examples_folder())
+        if not real_path.startswith(examples_folder + os.sep):
+            raise DatasetForbiddenDataURI()
+        return
+
     allowed_urls = app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"]
     for allowed_url in allowed_urls:
         try:
@@ -103,8 +158,40 @@ def validate_data_uri(data_uri: str) -> None:
             )
             raise
         if match:
+            if not app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"]:
+                hostname = parsed.hostname
+                # Fail-closed: reject URIs that have no parseable hostname as
+                # well as those that resolve to non-public addresses.
+                if not hostname or not is_safe_host(hostname):
+                    raise DatasetForbiddenDataURI()
             return
     raise DatasetForbiddenDataURI()
+
+
+def validate_catalog(config: dict[str, Any]) -> None:
+    """
+    Reject a non-default catalog when the target database has multi-catalog
+    disabled, matching the dataset update validation so an import can't silently
+    bind a dataset to an unintended catalog (and route queries to it).
+    """
+    catalog = config.get("catalog")
+    database_id = config.get("database_id")
+    if not catalog or database_id is None:
+        return
+
+    database = db.session.query(Database).filter_by(id=database_id).first()
+    if database is None or not database.db_engine_spec.supports_catalog:
+        return
+
+    # Only validate when the connection has a known default catalog to compare
+    # against; without one there is no "non-default" catalog to reject.
+    default_catalog = database.get_default_catalog()
+    if (
+        default_catalog is not None
+        and not database.allow_multi_catalog
+        and catalog != default_catalog
+    ):
+        raise MultiCatalogDisabledValidationError()
 
 
 def import_dataset(  # noqa: C901
@@ -134,6 +221,11 @@ def import_dataset(  # noqa: C901
         raise ImportFailedError(
             "Dataset doesn't exist and user doesn't have permission to create datasets"
         )
+
+    # Trusted imports (e.g. example loading) carry curated configs; only
+    # untrusted user imports validate the catalog, like the access checks below.
+    if not ignore_permissions:
+        validate_catalog(config)
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
@@ -250,7 +342,8 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
 
     validate_data_uri(data_uri)
     logger.info("Downloading data from %s", data_uri)
-    data = request.urlopen(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
+    opener = request.build_opener(_ValidatingRedirectHandler)
+    data = opener.open(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
     df = pd.read_csv(data, encoding="utf-8")

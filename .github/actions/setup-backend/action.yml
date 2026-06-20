@@ -24,32 +24,41 @@ runs:
     - name: Interpret Python Version
       id: set-python-version
       shell: bash
+      env:
+        INPUT_PYTHON_VERSION: ${{ inputs.python-version }}
       run: |
-        if [ "${{ inputs.python-version }}" = "current" ]; then
-          echo "PYTHON_VERSION=3.11" >> $GITHUB_ENV
-        elif [ "${{ inputs.python-version }}" = "next" ]; then
+        if [ "$INPUT_PYTHON_VERSION" = "current" ]; then
+          RESOLVED_VERSION="3.11"
+        elif [ "$INPUT_PYTHON_VERSION" = "next" ]; then
           # currently disabled in GHA matrixes because of library compatibility issues
-          echo "PYTHON_VERSION=3.12" >> $GITHUB_ENV
-        elif [ "${{ inputs.python-version }}" = "previous" ]; then
-          echo "PYTHON_VERSION=3.10" >> $GITHUB_ENV
+          RESOLVED_VERSION="3.12"
+        elif [ "$INPUT_PYTHON_VERSION" = "previous" ]; then
+          RESOLVED_VERSION="3.10"
+        elif printf '%s' "$INPUT_PYTHON_VERSION" | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
+          RESOLVED_VERSION="$INPUT_PYTHON_VERSION"
         else
-          echo "PYTHON_VERSION=${{ inputs.python-version }}" >> $GITHUB_ENV
+          echo "Invalid python-version: '$INPUT_PYTHON_VERSION'" >&2
+          exit 1
         fi
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        echo "python-version=$RESOLVED_VERSION" >> "$GITHUB_OUTPUT"
+    - name: Set up Python ${{ steps.set-python-version.outputs.python-version }}
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
       with:
-        python-version: ${{ env.PYTHON_VERSION }}
+        python-version: ${{ steps.set-python-version.outputs.python-version }}
         cache: ${{ inputs.cache }}
     - name: Install dependencies
+      env:
+        INPUT_INSTALL_SUPERSET: ${{ inputs.install-superset }}
+        INPUT_REQUIREMENTS_TYPE: ${{ inputs.requirements-type }}
       run: |
-        if [ "${{ inputs.install-superset }}" = "true" ]; then
+        if [ "$INPUT_INSTALL_SUPERSET" = "true" ]; then
           sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev
 
           pip install --upgrade pip setuptools wheel uv
 
-          if [ "${{ inputs.requirements-type }}" = "dev" ]; then
+          if [ "$INPUT_REQUIREMENTS_TYPE" = "dev" ]; then
             uv pip install --system -r requirements/development.txt
-          elif [ "${{ inputs.requirements-type }}" = "base" ]; then
+          elif [ "$INPUT_REQUIREMENTS_TYPE" = "base" ]; then
             uv pip install --system -r requirements/base.txt
           fi
 

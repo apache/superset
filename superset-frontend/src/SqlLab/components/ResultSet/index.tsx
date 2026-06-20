@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import {
   useCallback,
   useEffect,
@@ -28,7 +29,7 @@ import {
 
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { shallowEqual, useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
 import {
@@ -378,7 +379,7 @@ const ResultSet = ({
               { rows: rowsCount.toLocaleString() },
             ),
             onConfirm: () => {
-              window.location.href = getExportCsvUrl(query.id);
+              window.location.href = sanitizeUrl(getExportCsvUrl(query.id));
             },
             confirmText: t('OK'),
             cancelText: t('Close'),
@@ -424,6 +425,7 @@ const ResultSet = ({
                     url: makeUrl('/api/v1/sqllab/export_streaming/'),
                     payload: { client_id: query.id },
                     exportType: 'csv',
+                    exportSource: 'sqllab',
                     expectedRows: rows,
                   });
                 } else {

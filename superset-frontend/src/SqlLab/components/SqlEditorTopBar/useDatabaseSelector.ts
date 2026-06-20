@@ -18,7 +18,7 @@
  */
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 
 import { SqlLabRootState } from 'src/SqlLab/types';
 import {

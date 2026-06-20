@@ -49,6 +49,7 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     QuerySource,
     remove_extra_adhoc_filters,
+    sanitize_cookie_token,
     sanitize_svg_content,
     sanitize_url,
 )
@@ -469,6 +470,30 @@ def test_check_if_safe_zip_hidden_bomb(app_context: None) -> None:
     ]
     with pytest.raises(SupersetException):
         check_is_safe_zip(ZipFile)
+
+
+def test_check_if_safe_zip_total_size(app_context: None) -> None:
+    """Total decompressed size above the threshold is rejected even when each
+    individual entry is within the per-file limit and the ratio is low."""
+    hundred_mb = 100 * 1024 * 1024
+    ZipFile = MagicMock()  # noqa: N806
+    # 11 entries x 100MB = 1.1GB total (> 1GB cap); per-file == limit, ratio 1.
+    ZipFile.infolist.return_value = [
+        MockZipInfo(file_size=hundred_mb, compress_size=hundred_mb) for _ in range(11)
+    ]
+    with pytest.raises(SupersetException):
+        check_is_safe_zip(ZipFile)
+
+
+def test_check_if_safe_zip_zero_compress_size(app_context: None) -> None:
+    """A zero compressed size must not raise ZeroDivisionError."""
+    ZipFile = MagicMock()  # noqa: N806
+    ZipFile.infolist.return_value = [
+        MockZipInfo(file_size=0, compress_size=0),
+        MockZipInfo(file_size=1000, compress_size=0),
+    ]
+    # Must complete without raising (ZeroDivisionError previously).
+    check_is_safe_zip(ZipFile)
 
 
 def test_generic_constraint_name_exists():
@@ -1730,3 +1755,74 @@ def test_markdown_with_markup_wrap() -> None:
 
     assert isinstance(result, Markup)
     assert "<strong>bold</strong>" in str(result)
+
+
+def test_send_email_smtp_strips_crlf_from_subject() -> None:
+    """
+    CR/LF characters are stripped from the email subject so the value cannot
+    be used to inject additional email headers (header folding/splitting).
+    """
+    from email.mime.multipart import MIMEMultipart
+
+    from superset.utils.core import send_email_smtp
+
+    captured: dict[str, MIMEMultipart] = {}
+
+    def capture_mutator(msg: MIMEMultipart, **kwargs: Any) -> MIMEMultipart:
+        captured["msg"] = msg
+        return msg
+
+    config = {
+        "SMTP_MAIL_FROM": "from@example.com",
+        "EMAIL_HEADER_MUTATOR": capture_mutator,
+        "SMTP_HOST": "localhost",
+        "SMTP_PORT": 25,
+        "SMTP_USER": "",
+        "SMTP_PASSWORD": "",
+        "SMTP_STARTTLS": False,
+        "SMTP_SSL": False,
+        "SMTP_SSL_SERVER_AUTH": False,
+    }
+
+    send_email_smtp(
+        to="to@example.com",
+        subject="Hello\r\nBcc: attacker@example.com",
+        html_content="<b>body</b>",
+        config=config,
+        dryrun=True,
+    )
+
+    subject = captured["msg"]["Subject"]
+    assert "\r" not in subject
+    assert "\n" not in subject
+    assert subject == "Hello Bcc: attacker@example.com"
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "abc123",
+        "A_b-C_9",
+        "x" * 128,
+    ],
+)
+def test_sanitize_cookie_token_accepts_valid(token: str) -> None:
+    assert sanitize_cookie_token(token) == token
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        None,
+        "",
+        "x" * 129,
+        "has space",
+        "semi;colon",
+        "new\nline",
+        "equals=sign",
+        "comma,value",
+        "unicode✓",
+    ],
+)
+def test_sanitize_cookie_token_rejects_invalid(token: Optional[str]) -> None:
+    assert sanitize_cookie_token(token) is None

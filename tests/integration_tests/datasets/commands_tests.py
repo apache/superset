@@ -273,6 +273,42 @@ class TestExportDatasetsCommand(SupersetTestCase):
             f"datasets/examples/energy_usage_{example_dataset.id}.yaml",
         ]
 
+    @patch("superset.security.manager.g")
+    def test_export_dataset_command_unicode_chars(self, mock_g) -> None:
+        mock_g.user = security_manager.find_user("admin")
+        examples_db = get_example_database()
+        with examples_db.get_sqla_engine() as engine:
+            engine.execute("DROP TABLE IF EXISTS 中文")
+            engine.execute("CREATE TABLE 中文 AS SELECT 2 as col")
+        # scope cleanup to the example database so datasets with the same name
+        # on other databases are left untouched
+        stale = db.session.query(SqlaTable).filter_by(
+            table_name="中文", database_id=examples_db.id
+        )
+        if stale.count():
+            stale.delete()
+        with override_user(security_manager.find_user("admin")):
+            example_dataset = CreateDatasetCommand(
+                {
+                    "table_name": "中文",
+                    "database": examples_db.id,
+                }
+            ).run()
+
+        command = ExportDatasetsCommand([example_dataset.id], export_related=False)
+        contents = dict(command.run())
+
+        path = f"datasets/examples/{example_dataset.id}.yaml"
+        assert path in set(contents.keys())
+        yaml_content = contents[path]()
+        assert "table_name: 中文" in yaml_content
+
+        db.session.delete(example_dataset)
+        db.session.commit()
+        with examples_db.get_sqla_engine() as engine:
+            engine.execute("DROP TABLE 中文")
+        db.session.commit()
+
 
 class TestImportDatasetsCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -569,15 +605,14 @@ class TestCreateDatasetCommand(SupersetTestCase):
         with self.assertRaises(DatasetInvalidError):  # noqa: PT027
             CreateDatasetCommand({"table_name": "table", "database": 9999}).run()
 
-    @patch("superset.commands.utils.g")
     @patch("superset.models.core.Database.get_table")
-    def test_get_table_from_database_error(self, get_table_mock, mock_g):
+    def test_get_table_from_database_error(self, get_table_mock):
         get_table_mock.side_effect = SQLAlchemyError
-        mock_g.user = security_manager.find_user("admin")
-        with self.assertRaises(DatasetInvalidError):  # noqa: PT027
-            CreateDatasetCommand(
-                {"table_name": "table", "database": get_example_database().id}
-            ).run()
+        with override_user(security_manager.find_user("admin")):
+            with self.assertRaises(DatasetInvalidError):  # noqa: PT027
+                CreateDatasetCommand(
+                    {"table_name": "table", "database": get_example_database().id}
+                ).run()
 
     def test_create_dataset_command(self):
         examples_db = get_example_database()
@@ -603,6 +638,7 @@ class TestCreateDatasetCommand(SupersetTestCase):
             assert [owner.username for owner in table.owners] == ["admin"]
 
         db.session.delete(table)
+        db.session.commit()
         with examples_db.get_sqla_engine() as engine:
             engine.execute("DROP TABLE test_create_dataset_command")
         db.session.commit()
@@ -635,9 +671,10 @@ class TestDatasetWarmUpCacheCommand(SupersetTestCase):
             )
             .all()
         )
-        results = DatasetWarmUpCacheCommand(
-            get_example_database().database_name, "birth_names", None, None
-        ).run()
+        with override_user(security_manager.find_user("admin")):
+            results = DatasetWarmUpCacheCommand(
+                get_example_database().database_name, "birth_names", None, None
+            ).run()
         assert len(results) == len(birth_charts)
         for chart_result in results:
             assert "chart_id" in chart_result

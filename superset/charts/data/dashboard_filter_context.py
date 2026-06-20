@@ -78,14 +78,13 @@ def _is_filter_in_scope_for_chart(
     position_json: dict[str, Any],
 ) -> bool:
     """
-    Determines whether a native filter applies to a given chart. When
-    chartsInScope is present on the filter config, uses that directly.
-    Otherwise falls back to scope.rootPath and scope.excluded with
-    the dashboard layout.
-    """
-    if (charts_in_scope := filter_config.get("chartsInScope")) is not None:
-        return chart_id in charts_in_scope
+    Determines whether a native filter applies to a given chart.
 
+    A chart is in scope when one of its layout ancestors is in ``rootPath`` and
+    it's not excluded. The persisted ``chartsInScope`` is intentionally NOT used
+    here (it's a denormalized cache that the frontend recomputes from ``scope``
+    on every load, so it can be stale).
+    """
     scope = filter_config.get("scope", {})
     root_path: list[str] = scope.get("rootPath", [])
     excluded: list[int] = scope.get("excluded", [])
@@ -93,12 +92,13 @@ def _is_filter_in_scope_for_chart(
     if chart_id in excluded:
         return False
 
-    chart_layout_item = _find_chart_layout_item(chart_id, position_json)
-    if not chart_layout_item:
-        return False
+    if chart_layout_item := _find_chart_layout_item(chart_id, position_json):
+        parents: list[str] = chart_layout_item.get("parents", [])
+        return any(parent in root_path for parent in parents)
 
-    parents: list[str] = chart_layout_item.get("parents", [])
-    return any(parent in root_path for parent in parents)
+    # If the chart doesn't exist in the dashboard layout, treat it as a
+    # root-level chart.
+    return "ROOT_ID" in root_path
 
 
 def _find_chart_layout_item(
@@ -304,3 +304,39 @@ def get_dashboard_filter_context(
         )
 
     return context
+
+
+def apply_dashboard_filter_context(
+    query_context: dict[str, Any],
+    extra_form_data: dict[str, Any],
+) -> None:
+    """
+    Apply dashboard filter context.
+
+    Filters are removed from ``extra_form_data`` to avoid duplicated values when
+    using ``filter_values()`` macro.
+
+    :param query_context: The chart's query context (mutated in place)
+    :param extra_form_data: The dashboard's merged extra_form_data to apply. It's
+    also mutated in place.
+    """
+    extra_filters = extra_form_data.pop("filters", [])
+    for query in query_context.get("queries", []):
+        if extra_filters:
+            existing_filters = query.get("filters") or []
+            query["filters"] = existing_filters + [
+                {**flt, "isExtra": True} for flt in extra_filters
+            ]
+
+        extras = query.get("extras") or {}
+        for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
+            if key in extra_form_data:
+                extras[key] = extra_form_data[key]
+        if extras:
+            query["extras"] = extras
+
+        for src_key, target_key in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
+            if src_key in extra_form_data:
+                query[target_key] = extra_form_data[src_key]
+
+        query["extra_form_data"] = extra_form_data

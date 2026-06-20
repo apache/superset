@@ -22,16 +22,42 @@ set -e
 # If not already running in Docker, run this script inside Docker
 if [ -z "$RUNNING_IN_DOCKER" ]; then
   # Extract "current" Python version from CI config (single source of truth)
-  PYTHON_VERSION=$(grep -A 1 'if.*"current"' .github/actions/setup-backend/action.yml | grep 'PYTHON_VERSION=' | sed 's/.*PYTHON_VERSION=\([0-9.]*\).*/\1/')
+  PYTHON_VERSION=$(grep -A 1 'if.*"current"' .github/actions/setup-backend/action.yml | grep 'RESOLVED_VERSION=' | sed 's/.*RESOLVED_VERSION="\([0-9.]*\)".*/\1/')
+
+  if [ -z "$PYTHON_VERSION" ]; then
+    echo "Failed to determine Python version from .github/actions/setup-backend/action.yml" >&2
+    exit 1
+  fi
 
   echo "Running in Docker (Python ${PYTHON_VERSION} on Linux)..."
+
+  IMAGE="python:${PYTHON_VERSION}-slim"
+
+  # Pre-pull the image with a few retries to absorb transient Docker Hub
+  # registry failures ("context deadline exceeded" / anonymous rate-limit blips
+  # on shared CI runners). Without this a flaky pull fails the whole
+  # check-python-deps job on an infrastructure hiccup rather than a real
+  # dependency drift. The pull is in the `until` condition so `set -e` does not
+  # abort on an individual failed attempt.
+  attempt=1
+  max_attempts=4
+  until docker pull "$IMAGE"; do
+    if [ "$attempt" -ge "$max_attempts" ]; then
+      echo "docker pull $IMAGE failed after ${max_attempts} attempts" >&2
+      exit 1
+    fi
+    delay=$((attempt * 10))
+    echo "docker pull $IMAGE failed (attempt ${attempt}/${max_attempts}); retrying in ${delay}s..." >&2
+    sleep "$delay"
+    attempt=$((attempt + 1))
+  done
 
   docker run --rm \
     -v "$(pwd)":/app \
     -w /app \
     -e RUNNING_IN_DOCKER=1 \
-    python:${PYTHON_VERSION}-slim \
-    bash -c "pip install uv==0.11.17 && ./scripts/uv-pip-compile.sh $*"
+    "$IMAGE" \
+    bash -c "pip install uv && ./scripts/uv-pip-compile.sh $*"
 
   exit $?
 fi
