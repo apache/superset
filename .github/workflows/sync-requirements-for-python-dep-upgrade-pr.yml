@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   sync-python-dep-requirements:
-    # This action is limited to upstream repo only due to write contents
+    # This action is limited for (1) PRs authored by Dependabot and (2) upstream repo due to write back to remote
     if: github.repository == 'apache/superset' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.fork == false
     runs-on: ubuntu-slim
     steps:
@@ -18,7 +18,7 @@ jobs:
         id: dependabot-metadata
         shell: bash
         env:
-          BRANCH_NAME: ${{ github.ref_name }}
+          BRANCH_NAME: ${{ github.head_ref }}
         run: |
           # Get current branch name, extract the package ecosystem and return as GHA step output
           packageEcosystem=$(echo "$BRANCH_NAME" | cut -d'/' -f2)
