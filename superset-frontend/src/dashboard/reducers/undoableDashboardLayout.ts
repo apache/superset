@@ -18,7 +18,10 @@
  */
 import { AnyAction, Reducer } from 'redux';
 // eslint-disable-next-line import/named
-import undoable, { ActionCreators, StateWithHistory } from 'redux-undo';
+import undoable, {
+  ActionCreators as UndoActionCreators,
+  StateWithHistory,
+} from 'redux-undo';
 import { DASHBOARD_ROOT_ID, UNDO_LIMIT } from '../util/constants';
 import {
   UPDATE_COMPONENTS,
@@ -141,7 +144,7 @@ const undoableReducer: Reducer<StateWithHistory<DashboardLayout>, AnyAction> = (
   const nextState = baseUndoableReducer(state, action);
 
   if (action.type === HYDRATE_DASHBOARD) {
-    return baseUndoableReducer(nextState, ActionCreators.clearHistory());
+    return baseUndoableReducer(nextState, UndoActionCreators.clearHistory());
   }
 
   if (

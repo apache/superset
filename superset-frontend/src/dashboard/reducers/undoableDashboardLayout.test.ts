@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { AnyAction } from 'redux';
-import { ActionCreators } from 'redux-undo';
+import { ActionCreators as UndoActionCreators } from 'redux-undo';
 
 import undoableLayoutReducer from 'src/dashboard/reducers/undoableDashboardLayout';
 import { UPDATE_COMPONENTS } from 'src/dashboard/actions/dashboardLayout';
@@ -90,7 +90,7 @@ test('a stale/empty baseline left by a premature clearHistory does not survive h
   // pre-hydration `{}` arms redux-undo to capture that empty layout on the next
   // tracked action (it resets `_latestUnfiltered` to the current, empty present).
   let state = init();
-  state = reducer(state, ActionCreators.clearHistory());
+  state = reducer(state, UndoActionCreators.clearHistory());
 
   // Without the fix, HYDRATE_DASHBOARD would now push the empty `{}` into `past`,
   // enabling an Undo that reverts to an empty layout and crashes the dashboard.
@@ -121,14 +121,14 @@ test('undo never reverts the layout to an invalid state', () => {
   // Build a corrupt history (valid present, empty baseline in `past`) the same
   // way it arises in the wild, then exercise Undo.
   let state = init();
-  state = reducer(state, ActionCreators.clearHistory()); // arms the empty baseline
+  state = reducer(state, UndoActionCreators.clearHistory()); // arms the empty baseline
   // A tracked action other than hydrate captures the empty `{}` into `past`.
   state = reducer(state, updateComponents(makeValidLayout()));
   expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
   expect(state.past).toHaveLength(1); // the corrupt, empty baseline
 
   const before = state.present;
-  state = reducer(state, ActionCreators.undo());
+  state = reducer(state, UndoActionCreators.undo());
 
   // The undo is rejected: the valid layout is kept instead of exposing the
   // empty one, so rendering can't throw `undefined.type`.
@@ -146,7 +146,7 @@ test('undo still reverts a genuine layout edit', () => {
   expect(state.present['CHART-abc']).toBeDefined();
   expect(state.past).toHaveLength(1);
 
-  state = reducer(state, ActionCreators.undo());
+  state = reducer(state, UndoActionCreators.undo());
 
   // The added chart is undone, and the layout is still valid.
   expect(state.present['CHART-abc']).toBeUndefined();
