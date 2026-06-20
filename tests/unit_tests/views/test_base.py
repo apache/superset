@@ -177,3 +177,35 @@ def test_api_query_returns_json_content_type() -> None:
 
     assert response.mimetype == "application/json"
     assert response.content_type.startswith("application/json")
+
+
+@pytest.mark.parametrize(
+    "encoding, payload, expected",
+    [
+        ("utf-8-sig", "Ürün,Şehir\n", "Ürün,Şehir\n".encode("utf-8-sig")),
+        ("utf-8", "Ürün,Şehir\n", "Ürün,Şehir\n".encode()),
+    ],
+)
+def test_csv_response_applies_csv_export_encoding(
+    encoding: str, payload: str, expected: bytes
+) -> None:
+    """str bodies are encoded with CSV_EXPORT["encoding"]."""
+    from flask import current_app
+
+    from superset.views.base import CsvResponse
+
+    original = current_app.config["CSV_EXPORT"]
+    try:
+        current_app.config["CSV_EXPORT"] = {"encoding": encoding}
+        response = CsvResponse(payload)
+        assert response.get_data() == expected
+        assert response.mimetype == "text/csv"
+    finally:
+        current_app.config["CSV_EXPORT"] = original
+
+
+def test_csv_response_leaves_bytes_untouched() -> None:
+    from superset.views.base import CsvResponse
+
+    payload = "Ürün\n".encode("utf-8-sig")
+    assert CsvResponse(payload).get_data() == payload

@@ -149,7 +149,7 @@ jobs:
           run: celery-worker
       - name: Python unit tests (PostgreSQL)
         run: |
-          pip install -e .[hive]
+          uv pip install --system -e .[hive]
           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
