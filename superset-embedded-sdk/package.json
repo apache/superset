@@ -24,7 +24,7 @@
   "scripts": {
     "build": "tsc && babel src --out-dir lib --extensions '.ts,.tsx' && webpack --mode production",
     "ci:release": "node ./release-if-necessary.js",
-    "test": "vitest --run"
+    "test": "vitest --run --dir src"
   },
   "browserslist": [
     "last 3 chrome versions",

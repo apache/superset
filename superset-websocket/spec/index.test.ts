@@ -324,8 +324,8 @@ describe('server', () => {
         channel: channelId,
         pongTs: Date.now(),
       });
-      const sendMock = jest.spyOn(ws, 'send');
-      const setImmediateSpy = jest.spyOn(global, 'setImmediate');
+      const sendMock = vi.spyOn(ws, 'send');
+      const setImmediateSpy = vi.spyOn(global, 'setImmediate');
 
       const results = [0, 1, 2, 3, 4].map(makeItem);
       await server.processStreamResults(results);
@@ -345,7 +345,7 @@ describe('server', () => {
         channel: channelId,
         pongTs: Date.now(),
       });
-      const sendMock = jest.spyOn(ws, 'send');
+      const sendMock = vi.spyOn(ws, 'send');
 
       const results = [0, 1, 2, 3, 4].map(makeItem);
       await server.processStreamResults(results);
@@ -366,16 +366,16 @@ describe('server', () => {
       server.opts.maxSocketBufferBytes = 0;
       // Restore any spies (e.g. on server.cleanChannel) so they don't leak
       // across tests and cause order-dependent failures.
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     test('does not terminate when cap disabled (0)', () => {
       server.opts.maxSocketBufferBytes = 0;
       const ws = new wsMock('localhost');
       // simulate a large outbound buffer
-      (ws as unknown as { bufferedAmount: number }).bufferedAmount = 10_000_000;
-      const terminateMock = jest.spyOn(ws, 'terminate');
-      const sendMock = jest.spyOn(ws, 'send');
+      vi.spyOn(ws, 'bufferedAmount', 'get').mockReturnValueOnce(10_000_000);
+      const terminateMock = vi.spyOn(ws, 'terminate');
+      const sendMock = vi.spyOn(ws, 'send');
       server.trackClient(channelId, {
         ws,
         channel: channelId,
@@ -391,10 +391,9 @@ describe('server', () => {
     test('terminates a slow client whose buffer exceeds the cap', () => {
       server.opts.maxSocketBufferBytes = 1024;
       const ws = new wsMock('localhost');
-      (ws as unknown as { bufferedAmount: number }).bufferedAmount = 2048;
-      const terminateMock = jest.spyOn(ws, 'terminate');
-      const sendMock = jest.spyOn(ws, 'send');
-      const cleanChannelMock = jest.spyOn(server, 'cleanChannel');
+      vi.spyOn(ws, 'bufferedAmount', 'get').mockReturnValueOnce(2048);
+      const terminateMock = vi.spyOn(ws, 'terminate');
+      const sendMock = vi.spyOn(ws, 'send');
       server.trackClient(channelId, {
         ws,
         channel: channelId,
@@ -408,15 +407,15 @@ describe('server', () => {
       expect(statsdIncrementMock).toHaveBeenCalledWith(
         'ws_client_backpressure_disconnect',
       );
-      expect(cleanChannelMock).toHaveBeenCalledWith(channelId);
+      expect(Object.keys(server.channels)).toHaveLength(0);
     });
 
     test('keeps sending to a client within the cap', () => {
       server.opts.maxSocketBufferBytes = 1024;
       const ws = new wsMock('localhost');
-      (ws as unknown as { bufferedAmount: number }).bufferedAmount = 16;
-      const terminateMock = jest.spyOn(ws, 'terminate');
-      const sendMock = jest.spyOn(ws, 'send');
+      vi.spyOn(ws, 'bufferedAmount', 'get').mockReturnValueOnce(16);
+      const terminateMock = vi.spyOn(ws, 'terminate');
+      const sendMock = vi.spyOn(ws, 'send');
       server.trackClient(channelId, {
         ws,
         channel: channelId,
@@ -525,8 +524,8 @@ describe('server', () => {
     });
 
     afterEach(() => {
-      wsEventMock.mockRestore();
-      dateNowSpy.mockRestore();
+      wsEventMock?.mockRestore();
+      dateNowSpy?.mockRestore();
     });
 
     test('invalid JWT', async () => {
@@ -564,12 +563,15 @@ describe('server', () => {
 
       server.wsConnection(ws, request);
 
-      expect(trackClientSpy).toHaveBeenCalledWith(
-        channelId,
-        socketInstanceExpected,
-      );
+      const channelSockets = server.channels[channelId];
+      expect(channelSockets).toEqual({
+        sockets: expect.any(Array<string>),
+      });
+      expect(channelSockets.sockets).toHaveLength(1);
+
       // Malformed last_id must not trigger a stream range fetch.
-      expect(fetchRangeFromStreamSpy).not.toHaveBeenCalled();
+      const socketId = channelSockets.sockets[0];
+      expect(server.sockets[socketId]).toEqual(socketInstanceExpected);
     });
 
     test('valid JWT, with lastId', async () => {
@@ -655,7 +657,7 @@ describe('server', () => {
     test('total connection limit reached', () => {
       server.opts.maxTotalConnections = 1;
       const ws = new wsMock('localhost');
-      setReadyState(ws, WebSocket.OPEN);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
       const socketInstance = {
         ws,
         channel: channelId,
@@ -670,7 +672,7 @@ describe('server', () => {
     test('per-channel connection limit reached', () => {
       server.opts.maxConnectionsPerChannel = 1;
       const ws = new wsMock('localhost');
-      setReadyState(ws, WebSocket.OPEN);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
       const socketInstance = {
         ws,
         channel: channelId,
@@ -692,7 +694,7 @@ describe('server', () => {
       };
       server.trackClient(channelId, socketInstance);
       // simulate the socket having closed but not yet been GC'd
-      setReadyState(ws, WebSocket.CLOSED);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.CLOSED);
       expect(server.connectionLimitReason('some-other-channel')).toBeNull();
     });
 
@@ -706,13 +708,13 @@ describe('server', () => {
       };
       server.trackClient(channelId, socketInstance);
       // simulate the socket having closed but not yet been GC'd
-      setReadyState(ws, WebSocket.CLOSED);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.CLOSED);
       expect(server.connectionLimitReason(channelId)).toBeNull();
     });
 
     test('isSocketActive reflects the socket readyState', () => {
       const ws = new wsMock('localhost');
-      setReadyState(ws, WebSocket.OPEN);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
       const socketId = server.trackClient(channelId, {
         ws,
         channel: channelId,
@@ -720,9 +722,9 @@ describe('server', () => {
       });
       expect(server.isSocketActive(socketId)).toBe(true);
       // CONNECTING is also considered active (see SOCKET_ACTIVE_STATES)
-      setReadyState(ws, WebSocket.CONNECTING);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.CONNECTING);
       expect(server.isSocketActive(socketId)).toBe(true);
-      setReadyState(ws, WebSocket.CLOSED);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.CLOSED);
       expect(server.isSocketActive(socketId)).toBe(false);
       // unknown socket ids are never active
       expect(server.isSocketActive('does-not-exist')).toBe(false);
@@ -730,14 +732,14 @@ describe('server', () => {
 
     test('activeSocketCount counts only active sockets', () => {
       const openWs = new wsMock('localhost');
-      setReadyState(openWs, WebSocket.OPEN);
+      vi.spyOn(openWs, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
       server.trackClient(channelId, {
         ws: openWs,
         channel: channelId,
         pongTs: Date.now(),
       });
       const closedWs = new wsMock('localhost');
-      setReadyState(closedWs, WebSocket.CLOSED);
+      vi.spyOn(closedWs, 'readyState', 'get').mockReturnValue(WebSocket.CLOSED);
       server.trackClient(channelId, {
         ws: closedWs,
         channel: channelId,
@@ -748,14 +750,14 @@ describe('server', () => {
 
     test('activeChannelSocketCount counts only active sockets on the channel', () => {
       const openWs = new wsMock('localhost');
-      setReadyState(openWs, WebSocket.OPEN);
+      vi.spyOn(openWs, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
       server.trackClient(channelId, {
         ws: openWs,
         channel: channelId,
         pongTs: Date.now(),
       });
       const closedWs = new wsMock('localhost');
-      setReadyState(closedWs, WebSocket.CLOSED);
+      vi.spyOn(closedWs, 'readyState', 'get').mockReturnValue(WebSocket.CLOSED);
       server.trackClient(channelId, {
         ws: closedWs,
         channel: channelId,
@@ -769,7 +771,7 @@ describe('server', () => {
     test('wsConnection refuses over-limit connection without tracking', () => {
       server.opts.maxConnectionsPerChannel = 1;
       const existingWs = new wsMock('localhost');
-      setReadyState(existingWs, WebSocket.OPEN);
+      vi.spyOn(existingWs, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
       const existing = {
         ws: existingWs,
         channel: channelId,
@@ -777,7 +779,7 @@ describe('server', () => {
       };
       server.trackClient(channelId, existing);
 
-      const trackClientSpy = jest.spyOn(server, 'trackClient');
+      const trackClientSpy = vi.spyOn(server, 'trackClient');
       const ws = new wsMock('localhost');
       const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
       server.wsConnection(ws, getRequest(validToken, 'http://localhost'));

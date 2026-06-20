@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node dist/index.js start",
-    "test": "npx vitest --run",
+    "test": "npx vitest --run --dir spec",
     "type": "tsc --noEmit",
     "eslint": "eslint",
     "lint": "npm run eslint -- . && npm run type",

@@ -13,7 +13,9 @@
     // output
     "outDir": "./dist",
     "emitDeclarationOnly": true,
-    "declaration": true
+    "declaration": true,
+
+    "types": ["node"]
   },
 
   "include": [
