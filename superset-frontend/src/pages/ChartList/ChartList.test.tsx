@@ -57,9 +57,12 @@ const mockUser = {
 const findFilterByLabel = (labelText: string) => {
   const containers = screen.getAllByTestId('select-filter-container');
   for (const container of containers) {
-    const label = container.querySelector('label');
-    if (label?.textContent === labelText) {
-      return container.querySelector('[role="combobox"], .ant-select');
+    // Compact pill filters show the label as button text
+    const pill = container.querySelector(
+      '[data-test="compact-filter-pill"]',
+    ) as HTMLElement | null;
+    if (pill && pill.textContent?.includes(labelText)) {
+      return pill;
     }
   }
   return null;
