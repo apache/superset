@@ -95,6 +95,7 @@ const FlexRowContainer = styled.div`
     text-overflow: ellipsis;
     white-space: nowrap;
     line-height: 1.2;
+    min-width: 0;
   }
 
   svg {
@@ -522,6 +523,7 @@ function ChartList(props: ChartListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="chart-row-edit"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -538,6 +540,7 @@ function ChartList(props: ChartListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="chart-row-export"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -565,6 +568,7 @@ function ChartList(props: ChartListProps) {
                       placement="bottom"
                     >
                       <span
+                        data-test="chart-row-delete"
                         role="button"
                         tabIndex={0}
                         className="action-button"

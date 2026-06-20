@@ -22,11 +22,12 @@ permissions:
 jobs:
   frontend-build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     outputs:
       should-run: ${{ steps.check.outputs.frontend }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -74,6 +75,7 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
       fail-fast: false
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -103,11 +105,12 @@ jobs:
     needs: [sharded-jest-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       id-token: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -131,7 +134,7 @@ jobs:
         run: npx nyc merge coverage/ merged-output/coverage-summary.json
 
       - name: Upload Code Coverage
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: javascript
           use_oidc: true
@@ -144,6 +147,7 @@ jobs:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -168,6 +172,7 @@ jobs:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -187,6 +192,7 @@ jobs:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8

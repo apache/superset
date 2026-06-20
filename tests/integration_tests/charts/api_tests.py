@@ -556,6 +556,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Slice).get(data.get("id"))
+        # uuid should be returned in the response
+        assert "uuid" in data
+        assert str(model.uuid) == str(data["uuid"])
         db.session.delete(model)
         db.session.commit()
 
@@ -1765,9 +1768,55 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert rv.content_type == "application/json"
+        assert rv.content_type == "application/json; charset=utf-8"
         if slice:
             assert data["slice_id"] == slice.id
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_query_form_data_no_data_access(self):
+        """
+        Chart API: query_form_data must refuse callers without
+        datasource_access on the chart's underlying dataset. Mirrors
+        the existing test_get_chart_no_data_access guard on
+        ChartRestApi (which also returns 404 to avoid leaking chart
+        existence to unauthorised callers).
+        """
+        self.login(GAMMA_USERNAME)
+        chart_no_access = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        assert chart_no_access is not None, (
+            "fixture load_birth_names_dashboard_with_slices did not "
+            "create the 'Girl Name Cloud' slice"
+        )
+        uri = f"api/v1/form_data/?slice_id={chart_no_access.id}"
+        rv = self.client.get(uri)
+        # Match ChartRestApi.get: 404 for both missing AND forbidden so
+        # the endpoint cannot be used to enumerate chart IDs.
+        assert rv.status_code == 404, (
+            f"Gamma user without datasource_access should get 404 "
+            f"(status={rv.status_code}, body={rv.data[:200]!r})"
+        )
+        # Defence in depth: even if a future regression returns a non-
+        # 200 status with a partially-filled error envelope, ensure the
+        # caller cannot recover form_data fields.
+        assert b"datasource" not in rv.data
+        assert b"adhoc_filters" not in rv.data
+        assert b"viz_type" not in rv.data
+
+    def test_query_form_data_missing_slice(self):
+        """
+        Chart API: a non-existent slice_id must return the same 404 as a
+        forbidden one, so the status code cannot be used to enumerate
+        which slice IDs exist.
+        """
+        self.login(ADMIN_USERNAME)
+        max_id = db.session.query(func.max(Slice.id)).scalar() or 0
+        uri = f"api/v1/form_data/?slice_id={max_id + 10_000}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_slice",
@@ -2390,3 +2439,11 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
         security_manager.add_permission_role(alpha_role, tag_charts_perm)
+
+    def test_related_owners_allowed_for_write_user(self):
+        """
+        Chart API: GET /api/v1/chart/related/owners returns 200 for Admin.
+        """
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get("api/v1/chart/related/owners")
+        assert rv.status_code == 200

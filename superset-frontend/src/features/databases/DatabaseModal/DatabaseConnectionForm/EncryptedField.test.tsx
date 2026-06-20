@@ -161,21 +161,42 @@ describe('EncryptedField', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Parameter Value Processing', () => {
-    const testCases = [
+    // In edit mode the existing credential value must never be rendered into
+    // the field, regardless of how it was returned from the backend.
+    const editModeInputs = [
+      {
+        input: { key: 'value', nested: { data: 'test' } },
+        description: 'objects',
+      },
+      { input: true, description: 'booleans' },
+      { input: false, description: 'false booleans' },
+      { input: 'test-string', description: 'strings' },
+      { input: 123, description: 'numbers' },
+    ];
+
+    test.each(editModeInputs)(
+      'does not render existing $description in edit mode',
+      ({ input }) => {
+        const mockDb = createMockDb('gsheets', {
+          service_account_info: input,
+        });
+        const props = { ...defaultProps, db: mockDb, isEditMode: true };
+
+        const { container } = render(<EncryptedField {...props} />);
+        const textarea = container.querySelector('textarea');
+
+        expect(textarea?.value).toBe('');
+      },
+    );
+
+    // The copy/paste (create) flow is controlled by the parent, which echoes
+    // typed content back through `db.parameters`. Verify that values are still
+    // serialized for display when not in edit mode.
+    const createModeCases = [
       {
         input: { key: 'value', nested: { data: 'test' } },
         expected: '{"key":"value","nested":{"data":"test"}}',
         description: 'objects to JSON strings',
-      },
-      {
-        input: true,
-        expected: 'true',
-        description: 'booleans to strings',
-      },
-      {
-        input: false,
-        expected: 'false',
-        description: 'false booleans to strings',
       },
       {
         input: 'test-string',
@@ -187,15 +208,30 @@ describe('EncryptedField', () => {
         expected: '123',
         description: 'numbers to strings',
       },
+      {
+        input: true,
+        expected: 'true',
+        description: 'true booleans to strings',
+      },
+      {
+        input: false,
+        expected: 'false',
+        description: 'false booleans to strings',
+      },
     ];
 
-    test.each(testCases)(
-      'processes $description correctly',
+    test.each(createModeCases)(
+      'processes $description correctly in create mode',
       ({ input, expected }) => {
         const mockDb = createMockDb('gsheets', {
           service_account_info: input,
         });
-        const props = { ...defaultProps, db: mockDb, isEditMode: true };
+        const props = {
+          ...defaultProps,
+          db: mockDb,
+          isEditMode: false,
+          editNewDb: true,
+        };
 
         const { container } = render(<EncryptedField {...props} />);
         const textarea = container.querySelector('textarea');

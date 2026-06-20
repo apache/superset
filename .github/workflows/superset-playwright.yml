@@ -10,23 +10,46 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: 'The branch or tag to checkout'
+        description: "The branch or tag to checkout"
         required: false
-        default: ''
+        default: ""
       pr_id:
-        description: 'The pull request ID to checkout'
+        description: "The pull request ID to checkout"
         required: false
-        default: ''
+        default: ""
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python: ${{ steps.check.outputs.python }}
+      frontend: ${{ steps.check.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   # NOTE: Required Playwright tests are in superset-e2e.yml (E2E / playwright-tests)
   # This workflow contains only experimental tests that run in shadow mode
   playwright-tests-experimental:
+    needs: changes
+    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     continue-on-error: true
     permissions:
       contents: read
@@ -60,78 +83,65 @@ jobs:
       # Conditional checkout based on context (same as Cypress workflow)
       - name: Checkout for push or pull_request event
         if: github.event_name == 'push' || github.event_name == 'pull_request'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           submodules: recursive
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref }}
           submodules: recursive
       - name: Checkout using PR ID (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
           submodules: recursive
       # -------------------------------------------------------
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-        if: steps.check.outputs.python || steps.check.outputs.frontend
       - name: Setup postgres
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Import test data
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: playwright_testdata
       - name: Setup Node.js
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version-file: './superset-frontend/.nvmrc'
+          node-version-file: "./superset-frontend/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Install npm dependencies
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
       - name: Build embedded SDK
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-embedded-sdk
       - name: Install Playwright
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: playwright-install
       - name: Run Playwright (Experimental Tests)
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
           run: playwright-run "${{ matrix.app_root }}" experimental/
       - name: Run Playwright (Embedded Tests)
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"

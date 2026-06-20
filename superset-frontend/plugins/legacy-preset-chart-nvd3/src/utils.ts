@@ -275,29 +275,29 @@ export function wrapTooltip(chart) {
   });
 }
 
+// Builds the sanitized HTML for an annotation layer's tooltip. Title and
+// description values come from the annotation data source, so the output is
+// run through dompurify before being inserted into the DOM by d3-tip.
+export function generateAnnotationTooltipContent(layer, d) {
+  const title =
+    d[layer.titleColumn] && d[layer.titleColumn].length > 0
+      ? `${d[layer.titleColumn]} - ${layer.name}`
+      : layer.name;
+  const body = Array.isArray(layer.descriptionColumns)
+    ? layer.descriptionColumns.map(c => d[c])
+    : Object.values(d);
+
+  return dompurify.sanitize(
+    `<div><strong>${title}</strong></div><br/><div>${body.join(', ')}</div>`,
+  );
+}
+
 export function tipFactory(layer) {
   return d3tip()
     .attr('class', `d3-tip ${layer.annotationTipClass || ''}`)
     .direction('n')
     .offset([-5, 0])
-    .html(d => {
-      if (!d) {
-        return '';
-      }
-      const rawTitle =
-        d[layer.titleColumn] && d[layer.titleColumn].length > 0
-          ? `${d[layer.titleColumn]} - ${layer.name}`
-          : layer.name;
-      const rawBody = Array.isArray(layer.descriptionColumns)
-        ? layer.descriptionColumns.map(c => d[c])
-        : Object.values(d);
-
-      return dompurify.sanitize(
-        `<div><strong>${rawTitle}</strong></div><br/><div>${rawBody.join(
-          ', ',
-        )}</div>`,
-      );
-    });
+    .html(d => (d ? generateAnnotationTooltipContent(layer, d) : ''));
 }
 
 export function getMaxLabelSize(svg, axisClass) {

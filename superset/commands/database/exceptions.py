@@ -118,6 +118,11 @@ class DatabaseUploadFailed(CommandException):
     message = _("Database upload file failed")
 
 
+class DatabaseUploadFileTooLarge(CommandException):
+    status = 413
+    message = _("Database upload file exceeds the maximum allowed size.")
+
+
 class DatabaseUploadSaveMetadataFailed(CommandException):
     status = 500
     message = _("Database upload file failed, while saving metadata")

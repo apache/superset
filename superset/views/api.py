@@ -24,13 +24,14 @@ from flask_appbuilder.api import rison as parse_rison
 from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import lazy_gettext as _
 
-from superset import db, event_logger
+from superset import event_logger
 from superset.commands.chart.exceptions import (
+    ChartNotFoundError,
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
+from superset.daos.chart import ChartDAO
 from superset.legacy import update_time_range
-from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.date_parser import get_since_until
@@ -85,11 +86,17 @@ class Api(BaseSupersetView):
         Get the form_data stored in the database for existing slice.
         params: slice_id: integer
         """
-        form_data = {}
+        form_data: dict[str, Any] = {}
         if slice_id := request.args.get("slice_id"):
-            slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
-            if slc:
-                form_data = slc.form_data.copy()
+            # Reuse ChartDAO.get_by_id_or_uuid so this endpoint applies the
+            # same ChartFilter (dataset-scoped) as ChartRestApi.get. Both a
+            # missing chart and a chart the caller cannot access surface as
+            # ChartNotFoundError, mapped to 404 so the status code cannot be
+            # used to distinguish the two cases.
+            try:
+                form_data = ChartDAO.get_by_id_or_uuid(slice_id).form_data.copy()
+            except ChartNotFoundError:
+                return self.json_response({}, 404)
 
         update_time_range(form_data)
 

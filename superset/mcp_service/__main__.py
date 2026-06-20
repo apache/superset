@@ -25,21 +25,37 @@ import io
 import logging
 import os
 import sys
-from typing import Any
+from typing import Any, Callable
 
 # Must redirect click output BEFORE importing anything that uses it
 import click
 
 # Monkey-patch click to redirect output to stderr in stdio mode
 if os.environ.get("FASTMCP_TRANSPORT", "stdio") == "stdio":
+    original_echo = click.echo
     original_secho = click.secho
 
-    def secho_to_stderr(*args: Any, **kwargs: Any) -> Any:
-        kwargs["file"] = sys.stderr
-        return original_secho(*args, **kwargs)
+    def redirect_to_stderr(
+        original_func: Callable[..., None],
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        if len(args) >= 2:
+            args = (args[0], sys.stderr, *args[2:])
+            kwargs.pop("file", None)
+        else:
+            kwargs["file"] = sys.stderr
 
+        original_func(*args, **kwargs)
+
+    def echo_to_stderr(*args: Any, **kwargs: Any) -> None:
+        redirect_to_stderr(original_echo, *args, **kwargs)
+
+    def secho_to_stderr(*args: Any, **kwargs: Any) -> None:
+        redirect_to_stderr(original_secho, *args, **kwargs)
+
+    click.echo = echo_to_stderr
     click.secho = secho_to_stderr
-    click.echo = lambda *args, **kwargs: click.echo(*args, file=sys.stderr, **kwargs)
 
 from superset.mcp_service.app import init_fastmcp_server, mcp
 from superset.mcp_service.middleware import create_response_size_guard_middleware

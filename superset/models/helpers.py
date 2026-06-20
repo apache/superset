@@ -90,6 +90,8 @@ from superset.exceptions import (
     InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
     SupersetSecurityException,
@@ -115,6 +117,7 @@ from superset.utils.core import (
     GenericDataType,
     get_base_axis_labels,
     get_column_name,
+    get_column_names,
     get_metric_names,
     get_non_base_axis_columns,
     get_user_id,
@@ -1192,6 +1195,51 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 expression = sanitize_clause(expression, engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            # Adhoc expressions are user-controlled SQL that ends up inside a
+            # `literal_column(...)`. Apply the operator-configured
+            # `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` gates at the
+            # validation step so a dangerous function call (e.g. `version()`,
+            # `pg_read_file(...)`, `query_to_xml(...)`) is rejected before the
+            # expression is incorporated into the final SQL. This complements
+            # the same gate applied at query-execution time and gives the
+            # adhoc-expression path defense in depth.
+            disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
+                engine, set()
+            )
+            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
+            if disallowed_functions or disallowed_tables:
+                # `_process_select_expression` (and siblings) pre-wraps the
+                # input with `SELECT ...`; other callers pass bare
+                # expressions. Detect and don't double-wrap, otherwise
+                # `SELECT SELECT ...` fails the sqlglot parse.
+                sql_to_check = (
+                    expression
+                    if expression.strip().upper().startswith("SELECT")
+                    else f"SELECT {expression}"
+                )
+                parsed = SQLScript(sql_to_check, engine=engine)
+                if disallowed_functions and parsed.check_functions_present(
+                    disallowed_functions
+                ):
+                    raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+                if disallowed_tables and parsed.check_tables_present(disallowed_tables):
+                    # Report only the tables actually found in the expression,
+                    # mirroring the canonical execution-time gate in
+                    # `superset.sql_lab._validate_query` so the user-facing
+                    # error doesn't echo the operator's full denylist.
+                    present_tables = {
+                        table.table.lower()
+                        for statement in parsed.statements
+                        for table in statement.tables
+                    }
+                    found_tables = {
+                        table
+                        for table in disallowed_tables
+                        if table.lower() in present_tables
+                    }
+                    raise SupersetDisallowedSQLTableException(
+                        found_tables or disallowed_tables
+                    )
         return expression
 
     def _process_select_expression(
@@ -1402,6 +1450,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
 
+    def _raise_for_disallowed_sql(self, sql: str) -> None:
+        """
+        Mirror the DISALLOWED_SQL_* gate that sql_lab.execute_sql_statement
+        enforces so both query surfaces honour the same denylist.
+        """
+        engine = self.db_engine_spec.engine
+        disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(engine, set())
+        disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
+        if not (disallowed_functions or disallowed_tables):
+            return
+
+        parsed_script = SQLScript(sql, engine=engine)
+        if disallowed_functions and parsed_script.check_functions_present(
+            disallowed_functions
+        ):
+            raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+        if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
+            # Report only the tables actually found in the query, mirroring the
+            # canonical execution-time gate so the user-facing error doesn't
+            # echo the operator's full denylist.
+            present_tables = {
+                table.table.lower()
+                for statement in parsed_script.statements
+                for table in statement.tables
+            }
+            found_tables = {
+                table for table in disallowed_tables if table.lower() in present_tables
+            }
+            raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
+
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         """
         Executes the query and returns a dataframe.
@@ -1412,6 +1490,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
+
+        self._raise_for_disallowed_sql(sql)
+
         status = QueryStatus.SUCCESS
         errors = None
         error_message = None
@@ -1484,6 +1565,61 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         return self.query(qry)
 
+    def _python_date_format(self, column: str | None) -> str | None:
+        """Return the column's configured ``python_date_format`` (e.g. ``epoch_s``
+        or a strftime pattern), or ``None`` if the column declares no format.
+        Reads from either a column object or a dict, matching ``_is_dttm``."""
+        if not hasattr(self, "get_column") or not (col := self.get_column(column)):
+            return None
+        fmt = (
+            col.get("python_date_format")
+            if isinstance(col, dict)
+            else getattr(col, "python_date_format", None)
+        )
+        return str(fmt) if fmt else None
+
+    def _collect_dttm_labels(
+        self, query_object: QueryObject
+    ) -> tuple[tuple[str, str | None], ...]:
+        """``(label, python_date_format)`` for the columns whose values should be
+        normalized to datetimes: base-axis / granularity columns (aggregated
+        charts), plus raw/unaggregated temporal columns that declare a
+        ``python_date_format``. The raw columns are gated on the declared format
+        rather than ``is_dttm`` alone so a plain integer column is not misread as
+        nanosecond timestamps. The format is resolved here with a single column
+        lookup per label so callers need not look it up again."""
+
+        def _resolve(label: str | None) -> tuple[bool, str | None]:
+            """``(is_dttm, python_date_format)`` from one ``get_column`` lookup."""
+            if not hasattr(self, "get_column") or not (col := self.get_column(label)):
+                return False, None
+            if isinstance(col, dict):
+                fmt = col.get("python_date_format")
+                return bool(col.get("is_dttm")), str(fmt) if fmt else None
+            fmt = getattr(col, "python_date_format", None)
+            return bool(col.is_dttm), str(fmt) if fmt else None
+
+        labels: list[tuple[str, str | None]] = []
+        seen: set[str] = set()
+        for label in [
+            *get_base_axis_labels(query_object.columns),
+            query_object.granularity,
+        ]:
+            if not label or label in seen:
+                continue
+            is_dttm, fmt = _resolve(label)
+            if is_dttm:
+                labels.append((label, fmt))
+                seen.add(label)
+        for label in get_column_names(query_object.columns):
+            if label in seen:
+                continue
+            is_dttm, fmt = _resolve(label)
+            if is_dttm and fmt:
+                labels.append((label, fmt))
+                seen.add(label)
+        return tuple(labels)
+
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         """
         Normalize the dataframe by converting datetime columns and ensuring
@@ -1493,46 +1629,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param query_object: The query object with metadata about columns
         :return: Normalized dataframe
         """
-
-        def _get_timestamp_format(column: str | None) -> str | None:
-            if not hasattr(self, "get_column"):
-                return None
-            column_obj = self.get_column(column)
-            if (
-                column_obj
-                and hasattr(column_obj, "python_date_format")
-                and (formatter := column_obj.python_date_format)
-            ):
-                return str(formatter)
-            return None
-
-        # Collect datetime columns
-        labels = tuple(
-            label
-            for label in [
-                *get_base_axis_labels(query_object.columns),
-                query_object.granularity,
-            ]
-            if hasattr(self, "get_column")
-            and (col := self.get_column(label))
-            and (col.get("is_dttm") if isinstance(col, dict) else col.is_dttm)
-        )
+        labels = self._collect_dttm_labels(query_object)
 
         dttm_cols = [
             DateColumn(
-                timestamp_format=_get_timestamp_format(label),
+                timestamp_format=fmt,
                 offset=self.offset,
                 time_shift=query_object.time_shift,
                 col_label=label,
             )
-            for label in labels
-            if label
+            for label, fmt in labels
         ]
 
         if DTTM_ALIAS in df:
             dttm_cols.append(
                 DateColumn.get_legacy_time_column(
-                    timestamp_format=_get_timestamp_format(query_object.granularity),
+                    timestamp_format=self._python_date_format(query_object.granularity),
                     offset=self.offset,
                     time_shift=query_object.time_shift,
                 )
@@ -2209,7 +2321,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: str,
         time_offset: str | None = None,
     ) -> str:
-        value = row[column_index]
+        value = row.iloc[column_index]
 
         if hasattr(value, "strftime"):
             if time_offset and not ExploreMixin.is_valid_date_range_static(time_offset):
@@ -2726,7 +2838,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # automatically add a random alias to the projection because of the
                 # call to DISTINCT; others will uppercase the column names. This
                 # gives us a deterministic column name in the dataframe.
-                [target_col.get_sqla_col(template_processor=tp).label("column_values")]
+                target_col.get_sqla_col(template_processor=tp).label("column_values")
             )
             .select_from(tbl)
             .distinct()
@@ -2820,15 +2932,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Select:
         """Build validation query based on expression type. Raises on error."""
         if expression_type == SqlExpressionType.COLUMN:
-            return sa.select([sa.literal_column(expression).label("test_col")])
+            return sa.select(sa.literal_column(expression).label("test_col"))
         elif expression_type == SqlExpressionType.METRIC:
-            return sa.select([sa.literal_column(expression).label("test_metric")])
+            return sa.select(sa.literal_column(expression).label("test_metric"))
         elif expression_type == SqlExpressionType.WHERE:
-            return sa.select([sa.literal(1)]).where(sa.text(expression))
+            return sa.select(sa.literal(1)).where(sa.text(expression))
         elif expression_type == SqlExpressionType.HAVING:
             dummy_col = sa.literal("A").label("dummy")
             return (
-                sa.select([dummy_col])
+                sa.select(dummy_col)
                 .group_by(sa.text("dummy"))
                 .having(sa.text(expression))
             )
@@ -2902,7 +3014,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Column:
         label = label or tbl_column.column_name
         db_engine_spec = self.db_engine_spec
-        column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
+        column_spec = db_engine_spec.get_column_spec(
+            tbl_column.type, db_extra=self.db_extra
+        )
         type_ = column_spec.sqla_type if column_spec else None
         if expression := tbl_column.expression:
             if template_processor:
@@ -3056,7 +3170,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for orig_col, ascending in orderby:  # noqa: B007
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
-                col = cast(AdhocMetric, col)
+                # process a copy, as the dict is shared with `QueryObject.orderby`
+                # and `QueryContext.cache_values`; writing the processed expression
+                # back would change the cache key of a rehydrated query context
+                col = cast(AdhocMetric, dict(col))
                 if col.get("sqlExpression"):
                     col["sqlExpression"] = self._process_orderby_expression(
                         expression=col["sqlExpression"],
@@ -3260,7 +3377,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if not db_engine_spec.allows_hidden_orderby_agg:
             select_exprs = remove_duplicates(select_exprs + orderby_exprs)
 
-        qry = sa.select(select_exprs)
+        qry = sa.select(*select_exprs)
 
         if groupby_all_columns:
             qry = qry.group_by(*groupby_all_columns.values())
@@ -3600,7 +3717,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     inner_select_exprs.append(inner)
 
                 inner_select_exprs += [inner_main_metric_expr]
-                subq = sa.select(inner_select_exprs).select_from(tbl)
+                subq = sa.select(*inner_select_exprs).select_from(tbl)
                 inner_time_filter = []
 
                 if dttm_col and not db_engine_spec.time_groupby_inline:
@@ -3665,7 +3782,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
 
                     # Reconstruct query with modified expressions
-                    qry = sa.select(select_exprs)
+                    qry = sa.select(*select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(*groupby_all_columns.values())
 
@@ -3739,7 +3856,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
 
                     # Reconstruct query with modified expressions
-                    qry = sa.select(select_exprs)
+                    qry = sa.select(*select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(*groupby_all_columns.values())
 
@@ -3766,7 +3883,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             label = "rowcount"
             col = self.make_sqla_column_compatible(literal_column("COUNT(*)"), label)
-            qry = sa.select([col]).select_from(qry.alias("rowcount_qry"))
+            qry = sa.select(col).select_from(qry.alias("rowcount_qry"))
             labels_expected = [label]
 
         filter_columns = [flt.get("col") for flt in filter] if filter else []
