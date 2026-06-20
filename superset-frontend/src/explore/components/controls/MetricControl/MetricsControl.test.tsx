@@ -155,9 +155,14 @@ test('only edits the targeted metric when two metrics share an optionName', asyn
   await screen.findByText('MAX(value)');
   userEvent.click(screen.getByRole('button', { name: /save/i }));
 
-  // The untouched AVG(value) metric must still be present and unchanged.
+  // The edit must propagate to the targeted metric (SUM → MAX) while the
+  // untouched AVG(value) metric stays present and unchanged.
   expect(onChange).toHaveBeenCalledWith(
     expect.arrayContaining([
+      expect.objectContaining({
+        aggregate: AGGREGATES.MAX,
+        label: 'MAX(value)',
+      }),
       expect.objectContaining({
         aggregate: AGGREGATES.AVG,
         label: 'AVG(value)',
