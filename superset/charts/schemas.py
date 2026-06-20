@@ -1467,8 +1467,8 @@ class ChartDataQueryObjectSchema(Schema):
             ("timeseries_limit_metric", "series_limit_metric"),
         )
         for old, new in _renames:
-            if value := data.pop(old, None):
-                data[new] = value
+            if old in data:
+                data.setdefault(new, data.pop(old))
         return data
 
 
