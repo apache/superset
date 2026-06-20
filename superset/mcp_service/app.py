@@ -127,16 +127,42 @@ Available tools:
 Dashboard Management:
 - list_dashboards: List dashboards with advanced filters (1-based pagination)
 - get_dashboard_info: Get detailed dashboard information by ID
+- get_dashboard_layout: Get parsed tabs and chart positions for a dashboard (companion to get_dashboard_info when its omitted_fields hint flags position_json)
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
+
+Annotation Layers:
+- list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
+- get_annotation_layer_info: Get annotation layer details by ID
+- list_layer_annotations: List annotations within a layer (requires layer_id, 1-based pagination)
+- get_layer_annotation_info: Get annotation details by layer_id and annotation_id
+
+Tag Management:
+- list_tags: List tags with advanced filters (1-based pagination)
+- get_tag_info: Get detailed tag information by ID
 
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
 
+User and Role Management:
+- list_users: List users with filtering (1-based pagination, admin only)
+- get_user_info: Get user details by ID (admin only)
+- list_roles: List roles with filtering (1-based pagination, admin only)
+- get_role_info: Get role details by ID (admin only)
+
+Row Level Security (Admin only):
+- list_rls_filters: List RLS filters with filtering and search (1-based pagination)
+- get_rls_filter_info: Get detailed RLS filter info by ID (tables, roles, clause)
+
+Alerts & Reports:
+- list_reports: List alerts and reports with filtering and search (1-based pagination)
+- get_report_info: Get detailed alert/report schedule info by ID
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
+- create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
@@ -155,9 +181,17 @@ SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id and SQL access)
 - save_sql_query: Save a SQL query to Saved Queries list (requires write access)
 - open_sql_lab_with_context: Generate SQL Lab URL with pre-filled sql
+- list_saved_queries: List saved SQL queries with filtering and search (1-based pagination)
+- get_saved_query_info: Get saved query details by ID or UUID
+- list_queries: List SQL query history with filtering and search (1-based pagination)
+- get_query_info: Get SQL query history details by ID
 
 Schema Discovery:
-- get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
+- get_schema: Get schema metadata for chart/dataset/dashboard/database/report (columns, filters)
+
+Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
+- list_tasks: List background tasks with status filtering and pagination
+- get_task_info: Get task details by integer ID or UUID
 
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
@@ -294,7 +328,16 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="xy", kind="scatter": Scatter plot for correlation analysis
 - chart_type="big_number": Big Number display (single metric, header only)
 - chart_type="big_number", show_trendline=True,
-  temporal_column="<date_col>": Big Number with trendline
+  temporal_column="<date_col>", aggregation="sum": Big Number with trendline
+  (aggregation controls how the value is computed from trendline data points;
+   default when omitted is "LAST_VALUE" — most recent point only.
+   Use aggregation="sum" for all-time totals, "mean" for averages, "max"/"min" for extremes.
+   DIAGNOSIS: if a Big Number with Trendline shows wrong values, check
+   form_data["aggregation"] — missing/LAST_VALUE means the chart shows only the last data
+   point, not a total. Fix by calling update_chart with a complete Big Number config:
+   chart_type="big_number", metric=<metric>, show_trendline=True,
+   temporal_column=<date_col>, aggregation="sum". update_chart requires the full
+   config — omitting chart_type or metric causes a validation error.)
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
@@ -364,7 +407,10 @@ IMPORTANT - Tool-Only Interaction:
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
-- Use get_schema to discover filterable columns, sortable columns, and default columns
+- Use get_schema (chart/dataset/dashboard/database/report) to discover filterable columns,
+  sortable columns, and default columns for those resource types
+- For task and list_rls_filters tools, filterable/sortable columns are listed inline in
+  each tool's docstring — get_schema does not cover these
 - Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
@@ -377,7 +423,7 @@ Input format:
 {_feature_availability}Permission Awareness:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
-- Write tools (generate_chart, generate_dashboard, update_chart, create_virtual_dataset,
+- Write tools (generate_chart, generate_dashboard, update_chart, create_dataset, create_virtual_dataset,
   save_sql_query, add_chart_to_existing_dashboard, update_chart_preview) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
@@ -586,9 +632,9 @@ def create_mcp_app(
 # Create default MCP instance for backward compatibility
 mcp = create_mcp_app()
 
-# Initialize MCP dependency injection BEFORE importing tools/prompts
-# This replaces the abstract @tool and @prompt decorators in superset_core.api.mcp
-# with concrete implementations that can register with the mcp instance
+# Initialize MCP dependency injection BEFORE importing tools/prompts.
+# Replaces the stub @tool/@prompt decorators in superset_core.mcp.decorators
+# with concrete implementations bound to this mcp instance.
 from superset.core.mcp.core_mcp_injection import (  # noqa: E402
     initialize_core_mcp_dependencies,
 )
@@ -613,6 +659,7 @@ warnings.filterwarnings(
     module=r"google\..*",
 )
 
+
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
 # Tools use the @tool decorator from `superset-core` and register automatically
@@ -620,6 +667,12 @@ warnings.filterwarnings(
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
+from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
+    get_annotation_layer_info,
+    get_layer_annotation_info,
+    list_annotation_layers,
+    list_layer_annotations,
+)
 from superset.mcp_service.chart import (  # noqa: F401, E402
     prompts as chart_prompts,
     resources as chart_resources,
@@ -639,6 +692,7 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
     generate_dashboard,
     get_dashboard_info,
+    get_dashboard_layout,
     list_dashboards,
 )
 from superset.mcp_service.database.tool import (  # noqa: F401, E402
@@ -646,6 +700,7 @@ from superset.mcp_service.database.tool import (  # noqa: F401, E402
     list_databases,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    create_dataset,
     create_virtual_dataset,
     get_dataset_info,
     list_datasets,
@@ -653,6 +708,26 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
+)
+from superset.mcp_service.query.tool import (  # noqa: F401, E402
+    get_query_info,
+    list_queries,
+)
+from superset.mcp_service.report.tool import (  # noqa: F401, E402
+    get_report_info,
+    list_reports,
+)
+from superset.mcp_service.rls.tool import (  # noqa: F401, E402
+    get_rls_filter_info,
+    list_rls_filters,
+)
+from superset.mcp_service.role.tool import (  # noqa: F401, E402
+    get_role_info,
+    list_roles,
+)
+from superset.mcp_service.saved_query.tool import (  # noqa: F401, E402
+    get_saved_query_info,
+    list_saved_queries,
 )
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
@@ -670,6 +745,81 @@ from superset.mcp_service.system.tool import (  # noqa: F401, E402
     get_schema,
     health_check,
 )
+from superset.mcp_service.tag.tool import (  # noqa: F401, E402
+    get_tag_info,
+    list_tags,
+)
+from superset.mcp_service.task.tool import (  # noqa: F401, E402
+    get_task_info,
+    list_tasks,
+)
+from superset.mcp_service.user.tool import (  # noqa: F401, E402
+    get_user_info,
+    list_users,
+)
+
+#: Tool names exempt from the mcp_auth_hook protection check. Adding a tool
+#: here is a security-significant choice — review carefully. Entries are tools
+#: that intentionally run without authentication; ``generate_bug_report`` is
+#: public so users can collect diagnostics even when auth itself is broken.
+#: Frozen so accidental post-init mutation (``ALLOWED_UNPROTECTED.add(...)``)
+#: raises ``AttributeError`` rather than silently widening the security
+#: allowlist after the startup assertion has already run.
+ALLOWED_UNPROTECTED: frozenset[str] = frozenset({"generate_bug_report"})
+
+
+def assert_all_tools_protected(mcp_instance: FastMCP) -> None:
+    """Fail loudly at startup if any registered tool bypassed ``mcp_auth_hook``.
+
+    The fresh-app-context-per-call fix in #39385 only protects tools that
+    actually go through ``mcp_auth_hook``. This catches all three known bypass
+    paths (see #39395):
+
+    * ``@tool(protect=False)`` — the wrapper is skipped entirely.
+    * Silent fallback in ``create_tool_decorator`` (now fail-fast, but a future
+      regression could reintroduce it).
+    * Direct ``mcp.add_tool()`` calls that skip the decorator.
+
+    Raises:
+        RuntimeError: if any tool's underlying function lacks the
+            ``_mcp_auth_protected`` marker set by ``mcp_auth_hook``.
+    """
+    # FastMCP 3.x exposes components keyed as ``"<kind>:<name>@..."`` (tools,
+    # prompts, resources) in the local provider's component dict. Tool values
+    # are ``FunctionTool`` objects with ``.name`` and ``.fn`` attributes.
+    tools_checked = 0
+    for key, component in mcp_instance.local_provider._components.items():
+        # Prompts and resources are intentionally skipped here. They use the
+        # same ``mcp_auth_hook`` (via ``create_prompt_decorator`` and the
+        # resource-level ``@mcp_auth_hook`` convention documented in
+        # ``mcp_service/CLAUDE.md``) but their bypass surface is different —
+        # ``protect=False`` on a prompt would need its own ``assert_all_
+        # prompts_protected`` check. Tracked as a follow-up per @aminghadersohi.
+        if not key.startswith("tool:"):
+            continue
+        tools_checked += 1
+        name = getattr(component, "name", None) or key
+        fn = getattr(component, "fn", None)
+        if name in ALLOWED_UNPROTECTED:
+            continue
+        if not getattr(fn, "_mcp_auth_protected", False):
+            raise RuntimeError(
+                f"SECURITY: MCP tool '{name}' registered without mcp_auth_hook. "
+                f"All tools must use @tool() with protect=True or be explicitly "
+                f"allowlisted in ALLOWED_UNPROTECTED."
+            )
+
+    # Defense against silent FastMCP API drift: if the private
+    # ``local_provider._components`` attribute or the ``"tool:"`` key prefix
+    # changes in a future FastMCP release, this loop would match nothing and
+    # vacuously return success. Log a warning so the regression is visible in
+    # the startup logs and routine ops review.
+    if tools_checked == 0:
+        logger.warning(
+            "assert_all_tools_protected inspected 0 tools — FastMCP internal "
+            "API (local_provider._components, 'tool:' key prefix) may have "
+            "changed. Review and update the iteration in app.py."
+        )
 
 
 def _remove_disabled_tools(disabled_tools: set[str]) -> None:
@@ -689,6 +839,38 @@ def _remove_disabled_tools(disabled_tools: set[str]) -> None:
                 "check the tool name is correct",
                 tool_name,
             )
+
+
+def _remove_tool_quietly(tool_name: str, reason: str) -> None:
+    """Remove a single tool from the global MCP instance, ignoring missing-tool errors."""
+    try:
+        mcp.local_provider.remove_tool(tool_name)
+        logger.info("Disabled MCP tool: %s (%s)", tool_name, reason)
+    except KeyError:
+        pass
+
+
+def _apply_config_guards(flask_app: Any) -> set[str]:
+    """Remove tools whose backing features are administratively disabled.
+
+    Returns the set of tool names that were removed so that callers can exclude
+    them from generated instructions.
+
+    - Task tools: mirrors TaskRestApi conditional registration which checks
+      the GLOBAL_TASK_FRAMEWORK feature flag via feature_flag_manager so that
+      all Superset enablement paths (DEFAULT_FEATURE_FLAGS, GET_FEATURE_FLAGS_FUNC,
+      IS_FEATURE_ENABLED_FUNC, etc.) are respected.
+    """
+    removed: set[str] = set()
+
+    from superset.extensions import feature_flag_manager  # noqa: PLC0415
+
+    if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+        for tool_name in ("list_tasks", "get_task_info"):
+            _remove_tool_quietly(tool_name, "GLOBAL_TASK_FRAMEWORK not enabled")
+            removed.add(tool_name)
+
+    return removed
 
 
 def init_fastmcp_server(
@@ -719,8 +901,9 @@ def init_fastmcp_server(
     Returns:
         The global FastMCP instance configured with the provided settings
     """
-    # Read branding from Flask config's APP_NAME
-    from superset.mcp_service.flask_singleton import app as flask_app
+    # circular import: flask_singleton imports from superset.extensions which
+    # re-enters mcp_service during startup; must stay lazy inside the function.
+    from superset.mcp_service.flask_singleton import app as flask_app  # noqa: PLC0415
 
     # Derive branding from Superset's APP_NAME config (defaults to "Superset")
     app_name = flask_app.config.get("APP_NAME", "Superset")
@@ -735,9 +918,13 @@ def init_fastmcp_server(
     # instructions never advertise tools that clients cannot actually call.
     disabled_tools: set[str] = flask_app.config.get("MCP_DISABLED_TOOLS", set())
     _remove_disabled_tools(disabled_tools)
+    config_guard_removed = _apply_config_guards(flask_app)
 
     if instructions is None:
-        instructions = get_default_instructions(branding, disabled_tools)
+        # Merge MCP_DISABLED_TOOLS with config-guard removals so the instructions
+        # never advertise tools that have been suppressed by either mechanism.
+        all_disabled = disabled_tools | config_guard_removed
+        instructions = get_default_instructions(branding, all_disabled)
 
     # Configure the global mcp instance with provided settings.
     # Tools are already registered on this instance via @tool decorator imports above.
@@ -765,6 +952,9 @@ def init_fastmcp_server(
 
     # Apply any additional configuration
     _apply_config(mcp, config)
+
+    # Final invariant: every tool must have gone through mcp_auth_hook.
+    assert_all_tools_protected(mcp)
 
     logger.info("Configured FastMCP instance: %s (auth=%s)", name, auth is not None)
     return mcp

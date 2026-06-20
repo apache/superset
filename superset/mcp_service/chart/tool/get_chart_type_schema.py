@@ -115,6 +115,14 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "chart_type": "big_number",
             "metric": {"name": "revenue", "aggregate": "SUM"},
         },
+        {
+            "chart_type": "big_number",
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "temporal_column": "order_date",
+            "show_trendline": True,
+            "aggregation": "sum",
+            "time_grain": "P1D",
+        },
     ],
 }
 

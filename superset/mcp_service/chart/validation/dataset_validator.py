@@ -115,7 +115,7 @@ class DatasetValidator:
         return True, None
 
     @staticmethod
-    def _validate_columns_exist(
+    def _validate_columns_exist(  # noqa: C901
         column_refs: List[ColumnRef], dataset_context: DatasetContext
     ) -> ChartGenerationError | None:
         """Validate that non-saved-metric column refs exist in the dataset.
@@ -139,6 +139,12 @@ class DatasetValidator:
         for col_ref in column_refs:
             if col_ref.saved_metric:
                 continue
+            if col_ref.sql_expression:
+                # SQL metrics don't reference a dataset column.
+                continue
+            if col_ref.name is None:
+                # Should be unreachable per validate_metric_shape; defensive.
+                continue
             name_lower = col_ref.name.lower()
             if name_lower in column_names_lower:
                 continue
@@ -158,6 +164,9 @@ class DatasetValidator:
 
         suggestions_map = {}
         for col_ref in invalid_columns:
+            # Loop above filters out refs without a name; defensive guard.
+            if col_ref.name is None:
+                continue
             suggestions = DatasetValidator._get_column_suggestions(
                 col_ref.name, dataset_context
             )
@@ -371,14 +380,16 @@ class DatasetValidator:
     ) -> None:
         """Normalize column names in an XY chart config dict in place."""
         # Normalize x-axis column
-        if "x" in config_dict and config_dict["x"]:
+        if "x" in config_dict and config_dict["x"] and config_dict["x"].get("name"):
             config_dict["x"]["name"] = DatasetValidator._get_canonical_column_name(
                 config_dict["x"]["name"], dataset_context
             )
 
-        # Normalize y-axis columns
+        # Normalize y-axis columns (skip SQL-expression metrics; no name).
         if "y" in config_dict and config_dict["y"]:
             for y_col in config_dict["y"]:
+                if not y_col.get("name"):
+                    continue
                 y_col["name"] = DatasetValidator._get_canonical_column_name(
                     y_col["name"], dataset_context
                 )
@@ -386,6 +397,8 @@ class DatasetValidator:
         # Normalize group_by columns
         if "group_by" in config_dict and config_dict["group_by"]:
             for gb_col in config_dict["group_by"]:
+                if not gb_col.get("name"):
+                    continue
                 gb_col["name"] = DatasetValidator._get_canonical_column_name(
                     gb_col["name"], dataset_context
                 )
@@ -397,6 +410,9 @@ class DatasetValidator:
         """Normalize column names in a table chart config dict in place."""
         if "columns" in config_dict and config_dict["columns"]:
             for col in config_dict["columns"]:
+                # Skip SQL-expression metrics: no underlying column name.
+                if not col.get("name"):
+                    continue
                 col["name"] = DatasetValidator._get_canonical_column_name(
                     col["name"], dataset_context
                 )
@@ -514,20 +530,20 @@ class DatasetValidator:
             ChartErrorBuilder,
         )
 
-        # Format error message
         if len(invalid_columns) == 1:
             col = invalid_columns[0]
-            suggestions = suggestions_map.get(col.name, [])
+            col_name = col.name or "<unknown column>"
+            suggestions = suggestions_map.get(col_name, [])
 
             if suggestions:
                 return ChartErrorBuilder.column_not_found_error(
-                    col.name, [s.name for s in suggestions]
+                    col_name, [s.name for s in suggestions]
                 )
             else:
-                return ChartErrorBuilder.column_not_found_error(col.name)
+                return ChartErrorBuilder.column_not_found_error(col_name)
         else:
             # Multiple invalid columns
-            invalid_names = [col.name for col in invalid_columns]
+            invalid_names: list[str] = [col.name for col in invalid_columns if col.name]
             return ChartErrorBuilder.build_error(
                 error_type="multiple_invalid_columns",
                 template_key="column_not_found",
@@ -556,10 +572,13 @@ class DatasetValidator:
         _column_exists (which checks both lists) but fail at query time.
         """
         metric_names = {m["name"].lower() for m in dataset_context.available_metrics}
-        invalid = [
+        # ``saved_metric=True`` requires ``name`` per ColumnRef.validate_metric_shape.
+        invalid: list[str] = [
             col_ref.name
             for col_ref in column_refs
-            if col_ref.saved_metric and col_ref.name.lower() not in metric_names
+            if col_ref.saved_metric
+            and col_ref.name is not None
+            and col_ref.name.lower() not in metric_names
         ]
         if not invalid:
             return None
@@ -597,7 +616,13 @@ class DatasetValidator:
         for col_ref in column_refs:
             if col_ref.saved_metric:
                 continue  # Saved metrics have built-in aggregation
+            if col_ref.sql_expression:
+                # Custom SQL metrics bring their own aggregation expression.
+                continue
             if not col_ref.aggregate:
+                continue
+            if col_ref.name is None:
+                # Should be unreachable per validate_metric_shape; defensive.
                 continue
 
             # Find column info

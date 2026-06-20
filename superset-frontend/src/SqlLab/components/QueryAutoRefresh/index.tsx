@@ -18,7 +18,7 @@
  */
 import { useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { isObject } from 'lodash';
 import rison from 'rison';
 import {

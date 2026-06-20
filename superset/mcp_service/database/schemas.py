@@ -24,7 +24,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, cast, Dict, List, Literal
 
-import humanize
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -43,6 +42,7 @@ from superset.mcp_service.common.cache_schemas import (
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -305,14 +305,6 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
     return value
 
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
-    return humanize.naturaltime(now - dt)
-
-
 def _get_backend(database: Any) -> str | None:
     """Safely get backend from a Database object or row proxy.
 
@@ -351,7 +343,7 @@ def serialize_database_object(database: Any) -> DatabaseInfo | None:
         external_url=getattr(database, "external_url", None),
         extra=_parse_json_field(database, "extra"),
         changed_on=getattr(database, "changed_on", None),
-        changed_on_humanized=_humanize_timestamp(getattr(database, "changed_on", None)),
+        changed_on_humanized=humanize_timestamp(getattr(database, "changed_on", None)),
         created_on=getattr(database, "created_on", None),
-        created_on_humanized=_humanize_timestamp(getattr(database, "created_on", None)),
+        created_on_humanized=humanize_timestamp(getattr(database, "created_on", None)),
     )

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { Meta, StoryObj } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react-webpack5';
 import { Tag } from 'src/components/Tag';
 import type { CheckableTagProps } from 'src/components/Tag';
 import type { TagType } from 'src/types/TagType';

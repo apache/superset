@@ -42,7 +42,7 @@ vi.mock('ws');
 vi.mock('ioredis', () => {
   return {
     Redis: vi.fn().mockImplementation(function () {
-      return { xrange: mockRedisXrange };
+      return { xrange: mockRedisXrange, on: vi.fn() };
     }),
   };
 });
@@ -146,6 +146,43 @@ describe('server', () => {
 
     test('it handles an invalid Redis stream ID', () => {
       expect(server.incrementId('foo')).toEqual('foo');
+    });
+  });
+
+  describe('getLastId', () => {
+    const requestWithUrl = (url: string): http.IncomingMessage => {
+      const request = new http.IncomingMessage(new net.Socket());
+      request.url = url;
+      return request;
+    };
+
+    test('returns null when last_id is absent', () => {
+      expect(server.getLastId(requestWithUrl('http://localhost'))).toBeNull();
+    });
+
+    test('returns a well-formed Redis stream ID', () => {
+      expect(
+        server.getLastId(
+          requestWithUrl('http://localhost?last_id=1607477697866-0'),
+        ),
+      ).toEqual('1607477697866-0');
+    });
+
+    test.each([
+      'abc-xyz',
+      '1607477697866',
+      '1607477697866-',
+      '-0',
+      '1607477697866-0; DROP TABLE',
+      '1607477697866-0-0',
+    ])('returns null for malformed last_id %p', value => {
+      expect(
+        server.getLastId(
+          requestWithUrl(
+            `http://localhost?last_id=${encodeURIComponent(value)}`,
+          ),
+        ),
+      ).toBeNull();
     });
   });
 
@@ -261,6 +298,136 @@ describe('server', () => {
       expect(sendMock).toHaveBeenCalled();
       expect(Object.keys(server.channels)).toHaveLength(0);
     });
+
+    const makeItem = (i: number): server.StreamResult =>
+      [
+        `161542615${i}-0`,
+        [
+          'data',
+          JSON.stringify({
+            channel_id: channelId,
+            job_id: `job-${i}`,
+            status: 'done',
+          }),
+        ],
+      ] as server.StreamResult;
+
+    afterEach(() => {
+      server.opts.eventYieldBatchSize = 100;
+    });
+
+    test('yields to the event loop for large batches', async () => {
+      server.opts.eventYieldBatchSize = 2;
+      const ws = new wsMock('localhost');
+      server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      const sendMock = jest.spyOn(ws, 'send');
+      const setImmediateSpy = jest.spyOn(global, 'setImmediate');
+
+      const results = [0, 1, 2, 3, 4].map(makeItem);
+      await server.processStreamResults(results);
+
+      // every event is still delivered
+      expect(sendMock).toHaveBeenCalledTimes(5);
+      // and the loop yielded at least at indexes 2 and 4
+      expect(setImmediateSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+      setImmediateSpy.mockRestore();
+    });
+
+    test('processes the whole batch when yielding is disabled', async () => {
+      server.opts.eventYieldBatchSize = 0;
+      const ws = new wsMock('localhost');
+      server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      const sendMock = jest.spyOn(ws, 'send');
+
+      const results = [0, 1, 2, 3, 4].map(makeItem);
+      await server.processStreamResults(results);
+
+      expect(sendMock).toHaveBeenCalledTimes(5);
+    });
+  });
+
+  describe('backpressure', () => {
+    const fakeEvent = {
+      id: '1615426152415-0',
+      channel_id: channelId,
+      job_id: 'c9b99965-8f1e-4ce5-aa43-d6fc94d6a510',
+      status: 'done',
+    };
+
+    afterEach(() => {
+      server.opts.maxSocketBufferBytes = 0;
+      // Restore any spies (e.g. on server.cleanChannel) so they don't leak
+      // across tests and cause order-dependent failures.
+      jest.restoreAllMocks();
+    });
+
+    test('does not terminate when cap disabled (0)', () => {
+      server.opts.maxSocketBufferBytes = 0;
+      const ws = new wsMock('localhost');
+      // simulate a large outbound buffer
+      (ws as unknown as { bufferedAmount: number }).bufferedAmount = 10_000_000;
+      const terminateMock = jest.spyOn(ws, 'terminate');
+      const sendMock = jest.spyOn(ws, 'send');
+      server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+
+      server.sendToChannel(channelId, fakeEvent);
+
+      expect(terminateMock).not.toHaveBeenCalled();
+      expect(sendMock).toHaveBeenCalled();
+    });
+
+    test('terminates a slow client whose buffer exceeds the cap', () => {
+      server.opts.maxSocketBufferBytes = 1024;
+      const ws = new wsMock('localhost');
+      (ws as unknown as { bufferedAmount: number }).bufferedAmount = 2048;
+      const terminateMock = jest.spyOn(ws, 'terminate');
+      const sendMock = jest.spyOn(ws, 'send');
+      const cleanChannelMock = jest.spyOn(server, 'cleanChannel');
+      server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+
+      server.sendToChannel(channelId, fakeEvent);
+
+      expect(terminateMock).toHaveBeenCalled();
+      expect(sendMock).not.toHaveBeenCalled();
+      expect(statsdIncrementMock).toHaveBeenCalledWith(
+        'ws_client_backpressure_disconnect',
+      );
+      expect(cleanChannelMock).toHaveBeenCalledWith(channelId);
+    });
+
+    test('keeps sending to a client within the cap', () => {
+      server.opts.maxSocketBufferBytes = 1024;
+      const ws = new wsMock('localhost');
+      (ws as unknown as { bufferedAmount: number }).bufferedAmount = 16;
+      const terminateMock = jest.spyOn(ws, 'terminate');
+      const sendMock = jest.spyOn(ws, 'send');
+      server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+
+      server.sendToChannel(channelId, fakeEvent);
+
+      expect(terminateMock).not.toHaveBeenCalled();
+      expect(sendMock).toHaveBeenCalled();
+    });
   });
 
   describe('fetchRangeFromStream', () => {
@@ -270,7 +437,9 @@ describe('server', () => {
 
     test('success with results', async () => {
       mockRedisXrange.mockResolvedValueOnce(streamReturnValue);
-      const cb = vi.fn();
+      const cb = vi.fn() as Mock<
+        (results: server.StreamResult[]) => void | Promise<void>
+      >;
       await server.fetchRangeFromStream({
         sessionId: '123',
         startId: '-',
@@ -287,7 +456,9 @@ describe('server', () => {
     });
 
     test('success no results', async () => {
-      const cb = vi.fn();
+      const cb = vi.fn() as Mock<
+        (results: server.StreamResult[]) => void | Promise<void>
+      >;
       await server.fetchRangeFromStream({
         sessionId: '123',
         startId: '-',
@@ -304,7 +475,9 @@ describe('server', () => {
     });
 
     test('error', async () => {
-      const cb = vi.fn();
+      const cb = vi.fn() as Mock<
+        (results: server.StreamResult[]) => void | Promise<void>
+      >;
       mockRedisXrange.mockRejectedValueOnce(new Error());
       await server.fetchRangeFromStream({
         sessionId: '123',
@@ -382,6 +555,23 @@ describe('server', () => {
       expect(wsEventMock).toHaveBeenCalledWith('pong', expect.any(Function));
     });
 
+    test('valid JWT, malformed lastId is ignored', async () => {
+      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+      const request = getRequest(
+        validToken,
+        'http://localhost?last_id=abc-xyz',
+      );
+
+      server.wsConnection(ws, request);
+
+      expect(trackClientSpy).toHaveBeenCalledWith(
+        channelId,
+        socketInstanceExpected,
+      );
+      // Malformed last_id must not trigger a stream range fetch.
+      expect(fetchRangeFromStreamSpy).not.toHaveBeenCalled();
+    });
+
     test('valid JWT, with lastId', async () => {
       const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
       const lastId = '1615426152415-0';
@@ -435,6 +625,172 @@ describe('server', () => {
     });
   });
 
+  describe('connection limits', () => {
+    const getRequest = (token: string, url: string): http.IncomingMessage => {
+      const request = new http.IncomingMessage(new net.Socket());
+      request.method = 'GET';
+      request.headers = { cookie: `${config.jwtCookieName}=${token}` };
+      request.url = url;
+      return request;
+    };
+
+    afterEach(() => {
+      // restore opt-in limits to their disabled default
+      server.opts.maxTotalConnections = 0;
+      server.opts.maxConnectionsPerChannel = 0;
+    });
+
+    test('no limit when disabled (0)', () => {
+      server.opts.maxTotalConnections = 0;
+      server.opts.maxConnectionsPerChannel = 0;
+      const socketInstance = {
+        ws: new wsMock('localhost'),
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      expect(server.connectionLimitReason(channelId)).toBeNull();
+    });
+
+    test('total connection limit reached', () => {
+      server.opts.maxTotalConnections = 1;
+      const ws = new wsMock('localhost');
+      setReadyState(ws, WebSocket.OPEN);
+      const socketInstance = {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      expect(server.connectionLimitReason('some-other-channel')).toMatch(
+        /total connection limit/,
+      );
+    });
+
+    test('per-channel connection limit reached', () => {
+      server.opts.maxConnectionsPerChannel = 1;
+      const ws = new wsMock('localhost');
+      setReadyState(ws, WebSocket.OPEN);
+      const socketInstance = {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      expect(server.connectionLimitReason(channelId)).toMatch(
+        /per-channel connection limit/,
+      );
+    });
+
+    test('stale closed socket does not count toward total limit', () => {
+      server.opts.maxTotalConnections = 1;
+      const ws = new wsMock('localhost');
+      const socketInstance = {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      // simulate the socket having closed but not yet been GC'd
+      setReadyState(ws, WebSocket.CLOSED);
+      expect(server.connectionLimitReason('some-other-channel')).toBeNull();
+    });
+
+    test('stale closed socket does not count toward per-channel limit', () => {
+      server.opts.maxConnectionsPerChannel = 1;
+      const ws = new wsMock('localhost');
+      const socketInstance = {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      // simulate the socket having closed but not yet been GC'd
+      setReadyState(ws, WebSocket.CLOSED);
+      expect(server.connectionLimitReason(channelId)).toBeNull();
+    });
+
+    test('isSocketActive reflects the socket readyState', () => {
+      const ws = new wsMock('localhost');
+      setReadyState(ws, WebSocket.OPEN);
+      const socketId = server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      expect(server.isSocketActive(socketId)).toBe(true);
+      // CONNECTING is also considered active (see SOCKET_ACTIVE_STATES)
+      setReadyState(ws, WebSocket.CONNECTING);
+      expect(server.isSocketActive(socketId)).toBe(true);
+      setReadyState(ws, WebSocket.CLOSED);
+      expect(server.isSocketActive(socketId)).toBe(false);
+      // unknown socket ids are never active
+      expect(server.isSocketActive('does-not-exist')).toBe(false);
+    });
+
+    test('activeSocketCount counts only active sockets', () => {
+      const openWs = new wsMock('localhost');
+      setReadyState(openWs, WebSocket.OPEN);
+      server.trackClient(channelId, {
+        ws: openWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      const closedWs = new wsMock('localhost');
+      setReadyState(closedWs, WebSocket.CLOSED);
+      server.trackClient(channelId, {
+        ws: closedWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      expect(server.activeSocketCount()).toBe(1);
+    });
+
+    test('activeChannelSocketCount counts only active sockets on the channel', () => {
+      const openWs = new wsMock('localhost');
+      setReadyState(openWs, WebSocket.OPEN);
+      server.trackClient(channelId, {
+        ws: openWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      const closedWs = new wsMock('localhost');
+      setReadyState(closedWs, WebSocket.CLOSED);
+      server.trackClient(channelId, {
+        ws: closedWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      expect(server.activeChannelSocketCount(channelId)).toBe(1);
+      // unknown channels report zero active sockets
+      expect(server.activeChannelSocketCount('no-such-channel')).toBe(0);
+    });
+
+    test('wsConnection refuses over-limit connection without tracking', () => {
+      server.opts.maxConnectionsPerChannel = 1;
+      const existingWs = new wsMock('localhost');
+      setReadyState(existingWs, WebSocket.OPEN);
+      const existing = {
+        ws: existingWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, existing);
+
+      const trackClientSpy = jest.spyOn(server, 'trackClient');
+      const ws = new wsMock('localhost');
+      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+      server.wsConnection(ws, getRequest(validToken, 'http://localhost'));
+
+      expect(ws.close).toHaveBeenCalledWith(
+        1013,
+        expect.stringMatching(/limit/),
+      );
+      expect(trackClientSpy).not.toHaveBeenCalled();
+      trackClientSpy.mockRestore();
+    });
+  });
+
   describe('httpUpgrade', () => {
     let socket: net.Socket;
     let socketDestroySpy: Mock<typeof socket.destroy>;
@@ -465,6 +821,8 @@ describe('server', () => {
       server.httpUpgrade(request, socket, Buffer.alloc(5));
       expect(socketDestroySpy).toHaveBeenCalled();
       expect(wssUpgradeSpy).not.toHaveBeenCalled();
+      // rejected upgrades are counted for auditability
+      expect(statsdIncrementMock).toHaveBeenCalledWith('ws_upgrade_rejected');
     });
 
     test('valid JWT, no channel', async () => {
@@ -485,6 +843,105 @@ describe('server', () => {
 
       expect(socketDestroySpy).not.toHaveBeenCalled();
       expect(wssUpgradeSpy).toHaveBeenCalled();
+    });
+
+    describe('origin validation', () => {
+      afterEach(() => {
+        server.opts.allowedOrigins = [];
+      });
+
+      const getRequestWithOrigin = (
+        token: string,
+        origin?: string,
+      ): http.IncomingMessage => {
+        const request = new http.IncomingMessage(new net.Socket());
+        request.method = 'GET';
+        request.headers = { cookie: `${config.jwtCookieName}=${token}` };
+        if (origin) request.headers.origin = origin;
+        request.url = 'http://localhost';
+        return request;
+      };
+
+      test('rejects upgrade from a disallowed origin', () => {
+        server.opts.allowedOrigins = ['https://superset.example.com'];
+        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const request = getRequestWithOrigin(
+          validToken,
+          'https://evil.example',
+        );
+
+        server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+        expect(socketDestroySpy).toHaveBeenCalled();
+        expect(wssUpgradeSpy).not.toHaveBeenCalled();
+      });
+
+      test('rejects upgrade with no origin when an allowlist is set', () => {
+        server.opts.allowedOrigins = ['https://superset.example.com'];
+        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const request = getRequestWithOrigin(validToken);
+
+        server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+        expect(socketDestroySpy).toHaveBeenCalled();
+        expect(wssUpgradeSpy).not.toHaveBeenCalled();
+      });
+
+      test('allows upgrade from an allowed origin', () => {
+        server.opts.allowedOrigins = ['https://superset.example.com'];
+        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const request = getRequestWithOrigin(
+          validToken,
+          'https://superset.example.com',
+        );
+
+        server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+        expect(socketDestroySpy).not.toHaveBeenCalled();
+        expect(wssUpgradeSpy).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('isOriginAllowed', () => {
+    const makeRequest = (origin?: string): http.IncomingMessage => {
+      const request = new http.IncomingMessage(new net.Socket());
+      if (origin) request.headers.origin = origin;
+      return request;
+    };
+
+    afterEach(() => {
+      server.opts.allowedOrigins = [];
+    });
+
+    test('allows any origin when allowlist is empty', () => {
+      server.opts.allowedOrigins = [];
+      expect(server.isOriginAllowed(makeRequest('https://anything'))).toBe(
+        true,
+      );
+      expect(server.isOriginAllowed(makeRequest())).toBe(true);
+    });
+
+    test('allows any origin when allowlist contains a wildcard', () => {
+      server.opts.allowedOrigins = ['*'];
+      expect(server.isOriginAllowed(makeRequest('https://anything'))).toBe(
+        true,
+      );
+    });
+
+    test('allows an exact-match origin', () => {
+      server.opts.allowedOrigins = ['https://a.example', 'https://b.example'];
+      expect(server.isOriginAllowed(makeRequest('https://b.example'))).toBe(
+        true,
+      );
+    });
+
+    test('rejects a non-matching or missing origin', () => {
+      server.opts.allowedOrigins = ['https://a.example'];
+      expect(server.isOriginAllowed(makeRequest('https://evil.example'))).toBe(
+        false,
+      );
+      expect(server.isOriginAllowed(makeRequest())).toBe(false);
     });
   });
 

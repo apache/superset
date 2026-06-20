@@ -117,7 +117,7 @@ def _sanitize_chart_preview_for_llm_context(
     """Wrap chart preview read-path descriptive fields before LLM exposure."""
     payload = chart_preview.model_dump(mode="python")
 
-    for field_name in ("chart_name", "chart_description", "ascii_chart", "table_data"):
+    for field_name in ("chart_name", "chart_description"):
         payload[field_name] = sanitize_for_llm_context(
             payload.get(field_name),
             field_path=(field_name,),
@@ -1377,22 +1377,6 @@ async def _get_chart_preview_internal(  # noqa: C901
             performance=performance,
         )
 
-        # Add format-specific fields for backward compatibility
-        if isinstance(content, ASCIIPreview):
-            result.format = "ascii"
-            result.ascii_chart = content.ascii_content
-            result.width = content.width
-            result.height = content.height
-        elif isinstance(content, TablePreview):
-            result.format = "table"
-            result.table_data = content.table_data
-        elif isinstance(content, VegaLitePreview):
-            result.format = "vega_lite"
-        elif isinstance(content, URLPreview):
-            result.format = "url"
-            result.width = content.width
-            result.height = content.height
-
         return _sanitize_chart_preview_for_llm_context(result)
 
     except SQLAlchemyError as e:
@@ -1477,7 +1461,7 @@ async def get_chart_preview(
                 "has_preview_url=%s"
                 % (
                     getattr(result, "chart_id", None),
-                    result.format,
+                    getattr(result.content, "type", None),
                     bool(getattr(result, "preview_url", None)),
                 )
             )

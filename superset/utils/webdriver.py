@@ -159,7 +159,9 @@ class WebDriverProxy(ABC):
         self._screenshot_load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
 
     @abstractmethod
-    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
+    def get_screenshot(
+        self, url: str, element_name: str, user: User | None = None
+    ) -> bytes | None:
         """
         Run webdriver and return a screenshot
         """
@@ -224,7 +226,7 @@ class WebDriverPlaywright(WebDriverProxy):
             return element.screenshot()
 
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
-        self, url: str, element_name: str, user: User
+        self, url: str, element_name: str, user: User | None = None
     ) -> bytes | None:
         if not PLAYWRIGHT_AVAILABLE:
             logger.info(
@@ -252,7 +254,8 @@ class WebDriverPlaywright(WebDriverProxy):
             context.set_default_timeout(
                 app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
             )
-            self.auth(user, context)
+            if user:
+                self.auth(user, context)
             page = context.new_page()
             try:
                 page.goto(
@@ -305,7 +308,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 logger.debug(
                     "Taking a PNG screenshot of url %s as user %s",
                     url,
-                    user.username,
+                    user.username if user else "None",
                 )
                 if app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
                     unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
@@ -369,17 +372,15 @@ class WebDriverPlaywright(WebDriverProxy):
                             element_name,
                             tile_height,
                             load_wait=self._screenshot_load_wait,
+                            animation_wait=selenium_animation_wait,
                         )
                         if img is None:
-                            logger.warning(
-                                (
-                                    "Tiled screenshot failed, "
-                                    "falling back to standard screenshot"
-                                )
+                            logger.error(
+                                "Tiled screenshot failed at url %s; "
+                                "not falling back to avoid sending a blank PDF",
+                                url,
                             )
-                            img = WebDriverPlaywright._get_screenshot(
-                                page, element, element_name
-                            )
+                            return None
                     else:
                         # Standard screenshot captures the full element including
                         # below-the-fold content, so wait for all spinners globally.
@@ -441,6 +442,30 @@ class WebDriverPlaywright(WebDriverProxy):
 
 
 class WebDriverSelenium(WebDriverProxy):
+    def __init__(
+        self,
+        driver_type: str,
+        window: WindowSize | None = None,
+        user: User | None = None,
+    ):
+        super().__init__(driver_type, window)
+        self._user = user
+        self._driver: WebDriver | None = None
+
+    def __del__(self) -> None:
+        self._destroy()
+
+    @property
+    def driver(self) -> WebDriver:
+        if not self._driver:
+            self._driver = self._create()
+            if not self._driver:
+                raise RuntimeError("WebDriver creation failed")
+            self._driver.set_window_size(*self._window)
+            if self._user:
+                self._auth(self._user)
+        return self._driver
+
     def _create_firefox_driver(
         self, pixel_density: float
     ) -> tuple[type[WebDriver], type[Service], dict[str, Any]]:
@@ -498,6 +523,22 @@ class WebDriverSelenium(WebDriverProxy):
         return config
 
     def create(self) -> WebDriver:
+        """Create and return the WebDriver instance.
+
+        This is the public interface for creating the driver. It wraps
+        the internal _create method for backward compatibility.
+        """
+        return self._create()
+
+    def destroy(self) -> None:
+        """Destroy the WebDriver instance.
+
+        This is the public interface for cleanup. It wraps the internal
+        _destroy method and should be called when done with the driver.
+        """
+        self._destroy()
+
+    def _create(self) -> WebDriver:
         pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
 
         # Get driver class and initial kwargs based on driver type
@@ -558,25 +599,29 @@ class WebDriverSelenium(WebDriverProxy):
         logger.debug("Init selenium driver")
         return driver_class(**kwargs)
 
-    def auth(self, user: User) -> WebDriver:
-        driver = self.create()
-        return machine_auth_provider_factory.instance.authenticate_webdriver(
-            driver, user
+    def _auth(self, user: User) -> None:
+        """Authenticate the persistent driver in-place."""
+        if self._driver is None:
+            raise RuntimeError("WebDriver is not initialized")
+        machine_auth_provider_factory.instance.authenticate_webdriver(
+            self._driver, user
         )
 
-    @staticmethod
-    def destroy(driver: WebDriver, tries: int = 2) -> None:
-        """Destroy a driver"""
+    def _destroy(self, tries: int = 2) -> None:
+        """Destroy the persistent driver"""
+        if not self._driver:
+            return
         # This is some very flaky code in selenium. Hence the retries
         # and catch-all exceptions
         try:
-            retry_call(driver.close, max_tries=tries)
+            retry_call(self._driver.close, max_tries=tries)
         except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
         try:
-            driver.quit()
+            self._driver.quit()
         except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
+        self._driver = None
 
     @staticmethod
     def find_unexpected_errors(driver: WebDriver) -> list[str]:
@@ -634,15 +679,26 @@ class WebDriverSelenium(WebDriverProxy):
 
         return error_messages
 
-    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:  # noqa: C901
-        driver = self.auth(user)
-        driver.set_window_size(*self._window)
+    def get_screenshot(  # noqa: C901
+        self, url: str, element_name: str, user: User | None = None
+    ) -> bytes | None:
+        # If a user is passed explicitly and differs from the stored user,
+        # update and re-authenticate
+        if user and user != self._user:
+            self._user = user
+            if self._driver:
+                self._destroy()
+        driver = self.driver
         driver.get(url)
         img: bytes | None = None
         selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
         logger.debug("Sleeping for %i seconds", selenium_headstart)
         sleep(selenium_headstart)
 
+        # WebDriver cleanup is intentionally not performed in this method. When the
+        # driver is used persistently (e.g., cache warmup), cleanup is handled
+        # externally via destroy(). When used for one-off screenshots, the caller or
+        # __del__ handles cleanup.
         try:
             try:
                 # page didn't load
@@ -705,7 +761,7 @@ class WebDriverSelenium(WebDriverProxy):
             logger.debug(
                 "Taking a PNG screenshot of url %s as user %s",
                 url,
-                user.username,
+                self._user.username if self._user else "None",
             )
 
             if app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
@@ -739,6 +795,4 @@ class WebDriverSelenium(WebDriverProxy):
         except Exception as ex:
             logger.warning("exception in webdriver", exc_info=ex)
             raise
-        finally:
-            self.destroy(driver, app.config["SCREENSHOT_SELENIUM_RETRIES"])
         return img

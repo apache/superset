@@ -31,6 +31,7 @@ import {
   JsonValue,
   QueryFormData,
   SetDataMaskHook,
+  getMapProviderMapStyle,
 } from '@superset-ui/core';
 
 import { PolygonLayer } from '@deck.gl/layers';
@@ -57,6 +58,7 @@ import { TooltipProps } from '../../components/Tooltip';
 import { GetLayerType } from '../../factory';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { DEFAULT_DECKGL_COLOR } from '../../utilities/Shared_DeckGL';
+import { getMapboxApiKey } from '../../utils/mapbox';
 import {
   createTooltipContent,
   CommonTooltipRows,
@@ -339,6 +341,12 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
     colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
       ? getColorBreakpointsBuckets(formData.color_breakpoints)
       : getBuckets(formData, payload.data.features, accessor);
+  const selectedMap = getMapProviderMapStyle({
+    mapProvider: formData.map_renderer,
+    maplibreStyle: formData.maplibre_style,
+    mapboxStyle: formData.mapbox_style,
+    legacyMapStyle: formData.map_style,
+  });
 
   return (
     <div style={{ position: 'relative' }}>
@@ -347,7 +355,9 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
         viewport={viewport}
         layers={getLayers()}
         setControlValue={setControlValue}
-        mapStyle={formData.map_style}
+        mapProvider={selectedMap.mapProvider}
+        mapStyle={selectedMap.mapStyle}
+        mapboxApiKey={getMapboxApiKey()}
         width={props.width}
         height={props.height}
       />

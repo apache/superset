@@ -48,6 +48,7 @@ import {
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
+import { validateMessageEvent } from './originValidation';
 
 setupPlugins();
 setupCodeOverrides({ embedded: true });
@@ -125,8 +126,6 @@ const EmbeddedApp = () => (
 
 const appMountPoint = document.getElementById('app')!;
 
-const MESSAGE_TYPE = '__embedded_comms__';
-
 function showFailureMessage(message: string) {
   appMountPoint.innerHTML = message;
 }
@@ -138,17 +137,6 @@ if (!window.parent || window.parent === window) {
     ),
   );
 }
-
-// if the page is embedded in an origin that hasn't
-// been authorized by the curator, we forbid access entirely.
-// todo: check the referrer on the route serving this page instead
-// const ALLOW_ORIGINS = ['http://127.0.0.1:9001', 'http://localhost:9001'];
-// const parentOrigin = new URL(document.referrer).origin;
-// if (!ALLOW_ORIGINS.includes(parentOrigin)) {
-//   throw new Error(
-//     `[superset] iframe parent ${parentOrigin} is not in the list of allowed origins`,
-//   );
-// }
 
 let displayedUnauthorizedToast = false;
 let root: Root | null = null;
@@ -225,21 +213,9 @@ function setupGuestClient(guestToken: string) {
   });
 }
 
-function validateMessageEvent(event: MessageEvent) {
-  // if (!ALLOW_ORIGINS.includes(event.origin)) {
-  //   throw new Error('Message origin is not in the allowed list');
-  // }
-
-  if (typeof event.data !== 'object' || event.data.type !== MESSAGE_TYPE) {
-    throw new Error(`Message type does not match type used for embedded comms`);
-  }
-}
-
 window.addEventListener('message', function embeddedPageInitializer(event) {
-  try {
-    validateMessageEvent(event);
-  } catch (err) {
-    log('ignoring message unrelated to embedded comms', err, event);
+  if (!validateMessageEvent(event, bootstrapData.embedded?.allowed_domains)) {
+    log('ignoring message unrelated to embedded comms', event);
     return;
   }
 

@@ -22,6 +22,7 @@ import {
   getGuestTokenRefreshTiming,
   MIN_REFRESH_WAIT_MS,
   DEFAULT_TOKEN_EXP_MS,
+  DEFAULT_TOKEN_REFRESH_RETRY_MS,
 } from "./guestTokenRefresh";
 import { afterAll, beforeAll, it, expect, describe, vi } from 'vitest';
 
@@ -93,5 +94,12 @@ describe("guest token refresh", () => {
 
     expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
     expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("exposes a positive retry delay for failed token refreshes", () => {
+    // The refresh loop reschedules itself after this delay when a fetch
+    // fails or times out, so it must be a sane positive value.
+    expect(DEFAULT_TOKEN_REFRESH_RETRY_MS).toBe(10000);
+    expect(DEFAULT_TOKEN_REFRESH_RETRY_MS).toBeGreaterThan(0);
   });
 });

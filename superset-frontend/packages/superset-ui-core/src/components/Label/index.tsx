@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { forwardRef } from 'react';
 import { Tag } from '@superset-ui/core/components/Tag';
 import { css } from '@emotion/react';
 import { useTheme, getColorVariants } from '@apache-superset/core/theme';
@@ -23,7 +24,7 @@ import { DatasetTypeLabel } from './reusable/DatasetTypeLabel';
 import { PublishedLabel } from './reusable/PublishedLabel';
 import type { LabelProps } from './types';
 
-export function Label(props: LabelProps) {
+export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
   const theme = useTheme();
   // Use Ant Design's motion duration instead of deprecated transitionTiming
   const {
@@ -71,6 +72,7 @@ export function Label(props: LabelProps) {
 
   return (
     <Tag
+      ref={ref}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       style={style}
@@ -81,6 +83,6 @@ export function Label(props: LabelProps) {
       {children}
     </Tag>
   );
-}
+});
 export { DatasetTypeLabel, PublishedLabel };
 export type { LabelType } from './types';
