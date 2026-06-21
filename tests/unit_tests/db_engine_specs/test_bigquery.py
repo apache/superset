@@ -829,19 +829,92 @@ def test_string_literal_in_filter_with_apostrophe() -> None:
 
 def test_process_string_literal_directly() -> None:
     """
-    Test _process_string_literal covers backslash escaping for apostrophes
-    and proper handling of existing backslashes.
+    Test _process_string_literal covers backslash escaping for apostrophes,
+    control-character escaping (newline/CR/tab/etc.), the ``\\xhh`` fallback
+    for control chars without a named escape, and pass-through for printable
+    Unicode and other characters BigQuery accepts unescaped.
     """
     from superset.db_engine_specs.bigquery import _process_string_literal
 
+    # Plain values
     assert _process_string_literal("hello") == "'hello'"
+    assert _process_string_literal("") == "''"
+
+    # Apostrophes (the original fix)
     assert _process_string_literal("O'Brien") == "'O\\'Brien'"
     assert _process_string_literal("it's a test") == "'it\\'s a test'"
+
     # Backslashes must be escaped before apostrophes
     assert _process_string_literal("C:\\path") == "'C:\\\\path'"
     assert _process_string_literal("it's C:\\path") == "'it\\'s C:\\\\path'"
-    # Percent signs are NOT escaped (BigQuery doesn't require it)
+
+    # Literal backslash followed by 'n' (two characters, not a newline)
+    # must produce the two-char sequence '\\n' (escaped backslash + n) so
+    # BigQuery does not misread it as a newline escape.
+    assert _process_string_literal("\\n") == "'\\\\n'"
+
+    # Control characters must be escaped using named escapes — BigQuery
+    # rejects literal control characters inside quoted strings.
+    assert _process_string_literal("foo\nbar") == "'foo\\nbar'"
+    assert _process_string_literal("foo\rbar") == "'foo\\rbar'"
+    assert _process_string_literal("foo\tbar") == "'foo\\tbar'"
+    assert _process_string_literal("a\bb\fc\vd\ae") == "'a\\bb\\fc\\vd\\ae'"
+
+    # Control characters without a named escape fall through to ``\\xhh``.
+    assert _process_string_literal("null\0byte") == "'null\\x00byte'"
+    assert _process_string_literal("a\x01b") == "'a\\x01b'"
+    assert _process_string_literal("a\x1bb") == "'a\\x1bb'"
+    assert _process_string_literal("a\x7fb") == "'a\\x7fb'"
+
+    # Double quotes do NOT need escaping in single-quoted BigQuery literals.
+    assert _process_string_literal('say "hello"') == "'say \"hello\"'"
+
+    # Printable Unicode and percent signs pass through unchanged.
+    assert _process_string_literal("café") == "'café'"
+    assert _process_string_literal("日本") == "'日本'"
     assert _process_string_literal("100%") == "'100%'"
+
+    # Combined: apostrophe + newline + backslash + unicode.
+    assert _process_string_literal("it's\nC:\\café") == "'it\\'s\\nC:\\\\café'"
+
+
+def test_process_string_literal_no_literal_control_chars() -> None:
+    """
+    Regression test for the issue raised in PR #38835 review: BigQuery
+    rejects literal control characters inside quoted string literals, so the
+    output must never contain them as literal characters.
+    """
+    from superset.db_engine_specs.bigquery import _process_string_literal
+
+    for char in ["\n", "\r", "\t", "\b", "\f", "\v", "\a", "\0", "\x01", "\x7f"]:
+        result = _process_string_literal(f"prefix{char}suffix")
+        assert char not in result, (
+            f"Literal {char!r} leaked into output {result!r}; "
+            "BigQuery would reject this literal."
+        )
+
+
+def test_string_literal_with_newline_in_filter() -> None:
+    """
+    End-to-end regression test for @rusackas's review feedback on PR #38835:
+    a filter value containing a newline must compile to valid BigQuery SQL
+    using the ``\\n`` escape sequence, not a literal newline.
+    """
+    from sqlalchemy import column as sa_column
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F811
+
+    assert BigQueryEngineSpec is not None
+
+    dialect = BigQueryDialect()
+    stmt = select(sa_column("note")).where(sa_column("note") == "line1\nline2")
+    compiled_sql = str(
+        stmt.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    # Must use the escape sequence form, not a literal newline.
+    assert "'line1\\nline2'" in compiled_sql
+    assert "\n" not in compiled_sql.split("note")[-1]
 
 
 def test_literal_processor_non_bigquery_dialect() -> None:

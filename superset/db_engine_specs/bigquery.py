@@ -84,6 +84,27 @@ if TYPE_CHECKING:
 logger = logging.getLogger()
 
 
+# BigQuery string escape sequences keyed off documented escapes in
+# https://cloud.google.com/bigquery/docs/reference/standard-sql/lexical#string_and_bytes_literals.
+# Backslash MUST be first so subsequent escapes don't double-escape their own
+# backslash.  ``\?``, ``\"`` and ``\``` are valid BigQuery escapes but
+# intentionally omitted because those characters do not require escaping
+# inside a single-quoted literal.  ``\0`` is NOT a valid BigQuery escape
+# (octal escapes require exactly three digits); the null byte instead falls
+# through to the ``\xhh`` fallback below.
+_BIGQUERY_STRING_ESCAPES = {
+    "\\": "\\\\",
+    "'": "\\'",
+    "\n": "\\n",
+    "\r": "\\r",
+    "\t": "\\t",
+    "\b": "\\b",
+    "\f": "\\f",
+    "\v": "\\v",
+    "\a": "\\a",
+}
+
+
 def _process_string_literal(value: str) -> str:
     """
     Escape a string value for use as a BigQuery SQL literal.
@@ -94,17 +115,30 @@ def _process_string_literal(value: str) -> str:
     without whitespace, causing a syntax error:
     ``concatenated string literals must be separated by whitespace``.
 
-    The upstream ``sqlalchemy-bigquery`` dialect relies on Python's ``repr()``
-    to quote values, which switches to double-quote delimiters when the string
-    contains an apostrophe (e.g. ``repr("O'Brien")`` → ``"O'Brien"``).
-    In BigQuery SQL, double-quoted tokens are *identifiers*, not string
-    literals, so the query also fails.
+    BigQuery also forbids literal newlines, carriage returns, and other
+    control characters inside a quoted string; those must be written using
+    escape sequences (``\\n``, ``\\r``, ``\\t`` …).  Control characters
+    without a named escape are emitted as a ``\\xhh`` hex escape; printable
+    Unicode passes through unchanged because BigQuery accepts UTF-8 inside
+    string literals.
 
-    This helper always produces a single-quoted literal with backslash-escaped
-    internal quotes, following BigQuery's lexical rules.
+    The upstream ``sqlalchemy-bigquery`` dialect relies on Python's ``repr()``
+    to quote values, which switches to double-quote delimiters when the
+    string contains an apostrophe (e.g. ``repr("O'Brien")`` → ``"O'Brien"``).
+    Double-quoted tokens inside compiled SQL would be parsed as identifiers,
+    so the query also fails.  This helper always produces a single-quoted
+    literal.
     """
-    escaped = value.replace("\\", "\\\\").replace("'", "\\'")
-    return f"'{escaped}'"
+    parts = []
+    for ch in value:
+        escape = _BIGQUERY_STRING_ESCAPES.get(ch)
+        if escape is not None:
+            parts.append(escape)
+        elif ord(ch) < 0x20 or ord(ch) == 0x7F:
+            parts.append(f"\\x{ord(ch):02x}")
+        else:
+            parts.append(ch)
+    return f"'{''.join(parts)}'"
 
 
 def _monkeypatch_bigquery_string_literal() -> None:
