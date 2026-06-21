@@ -111,12 +111,13 @@ const baseUndoableReducer: Reducer<
 });
 
 /*
- * A valid dashboard layout always contains the root component. The undo history
- * can otherwise capture a stale or empty layout as an undoable baseline — most
- * notably the pre-hydration `{}` layout left behind when a brand-new dashboard
- * is opened directly in edit mode via `?edit=true`. Reverting to such a state
- * renders the dashboard with no components and throws
- * `TypeError: Cannot read properties of undefined (reading 'type')`.
+ * A valid dashboard layout always contains the root component. Undo/redo must
+ * never leave `present` without it: a rootless layout renders the dashboard
+ * with no components and throws
+ * `TypeError: Cannot read properties of undefined (reading 'type')`. Such a
+ * state can arise whenever a rootless or empty layout reaches the undo history —
+ * e.g. an empty or partial hydration, or a tracked layout action dispatched
+ * before the dashboard has hydrated.
  */
 const isValidLayout = (layout?: DashboardLayout): boolean =>
   Boolean(layout && layout[DASHBOARD_ROOT_ID]);

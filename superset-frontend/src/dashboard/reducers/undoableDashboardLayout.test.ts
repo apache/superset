@@ -17,7 +17,11 @@
  * under the License.
  */
 import type { AnyAction } from 'redux';
-import { ActionCreators as UndoActionCreators } from 'redux-undo';
+// eslint-disable-next-line import/named
+import {
+  ActionCreators as UndoActionCreators,
+  StateWithHistory,
+} from 'redux-undo';
 
 import undoableLayoutReducer from 'src/dashboard/reducers/undoableDashboardLayout';
 import { UPDATE_COMPONENTS } from 'src/dashboard/actions/dashboardLayout';
@@ -38,7 +42,9 @@ import {
 const reducer = undoableLayoutReducer;
 
 // A minimal but valid dashboard layout always contains the root component.
-const makeValidLayout = (): DashboardLayout => ({
+const makeValidLayout = (
+  title = '[ untitled dashboard ]',
+): DashboardLayout => ({
   [DASHBOARD_ROOT_ID]: {
     id: DASHBOARD_ROOT_ID,
     type: DASHBOARD_ROOT_TYPE,
@@ -56,100 +62,99 @@ const makeValidLayout = (): DashboardLayout => ({
     id: DASHBOARD_HEADER_ID,
     type: DASHBOARD_HEADER_TYPE,
     children: [],
-    meta: { text: '[ untitled dashboard ]' },
+    meta: { text: title },
   },
 });
 
-const chartComponent = (): DashboardLayout => ({
-  'CHART-abc': { id: 'CHART-abc', type: CHART_TYPE, children: [], meta: {} },
-});
+// The frontend locks redux-undo to 1.1.0, whose `clearHistory()` under
+// `ignoreInitialState` resets `_latestUnfiltered` to null. That makes a rootless
+// layout impossible to push onto `past` through normal layout actions, so the
+// guard's corrupt-history precondition is seeded directly. `makeHistory` mirrors
+// redux-undo's `StateWithHistory` shape — `past`/`present`/`future` is all that
+// `undo()` needs to compute the previous state.
+const makeHistory = (
+  past: DashboardLayout[],
+  present: DashboardLayout,
+  future: DashboardLayout[] = [],
+): StateWithHistory<DashboardLayout> => ({ past, present, future });
 
 const hydrate = (present: DashboardLayout): AnyAction => ({
   type: HYDRATE_DASHBOARD,
   data: { dashboardLayout: { present } },
 });
 
-const updateComponents = (nextComponents: DashboardLayout): AnyAction => ({
-  type: UPDATE_COMPONENTS,
-  payload: { nextComponents },
-});
-
-const init = () => reducer(undefined, { type: '@@INIT' });
-
 test('hydrating a dashboard leaves an empty, disabled undo history', () => {
-  const state = reducer(init(), hydrate(makeValidLayout()));
+  const initial = reducer(undefined, { type: '@@INIT' });
+  const state = reducer(initial, hydrate(makeValidLayout()));
 
   expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
-  // Hydration is not a user edit, so Undo (past) and Redo (future) start empty
+  // Hydration is not a user edit, so Undo (past) and Redo (future) start empty.
   expect(state.past).toHaveLength(0);
   expect(state.future).toHaveLength(0);
 });
 
-test('a stale/empty baseline left by a premature clearHistory does not survive hydration', () => {
-  // Reproduces the issue: clearing history while the layout is still the
-  // pre-hydration `{}` arms redux-undo to capture that empty layout on the next
-  // tracked action (it resets `_latestUnfiltered` to the current, empty present).
-  let state = init();
-  state = reducer(state, UndoActionCreators.clearHistory());
+test('a layout edit is applied through the wrapped reducer', () => {
+  const hydrated = reducer(
+    reducer(undefined, { type: '@@INIT' }),
+    hydrate(makeValidLayout()),
+  );
 
-  // Without the fix, HYDRATE_DASHBOARD would now push the empty `{}` into `past`,
-  // enabling an Undo that reverts to an empty layout and crashes the dashboard.
-  state = reducer(state, hydrate(makeValidLayout()));
+  const update: AnyAction = {
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents: {
+        'CHART-1': { id: 'CHART-1', type: CHART_TYPE, children: [], meta: {} },
+      },
+    },
+  };
+  const state = reducer(hydrated, update);
 
+  expect(state.present['CHART-1']).toBeDefined();
   expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
-  expect(state.past).toHaveLength(0);
 });
 
-test('re-hydrating with a new dashboard drops the previous dashboard from the undo stack', () => {
-  // Simulates SPA navigation between dashboards without a full reload.
-  let state = reducer(init(), hydrate(makeValidLayout()));
+test('re-hydrating a different dashboard clears the previous dashboard from the undo stack', () => {
+  // Simulates SPA navigation: dashboard A already has undo history when B opens.
+  const dashboardA = makeHistory(
+    [makeValidLayout('A v1')],
+    makeValidLayout('A v2'),
+  );
 
-  // A genuine edit on the first dashboard creates real undo history.
-  state = reducer(state, updateComponents(chartComponent()));
-  expect(state.past.length).toBeGreaterThan(0);
-
-  // Opening another dashboard re-hydrates and must reset the history so the
-  // previous dashboard's layout is no longer undoable.
-  state = reducer(state, hydrate(makeValidLayout()));
+  const state = reducer(dashboardA, hydrate(makeValidLayout('B')));
 
   expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
   expect(state.past).toHaveLength(0);
   expect(state.future).toHaveLength(0);
 });
 
-test('undo never reverts the layout to an invalid state', () => {
-  // Build a corrupt history (valid present, empty baseline in `past`) the same
-  // way it arises in the wild, then exercise Undo.
-  let state = init();
-  state = reducer(state, UndoActionCreators.clearHistory()); // arms the empty baseline
-  // A tracked action other than hydrate captures the empty `{}` into `past`.
-  state = reducer(state, updateComponents(makeValidLayout()));
-  expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
-  expect(state.past).toHaveLength(1); // the corrupt, empty baseline
+test('undo never reverts the layout to an invalid (rootless) state', () => {
+  // A rootless `{}` baseline sits at the head of `past`; a plain redux-undo
+  // undo() here would move it into `present` and crash rendering with
+  // `Cannot read properties of undefined (reading 'type')`.
+  const corrupt = makeHistory([{}], makeValidLayout());
+  const before = corrupt.present;
 
-  const before = state.present;
-  state = reducer(state, UndoActionCreators.undo());
+  const state = reducer(corrupt, UndoActionCreators.undo());
 
-  // The undo is rejected: the valid layout is kept instead of exposing the
-  // empty one, so rendering can't throw `undefined.type`.
+  // The guard rejects the transition: the valid layout is kept unchanged...
   expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
   expect(state.present).toBe(before);
-  // History is left untouched, so undoLayoutAction() won't read an emptied
-  // stack as a fully-reverted, clean dashboard.
+  // ...and history is left intact, so undoLayoutAction() won't misread an
+  // emptied stack as a fully-reverted, clean dashboard.
   expect(state.past).toHaveLength(1);
 });
 
-test('undo still reverts a genuine layout edit', () => {
-  let state = reducer(init(), hydrate(makeValidLayout()));
+test('the guard does not interfere with a normal undo between valid layouts', () => {
+  const previous = makeValidLayout('previous');
+  const current = makeValidLayout('current');
 
-  state = reducer(state, updateComponents(chartComponent()));
-  expect(state.present['CHART-abc']).toBeDefined();
-  expect(state.past).toHaveLength(1);
+  const state = reducer(
+    makeHistory([previous], current),
+    UndoActionCreators.undo(),
+  );
 
-  state = reducer(state, UndoActionCreators.undo());
-
-  // The added chart is undone, and the layout is still valid.
-  expect(state.present['CHART-abc']).toBeUndefined();
-  expect(state.present[DASHBOARD_ROOT_ID]).toBeDefined();
+  // A valid -> valid undo proceeds normally.
+  expect(state.present).toBe(previous);
   expect(state.past).toHaveLength(0);
+  expect(state.future).toHaveLength(1);
 });
