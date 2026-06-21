@@ -26,8 +26,9 @@ from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import types
+from sqlalchemy import func, types
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.expression import ColumnElement
 from urllib3.exceptions import NewConnectionError
 
 from superset.databases.utils import make_url_safe
@@ -55,6 +56,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     time_groupby_inline = True
     supports_multivalues_insert = True
+    supports_multivalue_columns = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -80,7 +82,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
         (
             re.compile(r".*Array.*", re.IGNORECASE),
             types.String(),
-            GenericDataType.STRING,
+            GenericDataType.MULTI_VALUE,
         ),
         (
             re.compile(r".*UUID.*", re.IGNORECASE),
@@ -118,6 +120,22 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
             GenericDataType.TEMPORAL,
         ),
     )
+
+    @classmethod
+    def array_contains(cls, col: ColumnElement, value: Any) -> ColumnElement:
+        # ClickHouse: has(arr, value) -> 1 if the array contains value
+        return func.has(col, value)
+
+    @classmethod
+    def array_length(cls, col: ColumnElement) -> ColumnElement:
+        # ClickHouse: length(arr) -> number of elements
+        return func.length(col)
+
+    @classmethod
+    def array_explode(cls, col: ColumnElement) -> ColumnElement:
+        # ClickHouse: arrayJoin(arr) is a scalar function usable directly in
+        # SELECT/GROUP BY (no JOIN needed, unlike UNNEST dialects).
+        return func.arrayJoin(col)
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

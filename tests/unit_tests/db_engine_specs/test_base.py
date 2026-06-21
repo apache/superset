@@ -1360,3 +1360,19 @@ def test_resolve_column_type_falls_back_to_pa_mapped() -> None:
 def test_resolve_column_type_returns_none_when_both_absent() -> None:
     """None is returned when neither source provides a type."""
     assert BaseEngineSpec.resolve_column_type(None, None) is None
+
+
+def test_multivalue_columns_disabled_by_default() -> None:
+    """Engines must opt in to multi-value support; base defaults to off."""
+    assert BaseEngineSpec.supports_multivalue_columns is False
+
+
+@pytest.mark.parametrize("method", ["array_contains", "array_length", "array_explode"])
+def test_array_capabilities_raise_when_unsupported(method: str) -> None:
+    """Array capability methods raise NotImplementedError unless overridden."""
+    from sqlalchemy import column
+
+    fn = getattr(BaseEngineSpec, method)
+    args = (column("c"), "v") if method == "array_contains" else (column("c"),)
+    with pytest.raises(NotImplementedError):
+        fn(*args)

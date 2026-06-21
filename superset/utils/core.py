@@ -187,7 +187,7 @@ class GenericDataType(IntEnum):
     STRING = 1
     TEMPORAL = 2
     BOOLEAN = 3
-    # ARRAY = 4     # Mapping all the complex data types to STRING for now
+    MULTI_VALUE = 4  # array-typed columns (e.g. ClickHouse Array, Postgres ARRAY)
     # JSON = 5      # and leaving these as a reminder.
     # MAP = 6
     # ROW = 7

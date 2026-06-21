@@ -109,7 +109,16 @@ def test_connect_convert_dttm(
             GenericDataType.STRING,
             False,
         ),
-        ("Array(UInt8)", String, None, GenericDataType.STRING, False),
+        ("Array(UInt8)", String, None, GenericDataType.MULTI_VALUE, False),
+        ("Array(String)", String, None, GenericDataType.MULTI_VALUE, False),
+        ("Array(UInt64)", String, None, GenericDataType.MULTI_VALUE, False),
+        (
+            "Array(LowCardinality(String))",
+            String,
+            None,
+            GenericDataType.MULTI_VALUE,
+            False,
+        ),
         ("Enum('hello', 'world')", String, None, GenericDataType.STRING, False),
         ("Enum('UInt32', 'Bool')", String, None, GenericDataType.STRING, False),
         (
@@ -233,3 +242,62 @@ def test_adjust_engine_params_fully_qualified(
 
     uri = spec.adjust_engine_params(url, {}, None, schema)[0]
     assert str(uri) == expected_result
+
+
+def _compile(expr) -> str:
+    return str(expr.compile(compile_kwargs={"literal_binds": True}))
+
+
+def test_clickhouse_supports_multivalue_columns() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    assert spec.supports_multivalue_columns is True
+
+
+def test_multivalue_contains_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains(column("skills"), "Driver")
+    assert _compile(expr) == "has(skills, 'Driver')"
+
+
+def test_multivalue_contains_binds_parameters() -> None:
+    """Value must be a bound parameter, not inlined (SQL-injection safety)."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains(column("skills"), "Driver")
+    compiled = expr.compile()
+    assert "Driver" not in str(compiled)
+    assert "Driver" in compiled.params.values()
+
+
+def test_multivalue_length_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_length(column("skills"))
+    assert _compile(expr) == "length(skills)"
+
+
+def test_multivalue_explode_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_explode(column("skills"))
+    assert _compile(expr) == "arrayJoin(skills)"
