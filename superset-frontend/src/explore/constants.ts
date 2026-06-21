@@ -45,6 +45,7 @@ export enum Operators {
   IsTrue = 'IS_TRUE',
   IsFalse = 'IS_FALSE',
   TemporalRange = 'TEMPORAL_RANGE',
+  Contains = 'CONTAINS',
 }
 
 export interface OperatorType {
@@ -89,6 +90,7 @@ export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
     display: t('TEMPORAL_RANGE'),
     operation: 'TEMPORAL_RANGE',
   },
+  [Operators.Contains]: { display: t('Contains'), operation: 'CONTAINS' },
 };
 
 export const OPERATORS_OPTIONS = Object.values(Operators) as Operators[];
