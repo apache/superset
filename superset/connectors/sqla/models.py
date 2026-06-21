@@ -1743,6 +1743,21 @@ class SqlaTable(
         if operation == utils.MultiValueColumnOperation.LENGTH:
             expression = db_engine_spec.array_length(base_sqla_col)
             generic_type = utils.GenericDataType.NUMERIC
+        elif operation == utils.MultiValueColumnOperation.EXPLODE:
+            # Scalar explode (e.g. ClickHouse arrayJoin) can be projected directly.
+            # Set-returning UNNEST dialects (Postgres/Trino/BigQuery) need extra
+            # FROM/JOIN plumbing and are handled in a later phase; for those the
+            # engine spec leaves array_explode unimplemented and we surface a
+            # clear error instead of emitting invalid SQL.
+            try:
+                expression = db_engine_spec.array_explode(base_sqla_col)
+            except NotImplementedError as ex:
+                raise QueryObjectValidationError(
+                    _("This database does not support exploding array columns.")
+                ) from ex
+            # The exploded value is a single array element; its type is not
+            # reliably known from the array type string, so leave it unset.
+            generic_type = None
         else:
             raise QueryObjectValidationError(
                 _(
