@@ -61,21 +61,33 @@ STATS_LOGGER = StatsdStatsLogger(host='localhost', port=8125, prefix='superset')
 Note that it’s also possible to implement your own logger by deriving
 `superset.stats_logger.BaseStatsLogger`.
 
-### Chart Data Timing Metrics
+### Chart Data Timing
 
 When `STATS_LOGGER` is configured, Superset emits per-phase timing metrics for each
 `/api/v1/chart/data` request:
 
-| Metric | Description |
-|--------|-------------|
-| `chart_data.validate_ms` | Query object validation time |
-| `chart_data.cache_lookup_ms` | Cache lookup time |
-| `chart_data.db_execution_ms` | Database query execution time (cache miss only) |
-| `chart_data.result_processing_ms` | Result processing and serialization time |
-| `chart_data.total_ms` | Total request time |
+| Metric                            | Description                                     |
+| --------------------------------- | ----------------------------------------------- |
+| `chart_data.validate_ms`          | Query object validation time                    |
+| `chart_data.cache_lookup_ms`      | Cache lookup time                               |
+| `chart_data.db_execution_ms`      | Database query execution time (cache miss only) |
+| `chart_data.result_processing_ms` | Result processing and serialization time        |
+| `chart_data.total_ms`             | Total request time                              |
 
-These metrics can also be included in the API response under the `timing` key by setting
-`CHART_DATA_INCLUDE_TIMING = True` in your `superset_config.py`.
+The same timing breakdown can also be included in the API response under the `timing`
+key by setting `CHART_DATA_INCLUDE_TIMING = True` in your `superset_config.py`.
+
+| Response field         | Description                                           |
+| ---------------------- | ----------------------------------------------------- |
+| `validate_ms`          | Query object validation time                          |
+| `cache_lookup_ms`      | Cache lookup time                                     |
+| `db_execution_ms`      | Database query execution time, or `null` on cache hit |
+| `result_processing_ms` | Result processing and serialization time              |
+| `total_ms`             | Total request time                                    |
+| `is_cached`            | Whether the result was served from cache              |
+
+`is_cached` is included in the API response only; it is not emitted as a
+`STATS_LOGGER` timing metric.
 
 ### Slow Query Logging
 

@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import logging
 import re
 import time
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
@@ -26,6 +25,11 @@ from flask import current_app
 from flask_babel import gettext as _
 
 from superset.common.chart_data import ChartDataResultFormat
+from superset.common.chart_data_timing import (
+    RESULT_PROCESSING_START_KEY,
+    TIMING_KEY,
+    TIMING_START_KEY,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.utils.query_cache_manager import QueryCacheManager
@@ -61,8 +65,6 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
 
-logger = logging.getLogger(__name__)
-
 
 class QueryContextProcessor:
     """
@@ -84,8 +86,8 @@ class QueryContextProcessor:
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> dict[str, Any]:
         """Handles caching around the df payload retrieval"""
-        timing: dict[str, Any] = {}
         t0 = time.perf_counter()
+        timing: dict[str, Any] = {TIMING_START_KEY: t0}
 
         # Phase: validate
         t = time.perf_counter()
@@ -119,6 +121,10 @@ class QueryContextProcessor:
             and len(query_obj.filter) > 0
         ):
             cache.is_loaded = False
+            cache.is_cached = None
+            cache.cache_dttm = None
+            cache.cache_value = None
+            cache.queried_dttm = None
 
         # Phase: db_execution (only on cache miss)
         if query_obj and cache_key and not cache.is_loaded:
@@ -157,7 +163,7 @@ class QueryContextProcessor:
             timing["db_execution_ms"] = round((time.perf_counter() - t) * 1000, 2)
 
         # Phase: result_processing
-        t = time.perf_counter()
+        timing[RESULT_PROCESSING_START_KEY] = time.perf_counter()
 
         # the N-dimensional DataFrame has converted into flat DataFrame
         # by `flatten operator`, "comma" in the column is escaped by `escape_separator`
@@ -205,34 +211,7 @@ class QueryContextProcessor:
             }
         )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
-        timing["result_processing_ms"] = round((time.perf_counter() - t) * 1000, 2)
-
-        timing["db_execution_ms"] = timing.get("db_execution_ms")
-        timing["total_ms"] = round((time.perf_counter() - t0) * 1000, 2)
-        timing["is_cached"] = cache.is_cached
-
-        # Emit per-phase metrics via STATS_LOGGER
-        stats_logger = current_app.config.get("STATS_LOGGER")
-        if stats_logger and hasattr(stats_logger, "timing"):
-            for phase, value in timing.items():
-                if isinstance(value, (int, float)) and not isinstance(value, bool):
-                    stats_logger.timing(f"chart_data.{phase}", value)
-
-        # Slow query logging
-        threshold = current_app.config.get("CHART_DATA_SLOW_QUERY_THRESHOLD_MS")
-        if threshold is not None and timing["total_ms"] > threshold:
-            db_exec = timing.get("db_execution_ms")
-            logger.warning(
-                "Slow chart query: total=%.0fms validate=%.0fms "
-                "cache_lookup=%.0fms db_execution=%s "
-                "result_processing=%.0fms is_cached=%s",
-                timing["total_ms"],
-                timing.get("validate_ms", 0),
-                timing.get("cache_lookup_ms", 0),
-                f"{db_exec:.0f}ms" if db_exec is not None else "cached",
-                timing.get("result_processing_ms", 0),
-                timing.get("is_cached", False),
-            )
+        timing["is_cached"] = cache.is_cached is True
 
         warning: str | None = None
         if cache.bq_memory_limited:
@@ -267,11 +246,7 @@ class QueryContextProcessor:
             "to_dttm": query_obj.to_dttm,
             "label_map": label_map,
             "warning": warning,
-            **(
-                {"timing": timing}
-                if current_app.config.get("CHART_DATA_INCLUDE_TIMING")
-                else {}
-            ),
+            TIMING_KEY: timing,
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:

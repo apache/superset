@@ -1707,6 +1707,10 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
     assert mock_cache.is_loaded is False, (
         "Cache should be inv when no applied_filter_columns and query has filters"
     )
+    assert mock_cache.is_cached is None
+    assert mock_cache.cache_dttm is None
+    assert mock_cache.cache_value is None
+    assert mock_cache.queried_dttm is None
 
 
 def test_get_df_payload_bq_memory_limited_warning() -> None:

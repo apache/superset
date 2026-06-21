@@ -1540,7 +1540,6 @@ class ChartDataTimingSchema(Schema):
             "Null on cache hit."
         },
         allow_none=True,
-        load_default=None,
     )
     result_processing_ms = fields.Float(
         metadata={

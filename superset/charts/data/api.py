@@ -49,6 +49,7 @@ from superset.commands.chart.exceptions import (
     ChartDataQueryFailedError,
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import finalize_timing_payload
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import (
     CACHE_DISABLED_TIMEOUT,
@@ -453,7 +454,7 @@ class ChartDataRestApi(ChartRestApi):
         # but only if we're not forcing a refresh.
         if not form_data.get("force"):
             with contextlib.suppress(ChartDataCacheLoadError):
-                result = command.run(force_cached=True)
+                result = command.run(force_cached=True, defer_timing=True)
                 if result is not None:
                     # Log is_cached if extra payload callback is provided.
                     # This indicates no async job was triggered - data was already
@@ -490,6 +491,9 @@ class ChartDataRestApi(ChartRestApi):
         # post-processing of data, eg, the pivot table.
         if result_type == ChartDataResultType.POST_PROCESSED:
             result = apply_client_processing(result, form_data, datasource)
+
+        for query in result["queries"]:
+            finalize_timing_payload(query)
 
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file
@@ -596,7 +600,7 @@ class ChartDataRestApi(ChartRestApi):
     ) -> Response:
         """Get data response and optionally log is_cached information."""
         try:
-            result = command.run(force_cached=force_cached)
+            result = command.run(force_cached=force_cached, defer_timing=True)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=exc.message)
         except ChartDataQueryFailedError as exc:
