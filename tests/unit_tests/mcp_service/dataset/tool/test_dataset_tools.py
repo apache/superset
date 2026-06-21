@@ -2166,14 +2166,25 @@ async def test_create_virtual_dataset_with_metrics_and_columns(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "exception_to_raise",
+    [
+        "DatasetUpdateFailedError",
+        "DatasetInvalidError",
+    ],
+)
 async def test_create_virtual_dataset_update_failure_rollback(
     mcp_server: object,
+    exception_to_raise: str,
 ) -> None:
     """
     If UpdateDatasetCommand fails,
     DeleteDatasetCommand should clean up the orphan dataset.
     """
-    from superset.commands.dataset.exceptions import DatasetUpdateFailedError
+    from superset.commands.dataset.exceptions import (
+        DatasetInvalidError,
+        DatasetUpdateFailedError,
+    )
 
     mock_dataset = _make_mock_virtual_dataset()
     mock_create_instance = MagicMock()
@@ -2181,7 +2192,10 @@ async def test_create_virtual_dataset_update_failure_rollback(
     mock_create_cls = MagicMock(return_value=mock_create_instance)
 
     mock_update_instance = MagicMock()
-    mock_update_instance.run.side_effect = DatasetUpdateFailedError()
+    if exception_to_raise == "DatasetUpdateFailedError":
+        mock_update_instance.run.side_effect = DatasetUpdateFailedError()
+    else:
+        mock_update_instance.run.side_effect = DatasetInvalidError()
     mock_update_cls = MagicMock(return_value=mock_update_instance)
 
     mock_delete_instance = MagicMock()

@@ -67,17 +67,14 @@ def _cleanup_failed_dataset(dataset_id: int) -> None:
 
 
 def _update_virtual_dataset(dataset_id: int, update_props: dict[str, Any]) -> Any:
-    from superset.commands.dataset.exceptions import (
-        DatasetInvalidError,
-        DatasetUpdateFailedError,
-    )
+    from superset.commands.dataset.exceptions import DatasetUpdateFailedError
     from superset.commands.dataset.update import UpdateDatasetCommand
 
     try:
         return UpdateDatasetCommand(dataset_id, update_props).run()
     except Exception as exc:
         _cleanup_failed_dataset(dataset_id)
-        if not isinstance(exc, (DatasetUpdateFailedError, DatasetInvalidError)):
+        if not isinstance(exc, DatasetUpdateFailedError):
             raise DatasetUpdateFailedError() from exc
         raise
 
