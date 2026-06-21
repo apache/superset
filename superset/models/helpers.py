@@ -3278,6 +3278,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
+                if utils.is_multivalue_operation_column(selected):
+                    outer, _unused = self.adhoc_column_to_sqla(
+                        col=selected,
+                        template_processor=template_processor,
+                    )
+                    select_exprs.append(outer)
+                    continue
                 if is_adhoc_column(selected):
                     _sql = selected["sqlExpression"]
                     _column_label = selected["label"]

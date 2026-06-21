@@ -1273,6 +1273,22 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     )
 
 
+class MultiValueColumnOperation(StrEnum):
+    """Operations that can be applied to a multi-value (array) column."""
+
+    LENGTH = "LENGTH"
+    EXPLODE = "EXPLODE"
+
+
+def is_multivalue_operation_column(column: Column) -> bool:
+    """Whether ``column`` is a multi-value modifier (e.g. array length).
+
+    These columns carry a base ``column`` plus a ``columnOperation`` instead of a
+    ``sqlExpression``; the actual SQL is produced by the engine spec.
+    """
+    return isinstance(column, dict) and "columnOperation" in column
+
+
 def is_base_axis(column: Column) -> bool:
     return is_adhoc_column(column) and column.get("columnType") == "BASE_AXIS"
 

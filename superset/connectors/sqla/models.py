@@ -1711,6 +1711,48 @@ class SqlaTable(
                 )
             ) from ex
 
+    def _multivalue_column_to_sqla(
+        self,
+        col: AdhocColumn,
+        template_processor: BaseTemplateProcessor | None = None,
+    ) -> tuple[ColumnElement, utils.GenericDataType | None]:
+        """
+        Turn a multi-value (array) modifier column into a sqlalchemy column.
+
+        The column references a base array column and an operation (e.g. array
+        length); the native SQL is produced by the engine spec so the same
+        payload works across any dialect that supports array columns.
+        """
+        label = utils.get_column_name(col)
+        base_name = col.get("column")
+        operation = col.get("columnOperation")
+
+        db_engine_spec = self.db_engine_spec
+        if not db_engine_spec.supports_multivalue_columns:
+            raise QueryObjectValidationError(
+                _("This database does not support multi-value (array) columns.")
+            )
+
+        base_column = self.get_column(base_name)
+        if base_column is None:
+            raise QueryObjectValidationError(
+                _("Unknown column used as multi-value source: %(col)s", col=base_name)
+            )
+        base_sqla_col = base_column.get_sqla_col(template_processor=template_processor)
+
+        if operation == utils.MultiValueColumnOperation.LENGTH:
+            expression = db_engine_spec.array_length(base_sqla_col)
+            generic_type = utils.GenericDataType.NUMERIC
+        else:
+            raise QueryObjectValidationError(
+                _(
+                    "Unsupported multi-value column operation: %(op)s",
+                    op=operation,
+                )
+            )
+
+        return self.make_sqla_column_compatible(expression, label), generic_type
+
     def adhoc_column_to_sqla(  # pylint: disable=too-many-locals
         self,
         col: AdhocColumn,
@@ -1733,6 +1775,11 @@ class SqlaTable(
             Python type (e.g. numeric casts for numeric adhoc expressions).
         :rtype: tuple[sqlalchemy.sql.ColumnElement, Optional[GenericDataType]]
         """
+        if utils.is_multivalue_operation_column(col):
+            return self._multivalue_column_to_sqla(
+                col, template_processor=template_processor
+            )
+
         label = utils.get_column_name(col)
         sql_expression = col["sqlExpression"]
         time_grain = col.get("timeGrain")
