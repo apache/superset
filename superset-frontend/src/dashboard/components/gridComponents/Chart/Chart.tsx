@@ -449,6 +449,18 @@ const Chart = (props: ChartProps) => {
     allSliceIds,
   );
 
+  const translatedFilters = useMemo(
+    () =>
+      crossDatasetFilters.length > 0
+        ? crossDatasetFilters.map(f => ({
+            col: f.targetColumn,
+            op: 'IN',
+            val: f.translatedValues,
+          }))
+        : undefined,
+    [crossDatasetFilters],
+  );
+
   const formData = useMemo(
     () =>
       getFormDataWithExtraFilters({
@@ -456,12 +468,8 @@ const Chart = (props: ChartProps) => {
           id: chart?.id ?? props.id,
           form_data: {
             ...chart?.form_data,
-            ...(crossDatasetFilters.length > 0 && {
-              relationship_translated_filters: crossDatasetFilters.map(f => ({
-                col: f.targetColumn,
-                op: 'IN',
-                val: f.translatedValues,
-              })),
+            ...(translatedFilters && {
+              relationship_translated_filters: translatedFilters,
             }),
           },
         }, // avoid passing the whole chart object

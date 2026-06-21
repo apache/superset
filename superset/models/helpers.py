@@ -1301,14 +1301,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if is_feature_enabled("DATASET_RELATIONSHIPS"):
             rel_filters = query_obj.pop("relationship_translated_filters", None)
             if rel_filters:
-                extra_filters = query_obj.setdefault("extra_filters", [])
-                if not isinstance(extra_filters, list):
-                    extra_filters = []
-                extra_filters.extend(
+                existing = query_obj.get("extra_filters", [])
+                if not isinstance(existing, list):
+                    existing = []
+                existing.extend(
                     f for f in rel_filters
                     if isinstance(f, dict) and "col" in f and "val" in f
                 )
-                query_obj["extra_filters"] = extra_filters
+                query_obj["extra_filters"] = existing
 
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)

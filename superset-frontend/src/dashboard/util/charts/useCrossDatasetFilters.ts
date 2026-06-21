@@ -26,7 +26,8 @@ import {
   FilterValue,
   TranslatedFilter,
 } from 'src/features/datasets/relationships/filterTranslation';
-import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import { getAllActiveFilters } from 'src/dashboard/util/activeAllDashboardFilters';
+import { getChartIdAndColumnFromFilterKey } from 'src/dashboard/util/getDashboardFilterKey';
 import type {
   ActiveFilters,
   ChartConfiguration,
@@ -79,7 +80,7 @@ export function useCrossDatasetFilters(
       return;
     }
 
-    const activeFilters: ActiveFilters = getActiveFilters({
+    const activeFilters: ActiveFilters = getAllActiveFilters({
       chartConfiguration: chartConfiguration ?? {},
       nativeFilters,
       dataMask,
@@ -99,15 +100,23 @@ export function useCrossDatasetFilters(
 
     (async () => {
       // Resolve active filters applied to this chart
+      // ActiveFilters key format: "{sourceChartId}_{column}"
       const chartFilters = Object.entries(activeFilters)
-        .filter(([, f]) => f.scope.includes(chartId))
-        .flatMap(([, f]) => {
-          const values = f.values ?? [];
-          return Object.keys(f.column ?? {}).map(col => ({
-            column: col,
+        .filter(([key]) => {
+          try {
+            const { chartId: sourceChartId } = getChartIdAndColumnFromFilterKey(key);
+            return sourceChartId === chartId;
+          } catch {
+            return false;
+          }
+        })
+        .map(([key, f]) => {
+          const { column } = getChartIdAndColumnFromFilterKey(key);
+          return {
+            column,
             datasetId: datasetId!,
-            values,
-          }));
+            values: Array.isArray(f.values) ? f.values : [f.values],
+          };
         });
 
       if (chartFilters.length === 0) {
