@@ -1351,6 +1351,28 @@ class SqlaTable(
     always_filter_main_dttm = Column(Boolean, default=False)
     folders = Column(JSON, nullable=True)
 
+    # -- Relationship engine ----------------------------------------------
+
+    @property
+    def relationships(self) -> list[dict]:
+        """Return all dataset relationships involving this dataset.
+
+        Combines outgoing (as source) and incoming (as target) relationships
+        into a single serialized list suitable for the API response.
+        Feature-gated behind the ``DATASET_RELATIONSHIPS`` flag.
+        """
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("DATASET_RELATIONSHIPS"):
+            return []
+
+        outgoing = getattr(self, "outgoing_relationships", None) or []
+        incoming = getattr(self, "incoming_relationships", None) or []
+        result = []
+        for rel in outgoing + incoming:
+            result.append(rel.to_dict())
+        return result
+
     baselink = "tablemodelview"
 
     export_fields = [
