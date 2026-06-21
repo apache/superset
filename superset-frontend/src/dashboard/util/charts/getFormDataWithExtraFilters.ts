@@ -553,9 +553,14 @@ export default function getFormDataWithExtraFilters({
       ? getExtraFormData(dataMask, customizationIds)
       : {};
 
+  // Inject active dataset relationships into form_data
+  const activeRelationships =
+    chartConfiguration?.[chart.id]?.activeRelationships;
+
   const formData: CachedFormDataWithExtraControls = {
     ...chart.form_data,
     chart_id: chart.id,
+    ...(activeRelationships && { active_relationships: activeRelationships }),
     label_colors: labelsColor,
     shared_label_colors: sharedLabelsColors,
     map_label_colors: labelsColorMap,

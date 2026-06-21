@@ -75,7 +75,7 @@ from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
 )
-from superset.constants import CacheRegion, EMPTY_STRING, NULL_STRING, TimeGrain
+from superset.constants import CacheRegion, EMPTY_STRING, NULL_STRING, SKIP_VISIBILITY_FILTER_CLASSES, TimeGrain
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -640,10 +640,66 @@ class ImportExportMixin(UUIDMixin):
         return json_to_dict(self.template_params)  # type: ignore
 
 
+class SoftDeleteMixin:
+    """Mixin for models that support soft delete.
+
+    Stub import — the actual implementation lives in newer upstream
+    commits; only the import path is needed for compatibility.
+    """
+    pass
+
+
 def _user(user: User) -> str:
     if not user:
         return ""
     return escape(user)
+
+
+def translate_filter(
+    source_filter: dict,
+    source_dataset_id: int,
+    target_dataset_id: int,
+) -> dict | None:
+    """Traduz um filtro do *source_dataset* para o *target_dataset*.
+
+    Usa as ``column_pairs`` das relações entre os dois datasets
+    para mapear a coluna do filtro.
+
+    Retorna ``None`` se não encontrar relação ou coluna compatível.
+    """
+    from superset.daos.dataset_relationship import DatasetRelationshipDAO
+
+    all_rels = DatasetRelationshipDAO.find_active()
+    col_map: dict[str, str] = {}
+
+    for rel in all_rels:
+        src = rel.source_dataset_id
+        tgt = rel.target_dataset_id
+        pairs = getattr(rel, "column_pairs", [])
+
+        if src == source_dataset_id and tgt == target_dataset_id:
+            # source → target: mapeamento direto
+            for src_col, tgt_col in pairs:
+                col_map[src_col] = tgt_col
+            break
+        elif src == target_dataset_id and tgt == source_dataset_id:
+            # target → source: mapeamento inverso
+            for src_col, tgt_col in pairs:
+                col_map[tgt_col] = src_col
+            break
+
+    if not col_map:
+        return None
+
+    col = source_filter.get("col")
+    if col is None or col not in col_map:
+        return None
+
+    return {
+        "col": col_map[col],
+        "op": source_filter.get("op", "=="),
+        "val": source_filter.get("val"),
+    }
 
 
 class AuditMixinNullable(AuditMixin):
@@ -1241,6 +1297,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         This method is the unified entry point for query execution across all
         datasource types (Query, SqlaTable, etc.).
         """
+        # -- Dataset Relationship Engine: inject cross-DB translated filters ----
+        if is_feature_enabled("DATASET_RELATIONSHIPS"):
+            rel_filters = query_obj.pop("relationship_translated_filters", None)
+            if rel_filters:
+                extra_filters = query_obj.setdefault("extra_filters", [])
+                if not isinstance(extra_filters, list):
+                    extra_filters = []
+                extra_filters.extend(
+                    f for f in rel_filters
+                    if isinstance(f, dict) and "col" in f and "val" in f
+                )
+                query_obj["extra_filters"] = extra_filters
+
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql

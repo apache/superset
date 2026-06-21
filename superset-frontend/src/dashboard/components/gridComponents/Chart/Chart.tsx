@@ -79,6 +79,7 @@ import {
   getAppliedFilterValues,
 } from '../../../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../../../util/charts/getFormDataWithExtraFilters';
+import { useCrossDatasetFilters } from '../../../util/charts/useCrossDatasetFilters';
 import { useChartCustomizationFromRedux } from '../../nativeFilters/state';
 import { PLACEHOLDER_DATASOURCE } from '../../../constants';
 
@@ -439,10 +440,31 @@ const Chart = (props: ChartProps) => {
     ),
   );
 
+  const crossDatasetFilters = useCrossDatasetFilters(
+    props.id,
+    chart?.form_data?.datasource,
+    chartConfiguration,
+    dataMask,
+    nativeFilters,
+    allSliceIds,
+  );
+
   const formData = useMemo(
     () =>
       getFormDataWithExtraFilters({
-        chart: { id: chart?.id ?? props.id, form_data: chart?.form_data }, // avoid passing the whole chart object
+        chart: {
+          id: chart?.id ?? props.id,
+          form_data: {
+            ...chart?.form_data,
+            ...(crossDatasetFilters.length > 0 && {
+              relationship_translated_filters: crossDatasetFilters.map(f => ({
+                col: f.targetColumn,
+                op: 'IN',
+                val: f.translatedValues,
+              })),
+            }),
+          },
+        }, // avoid passing the whole chart object
         chartConfiguration,
         chartCustomizationItems:
           chartCustomizationItems as ChartCustomization[],

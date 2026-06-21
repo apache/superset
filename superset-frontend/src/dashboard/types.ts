@@ -102,6 +102,8 @@ export type ChartConfiguration = {
   [chartId: number]: {
     id: number;
     crossFilters: ChartCrossFiltersConfig;
+    /** Active dataset relationship IDs for cross-dataset filter propagation */
+    activeRelationships?: number[];
   };
 };
 
