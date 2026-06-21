@@ -504,7 +504,7 @@ def test_get_dashboard_urls_with_filters_and_tabs(
     assert mock_permalink_cls.call_count == 2
     for call in mock_permalink_cls.call_args_list:
         state = call.kwargs["state"]
-        assert state["urlParams"] == [("native_filters", native_filter_rison)]
+        assert state["urlParams"] == [["native_filters", native_filter_rison]]
     assert mock_permalink_cls.call_args_list[0].kwargs["state"]["anchor"] == "TAB-1"
     assert mock_permalink_cls.call_args_list[1].kwargs["state"]["anchor"] == "TAB-2"
 
@@ -556,9 +556,9 @@ def test_get_dashboard_urls_with_filters_and_tabs_preserves_existing_url_params(
     for call in mock_permalink_cls.call_args_list:
         state = call.kwargs["state"]
         assert state["urlParams"] == [
-            ("standalone", "true"),
-            ("show_filters", "0"),
-            ("native_filters", native_filter_rison),
+            ["standalone", "true"],
+            ["show_filters", "0"],
+            ["native_filters", native_filter_rison],
         ]
 
 
@@ -605,8 +605,8 @@ def test_get_dashboard_urls_with_filters_and_tabs_deduplicates_stale_native_filt
     for call in mock_permalink_cls.call_args_list:
         state = call.kwargs["state"]
         assert state["urlParams"] == [
-            ("standalone", "true"),
-            ("native_filters", native_filter_rison),
+            ["standalone", "true"],
+            ["native_filters", native_filter_rison],
         ]
 
 
