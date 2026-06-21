@@ -104,6 +104,10 @@ class AdhocColumn(TypedDict, total=False):
     isColumnReference: bool | None
     columnType: Literal["BASE_AXIS", "SERIES"] | None
     timeGrain: str | None
+    # Multi-value (array) column modifiers: ``column`` names the base array
+    # column and ``columnOperation`` the operation to apply (e.g. "LENGTH").
+    column: str
+    columnOperation: str
 
 
 class SQLAColumnType(TypedDict):
