@@ -64,6 +64,11 @@ export default function initPreamble(): Promise<void> {
     // Setup SupersetClient early so we can fetch language pack
     setupClient({ appRoot: applicationRoot() });
 
+    // Initialize feature flags before the first await. Some entry points do not
+    // await initPreamble before importing plugins, and plugin modules can read
+    // feature flags during import.
+    initFeatureFlags(bootstrapData.common.feature_flags);
+
     // Load language pack before rendering.
     // Prefer the bootstrap-injected pack (stashed on window by the inline
     // script in spa.html, sourced from common.language_pack) so
@@ -113,9 +118,6 @@ export default function initPreamble(): Promise<void> {
         }
       }
     }
-
-    // Continue with rest of setup
-    initFeatureFlags(bootstrapData.common.feature_flags);
 
     setupColors(
       bootstrapData.common.extra_categorical_color_schemes,
