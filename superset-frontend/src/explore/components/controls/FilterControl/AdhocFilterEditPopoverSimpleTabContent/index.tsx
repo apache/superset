@@ -32,6 +32,7 @@ import {
   isDefined,
   SupersetClient,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
   Operators,
@@ -118,6 +119,8 @@ export const useSimpleTabFilterProps = (props: Props) => {
     const isColumnNumber =
       !!column && (column.type === 'INT' || column.type === 'INTEGER');
     const isColumnFunction = !!column && !!column.expression;
+    const isColumnMultiValue =
+      !!column && column.type_generic === GenericDataType.MultiValue;
 
     if (operator && operator === Operators.LatestPartition) {
       const { partitionColumn } = props;
@@ -126,6 +129,18 @@ export const useSimpleTabFilterProps = (props: Props) => {
     if (operator && operator === Operators.TemporalRange) {
       // hide the TEMPORAL_RANGE operator
       return false;
+    }
+    // CONTAINS (array membership) only applies to multi-value columns.
+    if (operator === Operators.Contains) {
+      return isColumnMultiValue;
+    }
+    if (isColumnMultiValue) {
+      // multi-value columns support membership and null checks only
+      return (
+        operator === Operators.Contains ||
+        operator === Operators.IsNull ||
+        operator === Operators.IsNotNull
+      );
     }
     if (operator === Operators.IsTrue || operator === Operators.IsFalse) {
       return isColumnBoolean || isColumnNumber || isColumnFunction;

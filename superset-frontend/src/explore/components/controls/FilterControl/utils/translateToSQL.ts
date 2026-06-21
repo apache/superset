@@ -44,6 +44,7 @@ export const OPERATORS_TO_SQL = {
   'IS NULL': 'IS NULL',
   'IS TRUE': 'IS TRUE',
   'IS FALSE': 'IS FALSE',
+  CONTAINS: 'CONTAINS',
   'LATEST PARTITION': ({
     datasource,
   }: {
