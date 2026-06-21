@@ -100,7 +100,7 @@ cachelib==0.13.0
 cachetools==6.2.1
     # via
     #   -c requirements/base-constraint.txt
-    #   google-auth
+    #   apache-superset
     #   py-key-value-aio
 caio==0.9.25
     # via aiofile
@@ -183,6 +183,7 @@ cryptography==48.0.1
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   authlib
+    #   google-auth
     #   paramiko
     #   pyjwt
     #   pyopenssl
@@ -340,7 +341,7 @@ google-api-core==2.23.0
     #   google-cloud-core
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-auth==2.43.0
+google-auth==2.53.0
     # via
     #   -c requirements/base-constraint.txt
     #   google-api-core
@@ -527,14 +528,14 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.26.2
+marshmallow==4.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
     #   marshmallow-union
-marshmallow-sqlalchemy==1.4.0
+marshmallow-sqlalchemy==1.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
@@ -723,7 +724,6 @@ pyasn1==0.6.3
     #   -c requirements/base-constraint.txt
     #   pyasn1-modules
     #   python-ldap
-    #   rsa
 pyasn1-modules==0.4.2
     # via
     #   -c requirements/base-constraint.txt
@@ -910,10 +910,6 @@ rpds-py==0.25.0
     #   -c requirements/base-constraint.txt
     #   jsonschema
     #   referencing
-rsa==4.9.1
-    # via
-    #   -c requirements/base-constraint.txt
-    #   google-auth
 ruff==0.9.7
     # via apache-superset
 s3transfer==0.16.0
