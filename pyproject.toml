@@ -38,6 +38,12 @@ dependencies = [
     # no bounds for apache-superset-core until we have a stable version
     "apache-superset-core",
     "backoff>=1.8.0",
+    # cachetools is used directly by ``superset.db_engine_specs.aws_iam`` (TTLCache).
+    # It used to be installed transitively via ``google-auth`` (<2.53), but
+    # ``google-auth`` 2.53+ dropped it, so Superset must declare it
+    # explicitly to keep fresh ``pip install apache-superset`` working
+    # without the ``base.txt`` lock file (#40962).
+    "cachetools>=6.2.1, <7",
     "celery>=5.3.6, <6.0.0",
     "click>=8.4.0",
     "click-option-group",
