@@ -571,7 +571,7 @@ msgstr ""
 
 #, python-format
 msgid "... and %d more"
-msgstr "... y otros %s"
+msgstr "... y otros %d"
 
 #, python-format
 msgid "... and %s more records"
