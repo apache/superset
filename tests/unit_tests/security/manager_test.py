@@ -1498,6 +1498,76 @@ def test_query_context_modified_orderby_raw_table_all_columns_allowed(
     assert not query_context_modified(query_context)
 
 
+def test_query_context_modified_orderby_column_config_hidden_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that hidden Table columns cannot be used for guest sorting.
+
+    Table renders only columns whose column_config entry is not visible=false,
+    so a manually supplied sort by a hidden-but-selected column must be blocked.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "query_mode": "raw",
+        "all_columns": ["name", "secret_column"],
+        "column_config": {
+            "secret_column": {
+                "visible": False,
+            },
+        },
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "orderby": [["secret_column", True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            orderby=[("secret_column", True)],
+        ),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_adhoc_metric_without_label_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that guests may sort by a visible adhoc SIMPLE metric without a label.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales", "type": "BIGINT"},
+        "aggregate": "SUM",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "metrics": [metric],
+        "orderby": [],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": [metric],
+        "orderby": [["SUM(sales)", True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=["name"],
+            metrics=[metric],
+            orderby=[("SUM(sales)", True)],
+        ),
+    ]
+
+    assert not query_context_modified(query_context)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.
@@ -2213,14 +2283,14 @@ def test_extract_orderby_column_name_adhoc_metric_simple_no_label() -> None:
     """
     Test extraction from an adhoc SIMPLE metric without label.
 
-    Should fall back to column.column_name.
+    Should match the query-result label used by get_metric_name/getMetricLabel.
     """
     adhoc_metric = {
         "expressionType": "SIMPLE",
         "column": {"column_name": "sales", "type": "BIGINT"},
         "aggregate": "SUM",
     }
-    assert _extract_orderby_column_name(adhoc_metric) == "sales"
+    assert _extract_orderby_column_name(adhoc_metric) == "SUM(sales)"
 
 
 def test_extract_orderby_column_name_sql_expression_blocked() -> None:
@@ -2262,6 +2332,25 @@ def test_extract_orderby_column_name_invalid_nested_types() -> None:
 
     Defensive tests - ensure no crashes on unexpected input.
     """
+    # SIMPLE metric with invalid column type
+    assert (
+        _extract_orderby_column_name(
+            {"expressionType": "SIMPLE", "column": "country", "aggregate": "SUM"}
+        )
+        is None
+    )
+    assert (
+        _extract_orderby_column_name(
+            {
+                "expressionType": "SIMPLE",
+                "column": "country",
+                "aggregate": "SUM",
+                "label": "SUM(country)",
+            }
+        )
+        is None
+    )
+
     # column as list (invalid)
     assert _extract_orderby_column_name({"column": ["a", "b"]}) is None
 
@@ -2387,6 +2476,44 @@ def test_get_visible_columns_adhoc_metrics(mocker: MockerFixture) -> None:
     assert visible == {"count", "Total Sales"}
 
 
+def test_get_visible_columns_adhoc_metric_without_label(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test extraction from adhoc SIMPLE metrics without custom labels.
+    """
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "columns": [],
+        "groupby": [],
+        "metrics": [
+            {
+                "expressionType": "SIMPLE",
+                "column": {"column_name": "sales", "type": "BIGINT"},
+                "aggregate": "SUM",
+            },
+        ],
+    }
+    visible = _get_visible_columns(stored_chart)
+    assert visible == {"SUM(sales)"}
+
+
+def test_get_visible_columns_legacy_metric_label(mocker: MockerFixture) -> None:
+    """
+    Test extraction from legacy metric dicts.
+    """
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "columns": [],
+        "groupby": [],
+        "metrics": [
+            {"label": "legacy_metric"},
+        ],
+    }
+    visible = _get_visible_columns(stored_chart)
+    assert visible == {"legacy_metric"}
+
+
 def test_get_visible_columns_empty(mocker: MockerFixture) -> None:
     """
     Test with empty/missing fields.
@@ -2419,6 +2546,29 @@ def test_get_visible_columns_ignores_invalid(mocker: MockerFixture) -> None:
     }
     visible = _get_visible_columns(stored_chart)
     assert visible == {"valid_string", "valid_dict"}
+
+
+def test_get_visible_columns_excludes_table_column_config_hidden(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that Table columns hidden by column_config are excluded from the whitelist.
+    """
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "all_columns": ["name", "secret_column"],
+        "metrics": [
+            "count",
+            {"label": "Hidden metric", "expressionType": "SIMPLE"},
+        ],
+        "column_config": {
+            "secret_column": {"visible": False},
+            "Hidden metric": {"visible": False},
+            "name": {"customColumnName": "Display name"},
+        },
+    }
+    visible = _get_visible_columns(stored_chart)
+    assert visible == {"name", "count"}
 
 
 # -----------------------------------------------------------------------------
@@ -2569,4 +2719,54 @@ def test_query_context_modified_orderby_empty_tuple_blocked(
     query_context.queries = []
 
     # Should return True (blocked)
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_missing_direction_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that orderby entries without a direction are blocked.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [["name"]],
+    }
+    query_context.queries = []
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_non_bool_direction_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that orderby direction must be a boolean for new guest sort terms.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "groupby": [],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [["name", "true"]],
+    }
+    query_context.queries = []
+
     assert query_context_modified(query_context)

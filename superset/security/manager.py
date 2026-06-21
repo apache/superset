@@ -93,6 +93,8 @@ from superset.utils import json
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
+    get_column_name,
+    get_metric_name,
     get_user_id,
     get_username,
     RowLevelSecurityFilterType,
@@ -552,23 +554,43 @@ def _extract_orderby_column_name(orderby_item: Any) -> str | None:
     """
     Extract column/metric name from an orderby tuple element.
 
-    Returns None for SQL expressions which should be blocked for security.
+    Returns None for SQL expression objects which should be blocked for security.
     """
     if isinstance(orderby_item, str):
         return orderby_item
 
     if isinstance(orderby_item, dict):
-        # Block adhoc SQL expressions - potential injection vector
+        # Block newly supplied adhoc SQL expressions - potential injection vector.
         if orderby_item.get("expressionType") == "SQL":
             return None
-        if label := orderby_item.get("label"):
-            return label
-        if col := orderby_item.get("column"):
-            if isinstance(col, dict):
-                return col.get("column_name")
+        if orderby_item.get("expressionType") == "SIMPLE" and not isinstance(
+            orderby_item.get("column"), dict
+        ):
             return None
+        return _get_form_data_item_label(
+            orderby_item,
+            is_metric=orderby_item.get("expressionType") == "SIMPLE",
+            allow_label_fallback=False,
+        )
 
     return None
+
+
+def _get_form_data_item_label(
+    item: Any,
+    is_metric: bool,
+    allow_label_fallback: bool = True,
+) -> str | None:
+    label: Any
+    try:
+        label = get_metric_name(item) if is_metric else get_column_name(item)
+    except (AttributeError, KeyError, TypeError, ValueError):
+        label = (
+            item.get("label")
+            if allow_label_fallback and isinstance(item, dict)
+            else None
+        )
+    return label if isinstance(label, str) and label else None
 
 
 def _get_visible_columns(stored_chart: "Slice") -> set[str]:
@@ -579,15 +601,19 @@ def _get_visible_columns(stored_chart: "Slice") -> set[str]:
     """
     params = stored_chart.params_dict
     visible: set[str] = set()
+    column_config = params.get("column_config") or {}
+
+    def is_visible(name: str) -> bool:
+        config = column_config.get(name) if isinstance(column_config, dict) else None
+        return not (isinstance(config, dict) and config.get("visible") is False)
 
     # Column-like controls. ``all_columns`` is the Table plugin's raw "Query
     # mode" dimension list, so raw-records tables (a common source of the guest
     # sort error) expose their columns there rather than under ``columns``.
     for field in ("columns", "groupby", "all_columns", "metrics"):
         for item in params.get(field) or []:
-            if isinstance(item, str):
-                visible.add(item)
-            elif isinstance(item, dict) and (label := item.get("label")):
+            label = _get_form_data_item_label(item, is_metric=field == "metrics")
+            if label is not None and is_visible(label):
                 visible.add(label)
 
     return visible
@@ -627,10 +653,12 @@ def _validate_orderby_list(
     if orderby is not None and not isinstance(orderby, list):
         return True
     for orderby_tuple in orderby or []:
-        if not isinstance(orderby_tuple, (list, tuple)) or len(orderby_tuple) < 1:
+        if not isinstance(orderby_tuple, (list, tuple)) or len(orderby_tuple) != 2:
             return True
         if freeze_value(orderby_tuple) in allowed_frozen:
             continue
+        if not isinstance(orderby_tuple[1], bool):
+            return True
         col_name = _extract_orderby_column_name(orderby_tuple[0])
         if col_name is None or col_name not in visible_columns:
             return True
@@ -645,7 +673,8 @@ def _orderby_whitelist_compare(
     """
     Compare orderby using whitelist approach.
 
-    Allows sorting by any visible column, blocks hidden columns and SQL expressions.
+    Allows sorting by any visible column, blocks hidden columns and newly supplied
+    SQL expression objects.
     Returns True if modified (request should be blocked).
 
     Defensive barriers:
