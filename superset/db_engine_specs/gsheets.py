@@ -336,6 +336,19 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         return spec.to_dict()["components"]["schemas"][cls.__name__]
 
     @classmethod
+    def _is_valid_gsheets_url(cls, url: str) -> bool:
+        """Validate that a URL is a legitimate Google Sheets URL.
+
+        Prevents SQL injection via malicious table_catalog URLs.
+        """
+        return bool(
+            re.match(
+                r"^https://docs\.google\.com/spreadsheets/d/[a-zA-Z0-9_-]+/.*$",
+                url,
+            )
+        )
+
+    @classmethod
     def validate_parameters(
         cls,
         properties: GSheetsPropertiesType,
@@ -406,8 +419,13 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 continue
 
             try:
-                url = url.replace('"', '""')
-                results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')  # noqa: S608
+                # Security: validate URL is a legitimate Google Sheets URL
+                # before interpolating into SQL to prevent injection.
+                if not cls._is_valid_gsheets_url(url):
+                    error_msg = f"Invalid Google Sheets URL: {url}"
+                    raise ValueError(error_msg)
+                escaped_url = url.replace('"', '""')
+                results = conn.execute(f'SELECT * FROM "{escaped_url}" LIMIT 1')  # noqa: S608
                 results.fetchall()
             except Exception:  # pylint: disable=broad-except
                 errors.append(

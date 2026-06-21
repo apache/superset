@@ -991,6 +991,50 @@ def test_validate_parameters_skips_oauth2_connections_with_parameters(
     conn.execute.assert_not_called()
 
 
+def test_is_valid_gsheets_url() -> None:
+    """Test URL validation for Google Sheets URLs."""
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    assert GSheetsEngineSpec._is_valid_gsheets_url(
+        "https://docs.google.com/spreadsheets/d/1/edit"
+    )
+    assert GSheetsEngineSpec._is_valid_gsheets_url(
+        "https://docs.google.com/spreadsheets/d/1/edit#gid=0"
+    )
+    assert not GSheetsEngineSpec._is_valid_gsheets_url('"; DROP TABLE users; --')
+    assert not GSheetsEngineSpec._is_valid_gsheets_url("https://evil.com/sheet")
+
+
+def test_validate_parameters_rejects_invalid_gsheets_url_before_query(
+    mocker: MockerFixture,
+) -> None:
+    """Test invalid catalog URLs are rejected before SQL interpolation."""
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
+    create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    conn = create_engine.return_value.connect.return_value
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {"service_account_info": "", "catalog": None},
+        "catalog": {
+            "malicious_sheet": 'https://docs.google.com/spreadsheets/d/1/edit";--',
+        },
+    }
+
+    errors = GSheetsEngineSpec.validate_parameters(properties)
+
+    assert len(errors) == 1
+    assert errors[0].error_type == SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR
+    assert errors[0].extra["catalog"] == {"idx": 0, "url": True}
+    conn.execute.assert_not_called()
+
+
 def test_validate_parameters_skips_oauth2_connections_with_masked_encrypted_extra(
     mocker: MockerFixture,
 ) -> None:
