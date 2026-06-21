@@ -277,6 +277,7 @@ class FilterOperator(StrEnum):
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
     TEMPORAL_RANGE = "TEMPORAL_RANGE"
+    CONTAINS = "CONTAINS"  # array membership, for MULTI_VALUE columns
 
 
 class FilterStringOperators(StrEnum):
@@ -295,6 +296,7 @@ class FilterStringOperators(StrEnum):
     LATEST_PARTITION = ("LATEST_PARTITION",)
     IS_TRUE = ("IS_TRUE",)
     IS_FALSE = ("IS_FALSE",)
+    CONTAINS = ("CONTAINS",)
 
 
 class PostProcessingBoxplotWhiskerType(StrEnum):

@@ -3615,6 +3615,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             target_clause_list.append(sqla_col.not_like(eq))
                         else:
                             target_clause_list.append(sqla_col.not_ilike(eq))
+                    elif op == utils.FilterOperator.CONTAINS:
+                        if not db_engine_spec.supports_multivalue_columns:
+                            raise QueryObjectValidationError(
+                                _(
+                                    "The CONTAINS operator is only supported for "
+                                    "multi-value (array) columns on this database."
+                                )
+                            )
+                        target_clause_list.append(
+                            db_engine_spec.array_contains(sqla_col, eq)
+                        )
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE
                         and isinstance(eq, str)
