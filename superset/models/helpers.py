@@ -4179,6 +4179,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                     )
                     continue
+                if utils.is_multivalue_operation_column(selected):
+                    outer, _unused = self.adhoc_column_to_sqla(
+                        col=selected,
+                        template_processor=template_processor,
+                    )
+                    select_exprs.append(outer)
+                    continue
                 if is_adhoc_column(selected):
                     # Delegate to ``adhoc_column_to_sqla`` (same path as the
                     # ``need_groupby`` branch) so calculated columns are resolved
