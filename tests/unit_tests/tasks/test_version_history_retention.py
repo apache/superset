@@ -14,18 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Unit tests for the operational instrumentation added to
-``superset.tasks.version_history_retention`` in the v4 → v5 cycle.
+"""Unit tests for the operational instrumentation in
+``superset.tasks.version_history_retention``.
 
-Covers the three branches that emit statsd counters but didn't previously
-have direct test coverage: the ``retention_days <= 0`` short-circuit, the
-``no versioned classes resolved`` short-circuit, and the
-``OperationalError`` retry path. The "happy path" / SERIALIZABLE retry
-behaviour itself is exercised by
-``tests/integration_tests/dashboards/version_history_tests.py`` against
-a real database; this file pins the metric-emission contract that the
-v5 continuous-delivery review surfaced as load-bearing for operator
-alerting.
+Covers the branches that emit statsd counters: the ``retention_days <= 0``
+short-circuit, the ``no versioned classes resolved`` short-circuit, the
+``OperationalError`` retry path, and the terminal failure counter. The
+"happy path" / SERIALIZABLE retry behaviour against a real database is
+exercised by ``tests/integration_tests/versioning/retention_prune_tests.py``;
+this file pins the metric-emission contract that is load-bearing for
+operator alerting.
 """
 
 from __future__ import annotations
@@ -93,9 +91,8 @@ def test_serialization_failure_then_success_increments_retried_once(
     * fire ``.pruned_transactions`` gauge with the success count.
 
     The contract on ``.retried`` is "fires per retry attempt observed"
-    — the v5 review noted the commit message implied "per session" but
-    the code is per-attempt. This test pins the per-attempt shape so a
-    future refactor doesn't silently change the metric semantics."""
+    (per-attempt, not per-session). This test pins the per-attempt shape so
+    a future refactor doesn't silently change the metric semantics."""
     pass_fn = MagicMock(
         side_effect=[
             OperationalError("SELECT 1", {}, Exception("could not serialize access")),
@@ -151,3 +148,23 @@ def test_all_attempts_fail_reraises_after_max_retries(stats: MagicMock) -> None:
         f"Expected {version_history_retention._MAX_RETRY_ATTEMPTS} "
         f".retried emissions (one per attempt); got {incr_calls}"
     )
+
+
+def test_terminal_failure_emits_failed_metric_and_swallows(stats: MagicMock) -> None:
+    """The Celery wrapper catches a terminal failure, returns ``{"error": 1}``
+    (so the schedule isn't poisoned), AND emits a ``.failed`` counter so the
+    destructive job's primary failure mode is alertable, not just logged."""
+    mock_app = MagicMock()
+    mock_app.config = {"SUPERSET_VERSION_HISTORY_RETENTION_DAYS": 30}
+    with (
+        patch.object(version_history_retention, "current_app", mock_app),
+        patch.object(
+            version_history_retention,
+            "_prune_old_versions_impl",
+            side_effect=RuntimeError("boom"),
+        ),
+    ):
+        result = version_history_retention.prune_old_versions()
+
+    assert result == {"error": 1}
+    stats.incr.assert_called_once_with("superset.versioning.retention.failed")

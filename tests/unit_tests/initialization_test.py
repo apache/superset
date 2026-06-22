@@ -398,8 +398,8 @@ class TestRetentionBeatWarning:
     def test_warn_when_celery_beat_schedule_missing_retention_entry(self, mock_logger):
         """When ``CELERY_CONFIG.beat_schedule`` is present but lacks the
         ``version_history.prune_old_versions`` entry, the helper emits
-        a WARNING. This is the silent-failure mode the v4 CD review
-        called out: capture writes rows; the prune never fires."""
+        a WARNING. This guards the silent-failure mode where capture writes
+        rows but the prune never fires."""
 
         class _PartialCeleryConfig:
             beat_schedule = {"reports.scheduler": {"task": "reports.scheduler"}}

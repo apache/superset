@@ -101,6 +101,19 @@ class TestDashboardVersionRetention(SupersetTestCase):
             rows_before = _get_version_rows(dashboard)
             assert len(rows_before) >= 3, "Expected at least 3 version rows"
 
+            def _version_changes_count() -> int:
+                return (
+                    _db.session.execute(
+                        sa.text("SELECT COUNT(*) FROM version_changes")
+                    ).scalar()
+                    or 0
+                )
+
+            changes_before = _version_changes_count()
+            assert changes_before >= 1, (
+                "expected version_changes rows from the edits above"
+            )
+
             # Backdate every version_transaction row by 100 days so the
             # prune sees them as old. Skip baseline+live rows; the prune
             # itself preserves them.
@@ -116,6 +129,16 @@ class TestDashboardVersionRetention(SupersetTestCase):
 
             stats = _prune_old_versions_impl(retention_days=30)
             assert stats.get("pruned_transactions", 0) >= 1, stats
+
+            # version_changes rows for pruned transactions must be gone too.
+            # The prune deletes version_transaction rows and relies on the
+            # ON DELETE CASCADE FK from version_changes.transaction_id; assert
+            # the cascade actually fired rather than orphaning change records.
+            db.session.expire_all()
+            assert _version_changes_count() < changes_before, (
+                "version_changes rows for pruned transactions were not removed "
+                f"(before={changes_before}, after={_version_changes_count()})"
+            )
 
             rows_after = _get_version_rows(dashboard)
             # Live row must still exist (this is the only preservation rule)

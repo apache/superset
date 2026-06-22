@@ -29,7 +29,7 @@ Create Date: 2026-06-15 16:30:00.000000
 
 """
 
-from alembic import op
+from superset.migrations.shared.utils import create_index, drop_index
 
 # revision identifiers, used by Alembic.
 revision = "d3b9a1f6c204"
@@ -40,13 +40,10 @@ TABLE_NAME = "version_transaction"
 
 
 def upgrade():
-    op.create_index(
-        INDEX_NAME,
-        TABLE_NAME,
-        ["issued_at"],
-        unique=False,
-    )
+    # Idempotent helper (skips if the index already exists) so a re-run after
+    # a partially-applied upgrade doesn't error.
+    create_index(TABLE_NAME, INDEX_NAME, ["issued_at"], unique=False)
 
 
 def downgrade():
-    op.drop_index(INDEX_NAME, table_name=TABLE_NAME)
+    drop_index(TABLE_NAME, INDEX_NAME)

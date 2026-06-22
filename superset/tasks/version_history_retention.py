@@ -272,7 +272,7 @@ def _delete_for_transactions(
     Live rows are never matched by either predicate
     (``end_transaction_id IS NULL`` is not ``IN`` anything; live rows'
     ``transaction_id`` is preserved by construction in
-    :func:`_candidate_transaction_ids`).
+    :func:`_resolve_prune_window`).
 
     ``tx_ids`` is chunked into batches of ``_TX_ID_CHUNK_SIZE`` so the
     bind-parameter count stays inside SQLite's ``SQLITE_MAX_VARIABLE_
@@ -526,4 +526,9 @@ def prune_old_versions() -> dict[str, Any]:
         return _prune_old_versions_impl(retention_days)
     except Exception:  # pylint: disable=broad-except
         logger.exception("version_history.prune_old_versions: task failed")
+        # Emit a failure counter so a prune that fails every night (e.g. an
+        # exhausted-retry serialization storm, or a non-OperationalError
+        # fault) is alertable via statsd rather than only via log inspection —
+        # this is the destructive job's primary failure mode.
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.failed")
         return {"error": 1}
