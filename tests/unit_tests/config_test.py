@@ -314,21 +314,38 @@ def test_full_setting(
     assert dttm_col.expression == "CAST(dttm as INTEGER)"
 
 
-def test_theme_default_logo_wiring() -> None:
+def test_sync_theme_logo_href() -> None:
     """
-    Verify THEME_DEFAULT is wired to the logo config variables at import time.
+    Verify LOGO_TARGET_PATH is wired into a theme's brandLogoHref.
 
-    THEME_DEFAULT is built from LOGO_TARGET_PATH and APP_ICON when the module is
-    imported. With the shipped defaults (LOGO_TARGET_PATH is None), brandLogoHref
-    falls back to "/", and brandLogoUrl mirrors APP_ICON. Overriding these in
-    superset_config.py requires also overriding THEME_DEFAULT, which is documented
-    alongside the variables.
+    THEME_DEFAULT is built before superset_config.py overrides load, so the link
+    is re-synced afterwards via sync_theme_logo_href. A provided LOGO_TARGET_PATH
+    must update brandLogoHref; None must leave the existing value untouched.
     """
+    from copy import deepcopy
+
+    from superset.config import sync_theme_logo_href, THEME_DEFAULT
+
+    # A user-provided LOGO_TARGET_PATH propagates to the logo link.
+    theme = deepcopy(THEME_DEFAULT)
+    theme["token"]["brandLogoHref"] = "/"
+    sync_theme_logo_href(theme, "https://custom.url")
+    assert theme["token"]["brandLogoHref"] == "https://custom.url"
+
+    # The default (None) leaves the existing link untouched.
+    default_theme = deepcopy(THEME_DEFAULT)
+    default_theme["token"]["brandLogoHref"] = "/"
+    sync_theme_logo_href(default_theme, None)
+    assert default_theme["token"]["brandLogoHref"] == "/"
+
+    # A disabled theme (None) is a no-op rather than an error.
+    sync_theme_logo_href(None, "https://custom.url")
+
+
+def test_theme_default_logo_defaults() -> None:
+    """With the shipped defaults, brandLogoHref is "/" and brandLogoUrl is APP_ICON."""
     from superset import config
 
-    # LOGO_TARGET_PATH defaults to None, so brandLogoHref falls back to "/"
     assert config.LOGO_TARGET_PATH is None
     assert config.THEME_DEFAULT["token"]["brandLogoHref"] == "/"
-
-    # APP_ICON is wired to brandLogoUrl
     assert config.THEME_DEFAULT["token"]["brandLogoUrl"] == config.APP_ICON

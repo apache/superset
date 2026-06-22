@@ -417,9 +417,8 @@ APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 # Default value of None will take you to '/superset/welcome'
 # You can also specify a relative URL e.g. '/superset/welcome' or '/dashboards/list'
 # or you can specify a full URL e.g. 'https://foo.bar'
-# NOTE: This variable is used to populate THEME_DEFAULT. If you override this in
-# superset_config.py, you must also override THEME_DEFAULT to see the change,
-# or set THEME_DEFAULT["token"]["brandLogoHref"] directly.
+# NOTE: Overriding this in superset_config.py automatically updates the logo link
+# (THEME_DEFAULT["token"]["brandLogoHref"]); see sync_theme_logo_href below.
 LOGO_TARGET_PATH = None
 
 # Specify tooltip that should appear when hovering over the App Icon/Logo
@@ -1063,6 +1062,22 @@ THEME_DARK: Optional[Theme] = {
     },
     "algorithm": "dark",
 }
+
+
+def sync_theme_logo_href(
+    theme: Optional[Theme], logo_target_path: Optional[str]
+) -> None:
+    """
+    Apply ``LOGO_TARGET_PATH`` to a theme's ``brandLogoHref`` token.
+
+    ``THEME_DEFAULT`` / ``THEME_DARK`` are built above, before ``superset_config.py``
+    and environment overrides are applied at the bottom of this module. This is
+    re-run after those overrides so that setting only ``LOGO_TARGET_PATH`` updates
+    the logo link without also having to override the whole theme object.
+    """
+    if theme and logo_target_path and isinstance(theme.get("token"), dict):
+        theme["token"]["brandLogoHref"] = logo_target_path
+
 
 # Theme behavior and user preference settings
 # To force a single theme on all users, set THEME_DARK = None
@@ -2843,3 +2858,9 @@ for env_var in ENV_VAR_KEYS:
     if env_var in os.environ:
         config_var = env_var.replace("SUPERSET__", "")
         globals()[config_var] = os.environ[env_var]
+
+# THEME_DEFAULT / THEME_DARK are defined before the overrides above are applied,
+# so re-sync the logo link from the final LOGO_TARGET_PATH value here. This lets
+# users set just LOGO_TARGET_PATH without also overriding the whole theme.
+sync_theme_logo_href(THEME_DEFAULT, LOGO_TARGET_PATH)
+sync_theme_logo_href(THEME_DARK, LOGO_TARGET_PATH)
