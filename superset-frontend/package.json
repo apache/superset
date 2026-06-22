@@ -203,7 +203,7 @@
     "query-string": "9.4.0",
     "re-resizable": "^6.11.2",
     "react": "^18.3.0",
-    "react-arborist": "^3.10.1",
+    "react-arborist": "^3.10.5",
     "react-checkbox-tree": "^1.8.0",
     "react-diff-viewer-continued": "^4.2.2",
     "react-dnd": "^11.1.3",
