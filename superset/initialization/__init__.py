@@ -22,6 +22,7 @@ import os
 import sys
 from typing import Any, Callable, TYPE_CHECKING
 
+import sqlalchemy as sa
 import wtforms_json
 from colorama import Fore, Style
 from deprecation import deprecated
@@ -809,7 +810,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         try:
             with self.superset_app.app_context():
                 # Simple connection test
-                db.engine.execute("SELECT 1")
+                with db.engine.connect() as connection:
+                    connection.execute(sa.text("SELECT 1"))
         except Exception:
             db_uri = self.database_uri
 
