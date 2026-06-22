@@ -352,7 +352,9 @@ describe('SqlEditor', () => {
 
   test('renders a registered northPane view in place of the editor', async () => {
     const { queryEditor } = mockedProps;
-    const storageKey = `sqllab.northPaneView.${queryEditor.tabViewId ?? queryEditor.id}`;
+    // The fixture has no tabViewId, so the component falls back to the id;
+    // mirror that here to derive the same persistence key.
+    const storageKey = `sqllab.northPaneView.${queryEditor.id}`;
     localStorage.setItem(storageKey, 'test.northPane');
     const disposable = views.registerView(
       { id: 'test.northPane', name: 'Test North Pane' },
