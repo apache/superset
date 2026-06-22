@@ -132,7 +132,7 @@ flask-caching==2.3.1
     # via apache-superset (pyproject.toml)
 flask-compress==1.17
     # via apache-superset (pyproject.toml)
-flask-cors==6.0.2
+flask-cors==6.0.5
     # via apache-superset (pyproject.toml)
 flask-jwt-extended==4.7.1
     # via flask-appbuilder
@@ -164,7 +164,7 @@ google-auth==2.53.0
     # via
     #   -r requirements/base.in
     #   shillelagh
-greenlet==3.5.0
+greenlet==3.5.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
@@ -240,7 +240,7 @@ marshmallow-union==0.1.15
     # via apache-superset (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
-msgpack==1.0.8
+msgpack==1.2.1
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
@@ -273,7 +273,6 @@ packaging==25.0
     #   deprecation
     #   gunicorn
     #   limits
-    #   marshmallow
     #   shillelagh
 pandas==2.1.4
     # via apache-superset (pyproject.toml)
@@ -349,7 +348,7 @@ pytz==2025.2
     #   pandas
 pyxlsb==1.0.10
     # via pandas
-pyyaml==6.0.2
+pyyaml==6.0.3
     # via
     #   apache-superset (pyproject.toml)
     #   apispec
