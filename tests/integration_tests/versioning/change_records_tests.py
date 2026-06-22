@@ -336,16 +336,29 @@ class TestChartChangeRecords(SupersetTestCase):
         chart = db.session.query(Slice).first()
         assert chart is not None
         ver_cls = version_class(Slice)
+        original_name = chart.slice_name
         original_perms = (chart.perm, chart.schema_perm, chart.catalog_perm)
-        pre_save_tx_row = (
-            db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == chart.id)
-            .order_by(ver_cls.transaction_id.desc())
-            .first()
-        )
-        pre_save_tx_id = pre_save_tx_row.transaction_id if pre_save_tx_row else 0
 
         try:
+            # Seed a baseline first: a real content edit guarantees the chart
+            # already has shadow rows, so the perm-only edit below can't be the
+            # event that triggers the *synthetic baseline* (which would
+            # otherwise create a shadow row and confound this assertion — the
+            # test must isolate "perm-only edit" from "first-ever version").
+            # This matters because the suite clears version tables between
+            # tests, so the chart may start with zero shadow rows.
+            chart.slice_name = f"{original_name} (baseline-seed)"
+            db.session.commit()
+
+            pre_save_tx_row = (
+                db.session.query(ver_cls.transaction_id)
+                .filter(ver_cls.id == chart.id)
+                .order_by(ver_cls.transaction_id.desc())
+                .first()
+            )
+            assert pre_save_tx_row is not None, "content edit should have versioned"
+            pre_save_tx_id = pre_save_tx_row.transaction_id
+
             chart.perm = f"[seed].[perm_rewrite {uuid4().hex[:8]}]"
             chart.schema_perm = f"[seed].[schema {uuid4().hex[:8]}]"
             chart.catalog_perm = f"[seed].[catalog {uuid4().hex[:8]}]"
@@ -368,6 +381,7 @@ class TestChartChangeRecords(SupersetTestCase):
             # persistent test DB breaks unrelated permission tests.
             db.session.rollback()
             chart = db.session.query(Slice).filter(Slice.id == chart.id).one()
+            chart.slice_name = original_name
             chart.perm, chart.schema_perm, chart.catalog_perm = original_perms
             db.session.commit()
 
