@@ -252,11 +252,12 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
 
     // Display information popup
     const result = data.filter(r => r.country_id === d?.properties?.ISO);
+    const regionName = escapeHtml(getNameOfRegion(d));
+    const metricValue =
+      result.length > 0 ? escapeHtml(String(formatter(result[0].metric))) : '';
     hoverPopup
       .style('display', 'block')
-      .html(
-        `<div><strong>${getNameOfRegion(d)}</strong><br>${result.length > 0 ? formatter(result[0].metric) : ''}</div>`,
-      );
+      .html(`<div><strong>${regionName}</strong><br>${metricValue}</div>`);
     updatePopupPosition();
   };
 
