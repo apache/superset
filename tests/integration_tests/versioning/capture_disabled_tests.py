@@ -110,8 +110,11 @@ class TestVersioningCaptureDisabled(SupersetTestCase):
         self.login(ADMIN_USERNAME)
 
         # Simulate the ENABLE_VERSIONING_CAPTURE=False branch of init_versioning.
-        SupersetAppInitializer._remove_continuum_write_listeners()
+        # The detach is INSIDE the try so the finally always re-attaches —
+        # otherwise a failure between detach and the try body would leave the
+        # rest of the suite running capture-off and silently vacuous.
         try:
+            SupersetAppInitializer._remove_continuum_write_listeners()
             tx_before = _transaction_row_count()
             ver_before = _slice_version_count(chart_id)
 

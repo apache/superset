@@ -36,6 +36,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from flask import current_app
 from sqlalchemy import event
 from sqlalchemy.orm import Session
 from sqlalchemy_continuum import versioning_manager
@@ -50,6 +51,17 @@ from superset.versioning.baseline.dirty import force_parent_dirty_on_child_chang
 from superset.versioning.baseline.insertion import insert_baseline_and_children
 
 logger = logging.getLogger(__name__)
+
+
+def _emit_baseline_error_metric() -> None:
+    """Increment the baseline-capture-error counter so a persistently-failing
+    baseline path is alertable rather than only visible by log-grep. Guarded:
+    metric emission must never be what breaks a user's save."""
+    try:
+        current_app.config["STATS_LOGGER"].incr("versioning.baseline_capture_error")
+    except Exception:  # pylint: disable=broad-except  # noqa: S110
+        pass
+
 
 # Sentinel attribute set on the session target after first successful
 # registration — same pattern as
@@ -115,5 +127,6 @@ def register_baseline_listener() -> None:
                 "the save proceeds without a baseline row for this flush.",
                 exc_info=True,
             )
+            _emit_baseline_error_metric()
 
     setattr(db.session, _REGISTERED_SENTINEL, True)

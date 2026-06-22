@@ -465,6 +465,21 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                           ``old_transaction_id`` the update produced a new
                           version row (regardless of whether ``new_version``
                           changed).
+                      old_version_uuid:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: >-
+                          Deterministic version_uuid of the live row before
+                          this update. Null when version capture is disabled
+                          or the dataset has no version rows yet.
+                      new_version_uuid:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: >-
+                          Deterministic version_uuid of the live row after
+                          this update. Null when version capture is disabled.
             400:
               $ref: '#/components/responses/400'
             401:

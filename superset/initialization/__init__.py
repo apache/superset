@@ -721,6 +721,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             self._remove_continuum_write_listeners()
             return
 
+        # Symmetric with the OFF branch's ``options['versioning'] = False``:
+        # re-assert it on here so capture is restored even if a prior app
+        # init in the same process (multi-app / test reentrancy) flipped the
+        # process-global Continuum option off. Without this, an OFF app
+        # initialized before an ON app would leave the option False and the
+        # baseline listener — which gates on it — would silently write no
+        # baselines despite capture being "enabled".
+        from sqlalchemy_continuum import versioning_manager
+
+        versioning_manager.options["versioning"] = True
+
         from sqlalchemy.orm import Session  # noqa: F401
         from sqlalchemy_continuum import version_class
 

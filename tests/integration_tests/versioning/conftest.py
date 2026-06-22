@@ -42,8 +42,32 @@ _VERSION_TABLES: tuple[str, ...] = (
 )
 
 
+def _assert_table_list_covers_schema() -> None:
+    """Guard against drift: if a future versioned model adds a ``*_version``
+    shadow table not listed in ``_VERSION_TABLES``, this fixture would stop
+    fully clearing capture rows and silently reintroduce the accumulation it
+    exists to prevent. Fail loudly instead. Checked once per test (cheap —
+    reflection reads cached metadata)."""
+    known = set(_VERSION_TABLES)
+    shadow_tables = {
+        name
+        for name in sa.inspect(db.engine).get_table_names()
+        # Continuum shadow tables are ``<entity_table>_version``; exclude
+        # Alembic's own ``alembic_version`` bookkeeping table, which shares
+        # the suffix but is not a shadow table.
+        if name.endswith("_version") and name != "alembic_version"
+    }
+    missing = shadow_tables - known
+    assert not missing, (
+        f"_VERSION_TABLES is missing shadow table(s) {sorted(missing)}; add "
+        "them (children before version_transaction) so the cleanup fixture "
+        "keeps clearing all capture rows."
+    )
+
+
 def _clear_version_tables() -> None:
     with app.app_context():
+        _assert_table_list_covers_schema()
         for table in _VERSION_TABLES:
             db.session.execute(sa.text(f"DELETE FROM {table}"))  # noqa: S608
         db.session.commit()
