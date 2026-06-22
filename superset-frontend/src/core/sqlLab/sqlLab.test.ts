@@ -561,8 +561,26 @@ test('createTab dispatches ADD_QUERY_EDITOR and returns the new tab', async () =
 
   expect(tab).toBeDefined();
   expect(tab.title).toBe('Custom Tab');
+  // A freshly created tab has no backend identifier until it syncs.
+  expect(tab.backendId).toBeUndefined();
   const tabs = sqlLab.getTabs();
   expect(tabs.length).toBeGreaterThanOrEqual(2);
+});
+
+test('getTabs leaves backendId undefined when the editor has no tabViewId', () => {
+  // The preloaded editor has no tabViewId, so its backendId stays undefined.
+  const [tab] = sqlLab.getTabs();
+  expect(tab.id).toBe(EDITOR_ID);
+  expect(tab.backendId).toBeUndefined();
+});
+
+test('getTabs surfaces the editor tabViewId as the tab backendId', () => {
+  // Stamp a backend id onto the editor and confirm it flows through to the tab.
+  (mockStore.getState().sqlLab.queryEditors[0] as any).tabViewId = 'backend-42';
+
+  const tab = sqlLab.getCurrentTab();
+  expect(tab).toBeDefined();
+  expect(tab!.backendId).toBe('backend-42');
 });
 
 test('setActiveTab switches the active tab', async () => {
