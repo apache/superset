@@ -41,6 +41,8 @@ import {
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
+import { views } from 'src/core';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import type { Action, Middleware, Store } from 'redux';
 import SqlEditor, { Props } from '.';
 
@@ -346,6 +348,27 @@ describe('SqlEditor', () => {
     expect(
       await findByText('sqleditor.extension.form extension component'),
     ).toBeInTheDocument();
+  });
+
+  test('renders a registered northPane view in place of the editor', async () => {
+    const { queryEditor } = mockedProps;
+    const storageKey = `sqllab.northPaneView.${queryEditor.tabViewId ?? queryEditor.id}`;
+    localStorage.setItem(storageKey, 'test.northPane');
+    const disposable = views.registerView(
+      { id: 'test.northPane', name: 'Test North Pane' },
+      ViewLocations.sqllab.northPane,
+      () => <div data-test="np-view">NorthPane content</div>,
+    );
+
+    try {
+      const { findByTestId, queryByTestId } = setup(mockedProps, store);
+      expect(await findByTestId('np-view')).toBeInTheDocument();
+      // The default SQL editor pane is replaced, not rendered alongside.
+      expect(queryByTestId('react-ace')).not.toBeInTheDocument();
+    } finally {
+      disposable.dispose();
+      localStorage.removeItem(storageKey);
+    }
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
