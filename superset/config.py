@@ -430,7 +430,7 @@ LOGO_TOOLTIP = ""
 # NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 
-# APP_ICON_WIDTH is deprecated. 
+# APP_ICON_WIDTH is deprecated.
 # Use THEME_DEFAULT["token"]["brandLogoHeight"] instead (default: "24px").
 
 # Enables SWAGGER UI for superset openapi spec
@@ -1022,7 +1022,7 @@ THEME_DEFAULT: Theme = {
         "brandLogoHref": LOGO_TARGET_PATH or "/",
         "brandLogoHeight": "24px",
         # Spinner - Set this to use a custom GIF/image loader
-        # "brandSpinnerUrl": "/static/assets/images/loading.gif", 
+        # "brandSpinnerUrl": "/static/assets/images/loading.gif",
         "brandSpinnerUrl": None,
         "brandSpinnerSvg": None,
         # Default colors
