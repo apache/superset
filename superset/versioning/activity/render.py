@@ -52,6 +52,7 @@ from superset.versioning.activity.impact import (
 )
 from superset.versioning.activity.kinds import (
     API_KIND_LABEL,
+    chunked_ids,
     load_shadow_model,
     NAME_COLUMN,
     TABLE_KIND_TO_API,
@@ -205,17 +206,20 @@ def _lookup_entity_uuids(
                 continue
             model_cls = load_shadow_model(NAME_COLUMN[api_kind][0])
             live_tbl = model_cls.__table__
-            rows = (
-                db.session.connection()
-                .execute(
-                    sa.select(live_tbl.c.id, live_tbl.c.uuid).where(
-                        live_tbl.c.id.in_(entity_ids)
+            # Chunk the IN-clause to stay under SQLite's bind-variable floor
+            # (a wide dashboard can have more related entities than the floor).
+            for chunk in chunked_ids(entity_ids):
+                rows = (
+                    db.session.connection()
+                    .execute(
+                        sa.select(live_tbl.c.id, live_tbl.c.uuid).where(
+                            live_tbl.c.id.in_(chunk)
+                        )
                     )
+                    .all()
                 )
-                .all()
-            )
-            for row in rows:
-                result[(api_kind, row[0])] = row[1]
+                for row in rows:
+                    result[(api_kind, row[0])] = row[1]
     return result
 
 

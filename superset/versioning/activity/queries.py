@@ -403,11 +403,15 @@ def _select_change_rows_for_kinds(
             # the cap take the newest records; if a statement returns a
             # full ``limit``, older records exist beyond it and the caller
             # surfaces ``truncated`` on the response.
+            # Match fetch_change_records' final Python sort key order
+            # (issued_at, transaction_id, sequence, entity_id) so a truncating
+            # LIMIT keeps exactly the rows the final sort ranks highest.
+            # entity_kind is constant within a per-kind statement.
             stmt = stmt.order_by(
                 tx_tbl.c.issued_at.desc(),
                 vc.c.transaction_id.desc(),
-                vc.c.entity_id.desc(),
                 vc.c.sequence.desc(),
+                vc.c.entity_id.desc(),
             ).limit(limit)
             rows = [
                 dict(row)

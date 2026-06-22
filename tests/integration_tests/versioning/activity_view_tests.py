@@ -177,7 +177,7 @@ class TestDashboardActivityView(SupersetTestCase):
             kept_ids = {r["entity_id"] for r in filtered}
 
             assert visible_id in kept_ids, (
-                "published dashboard must stay visible to Gamma"
+                "gamma-owned dashboard must stay visible to Gamma"
             )
             assert hidden_id not in kept_ids, (
                 "unpublished admin-owned dashboard must be dropped for Gamma"

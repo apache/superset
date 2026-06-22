@@ -58,7 +58,7 @@ from typing import Any
 
 from superset.extensions import db
 from superset.versioning.activity.kinds import (
-    ENTITY_ID_CHUNK_SIZE,
+    chunked_ids,
     load_shadow_model,
     NAME_COLUMN,
     TABLE_KIND_TO_API,
@@ -176,8 +176,7 @@ def _resolve_visibility(
         # (a dashboard built from a large chart library can exceed it).
         live_ids: set[int] = set()
         visible_ids: set[int] = set()
-        for start in range(0, len(entity_ids), ENTITY_ID_CHUNK_SIZE):
-            chunk = entity_ids[start : start + ENTITY_ID_CHUNK_SIZE]
+        for chunk in chunked_ids(entity_ids):
             # Live ids — what exists at all. Used to decide tombstone vs
             # not-visible: an id missing from this set is tombstoned and
             # passes through (True); an id in this set but absent from the
