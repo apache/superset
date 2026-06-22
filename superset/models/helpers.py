@@ -58,7 +58,7 @@ from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from markupsafe import escape, Markup
 from pandas import DateOffset
-from sqlalchemy import and_, Column, or_, UniqueConstraint
+from sqlalchemy import and_, Column, DateTime, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapper, validates
@@ -643,10 +643,19 @@ class ImportExportMixin(UUIDMixin):
 class SoftDeleteMixin:
     """Mixin for models that support soft delete.
 
-    Stub import — the actual implementation lives in newer upstream
-    commits; only the import path is needed for compatibility.
+    Adds a ``deleted_at`` timestamp column and a ``soft_delete()``
+    method. Models using this mixin are excluded from default queries
+    via ``BaseDeletedStateFilter`` / session-level visibility filters.
     """
-    pass
+
+    deleted_at = Column(DateTime, nullable=True, default=None)
+
+    def soft_delete(self) -> None:
+        self.deleted_at = datetime.now()
+
+    @classmethod
+    def get_delete_filter(cls, model_class: type) -> Column:
+        return model_class.deleted_at
 
 
 def _user(user: User) -> str:

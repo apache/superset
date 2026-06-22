@@ -326,6 +326,39 @@ class DatasetRelationshipDAO(BaseDAO[DatasetRelationship]):
 
         return False
 
+    @classmethod
+    def resolve_chain(cls, dataset_id: int) -> list[int]:
+        """BFS: retorna todos os datasets alcançáveis a partir de
+        *dataset_id* seguindo relacionamentos ativos (ambos os sentidos).
+
+        Exclui o próprio *dataset_id* do resultado.
+        Útil para cross-filter propagation.
+        """
+        all_rels = cls.find_active()
+        # Grafo não-dirigido
+        graph: dict[int, list[int]] = {}
+        for rel in all_rels:
+            src = rel.source_dataset_id
+            tgt = rel.target_dataset_id
+            if src is None or tgt is None:
+                continue
+            graph.setdefault(src, []).append(tgt)
+            graph.setdefault(tgt, []).append(src)
+
+        visited: set[int] = set()
+        queue: list[int] = [dataset_id]
+        while queue:
+            current = queue.pop(0)
+            if current in visited:
+                continue
+            visited.add(current)
+            for neighbor in graph.get(current, []):
+                if neighbor not in visited:
+                    queue.append(neighbor)
+
+        # Remove o próprio dataset_id
+        visited.discard(dataset_id)
+        return list(visited)
 
     @classmethod
     def delete(cls, items: list[DatasetRelationship]) -> None:

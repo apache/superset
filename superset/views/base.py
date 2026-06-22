@@ -35,7 +35,11 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH, AUTH_SAML
+from flask_appbuilder.const import AUTH_OAUTH
+try:
+    from flask_appbuilder.const import AUTH_SAML
+except ImportError:
+    AUTH_SAML = None
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -490,7 +494,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
     should_show_recaptcha = auth_user_registration and (
-        auth_type not in (AUTH_OAUTH, AUTH_SAML)
+        auth_type not in (AUTH_OAUTH, AUTH_SAML) if AUTH_SAML else auth_type != AUTH_OAUTH
     )
 
     if auth_user_registration:
@@ -511,7 +515,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
                 }
             )
         frontend_config["AUTH_PROVIDERS"] = oauth_providers
-    elif auth_type == AUTH_SAML:
+    elif AUTH_SAML and auth_type == AUTH_SAML:
         saml_providers = []
         for provider in appbuilder.sm.saml_providers:
             saml_providers.append(

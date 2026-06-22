@@ -1,0 +1,4 @@
+location /safira-track {
+    alias /usr/share/nginx/html/safira-track;
+    try_files $uri $uri/ /safira-track/index.html;
+}
