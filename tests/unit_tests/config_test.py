@@ -314,22 +314,21 @@ def test_full_setting(
     assert dttm_col.expression == "CAST(dttm as INTEGER)"
 
 
-def test_theme_default_logo_target_path() -> None:
+def test_theme_default_logo_wiring() -> None:
     """
-    Test that THEME_DEFAULT properly uses LOGO_TARGET_PATH for brandLogoHref.
+    Verify THEME_DEFAULT is wired to the logo config variables at import time.
 
-    When LOGO_TARGET_PATH is None (default), brandLogoHref should be "/".
-    When LOGO_TARGET_PATH is set, it should be used instead.
+    THEME_DEFAULT is built from LOGO_TARGET_PATH and APP_ICON when the module is
+    imported. With the shipped defaults (LOGO_TARGET_PATH is None), brandLogoHref
+    falls back to "/", and brandLogoUrl mirrors APP_ICON. Overriding these in
+    superset_config.py requires also overriding THEME_DEFAULT, which is documented
+    alongside the variables.
     """
     from superset import config
 
-    # Verify default behavior: LOGO_TARGET_PATH is None, so brandLogoHref is "/"
+    # LOGO_TARGET_PATH defaults to None, so brandLogoHref falls back to "/"
     assert config.LOGO_TARGET_PATH is None
     assert config.THEME_DEFAULT["token"]["brandLogoHref"] == "/"
 
-    # Verify the expression logic works correctly for custom values
-    custom_path = "https://example.com"
-    assert (custom_path or "/") == custom_path
-
-    # Verify APP_ICON is wired to brandLogoUrl
+    # APP_ICON is wired to brandLogoUrl
     assert config.THEME_DEFAULT["token"]["brandLogoUrl"] == config.APP_ICON
