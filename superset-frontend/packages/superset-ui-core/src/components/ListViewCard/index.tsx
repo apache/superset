@@ -49,6 +49,14 @@ const StyledCard = styled(Card)`
         transform: translateY(0);
       }
     }
+
+    /* Allow long descriptions (e.g. localized "Modified at" timestamps)
+       to wrap naturally instead of being clipped by the card. */
+    .ant-card-meta-description {
+      white-space: normal;
+      overflow-wrap: break-word;
+      margin-bottom: ${theme.sizeUnit * 2}px;
+    }
   `}
 `;
 
@@ -259,7 +267,7 @@ function ListViewCard({
               </div>
             </TitleContainer>
           }
-          description={description}
+          description={description ?? null}
           avatar={avatar || null}
         />
       )}
