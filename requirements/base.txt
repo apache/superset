@@ -240,7 +240,7 @@ marshmallow-union==0.1.15
     # via apache-superset (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
-msgpack==1.0.8
+msgpack==1.2.1
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
@@ -273,7 +273,6 @@ packaging==25.0
     #   deprecation
     #   gunicorn
     #   limits
-    #   marshmallow
     #   shillelagh
 pandas==2.1.4
     # via apache-superset (pyproject.toml)
