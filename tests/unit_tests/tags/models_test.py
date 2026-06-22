@@ -264,17 +264,10 @@ def test_tag_name_type_after_database_operation() -> None:
 
 
 def test_tagged_object_object_id_has_no_foreign_keys() -> None:
-    """
-    ``tagged_object.object_id`` is a polymorphic reference disambiguated by
-    ``object_type`` and must not carry a foreign key to any single table.
+    """Guard against ``tagged_object.object_id`` regaining a foreign key.
 
-    Declaring foreign keys to ``dashboards``, ``slices`` and ``saved_query`` on
-    the same column is unsatisfiable: a row would have to exist in all three
-    tables at once, so on a schema that enforces those constraints every tag
-    insert fails (e.g. tagging a dashboard violates the ``slices`` FK). This is
-    the regression behind issue #35941. The original migration (c82ee8a39623)
-    defined ``object_id`` without any FK, and this guards against the model
-    drifting back.
+    It is a polymorphic reference (see the rationale on the model); declaring
+    FKs there is unsatisfiable and breaks tagging (issue #35941).
     """
     foreign_keys = TaggedObject.__table__.c.object_id.foreign_keys
     assert foreign_keys == set(), (
