@@ -53,6 +53,7 @@ from superset.superset_typing import (
 )
 from superset.utils import json
 from superset.utils.core import GenericDataType
+from tests.common.assert_utils import assert_called_with_text
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
@@ -571,7 +572,10 @@ def test_get_columns_error(mocker: MockerFixture):
 
     _assert_columns_equal(actual, expected)
 
-    mock_inspector.bind.execute.assert_called_with('SHOW COLUMNS FROM schema."table"')
+    assert_called_with_text(
+        mock_inspector.bind.execute,
+        'SHOW COLUMNS FROM schema."table"',
+    )
 
 
 def test_get_columns_expand_rows(mocker: MockerFixture):
