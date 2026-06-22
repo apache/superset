@@ -18,20 +18,21 @@
 """
 Storage API for superset-core extensions.
 
-Provides storage tiers for extensions with different persistence characteristics:
+Provides storage tiers for extensions with different persistence characteristics.
+Storage is accessed via `ctx.storage` from `get_context()`.
 
 Tier 1 - Local State (Frontend Only):
-    - localState: Browser localStorage - persists across sessions
-    - sessionState: Browser sessionStorage - cleared on tab close
+    - local: Browser localStorage - persists across sessions
+    - session: Browser sessionStorage - cleared on tab close
     These are frontend-only and cannot be imported in backend code.
 
 Tier 2 - Ephemeral State (Server Cache):
-    - ephemeral_state: Short-lived KV storage backed by server-side cache
+    - ephemeral: Short-lived KV storage backed by server-side cache
     - Supports TTL, not guaranteed to survive server restarts
     - Use for temporary state like job progress or intermediate results
 
-Tier 3 - Persistent State (Database) [Future]:
-    - persistent_state: Durable KV storage backed by database table
+Tier 3 - Persistent State (Database):
+    - persistent: Durable KV storage backed by database table
     - Survives server restarts, supports encryption and resource linking
     - Use for user preferences, extension config, per-resource settings
 
@@ -40,20 +41,21 @@ All tiers follow the same API pattern:
     - `shared` accessor for data visible to all users
 
 Usage:
-    from superset_core.extensions.storage import ephemeral_state
+    from superset_core.extensions.context import get_context
 
-    # User-scoped state (default - private to current user)
-    ephemeral_state.get('preference')
-    ephemeral_state.set('preference', 'compact', ttl=3600)
+    ctx = get_context()
 
-    # Shared state (explicit opt-in - visible to all users)
-    ephemeral_state.shared.get('job_progress')
-    ephemeral_state.shared.set('job_progress', {'pct': 42}, ttl=3600)
+    # Tier 2: Ephemeral state
+    ctx.storage.ephemeral.get('preference')
+    ctx.storage.ephemeral.set('preference', 'compact', ttl=3600)
+
+    # Tier 2: Shared ephemeral state
+    ctx.storage.ephemeral.shared.get('job_progress')
+    ctx.storage.ephemeral.shared.set('job_progress', {'pct': 42}, ttl=3600)
 
     # Tier 3: Persistent state
-    from superset_core.extensions.storage import persistent_state
-    persistent_state.get('config')
-    persistent_state.set('config', {'version': 2})
+    ctx.storage.persistent.get('config')
+    ctx.storage.persistent.set('config', {'version': 2})
 """
 
 from superset_core.extensions.storage import (

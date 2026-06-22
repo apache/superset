@@ -59,7 +59,7 @@ export interface StorageAccessor {
   set(
     key: string,
     value: JsonValue,
-    options: Record<string, JsonValue>,
+    options?: Record<string, JsonValue>,
   ): Promise<void>;
 
   /**
@@ -80,4 +80,61 @@ export interface StorageTier extends StorageAccessor {
    * Data stored via shared is visible to all users.
    */
   shared: StorageAccessor;
+}
+
+/**
+ * Options required when setting ephemeral (server-cached) state.
+ */
+export interface EphemeralSetOptions {
+  ttl: number;
+}
+
+/**
+ * Storage accessor for ephemeral state, requiring TTL on every set.
+ */
+export interface EphemeralStorageAccessor {
+  get(key: string): Promise<JsonValue | null>;
+  set(key: string, value: JsonValue, options: EphemeralSetOptions): Promise<void>;
+  remove(key: string): Promise<void>;
+}
+
+/**
+ * Storage tier for ephemeral state with TTL-required set operations.
+ */
+export interface EphemeralStorageTier extends EphemeralStorageAccessor {
+  shared: EphemeralStorageAccessor;
+}
+
+/**
+ * Extension-scoped storage accessor for all available tiers.
+ *
+ * All storage tiers are automatically namespaced to the current extension,
+ * preventing key collisions between extensions.
+ */
+export interface ExtensionStorage {
+  /**
+   * Browser localStorage - persists across browser sessions.
+   * Data is scoped to the current extension and user.
+   */
+  local: StorageTier;
+
+  /**
+   * Browser sessionStorage - cleared when the tab closes.
+   * Data is scoped to the current extension and user.
+   */
+  session: StorageTier;
+
+  /**
+   * Server-side cache (Redis/Memcached) with TTL.
+   * Data is scoped to the current extension and user.
+   * Use `.shared` for data visible to all users.
+   */
+  ephemeral: EphemeralStorageTier;
+
+  /**
+   * Durable database-backed storage (Tier 3).
+   * Data survives server restarts and cache evictions.
+   * Use `.shared` for data visible to all users.
+   */
+  persistent: StorageTier;
 }

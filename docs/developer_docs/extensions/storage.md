@@ -28,6 +28,8 @@ Superset Extensions have access to a managed storage API for persisting data. Th
 
 Each extension receives its own isolated storage namespace. When Superset loads your extension, it binds storage to your extension's unique identifier, ensuring data privacy—two extensions using the same key will never collide, and extensions cannot access each other's data.
 
+Storage is always accessed through the extension context via `getContext()`. This binding to the context is what ties every operation to the current extension's namespace.
+
 ## Storage Tiers
 
 | Tier | Storage Type      | Context Property                           | Use Case                               |
@@ -55,9 +57,9 @@ You might wonder why extensions should use `ctx.storage.local` instead of direct
 Data persists across browser sessions until explicitly deleted or the user clears browser storage.
 
 ```typescript
-import { getContext } from '@apache-superset/core/extensions';
+import { extensions } from '@apache-superset/core';
 
-const ctx = getContext();
+const ctx = extensions.getContext();
 
 // Save sidebar state
 await ctx.storage.local.set('sidebar_collapsed', true);
@@ -74,9 +76,9 @@ await ctx.storage.local.remove('sidebar_collapsed');
 Data is cleared when the browser tab is closed. Use for transient state within a single session.
 
 ```typescript
-import { getContext } from '@apache-superset/core/extensions';
+import { extensions } from '@apache-superset/core';
 
-const ctx = getContext();
+const ctx = extensions.getContext();
 
 // Save wizard progress (lost when tab closes)
 await ctx.storage.session.set('wizard_step', 3);
@@ -91,9 +93,9 @@ const step = await ctx.storage.session.get('wizard_step');
 By default, data is scoped to the current user. Use `shared` for data that should be accessible to all users on the same device.
 
 ```typescript
-import { getContext } from '@apache-superset/core/extensions';
+import { extensions } from '@apache-superset/core';
 
-const ctx = getContext();
+const ctx = extensions.getContext();
 
 // Shared across all users on this device
 await ctx.storage.local.shared.set('device_id', 'abc-123');
@@ -117,22 +119,17 @@ const deviceId = await ctx.storage.local.shared.get('device_id');
 
 Server-side cache storage with automatic TTL expiration. Use for temporary data that needs to be shared between frontend and backend, or persist across page reloads.
 
+TTL is required for every `set` call. The maximum allowed TTL is controlled by `MAX_TTL` in the server configuration.
+
 ### Frontend Usage
 
 ```typescript
-import { getContext } from '@apache-superset/core/extensions';
+import { extensions } from '@apache-superset/core';
 
-const ctx = getContext();
+const ctx = extensions.getContext();
 
-// Store with server default TTL (CACHE_DEFAULT_TIMEOUT)
-await ctx.storage.ephemeral.set('job_progress', { pct: 42, status: 'running' });
-
-// Store with custom TTL (5 minutes)
-await ctx.storage.ephemeral.set(
-  'quick_cache',
-  { results: [1, 2, 3] },
-  { ttl: 300 },
-);
+// Store with a 5-minute TTL
+await ctx.storage.ephemeral.set('job_progress', { pct: 42, status: 'running' }, { ttl: 300 });
 
 // Retrieve
 const progress = await ctx.storage.ephemeral.get('job_progress');
@@ -148,8 +145,8 @@ from superset_core.extensions.context import get_context
 
 ctx = get_context()
 
-# Store job progress (uses CACHE_DEFAULT_TIMEOUT when ttl is omitted)
-ctx.storage.ephemeral.set('job_progress', {'pct': 42, 'status': 'running'})
+# Store job progress with a 5-minute TTL
+ctx.storage.ephemeral.set('job_progress', {'pct': 42, 'status': 'running'}, ttl=300)
 
 # Retrieve
 progress = ctx.storage.ephemeral.get('job_progress')
@@ -163,11 +160,11 @@ ctx.storage.ephemeral.remove('job_progress')
 For data that needs to be visible to all users:
 
 ```typescript
-import { getContext } from '@apache-superset/core/extensions';
+import { extensions } from '@apache-superset/core';
 
-const ctx = getContext();
+const ctx = extensions.getContext();
 
-await ctx.storage.ephemeral.shared.set('shared_result', { data: [1, 2, 3] });
+await ctx.storage.ephemeral.shared.set('shared_result', { data: [1, 2, 3] }, { ttl: 3600 });
 const result = await ctx.storage.ephemeral.shared.get('shared_result');
 ```
 
@@ -176,7 +173,7 @@ from superset_core.extensions.context import get_context
 
 ctx = get_context()
 
-ctx.storage.ephemeral.shared.set('shared_result', {'data': [1, 2, 3]})
+ctx.storage.ephemeral.shared.set('shared_result', {'data': [1, 2, 3]}, ttl=3600)
 result = ctx.storage.ephemeral.shared.get('shared_result')
 ```
 
@@ -193,6 +190,7 @@ result = ctx.storage.ephemeral.shared.get('shared_result')
 - Not guaranteed to survive server restarts
 - Subject to cache eviction under memory pressure
 - TTL-based expiration (data disappears after timeout)
+- TTL is required on every `set` call
 
 ## Tier 3: Persistent State
 
@@ -201,9 +199,9 @@ Database-backed storage that survives server restarts, cache evictions, and brow
 ### Frontend Usage
 
 ```typescript
-import { getContext } from '@apache-superset/core/extensions';
+import { extensions } from '@apache-superset/core';
 
-const ctx = getContext();
+const ctx = extensions.getContext();
 
 // Store user preferences
 await ctx.storage.persistent.set('preferences', { theme: 'dark', locale: 'en' });
@@ -237,9 +235,9 @@ ctx.storage.persistent.remove('preferences')
 For data that should be visible to all users of the extension:
 
 ```typescript
-import { getContext } from '@apache-superset/core/extensions';
+import { extensions } from '@apache-superset/core';
 
-const ctx = getContext();
+const ctx = extensions.getContext();
 
 await ctx.storage.persistent.shared.set('global_config', { version: 2 });
 const config = await ctx.storage.persistent.shared.get('global_config');
@@ -289,13 +287,11 @@ This ensures:
 Administrators can configure the server-side cache backend in `superset_config.py`:
 
 ```python
-EXTENSIONS_STORAGE = {
-    "EPHEMERAL": {
-        # Use Redis for better performance in production
-        "CACHE_TYPE": "RedisCache",
-        "CACHE_REDIS_URL": "redis://localhost:6379/2",
-        "CACHE_DEFAULT_TIMEOUT": 3600,  # 1 hour default TTL
-    },
+EXTENSIONS_EPHEMERAL_STORAGE = {
+    # Use Redis for better performance in production
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_URL": "redis://localhost:6379/2",
+    "MAX_TTL": 604800,  # 7 days maximum TTL
 }
 ```
 

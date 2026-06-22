@@ -76,11 +76,10 @@ class ExtensionStorage(Protocol):
         """Server-side cache (Redis/Memcached) with TTL."""
         ...
 
-    # Future tiers:
-    # @property
-    # def persistent(self) -> StorageAccessor:
-    #     """Database-backed persistent storage."""
-    #     ...
+    @property
+    def persistent(self) -> StorageAccessor:
+        """Database-backed persistent storage."""
+        ...
 
 
 class ExtensionContext(Protocol):

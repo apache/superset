@@ -22,28 +22,30 @@ Provides durable KV storage backed by a dedicated database table.
 Data survives server restarts, cache evictions, and browser clears.
 Suitable for user preferences, saved state, and any data that must not be lost.
 
-Host implementations will replace these functions during initialization
-with concrete implementations providing actual functionality.
+Host implementations will replace the PersistentState class during initialization
+with a concrete implementation providing actual functionality.
 
 Database keys are namespaced automatically:
 - User-scoped (default): (extension_id, user_id, key)
 - Shared (global): (extension_id, null, key)
 
-Usage:
-    from superset_core.extensions.storage import persistent_state
+Usage (via extension context - preferred):
+    from superset_core.extensions.context import get_context
+
+    ctx = get_context()
 
     # User-scoped state (default - private to current user)
-    persistent_state.get('preferences')
-    persistent_state.set('preferences', {'theme': 'dark'})
-    persistent_state.remove('preferences')
+    ctx.storage.persistent.get('preferences')
+    ctx.storage.persistent.set('preferences', {'theme': 'dark'})
+    ctx.storage.persistent.remove('preferences')
 
     # Shared state (explicit opt-in - visible to all users)
-    persistent_state.shared.get('global_config')
-    persistent_state.shared.set('global_config', {'version': 2})
-    persistent_state.shared.remove('global_config')
+    ctx.storage.persistent.shared.get('global_config')
+    ctx.storage.persistent.shared.set('global_config', {'version': 2})
+    ctx.storage.persistent.shared.remove('global_config')
 """
 
-from typing import Any, Protocol
+from typing import Any, ClassVar, Protocol
 
 
 class PersistentStateAccessor(Protocol):
@@ -62,68 +64,60 @@ class PersistentStateAccessor(Protocol):
         ...
 
 
-def get(key: str) -> Any:
+class PersistentState:
     """
-    Get a value from user-scoped persistent state.
+    Tier 3 persistent state storage for extensions.
 
-    Data is automatically scoped to the current authenticated user.
-    Other users cannot see or modify this data.
+    Backed by a dedicated database table. Data survives server restarts,
+    cache evictions, and browser clears.
 
-    Host implementations will replace this function during initialization
+    Host implementations will replace this class during initialization
     with a concrete implementation providing actual functionality.
 
-    :param key: The key to retrieve.
-    :returns: The stored value, or None if not found.
+    All operations are user-scoped by default (private to the current user).
+    Use `.shared` to access state that is visible to all users.
     """
-    raise NotImplementedError("Function will be replaced during initialization")
 
+    @staticmethod
+    def get(key: str) -> Any:
+        """
+        Get a value from user-scoped persistent state.
 
-def set(key: str, value: Any) -> None:
-    """
-    Set a value in user-scoped persistent state.
+        Data is automatically scoped to the current authenticated user.
+        Other users cannot see or modify this data.
 
-    Data is automatically scoped to the current authenticated user.
-    Other users cannot see or modify this data.
-    Data persists indefinitely until explicitly removed.
+        :param key: The key to retrieve.
+        :returns: The stored value, or None if not found.
+        """
+        raise NotImplementedError("Class will be replaced during initialization")
 
-    Host implementations will replace this function during initialization
-    with a concrete implementation providing actual functionality.
+    @staticmethod
+    def set(key: str, value: Any) -> None:
+        """
+        Set a value in user-scoped persistent state.
 
-    :param key: The key to store.
-    :param value: The value to store (must be JSON-serializable).
-    """
-    raise NotImplementedError("Function will be replaced during initialization")
+        Data is automatically scoped to the current authenticated user.
+        Other users cannot see or modify this data.
+        Data persists indefinitely until explicitly removed.
 
+        :param key: The key to store.
+        :param value: The value to store (must be JSON-serializable).
+        """
+        raise NotImplementedError("Class will be replaced during initialization")
 
-def remove(key: str) -> None:
-    """
-    Remove a value from user-scoped persistent state.
+    @staticmethod
+    def remove(key: str) -> None:
+        """
+        Remove a value from user-scoped persistent state.
 
-    Data is automatically scoped to the current authenticated user.
+        Data is automatically scoped to the current authenticated user.
 
-    Host implementations will replace this function during initialization
-    with a concrete implementation providing actual functionality.
+        :param key: The key to remove.
+        """
+        raise NotImplementedError("Class will be replaced during initialization")
 
-    :param key: The key to remove.
-    """
-    raise NotImplementedError("Function will be replaced during initialization")
-
-
-class _SharedStub:
-    """Stub for shared accessor that raises NotImplementedError on any operation."""
-
-    def get(self, key: str) -> Any:
-        raise NotImplementedError("Accessor will be replaced during initialization")
-
-    def set(self, key: str, value: Any) -> None:
-        raise NotImplementedError("Accessor will be replaced during initialization")
-
-    def remove(self, key: str) -> None:
-        raise NotImplementedError("Accessor will be replaced during initialization")
-
-
-#: Shared (global) persistent state accessor.
-#: Data stored via this accessor is visible to all users of the extension.
-#: WARNING: Do not store user-specific or sensitive data here.
-#: Host implementations will replace this during initialization.
-shared: PersistentStateAccessor = _SharedStub()
+    #: Shared (global) persistent state accessor.
+    #: Data stored via this accessor is visible to all users of the extension.
+    #: WARNING: Do not store user-specific or sensitive data here.
+    #: Host implementations will set this during initialization.
+    shared: ClassVar[PersistentStateAccessor]

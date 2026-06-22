@@ -46,41 +46,7 @@
  */
 
 import { Extension } from '../common';
-import { StorageTier } from '../storage/types';
-
-/**
- * Extension-scoped storage accessor.
- *
- * All storage tiers are automatically namespaced to the current extension,
- * preventing key collisions between extensions.
- */
-export interface ExtensionStorage {
-  /**
-   * Browser localStorage - persists across browser sessions.
-   * Data is scoped to the current extension and user.
-   */
-  local: StorageTier;
-
-  /**
-   * Browser sessionStorage - cleared when the tab closes.
-   * Data is scoped to the current extension and user.
-   */
-  session: StorageTier;
-
-  /**
-   * Server-side cache (Redis/Memcached) with TTL.
-   * Data is scoped to the current extension and user.
-   * Use `.shared` for data visible to all users.
-   */
-  ephemeral: StorageTier;
-
-  /**
-   * Durable database-backed storage (Tier 3).
-   * Data survives server restarts and cache evictions.
-   * Use `.shared` for data visible to all users.
-   */
-  persistent: StorageTier;
-}
+import { ExtensionStorage } from '../storage/types';
 
 /**
  * Context object providing extension-specific resources.

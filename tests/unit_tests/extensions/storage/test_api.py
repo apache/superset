@@ -21,7 +21,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 from flask import Flask, g
 
 from superset.extensions.storage.api import (
@@ -32,15 +31,6 @@ from superset.extensions.storage.api import (
     KEY_PREFIX,
     SEPARATOR,
 )
-
-
-@pytest.fixture
-def app() -> Flask:
-    """Create a minimal Flask app for testing."""
-    app = Flask(__name__)
-    app.config["TESTING"] = True
-    return app
-
 
 # ── _build_cache_key ──────────────────────────────────────────────────────────
 
@@ -63,11 +53,11 @@ def test_build_cache_key_single_part():
 # ── _parse_ttl ────────────────────────────────────────────────────────────────
 
 
-def test_parse_ttl_returns_none_when_absent():
-    """_parse_ttl returns (None, None) when 'ttl' is not in body."""
+def test_parse_ttl_returns_error_when_absent():
+    """_parse_ttl returns an error when 'ttl' is not in body."""
     ttl, error = _parse_ttl({"value": "something"})
     assert ttl is None
-    assert error is None
+    assert error is not None
 
 
 def test_parse_ttl_returns_valid_integer():
@@ -162,7 +152,7 @@ def test_build_storage_key_shared(app: Flask) -> None:
 def test_ephemeral_get_builds_correct_key_and_returns_value(
     mock_get_ext: MagicMock, mock_cm: MagicMock, app: Flask
 ) -> None:
-    """Verifying the get_ephemeral handler flow: extension lookup -> key build -> cache get."""
+    """get_ephemeral handler flow: extension lookup -> key build -> cache get."""
     mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache

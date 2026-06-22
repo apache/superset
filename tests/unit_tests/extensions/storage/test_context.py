@@ -18,7 +18,6 @@
 """Tests for extension context management."""
 
 import pytest
-from superset_core.extensions.types import Manifest
 
 from superset.extensions.context import (
     ConcreteExtensionContext,
@@ -27,20 +26,7 @@ from superset.extensions.context import (
     get_current_extension_context,
     use_context,
 )
-
-
-def _create_test_manifest(
-    publisher: str = "test-org", name: str = "test-extension"
-) -> Manifest:
-    """Create a test manifest with minimal required fields."""
-    return Manifest.model_validate(
-        {
-            "id": f"{publisher}.{name}",
-            "publisher": publisher,
-            "name": name,
-            "displayName": f"Test {name}",
-        }
-    )
+from tests.unit_tests.extensions.storage.conftest import create_manifest
 
 
 def test_get_context_raises_outside_context():
@@ -58,7 +44,7 @@ def test_get_current_extension_context_returns_none_outside_context():
 
 def test_use_context_sets_and_restores_context():
     """use_context() sets context during execution and restores None after."""
-    manifest = _create_test_manifest()
+    manifest = create_manifest()
     ctx = ConcreteExtensionContext(manifest)
 
     assert get_current_extension_context() is None
@@ -72,8 +58,8 @@ def test_use_context_sets_and_restores_context():
 
 def test_use_context_supports_nesting():
     """use_context() properly handles nested context switches."""
-    manifest1 = _create_test_manifest("org1", "ext1")
-    manifest2 = _create_test_manifest("org2", "ext2")
+    manifest1 = create_manifest("org1", "ext1")
+    manifest2 = create_manifest("org2", "ext2")
     ctx1 = ConcreteExtensionContext(manifest1)
     ctx2 = ConcreteExtensionContext(manifest2)
 
@@ -91,7 +77,7 @@ def test_use_context_supports_nesting():
 
 def test_extension_context_creates_and_sets_context():
     """extension_context() creates context from manifest and sets it."""
-    manifest = _create_test_manifest("my-org", "my-ext")
+    manifest = create_manifest("my-org", "my-ext")
 
     with extension_context(manifest) as ctx:
         assert ctx.manifest is manifest
@@ -103,7 +89,7 @@ def test_extension_context_creates_and_sets_context():
 
 def test_context_provides_extension_property():
     """Context provides extension property as alias for manifest."""
-    manifest = _create_test_manifest()
+    manifest = create_manifest()
     ctx = ConcreteExtensionContext(manifest)
 
     with use_context(ctx):
@@ -113,7 +99,7 @@ def test_context_provides_extension_property():
 
 def test_context_provides_storage_property():
     """Context provides storage property with ephemeral tier."""
-    manifest = _create_test_manifest()
+    manifest = create_manifest()
     ctx = ConcreteExtensionContext(manifest)
 
     with use_context(ctx):
@@ -124,7 +110,7 @@ def test_context_provides_storage_property():
 
 def test_context_exception_still_restores():
     """Context is properly restored even when exception occurs."""
-    manifest = _create_test_manifest()
+    manifest = create_manifest()
     ctx = ConcreteExtensionContext(manifest)
 
     def raise_in_context() -> None:

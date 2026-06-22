@@ -22,48 +22,17 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-from flask import Flask, g
-from superset_core.extensions.types import Manifest
+from flask import Flask
 
-from superset.extensions.context import ConcreteExtensionContext, use_context
+from superset.extensions.context import use_context
 from superset.extensions.storage.ephemeral_state import (
     _build_cache_key,
     EphemeralStateImpl,
 )
-
-
-@pytest.fixture
-def app() -> Flask:
-    """Create a minimal Flask app for testing."""
-    app = Flask(__name__)
-    app.config["TESTING"] = True
-    return app
-
-
-@pytest.fixture
-def mock_cache() -> MagicMock:
-    """Create a mock cache manager."""
-    return MagicMock()
-
-
-def _create_context(
-    publisher: str = "test-org", name: str = "test-ext"
-) -> ConcreteExtensionContext:
-    """Create test context with given extension identifiers."""
-    manifest = Manifest.model_validate(
-        {
-            "id": f"{publisher}.{name}",
-            "publisher": publisher,
-            "name": name,
-            "displayName": f"Test {name}",
-        }
-    )
-    return ConcreteExtensionContext(manifest)
-
-
-def _set_user(user_id: int) -> None:
-    """Set a mock user on Flask's g object."""
-    g.user = MagicMock(id=user_id)
+from tests.unit_tests.extensions.storage.conftest import (
+    create_context,
+    set_user,
+)
 
 
 def test_build_cache_key_joins_parts_with_separator():
@@ -75,7 +44,7 @@ def test_build_cache_key_joins_parts_with_separator():
 def test_ephemeral_state_raises_without_context(app: Flask) -> None:
     """EphemeralStateImpl operations raise RuntimeError without extension context."""
     with app.app_context():
-        _set_user(1)
+        set_user(1)
 
         with pytest.raises(RuntimeError, match="within an extension context"):
             EphemeralStateImpl.get("key")
@@ -89,7 +58,7 @@ def test_ephemeral_state_raises_without_context(app: Flask) -> None:
 
 def test_ephemeral_state_raises_without_user(app: Flask) -> None:
     """EphemeralStateImpl operations raise RuntimeError without authenticated user."""
-    ctx = _create_context()
+    ctx = create_context()
 
     with app.app_context(), use_context(ctx):
         # No user set on g
@@ -104,10 +73,10 @@ def test_ephemeral_state_get_builds_correct_key(mock_cm: MagicMock, app: Flask) 
     mock_cm.extension_ephemeral_state_cache = mock_cache
     mock_cache.get.return_value = {"data": "test"}
 
-    ctx = _create_context("my-org", "my-ext")
+    ctx = create_context("my-org", "my-ext")
 
     with app.app_context(), use_context(ctx):
-        _set_user(42)
+        set_user(42)
         result = EphemeralStateImpl.get("my-key")
 
     expected_key = "superset-ext:my-org.my-ext:user:42:my-key"
@@ -123,10 +92,10 @@ def test_ephemeral_state_set_builds_correct_key_and_uses_ttl(
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
 
-    ctx = _create_context("my-org", "my-ext")
+    ctx = create_context("my-org", "my-ext")
 
     with app.app_context(), use_context(ctx):
-        _set_user(42)
+        set_user(42)
         EphemeralStateImpl.set("my-key", {"value": 123}, ttl=600)
 
     expected_key = "superset-ext:my-org.my-ext:user:42:my-key"
@@ -142,10 +111,10 @@ def test_ephemeral_state_set_uses_cache_default_timeout(
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
 
-    ctx = _create_context()
+    ctx = create_context()
 
     with app.app_context(), use_context(ctx):
-        _set_user(1)
+        set_user(1)
         EphemeralStateImpl.set("key", "value")
 
     mock_cache.set.assert_called_once()
@@ -159,10 +128,10 @@ def test_ephemeral_state_remove_deletes_key(mock_cm: MagicMock, app: Flask) -> N
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
 
-    ctx = _create_context("org", "ext")
+    ctx = create_context("org", "ext")
 
     with app.app_context(), use_context(ctx):
-        _set_user(99)
+        set_user(99)
         EphemeralStateImpl.remove("to-delete")
 
     expected_key = "superset-ext:org.ext:user:99:to-delete"
@@ -176,10 +145,10 @@ def test_shared_accessor_builds_shared_key(mock_cm: MagicMock, app: Flask) -> No
     mock_cm.extension_ephemeral_state_cache = mock_cache
     mock_cache.get.return_value = "shared-value"
 
-    ctx = _create_context("org", "ext")
+    ctx = create_context("org", "ext")
 
     with app.app_context(), use_context(ctx):
-        _set_user(1)  # User is set but should not appear in shared key
+        set_user(1)  # User is set but should not appear in shared key
         result = EphemeralStateImpl.shared.get("shared-key")
 
     expected_key = "superset-ext:org.ext:shared:shared-key"
@@ -193,10 +162,10 @@ def test_shared_accessor_set_and_remove(mock_cm: MagicMock, app: Flask) -> None:
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
 
-    ctx = _create_context("org", "ext")
+    ctx = create_context("org", "ext")
 
     with app.app_context(), use_context(ctx):
-        _set_user(1)
+        set_user(1)
         EphemeralStateImpl.shared.set("key", {"shared": True}, ttl=300)
         EphemeralStateImpl.shared.remove("key")
 
@@ -214,11 +183,11 @@ def test_different_extensions_have_isolated_keys(
     mock_cm.extension_ephemeral_state_cache = mock_cache
     mock_cache.get.side_effect = lambda k: f"value-for-{k}"
 
-    ctx1 = _create_context("org1", "ext1")
-    ctx2 = _create_context("org2", "ext2")
+    ctx1 = create_context("org1", "ext1")
+    ctx2 = create_context("org2", "ext2")
 
     with app.app_context():
-        _set_user(1)
+        set_user(1)
 
         with use_context(ctx1):
             EphemeralStateImpl.get("same-key")
@@ -237,13 +206,13 @@ def test_different_users_have_isolated_keys(mock_cm: MagicMock, app: Flask) -> N
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
 
-    ctx = _create_context()
+    ctx = create_context()
 
     with app.app_context(), use_context(ctx):
-        _set_user(1)
+        set_user(1)
         EphemeralStateImpl.get("key")
 
-        _set_user(2)
+        set_user(2)
         EphemeralStateImpl.get("key")
 
     calls = [call.args[0] for call in mock_cache.get.call_args_list]

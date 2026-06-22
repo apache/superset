@@ -192,7 +192,7 @@ This configuration does several important things:
 
 **`exposes`** - Declares which modules are available to the host application. Superset always loads extensions by requesting the `./index` module from the remote container — this is a fixed convention, not a configurable value. Extensions must expose exactly `'./index': './src/index.tsx'` and place all API registrations (views, commands, menus, editors, event listeners) in that file. The module is executed as a side effect when the extension loads, so any call to `views.registerView`, `commands.registerCommand`, etc. made at the top level of `index.tsx` will run automatically.
 
-**`externals` and `externalsType`** - Tell Webpack that when the extension imports from `@apache-superset/core` or its subpaths (like `@apache-superset/core/storage`), it should resolve to `window.superset` or `window.superset.storage` at runtime. The function-based externals returns an array of path segments, which Webpack uses for nested property access.
+**`externals` and `externalsType`** - Tell Webpack that when the extension imports from `@apache-superset/core` or its subpaths, it should resolve to `window.superset` or the appropriate nested property at runtime. The function-based externals returns an array of path segments, which Webpack uses for nested property access.
 
 **`shared`** - Prevents duplication of common libraries like React and Ant Design. The `singleton: true` setting ensures only one instance of each library exists, avoiding version conflicts and reducing bundle size.
 

@@ -22,43 +22,18 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-from flask import Flask, g
-from superset_core.extensions.types import Manifest
+from flask import Flask
 
-from superset.extensions.context import ConcreteExtensionContext, use_context
+from superset.extensions.context import use_context
 from superset.extensions.storage.persistent_state_impl import (
     PersistentStateImpl,
     SharedPersistentStateAccessor,
 )
 from superset.utils import json
-
-
-@pytest.fixture
-def app() -> Flask:
-    """Create a minimal Flask app for testing."""
-    app = Flask(__name__)
-    app.config["TESTING"] = True
-    return app
-
-
-def _create_context(
-    publisher: str = "test-org", name: str = "test-ext"
-) -> ConcreteExtensionContext:
-    """Create test context with given extension identifiers."""
-    manifest = Manifest.model_validate(
-        {
-            "id": f"{publisher}.{name}",
-            "publisher": publisher,
-            "name": name,
-            "displayName": f"Test {name}",
-        }
-    )
-    return ConcreteExtensionContext(manifest)
-
-
-def _set_user(user_id: int) -> None:
-    """Set a mock user on Flask's g object."""
-    g.user = MagicMock(id=user_id)
+from tests.unit_tests.extensions.storage.conftest import (
+    create_context,
+    set_user,
+)
 
 
 @patch("superset.db")
@@ -67,7 +42,7 @@ def test_persistent_state_raises_without_context(
 ) -> None:
     """PersistentStateImpl operations raise RuntimeError without extension context."""
     with app.app_context():
-        _set_user(1)
+        set_user(1)
 
         with pytest.raises(RuntimeError, match="within an extension context"):
             PersistentStateImpl.get("key")
@@ -81,7 +56,7 @@ def test_persistent_state_raises_without_context(
 
 def test_persistent_state_raises_without_user(app: Flask) -> None:
     """PersistentStateImpl operations raise RuntimeError without authenticated user."""
-    ctx = _create_context()
+    ctx = create_context()
 
     with app.app_context(), use_context(ctx):
         with pytest.raises(RuntimeError, match="requires an authenticated user"):
@@ -91,12 +66,12 @@ def test_persistent_state_raises_without_user(app: Flask) -> None:
 @patch("superset.extensions.storage.persistent_state_impl.ExtensionStorageDAO")
 def test_persistent_state_get_returns_value(mock_dao: MagicMock, app: Flask) -> None:
     """PersistentStateImpl.get returns decoded value from DAO."""
-    ctx = _create_context()
+    ctx = create_context()
     stored = json.dumps({"theme": "dark"}).encode()
     mock_dao.get_value.return_value = stored
 
     with app.app_context(), use_context(ctx):
-        _set_user(42)
+        set_user(42)
         result = PersistentStateImpl.get("prefs")
 
     mock_dao.get_value.assert_called_once_with("test-org.test-ext", "prefs", user_fk=42)
@@ -108,11 +83,11 @@ def test_persistent_state_get_returns_none_when_missing(
     mock_dao: MagicMock, app: Flask
 ) -> None:
     """PersistentStateImpl.get returns None when key does not exist."""
-    ctx = _create_context()
+    ctx = create_context()
     mock_dao.get_value.return_value = None
 
     with app.app_context(), use_context(ctx):
-        _set_user(42)
+        set_user(42)
         result = PersistentStateImpl.get("missing")
 
     assert result is None
@@ -124,10 +99,10 @@ def test_persistent_state_set_encodes_value(
     mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
     """PersistentStateImpl.set encodes value as JSON bytes."""
-    ctx = _create_context()
+    ctx = create_context()
 
     with app.app_context(), use_context(ctx):
-        _set_user(42)
+        set_user(42)
         PersistentStateImpl.set("prefs", {"theme": "dark"})
 
     expected_bytes = json.dumps({"theme": "dark"}).encode()
@@ -142,10 +117,10 @@ def test_persistent_state_remove_deletes_entry(
     mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
     """PersistentStateImpl.remove calls DAO delete."""
-    ctx = _create_context()
+    ctx = create_context()
 
     with app.app_context(), use_context(ctx):
-        _set_user(42)
+        set_user(42)
         PersistentStateImpl.remove("prefs")
 
     mock_dao.delete.assert_called_once_with("test-org.test-ext", "prefs", user_fk=42)
@@ -154,13 +129,13 @@ def test_persistent_state_remove_deletes_entry(
 @patch("superset.extensions.storage.persistent_state_impl.ExtensionStorageDAO")
 def test_shared_accessor_uses_null_user_fk(mock_dao: MagicMock, app: Flask) -> None:
     """SharedPersistentStateAccessor uses user_fk=None for global scope."""
-    ctx = _create_context()
+    ctx = create_context()
     mock_dao.get_value.return_value = json.dumps("shared_value").encode()
 
     accessor = SharedPersistentStateAccessor()
 
     with app.app_context(), use_context(ctx):
-        _set_user(42)
+        set_user(42)
         result = accessor.get("config")
 
     mock_dao.get_value.assert_called_once_with(

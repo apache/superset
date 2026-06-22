@@ -262,7 +262,7 @@ def inject_semantic_layer_implementations() -> None:
 
 def inject_storage_implementations() -> None:
     """
-    Replace abstract storage functions in superset_core.extensions.storage with concrete
+    Replace abstract storage classes in superset_core.extensions.storage with concrete
     implementations from Superset.
     """
     import superset_core.extensions.storage.ephemeral_state as core_ephemeral_state
@@ -271,16 +271,9 @@ def inject_storage_implementations() -> None:
     from superset.extensions.storage.ephemeral_state import EphemeralStateImpl
     from superset.extensions.storage.persistent_state_impl import PersistentStateImpl
 
-    # Replace abstract functions with concrete implementations
-    core_ephemeral_state.get = EphemeralStateImpl.get
-    core_ephemeral_state.set = EphemeralStateImpl.set
-    core_ephemeral_state.remove = EphemeralStateImpl.remove
-    core_ephemeral_state.shared = EphemeralStateImpl.shared
-
-    core_persistent_state.get = PersistentStateImpl.get
-    core_persistent_state.set = PersistentStateImpl.set
-    core_persistent_state.remove = PersistentStateImpl.remove
-    core_persistent_state.shared = PersistentStateImpl.shared
+    # Replace abstract classes with concrete implementations
+    core_ephemeral_state.EphemeralState = EphemeralStateImpl  # type: ignore[misc,assignment]
+    core_persistent_state.PersistentState = PersistentStateImpl  # type: ignore[misc,assignment]
 
 
 def inject_extension_context() -> None:

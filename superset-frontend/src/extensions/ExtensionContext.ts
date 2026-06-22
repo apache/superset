@@ -51,7 +51,7 @@ class ExtensionContext implements ExtensionContextType {
         persistent: createPersistentState(id),
       };
     }
-    return this._storage;
+    return this._storage!;
   }
 }
 
