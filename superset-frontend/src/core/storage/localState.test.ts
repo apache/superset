@@ -36,7 +36,10 @@ test('get returns null when key is not in storage', async () => {
 });
 
 test('get returns parsed value for user-scoped key', async () => {
-  localStorage.setItem('superset-ext:org.ext:user:42:prefs', JSON.stringify({ theme: 'dark' }));
+  localStorage.setItem(
+    'superset-ext:org.ext:user:42:prefs',
+    JSON.stringify({ theme: 'dark' }),
+  );
   const store = createBrowserStorage(localStorage, 'org.ext');
   const result = await store.get('prefs');
   expect(result).toEqual({ theme: 'dark' });
