@@ -46,7 +46,7 @@
  */
 
 import { Extension } from '../common';
-import { ExtensionStorage } from '../storage/types';
+import { ExtensionStorage } from '../storage';
 
 /**
  * Context object providing extension-specific resources.
