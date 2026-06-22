@@ -488,6 +488,8 @@ LANGUAGES = {
     "cs": {"flag": "cz", "name": "Czech"},
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
+    "sr": {"flag": "rs", "name": "Serbian (Cyrillic)"},
+    "sr_Latn": {"flag": "rs", "name": "Serbian (Latin)"},
     "lv": {"flag": "lv", "name": "Latvian"},
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "ua", "name": "Ukrainian"},
@@ -894,6 +896,15 @@ SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
 SSH_TUNNEL_TIMEOUT_SEC = 10.0
 #: Timeout (seconds) for transport socket (``socket.settimeout``)
 SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
+
+#: Opt-in defense-in-depth: when enabled, every SSH tunnel must declare an expected
+#: server host key (``server_host_key`` on the tunnel) and the SSH server's presented
+#: host key is verified against it before the tunnel is opened. A mismatch, or a
+#: missing expected key while this flag is enabled, fails closed and the tunnel is
+#: rejected. When disabled (the default), tunnels without a ``server_host_key`` open
+#: without host-key verification, preserving existing behavior; tunnels that do set a
+#: ``server_host_key`` are still verified regardless of this flag.
+SSH_TUNNEL_STRICT_HOST_KEY_CHECKING: bool = False
 
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -2621,6 +2632,27 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 
 
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
+
+
+# Extra access query filters inject additional OR conditions into
+# ChartFilter and DashboardAccessFilter, enabling external systems
+# (e.g. folder permissions) to grant asset visibility.
+# The callable receives the current user ID and returns a subquery of asset IDs.
+class ExtraAccessQueryFilters(TypedDict, total=False):
+    charts: Callable[[int], Query]
+    dashboards: Callable[[int], Query]
+
+
+# Extension hooks for deployments to plug in custom access logic.
+# Additional query filters for chart/dashboard list views.
+EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
+# Bypass raise_for_access for specific assets. Return True to skip checks.
+EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
+# Resolve extra owners for a resource. Also used for ownership checks and
+# to skip auto-adding the current user to owners on create.
+EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
+# Post-create hook for charts/dashboards. Receives (model, asset_type).
+AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
 
 
 # The migrations that add catalog permissions might take a considerably long time

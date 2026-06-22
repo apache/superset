@@ -27,7 +27,7 @@ import {
   themeObject as supersetThemeObject,
   normalizeThemeConfig,
 } from '@apache-superset/core/theme';
-import { makeApi } from '@superset-ui/core';
+import { makeApi, SupersetClient } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
@@ -188,6 +188,12 @@ export class ThemeController {
       );
 
     this.onChangeCallbacks.clear();
+
+    // Clean up injected font styles
+    document
+      .querySelectorAll('style[data-superset-fonts]')
+      .forEach(el => el.remove());
+    this.loadedFontUrls.clear();
   }
 
   /**
@@ -447,6 +453,7 @@ export class ThemeController {
     this.devThemeOverride = null;
     this.crudThemeId = null;
     this.dashboardCrudTheme = null;
+    this.themeConfigOverride = false;
 
     this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
     this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
@@ -1019,41 +1026,102 @@ export class ThemeController {
   }
 
   /**
+   * Constructs the guest token authorization header using the configured
+   * header name from SupersetClient or bootstrap config, falling back to 'X-GuestToken'.
+   */
+  private getGuestTokenHeader(): Record<string, string> {
+    const headers: Record<string, string> = {};
+    try {
+      const guestToken = SupersetClient.getGuestToken();
+      if (guestToken) {
+        let headerName = 'X-GuestToken';
+        try {
+          if (SupersetClient.guestTokenHeaderName) {
+            headerName = SupersetClient.guestTokenHeaderName;
+          }
+        } catch {
+          const bootstrapData = getBootstrapData();
+          headerName =
+            bootstrapData.config?.GUEST_TOKEN_HEADER_NAME || 'X-GuestToken';
+        }
+        headers[headerName] = guestToken;
+      }
+    } catch (tokenError) {
+      // Ignore token retrieval error
+    }
+    return headers;
+  }
+
+  /**
    * Fetches a fresh system default theme from the API for runtime recovery.
    * Tries multiple fallback strategies to find a valid theme.
    *
-   * Note: Uses raw fetch() instead of SupersetClient because ThemeController
-   * initializes early in the app lifecycle, before SupersetClient is fully
-   * configured. This avoids boot-time circular dependencies.
+   * Note: First tries to use SupersetClient. If SupersetClient is not yet
+   * fully configured/initialized or if the request fails (e.g. in embedded
+   * guest-token environments where SupersetClient bootstrap is still in progress),
+   * it falls back to using raw fetch() with custom guest token headers.
    *
    * @returns The system default theme configuration or null if not found
    */
   private async fetchSystemDefaultTheme(): Promise<AnyThemeConfig | null> {
     try {
-      // Try to fetch theme marked as system default (is_system_default=true)
-      const defaultResponse = await fetch(
-        '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
-      );
-      if (defaultResponse.ok) {
-        const data = await defaultResponse.json();
-        if (data.result?.length > 0) {
-          const themeConfig = JSON.parse(data.result[0].json_data);
+      // Try to use SupersetClient first if it has been configured
+      try {
+        const response = await SupersetClient.get({
+          endpoint:
+            '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
+        });
+        if (response.json?.result?.length > 0) {
+          const themeConfig = JSON.parse(response.json.result[0].json_data);
           if (themeConfig && typeof themeConfig === 'object') {
             return themeConfig;
+          }
+        }
+      } catch (clientError) {
+        // If SupersetClient is not configured yet or request fails, fall back to native fetch
+        const headers = this.getGuestTokenHeader();
+
+        const defaultResponse = await fetch(
+          '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
+          { headers },
+        );
+        if (defaultResponse.ok) {
+          const data = await defaultResponse.json();
+          if (data.result?.length > 0) {
+            const themeConfig = JSON.parse(data.result[0].json_data);
+            if (themeConfig && typeof themeConfig === 'object') {
+              return themeConfig;
+            }
           }
         }
       }
 
       // Fallback: Try to fetch system theme named 'THEME_DEFAULT'
-      const fallbackResponse = await fetch(
-        '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
-      );
-      if (fallbackResponse.ok) {
-        const fallbackData = await fallbackResponse.json();
-        if (fallbackData.result?.length > 0) {
-          const themeConfig = JSON.parse(fallbackData.result[0].json_data);
+      try {
+        const response = await SupersetClient.get({
+          endpoint:
+            '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
+        });
+        if (response.json?.result?.length > 0) {
+          const themeConfig = JSON.parse(response.json.result[0].json_data);
           if (themeConfig && typeof themeConfig === 'object') {
             return themeConfig;
+          }
+        }
+      } catch (clientError) {
+        const headers = this.getGuestTokenHeader();
+
+        const fallbackResponse = await fetch(
+          '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
+          { headers },
+        );
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          if (fallbackData.result?.length > 0) {
+            const themeConfig = JSON.parse(fallbackData.result[0].json_data);
+            if (themeConfig && typeof themeConfig === 'object') {
+              return themeConfig;
+            }
           }
         }
       }
