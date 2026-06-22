@@ -110,12 +110,13 @@ class DatetimeFormatDetector:
                 else:
                     full_table = table_name_quoted
 
-                # Build SQL query string with quoted identifiers
+                # Build SQL query string with quoted identifiers.
+                # The WHERE IS NOT NULL filter is intentionally omitted:
+                # detect_datetime_format() already calls dropna(), and the
+                # predicate forces engines like ClickHouse to scan the entire
+                # table even with LIMIT, triggering max_rows_to_read errors.
                 # S608: false positive - using dialect's identifier preparer
-                sql = (  # noqa: S608
-                    f"SELECT {column_name_quoted} FROM {full_table} "  # noqa: S608
-                    f"WHERE {column_name_quoted} IS NOT NULL"  # noqa: S608
-                )
+                sql = f"SELECT {column_name_quoted} FROM {full_table}"  # noqa: S608
 
             # Apply database-specific LIMIT using apply_limit_to_sql
             # This handles different SQL dialects (LIMIT, TOP, FETCH FIRST, etc.)

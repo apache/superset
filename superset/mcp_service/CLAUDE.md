@@ -393,16 +393,25 @@ Used by: `get_chart_info`, `get_chart_preview`, `get_chart_data`, `generate_char
 
 ### 11. Compile Check for Chart Creation
 
-When creating or saving charts, run a compile check to verify the query executes:
+When creating, saving, or previewing charts, run schema validation (Tier 1)
+and optionally a compile check (Tier 2) before persisting or caching.
+``validate_and_compile`` glues both together; tools with tight SLAs
+(``generate_explore_link``, ``update_chart_preview``) opt out of Tier 2.
 
 ```python
-from superset.mcp_service.chart.tool.generate_chart import _compile_chart
+from superset.mcp_service.chart.compile import validate_and_compile
 
-compile_result = _compile_chart(form_data, dataset.id)
-if not compile_result.success:
-    # Delete broken chart, return error
+result = validate_and_compile(
+    config, form_data, dataset, run_compile_check=True
+)
+if not result.success:
+    # ``result.error_obj`` is a ``ChartGenerationError`` with fuzzy-match
+    # suggestions ("did you mean sum_boys?") so the LLM can self-correct.
     ...
 ```
+
+The lower-level ``_compile_chart(form_data, dataset_id)`` is still exported
+for callers that have already done their own schema validation.
 
 ### 12. Flexible Input Parsing
 

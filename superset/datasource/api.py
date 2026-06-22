@@ -14,17 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import hashlib
 import logging
+from typing import Any
 
 from flask import current_app as app, request
-from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api.schemas import get_list_schema
 
-from superset import event_logger
+from superset import event_logger, is_feature_enabled, security_manager
+from superset.commands.datasource.list import GetCombinedDatasourceListCommand
 from superset.connectors.sqla.models import BaseDatasource
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import cache_manager
 from superset.superset_typing import FlaskResponse
+from superset.utils import json
 from superset.utils.core import apply_max_row_limit, DatasourceType, SqlExpressionType
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
@@ -303,3 +309,176 @@ class DatasourceRestApi(BaseSupersetApi):
                 f"Invalid expression type: {expression_type}. "
                 f"Valid types are: column, metric, where, having"
             ) from None
+
+    @expose(
+        "/<datasource_type>/<int:datasource_id>/compatible",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
+        log_to_statsd=False,
+    )
+    def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
+        """Return metrics and dimensions compatible with the current selection.
+        ---
+        post:
+          summary: Get compatible metrics and dimensions
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: datasource_type
+          - in: path
+            schema:
+              type: integer
+            name: datasource_id
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    selected_metrics:
+                      type: array
+                      items:
+                        type: string
+                    selected_dimensions:
+                      type: array
+                      items:
+                        type: string
+          responses:
+            200:
+              description: Compatible metrics and dimensions
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          compatible_metrics:
+                            type: array
+                            items:
+                              type: string
+                          compatible_dimensions:
+                            type: array
+                            items:
+                              type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            datasource = DatasourceDAO.get_datasource(
+                DatasourceType(datasource_type), datasource_id
+            )
+            datasource.raise_for_access()
+        except ValueError:
+            return self.response(
+                400, message=f"Invalid datasource type: {datasource_type}"
+            )
+        except DatasourceTypeNotSupportedError as ex:
+            return self.response(400, message=ex.message)
+        except DatasourceNotFound as ex:
+            return self.response(404, message=ex.message)
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
+
+        body = request.get_json(silent=True) or {}
+        selected_metrics = body.get("selected_metrics", [])
+        selected_dimensions = body.get("selected_dimensions", [])
+
+        # Build a stable cache key from the datasource identity and the
+        # (sorted) selection so that order differences don't cause cache misses.
+        cache_key = (
+            "compatible:"
+            + hashlib.sha256(
+                json.dumps(
+                    {
+                        "uid": datasource.uid,
+                        "m": sorted(selected_metrics),
+                        "d": sorted(selected_dimensions),
+                    },
+                    sort_keys=True,
+                ).encode()
+            ).hexdigest()
+        )
+
+        if (cached := cache_manager.data_cache.get(cache_key)) is not None:
+            return self.response(200, result=cached)
+
+        result = {
+            "compatible_metrics": datasource.get_compatible_metrics(
+                selected_metrics, selected_dimensions
+            ),
+            "compatible_dimensions": datasource.get_compatible_dimensions(
+                selected_metrics, selected_dimensions
+            ),
+        }
+
+        timeout = datasource.cache_timeout or app.config.get(
+            "CACHE_DEFAULT_TIMEOUT", 300
+        )
+        cache_manager.data_cache.set(cache_key, result, timeout=timeout)
+
+        return self.response(200, result=result)
+
+    @expose("/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @rison(get_list_schema)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.combined_list",
+        log_to_statsd=False,
+    )
+    def combined_list(self, **kwargs: Any) -> FlaskResponse:
+        """List datasets and semantic views combined.
+        ---
+        get:
+          summary: List datasets and semantic views combined
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_list_schema'
+          responses:
+            200:
+              description: Combined list of datasets and semantic views
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        can_read_datasets = security_manager.can_access("can_read", "Dataset")
+        can_read_sv = is_feature_enabled(
+            "SEMANTIC_LAYERS"
+        ) and security_manager.can_access("can_read", "SemanticView")
+
+        if not can_read_datasets and not can_read_sv:
+            return self.response(403, message="Access denied")
+
+        try:
+            result = GetCombinedDatasourceListCommand(
+                args=kwargs.get("rison", {}),
+                can_read_datasets=can_read_datasets,
+                can_read_semantic_views=can_read_sv,
+            ).run()
+        except ValueError as ex:
+            return self.response(400, message=str(ex))
+
+        return self.response(200, **result)

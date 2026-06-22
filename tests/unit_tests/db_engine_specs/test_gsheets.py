@@ -24,6 +24,7 @@ import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 from requests.exceptions import HTTPError
+from shillelagh.exceptions import UnauthenticatedError
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -787,6 +788,36 @@ def test_needs_oauth2_with_other_error(mocker: MockerFixture) -> None:
 
     ex = Exception("Some other error")
     assert GSheetsEngineSpec.needs_oauth2(ex) is False
+
+
+def test_needs_oauth2_with_shillelagh_unauthenticated_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that needs_oauth2 returns True when UnauthenticatedError is raised.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user = mocker.MagicMock()
+
+    ex = UnauthenticatedError("Token has been revoked")
+    assert GSheetsEngineSpec.needs_oauth2(ex) is True
+
+
+def test_needs_oauth2_with_unrelated_exception_type(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that an unrelated exception type (with no matching message) returns
+    False.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user = mocker.MagicMock()
+
+    assert GSheetsEngineSpec.needs_oauth2(ValueError("unrelated")) is False
 
 
 def test_get_oauth2_fresh_token_success(

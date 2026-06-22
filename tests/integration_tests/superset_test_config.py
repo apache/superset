@@ -86,6 +86,7 @@ def GET_FEATURE_FLAGS_FUNC(ff):  # noqa: N802
 
 
 TESTING = True
+TALISMAN_ENABLED = False
 WTF_CSRF_ENABLED = False
 
 FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_access"]]}

@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import { createElement } from 'react';
 import type { ReactNode } from 'react';
-import type { DataMaskStateWithId } from '@superset-ui/core';
+import type {
+  DataMaskStateWithId,
+  QueryObjectFilterClause,
+} from '@superset-ui/core';
 import {
   FilterConfigMap,
   resolveTransitiveParentIds,
@@ -132,7 +135,9 @@ test('useFilterDependencies merges extraFormData across the full chain', () => {
     () => useFilterDependencies('D', dataMaskSelected),
     { wrapper },
   );
-  const cols = (result.current.filters ?? []).map(f => f.col);
+  const cols = (
+    (result.current.filters ?? []) as QueryObjectFilterClause[]
+  ).map(f => f.col);
   // All three ancestor clauses must be present.
   expect(cols).toEqual(expect.arrayContaining(['country', 'region', 'state']));
   expect(result.current.filters ?? []).toHaveLength(3);

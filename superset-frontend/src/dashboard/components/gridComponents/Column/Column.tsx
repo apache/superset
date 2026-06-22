@@ -39,7 +39,7 @@ import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
 
-interface ColumnProps {
+export interface ColumnProps {
   id: string;
   parentId: string;
   component: LayoutItem;

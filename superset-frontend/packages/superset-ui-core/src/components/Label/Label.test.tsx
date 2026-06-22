@@ -41,7 +41,6 @@ test('renders with monospace prop', () => {
 
 // test stories from the storybook!
 test('renders all the storybook gallery variants', () => {
-  // @ts-expect-error: Suppress TypeScript error for LabelGallery usage
   const { container } = render(<LabelGallery />);
   const nonInteractiveLabelCount = 4;
   const renderedLabelCount = options.length * 2 + nonInteractiveLabelCount;

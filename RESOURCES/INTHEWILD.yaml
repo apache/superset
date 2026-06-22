@@ -58,6 +58,10 @@ categories:
       url: https://www.ontruck.com/
 
   Financial Services:
+    - name: Aadhar Housing Finance Limited
+      url: https://www.aadharhousing.com
+      contributors: ["@thakerhardiks"]
+
     - name: Aktia Bank plc
       url: https://www.aktia.com
 
@@ -394,6 +398,10 @@ categories:
     - name: TechAudit
       url: https://www.techaudit.info
       contributors: ["@ETselikov"]
+
+    - name: Tech Solution
+      url: https://www.tech-solution.com.ar/
+      contributors: ["@danteGiuliano", "@LeandroVallejos", "@McJaben", "@xJeree", "@zeo-return-null"]
 
     - name: Tenable
       url: https://www.tenable.com

@@ -318,3 +318,15 @@ class TestChartDataModelMetadataPrivacy:
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+async def test_list_charts_no_arguments(mock_list, mcp_server):
+    """Regression test: list_charts must accept zero arguments without raising
+    pydantic_core.ValidationError: Missing required argument: request."""
+    mock_list.return_value = ([], 0)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("list_charts", {})
+    data = json.loads(result.content[0].text)
+    assert "charts" in data
