@@ -203,14 +203,14 @@ function Echart(
 
   useEffect(() => {
     if (didMount) {
+      previousQueryEventHandlers.current.forEach(({ name, handler }) => {
+        chartRef.current?.off(name, handler);
+      });
       Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.off(name);
         chartRef.current?.on(name, handler);
       });
 
-      previousQueryEventHandlers.current.forEach(({ name, handler }) => {
-        chartRef.current?.off(name, handler);
-      });
       (queryEventHandlers || []).forEach(({ name, query, handler }) => {
         chartRef.current?.on(name, query, handler);
       });

@@ -221,6 +221,13 @@ export default function EchartsTimeseries({
   // Determine if X-axis can be used for cross-filtering (categorical axis without dimensions)
   const canCrossFilterByXAxis =
     !hasDimensions && xAxis.type === AxisType.Category;
+  const categoryAxisValueIndex =
+    formData.orientation === OrientationType.Horizontal ? 1 : 0;
+  const getCategoryAxisValue = useCallback(
+    (data: unknown) =>
+      Array.isArray(data) ? data[categoryAxisValueIndex] : undefined,
+    [categoryAxisValueIndex],
+  );
 
   const eventHandlers: EventHandlers = {
     click: props => {
@@ -237,9 +244,15 @@ export default function EchartsTimeseries({
           // Cross-filter by dimension (original behavior)
           const { seriesName: name } = props;
           handleChange(name);
-        } else if (canCrossFilterByXAxis && props.data?.[0] != null) {
+        } else if (canCrossFilterByXAxis) {
           // Cross-filter by X-axis value when no dimensions (issue #25334)
-          handleXAxisChange(props.data[0]);
+          const categoryAxisValue = getCategoryAxisValue(props.data);
+          if (
+            typeof categoryAxisValue === 'string' ||
+            typeof categoryAxisValue === 'number'
+          ) {
+            handleXAxisChange(categoryAxisValue);
+          }
         }
       }, TIMER_DURATION);
     },
@@ -321,8 +334,14 @@ export default function EchartsTimeseries({
         let crossFilter;
         if (hasDimensions) {
           crossFilter = getCrossFilterDataMask(seriesName);
-        } else if (canCrossFilterByXAxis && data?.[0] != null) {
-          crossFilter = getXAxisCrossFilterDataMask(data[0]);
+        } else if (canCrossFilterByXAxis) {
+          const categoryAxisValue = getCategoryAxisValue(data);
+          if (
+            typeof categoryAxisValue === 'string' ||
+            typeof categoryAxisValue === 'number'
+          ) {
+            crossFilter = getXAxisCrossFilterDataMask(categoryAxisValue);
+          }
         }
 
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {

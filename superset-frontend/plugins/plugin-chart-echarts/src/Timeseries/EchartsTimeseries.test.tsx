@@ -23,6 +23,7 @@ import {
 } from '../../../../spec/helpers/testing-library';
 import { AxisType } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
+import type { ECElementEvent } from 'echarts/types/src/util/types';
 import type { ReactNode } from 'react';
 import {
   LegendOrientation,
@@ -365,6 +366,50 @@ test('emits cross-filter on X-axis value when no dimensions and categorical X-ax
   }
 });
 
+test('emits cross-filter on category value for horizontal bar clicks', async () => {
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      formData={{
+        ...defaultFormData,
+        orientation: OrientationType.Horizontal,
+      }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const clickHandler = getLatestEchartProps().eventHandlers?.click;
+  expect(clickHandler).toBeDefined();
+  clickHandler?.({
+    seriesName: 'Sales',
+    data: [100, 'Product A'],
+    name: 'Product A',
+    dataIndex: 0,
+  });
+
+  await waitFor(
+    () => {
+      expect(setDataMaskMock).toHaveBeenCalled();
+    },
+    { timeout: 500 },
+  );
+
+  expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'category_column',
+      op: 'IN',
+      val: ['Product A'],
+    },
+  ]);
+});
+
 test('uses rendered categorical axis for query event handlers', () => {
   render(
     <EchartsTimeseries
@@ -400,6 +445,41 @@ test('uses rendered categorical axis for query event handlers', () => {
   expect(getLatestEchartProps().queryEventHandlers?.[0].query).toBe(
     'yAxis.category',
   );
+});
+
+test('emits cross-filter from horizontal categorical axis label clicks', () => {
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      formData={{
+        ...defaultFormData,
+        orientation: OrientationType.Horizontal,
+      }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const labelClickHandler =
+    getLatestEchartProps().queryEventHandlers?.[0].handler;
+  expect(labelClickHandler).toBeDefined();
+  labelClickHandler?.({
+    value: 'Product A',
+  } as ECElementEvent);
+
+  expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'category_column',
+      op: 'IN',
+      val: ['Product A'],
+    },
+  ]);
 });
 
 test('does not emit cross-filter when no dimensions and time-based X-axis', async () => {
