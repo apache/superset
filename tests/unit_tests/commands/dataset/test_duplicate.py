@@ -52,19 +52,15 @@ def test_duplicate_dataset_forbidden_when_no_access() -> None:
             "superset.commands.dataset.duplicate.security_manager.raise_for_access",
             side_effect=_security_exception(),
         ):
-            with patch(
-                "superset.commands.dataset.duplicate.DuplicateDatasetCommand.populate_owners",
-                return_value=[],
-            ):
-                command = DuplicateDatasetCommand(
-                    {
-                        "base_model_id": 1,
-                        "table_name": "duplicate_name",
-                        "is_managed_externally": False,
-                    }
-                )
-                with pytest.raises(DatasetAccessDeniedError):
-                    command.validate()
+            command = DuplicateDatasetCommand(
+                {
+                    "base_model_id": 1,
+                    "table_name": "duplicate_name",
+                    "is_managed_externally": False,
+                }
+            )
+            with pytest.raises(DatasetAccessDeniedError):
+                command.validate()
 
 
 def test_duplicate_dataset_access_check_passes_through() -> None:
@@ -88,7 +84,7 @@ def test_duplicate_dataset_access_check_passes_through() -> None:
                 return_value=None,
             ):
                 with patch(
-                    "superset.commands.dataset.duplicate.DuplicateDatasetCommand.populate_owners",
+                    "superset.commands.utils.populate_subject_list",
                     return_value=[],
                 ):
                     command = DuplicateDatasetCommand(
