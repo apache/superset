@@ -23,11 +23,15 @@ from flask import Flask
 from pytest_mock import MockerFixture
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
 from superset.superset_typing import QueryObjectDict
-from superset.utils.core import GenericDataType, MultiValueColumnOperation
+from superset.utils.core import (
+    GenericDataType,
+    get_column_name_from_column,
+    get_column_names_from_columns,
+    MultiValueColumnOperation,
+)
 
 
 def _make_dataset(mocker: MockerFixture) -> SqlaTable:
@@ -79,6 +83,10 @@ def _query_obj(dimension: dict) -> QueryObjectDict:
 
 
 def _clickhouse_dataset(mocker: MockerFixture) -> SqlaTable:
+    # Imported lazily: clickhouse.py touches app.config at import time, which
+    # is unavailable at pytest collection once clickhouse-connect is installed.
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
     dataset = _make_dataset(mocker)
     mocker.patch.object(
         SqlaTable,
@@ -86,6 +94,16 @@ def _clickhouse_dataset(mocker: MockerFixture) -> SqlaTable:
         new=property(lambda self: ClickHouseEngineSpec),
     )
     return dataset
+
+
+def test_multivalue_column_not_treated_as_physical_column() -> None:
+    """Regression: multi-value modifier columns must be ignored by the
+    physical-column extraction used by query-context validation, otherwise they
+    are wrongly reported as "Columns missing in dataset" on execution.
+    """
+    col = _length_dimension()
+    assert get_column_name_from_column(col) is None
+    assert get_column_names_from_columns([col, "city"]) == ["city"]
 
 
 def test_length_dimension_generates_native_sql(

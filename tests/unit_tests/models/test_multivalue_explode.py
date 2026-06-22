@@ -30,7 +30,6 @@ from pytest_mock import MockerFixture
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
 from superset.superset_typing import QueryObjectDict
@@ -92,6 +91,14 @@ def _query_obj(dimension: dict) -> QueryObjectDict:
     }
 
 
+def _clickhouse_spec() -> type:
+    # Imported lazily: clickhouse.py touches app.config at import time, which
+    # is unavailable at pytest collection once clickhouse-connect is installed.
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
+    return ClickHouseEngineSpec
+
+
 def _with_spec(mocker: MockerFixture, dataset: SqlaTable, spec: type) -> None:
     mocker.patch.object(
         SqlaTable,
@@ -106,7 +113,7 @@ def test_explode_dimension_generates_arrayjoin(
 ) -> None:
     """An explode dimension routes through array_explode -> arrayJoin(skills)."""
     dataset = _make_dataset(mocker)
-    _with_spec(mocker, dataset, ClickHouseEngineSpec)
+    _with_spec(mocker, dataset, _clickhouse_spec())
     with app.test_request_context():
         sql = dataset.get_query_str_extended(
             _query_obj(_explode_dimension()), mutate=False
@@ -126,7 +133,7 @@ def test_explode_changes_generated_sql(
     cannot collide with one that does not (distinct cache keys downstream).
     """
     dataset = _make_dataset(mocker)
-    _with_spec(mocker, dataset, ClickHouseEngineSpec)
+    _with_spec(mocker, dataset, _clickhouse_spec())
     with app.test_request_context():
         exploded = dataset.get_query_str_extended(
             _query_obj(_explode_dimension()), mutate=False
