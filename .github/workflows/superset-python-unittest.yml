@@ -1,6 +1,11 @@
 # Python unit tests
 name: Python-Unit
 
+# Least-privilege default for GITHUB_TOKEN. Jobs that need more (e.g. OIDC for
+# codecov uploads) opt in via their own job-level `permissions:` block.
+permissions:
+  contents: read
+
 on:
   push:
     branches:
