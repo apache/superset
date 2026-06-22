@@ -52,7 +52,7 @@ USER_DIRECTORY_FIELDS = frozenset(
 USER_FILTER_FIELDS = frozenset({"created_by_fk", "changed_by_fk"})
 
 # Internal DAO filter column names generated server-side when translating the
-# created_by_me / edited_by_me boolean flags (see mcp_core._prepend_self_lookup_filters).
+# created_by_me/edited_by_me boolean flags (see mcp_core._prepend_self_lookup_filters).
 # These columns are never exposed to LLM callers; they are excluded from the
 # filters_applied response field to avoid leaking internal implementation details.
 # Note: ``created_by_fk`` is intentionally excluded — it is also a publicly

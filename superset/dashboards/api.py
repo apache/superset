@@ -358,7 +358,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "description",
         "editors",
         "viewers",
-        "roles",
         "position_json",
         "css",
         "theme_id",

@@ -2442,10 +2442,10 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         security_manager.add_permission_role(alpha_role, write_tags_perm)
         security_manager.add_permission_role(alpha_role, tag_charts_perm)
 
-    def test_related_owners_allowed_for_write_user(self):
+    def test_related_editors_allowed_for_write_user(self):
         """
-        Chart API: GET /api/v1/chart/related/owners returns 200 for Admin.
+        Chart API: GET /api/v1/chart/related/editors returns 200 for Admin.
         """
         self.login(ADMIN_USERNAME)
-        rv = self.client.get("api/v1/chart/related/owners")
+        rv = self.client.get("api/v1/chart/related/editors")
         assert rv.status_code == 200

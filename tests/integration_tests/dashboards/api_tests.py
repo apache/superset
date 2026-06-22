@@ -579,7 +579,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                     }
                 ],
                 "viewers": [],
-                "roles": [],
                 "position_json": "",
                 "published": False,
                 "url": "/superset/dashboard/slug1/",
@@ -1819,10 +1818,15 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 "parents": ["ROOT_ID", "GRID_ID", "ROW-issue32966"],
             },
         }
+        admin_subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .first()
+        )
         dashboard_data = {
             "dashboard_title": "issue 32966 dashboard",
             "slug": "issue-32966",
-            "owners": [admin.id],
+            "editors": [admin_subject.id],
             "position_json": json.dumps(positions),
             "json_metadata": json.dumps({"positions": positions}),
             "published": True,

@@ -49,12 +49,6 @@ screenshot_query_schema = {
 dashboard_title_description = "A title for the dashboard."
 description_description = "A description for the dashboard."
 slug_description = "Unique identifying part for the web address of the dashboard."
-roles_description = (
-    "Roles is a list which defines access to the dashboard. "
-    "These roles are always applied in addition to restrictions on dataset "
-    "level access. "
-    "If no roles defined then the dashboard is available to all roles."
-)
 editors_description = (
     "A list of subject IDs (users, roles, or groups) that can alter the dashboard."
 )
@@ -248,11 +242,6 @@ class UserSchema(Schema):
     last_name = fields.String()
 
 
-class RolesSchema(Schema):
-    id = fields.Int()
-    name = fields.String()
-
-
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
@@ -287,7 +276,6 @@ class DashboardGetResponseSchema(Schema):
     changed_on = fields.DateTime()
     created_by = fields.Nested(UserSchema(exclude=["username"]))
     charts = fields.List(fields.String(metadata={"description": charts_description}))
-    roles = fields.List(fields.Nested(RolesSchema))
     editors = fields.List(fields.Nested(SubjectResponseSchema))
     viewers = fields.List(fields.Nested(SubjectResponseSchema))
     tags = fields.Nested(TagSchema, many=True)
@@ -427,7 +415,6 @@ class DashboardPostSchema(BaseDashboardSchema):
     )
     editors = fields.List(fields.Integer(metadata={"description": editors_description}))
     viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
-    roles = fields.List(fields.Integer(metadata={"description": roles_description}))
     position_json = fields.String(
         metadata={"description": position_json_description}, validate=validate_json
     )
@@ -494,9 +481,6 @@ class DashboardPutSchema(BaseDashboardSchema):
     )
     viewers = fields.List(
         fields.Integer(metadata={"description": viewers_description}, allow_none=True)
-    )
-    roles = fields.List(
-        fields.Integer(metadata={"description": roles_description}, allow_none=True)
     )
     position_json = fields.String(
         metadata={"description": position_json_description},

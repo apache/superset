@@ -21,6 +21,8 @@ from typing import Any
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.models.dashboard import Dashboard
+from superset.subjects.sync import sync_role_subject
+from superset.subjects.utils import subjects_from_roles
 from superset.utils import json
 from superset.utils.core import get_user
 
@@ -334,17 +336,20 @@ def import_dashboard(  # noqa: C901
         if subj and subj not in dashboard.editors:
             dashboard.editors.append(subj)
 
-    # Re-attach DASHBOARD_RBAC role assignments by name. Role IDs are
-    # environment-local; names are how exports cross environments. Roles
-    # that don't exist in the destination are skipped with a warning
-    # rather than failing the import — admins may need to create them
-    # before the access restriction takes effect.
+    # Re-attach legacy DASHBOARD_RBAC role assignments as role-type viewer
+    # subjects. Role IDs are environment-local; names are how exports cross
+    # environments. Roles that don't exist in the destination are skipped
+    # with a warning rather than failing the import — admins may need to
+    # create them before the access restriction takes effect.
     if isinstance(role_names, list) and role_names:
-        resolved_roles = []
         for name in role_names:
             role = security_manager.find_role(name)
             if role is not None:
-                resolved_roles.append(role)
+                sync_role_subject(role)
+                db.session.flush()
+                for subject in subjects_from_roles([role]):
+                    if subject not in dashboard.viewers:
+                        dashboard.viewers.append(subject)
             else:
                 logger.warning(
                     "Dashboard '%s': role %r referenced in export does not "
@@ -353,6 +358,5 @@ def import_dashboard(  # noqa: C901
                     dashboard.dashboard_title,
                     name,
                 )
-        dashboard.roles = resolved_roles
 
     return dashboard
