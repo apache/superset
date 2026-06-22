@@ -260,18 +260,17 @@ test('does not initialize ExtensionsLoader when EnableExtensions feature flag is
   initializeSpy.mockRestore();
 });
 
-test('continues rendering children even when ExtensionsLoader initialization fails', async () => {
+test('renders children and surfaces a warning toast when init fails', async () => {
   // Ensure feature flag is enabled
   mockIsFeatureEnabled.mockReturnValue(true);
 
-  // Mock the initializeExtensions method to reject — ExtensionsLoader handles
-  // its own error logging internally
+  // Mock the initializeExtensions method to reject so the caller's .catch runs.
   const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
   ExtensionsLoader.prototype.initializeExtensions = jest
     .fn()
-    .mockImplementation(() => Promise.resolve());
+    .mockRejectedValue(new Error('boom'));
 
-  const { container } = render(
+  const { container, findByText } = render(
     <ExtensionsStartup>
       <div data-testid="child" />
     </ExtensionsStartup>,
@@ -290,6 +289,10 @@ test('continues rendering children even when ExtensionsLoader initialization fai
       container.querySelector('[data-testid="child"]'),
     ).toBeInTheDocument();
   });
+
+  // The failure must reach the user as a warning toast rather than being
+  // swallowed silently.
+  expect(await findByText(/Extensions failed to load/)).toBeInTheDocument();
 
   // Restore original method
   ExtensionsLoader.prototype.initializeExtensions = originalInitialize;
