@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, waitFor, createStore } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import ExtensionsStartup from './ExtensionsStartup';
@@ -270,15 +271,13 @@ test('renders children and surfaces a warning toast when init fails', async () =
     .fn()
     .mockRejectedValue(new Error('boom'));
 
-  const { container, findByText } = render(
+  const store = createStore(mockInitialState, reducerIndex);
+
+  const { container } = render(
     <ExtensionsStartup>
       <div data-testid="child" />
     </ExtensionsStartup>,
-    {
-      useRedux: true,
-      useRouter: true,
-      initialState: mockInitialState,
-    },
+    { store, useRouter: true },
   );
 
   await waitFor(() => {
@@ -292,7 +291,14 @@ test('renders children and surfaces a warning toast when init fails', async () =
 
   // The failure must reach the user as a warning toast rather than being
   // swallowed silently.
-  expect(await findByText(/Extensions failed to load/)).toBeInTheDocument();
+  await waitFor(() => {
+    const toasts = (store.getState() as any).messageToasts;
+    expect(
+      toasts.some((toast: { text: string }) =>
+        /Extensions failed to load/.test(toast.text),
+      ),
+    ).toBe(true);
+  });
 
   // Restore original method
   ExtensionsLoader.prototype.initializeExtensions = originalInitialize;
