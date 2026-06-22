@@ -89,7 +89,7 @@ def test_contains_filter_unsupported_engine_raises(
     dataset = _make_dataset(mocker)
     with app.test_request_context():  # noqa: SIM117
         with pytest.raises(QueryObjectValidationError):
-            dataset.get_sqla_query(**_query_obj())
+            dataset.get_query_str_extended(_query_obj(), mutate=False)
 
 
 def test_contains_filter_generates_native_sql(
