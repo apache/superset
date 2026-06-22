@@ -130,6 +130,29 @@ import { resolveView, useViews } from 'src/core/views';
 /** Per-tab localStorage key storing the active northPane view ID. */
 const NORTH_PANE_VIEW_KEY = (tabId: string) => `sqllab.northPaneView.${tabId}`;
 
+// The northPane keys are dynamic per-tab strings rather than members of the
+// typed LocalStorageKeys enum, so the typed helpers don't apply. Guard the raw
+// access here so a storage-restricted browser can't crash the editor mount.
+const readNorthPaneStorage = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const writeNorthPaneStorage = (key: string, value: string | null): void => {
+  try {
+    if (value === null) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, value);
+    }
+  } catch {
+    // localStorage may be unavailable (blocked/quota/private mode); ignore.
+  }
+};
+
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
@@ -292,25 +315,23 @@ const SqlEditor: FC<Props> = ({
   // SQL editor layout.  Set by an extension via PENDING_NORTH_PANE_VIEW_KEY
   // before calling createTab(); persisted per-tab in localStorage.
   const [northPaneViewId, setNorthPaneViewId] = useState<string | null>(() => {
-    const pendingViewId = localStorage.getItem(PENDING_NORTH_PANE_VIEW_KEY);
+    const pendingViewId = readNorthPaneStorage(PENDING_NORTH_PANE_VIEW_KEY);
     if (pendingViewId) {
-      localStorage.removeItem(PENDING_NORTH_PANE_VIEW_KEY);
-      localStorage.setItem(
+      writeNorthPaneStorage(PENDING_NORTH_PANE_VIEW_KEY, null);
+      writeNorthPaneStorage(
         NORTH_PANE_VIEW_KEY(northPaneStorageId),
         pendingViewId,
       );
       return pendingViewId;
     }
-    return localStorage.getItem(NORTH_PANE_VIEW_KEY(northPaneStorageId));
+    return readNorthPaneStorage(NORTH_PANE_VIEW_KEY(northPaneStorageId));
   });
 
   useEffect(() => {
-    const persistKey = NORTH_PANE_VIEW_KEY(northPaneStorageId);
-    if (northPaneViewId) {
-      localStorage.setItem(persistKey, northPaneViewId);
-    } else {
-      localStorage.removeItem(persistKey);
-    }
+    writeNorthPaneStorage(
+      NORTH_PANE_VIEW_KEY(northPaneStorageId),
+      northPaneViewId,
+    );
   }, [northPaneStorageId, northPaneViewId]);
 
   useEffect(() => {
