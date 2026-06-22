@@ -20,6 +20,7 @@
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
+from flask import current_app
 
 from superset.exceptions import SupersetSecurityException
 
@@ -219,16 +220,18 @@ def test_raise_for_access_chart_editor_allows(app_context):
 # -- Datasource chart-viewer promiscuous mode tests --
 
 
-def test_raise_for_access_datasource_chart_viewer_promiscuous(app_context):
+def test_raise_for_access_datasource_chart_viewer_promiscuous(app_context, monkeypatch):
     """Chart viewer bypasses datasource access when VIEWER_PROMISCUOUS_MODE on."""
     sm = _make_sm()
     datasource = MagicMock()
     datasource.id = 42
     chart = MagicMock()
     chart.datasource_id = 42
+    chart.datasource = datasource
 
     mock_session = MagicMock()
     mock_session.query.return_value.filter.return_value.one_or_none.return_value = chart
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", True)
 
     with (
         patch.object(sm, "can_access_schema", return_value=False),
@@ -238,11 +241,7 @@ def test_raise_for_access_datasource_chart_viewer_promiscuous(app_context):
         patch.object(
             type(sm), "session", new_callable=PropertyMock, return_value=mock_session
         ),
-        patch("superset.security.manager.current_app") as mock_app,
     ):
-        mock_app.config.get = lambda key, default=None: (
-            True if key == "VIEWER_PROMISCUOUS_MODE" else default
-        )
         sm.raise_for_access(
             datasource=datasource,
             query_context=MagicMock(
@@ -252,30 +251,28 @@ def test_raise_for_access_datasource_chart_viewer_promiscuous(app_context):
         )
 
 
-def test_raise_for_access_datasource_chart_editor_promiscuous(app_context):
+def test_raise_for_access_datasource_chart_editor_promiscuous(app_context, monkeypatch):
     """Chart editor also bypasses datasource access via promiscuous mode."""
     sm = _make_sm()
     datasource = MagicMock()
     datasource.id = 42
     chart = MagicMock()
     chart.datasource_id = 42
+    chart.datasource = datasource
 
     mock_session = MagicMock()
     mock_session.query.return_value.filter.return_value.one_or_none.return_value = chart
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", True)
 
     with (
         patch.object(sm, "can_access_schema", return_value=False),
         patch.object(sm, "can_access", return_value=False),
-        patch.object(sm, "is_editor", return_value=False),
-        patch.object(sm, "is_viewer", return_value=True),
+        patch.object(sm, "is_editor", side_effect=lambda resource: resource is chart),
+        patch.object(sm, "is_viewer", return_value=False),
         patch.object(
             type(sm), "session", new_callable=PropertyMock, return_value=mock_session
         ),
-        patch("superset.security.manager.current_app") as mock_app,
     ):
-        mock_app.config.get = lambda key, default=None: (
-            True if key == "VIEWER_PROMISCUOUS_MODE" else default
-        )
         sm.raise_for_access(
             datasource=datasource,
             query_context=MagicMock(
@@ -285,10 +282,13 @@ def test_raise_for_access_datasource_chart_editor_promiscuous(app_context):
         )
 
 
-def test_raise_for_access_datasource_chart_viewer_no_promiscuous_denies(app_context):
+def test_raise_for_access_datasource_chart_viewer_no_promiscuous_denies(
+    app_context, monkeypatch
+):
     """Chart viewer denied datasource access when VIEWER_PROMISCUOUS_MODE off."""
     sm = _make_sm()
     datasource = MagicMock()
+    monkeypatch.setitem(current_app.config, "VIEWER_PROMISCUOUS_MODE", False)
 
     with (
         patch.object(sm, "can_access_schema", return_value=False),
@@ -297,11 +297,7 @@ def test_raise_for_access_datasource_chart_viewer_no_promiscuous_denies(app_cont
         patch.object(
             sm, "get_datasource_access_error_object", return_value=MagicMock()
         ),
-        patch("superset.security.manager.current_app") as mock_app,
     ):
-        mock_app.config.get = lambda key, default=None: (
-            False if key == "VIEWER_PROMISCUOUS_MODE" else default
-        )
         with pytest.raises(SupersetSecurityException):
             sm.raise_for_access(
                 datasource=datasource,

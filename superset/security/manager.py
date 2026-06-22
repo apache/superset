@@ -3507,6 +3507,34 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
+            def has_promiscuous_chart_access() -> bool:
+                if not (
+                    form_data
+                    and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+                    and (viewer_slice_id := form_data.get("slice_id"))
+                    and (
+                        viewer_slc := self.session.query(Slice)
+                        .filter(Slice.id == viewer_slice_id)
+                        .one_or_none()
+                    )
+                ):
+                    return False
+
+                viewer_datasource_id = getattr(viewer_slc, "datasource_id", None)
+                datasource_id = getattr(datasource, "id", None)
+                same_datasource = (
+                    isinstance(viewer_datasource_id, int)
+                    and isinstance(datasource_id, int)
+                    and viewer_datasource_id == datasource_id
+                )
+                if (
+                    not same_datasource
+                    and getattr(viewer_slc, "datasource", None) is not datasource
+                ):
+                    return False
+
+                return self.is_viewer(viewer_slc) or self.is_editor(viewer_slc)
+
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
@@ -3599,21 +3627,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
                     and self.can_access_dashboard(dashboard_)
                 )
-                or (
-                    # Chart-viewer/editor promiscuous mode: bypass datasource
-                    # access if the user is a viewer or editor of the chart
-                    # and promiscuous mode is enabled.
-                    form_data
-                    and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
-                    and (viewer_slice_id := form_data.get("slice_id"))
-                    and (
-                        viewer_slc := self.session.query(Slice)
-                        .filter(Slice.id == viewer_slice_id)
-                        .one_or_none()
-                    )
-                    and viewer_slc.datasource_id == datasource.id
-                    and self.is_viewer(viewer_slc)
-                )
+                # Chart-viewer/editor promiscuous mode: bypass datasource
+                # access if the user is a viewer or editor of the chart
+                # and promiscuous mode is enabled.
+                or has_promiscuous_chart_access()
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
