@@ -28,6 +28,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 
 import pytest
+from sqlalchemy import text
 
 import flask  # noqa: F401
 from flask import current_app, has_app_context  # noqa: F401
@@ -120,7 +121,7 @@ def drop_table_if_exists(table_name: str, table_type: CTASMethod) -> None:
     sql = f"DROP {table_type.name} IF EXISTS {table_name}"
     database = get_example_database()
     with database.get_sqla_engine() as engine:
-        engine.execute(sql)
+        engine.execute(text(sql))
 
 
 def quote_f(value: Optional[str]):
@@ -531,7 +532,7 @@ def test_teardown_with_app_context():
 
 
 def delete_tmp_view_or_table(name: str, ctas_method: CTASMethod):
-    db.get_engine().execute(f"DROP {ctas_method.name} IF EXISTS {name}")
+    db.get_engine().execute(text(f"DROP {ctas_method.name} IF EXISTS {name}"))
 
 
 def wait_for_success(result):

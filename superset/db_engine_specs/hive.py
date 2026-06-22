@@ -234,7 +234,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                 catalog=table.catalog,
                 schema=table.schema,
             ) as engine:
-                engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
+                engine.execute(text(f"DROP TABLE IF EXISTS {str(table)}"))
 
         def _get_hive_type(dtype: np.dtype[Any]) -> str:
             hive_type_by_dtype = {

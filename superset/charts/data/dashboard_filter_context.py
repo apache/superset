@@ -306,7 +306,7 @@ def get_dashboard_filter_context(
     return context
 
 
-def apply_dashboard_filter_context(
+def apply_dashboard_filter_context(  # noqa: C901
     query_context: dict[str, Any],
     extra_form_data: dict[str, Any],
 ) -> None:
@@ -332,6 +332,17 @@ def apply_dashboard_filter_context(
         for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
             if key in extra_form_data:
                 extras[key] = extra_form_data[key]
+
+        # EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS is originally used with form_data objects,
+        # not query_context objects. form_data objects expect time_grain_sqla as a
+        # top-level key, but query_context objects expect it as an extra key.
+        if custom_time_grain := extra_form_data.get("time_grain_sqla"):
+            extras["time_grain_sqla"] = custom_time_grain
+            # get_time_grain() resolves grain from the first adhoc column (columns[0])
+            columns = query.get("columns") or []
+            if columns and isinstance(columns[0], dict):
+                columns[0]["timeGrain"] = custom_time_grain
+
         if extras:
             query["extras"] = extras
 

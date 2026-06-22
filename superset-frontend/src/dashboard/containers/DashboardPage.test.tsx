@@ -38,6 +38,7 @@ import {
   UPDATE_COMPONENTS,
 } from 'src/dashboard/actions/dashboardLayout';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import DashboardPage from './DashboardPage';
 
 const mockTheme = {
@@ -132,8 +133,10 @@ jest.mock('src/dashboard/util/activeDashboardFilters', () => ({
 }));
 
 jest.mock('src/utils/urlUtils', () => ({
-  getUrlParam: () => null,
+  getUrlParam: jest.fn().mockReturnValue(null),
 }));
+
+const mockGetUrlParam = getUrlParam as jest.Mock;
 
 jest.mock('src/dashboard/components/nativeFilters/FilterBar/keyValue', () => ({
   getFilterValue: jest.fn(),
@@ -160,6 +163,10 @@ beforeEach(() => {
   // Tests assert against the global document.title and the unmount restore
   // effect can carry title state across tests, so reset it for isolation.
   document.title = '';
+  // clearAllMocks does not reset mockImplementation — reset explicitly so
+  // per-test overrides don't leak into subsequent tests.
+  mockGetUrlParam.mockReset();
+  mockGetUrlParam.mockReturnValue(null);
   mockUseDashboard.mockReturnValue({
     result: mockDashboard,
     error: null,
@@ -440,6 +447,115 @@ test('passes null theme when Redux dashboardInfo.theme is explicitly null (theme
     expect.objectContaining({ theme: null }),
     expect.anything(),
   );
+});
+
+test('copies currentState to filterState for legacy native_filters URL params', async () => {
+  // Pre-2021 URLs encode filter selections under `currentState`. The dataMask
+  // reducer uses `filterState`, so without normalization the filter panel shows
+  // no active selections even though extraFormData still filters chart queries.
+  mockGetUrlParam.mockImplementation((param: { name: string }) => {
+    if (param.name === 'native_filters') {
+      return {
+        'NATIVE_FILTER-OvPTDNKc9': {
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+          currentState: { value: ['MarginEdge'] },
+        },
+      };
+    }
+    return null;
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-OvPTDNKc9': expect.objectContaining({
+          filterState: { value: ['MarginEdge'] },
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+          currentState: { value: ['MarginEdge'] },
+        }),
+      }),
+    }),
+  );
+});
+
+test('does not overwrite filterState when modern native_filters URL format is used', async () => {
+  // Modern URLs already carry `filterState`; the normalization must not clobber it.
+  mockGetUrlParam.mockImplementation((param: { name: string }) => {
+    if (param.name === 'native_filters') {
+      return {
+        'NATIVE_FILTER-OvPTDNKc9': {
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+          filterState: { value: ['MarginEdge'] },
+        },
+      };
+    }
+    return null;
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-OvPTDNKc9': expect.objectContaining({
+          filterState: { value: ['MarginEdge'] },
+          extraFormData: {
+            filters: [{ col: 'team_name', op: 'IN', val: ['MarginEdge'] }],
+          },
+        }),
+      }),
+    }),
+  );
+
+  // currentState must not have been injected
+  const callArg = (hydrateDashboard as jest.Mock).mock.calls[0][0];
+  expect(
+    callArg.dataMask['NATIVE_FILTER-OvPTDNKc9'].currentState,
+  ).toBeUndefined();
 });
 
 test('clears undo history after hydrating the dashboard', async () => {

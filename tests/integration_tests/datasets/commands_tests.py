@@ -20,6 +20,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
@@ -617,9 +618,9 @@ class TestCreateDatasetCommand(SupersetTestCase):
     def test_create_dataset_command(self):
         examples_db = get_example_database()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS test_create_dataset_command")
+            engine.execute(text("DROP TABLE IF EXISTS test_create_dataset_command"))
             engine.execute(
-                "CREATE TABLE test_create_dataset_command AS SELECT 2 as col"
+                text("CREATE TABLE test_create_dataset_command AS SELECT 2 as col")
             )
 
         with override_user(security_manager.find_user("admin")):
@@ -641,7 +642,7 @@ class TestCreateDatasetCommand(SupersetTestCase):
         db.session.delete(table)
         db.session.commit()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE test_create_dataset_command")
+            engine.execute(text("DROP TABLE test_create_dataset_command"))
         db.session.commit()
 
     def test_create_dataset_command_not_allowed(self):
