@@ -676,7 +676,7 @@ if __name__ == "__main__":
         "Operational & Advanced Features",
     ]
 
-    for title, table in zip(titles, tables):
+    for title, table in zip(titles, tables, strict=False):
         print(f"### {title}\n")
         print("[")
         for i, row in enumerate(table):
