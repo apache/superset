@@ -303,7 +303,7 @@ class Superset(BaseSupersetView):
     )
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
-    @deprecated(eol_version="5.0.0")
+    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data")
     def explore_json(  # noqa: C901
         self, datasource_type: str | None = None, datasource_id: int | None = None
     ) -> FlaskResponse:

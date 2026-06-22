@@ -41,7 +41,10 @@ from superset.extensions.local_extensions_watcher import (
     start_local_extensions_watcher_thread,
 )
 from superset.initialization import SupersetAppInitializer
+from superset.marshmallow_compatibility import patch_marshmallow_for_flask_appbuilder
 from superset.middleware.legacy_prefix_redirect import LegacyPrefixRedirectMiddleware
+
+patch_marshmallow_for_flask_appbuilder()
 
 logger = logging.getLogger(__name__)
 

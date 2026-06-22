@@ -245,6 +245,9 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 - The endpoint is available to users with at least one of `can_read` on `Dataset` or `SemanticView`.
 - Semantic views are included only when the `SEMANTIC_LAYERS` feature flag is enabled.
 - The endpoint enforces strict `order_column` validation and returns `400` for invalid sort columns.
+
+## 6.1.0
+
 ### ClickHouse minimum driver version bump
 
 The minimum required version of `clickhouse-connect` has been raised to `>=0.13.0`. If you are using the ClickHouse connector, please upgrade your `clickhouse-connect` package. The `_mutate_label` workaround that appended hash suffixes to column aliases has also been removed, as it is no longer needed with modern versions of the driver.
