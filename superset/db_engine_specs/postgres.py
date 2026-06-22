@@ -43,6 +43,7 @@ from superset.models.sql_lab import Query
 from superset.sql.parse import process_jinja_sql
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
+from superset.utils.timezones import validate_timezones
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -257,6 +258,70 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
     @classmethod
+    def presentation_timezone_column(
+        cls,
+        col_expr: str,
+        presentation_timezone: str,
+        source_timezone: str | None,
+        is_tz_aware: bool,
+    ) -> str:
+        """Express ``col_expr`` in the presentation zone using ``AT TIME ZONE``.
+
+        For a zone-aware column the single ``AT TIME ZONE <zone>`` yields the
+        local wall-clock time in that zone (a naive ``timestamp``), which is
+        what bucketing should truncate. For a naive column the value is first
+        localized from its ``source_timezone`` and then converted, so the
+        conversion is well-defined rather than silently assuming UTC.
+        """
+
+        validate_timezones(presentation_timezone, source_timezone)
+
+        if is_tz_aware:
+            return f"({col_expr} AT TIME ZONE '{presentation_timezone}')"
+        if not source_timezone:
+            raise ValueError(
+                "A naive temporal column requires a source_timezone before it "
+                "can be converted to a presentation time zone"
+            )
+        return (
+            f"(({col_expr} AT TIME ZONE '{source_timezone}') "
+            f"AT TIME ZONE '{presentation_timezone}')"
+        )
+
+    @classmethod
+    def presentation_timezone_bound(
+        cls,
+        dttm: datetime,
+        presentation_timezone: str,
+        source_timezone: str | None,
+        is_tz_aware: bool,
+    ) -> str:
+        """Shift a filter boundary from presentation-zone wall-clock to storage.
+
+        The boundary is rendered as a zone-less ``TIMESTAMP`` literal and then
+        localized with ``AT TIME ZONE`` so the result does not depend on the
+        database session's time zone. For an aware column the boundary becomes
+        the absolute instant of the presentation-zone wall-clock; for a naive
+        column it is further expressed in the column's source zone so a raw
+        comparison stays correct (and sargable).
+        """
+
+        validate_timezones(presentation_timezone, source_timezone)
+
+        literal = f"TIMESTAMP '{dttm.isoformat(sep=' ', timespec='microseconds')}'"
+        if is_tz_aware:
+            return f"({literal} AT TIME ZONE '{presentation_timezone}')"
+        if not source_timezone:
+            raise ValueError(
+                "A naive temporal column requires a source_timezone before a "
+                "presentation-time-zone filter can be applied"
+            )
+        return (
+            f"(({literal} AT TIME ZONE '{presentation_timezone}') "
+            f"AT TIME ZONE '{source_timezone}')"
+        )
+
+    @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
     ) -> str | None:
@@ -278,6 +343,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     supports_dynamic_schema = True
     supports_catalog = True
     supports_dynamic_catalog = True
+    supports_presentation_timezone = True
 
     default_driver = "psycopg2"
     sqlalchemy_uri_placeholder = (

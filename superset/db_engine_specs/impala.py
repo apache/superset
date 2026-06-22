@@ -33,6 +33,7 @@ from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
 from superset.utils.network import is_safe_host
+from superset.utils.timezones import validate_timezones
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -47,6 +48,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     engine = "impala"
     engine_name = "Apache Impala"
+    supports_presentation_timezone = True
 
     metadata = {
         "description": (
@@ -83,6 +85,16 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return "from_unixtime({col})"
 
     @classmethod
+    def epoch_ms_to_dttm(cls) -> str:
+        # The base-class template divides with `/`, which always yields DOUBLE
+        # on Impala, and from_unixtime() requires BIGINT — analysis fails
+        # (verified on Impala 4.5.0). Integer-divide and cast instead. Note
+        # DIV truncates toward zero, so *negative* (pre-1970) epoch-millis
+        # round up to the next second rather than flooring — a one-second
+        # edge that only matters for pre-epoch data.
+        return "from_unixtime(CAST({col} DIV 1000 AS BIGINT))"
+
+    @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
     ) -> str | None:
@@ -93,6 +105,66 @@ class ImpalaEngineSpec(BaseEngineSpec):
         if isinstance(sqla_type, types.TIMESTAMP):
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS TIMESTAMP)"""
         return None
+
+    @classmethod
+    def presentation_timezone_column(
+        cls,
+        col_expr: str,
+        presentation_timezone: str,
+        source_timezone: str | None,
+        is_tz_aware: bool,  # noqa: ARG003  # always naive for Impala; part of the shared contract
+    ) -> str:
+        """Express ``col_expr`` in the presentation zone for bucketing.
+
+        Impala ``TIMESTAMP`` is timezone-less, so a ``source_timezone`` is always
+        required to interpret the stored value. ``FROM_UTC_TIMESTAMP`` /
+        ``TO_UTC_TIMESTAMP`` use the IANA tz database and are DST-correct. Zone
+        names are interpolated as string literals, so callers MUST pass
+        IANA-allowlisted values — the allowlist is the injection control.
+        """
+
+        validate_timezones(presentation_timezone, source_timezone)
+        if not source_timezone:
+            raise ValueError(
+                "Impala TIMESTAMP columns are zone-less; a source_timezone is "
+                "required before a presentation time zone can be applied"
+            )
+        # Normalize the stored value to UTC first only when it is not already
+        # UTC, then shift to the presentation zone.
+        utc_expr = (
+            col_expr
+            if source_timezone == "UTC"
+            else f"TO_UTC_TIMESTAMP({col_expr}, '{source_timezone}')"
+        )
+        return f"FROM_UTC_TIMESTAMP({utc_expr}, '{presentation_timezone}')"
+
+    @classmethod
+    def presentation_timezone_bound(
+        cls,
+        dttm: datetime,
+        presentation_timezone: str,
+        source_timezone: str | None,
+        is_tz_aware: bool,  # noqa: ARG003  # always naive for Impala; part of the shared contract
+    ) -> str:
+        """Shift a filter boundary from presentation-zone wall-clock to storage.
+
+        The column stays raw (sargable); the boundary the user expressed in the
+        presentation zone is converted to the zone-less value Impala stores.
+        """
+
+        validate_timezones(presentation_timezone, source_timezone)
+        if not source_timezone:
+            raise ValueError(
+                "Impala TIMESTAMP columns are zone-less; a source_timezone is "
+                "required before a presentation-time-zone filter can be applied"
+            )
+        literal = (
+            f"CAST('{dttm.isoformat(sep=' ', timespec='microseconds')}' AS TIMESTAMP)"  # noqa: E501
+        )
+        utc_expr = f"TO_UTC_TIMESTAMP({literal}, '{presentation_timezone}')"
+        if source_timezone == "UTC":
+            return utc_expr
+        return f"FROM_UTC_TIMESTAMP({utc_expr}, '{source_timezone}')"
 
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> set[str]:

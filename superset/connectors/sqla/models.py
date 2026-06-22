@@ -1133,13 +1133,28 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         """
         label = label or utils.DTTM_ALIAS
 
+        presentation_timezone, source_timezone = self._presentation_timezone()
         pdf = self.python_date_format
-        is_epoch = pdf in ("epoch_s", "epoch_ms")
+        if presentation_timezone and not pdf and (table := self.table) is not None:
+            # Honour the dataset-level db_extra fallback (the same resolution
+            # dttm_sql_literal and get_time_filter use) so a column declared
+            # epoch only via db_extra takes the epoch presentation branch
+            # instead of an invalid zone wrap around a raw integer.
+            pdf = table._effective_python_date_format(self)
+        is_epoch = utils.is_epoch_dttm_format(pdf)
         column_spec = self.db_engine_spec.get_column_spec(
             self.type, db_extra=self.db_extra
         )
         type_ = column_spec.sqla_type if column_spec else DateTime
-        if not self.expression and not time_grain and not is_epoch:
+        # A raw temporal column with no grain normally needs no expression — but
+        # if a presentation zone applies it must still be converted for display
+        # (the grainless branch of get_timestamp_expr wraps it without truncation).
+        if (
+            not self.expression
+            and not time_grain
+            and not is_epoch
+            and not presentation_timezone
+        ):
             sqla_col = column(self.column_name, type_=type_)
             return self.database.make_sqla_column_compatible(sqla_col, label)
         if expression := self.expression:
@@ -1157,8 +1172,87 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
-        time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
+        # Pass the zone arguments only when a zone actually applies, so a
+        # third-party engine spec overriding the historical
+        # ``get_timestamp_expr(col, pdf, time_grain)`` signature keeps working
+        # whenever the feature is off or the dataset has no zone.
+        zone_kwargs: dict[str, str | None] = (
+            {
+                "presentation_timezone": presentation_timezone,
+                "source_timezone": source_timezone,
+                # the raw stored type is authoritative for zone-awareness; the
+                # mapped SQLAlchemy ``type_`` above drops the timezone flag
+                "source_type": self.type,
+            }
+            if presentation_timezone
+            else {}
+        )
+        time_expr = self.db_engine_spec.get_timestamp_expr(
+            col,
+            pdf,
+            time_grain,
+            **zone_kwargs,
+        )
         return self.database.make_sqla_column_compatible(time_expr, label)
+
+    def _presentation_timezone(self) -> tuple[str | None, str | None]:
+        """Resolve the presentation/source zones to apply to this column, if any.
+
+        Returns ``(None, None)`` — leaving generation unchanged — unless the
+        feature flag is on, the parent dataset has a presentation zone, the
+        engine supports it, and this is a physical (non-expression) column.
+        Virtual/expression columns are deliberately excluded, as are
+        string-stored temporal columns (a custom strftime
+        ``python_date_format``): a varchar column cannot be wrapped in zone
+        SQL, so those stay as stored on both the bucketing and the
+        filter-boundary side (documented limitation).
+        """
+
+        # Check the flag first so the feature is a true zero-cost no-op when off
+        # — no relationship load, no column access — for the default install.
+        if not is_feature_enabled("DATASET_PRESENTATION_TIMEZONE"):
+            return None, None
+        table = self.table
+        if (
+            self.expression
+            or table is None
+            or not table.presentation_timezone
+            or not self.db_engine_spec.supports_presentation_timezone
+        ):
+            return None, None
+        # The *effective* format (honouring the dataset-level db_extra fallback,
+        # like dttm_sql_literal) so a column declared epoch only via db_extra is
+        # treated as epoch here too. Non-epoch custom formats mean string
+        # storage — excluded from zoning.
+        fmt = table._effective_python_date_format(self)
+        if fmt and not utils.is_epoch_dttm_format(fmt):
+            return None, None
+        # When a presentation zone applies but no source zone is configured,
+        # default to UTC (matching the editor's seed) so a naive column produces
+        # a well-defined conversion instead of the engine raising at query time.
+        # (Source zone is irrelevant for tz-aware and epoch columns.)
+        source_timezone = table.source_timezone or "UTC"
+        # Usage signal for the dark launch. NB: fired once per zoned column
+        # *expression* (so 2-3x per chart query), i.e. it counts zoned-SQL
+        # generations, not distinct datasets/queries — a default-on SIP should
+        # read it as a volume signal. Best-effort: a stats backend failure must
+        # never break query generation.
+        try:
+            current_app.config["STATS_LOGGER"].incr(
+                "dataset.presentation_timezone.applied"
+            )
+        except Exception:  # noqa: BLE001
+            logger.warning("Failed to emit presentation_timezone stat", exc_info=True)
+        return table.presentation_timezone, source_timezone
+
+    def is_tz_aware(self) -> bool:
+        """Whether this column's stored type carries a time zone (vs. naive).
+
+        The single home for "is this column zone-aware?" — derived from the raw
+        stored type via the engine spec, so callers don't each re-interrogate
+        ``type``.
+        """
+        return self.db_engine_spec.is_tz_aware_type(self.type or "")
 
     @property
     def data(self) -> dict[str, Any]:
@@ -1350,6 +1444,13 @@ class SqlaTable(
     normalize_columns = Column(Boolean, default=False)
     always_filter_main_dttm = Column(Boolean, default=False)
     folders = Column(JSON, nullable=True)
+    # IANA zone in which this dataset's temporal columns are bucketed and
+    # filtered for presentation. NULL leaves the dataset behaving as stored
+    # (feature inert). Only honoured when the dataset's engine supports it.
+    presentation_timezone = Column(String(64), nullable=True)
+    # IANA zone the dataset's naive temporal columns are stored in, used to make
+    # the presentation conversion well-defined. NULL is treated as UTC.
+    source_timezone = Column(String(64), nullable=True)
 
     baselink = "tablemodelview"
 
@@ -1373,6 +1474,8 @@ class SqlaTable(
         "normalize_columns",
         "always_filter_main_dttm",
         "folders",
+        "presentation_timezone",
+        "source_timezone",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
@@ -1818,12 +1921,47 @@ class SqlaTable(
                     raise ColumnNotFoundException(message=str(ex)) from ex
 
         if is_dttm and has_timegrain:
+            # When this adhoc column references a physical metadata column (the
+            # common BASE_AXIS / x-axis case), honour that column's presentation
+            # zone; pure adhoc expressions have no metadata column and stay
+            # unzoned.
+            zone_kwargs, pdf = self._adhoc_zone_kwargs(col_in_metadata, pdf)
             sqla_column = self.db_engine_spec.get_timestamp_expr(
                 col=sqla_column,
                 pdf=pdf,
                 time_grain=time_grain,
+                **zone_kwargs,
             )
         return self.make_sqla_column_compatible(sqla_column, label), generic_type
+
+    def _adhoc_zone_kwargs(
+        self,
+        col_in_metadata: TableColumn | None,
+        pdf: str | None,
+    ) -> tuple[dict[str, str | None], str | None]:
+        """Resolve the presentation-zone kwargs for a BASE_AXIS adhoc column.
+
+        Returns ``({}, pdf)`` when no zone applies, so the historical
+        ``get_timestamp_expr(col, pdf, time_grain)`` call signature is preserved
+        for third-party engine specs whenever the feature is off or the dataset
+        has no zone. When a zone applies and the column has no explicit format,
+        the effective (db_extra-aware) format is resolved so a db_extra-declared
+        epoch column takes the epoch presentation branch.
+        """
+        if col_in_metadata is None:
+            return {}, pdf
+        presentation_timezone, source_timezone = (
+            col_in_metadata._presentation_timezone()
+        )
+        if not presentation_timezone:
+            return {}, pdf
+        if not pdf:
+            pdf = self._effective_python_date_format(col_in_metadata)
+        return {
+            "presentation_timezone": presentation_timezone,
+            "source_timezone": source_timezone,
+            "source_type": col_in_metadata.type,
+        }, pdf
 
     def _get_series_orderby(
         self,

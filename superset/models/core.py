@@ -296,6 +296,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         return self.get_extra().get("allow_multi_catalog", False)
 
     @property
+    def supports_presentation_timezone(self) -> bool:
+        """Whether this database's engine can bucket/filter in a named zone."""
+        return self.db_engine_spec.supports_presentation_timezone
+
+    @property
     def schema_options(self) -> dict[str, Any]:
         """Additional schema display config for engines with complex schemas"""
         return self.get_extra().get("schema_options", {})

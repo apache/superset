@@ -256,6 +256,178 @@ def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
     assert actual == expected_result
 
 
+def test_presentation_timezone_grain_tz_aware() -> None:
+    """A zone-aware column is bucketed via a single ``AT TIME ZONE``."""
+    actual = str(
+        spec.get_timestamp_expr(
+            col=column("col", types.TIMESTAMP(timezone=True)),
+            pdf=None,
+            time_grain="P1D",
+            presentation_timezone="America/New_York",
+        )
+    )
+    assert actual == "DATE_TRUNC('day', (col AT TIME ZONE 'America/New_York'))"
+
+
+def test_presentation_timezone_grain_naive_with_source() -> None:
+    """A naive column is first localized from its source zone, then converted."""
+    actual = str(
+        spec.get_timestamp_expr(
+            col=column("col", types.TIMESTAMP()),
+            pdf=None,
+            time_grain="P1D",
+            presentation_timezone="America/New_York",
+            source_timezone="UTC",
+        )
+    )
+    assert actual == (
+        "DATE_TRUNC('day', ((col AT TIME ZONE 'UTC') AT TIME ZONE 'America/New_York'))"
+    )
+
+
+def test_presentation_timezone_naive_without_source_raises() -> None:
+    """A naive column with no source zone is refused, never assumed to be UTC."""
+    with pytest.raises(ValueError, match="requires a source_timezone"):
+        spec.get_timestamp_expr(
+            col=column("col", types.TIMESTAMP()),
+            pdf=None,
+            time_grain="P1D",
+            presentation_timezone="America/New_York",
+        )
+
+
+def test_presentation_timezone_rejects_unknown_zone() -> None:
+    """An out-of-allowlist zone never reaches the generated SQL."""
+    with pytest.raises(ValueError, match="Invalid IANA time zone"):
+        spec.get_timestamp_expr(
+            col=column("col", types.TIMESTAMP(timezone=True)),
+            pdf=None,
+            time_grain="P1D",
+            presentation_timezone="Not/AZone",
+        )
+
+
+def test_presentation_timezone_unset_is_byte_identical() -> None:
+    """No presentation zone ⇒ SQL identical to the current generator (T011)."""
+    plain = str(
+        spec.get_timestamp_expr(
+            col=column("col", types.TIMESTAMP(timezone=True)),
+            pdf=None,
+            time_grain="P1D",
+        )
+    )
+    assert plain == "DATE_TRUNC('day', col)"
+
+
+def test_presentation_timezone_awareness_from_raw_type() -> None:
+    """Zone-awareness comes from the raw stored type, not the mapped SQLA type.
+
+    In production ``get_column_spec`` maps a ``timestamptz`` column to a plain
+    ``TIMESTAMP()`` (timezone flag dropped), so detection must rely on the raw
+    ``source_type`` string. With ``source_type`` naming an aware type the
+    single-``AT TIME ZONE`` (aware) form must be emitted even though ``col`` has
+    a naive mapped type and no ``source_timezone`` is supplied.
+    """
+    actual = str(
+        spec.get_timestamp_expr(
+            col=column("col", types.TIMESTAMP()),
+            pdf=None,
+            time_grain="P1D",
+            presentation_timezone="America/New_York",
+            source_type="TIMESTAMP WITH TIME ZONE",
+        )
+    )
+    assert actual == "DATE_TRUNC('day', (col AT TIME ZONE 'America/New_York'))"
+
+
+def test_presentation_timezone_naive_raw_type_requires_source() -> None:
+    """A raw naive type (no source zone) is still refused via the raw-type path."""
+    with pytest.raises(ValueError, match="requires a source_timezone"):
+        spec.get_timestamp_expr(
+            col=column("col", types.TIMESTAMP(timezone=True)),
+            pdf=None,
+            time_grain="P1D",
+            presentation_timezone="America/New_York",
+            source_type="TIMESTAMP",
+        )
+
+
+def test_presentation_timezone_epoch_seconds() -> None:
+    """An epoch column is decoded to a UTC instant, then shifted to the zone."""
+    actual = str(
+        spec.get_timestamp_expr(
+            col=column("col"),
+            pdf="epoch_s",
+            time_grain="P1D",
+            presentation_timezone="America/New_York",
+        )
+    )
+    assert actual == (
+        "DATE_TRUNC('day', "
+        "(((timestamp 'epoch' + col * interval '1 second') "
+        "AT TIME ZONE 'UTC') AT TIME ZONE 'America/New_York'))"
+    )
+
+
+def test_presentation_timezone_epoch_unset_is_byte_identical() -> None:
+    """Epoch with no presentation zone ⇒ SQL identical to the current generator."""
+    plain = str(
+        spec.get_timestamp_expr(col=column("col"), pdf="epoch_s", time_grain="P1D")
+    )
+    assert plain == "DATE_TRUNC('day', (timestamp 'epoch' + col * interval '1 second'))"
+
+
+def test_presentation_timezone_multi_col_grain() -> None:
+    """A sub-hour grain repeats ``{col}``; every occurrence gets the same wrap."""
+    actual = str(
+        spec.get_timestamp_expr(
+            col=column("col", types.TIMESTAMP()),
+            pdf=None,
+            time_grain="PT5M",
+            presentation_timezone="America/New_York",
+            source_type="TIMESTAMP WITH TIME ZONE",
+        )
+    )
+    assert actual == (
+        "DATE_TRUNC('hour', (col AT TIME ZONE 'America/New_York')) + "
+        "INTERVAL '5 minutes' * "
+        "FLOOR(EXTRACT(MINUTE FROM (col AT TIME ZONE 'America/New_York')) / 5)"
+    )
+
+
+def test_presentation_timezone_bound_aware() -> None:
+    """An aware-column boundary becomes the instant of the presentation wall-clock."""
+    bound = spec.presentation_timezone_bound(
+        datetime(2024, 1, 1, 0, 0, 0), "America/New_York", None, True
+    )
+    assert bound == (
+        "(TIMESTAMP '2024-01-01 00:00:00.000000' AT TIME ZONE 'America/New_York')"
+    )
+
+
+def test_presentation_timezone_bound_naive() -> None:
+    """A naive-column boundary is expressed in the column's source zone."""
+    bound = spec.presentation_timezone_bound(
+        datetime(2024, 1, 1, 0, 0, 0), "America/New_York", "UTC", False
+    )
+    assert bound == (
+        "((TIMESTAMP '2024-01-01 00:00:00.000000' "
+        "AT TIME ZONE 'America/New_York') AT TIME ZONE 'UTC')"
+    )
+
+
+def test_presentation_timezone_bound_naive_without_source_raises() -> None:
+    with pytest.raises(ValueError, match="requires a source_timezone"):
+        spec.presentation_timezone_bound(
+            datetime(2024, 1, 1), "America/New_York", None, False
+        )
+
+
+def test_presentation_timezone_bound_rejects_unknown_zone() -> None:
+    with pytest.raises(ValueError, match="Invalid IANA time zone"):
+        spec.presentation_timezone_bound(datetime(2024, 1, 1), "Not/AZone", None, True)
+
+
 def test_select_star(mocker: MockerFixture) -> None:
     """
     Test the ``select_star`` method.

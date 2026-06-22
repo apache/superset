@@ -19,7 +19,12 @@
 import pytest
 from marshmallow import ValidationError
 
-from superset.datasets.schemas import validate_python_date_format
+from superset.datasets.schemas import (
+    DatasetPutSchema,
+    validate_python_date_format,
+    validate_timezone,
+)
+from superset.exceptions import SupersetMarshmallowValidationError
 
 
 # pylint: disable=too-few-public-methods
@@ -46,6 +51,37 @@ def test_validate_python_date_format(payload) -> None:
 def test_validate_python_date_format_raises(payload) -> None:
     with pytest.raises(ValidationError):
         validate_python_date_format(payload)
+
+
+def test_validate_timezone_accepts_iana() -> None:
+    assert validate_timezone("America/New_York")
+    assert validate_timezone("UTC")
+
+
+@pytest.mark.parametrize("payload", ["Not/AZone", "EST5", "", "america/new_york"])
+def test_validate_timezone_rejects_non_iana(payload) -> None:
+    with pytest.raises(ValidationError):
+        validate_timezone(payload)
+
+
+def test_put_schema_accepts_presentation_timezone() -> None:
+    result = DatasetPutSchema().load({"presentation_timezone": "America/New_York"})
+    assert result["presentation_timezone"] == "America/New_York"
+
+
+def test_put_schema_rejects_invalid_presentation_timezone() -> None:
+    with pytest.raises((ValidationError, SupersetMarshmallowValidationError)):
+        DatasetPutSchema().load({"presentation_timezone": "Not/AZone"})
+
+
+def test_put_schema_accepts_dataset_source_timezone() -> None:
+    result = DatasetPutSchema().load({"source_timezone": "UTC"})
+    assert result["source_timezone"] == "UTC"
+
+
+def test_put_schema_rejects_invalid_dataset_source_timezone() -> None:
+    with pytest.raises((ValidationError, SupersetMarshmallowValidationError)):
+        DatasetPutSchema().load({"source_timezone": "Not/AZone"})
 
 
 def test_dataset_post_schema_has_all_put_scalar_fields() -> None:
@@ -75,6 +111,10 @@ def test_dataset_post_schema_has_all_put_scalar_fields() -> None:
         "cache_timeout",
         "is_sqllab_view",
         "extra",
+        # Configured from the dataset editor after creation; the capability
+        # gate that guards it lives in the update command.
+        "presentation_timezone",
+        "source_timezone",
     }
 
     put_fields = set(DatasetPutSchema().fields.keys())

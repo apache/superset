@@ -17,12 +17,15 @@
 from datetime import datetime
 from unittest import mock
 
+import freezegun
 import pytest
 
 from superset.common.utils.time_range_utils import (
+    get_presentation_relative_now,
     get_since_until_from_query_object,
     get_since_until_from_time_range,
 )
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test__get_since_until_from_time_range():
@@ -92,3 +95,53 @@ def test__since_until_from_adhoc_filters(dummy_query_object):
         datetime(2001, 1, 1, 0, 0, 0),
         datetime(2002, 1, 1, 0, 0, 0),
     )
+
+
+def _zone_datasource(zone, supports=True):
+    """A duck-typed dataset carrying a presentation zone."""
+    datasource = mock.MagicMock()
+    datasource.presentation_timezone = zone
+    datasource.db_engine_spec.supports_presentation_timezone = supports
+    return datasource
+
+
+@with_feature_flags(DATASET_PRESENTATION_TIMEZONE=True)
+def test_get_presentation_relative_now_in_zone() -> None:
+    """The anchor is the zone's current wall-clock (naive)."""
+    with freezegun.freeze_time("2024-06-15 04:00:00"):  # UTC
+        anchor = get_presentation_relative_now(_zone_datasource("America/New_York"))
+    assert anchor == datetime(2024, 6, 15, 0, 0, 0)  # EDT = UTC-4
+    assert anchor.tzinfo is None
+
+
+@with_feature_flags(DATASET_PRESENTATION_TIMEZONE=True)
+def test_get_presentation_relative_now_gates() -> None:
+    """No zone, or an unsupported engine, leaves the anchor unset."""
+    assert get_presentation_relative_now(_zone_datasource(None)) is None
+    assert (
+        get_presentation_relative_now(_zone_datasource("UTC", supports=False)) is None
+    )
+    assert get_presentation_relative_now(None) is None  # SQL Lab / no datasource
+
+
+def test_get_presentation_relative_now_inert_without_flag() -> None:
+    """Flag off ⇒ no anchor, even with a zone configured."""
+    assert get_presentation_relative_now(_zone_datasource("America/New_York")) is None
+
+
+@pytest.mark.query_object({"time_range": "Last week"})
+@with_feature_flags(DATASET_PRESENTATION_TIMEZONE=True)
+def test_since_until_relative_anchored_in_presentation_zone(
+    dummy_query_object,
+) -> None:
+    """'Last week' on a zoned dataset resolves in that zone's calendar.
+
+    Frozen at 2024-06-14 13:00 UTC: Auckland (UTC+12) is already Jun 15
+    01:00, so 'today' there is Jun 15 while the server's UTC today is still
+    Jun 14 — the anchored result (Jun 8..15) differs from the unanchored
+    one (Jun 7..14), proving the zone anchor is applied.
+    """
+    dummy_query_object.datasource = _zone_datasource("Pacific/Auckland")
+    with freezegun.freeze_time("2024-06-14 13:00:00"):  # UTC; Auckland Jun 15 01:00
+        since, until = get_since_until_from_query_object(dummy_query_object)
+    assert (since, until) == (datetime(2024, 6, 8), datetime(2024, 6, 15))

@@ -1114,3 +1114,88 @@ def test_validate_folders_metrics_vs_columns_behavior(mocker: MockerFixture) -> 
         command2._validate_semantics([])
     except Exception as e:
         pytest.fail(f"Should work with new metric UUIDs when new metrics provided: {e}")
+
+
+def _tz_command(mocker, properties, model_zone, supports, db=...):
+    """Build an UpdateDatasetCommand wired for _validate_presentation_timezone."""
+    model = mocker.MagicMock()
+    model.presentation_timezone = model_zone
+    model.database.supports_presentation_timezone = supports
+    model.database.db_engine_spec.engine = "sqlite"
+    cmd = UpdateDatasetCommand(1, properties)
+    cmd._model = model
+    if db is not ...:  # explicit database override (e.g. None or a new connection)
+        cmd._properties["database"] = db
+    return cmd, model
+
+
+def test_validate_presentation_timezone_rejects_unsupported_engine(
+    mocker: MockerFixture,
+) -> None:
+    cmd, _ = _tz_command(
+        mocker, {"presentation_timezone": "America/New_York"}, None, supports=False
+    )
+    exceptions: list[ValidationError] = []
+    cmd._validate_presentation_timezone(exceptions)
+    assert len(exceptions) == 1
+
+
+def test_validate_presentation_timezone_allows_supported_engine(
+    mocker: MockerFixture,
+) -> None:
+    cmd, _ = _tz_command(
+        mocker, {"presentation_timezone": "America/New_York"}, None, supports=True
+    )
+    exceptions: list[ValidationError] = []
+    cmd._validate_presentation_timezone(exceptions)
+    assert exceptions == []
+
+
+def test_validate_presentation_timezone_checks_effective_value_on_db_change(
+    mocker: MockerFixture,
+) -> None:
+    """Moving an already-zoned dataset to an unsupported engine is rejected,
+    even though the PATCH body carries no presentation_timezone."""
+    new_db = mocker.MagicMock()
+    new_db.supports_presentation_timezone = False
+    new_db.db_engine_spec.engine = "sqlite"
+    cmd, _ = _tz_command(
+        mocker, {}, model_zone="America/New_York", supports=True, db=new_db
+    )
+    exceptions: list[ValidationError] = []
+    cmd._validate_presentation_timezone(exceptions)
+    assert len(exceptions) == 1
+
+
+def test_validate_presentation_timezone_clearing_is_allowed(
+    mocker: MockerFixture,
+) -> None:
+    cmd, _ = _tz_command(
+        mocker, {"presentation_timezone": None}, "America/New_York", supports=False
+    )
+    exceptions: list[ValidationError] = []
+    cmd._validate_presentation_timezone(exceptions)
+    assert exceptions == []
+
+
+def test_validate_presentation_timezone_rejects_source_on_unsupported_engine(
+    mocker: MockerFixture,
+) -> None:
+    """Setting a source zone on an unsupported engine is rejected (import parity)."""
+    cmd, _ = _tz_command(mocker, {"source_timezone": "UTC"}, None, supports=False)
+    exceptions: list[ValidationError] = []
+    cmd._validate_presentation_timezone(exceptions)
+    assert len(exceptions) == 1
+    assert exceptions[0].field_name == "source_timezone"
+
+
+def test_validate_presentation_timezone_none_database_does_not_raise(
+    mocker: MockerFixture,
+) -> None:
+    cmd, model = _tz_command(
+        mocker, {"presentation_timezone": "America/New_York"}, None, supports=False
+    )
+    model.database = None
+    exceptions: list[ValidationError] = []
+    cmd._validate_presentation_timezone(exceptions)  # must not raise AttributeError
+    assert exceptions == []

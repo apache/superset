@@ -42,6 +42,7 @@ import {
 } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import Tabs from '@superset-ui/core/components/Tabs';
+import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
@@ -163,6 +164,7 @@ interface Database {
   database_name?: string;
   name?: string;
   backend?: string;
+  supports_presentation_timezone?: boolean;
 }
 
 interface SpatialConfig {
@@ -195,6 +197,8 @@ interface DatasourceObject {
   cache_timeout?: number;
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
+  presentation_timezone?: string | null;
+  source_timezone?: string | null;
   template_params?: string;
   spatials?: SpatialConfig[];
   all_cols?: string[];
@@ -879,6 +883,70 @@ const mapDispatchToProps = (
 const mapStateToProps = (state: RootState) => ({
   database: state?.database,
 });
+
+const DEFAULT_PRESENTATION_TIMEZONE = 'UTC';
+
+/**
+ * Opt-in control for a dataset's presentation time zone. The checkbox keeps the
+ * value `null` (feature inert) until enabled; only then is the zone selector
+ * shown, seeded with a concrete default so `TimezoneSelector` does not silently
+ * persist a browser-guessed zone on mount.
+ */
+function PresentationTimezoneControl({
+  value,
+  onChange,
+  label,
+}: {
+  value?: string | null;
+  onChange?: (value: string | null) => void;
+  label?: ReactNode;
+}) {
+  const enabled = Boolean(value);
+  return (
+    <>
+      <CheckboxControl
+        label={label}
+        value={enabled}
+        onChange={(checked: boolean) =>
+          onChange?.(checked ? DEFAULT_PRESENTATION_TIMEZONE : null)
+        }
+      />
+      {enabled && (
+        <TimezoneSelector
+          timezone={value}
+          onTimezoneChange={(tz: string) => onChange?.(tz)}
+        />
+      )}
+    </>
+  );
+}
+
+/**
+ * Dataset-level "source" zone — the zone the dataset's naive temporal columns
+ * are stored in. Only meaningful once a presentation zone is set. Displays UTC
+ * as the default and persists a value only when the operator explicitly picks
+ * one; an unset source is treated as UTC by the backend, so there is no need to
+ * write a value on mount (which would surprisingly dirty an untouched form).
+ */
+function SourceTimezoneControl({
+  value,
+  onChange,
+  label,
+}: {
+  value?: string | null;
+  onChange?: (value: string) => void;
+  label?: ReactNode;
+}) {
+  return (
+    <>
+      {label}
+      <TimezoneSelector
+        timezone={value || DEFAULT_PRESENTATION_TIMEZONE}
+        onTimezoneChange={(tz: string) => onChange?.(tz)}
+      />
+    </>
+  );
+}
 
 const connector = connect(mapStateToProps, mapDispatchToProps);
 type PropsFromRedux = ConnectedProps<typeof connector>;
@@ -1693,6 +1761,29 @@ class DatasourceEditor extends PureComponent<
           )}
           control={<CheckboxControl />}
         />
+        {isFeatureEnabled(FeatureFlag.DatasetPresentationTimezone) &&
+          datasource.database?.supports_presentation_timezone && (
+            <Field
+              fieldKey="presentation_timezone"
+              label={t('Presentation time zone')}
+              description={t(
+                "Bucket and filter this dataset's temporal columns in a fixed time zone instead of as stored.",
+              )}
+              control={<PresentationTimezoneControl />}
+            />
+          )}
+        {isFeatureEnabled(FeatureFlag.DatasetPresentationTimezone) &&
+          datasource.database?.supports_presentation_timezone &&
+          !!datasource.presentation_timezone && (
+            <Field
+              fieldKey="source_timezone"
+              label={t('Source time zone')}
+              description={t(
+                'The time zone the data is stored in. Used to interpret zone-less (naive) timestamp columns before converting to the presentation zone. Defaults to UTC when unset.',
+              )}
+              control={<SourceTimezoneControl />}
+            />
+          )}
       </Fieldset>
     );
   }

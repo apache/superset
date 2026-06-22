@@ -21,6 +21,8 @@ from superset.db_engine_specs.postgres import PostgresEngineSpec
 class RisingWaveDbEngineSpec(PostgresEngineSpec):
     engine = "risingwave"
     engine_name = "RisingWave"
+    # Inherited PostgreSQL presentation-zone SQL is not yet verified here.
+    supports_presentation_timezone = False
     default_driver = ""
     sqlalchemy_uri_placeholder = (
         "risingwave://user:password@host:port/dbname[?key=value&key=value...]"

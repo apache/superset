@@ -194,6 +194,33 @@ def validate_catalog(config: dict[str, Any]) -> None:
         raise MultiCatalogDisabledValidationError()
 
 
+def clear_unsupported_timezone(config: dict[str, Any]) -> None:
+    """Drop presentation/source time zones when the target engine can't honour them.
+
+    The zone fields are inert at query time on an unsupported engine; clearing
+    them on import (rather than persisting them) keeps an imported dataset from
+    carrying misleading config it can never apply. Mirrors the capability gate
+    on the dataset update path.
+    """
+    has_zone = bool(config.get("presentation_timezone")) or bool(
+        config.get("source_timezone")
+    )
+    database_id = config.get("database_id")
+    if not has_zone or database_id is None:
+        return
+
+    database = db.session.query(Database).filter_by(id=database_id).first()
+    if database is None or database.db_engine_spec.supports_presentation_timezone:
+        return
+
+    logger.warning(
+        "Dropping presentation/source time zone on import: engine %s does not "
+        "support it",
+        database.db_engine_spec.engine,
+    )
+    config["presentation_timezone"] = config["source_timezone"] = None
+
+
 def import_dataset(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
@@ -226,6 +253,7 @@ def import_dataset(  # noqa: C901
     # untrusted user imports validate the catalog, like the access checks below.
     if not ignore_permissions:
         validate_catalog(config)
+    clear_unsupported_timezone(config)
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()

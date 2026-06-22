@@ -620,6 +620,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Allow metrics and columns to be grouped into folders in the chart builder
     # @lifecycle: development
     "DATASET_FOLDERS": False,
+    # Allow an operator to set a per-dataset presentation time zone, so a
+    # dataset's temporal columns are bucketed and filtered in that named IANA
+    # zone (DST-correct) instead of as stored. Off by default and inert until a
+    # dataset opts in; only supported engines expose the control.
+    # @lifecycle: development
+    "DATASET_PRESENTATION_TIMEZONE": False,
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     # @lifecycle: development

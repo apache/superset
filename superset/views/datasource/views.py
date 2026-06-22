@@ -43,6 +43,7 @@ from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import DatasourceType
+from superset.utils.timezones import validate_timezones
 from superset.views.base import api, BaseSupersetView, deprecated, json_error_response
 from superset.views.datasource.schemas import (
     ExternalMetadataParams,
@@ -110,6 +111,27 @@ class Datasource(BaseSupersetView):
                     columns=",".join(duplicates),
                 ),
                 status=409,
+            )
+        # This legacy path persists via update_from_object (no marshmallow
+        # schema), so the IANA allowlist and the engine-capability gate that
+        # the REST PUT enforces must be applied here too — an unvalidated
+        # zone would otherwise 500 every chart query on the dataset at
+        # SQL-generation time, and an unsupported-engine zone would persist
+        # as inert, misleading config.
+        try:
+            validate_timezones(
+                datasource_dict.get("presentation_timezone"),
+                datasource_dict.get("source_timezone"),
+            )
+        except ValueError as ex:
+            return json_error_response(str(ex), status=400)
+        if (
+            datasource_dict.get("presentation_timezone")
+            or datasource_dict.get("source_timezone")
+        ) and not orm_datasource.database.db_engine_spec.supports_presentation_timezone:
+            return json_error_response(
+                _("The database engine does not support a presentation time zone."),
+                status=400,
             )
         orm_datasource.update_from_object(datasource_dict)
         data = orm_datasource.data

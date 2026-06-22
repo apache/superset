@@ -28,6 +28,7 @@ from superset.commands.chart.exceptions import (
     TimeRangeParseFailError,
 )
 from superset.utils.date_parser import (
+    anchored_now,
     DateRangeMigration,
     datetime_eval,
     get_past_or_future,
@@ -760,3 +761,45 @@ def test_datetime_eval_does_not_emit_parsedatetime_debug_logs(
         "flood production logs. Records: "
         + repr([(r.levelname, r.getMessage()) for r in parsedatetime_records])
     )
+
+
+def test_anchored_now_resolves_relative_expressions_at_anchor() -> None:
+    """Relative expressions resolve against the anchor, not the server clock.
+
+    The anchor is a naive wall-clock (the presentation zone's "now"); only
+    the anchoring changes — expressions parse identically otherwise.
+    """
+    anchor = datetime(2024, 6, 15, 3, 0, 0)
+    with anchored_now(anchor):
+        # "Last week : today" — both ends anchored at the zone's today.
+        assert get_since_until("Last week") == (
+            datetime(2024, 6, 8),
+            datetime(2024, 6, 15),
+        )
+        # The DATETIME() DSL evaluator funnels through the same anchor.
+        assert datetime_eval("DATETIME('now')") == anchor
+        assert datetime_eval("DATETIME('today')") == datetime(2024, 6, 15)
+        # Absolute expressions are unaffected by the anchor.
+        assert get_since_until("2001 : 2002") == (
+            datetime(2001, 1, 1),
+            datetime(2002, 1, 1),
+        )
+
+
+def test_anchored_now_none_is_a_noop() -> None:
+    """A None anchor preserves the historical server-local behaviour."""
+    with freezegun.freeze_time("2016-11-07"):
+        with anchored_now(None):
+            assert get_since_until("Last week") == (
+                datetime(2016, 10, 31),
+                datetime(2016, 11, 7),
+            )
+
+
+def test_anchored_now_resets_after_block() -> None:
+    """The anchor is scoped to the block — no leakage across requests."""
+    anchor = datetime(2024, 6, 15)
+    with freezegun.freeze_time("2016-11-07"):
+        with anchored_now(anchor):
+            assert datetime_eval("DATETIME('today')") == datetime(2024, 6, 15)
+        assert datetime_eval("DATETIME('today')") == datetime(2016, 11, 7)

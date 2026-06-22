@@ -37,7 +37,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql.parse import Table
-from superset.utils.core import DatasourceType
+from superset.utils.core import DatasourceType, is_epoch_dttm_format
 from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
@@ -237,7 +237,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
     @staticmethod
     def validate_python_date_format(dt_format: str) -> bool:
-        if dt_format in ("epoch_s", "epoch_ms"):
+        if is_epoch_dttm_format(dt_format):
             return True
         try:
             dt_str = datetime.now().strftime(dt_format)

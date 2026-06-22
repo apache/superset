@@ -96,6 +96,7 @@ from superset.utils.oauth2 import (
     generate_code_verifier,
     get_oauth2_redirect_uri,
 )
+from superset.utils.timezones import validate_timezones
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -584,6 +585,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # hidden in the dataset creation UI and schema is not required for table access.
     supports_schemas = True
 
+    # Does the engine support a per-dataset presentation time zone, i.e. can it
+    # bucket and filter a temporal column in a named IANA zone (DST-correct)?
+    # When False the dataset zone control is hidden and the feature emits no SQL.
+    supports_presentation_timezone = False
+
     # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
@@ -1066,6 +1072,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         col: ColumnClause,
         pdf: str | None,
         time_grain: str | None,
+        presentation_timezone: str | None = None,
+        source_timezone: str | None = None,
+        source_type: str | None = None,
     ) -> TimestampExpression:
         """
         Construct a TimestampExpression to be used in a SQLAlchemy query.
@@ -1073,6 +1082,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param col: Target column for the TimestampExpression
         :param pdf: date format (seconds or milliseconds)
         :param time_grain: time grain, e.g. P1Y for 1 year
+        :param presentation_timezone: optional IANA zone to bucket the column in
+        :param source_timezone: IANA zone a naive column is stored in (if any)
+        :param source_type: the column's raw stored DB type string (e.g.
+            ``TIMESTAMP WITH TIME ZONE``), used to decide zone-awareness — the
+            mapped SQLAlchemy type drops the timezone flag, so the raw string is
+            authoritative
         :return: TimestampExpression object
         """
         if time_grain:
@@ -1093,13 +1108,144 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         else:
             time_expr = "{col}"
 
-        # if epoch, translate to DATE using db specific conf
-        if pdf == "epoch_s":
-            time_expr = time_expr.replace("{col}", cls.epoch_to_dttm())
-        elif pdf == "epoch_ms":
-            time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
+        # if epoch, translate to a datetime using the db-specific conf
+        if utils.is_epoch_dttm_format(pdf):
+            epoch_expr = (
+                cls.epoch_to_dttm() if pdf == "epoch_s" else cls.epoch_ms_to_dttm()
+            )
+            if presentation_timezone and cls.supports_presentation_timezone:
+                # Epoch values are absolute UTC instants; express the resulting
+                # timestamp in the presentation zone before truncation.
+                epoch_expr = cls._wrap_epoch_presentation_timezone(
+                    epoch_expr, presentation_timezone
+                )
+            time_expr = time_expr.replace("{col}", epoch_expr)
+        elif presentation_timezone and cls.supports_presentation_timezone:
+            time_expr = cls._wrap_presentation_timezone(
+                time_expr, col, presentation_timezone, source_timezone, source_type
+            )
 
         return TimestampExpression(time_expr, col, type_=col.type)
+
+    @classmethod
+    def _wrap_epoch_presentation_timezone(
+        cls, epoch_expr: str, presentation_timezone: str
+    ) -> str:
+        """Express an epoch-derived (UTC) timestamp in the presentation zone.
+
+        ``epoch_expr`` is the engine's epoch→timestamp template (still containing
+        ``{col}``) which yields a naive UTC instant; it is converted as a
+        zone-less UTC value to the presentation zone.
+
+        This trusts the engine's epoch decode to produce a *UTC* wall-clock. On
+        Impala that holds for default deployments but not for clusters started
+        with ``-use_local_tz_for_unix_timestamp_conversions`` (where
+        ``from_unixtime`` returns local time and this wrap would double-shift);
+        such deployments should not enable the feature (documented limitation).
+        """
+        validate_timezones(presentation_timezone)
+        return cls.presentation_timezone_column(
+            epoch_expr, presentation_timezone, "UTC", False
+        )
+
+    @classmethod
+    def _wrap_presentation_timezone(
+        cls,
+        time_expr: str,
+        col: ColumnClause,
+        presentation_timezone: str,
+        source_timezone: str | None,
+        source_type: str | None,
+    ) -> str:
+        """Wrap the ``{col}`` token in ``time_expr`` with a zone conversion.
+
+        The returned string still contains ``{col}`` for the compiler to render.
+        Zone-awareness is read from the raw stored type because the mapped
+        SQLAlchemy type stringifies ``TIMESTAMP(timezone=True)`` as plain
+        "TIMESTAMP", losing the flag.
+        """
+        # Re-validate the zones here (not only in the per-engine hook) so the
+        # allowlist that guards this string-templated SQL is a structural
+        # guarantee a future engine override cannot bypass.
+        validate_timezones(presentation_timezone, source_timezone)
+        if source_type:
+            is_tz_aware = cls.is_tz_aware_type(source_type)
+        else:
+            # Fallback for callers that don't thread the raw type string. The
+            # SqlaTable path always passes source_type (because str(col.type)
+            # drops the tz flag — see the docstring), so this branch is only
+            # reached by external callers; it sniffs the live column type's
+            # `timezone` attribute instead.
+            col_type = getattr(col, "type", None)
+            is_tz_aware = bool(getattr(col_type, "timezone", False)) or (
+                cls.is_tz_aware_type(str(col_type) if col_type is not None else "")
+            )
+        return time_expr.replace(
+            "{col}",
+            cls.presentation_timezone_column(
+                "{col}", presentation_timezone, source_timezone, is_tz_aware
+            ),
+        )
+
+    @classmethod
+    def is_tz_aware_type(cls, type_: str) -> bool:
+        """Whether a column SQL type string denotes a zone-aware timestamp.
+
+        Used to decide whether a stored value already carries a zone (so it can
+        be converted directly) or is naive (so a ``source_timezone`` is needed).
+        Engines with non-standard type names override this.
+        """
+
+        normalized = type_.upper()
+        return "WITH TIME ZONE" in normalized or "TIMESTAMPTZ" in normalized
+
+    @classmethod
+    def presentation_timezone_column(
+        cls,
+        col_expr: str,
+        presentation_timezone: str,
+        source_timezone: str | None,
+        is_tz_aware: bool,
+    ) -> str:
+        """Return a SQL fragment expressing ``col_expr`` in the presentation zone.
+
+        ``col_expr`` is a template fragment that still contains the ``{col}``
+        placeholder; the returned string must keep that placeholder so the
+        compiler can render the real column. The zone names are interpolated as
+        string literals, so callers MUST pass IANA-allowlisted values — the
+        allowlist is the injection control for this string-templated SQL.
+
+        Overridden by every engine that sets
+        ``supports_presentation_timezone = True``.
+        """
+
+        raise NotImplementedError(
+            f"{cls.engine} does not implement presentation_timezone_column"
+        )
+
+    @classmethod
+    def presentation_timezone_bound(
+        cls,
+        dttm: datetime,
+        presentation_timezone: str,
+        source_timezone: str | None,
+        is_tz_aware: bool,
+    ) -> str:
+        """Render a time-range boundary, shifted from the presentation zone.
+
+        The filter keeps the column raw (sargable); instead the boundary — which
+        the user expresses as wall-clock in the presentation zone — is converted
+        to the value the stored column is compared against. As with
+        :meth:`presentation_timezone_column`, the zone names are interpolated as
+        string literals so callers MUST pass IANA-allowlisted values.
+
+        Overridden by every engine that sets
+        ``supports_presentation_timezone = True``.
+        """
+
+        raise NotImplementedError(
+            f"{cls.engine} does not implement presentation_timezone_bound"
+        )
 
     @classmethod
     def get_time_grains(cls) -> tuple[TimeGrain, ...]:
@@ -2596,6 +2742,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
+            "supports_presentation_timezone": cls.supports_presentation_timezone,
         }
 
     @classmethod
