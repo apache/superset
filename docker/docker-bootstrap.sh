@@ -21,9 +21,6 @@ set -eo pipefail
 # Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
     if [ "$(whoami)" = "root" ] && command -v uv > /dev/null 2>&1; then
-      # Force sqlglot version to match superset-core requirement
-      echo "Ensuring sqlglot==30.8.0"
-      uv pip install sqlglot==30.8.0 --force-reinstall
 
       # Always ensure superset-core is available
       echo "Installing superset-core in editable mode"
@@ -32,7 +29,7 @@ if [ "$DEV_MODE" == "true" ]; then
       # Only reinstall the main app for non-worker processes
       if [ "$1" != "worker" ] && [ "$1" != "beat" ]; then
         echo "Reinstalling the app in editable mode"
-        uv pip install --no-deps -e .
+        uv pip install -e .
       fi
     fi
 fi
