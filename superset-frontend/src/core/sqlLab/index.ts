@@ -161,19 +161,29 @@ const makeTab = (
   catalog: string | null = null,
   schema: string | null = null,
   closed: boolean = false,
+  backendId?: string,
 ): Tab => {
   const panels: Panel[] = []; // TODO: Populate panels
   const editorGetter = closed
     ? () => Promise.reject(new Error(`Tab ${id} has been closed`))
     : () => getEditorAsync(id);
-  return new Tab(id, name, dbId, catalog, schema, editorGetter, panels);
+  return new Tab(
+    id,
+    name,
+    dbId,
+    catalog,
+    schema,
+    editorGetter,
+    panels,
+    backendId,
+  );
 };
 
 const getTab = (id: string): Tab | undefined => {
   const queryEditor = findQueryEditor(id);
   if (queryEditor?.dbId !== undefined) {
-    const { name, dbId, catalog, schema } = queryEditor;
-    return makeTab(id, name, dbId, catalog, schema);
+    const { name, dbId, catalog, schema, tabViewId } = queryEditor;
+    return makeTab(id, name, dbId, catalog, schema, false, tabViewId);
   }
   return undefined;
 };
@@ -441,6 +451,7 @@ const onDidCloseTab: typeof sqlLabApi.onDidCloseTab = (
         action.queryEditor.catalog,
         action.queryEditor.schema,
         true, // closed
+        action.queryEditor.tabViewId,
       ),
     thisArgs,
   );
@@ -507,6 +518,8 @@ const onDidCreateTab: typeof sqlLabApi.onDidCreateTab = (
         action.queryEditor.dbId ?? 0,
         action.queryEditor.catalog,
         action.queryEditor.schema ?? undefined,
+        false,
+        action.queryEditor.tabViewId,
       ),
     thisArgs,
   );
@@ -574,6 +587,8 @@ const createTab: typeof sqlLabApi.createTab = async (
     newTab.dbId ?? 0,
     newTab.catalog,
     newTab.schema ?? undefined,
+    false,
+    newTab.tabViewId,
   );
 };
 
