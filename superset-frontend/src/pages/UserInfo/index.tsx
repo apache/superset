@@ -30,11 +30,13 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Descriptions } from 'src/components/Descriptions';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
+  ChangePasswordModal,
   UserInfoEditModal,
-  UserInfoResetPasswordModal,
 } from 'src/features/userInfo/UserInfoModal';
 import { Icons, Collapse } from '@superset-ui/core/components';
 import { ApiKeyList } from 'src/features/apiKeys/ApiKeyList';
+import { AuthType } from 'src/constants/auth';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const StyledHeader = styled.div`
   ${({ theme }) => css`
@@ -118,27 +120,34 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
     getUserDetails();
   }, []);
 
+  const authType: AuthType = getBootstrapData().common.conf.AUTH_TYPE;
+  const isAuthDb = authType === AuthType.AuthDB;
+
   const SubMenuButtons: SubMenuProps['buttons'] = [
-    {
-      name: (
-        <>
-          <Icons.LockOutlined
-            iconColor={theme.colorPrimary}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-          />
-          {t('Reset my password')}
-        </>
-      ),
-      buttonStyle: 'secondary',
-      onClick: () => {
-        openModal(ModalType.ResetPassword);
-      },
-      'data-test': 'reset-password-button',
-    },
+    ...(isAuthDb
+      ? [
+          {
+            name: (
+              <>
+                <Icons.LockOutlined
+                  iconColor={theme.colorPrimary}
+                  iconSize="m"
+                  css={css`
+                    margin: auto ${theme.sizeUnit * 2}px auto 0;
+                    vertical-align: text-top;
+                  `}
+                />
+                {t('Reset my password')}
+              </>
+            ),
+            buttonStyle: 'secondary' as const,
+            onClick: () => {
+              openModal(ModalType.ResetPassword);
+            },
+            'data-test': 'reset-password-button',
+          },
+        ]
+      : []),
     {
       name: (
         <>
@@ -163,6 +172,7 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
   return (
     <StyledLayout>
       <StyledHeader>{t('Your user information')}</StyledHeader>
+      <SubMenu buttons={SubMenuButtons} />
       <DescriptionsContainer>
         <Collapse
           defaultActiveKey={[
@@ -233,7 +243,7 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
         </Collapse>
       </DescriptionsContainer>
       {modalState.resetPassword && (
-        <UserInfoResetPasswordModal
+        <ChangePasswordModal
           onHide={() => closeModal(ModalType.ResetPassword)}
           show={modalState.resetPassword}
           onSave={() => {
@@ -252,7 +262,6 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
           user={userDetails}
         />
       )}
-      <SubMenu buttons={SubMenuButtons} />
     </StyledLayout>
   );
 }

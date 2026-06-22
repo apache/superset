@@ -19,18 +19,31 @@
 
 from unittest.mock import patch
 
+from flask_appbuilder.const import AUTH_OAUTH
+
 from superset import security_manager
+from superset.extensions import db
+from superset.utils.auth_db_password import get_public_auth_db_password_policy
+from superset.utils.auth_db_password_hash import hash_auth_db_password
 from superset.utils import json, slack  # noqa: F401
-from tests.conftest import with_config
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import DEFAULT_PASSWORD, SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.test_app import app as superset_integration_app
 
 meUri = "/api/v1/me/"  # noqa: N816
+mePasswordUri = "/api/v1/me/password"  # noqa: N816
 AVATAR_URL = "/internal/avatar.png"
 
 
 class TestCurrentUserApi(SupersetTestCase):
+    def _restore_admin_default_password(self, app=None) -> None:
+        """Reset the admin user's password after password-change API tests."""
+        app = app or superset_integration_app
+        user = security_manager.find_user(username=ADMIN_USERNAME)
+        user.password = hash_auth_db_password(DEFAULT_PASSWORD)
+        db.session.commit()
+
     def test_get_me_logged_in(self):
         self.login(ADMIN_USERNAME)
 
@@ -99,6 +112,214 @@ class TestCurrentUserApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         rv = self.client.put("/api/v1/me/", json={})
         assert rv.status_code == 400
+
+    def test_update_me_rejects_password_when_auth_db(self):
+        self.login(ADMIN_USERNAME)
+        rv = self.client.put(meUri, json={"password": "ignored"})
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "AUTH_TYPE is AUTH_DB" in data["message"]
+
+    def test_put_my_password_wrong_current(self):
+        self.login(ADMIN_USERNAME)
+        rv = self.client.put(
+            mePasswordUri,
+            json={
+                "current_password": "not-the-admin-password",
+                "new_password": "AnotherStr0ng!Pass",
+                "confirm_password": "AnotherStr0ng!Pass",
+            },
+        )
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["message"] == "Incorrect current password."
+
+    def test_put_my_password_weak_new(self):
+        self.login(ADMIN_USERNAME)
+        rv = self.client.put(
+            mePasswordUri,
+            json={
+                "current_password": DEFAULT_PASSWORD,
+                "new_password": "short",
+                "confirm_password": "short",
+            },
+        )
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "new_password" in data["message"]
+
+    def test_put_my_password_success(self):
+        self.login(ADMIN_USERNAME)
+        new_password = "AnotherStr0ng!Pass"
+        try:
+            rv = self.client.put(
+                mePasswordUri,
+                json={
+                    "current_password": DEFAULT_PASSWORD,
+                    "new_password": new_password,
+                    "confirm_password": new_password,
+                },
+            )
+            assert rv.status_code == 200
+
+            rv2 = self.client.put(
+                mePasswordUri,
+                json={
+                    "current_password": new_password,
+                    "new_password": "YetAnotherStr0ng!Pw",
+                    "confirm_password": "YetAnotherStr0ng!Pw",
+                },
+            )
+            assert rv2.status_code == 200
+        finally:
+            self._restore_admin_default_password()
+
+    def test_put_my_password_invalidates_cloned_session_client(self):
+        """
+        Rotating the session stamp on password change logs out other clients that
+        still present the pre-change signed session cookie.
+        """
+        from flask.testing import FlaskClient
+
+        app = superset_integration_app
+        client_a: FlaskClient = app.test_client()
+        login(client_a, ADMIN_USERNAME)
+
+        session_cookie = client_a.get_cookie("session")
+        assert session_cookie is not None
+
+        client_b: FlaskClient = app.test_client()
+        client_b.set_cookie(
+            key="session",
+            value=session_cookie.value,
+            domain=session_cookie.domain or "localhost",
+            path=session_cookie.path or "/",
+        )
+
+        new_password = "AnotherStr0ng!PassClone"
+        try:
+            rv = client_a.put(
+                mePasswordUri,
+                json={
+                    "current_password": DEFAULT_PASSWORD,
+                    "new_password": new_password,
+                    "confirm_password": new_password,
+                },
+            )
+            assert rv.status_code == 200
+
+            assert client_b.get(meUri).status_code == 401
+        finally:
+            self._restore_admin_default_password(app)
+
+    def test_put_my_password_clears_remember_cookie(self):
+        """
+        Password change schedules Flask-Login remember-me cookie deletion.
+
+        Superset does not expose remember-me in the React login UI; this is defensive
+        hardening for FAB / Flask-Login persistent cookies.
+        """
+        app = superset_integration_app
+        remember_name = app.config.get("REMEMBER_COOKIE_NAME", "remember_token")
+        self.login(ADMIN_USERNAME)
+        self.client.set_cookie(remember_name, "stale-remember-token")
+
+        new_password = "AnotherStr0ng!PassRemember"
+        try:
+            rv = self.client.put(
+                mePasswordUri,
+                json={
+                    "current_password": DEFAULT_PASSWORD,
+                    "new_password": new_password,
+                    "confirm_password": new_password,
+                },
+            )
+            assert rv.status_code == 200
+
+            set_cookies = rv.headers.getlist("Set-Cookie")
+            cleared = any(
+                remember_name in header
+                and ("=;" in header or "Max-Age=0" in header or "1970" in header)
+                for header in set_cookies
+            )
+            assert cleared, f"Expected remember cookie clear in {set_cookies}"
+        finally:
+            self._restore_admin_default_password(app)
+
+    def test_put_my_password_invalid_hash_algorithm(self):
+        self.login(ADMIN_USERNAME)
+        original_auth_db_config = superset_integration_app.config.get("AUTH_DB_CONFIG", {})
+        try:
+            superset_integration_app.config["AUTH_DB_CONFIG"] = {
+                **original_auth_db_config,
+                "password_hash_algorithm": "invalid",
+            }
+            rv = self.client.put(
+                mePasswordUri,
+                json={
+                    "current_password": DEFAULT_PASSWORD,
+                    "new_password": "AnotherStr0ng!Pass",
+                    "confirm_password": "AnotherStr0ng!Pass",
+                },
+            )
+        finally:
+            superset_integration_app.config["AUTH_DB_CONFIG"] = original_auth_db_config
+
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "password_hash_algorithm" in data["message"]
+
+    def test_put_my_password_unavailable_when_not_auth_db(self):
+        self.login(ADMIN_USERNAME)
+        original_auth = superset_integration_app.config["AUTH_TYPE"]
+        try:
+            superset_integration_app.config["AUTH_TYPE"] = AUTH_OAUTH
+            rv = self.client.put(
+                mePasswordUri,
+                json={
+                    "current_password": DEFAULT_PASSWORD,
+                    "new_password": "AnotherStr0ng!Pass",
+                    "confirm_password": "AnotherStr0ng!Pass",
+                },
+            )
+        finally:
+            superset_integration_app.config["AUTH_TYPE"] = original_auth
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "AUTH_TYPE is AUTH_DB" in data["message"]
+
+    def test_get_my_password_policy_success(self):
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get("/api/v1/me/password/policy")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"] == get_public_auth_db_password_policy()
+
+    def test_get_my_password_policy_unavailable_when_not_auth_db(self):
+        self.login(ADMIN_USERNAME)
+        original_auth = superset_integration_app.config["AUTH_TYPE"]
+        try:
+            superset_integration_app.config["AUTH_TYPE"] = AUTH_OAUTH
+            rv = self.client.get("/api/v1/me/password/policy")
+        finally:
+            superset_integration_app.config["AUTH_TYPE"] = original_auth
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "AUTH_TYPE is AUTH_DB" in data["message"]
+
+    def test_put_my_password_confirmation_mismatch(self):
+        self.login(ADMIN_USERNAME)
+        rv = self.client.put(
+            mePasswordUri,
+            json={
+                "current_password": DEFAULT_PASSWORD,
+                "new_password": "AnotherStr0ng!Pass",
+                "confirm_password": "AnotherStr0ng!PassMismatch",
+            },
+        )
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "confirm_password" in data["message"]
 
 
 class TestUserApi(SupersetTestCase):

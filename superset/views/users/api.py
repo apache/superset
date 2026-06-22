@@ -14,26 +14,87 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
-from typing import Any, Dict
+from __future__ import annotations
 
-from flask import current_app as app, g, redirect, request, Response
+import functools
+import logging
+from datetime import datetime
+from typing import Any, Callable, Dict
+
+from flask import current_app as app, g, redirect, request, Response, session
 from flask_appbuilder.api import expose, permission_name, safe
+from flask_appbuilder.const import AUTH_DB
 from flask_appbuilder.security.decorators import protect
 from flask_appbuilder.security.sqla.models import User
+from flask_login import login_user
 from marshmallow import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
-from werkzeug.security import generate_password_hash
 
 from superset import is_feature_enabled
 from superset.daos.user import UserDAO
-from superset.extensions import db, event_logger
+from superset.extensions import db, event_logger, security_manager
+from superset.utils.auth_db_password import (
+    get_auth_db_login_rate_limit_string,
+    get_public_auth_db_password_policy,
+    validate_auth_db_password,
+)
+from superset.utils.auth_db_password_hash import (
+    hash_auth_db_password,
+    verify_auth_db_password,
+)
+from superset.utils.auth_session_stamp import (
+    bump_user_session_auth_stamp,
+    clear_flask_login_remember_cookie,
+)
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
-from superset.views.users.schemas import CurrentUserPutSchema, UserResponseSchema
+from superset.views.users.schemas import (
+    CurrentUserPasswordPutSchema,
+    CurrentUserPutSchema,
+    UserResponseSchema,
+)
 from superset.views.utils import bootstrap_user_data
 
+logger = logging.getLogger(__name__)
+
 user_response_schema = UserResponseSchema()
+
+
+def _get_client_ip() -> str | None:
+    """Return best-effort client IP from request context."""
+    if request.access_route:
+        return request.access_route[0]
+    return request.remote_addr
+
+
+def _me_password_rate_limit_key() -> str:
+    uid = getattr(getattr(g, "user", None), "id", None)
+    if uid is not None:
+        return f"me_password_uid:{uid}"
+    return _get_client_ip() or "unknown"
+
+
+def _rate_limit_me_password_change(
+    f: Callable[..., Response],
+) -> Callable[..., Response]:
+    """Apply AUTH_DB ``login_rate_limit`` when Flask-Limiter is enabled."""
+
+    @functools.wraps(f)
+    def wrapped(self: CurrentUserRestApi, *args: Any, **kwargs: Any) -> Response:
+        if not app.config.get("RATELIMIT_ENABLED", False):
+            return f(self, *args, **kwargs)
+        limiter = getattr(security_manager, "limiter", None)
+        if limiter is None:
+            return f(self, *args, **kwargs)
+        limited_view = limiter.limit(
+            get_auth_db_login_rate_limit_string(),
+            key_func=_me_password_rate_limit_key,
+            methods=["PUT"],
+        )(f)
+        return limited_view(self, *args, **kwargs)
+
+    return wrapped
 
 
 class CurrentUserRestApi(BaseSupersetApi):
@@ -42,19 +103,18 @@ class CurrentUserRestApi(BaseSupersetApi):
     resource_name = "me"
     openapi_spec_tag = "Current User"
     allow_browser_login = True
-    openapi_spec_component_schemas = (UserResponseSchema, CurrentUserPutSchema)
+    openapi_spec_component_schemas = (
+        UserResponseSchema,
+        CurrentUserPutSchema,
+        CurrentUserPasswordPutSchema,
+    )
 
     current_user_put_schema = CurrentUserPutSchema()
+    current_user_password_put_schema = CurrentUserPasswordPutSchema()
 
     def pre_update(self, item: User, data: Dict[str, Any]) -> None:
         item.changed_on = datetime.now()
         item.changed_by_fk = g.user.id
-        if "password" in data and data["password"]:
-            item.password = generate_password_hash(
-                password=data["password"],
-                method=app.config.get("FAB_PASSWORD_HASH_METHOD", "scrypt"),
-                salt_length=app.config.get("FAB_PASSWORD_HASH_SALT_LENGTH", 16),
-            )
 
     @expose("/", methods=("GET",))
     @protect()
@@ -127,7 +187,8 @@ class CurrentUserRestApi(BaseSupersetApi):
         put:
           summary: Update the current user
           description: >-
-            Updates the current user's first name, last name, or password.
+            Updates the current user's first name or last name. When ``AUTH_TYPE`` is
+            ``AUTH_DB``, password changes must use ``PUT /api/v1/me/password``.
           requestBody:
             required: true
             content:
@@ -150,6 +211,18 @@ class CurrentUserRestApi(BaseSupersetApi):
               $ref: '#/components/responses/401'
         """
         try:
+            if (
+                app.config.get("AUTH_TYPE") == AUTH_DB
+                and request.json
+                and "password" in request.json
+            ):
+                return self.response_400(
+                    message=(
+                        "Setting password via PUT /api/v1/me/ is not allowed when "
+                        "AUTH_TYPE is AUTH_DB. Use PUT /api/v1/me/password instead."
+                    ),
+                )
+
             item = self.current_user_put_schema.load(request.json)
             if not item:
                 return self.response_400(message="At least one field must be provided.")
@@ -162,6 +235,162 @@ class CurrentUserRestApi(BaseSupersetApi):
             return self.response(200, result=user_response_schema.dump(g.user))
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+    @expose("/password", methods=["PUT"])
+    @protect()
+    @permission_name("write")
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put_password",
+        log_to_statsd=False,
+    )
+    @requires_json
+    @_rate_limit_me_password_change
+    def update_my_password(self) -> Response:
+        """Update the current user's password (AUTH_DB only)
+        ---
+        put:
+          summary: Update the current user's password
+          description: >-
+            Changes the authenticated user's password when ``AUTH_TYPE`` is ``AUTH_DB``.
+            Requires the current password and a new password that satisfies ``AUTH_DB_CONFIG``
+            policy.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/CurrentUserPasswordPutSchema'
+          responses:
+            200:
+              description: Password updated successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/UserResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if app.config.get("AUTH_TYPE") != AUTH_DB:
+            return self.response_400(
+                message=(
+                    "Password change is only available when AUTH_TYPE is AUTH_DB."
+                ),
+            )
+        try:
+            body = self.current_user_password_put_schema.load(request.json or {})
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        try:
+            validate_auth_db_password(body["new_password"])
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        user_db = db.session.get(User, g.user.id)
+        if user_db is None:
+            return self.response_404()
+
+        old_hash = user_db.password
+        if not verify_auth_db_password(old_hash, body["current_password"]):
+            return self.response_400(message="Incorrect current password.")
+
+        new_hash = hash_auth_db_password(body["new_password"])
+
+        try:
+            self.pre_update(g.user, {})
+            rows_updated = (
+                db.session.query(User)
+                .filter(User.id == g.user.id, User.password == old_hash)
+                .update(
+                    {
+                        User.password: new_hash,
+                        User.changed_on: g.user.changed_on,
+                        User.changed_by_fk: g.user.changed_by_fk,
+                    },
+                    synchronize_session=False,
+                )
+            )
+            if rows_updated != 1:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+                return self.response_400(
+                    message=(
+                        "Unable to update password. Your password may have been "
+                        "changed elsewhere; please try again."
+                    ),
+                )
+
+            bump_user_session_auth_stamp(g.user.id)
+            db.session.commit()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            logger.exception("Failed to commit password change")
+            return self.response_500(
+                message="Unable to update password. Please try again.",
+            )
+
+        user_after = db.session.get(User, g.user.id)
+        if user_after is None:
+            logger.error("User missing after password commit for id=%s", g.user.id)
+            return self.response_500(
+                message="Unable to update password. Please try again.",
+            )
+
+        # Mitigate session fixation: clear the cookie session and re-establish login.
+        # Run only after a successful commit so a failed commit cannot wipe the session
+        # while leaving the old password in place. Reload the user from the DB so the
+        # identity matches the committed row (session expiry after commit).
+        for key in list(session.keys()):
+            session.pop(key)
+        login_user(user_after)
+        # Superset does not expose remember-me in the React login UI, but clear any
+        # Flask-Login persistent cookie so a prior remember token cannot bypass the
+        # rotated session auth stamp.
+        clear_flask_login_remember_cookie()
+        return self.response(200, result=user_response_schema.dump(user_after))
+
+    @expose("/password/policy", methods=["GET"])
+    @protect()
+    @permission_name("read")
+    @safe
+    def get_my_password_policy(self) -> Response:
+        """Get non-secret password policy options for AUTH_DB.
+        ---
+        get:
+          summary: Get current user's password policy
+          description: >-
+            Returns non-secret ``AUTH_DB_CONFIG`` password policy options used for
+            real-time password-strength and validation UI.
+          responses:
+            200:
+              description: Password policy options
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+        """
+        if app.config.get("AUTH_TYPE") != AUTH_DB:
+            return self.response_400(
+                message=(
+                    "Password policy is only available when AUTH_TYPE is AUTH_DB."
+                ),
+            )
+        return self.response(200, result=get_public_auth_db_password_policy())
 
 
 class UserRestApi(BaseSupersetApi):

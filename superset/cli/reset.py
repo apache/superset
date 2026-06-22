@@ -20,7 +20,7 @@ import sys
 import click
 from flask import current_app
 from flask.cli import with_appcontext
-from werkzeug.security import check_password_hash
+from superset.utils.auth_db_password_hash import verify_auth_db_password
 
 
 @click.command()
@@ -68,7 +68,7 @@ def factory_reset(
     # Validate the user
     password = click.prompt("Admin Password", hide_input=True)
     user = security_manager.find_user(username)
-    if not user or not check_password_hash(user.password, password):
+    if not user or not verify_auth_db_password(user.password, password):
         click.secho("Invalid credentials", fg="red")
         sys.exit(1)
     if not any(role.name == "Admin" for role in user.roles):

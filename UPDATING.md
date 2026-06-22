@@ -228,6 +228,10 @@ Schedule the cutover in a quiet window. Runtime reads use only the single config
 
 The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
 
+### Database authentication password API
+
+When `AUTH_TYPE` is `AUTH_DB`, changing the signed-in user's password must use `PUT /api/v1/me/password` with JSON `current_password`, `new_password`, and `confirm_password` (confirmation must match `new_password`). Sending `password` on `PUT /api/v1/me/` is rejected with HTTP 400. Policy is controlled by the `AUTH_DB_CONFIG` dict (see `superset/config.py` defaults and `docs/admin_docs/configuration/configuring-superset.mdx`).
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
