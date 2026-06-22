@@ -44,7 +44,9 @@ jest.useFakeTimers({ advanceTimers: true });
 
 test('disables vertical dropdown auto-adjustment for horizontal filter bars', () => {
   expect(getSelectDropdownAlign(FilterBarOrientation.Horizontal)).toEqual({
-    overflow: { adjustY: false },
+    points: ['tl', 'bl'],
+    offset: [0, 4],
+    overflow: { adjustX: 0, adjustY: false },
   });
   expect(getSelectDropdownAlign(FilterBarOrientation.Vertical)).toBeUndefined();
   expect(getSelectDropdownAlign()).toBeUndefined();
