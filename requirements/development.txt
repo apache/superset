@@ -507,6 +507,8 @@ limits==5.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-limiter
+lz4==4.4.5
+    # via trino
 mako==1.3.12
     # via
     #   -c requirements/base-constraint.txt
@@ -608,6 +610,8 @@ ordered-set==4.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-limiter
+orjson==3.11.9
+    # via trino
 outcome==1.3.0.post0
     # via
     #   -c requirements/base-constraint.txt
@@ -626,7 +630,6 @@ packaging==25.0
     #   google-cloud-bigquery
     #   gunicorn
     #   limits
-    #   marshmallow
     #   matplotlib
     #   pytest
     #   shillelagh
@@ -1016,7 +1019,7 @@ tqdm==4.67.1
     # via
     #   cmdstanpy
     #   prophet
-trino==0.330.0
+trino==0.337.0
     # via apache-superset
 trio==0.33.0
     # via
@@ -1150,3 +1153,4 @@ zstandard==0.23.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-compress
+    #   trino
