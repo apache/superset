@@ -83,10 +83,7 @@ export default function transformProps(
   const parsedValue = rawValue == null ? null : parseMetricValue(rawValue);
 
   const bigNumber =
-    parsedValue === null &&
-    typeof rawValue === 'string' &&
-    rawValue !== '' &&
-    Number.isNaN(Number(rawValue))
+    parsedValue === null && typeof rawValue === 'string' && rawValue !== ''
       ? rawValue
       : parsedValue;
 

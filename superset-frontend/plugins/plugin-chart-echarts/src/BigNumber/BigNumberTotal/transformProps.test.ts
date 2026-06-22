@@ -256,7 +256,7 @@ describe('BigNumberTotal transformProps', () => {
     expect(result.bigNumber).toBe('some-varchar-result');
   });
 
-  test('should not fall back to raw string when value is numeric-looking VARCHAR (e.g. "123")', () => {
+  test('should pass through numeric-looking VARCHAR string literally (e.g. "123")', () => {
     const { parseMetricValue } = jest.requireMock('../utils');
     parseMetricValue.mockReturnValueOnce(null);
 
@@ -278,8 +278,7 @@ describe('BigNumberTotal transformProps', () => {
     const result = transformProps(
       chartProps as unknown as BigNumberTotalChartProps,
     );
-    // parsedValue is null and "123" is numeric, so bigNumber stays null (not "123")
-    expect(result.bigNumber).toBeNull();
+    expect(result.bigNumber).toBe('123');
   });
 
   test('should propagate colorThresholdFormatters from getColorFormatters', () => {
