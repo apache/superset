@@ -773,3 +773,46 @@ def test_file_content_missing_dataset_preserves_dataset_id() -> None:
     target = result["metadata"]["chart_customization_config"][0]["targets"][0]
     assert target["datasetId"] == 9999
     assert "datasetUuid" not in target
+
+
+def test_stabilize_chart_ids_resolves_id_collisions() -> None:
+    """
+    Two charts whose UUIDs reduce to the same derived id must still get distinct
+    stabilized ids, so the chart-keyed metadata remaps (filter_scopes,
+    chart_configuration, …) never silently overwrite one another. The forced
+    collision is simulated by stubbing ``stable_chart_id`` to a constant.
+    """
+    from superset.commands.dashboard.export import _stabilize_chart_ids
+
+    uuid_a = "00000000-0000-4000-8000-00000000000a"
+    uuid_b = "00000000-0000-4000-8000-00000000000b"
+    payload: dict[str, Any] = {
+        "position": {
+            "CHART-a": {
+                "type": "CHART",
+                "meta": {"chartId": 1, "uuid": uuid_a},
+            },
+            "CHART-b": {
+                "type": "CHART",
+                "meta": {"chartId": 2, "uuid": uuid_b},
+            },
+        },
+        "metadata": {
+            "expanded_slices": {"1": True, "2": False},
+        },
+    }
+
+    with patch(
+        "superset.commands.dashboard.export.stable_chart_id",
+        return_value=100,
+    ):
+        _stabilize_chart_ids(payload)
+
+    id_a = payload["position"]["CHART-a"]["meta"]["chartId"]
+    id_b = payload["position"]["CHART-b"]["meta"]["chartId"]
+    # Distinct ids despite the collision; one keeps the derived value, the other
+    # is deterministically probed forward.
+    assert id_a != id_b
+    assert {id_a, id_b} == {100, 101}
+    # Neither expanded_slices entry was dropped by a key clash.
+    assert set(payload["metadata"]["expanded_slices"]) == {str(id_a), str(id_b)}

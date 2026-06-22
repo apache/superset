@@ -144,8 +144,12 @@ def _stabilize_chart_ids(payload: dict[str, Any]) -> None:
     if not isinstance(position, dict):
         return
 
-    # Map each chart's env-local integer id -> stable UUID-derived id.
-    id_map: dict[int, int] = {}
+    # Collect each chart node with its stable UUID-derived id. Nodes are
+    # processed in UUID order so that, on the (astronomically unlikely) event
+    # that two UUIDs reduce to the same integer, the deterministic collision
+    # resolution below assigns the same ids regardless of dict iteration order
+    # or environment.
+    chart_nodes: list[tuple[str, Any, dict[str, Any]]] = []
     for node in position.values():
         if (
             isinstance(node, dict)
@@ -154,11 +158,10 @@ def _stabilize_chart_ids(payload: dict[str, Any]) -> None:
         ):
             meta = node["meta"]
             chart_uuid = meta.get("uuid")
-            old_id = meta.get("chartId")
             if chart_uuid is None:
                 continue
             try:
-                new_id = stable_chart_id(str(chart_uuid))
+                uuid_module.UUID(str(chart_uuid))
             except ValueError:
                 # A malformed ``meta.uuid`` (corrupt position_json) must not
                 # abort the whole export — skip stabilizing this single node
@@ -168,9 +171,23 @@ def _stabilize_chart_ids(payload: dict[str, Any]) -> None:
                     chart_uuid,
                 )
                 continue
-            if isinstance(old_id, int):
-                id_map[old_id] = new_id
-            meta["chartId"] = new_id
+            chart_nodes.append((str(chart_uuid), meta.get("chartId"), meta))
+
+    # Map each chart's env-local integer id -> stable UUID-derived id. Since
+    # ``stable_chart_id`` reduces a UUID into a finite integer space, two
+    # distinct charts could in principle collide; if so, probe forward
+    # deterministically so every chart keeps a distinct id and the metadata
+    # remaps below never silently overwrite one another.
+    id_map: dict[int, int] = {}
+    assigned: set[int] = set()
+    for chart_uuid, old_id, meta in sorted(chart_nodes, key=lambda item: item[0]):
+        new_id = stable_chart_id(chart_uuid)
+        while new_id in assigned:
+            new_id = (new_id % _STABLE_CHART_ID_MODULO) + 1
+        assigned.add(new_id)
+        if isinstance(old_id, int):
+            id_map[old_id] = new_id
+        meta["chartId"] = new_id
 
     if not id_map:
         return
