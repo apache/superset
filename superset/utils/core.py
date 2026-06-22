@@ -1694,7 +1694,7 @@ def get_column_name_from_column(column: Column) -> str | None:
     :param column: Physical and ad-hoc column
     :return: column name if physical column, otherwise None
     """
-    if is_adhoc_column(column):
+    if is_adhoc_column(column) or is_multivalue_operation_column(column):
         return None
     return column  # type: ignore
 

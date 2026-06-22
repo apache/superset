@@ -23,7 +23,6 @@ from flask import Flask
 from pytest_mock import MockerFixture
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
 from superset.superset_typing import QueryObjectDict
@@ -104,6 +103,10 @@ def test_contains_filter_generates_native_sql(
     ``ClickHouseEngineSpec.array_contains`` -> ``has(...)``. ``func.has`` renders
     the same regardless of dialect, which lets us assert on it here.
     """
+    # Imported lazily: clickhouse.py touches app.config at import time, which
+    # is unavailable at pytest collection once clickhouse-connect is installed.
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
     dataset = _make_dataset(mocker)
     mocker.patch.object(
         SqlaTable,
