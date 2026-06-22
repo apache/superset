@@ -218,7 +218,22 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
       }
       if (isOldRison) {
-        dataMask = isOldRison;
+        // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
+        // per-filter selections under `currentState`; modern dataMask uses
+        // `filterState`. Without this copy the filter panel shows no active
+        // selections even though extraFormData still applies the query filter.
+        if (typeof isOldRison === 'object' && isOldRison !== null) {
+          dataMask = Object.fromEntries(
+            Object.entries(
+              isOldRison as Record<string, Record<string, unknown>>,
+            ).map(([filterId, entry]) => [
+              filterId,
+              entry?.currentState && !entry?.filterState
+                ? { ...entry, filterState: entry.currentState }
+                : entry,
+            ]),
+          );
+        }
       }
 
       // Parse Rison URL filters with intelligent native filter injection
