@@ -348,7 +348,7 @@ pytz==2025.2
     #   pandas
 pyxlsb==1.0.10
     # via pandas
-pyyaml==6.0.2
+pyyaml==6.0.3
     # via
     #   apache-superset (pyproject.toml)
     #   apispec
