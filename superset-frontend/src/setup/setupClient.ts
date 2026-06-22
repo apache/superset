@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient, ClientConfig } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import parseCookie from 'src/utils/parseCookie';
 import getBootstrapData from 'src/utils/getBootstrapData';
 

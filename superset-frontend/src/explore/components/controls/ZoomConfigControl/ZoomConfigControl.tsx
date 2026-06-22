@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { Form } from '@superset-ui/core/components';
 import { Tag } from 'src/components';
 import { FC, useState } from 'react';
@@ -66,7 +66,6 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
   };
 
   const onBaseWidthChange = (width: number) => {
-    console.log('now in onbasewidthcahnge');
     setBaseWidth(width);
     if (!value) {
       return;
@@ -239,7 +238,9 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           min={0}
           max={3}
         />
-        <Tag>Current Zoom: {value?.configs.zoom}</Tag>
+        <Tag>
+          {t('Current Zoom')}: {value?.configs.zoom}
+        </Tag>
       </Form>
       <ZoomConfigsChart
         name="zoomlevels"

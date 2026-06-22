@@ -34,17 +34,18 @@ import {
   VizType,
   type QueryFormColumn,
 } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   styled,
   withTheme,
   type SupersetTheme,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import PopoverSection from '@superset-ui/core/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -130,7 +131,7 @@ interface AnnotationLayerState {
 const AUTOMATIC_COLOR = '';
 
 const NotFoundContentWrapper = styled.div`
-  && > div:first-child {
+  && > div:first-of-type {
     padding-left: 0;
     padding-right: 0;
   }
@@ -145,7 +146,7 @@ const NotFoundContent = () => (
         <span>
           {t('Add an annotation layer')}{' '}
           <a
-            href="/annotationlayer/list"
+            href={ensureAppRoot('/annotationlayer/list')}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -921,7 +922,7 @@ class AnnotationLayer extends PureComponent<
     if (
       color &&
       color !== AUTOMATIC_COLOR &&
-      !colorScheme.find(x => x.toLowerCase() === color.toLowerCase())
+      !colorScheme.some(x => x.toLowerCase() === color.toLowerCase())
     ) {
       colorScheme.push(color);
     }
@@ -1051,7 +1052,7 @@ class AnnotationLayer extends PureComponent<
       <>
         {this.props.error && (
           <span style={{ color: this.props.theme.colorError }}>
-            ERROR: {this.props.error}
+            {t('ERROR')}: {this.props.error}
           </span>
         )}
         <div style={{ display: 'flex', flexDirection: 'row' }}>

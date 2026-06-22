@@ -17,7 +17,7 @@
  * under the License.
  */
 import { makeApi } from '@superset-ui/core';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook } from '@testing-library/react';
 import {
   ResourceStatus,
   useApiResourceFullBody,

@@ -19,6 +19,7 @@ import math
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from typing import Any
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -26,6 +27,7 @@ import pandas as pd
 import pytest
 import pytz
 
+from superset.constants import PASSWORD_MASK
 from superset.utils import json
 from superset.utils.core import (
     zlib_compress,
@@ -262,6 +264,143 @@ def test_json_int_dttm_ser():
 
     with pytest.raises(TypeError):
         json.json_int_dttm_ser(np.datetime64())
+
+
+@pytest.mark.parametrize(
+    "payload,path_values,expected_result",
+    [
+        (
+            {
+                "credentials_info": {
+                    "type": "service_account",
+                    "private_key": "XXXXXXXXXX",
+                },
+            },
+            {"$.credentials_info.private_key": "NEW_KEY"},
+            {
+                "credentials_info": {
+                    "type": "service_account",
+                    "private_key": "NEW_KEY",
+                },
+            },
+        ),
+        (
+            {
+                "auth_params": {
+                    "privatekey_body": "XXXXXXXXXX",
+                    "privatekey_pass": "XXXXXXXXXX",
+                },
+                "other": "value",
+            },
+            {
+                "$.auth_params.privatekey_body": "-----BEGIN PRIVATE KEY-----",
+                "$.auth_params.privatekey_pass": "passphrase",
+            },
+            {
+                "auth_params": {
+                    "privatekey_body": "-----BEGIN PRIVATE KEY-----",
+                    "privatekey_pass": "passphrase",
+                },
+                "other": "value",
+            },
+        ),
+        (
+            {"existing": "value"},
+            {"$.nonexistent.path": "new_value"},
+            {"existing": "value"},
+        ),
+    ],
+)
+def test_set_masked_fields(
+    payload: dict[str, Any],
+    path_values: dict[str, Any],
+    expected_result: dict[str, Any],
+) -> None:
+    """
+    Test setting a value at a JSONPath location.
+    """
+    result = json.set_masked_fields(payload, path_values)
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "payload,sensitive_fields,expected_result",
+    [
+        (
+            {
+                "credentials_info": {
+                    "type": "service_account",
+                    "private_key": PASSWORD_MASK,
+                },
+            },
+            {"$.credentials_info.private_key", "$.credentials_info.type"},
+            ["$.credentials_info.private_key"],
+        ),
+        (
+            {
+                "credentials_info": {
+                    "private_key": "ACTUAL_KEY",
+                },
+            },
+            {"$.credentials_info.private_key"},
+            [],
+        ),
+        (
+            {
+                "auth_params": {
+                    "privatekey_body": PASSWORD_MASK,
+                    "privatekey_pass": "actual_pass",
+                },
+                "oauth2_client_info": {
+                    "secret": PASSWORD_MASK,
+                },
+            },
+            {
+                "$.auth_params.privatekey_body",
+                "$.auth_params.privatekey_pass",
+                "$.oauth2_client_info.secret",
+            },
+            [
+                "$.auth_params.privatekey_body",
+                "$.oauth2_client_info.secret",
+            ],
+        ),
+        (
+            {
+                "foo": PASSWORD_MASK,
+                "service_account_info": PASSWORD_MASK,
+            },
+            {"$.*"},
+            ["$.foo", "$.service_account_info"],
+        ),
+        (
+            {
+                "foo": PASSWORD_MASK,
+                "bar": "actual_value",
+            },
+            {"$.*"},
+            ["$.foo"],
+        ),
+        (
+            {
+                "foo": "actual_value",
+                "bar": "other_value",
+            },
+            {"$.*"},
+            [],
+        ),
+    ],
+)
+def test_get_masked_fields(
+    payload: dict[str, Any],
+    sensitive_fields: set[str],
+    expected_result: dict[str, Any],
+) -> None:
+    """
+    Test that get_masked_fields returns paths where value equals PASSWORD_MASK.
+    """
+    masked = json.get_masked_fields(payload, sensitive_fields)
+    assert sorted(masked) == sorted(expected_result)
 
 
 def test_format_timedelta():

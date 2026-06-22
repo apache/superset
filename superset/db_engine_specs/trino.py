@@ -66,16 +66,6 @@ except ImportError:
     HttpError = Exception
 
 
-class CustomTrinoAuthErrorMeta(type):
-    def __instancecheck__(cls, instance: object) -> bool:
-        logger.info("is this being called?")
-        return isinstance(instance, HttpError) and "error 401" in str(instance)
-
-
-class TrinoAuthError(HttpError, metaclass=CustomTrinoAuthErrorMeta):
-    pass
-
-
 class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
@@ -160,8 +150,21 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     # OAuth 2.0
     supports_oauth2 = True
-    oauth2_exception = TrinoAuthError
     oauth2_token_request_type = "data"  # noqa: S105
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Check if the exception indicates that OAuth2 authentication is required.
+
+        Trino returns an HTTP 401 error when the access token is missing or expired.
+        """
+        return (
+            bool(g)
+            and hasattr(g, "user")
+            and isinstance(ex, HttpError)
+            and "error 401" in str(ex)
+        )
 
     @classmethod
     def get_extra_table_metadata(
@@ -426,6 +429,12 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param cancel_query_id: Trino `queryId`
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Trino query IDs look like yyyymmdd_hhmmss_nnnnn_xxxxx
+        # (alphanumeric with underscores)
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^[a-zA-Z0-9_]+$"):
+            return False
+
         try:
             cursor.execute(
                 f"CALL system.runtime.kill_query(query_id => '{cancel_query_id}',"

@@ -92,6 +92,7 @@ export type ForecastValue = {
   forecastTrend?: number;
   forecastLower?: number;
   forecastUpper?: number;
+  color?: string;
 };
 
 export type LegendFormData = {
@@ -128,6 +129,7 @@ export interface BaseTransformedProps<F> {
   echartOptions: EChartsCoreOption;
   formData: F;
   height: number;
+  isRefreshing?: boolean;
   onContextMenu?: (
     clientX: number,
     clientY: number,

@@ -31,7 +31,7 @@ test('returns HTML for a column tooltip', () => {
   expect(getColumnKeywords([expected])).toContainEqual({
     name: expected.column_name,
     value: expected.column_name,
-    docHTML: expect.stringContaining(expected.description),
+    documentation: expect.stringContaining(expected.description),
     score: 50,
     meta: 'column',
   });

@@ -17,9 +17,9 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import rison from 'rison';
-import contentDisposition from 'content-disposition';
+import { parse as parseContentDisposition } from 'content-disposition';
 
 // Maximum blob size for in-memory downloads (100MB)
 const MAX_BLOB_SIZE = 100 * 1024 * 1024;
@@ -75,7 +75,7 @@ export default async function handleResourceExport(
 
     if (disposition) {
       try {
-        const parsed = contentDisposition.parse(disposition);
+        const parsed = parseContentDisposition(disposition);
         if (parsed?.parameters?.filename) {
           fileName = parsed.parameters.filename;
         }

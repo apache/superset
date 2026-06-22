@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configure, LanguagePack } from '@apache-superset/core/ui';
-import { logging } from '@apache-superset/core';
+import { configure, LanguagePack } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import { makeApi, initFeatureFlags } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import setupClient from './setup/setupClient';
@@ -53,10 +53,12 @@ export default function initPreamble(): Promise<void> {
 
     // Grab initial bootstrap data
     const bootstrapData = getBootstrapData();
+    const lang = bootstrapData.common.locale || 'en';
 
     setupFormatters(
       bootstrapData.common.d3_format,
       bootstrapData.common.d3_time_format,
+      lang,
     );
 
     // Setup SupersetClient early so we can fetch language pack
@@ -64,7 +66,6 @@ export default function initPreamble(): Promise<void> {
 
     // Load language pack before rendering
     // Use native fetch to avoid race condition with SupersetClient initialization
-    const lang = bootstrapData.common.locale || 'en';
     if (lang !== 'en') {
       const abortController = new AbortController();
       const timeoutId = window.setTimeout(() => {

@@ -204,6 +204,21 @@ export async function apiDeleteDataset(
 }
 
 /**
+ * Export datasets as a zip file via the API.
+ * Uses Rison encoding for the query parameter (required by the endpoint).
+ * @param page - Playwright page instance (provides authentication context)
+ * @param datasetIds - Array of dataset IDs to export
+ * @returns API response containing the export zip
+ */
+export async function apiExportDatasets(
+  page: Page,
+  datasetIds: number[],
+): Promise<APIResponse> {
+  const query = rison.encode(datasetIds);
+  return apiGet(page, `${ENDPOINTS.DATASET_EXPORT}?q=${query}`);
+}
+
+/**
  * Duplicate a dataset via the API
  * @param page - Playwright page instance (provides authentication context)
  * @param datasetId - ID of the dataset to duplicate

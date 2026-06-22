@@ -18,7 +18,7 @@
  */
 
 import { Component, ReactNode } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   Method,

@@ -1,0 +1,1 @@
+{"schema":{"properties":{"action":{"maxLength":512,"nullable":true,"type":"string"},"dttm":{"format":"date-time","nullable":true,"type":"string"},"json":{"nullable":true,"type":"string"},"user":{"nullable":true}},"type":"object","title":"LogRestApi.put"},"schemaType":"response"}

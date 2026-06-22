@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook, waitFor } from '@testing-library/react';
 import { Dataset } from 'src/components/Chart/types';
 import {
   cachedSupersetGet,
@@ -159,15 +159,14 @@ test('useDatasetDrillInfo fetches dataset drill info successfully', async () => 
     },
   } as any);
 
-  const { result, waitForNextUpdate } = renderHook(() =>
-    useDatasetDrillInfo(123, 456),
-  );
+  const { result } = renderHook(() => useDatasetDrillInfo(123, 456));
 
   expect(result.current.status).toBe('loading');
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
 
-  expect(result.current.status).toBe('complete');
   expect(result.current.result).toEqual({
     ...mockDataset,
     verbose_map: {
@@ -181,13 +180,11 @@ test('useDatasetDrillInfo fetches dataset drill info successfully', async () => 
 test('useDatasetDrillInfo handles network errors', async () => {
   mockedCachedSupersetGet.mockRejectedValue(new Error('Network error'));
 
-  const { result, waitForNextUpdate } = renderHook(() =>
-    useDatasetDrillInfo(123, 456),
-  );
+  const { result } = renderHook(() => useDatasetDrillInfo(123, 456));
 
-  await waitForNextUpdate();
-
-  expect(result.current.status).toBe('error');
+  await waitFor(() => {
+    expect(result.current.status).toBe('error');
+  });
   expect(result.current.result).toBeNull();
   expect(result.current.error).toBeInstanceOf(Error);
   expect(result.current.error?.message).toBe('Network error');
@@ -221,13 +218,11 @@ test('useDatasetDrillInfo extracts dataset ID from string format', async () => {
     },
   } as any);
 
-  const { result, waitForNextUpdate } = renderHook(() =>
-    useDatasetDrillInfo('123__table', 456),
-  );
+  const { result } = renderHook(() => useDatasetDrillInfo('123__table', 456));
 
-  await waitForNextUpdate();
-
-  expect(result.current.status).toBe('complete');
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
   expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
     endpoint: '/api/v1/dataset/123/drill_info/?q=(dashboard_id:456)',
   });
@@ -246,9 +241,11 @@ test('useDatasetDrillInfo does not clear cache on successful fetch', async () =>
     },
   } as any);
 
-  const { waitForNextUpdate } = renderHook(() => useDatasetDrillInfo(123, 456));
+  const { result } = renderHook(() => useDatasetDrillInfo(123, 456));
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
 
   // Cache should NOT be deleted on success
   expect(mockedSupersetGetCacheDelete).not.toHaveBeenCalled();
@@ -268,13 +265,12 @@ test('useDatasetDrillInfo creates new verbose_map from columns and metrics', asy
     },
   } as any);
 
-  const { result, waitForNextUpdate } = renderHook(() =>
-    useDatasetDrillInfo(123, 456),
-  );
+  const { result } = renderHook(() => useDatasetDrillInfo(123, 456));
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
 
-  expect(result.current.status).toBe('complete');
   // Verify verbose_map is created from columns/metrics (existing verbose_map replaced)
   expect(result.current.result?.verbose_map).toEqual({
     col1: 'Column 1',
@@ -291,11 +287,11 @@ test('useDatasetDrillInfo handles NaN datasource ID from malformed string', asyn
     },
   } as any);
 
-  const { result, waitForNextUpdate } = renderHook(() =>
-    useDatasetDrillInfo('abc', 456),
-  );
+  const { result } = renderHook(() => useDatasetDrillInfo('abc', 456));
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
 
   // Verify hook calls endpoint with NaN (API will handle validation)
   expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
@@ -322,13 +318,15 @@ test('useDatasetDrillInfo fetches dataset via extension when extension and formD
     json: { result: mockDataset },
   } as any);
 
-  const { result, waitForNextUpdate } = renderHook(() =>
+  const { result } = renderHook(() =>
     useDatasetDrillInfo(123, 456, mockFormData),
   );
 
   expect(result.current.status).toBe('loading');
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
 
   // Verify extension was called with correct arguments
   expect(mockExtension).toHaveBeenCalledWith(123, mockFormData);
@@ -356,14 +354,13 @@ test('useDatasetDrillInfo handles extension throwing error', async () => {
 
   mockExtension.mockRejectedValue(extensionError);
 
-  const { result, waitForNextUpdate } = renderHook(() =>
+  const { result } = renderHook(() =>
     useDatasetDrillInfo(123, 456, mockFormData),
   );
 
-  await waitForNextUpdate();
-
-  // Verify error state
-  expect(result.current.status).toBe('error');
+  await waitFor(() => {
+    expect(result.current.status).toBe('error');
+  });
   expect(result.current.result).toBeNull();
   expect(result.current.error).toBeInstanceOf(Error);
   expect(result.current.error?.message).toBe('Extension failed');
@@ -383,14 +380,15 @@ test('useDatasetDrillInfo handles extension returning malformed payload with und
   // Extension returns undefined instead of expected shape
   mockExtension.mockResolvedValue(undefined as any);
 
-  const { result, waitForNextUpdate } = renderHook(() =>
+  const { result } = renderHook(() =>
     useDatasetDrillInfo(123, 456, mockFormData),
   );
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
 
   // Hook should handle gracefully and set result with empty verbose_map
-  expect(result.current.status).toBe('complete');
   expect(result.current.result).toEqual({ verbose_map: {} });
   expect(result.current.error).toBeNull();
 });
@@ -403,14 +401,15 @@ test('useDatasetDrillInfo handles extension returning malformed payload with mis
   // Extension returns object but missing json.result
   mockExtension.mockResolvedValue({ json: {} } as any);
 
-  const { result, waitForNextUpdate } = renderHook(() =>
+  const { result } = renderHook(() =>
     useDatasetDrillInfo(123, 456, mockFormData),
   );
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
 
   // Hook should handle gracefully - undefined result gets empty verbose_map
-  expect(result.current.status).toBe('complete');
   expect(result.current.result).toEqual({ verbose_map: {} });
   expect(result.current.error).toBeNull();
 });
@@ -430,11 +429,13 @@ test('useDatasetDrillInfo falls back to REST API when extension exists but formD
     json: { result: mockDataset },
   } as any);
 
-  const { result, waitForNextUpdate } = renderHook(
+  const { result } = renderHook(
     () => useDatasetDrillInfo(123, 456, undefined), // formData is undefined
   );
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
 
   // Should use REST API, NOT extension
   expect(mockedCachedSupersetGet).toHaveBeenCalledWith({

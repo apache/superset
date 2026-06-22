@@ -32,8 +32,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import UUIDType
-from superset_core.api.models import Task as CoreTask
-from superset_core.api.tasks import TaskProperties, TaskStatus
+from superset_core.tasks.models import Task as CoreTask
+from superset_core.tasks.types import TaskProperties, TaskStatus
 
 from superset.models.helpers import AuditMixinNullable
 from superset.models.task_subscribers import TaskSubscriber

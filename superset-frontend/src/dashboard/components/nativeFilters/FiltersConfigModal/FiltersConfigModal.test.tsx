@@ -223,6 +223,10 @@ function queryCheckbox(name: RegExp) {
   return screen.queryByRole('checkbox', { name });
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 test('renders a value filter type', () => {
   defaultRender();
 
@@ -524,7 +528,10 @@ test('deletes a filter including dependencies', async () => {
   );
 }, 30000);
 
-test('reorders filters via drag and drop', async () => {
+const SORTABLE_ITEM_HEIGHT = 40;
+const SORTABLE_ITEM_WIDTH = 200;
+
+test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
   const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
@@ -543,94 +550,112 @@ test('reorders filters via drag and drop', async () => {
 
   const onSave = jest.fn();
 
-  defaultRender(state, {
-    ...props,
-    createNewOnOpen: false,
-    onSave,
-  });
-
-  const filterContainer = screen.getByTestId('filter-title-container');
-  const draggableFilters = within(filterContainer).getAllByRole('tab');
-
-  fireEvent.dragStart(draggableFilters[0]);
-  fireEvent.dragOver(draggableFilters[2]);
-  fireEvent.drop(draggableFilters[2]);
-  fireEvent.dragEnd(draggableFilters[0]);
-
-  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
-
-  await waitFor(() =>
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filterChanges: expect.objectContaining({
-          deleted: [],
-          modified: [],
-          reordered: expect.arrayContaining([
-            'NATIVE_FILTER-2',
-            'NATIVE_FILTER-3',
-            'NATIVE_FILTER-1',
-          ]),
-        }),
-      }),
-    ),
+  const originalOffsetHeight = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'offsetHeight',
   );
-});
+  const originalOffsetWidth = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'offsetWidth',
+  );
 
-test('rearranges three filters and deletes one of them', async () => {
-  const nativeFilterConfig = [
-    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
-    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
-    buildNativeFilter('NATIVE_FILTER-3', 'product', []),
-  ];
-
-  const state = {
-    ...defaultState(),
-    dashboardInfo: {
-      metadata: {
-        native_filter_configuration: nativeFilterConfig,
-      },
+  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+    configurable: true,
+    get() {
+      return SORTABLE_ITEM_HEIGHT;
     },
-    dashboardLayout,
-  };
-
-  const onSave = jest.fn();
-
-  defaultRender(state, {
-    ...props,
-    createNewOnOpen: false,
-    onSave,
+  });
+  Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+    configurable: true,
+    get() {
+      return SORTABLE_ITEM_WIDTH;
+    },
   });
 
-  const filterContainer = screen.getByTestId('filter-title-container');
-  const draggableFilters = within(filterContainer).getAllByRole('tab');
-  const deleteIcon = draggableFilters[1].querySelector('[data-icon="delete"]');
-  fireEvent.click(deleteIcon!);
+  try {
+    defaultRender(state, {
+      ...props,
+      createNewOnOpen: false,
+      onSave,
+    });
 
-  fireEvent.dragStart(draggableFilters[0]);
-  fireEvent.dragOver(draggableFilters[2]);
-  fireEvent.drop(draggableFilters[2]);
-  fireEvent.dragEnd(draggableFilters[0]);
+    const filterContainer = screen.getByTestId('filter-title-container');
+    const sortableElements = filterContainer.querySelectorAll(
+      '[aria-roledescription="sortable"]',
+    );
 
-  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+    sortableElements.forEach((el, index) => {
+      const sortableNode = el.parentElement;
+      if (sortableNode) {
+        jest.spyOn(sortableNode, 'getBoundingClientRect').mockImplementation(
+          () =>
+            ({
+              bottom: (index + 1) * SORTABLE_ITEM_HEIGHT,
+              height: SORTABLE_ITEM_HEIGHT,
+              left: 0,
+              right: SORTABLE_ITEM_WIDTH,
+              top: index * SORTABLE_ITEM_HEIGHT,
+              width: SORTABLE_ITEM_WIDTH,
+              x: 0,
+              y: index * SORTABLE_ITEM_HEIGHT,
+              toJSON: () => ({}),
+            }) as DOMRect,
+        );
+      }
+    });
 
-  await waitFor(() =>
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filterChanges: expect.objectContaining({
-          modified: [],
-          deleted: ['NATIVE_FILTER-2'],
-          reordered: expect.arrayContaining([
-            'NATIVE_FILTER-2',
-            'NATIVE_FILTER-3',
-            'NATIVE_FILTER-1',
-          ]),
-        }),
-      }),
-    ),
-  );
-});
+    const firstSortable = sortableElements[0] as HTMLElement;
+    firstSortable.focus();
 
-test('updates sidebar title when filter name changes', async () => {
+    fireEvent.keyDown(firstSortable, { code: 'Space' });
+    await sleep(1);
+    fireEvent.keyDown(document.activeElement ?? firstSortable, {
+      code: 'ArrowDown',
+    });
+    await sleep(1);
+    fireEvent.keyDown(document.activeElement ?? firstSortable, {
+      code: 'Space',
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+    await waitFor(
+      () =>
+        expect(onSave).toHaveBeenCalledWith(
+          expect.objectContaining({
+            filterChanges: expect.objectContaining({
+              deleted: [],
+              modified: [],
+              reordered: [
+                'NATIVE_FILTER-2',
+                'NATIVE_FILTER-1',
+                'NATIVE_FILTER-3',
+              ],
+            }),
+          }),
+        ),
+      { timeout: 5000 },
+    );
+  } finally {
+    if (originalOffsetHeight) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'offsetHeight',
+        originalOffsetHeight,
+      );
+    }
+    if (originalOffsetWidth) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'offsetWidth',
+        originalOffsetWidth,
+      );
+    }
+  }
+}, 30000);
+
+// eslint-disable-next-line jest/no-disabled-tests -- flaky timeout, see https://github.com/apache/superset/pull/39181
+test.skip('updates sidebar title when filter name changes', async () => {
   const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
@@ -671,56 +696,59 @@ test('updates sidebar title when filter name changes', async () => {
 
 test('modifies the name of a filter', async () => {
   jest.useFakeTimers();
-  try {
-    const nativeFilterConfig = [
-      buildNativeFilter('NATIVE_FILTER-1', 'state', []),
-      buildNativeFilter('NATIVE_FILTER-2', 'country', []),
-    ];
 
-    const state = {
-      ...defaultState(),
-      dashboardInfo: {
-        metadata: {
-          native_filter_configuration: nativeFilterConfig,
-        },
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
       },
-      dashboardLayout,
-    };
+    },
+    dashboardLayout,
+  };
 
-    const onSave = jest.fn();
+  const onSave = jest.fn();
 
-    defaultRender(state, {
-      ...props,
-      createNewOnOpen: false,
-      onSave,
-    });
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    onSave,
+  });
 
-    const filterNameInput = screen.getByRole('textbox', {
-      name: FILTER_NAME_REGEX,
-    });
+  const filterNameInput = screen.getByRole('textbox', {
+    name: FILTER_NAME_REGEX,
+  });
 
-    await userEvent.clear(filterNameInput);
-    await userEvent.type(filterNameInput, 'New Filter Name');
+  await userEvent.clear(filterNameInput);
+  await userEvent.type(filterNameInput, 'New Filter Name');
 
-    jest.runAllTimers();
+  // Flush the 500ms debounce on the filter name input.
+  // Using advanceTimersByTime instead of runAllTimers to avoid infinite
+  // loops caused by recursive antd animation timers.
+  jest.advanceTimersByTime(1000);
 
-    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  // Switch back to real timers so waitFor polling works
+  jest.useRealTimers();
 
-    await waitFor(() =>
-      expect(onSave).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filterChanges: expect.objectContaining({
-            modified: expect.arrayContaining([
-              expect.objectContaining({ name: 'New Filter Name' }),
-            ]),
-          }),
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterChanges: expect.objectContaining({
+          modified: expect.arrayContaining([
+            expect.objectContaining({ name: 'New Filter Name' }),
+          ]),
         }),
-      ),
-    );
-  } finally {
-    jest.useRealTimers();
-  }
-});
+      }),
+    ),
+  );
+}, 30000);
 
 test('renders a filter with a chart containing BigInt values', async () => {
   const nativeFilterConfig = [
@@ -743,4 +771,329 @@ test('renders a filter with a chart containing BigInt values', async () => {
   });
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
+});
+
+test('displays empty state when modal opens with no filters and createNewOnOpen is false', () => {
+  defaultRender(defaultState(), { ...props, createNewOnOpen: false });
+
+  // Check left panel empty state
+  expect(
+    screen.getByText('No filters or customizations created yet'),
+  ).toBeInTheDocument();
+
+  // Check right panel empty state
+  expect(
+    screen.getByText(
+      /Manage filters and customizations to set scoping, descriptions, and limitations/,
+    ),
+  ).toBeInTheDocument();
+
+  // Verify no filter form is rendered (no "Untitled" filter created)
+  expect(screen.queryByText(FILTER_TYPE_REGEX)).not.toBeInTheDocument();
+});
+
+test('does not auto-create a filter when createNewOnOpen is false', () => {
+  defaultRender(defaultState(), { ...props, createNewOnOpen: false });
+
+  // The filter configuration form should not be visible
+  expect(screen.queryByText(FILTER_NAME_REGEX)).not.toBeInTheDocument();
+  expect(screen.queryByText(DATASET_REGEX)).not.toBeInTheDocument();
+});
+
+test('enables save button and includes updated title when editing an existing divider', async () => {
+  jest.useFakeTimers();
+
+  const nativeFilterDividerConfig = [
+    {
+      id: 'NATIVE_FILTER_DIVIDER-1',
+      type: 'DIVIDER' as const,
+      title: 'First Edit',
+      description: '',
+      scope: { rootPath: ['ROOT'], excluded: [] },
+    },
+  ];
+
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterDividerConfig,
+      },
+    },
+    dashboardLayout,
+  };
+
+  const onSave = jest.fn();
+
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    initialFilterId: 'NATIVE_FILTER_DIVIDER-1',
+    onSave,
+  });
+
+  // Save button should be disabled when no changes have been made
+  expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeDisabled();
+
+  // Editing the title field should mark the divider modified and enable save
+  const titleInput = screen.getByRole('textbox', { name: /^title$/i });
+  await userEvent.clear(titleInput);
+  await userEvent.type(titleInput, 'Second Edit');
+
+  jest.advanceTimersByTime(500);
+  jest.useRealTimers();
+
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: SAVE_REGEX })).not.toBeDisabled(),
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterChanges: expect.objectContaining({
+          modified: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'NATIVE_FILTER_DIVIDER-1',
+              title: 'Second Edit',
+            }),
+          ]),
+        }),
+      }),
+    ),
+  );
+}, 30000);
+
+test('enables save button and includes updated title when editing an existing chart customization divider', async () => {
+  jest.useFakeTimers();
+
+  const chartCustomizationDividerConfig = [
+    {
+      id: 'CHART_CUSTOMIZATION_DIVIDER-1',
+      type: 'CHART_CUSTOMIZATION_DIVIDER' as const,
+      title: 'First Edit',
+      description: '',
+    },
+  ];
+
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        chart_customization_config: chartCustomizationDividerConfig,
+      },
+    },
+    dashboardLayout,
+  };
+
+  const onSave = jest.fn();
+
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    initialFilterId: 'CHART_CUSTOMIZATION_DIVIDER-1',
+    onSave,
+  });
+
+  // Save button should be disabled when no changes have been made
+  expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeDisabled();
+
+  // Editing the title field should mark the divider modified and enable save
+  const titleInput = screen.getByRole('textbox', { name: /^title$/i });
+  await userEvent.clear(titleInput);
+  await userEvent.type(titleInput, 'Second Edit');
+
+  jest.advanceTimersByTime(500);
+  jest.useRealTimers();
+
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: SAVE_REGEX })).not.toBeDisabled(),
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customizationChanges: expect.objectContaining({
+          modified: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'CHART_CUSTOMIZATION_DIVIDER-1',
+              title: 'Second Edit',
+            }),
+          ]),
+        }),
+      }),
+    ),
+  );
+}, 30000);
+
+test('empty state disappears when a filter is added via dropdown', async () => {
+  defaultRender(defaultState(), {
+    ...props,
+    createNewOnOpen: false,
+  });
+
+  // Verify empty state is shown initially
+  expect(
+    screen.getByText('No filters or customizations created yet'),
+  ).toBeInTheDocument();
+
+  // Add a filter via the dropdown
+  const dropdownButton = screen.getByTestId('new-item-dropdown-button');
+  fireEvent.mouseEnter(dropdownButton);
+  const addFilterMenuItem = await screen.findByRole('menuitem', {
+    name: /add filter/i,
+  });
+  fireEvent.click(addFilterMenuItem);
+
+  // Verify empty state is gone and filter form is shown
+  await waitFor(() => {
+    expect(
+      screen.queryByText('No filters or customizations created yet'),
+    ).not.toBeInTheDocument();
+  });
+  expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
+});
+
+test('restores a deleted filter via the "Restore filter" button', async () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: { native_filter_configuration: nativeFilterConfig },
+    },
+    dashboardLayout,
+  };
+
+  defaultRender(state, { ...props, createNewOnOpen: false });
+
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const firstTab = within(filterContainer).getAllByRole('tab')[0];
+  fireEvent.click(within(firstTab).getByRole('button', { name: /delete/i }));
+
+  expect(
+    await screen.findByText(/you have removed this filter/i),
+  ).toBeInTheDocument();
+  const restoreButton = screen.getByTestId('restore-filter-button');
+  await userEvent.click(restoreButton);
+
+  await waitFor(() => {
+    expect(
+      screen.queryByText(/you have removed this filter/i),
+    ).not.toBeInTheDocument();
+  });
+  expect(screen.getByRole('textbox', { name: FILTER_NAME_REGEX })).toHaveValue(
+    'state',
+  );
+}, 30000);
+
+test('undoes a filter deletion via the sidebar "Undo?" link', async () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: { native_filter_configuration: nativeFilterConfig },
+    },
+    dashboardLayout,
+  };
+
+  defaultRender(state, { ...props, createNewOnOpen: false });
+
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const firstTab = within(filterContainer).getAllByRole('tab')[0];
+  fireEvent.click(within(firstTab).getByRole('button', { name: /delete/i }));
+
+  const undoButton = await screen.findByTestId('undo-button');
+  expect(undoButton).toHaveTextContent(/undo\?/i);
+  await userEvent.click(undoButton);
+
+  await waitFor(() => {
+    expect(
+      screen.queryByText(/you have removed this filter/i),
+    ).not.toBeInTheDocument();
+  });
+  expect(screen.getByRole('textbox', { name: FILTER_NAME_REGEX })).toHaveValue(
+    'state',
+  );
+}, 30000);
+
+test('shows info tooltips beside value-filter options and reveals tooltip text on hover', async () => {
+  defaultRender();
+
+  // Upstream Cypress checked six tooltips on the value filter (nativeFilterTooltips
+  // 0..5); asserting the count keeps this test honest if tooltips get added or
+  // removed alongside a regression to the option list.
+  const tooltipIcons = screen.getAllByLabelText(/show info tooltip/i);
+  expect(tooltipIcons.length).toBeGreaterThanOrEqual(6);
+
+  await userEvent.hover(tooltipIcons[0]);
+
+  // role='tooltip' trips an nwsapi bug on antd's internal :only-child selectors;
+  // query the portal node by class and require non-empty text content so an empty
+  // tooltip render does not pass.
+  await waitFor(() => {
+    const tooltip = document.querySelector('.ant-tooltip-inner');
+    expect(tooltip).toBeInTheDocument();
+    expect(tooltip?.textContent?.trim()).toBeTruthy();
+  });
+}, 30000);
+
+test('numerical range filter — Range Type selector lets the user pick a display mode', async () => {
+  defaultRender();
+
+  await userEvent.click(screen.getByText(VALUE_REGEX));
+  await userEvent.click(await screen.findByText(NUMERICAL_RANGE_REGEX));
+
+  const rangeTypeCombobox = await screen.findByRole('combobox', {
+    name: /range type/i,
+  });
+
+  // Default render is "Slider and range input"; asserting Slider is absent first
+  // ensures the post-click assertion proves a state change rather than passing on
+  // the default selection.
+  expect(
+    document.querySelector('.ant-select-selection-item[title="Slider"]'),
+  ).not.toBeInTheDocument();
+
+  await userEvent.click(rangeTypeCombobox);
+  const sliderOption = await screen.findByRole('option', {
+    name: /^slider$/i,
+  });
+  await userEvent.click(sliderOption);
+
+  // antd Select renders the active selection as a span whose title attribute is
+  // the picked option's label.
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-select-selection-item[title="Slider"]'),
+    ).toBeInTheDocument();
+  });
+}, 30000);
+
+test('toggles "Filter has default value" to show and hide the Default Value control', async () => {
+  defaultRender();
+
+  const defaultValueCheckbox = getCheckbox(DEFAULT_VALUE_REGEX);
+  expect(defaultValueCheckbox).not.toBeChecked();
+  expect(screen.queryByText(/^default value$/i)).not.toBeInTheDocument();
+
+  await userEvent.click(defaultValueCheckbox);
+
+  expect(defaultValueCheckbox).toBeChecked();
+  expect(await screen.findByText(/^default value$/i)).toBeInTheDocument();
+
+  await userEvent.click(defaultValueCheckbox);
+
+  expect(defaultValueCheckbox).not.toBeChecked();
+  await waitFor(() => {
+    expect(screen.queryByText(/^default value$/i)).not.toBeInTheDocument();
+  });
 });

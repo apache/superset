@@ -181,7 +181,7 @@ class TTestTable extends Component<TTestTableProps, TTestTableState> {
     const { control, liftValues, pValues } = this.state;
 
     if (!Array.isArray(groups) || groups.length === 0) {
-      throw Error('Group by param is required');
+      throw new Error('Group by param is required');
     }
 
     // Render column header for each group

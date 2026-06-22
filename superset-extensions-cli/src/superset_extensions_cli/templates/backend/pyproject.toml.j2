@@ -1,4 +1,11 @@
 [project]
-name = "{{ id }}"
+name = "{{ backend_package }}"
 version = "{{ version }}"
 license = "{{ license }}"
+
+[tool.apache_superset_extensions.build]
+# Files to include in the extension build/bundle
+include = [
+    "src/{{ backend_path|replace('.', '/') }}/**/*.py",
+]
+exclude = []

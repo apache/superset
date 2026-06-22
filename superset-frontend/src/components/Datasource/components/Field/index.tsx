@@ -18,7 +18,7 @@
  */
 import { useCallback, ReactNode, ReactElement, cloneElement } from 'react';
 
-import { css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import {
   Icons,
   Tooltip,
@@ -52,7 +52,7 @@ export default function Field<V>({
   errorMessage,
 }: FieldProps<V>) {
   const onControlChange = useCallback(
-    newValue => {
+    (newValue: V) => {
       onChange(fieldKey, newValue);
     },
     [onChange, fieldKey],

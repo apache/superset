@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import { Dispatch } from 'redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
   type QueryFormData,
@@ -151,11 +151,8 @@ export const getSlicePayload = async (
     const [id, typeString] = formData.datasource.split('__');
     datasourceId = parseInt(id, 10);
 
-    const formattedTypeString =
-      typeString.charAt(0).toUpperCase() + typeString.slice(1);
-    if (formattedTypeString in DatasourceType) {
-      datasourceType =
-        DatasourceType[formattedTypeString as keyof typeof DatasourceType];
+    if (Object.values(DatasourceType).includes(typeString as DatasourceType)) {
+      datasourceType = typeString as DatasourceType;
     }
   }
 

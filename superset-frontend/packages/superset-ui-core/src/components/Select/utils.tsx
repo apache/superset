@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ensureIsArray } from '@superset-ui/core';
 import { ReactElement, RefObject } from 'react';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -209,6 +209,10 @@ export const handleFilterOptionHelper = (
 ) => {
   if (typeof filterOption === 'function') {
     return filterOption(search, option);
+  }
+
+  if (filterOption === false) {
+    return true;
   }
 
   if (filterOption) {

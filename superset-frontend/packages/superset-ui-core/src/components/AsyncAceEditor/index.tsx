@@ -32,7 +32,7 @@ import {
   AsyncEsmComponent,
   PlaceholderProps,
 } from '@superset-ui/core/components/AsyncEsmComponent';
-import { useTheme, css } from '@apache-superset/core/ui';
+import { useTheme, css, type SupersetTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';
@@ -104,6 +104,19 @@ export type AsyncAceEditorOptions = {
     PlaceholderProps & Partial<IAceEditorProps>
   > | null;
 };
+
+/**
+ * Theme-aware styling for the matched-prefix highlight in the autocomplete
+ * popup. Ace ships a hardcoded `color: #000` that is invisible on the dark
+ * popup, so the override needs `!important` to win. Lives in the shared editor
+ * so every Ace editor (SQL Lab, Explore Custom SQL, ...) stays consistent.
+ */
+export const aceCompletionHighlightStyles = (token: SupersetTheme) => css`
+  .ace_completion-highlight {
+    color: ${token.colorPrimaryText} !important;
+    background-color: ${token.colorPrimaryBgHover};
+  }
+`;
 
 /**
  * Get an async AceEditor with automatical loading of specified ace modules.
@@ -283,6 +296,16 @@ export function AsyncAceEditor(
                   color: ${token.colorText} !important;
                 }
 
+                /* Fix cursor misalignment by ensuring consistent font-family */
+                .ace_editor .ace_content {
+                  font-family: ${editorFontFamily} !important;
+                }
+
+                /* Ensure the text layer uses the same font-family */
+                .ace_editor .ace_text-layer {
+                  font-family: ${editorFontFamily} !important;
+                }
+
                 /* Adjust gutter colors */
                 .ace_editor .ace_gutter {
                   background-color: ${token.colorBgElevated} !important;
@@ -307,6 +330,11 @@ export function AsyncAceEditor(
                 .ace_editor .ace_print-margin {
                   background-color: ${token.colorSplit} !important;
                   opacity: 0.5;
+                }
+
+                /* Style bracket matching to blend with theme */
+                .ace_editor .ace_bracket {
+                  border-color: ${token.colorPrimaryBorderHover} !important;
                 }
 
                 /* Adjust cursor color */
@@ -354,6 +382,8 @@ export function AsyncAceEditor(
                 .ace_tooltip.ace_doc-tooltip {
                   display: flex !important;
                 }
+
+                ${aceCompletionHighlightStyles(token)}
 
                 &&& .tooltip-detail {
                   display: flex;
@@ -500,5 +530,11 @@ export const JsonEditor = AsyncAceEditor(['mode/json', 'theme/github']);
 export const ConfigEditor = AsyncAceEditor([
   'mode/json',
   'mode/yaml',
+  'theme/github',
+]);
+
+export const JSEditor = AsyncAceEditor([
+  'mode/javascript',
+  'mode/json',
   'theme/github',
 ]);

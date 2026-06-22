@@ -360,18 +360,26 @@ describe('callApi()', () => {
   });
 
   describe('caching', () => {
-    const origLocation = window.location;
+    let locationSpy: jest.SpyInstance;
+    let mockProtocol = 'https:';
 
     beforeAll(() => {
-      Object.defineProperty(window, 'location', { value: {} });
+      locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+        get protocol() {
+          return mockProtocol;
+        },
+        set protocol(v: string) {
+          mockProtocol = v;
+        },
+      } as Location);
     });
 
     afterAll(() => {
-      Object.defineProperty(window, 'location', { value: origLocation });
+      locationSpy.mockRestore();
     });
 
     beforeEach(async () => {
-      window.location.protocol = 'https:';
+      mockProtocol = 'https:';
       await caches.delete(constants.CACHE_KEY);
     });
 
@@ -588,6 +596,21 @@ describe('callApi()', () => {
     expect(result).toEqual({ yes: 'ok' });
     expect(fetchMock.callHistory.lastCall()?.url).toEqual(
       `http://localhost/get-search?abc=1`,
+    );
+  });
+
+  test('should preserve existing query params when searchParams is empty', async () => {
+    window.location.href = 'http://localhost';
+    fetchMock.get(`glob:*/get-search*`, { yes: 'ok' });
+    const response = await callApi({
+      url: '/get-search?q=existing',
+      searchParams: {},
+      method: 'GET',
+    });
+    const result = await response.json();
+    expect(result).toEqual({ yes: 'ok' });
+    expect(fetchMock.callHistory.lastCall()?.url).toEqual(
+      `http://localhost/get-search?q=existing`,
     );
   });
 

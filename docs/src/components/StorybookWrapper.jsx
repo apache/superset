@@ -39,7 +39,7 @@ function getComponentRegistry() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const SupersetComponents = require('@superset/components');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const CoreUI = require('@apache-superset/core/ui');
+    const CoreUI = require('@apache-superset/core/components');
 
     // Build component registry with antd as base fallback layer.
     // Some Superset components (e.g., Typography) use styled-components that may
@@ -65,7 +65,7 @@ function getProviders() {
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { themeObject } = require('@apache-superset/core/ui');
+    const { themeObject } = require('@apache-superset/core/theme');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { App, ConfigProvider } = require('antd');
 

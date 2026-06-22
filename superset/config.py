@@ -51,7 +51,11 @@ from sqlalchemy.orm.query import Query
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
-from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.constants import (
+    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
+    CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
+    CHANGE_ME_SECRET_KEY,
+)
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
@@ -168,6 +172,21 @@ NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
 
+# Upper bound on the number of time-shift comparisons a single chart may request.
+# Each comparison spawns an additional query, so this caps the work amplification
+# from a single chart request while still allowing generous normal use.
+VIZ_TIME_COMPARE_MAX = 50
+
+# Upper bound on the number of sub-slices a deck.gl multi-layer chart may
+# aggregate. Each sub-slice issues its own query, so this caps the work
+# amplification from a single multi-layer request.
+DECK_MULTI_MAX_SLICES = 50
+
+# Upper bound on the page size accepted by the generic DAO list/pagination layer.
+# Caps how many rows a single paginated query can request, regardless of the
+# requested page size, to keep query result sets bounded.
+SQLALCHEMY_DAO_MAX_PAGE_SIZE = 1000
+
 # SupersetClient HTTP retry configuration
 # Controls retry behavior for all HTTP requests made through SupersetClient
 # This helps handle transient server errors (like 502 Bad Gateway) automatically
@@ -270,7 +289,10 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 #  as key material. Do note that AesEngine allows for queryability over the
 #  encrypted fields.
 #
-#  To change the default engine you need to define your own adapter:
+#  To switch the engine used by the default adapter, prefer the
+#  ``SQLALCHEMY_ENCRYPTED_FIELD_ENGINE`` knob below (e.g. "aes-gcm"). Defining a
+#  custom adapter, as shown next, is only needed for behaviour the built-in
+#  engines do not cover:
 #
 # e.g.:
 #
@@ -295,6 +317,16 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
 
+# Encryption engine used by the default SQLAlchemyUtilsAdapter for app-encrypted
+# fields. Options:
+#   "aes"     - AES-CBC (historical default; unauthenticated, queryable)
+#   "aes-gcm" - AES-GCM (authenticated encryption; recommended for NEW installs)
+# WARNING: changing this on a database that already holds encrypted secrets
+# (database passwords, SSH tunnel credentials, OAuth tokens, ...) will make
+# those values undecryptable unless they are re-encrypted first. See the
+# authenticated-encryption SIP/migration before switching an existing install.
+SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
+
 # Extends the default SQLGlot dialects with additional dialects
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
 
@@ -311,6 +343,7 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.explore_json",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
+    "flask_appbuilder.security.views.acs",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -342,6 +375,26 @@ RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") == "production"
 RATELIMIT_APPLICATION = "50 per second"
 AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
+
+# When enabled, users whose account is flagged with ``password_must_change``
+# (e.g. accounts provisioned by an administrator) are redirected to the
+# password-reset page until they set a new password. Off by default.
+ENABLE_FORCE_PASSWORD_CHANGE = False
+
+# Password complexity policy, enforced (via Flask-AppBuilder) across
+# self-registration, the user edit/reset forms, and the User REST API.
+# The Superset validator requires a minimum length and rejects common
+# passwords; tune via AUTH_PASSWORD_MIN_LENGTH / AUTH_PASSWORD_COMMON_BLOCKLIST,
+# or replace FAB_PASSWORD_COMPLEXITY_VALIDATOR with your own callable.
+from superset.security.password_complexity import (  # noqa: E402
+    validate_password_complexity as _validate_password_complexity,
+)
+
+FAB_PASSWORD_COMPLEXITY_ENABLED = True
+FAB_PASSWORD_COMPLEXITY_VALIDATOR = _validate_password_complexity
+AUTH_PASSWORD_MIN_LENGTH = 8
+AUTH_PASSWORD_COMMON_BLOCKLIST: list[str] = []
+
 # A storage location conforming to the scheme in storage-scheme. See the limits
 # library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
 # RATELIMIT_STORAGE_URI = "redis://host:port"
@@ -432,11 +485,16 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "cs": {"flag": "cz", "name": "Czech"},
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
+    "sr": {"flag": "rs", "name": "Serbian (Cyrillic)"},
+    "sr_Latn": {"flag": "rs", "name": "Serbian (Latin)"},
+    "lv": {"flag": "lv", "name": "Latvian"},
     "nl": {"flag": "nl", "name": "Dutch"},
-    "uk": {"flag": "uk", "name": "Ukranian"},
+    "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
+    "ro": {"flag": "ro", "name": "Romanian"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -482,6 +540,10 @@ D3_FORMAT: D3Format = {}
 # Enable CORS and set map url in origins option.
 # Add also map url in connect-src of TALISMAN_CONFIG variable
 DECKGL_BASE_MAP: list[list[str, str]] = None
+
+# Default map renderer for map visualizations that support multiple providers.
+# Set to "mapbox" only in deployments that also configure MAPBOX_API_KEY.
+DEFAULT_MAP_RENDERER = os.environ.get("DEFAULT_MAP_RENDERER", "maplibre")
 
 
 # Override the default d3 locale for time format
@@ -562,6 +624,17 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # in addition to relative timeshifts (e.g., "1 day ago")
     # @lifecycle: development
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
+    # Enable API key authentication via FAB SecurityManager
+    # When enabled, users can create/manage API keys in the User Info page
+    # @lifecycle: development
+    "FAB_API_KEY_ENABLED": False,
+    # Enable granular export controls (can_export_data, can_export_image,
+    # can_copy_clipboard) instead of the single can_csv permission
+    # @lifecycle: development
+    "GRANULAR_EXPORT_CONTROLS": False,
+    # Enable semantic layers and show semantic views alongside datasets
+    # @lifecycle: development
+    "SEMANTIC_LAYERS": False,
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
@@ -629,7 +702,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Experimental with potential security/performance risks.
     # See SUPERSET_META_DB_LIMIT.
     # @lifecycle: testing
-    # @docs: https://superset.apache.org/docs/configuration/databases/#querying-across-databases
+    # @docs: https://superset.apache.org/user-docs/databases/supported/superset-meta-database
     "ENABLE_SUPERSET_META_DB": False,
     # Enable query cost estimation. Supported in Presto, Postgres, and BigQuery.
     # Requires `cost_estimate_enabled: true` in database `extra` attribute.
@@ -714,6 +787,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    # Hide the logout button in embedded contexts (e.g., when using SSO in iframes)
+    # @lifecycle: stable
+    # @category: runtime_config
+    # @docs: https://superset.apache.org/docs/configuration/networking-settings#hiding-the-logout-button-in-embedded-contexts
+    "DISABLE_EMBEDDED_SUPERSET_LOGOUT": False,
     # Enable drill-by functionality in charts
     # @lifecycle: stable
     # @category: runtime_config
@@ -818,6 +896,15 @@ SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
 SSH_TUNNEL_TIMEOUT_SEC = 10.0
 #: Timeout (seconds) for transport socket (``socket.settimeout``)
 SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
+
+#: Opt-in defense-in-depth: when enabled, every SSH tunnel must declare an expected
+#: server host key (``server_host_key`` on the tunnel) and the SSH server's presented
+#: host key is verified against it before the tunnel is opened. A mismatch, or a
+#: missing expected key while this flag is enabled, fails closed and the tunnel is
+#: rejected. When disabled (the default), tunnels without a ``server_host_key`` open
+#: without host-key verification, preserving existing behavior; tunnels that do set a
+#: ``server_host_key`` are still verified regardless of this flag.
+SSH_TUNNEL_STRICT_HOST_KEY_CHECKING: bool = False
 
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -945,6 +1032,7 @@ THEME_DEFAULT: Theme = {
         "fontWeightNormal": "400",
         "fontWeightLight": "300",
         "fontWeightStrong": "500",
+        "fontWeightBold": "700",
         # Editor selection color (for SQL Lab text highlighting)
         "colorEditorSelection": "#fff5cf",
     },
@@ -1009,6 +1097,10 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+#
+# NOTE: The `cache-warmup` Celery task no longer consults CACHE_WARMUP_EXECUTORS.
+# It authenticates as the single user configured via SUPERSET_CACHE_WARMUP_USER
+# (defined below). This setting is retained for other executor-based code paths.
 CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
 
 # ---------------------------------------------------
@@ -1049,6 +1141,11 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
+
+# Cache warmup user — must be set explicitly before enabling the cache-warmup
+# Celery task. Intentionally defaults to None so operators pick a dedicated
+# least-privilege user rather than inadvertently running warmup as "admin".
+SUPERSET_CACHE_WARMUP_USER: str | None = None
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
@@ -1091,6 +1188,12 @@ SCREENSHOT_TILED_VIEWPORT_HEIGHT = 2000  # Height of each tile in pixels
 # The file upload folder, when using models with files
 UPLOAD_FOLDER = BASE_DIR + "/static/uploads/"
 UPLOAD_CHUNK_SIZE = 4096
+
+# Upper bound, in bytes, on the size of a single uploaded data file (e.g. CSV,
+# Excel, columnar). Files larger than this are rejected before their contents
+# are buffered into memory, keeping the resources consumed by a single upload
+# bounded. Set to ``None`` to disable the check. Defaults to 100 MB.
+UPLOAD_MAX_FILE_SIZE_BYTES: int | None = 100 * 1024 * 1024
 
 # ---------------------------------------------------
 # Cache configuration
@@ -1173,7 +1276,7 @@ HTML_SANITIZATION_SCHEMA_EXTENSIONS: dict[str, Any] = {}
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
 # next available socket. PR #5039 added domain sharding for Superset,
 # and this feature can be enabled by configuration only (by default Superset
-# doesn't allow cross-domain request). This feature is deprecated, annd will be removed
+# doesn't allow cross-domain request). This feature is deprecated, and will be removed
 # in the next major version of Superset, as enabling HTTP2 will serve the same goals.
 SUPERSET_WEBSERVER_DOMAINS = None  # deprecated
 
@@ -1297,6 +1400,10 @@ MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 # Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 
+# Maximum number of forecast periods accepted by the Prophet post-processing
+# operation. Bounds resource usage when predicting into the future.
+MAX_PROPHET_PERIODS = 10000
+
 # Maximum number of rows for any query with Server Pagination in Table Viz type
 TABLE_VIZ_MAX_ROW_SERVER = 500000
 
@@ -1402,6 +1509,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute=0, hour=0),
         #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
         # },
+        # Uncomment to enable pruning of expired entries from the key-value store
+        # (for example, rows left behind by the metastore cache backend)
+        # "prune_key_value": {
+        #     "task": "prune_key_value",
+        #     "schedule": crontab(minute=0, hour=0),
+        #     "kwargs": {"max_rows_per_run": 10000},
+        # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
@@ -1432,6 +1546,9 @@ DEFAULT_DB_ID = None
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = int(timedelta(seconds=30).total_seconds())
 
+# BigQuery max fetch size in MB (limits memory usage when fetching large results)
+BQ_FETCH_MAX_MB = 200
+
 # Timeout duration for SQL Lab query validation
 SQLLAB_VALIDATION_TIMEOUT = int(timedelta(seconds=10).total_seconds())
 
@@ -1449,6 +1566,11 @@ SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
 # Timeout duration for SQL Lab fetching query results by the resultsKey.
 # 0 means no timeout.
 SQLLAB_QUERY_RESULT_TIMEOUT = 0
+
+# Connect/read timeout (in seconds) for the synchronous network call made when
+# detecting ODPS (MaxCompute) partition info during table preview. Prevents an
+# unreachable or slow ODPS endpoint from blocking the web worker indefinitely.
+ODPS_PARTITION_DETECT_TIMEOUT = int(timedelta(seconds=30).total_seconds())
 
 # The cost returned by the databases is a relative value; in order to map the cost to
 # a tangible value you need to define a custom formatter that takes into consideration
@@ -1626,6 +1748,13 @@ FAB_ADD_SECURITY_API = True
 FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
+
+# API Key Authentication via FAB SecurityManager
+# FAB reads this config directly to register the ApiKeyApi blueprint.
+# The FAB_API_KEY_ENABLED feature flag (in DEFAULT_FEATURE_FLAGS) controls
+# the frontend UI visibility independently.
+FAB_API_KEY_ENABLED = False
+FAB_API_KEY_PREFIXES = ["sst_"]
 
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
@@ -1958,6 +2087,8 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
+# Rewrite external links in alert/report emails to go through a warning page
+ALERT_REPORTS_ENABLE_LINK_REDIRECT = True
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
 # You can also assign a function to the config that returns the expected integer
@@ -1965,6 +2096,21 @@ ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports
 ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
+
+# When True, webhook alert/report dispatch is permitted to call private/internal
+# IP addresses (RFC-1918, loopback, link-local). Intended for deployments where
+# the webhook target is on an internal network (a chatops bridge, an internal
+# Mattermost/Rocket.Chat, an automation server, etc.). Leave False (the default)
+# in any internet-facing deployment.
+ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS: bool = False
+
+# When True, Impala's cancel_query HTTP call is permitted to target hosts in
+# private/internal IP ranges (RFC-1918, loopback, link-local). Intended for
+# operators whose Impala cluster runs on an internal network. Leave False (the
+# default) in any deployment where untrusted users can create Impala database
+# connections, so a maliciously-configured impala:// URL cannot be used to
+# trigger outbound requests to internal targets via the cancel endpoint.
+IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS: bool = False
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
@@ -1982,7 +2128,10 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
-# The webdriver to use for generating reports. Use one of the following
+# The webdriver to use for generating reports when using Selenium (not Playwright).
+# This setting is ignored when PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled, as
+# Playwright always uses Chromium regardless of this value.
+# Use one of the following:
 # firefox
 #   Requires: geckodriver and firefox installations
 #   Limitations: can be buggy at times
@@ -2044,6 +2193,15 @@ DEFAULT_RELATIVE_END_TIME = "today"
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
+    # SQLite-based engines (SQLite, GSheets, Shillelagh) can use the
+    # SQLiteSQLValidator, but it requires the optional syntaqlite package:
+    #
+    #   pip install "apache-superset[sqlite]"
+    #
+    # Once installed, enable validation by uncommenting the lines below:
+    # "sqlite": "SQLiteSQLValidator",
+    # "gsheets": "SQLiteSQLValidator",
+    # "shillelagh": "SQLiteSQLValidator",
 }
 
 # A list of preferred databases, in order. These databases will be
@@ -2129,7 +2287,14 @@ TALISMAN_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
-            "https://a.basemaps.cartocdn.com",
+            "https://basemaps.cartocdn.com",
+            "https://*.basemaps.cartocdn.com",
+            "https://tiles.openfreemap.org",
+            "https://*.maptiler.com",
+            "https://tiles.stadiamaps.com",
+            "https://tiles.versatiles.org",
+            "https://*.protomaps.com",
+            "https://*.maplibre.org",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -2169,7 +2334,14 @@ TALISMAN_DEV_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
-            "https://a.basemaps.cartocdn.com",
+            "https://basemaps.cartocdn.com",
+            "https://*.basemaps.cartocdn.com",
+            "https://tiles.openfreemap.org",
+            "https://*.maptiler.com",
+            "https://tiles.stadiamaps.com",
+            "https://tiles.versatiles.org",
+            "https://*.protomaps.com",
+            "https://*.maplibre.org",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -2229,12 +2401,20 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 
-# Define a list of allowed URLs for dataset data imports (v1).
+# Define a list of allowed URL patterns (regex) for dataset data imports (v1).
 # Simple example to only allow URLs that belong to certain domains:
-# ALLOWED_IMPORT_URL_DOMAINS = [
+# DATASET_IMPORT_ALLOWED_DATA_URLS = [
 #     r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"
 # ]
+# Local file:// URIs used for bundled example data are always permitted
+# regardless of this setting.
 DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
+
+# When True, dataset import is permitted to fetch data from private/internal
+# IP addresses (RFC-1918, loopback, link-local). Intended for air-gapped or
+# on-premises deployments where the data source is on an internal network.
+# Leave False (the default) in any internet-facing deployment.
+DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS: bool = False
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
@@ -2266,7 +2446,10 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict
     None
 )
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
-GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"  # noqa: S105
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+# Lifetime of the async-query JWT, in seconds. After this period the token
+# expires and a fresh one is issued on the next request.
+GLOBAL_ASYNC_QUERIES_JWT_EXPIRATION_SECONDS = int(timedelta(hours=1).total_seconds())
 GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
@@ -2296,7 +2479,7 @@ GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
-GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
+GUEST_TOKEN_JWT_SECRET = CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
@@ -2314,6 +2497,19 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 # Return False from the callable to return a HTTP 400 to the user.
 
 GUEST_TOKEN_VALIDATOR_HOOK = None
+
+# Enables coarse-grained, runtime revocation of outstanding guest tokens.
+#
+# When True, every minted guest token carries a revocation version, and tokens
+# whose version is below the current expected version (stored in the metadata
+# database) are rejected at validation time. Bump the expected version with the
+# `superset revoke-guest-tokens` CLI command to invalidate all outstanding guest
+# tokens (e.g. after a token leak, or when a user's access or RLS rules change).
+#
+# This is opt-in and backward compatible: the default expected version is 0 and
+# tokens minted before this feature (which carry no version claim) are treated as
+# version 0, so nothing is revoked until an admin explicitly bumps the version.
+GUEST_TOKEN_REVOCATION_ENABLED = False
 
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,
@@ -2367,6 +2563,8 @@ WELCOME_PAGE_LAST_TAB: Literal["examples", "all"] | tuple[str, list[dict[str, An
 ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
 # Max allowed compression ratio for a zipped file
 ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
+# Max allowed total decompressed size across all entries in a zipped file
+ZIP_FILE_MAX_TOTAL_SIZE = 1024 * 1024 * 1024  # 1GB
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
 # 'color' support only Ant Design semantic colors (e.g., 'error', 'warning', 'success', 'processing', 'default)  # noqa: E501
@@ -2436,6 +2634,27 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 
 
+# Extra access query filters inject additional OR conditions into
+# ChartFilter and DashboardAccessFilter, enabling external systems
+# (e.g. folder permissions) to grant asset visibility.
+# The callable receives the current user ID and returns a subquery of asset IDs.
+class ExtraAccessQueryFilters(TypedDict, total=False):
+    charts: Callable[[int], Query]
+    dashboards: Callable[[int], Query]
+
+
+# Extension hooks for deployments to plug in custom access logic.
+# Additional query filters for chart/dashboard list views.
+EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
+# Bypass raise_for_access for specific assets. Return True to skip checks.
+EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
+# Resolve extra owners for a resource. Also used for ownership checks and
+# to skip auto-adding the current user to owners on create.
+EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
+# Post-create hook for charts/dashboards. Receives (model, asset_type).
+AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
+
+
 # The migrations that add catalog permissions might take a considerably long time
 # to execute as it has to create permissions to all schemas and catalogs from all
 # other catalogs accessible by the credentials. This flag allows to skip the
@@ -2444,6 +2663,12 @@ EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 # connection via the UI (without downtime).
 CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
+# Configure JWT subsystem to not enforce that the sub claim is a string
+# Set this variable to avoid breaking `/api/security` endpoints
+# TODO: remove this variable once pyjwt resolved the issue.
+# https://github.com/jpadilla/pyjwt/issues/1017
+# https://github.com/dpgaspar/Flask-AppBuilder/issues/2287
+JWT_VERIFY_SUB: bool = False
 
 # When updating a DB connection or manually triggering a perm sync, the command
 # happens in sync mode. If you have a celery worker configured, it's recommended
@@ -2464,6 +2689,17 @@ except ImportError:
 
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
+# Extensions that must not be loaded, even if present in LOCAL_EXTENSIONS or
+# EXTENSIONS_PATH. Each entry is an extension id (denies every version) or
+# "<id>@<version>" (denies a specific version). Use this to disable an
+# extension found to be vulnerable or otherwise undesirable.
+EXTENSION_DENYLIST: list[str] = []
+
+# Minimum allowed version per extension id. An extension whose version is below
+# the configured minimum is refused, so a vulnerable release can be required to
+# be patched before it loads. Versions are compared with PEP 440 semantics, e.g.
+#   EXTENSION_VERSION_POLICY = {"acme.widget": "1.2.0"}
+EXTENSION_VERSION_POLICY: dict[str, str] = {}
 
 # Default polling interval for tasks (seconds)
 TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
@@ -2473,28 +2709,30 @@ TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 
 # ---------------------------------------------------
-# Signal Cache Configuration
+# Distributed Coordination Configuration
 # ---------------------------------------------------
-# Shared Redis/Valkey configuration for signaling features that require
-# Redis-specific primitives (pub/sub messaging, distributed locks).
+# Shared Redis/Valkey backend for distributed coordination primitives.
 #
 # Uses Flask-Caching style configuration for consistency with other cache backends.
 # Set CACHE_TYPE to 'RedisCache' for standard Redis or 'RedisSentinelCache' for
 # Sentinel.
 #
-# These features cannot use generic cache backends because they rely on:
+# These features require Redis primitives unavailable in generic cache backends:
 # - Pub/Sub: Real-time message broadcasting between workers
 # - SET NX EX: Atomic lock acquisition with automatic expiration
+# - Streams: Persistent ordered event logs (future)
 #
 # When configured, enables:
 # - Real-time abort/completion notifications for GTF tasks (vs database polling)
 # - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
 #
-# Future: This cache will also be used by Global Async Queries, consolidating
-# GLOBAL_ASYNC_QUERIES_CACHE_BACKEND into this unified configuration.
+# Future: This backend will power a higher-level coordination service exposing
+# standardized interfaces for distributed locks, pub/sub, and streams — consolidating
+# all advanced Redis primitives under a single connection. Global Async Queries
+# (GLOBAL_ASYNC_QUERIES_CACHE_BACKEND) will also be migrated to this configuration.
 #
 # Example with standard Redis:
-# SIGNAL_CACHE_CONFIG: CacheConfig = {
+# DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisCache",
 #     "CACHE_REDIS_HOST": "localhost",
 #     "CACHE_REDIS_PORT": 6379,
@@ -2503,7 +2741,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # }
 #
 # Example with Redis Sentinel:
-# SIGNAL_CACHE_CONFIG: CacheConfig = {
+# DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisSentinelCache",
 #     "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
 #     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
@@ -2511,7 +2749,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 #     "CACHE_REDIS_DB": 0,
 #     "CACHE_REDIS_PASSWORD": "",
 # }
-SIGNAL_CACHE_CONFIG: CacheConfig | None = None
+DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.

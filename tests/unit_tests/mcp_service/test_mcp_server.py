@@ -109,6 +109,40 @@ def test_create_event_store_uses_default_config_values():
             )
 
 
+def test_suppress_third_party_warnings():
+    """Third-party deprecation warnings filters are installed."""
+    import re
+    import warnings
+
+    from superset.mcp_service.server import _suppress_third_party_warnings
+
+    _suppress_third_party_warnings()
+
+    # Verify marshmallow DeprecationWarning filter is installed
+    marshmallow_filters = [
+        f
+        for f in warnings.filters
+        if f[0] == "ignore"
+        and f[2] is DeprecationWarning
+        and isinstance(f[3], re.Pattern)
+        and f[3].pattern == r"marshmallow\..*"
+    ]
+    assert len(marshmallow_filters) >= 1, (
+        "Expected marshmallow DeprecationWarning filter"
+    )
+
+    # Verify google FutureWarning filter is installed
+    google_filters = [
+        f
+        for f in warnings.filters
+        if f[0] == "ignore"
+        and f[2] is FutureWarning
+        and isinstance(f[3], re.Pattern)
+        and f[3].pattern == r"google\..*"
+    ]
+    assert len(google_filters) >= 1, "Expected google FutureWarning filter"
+
+
 def test_create_event_store_returns_none_when_redis_store_fails():
     """EventStore returns None when Redis store creation fails."""
     config = {
@@ -124,3 +158,26 @@ def test_create_event_store_returns_none_when_redis_store_fails():
         result = create_event_store(config)
 
         assert result is None
+
+
+def test_create_auth_provider_uses_default_factory_for_mcp_api_key_only() -> None:
+    """MCP_API_KEY_ENABLED=True should install auth even when FAB API keys are off."""
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": None,
+        "MCP_AUTH_ENABLED": False,
+        "MCP_API_KEY_ENABLED": True,
+        "FAB_API_KEY_ENABLED": False,
+    }.get(key, default)
+    auth_provider = MagicMock()
+
+    with patch(
+        "superset.mcp_service.mcp_config.create_default_mcp_auth_factory",
+        return_value=auth_provider,
+    ) as create_default_mcp_auth_factory:
+        result = _create_auth_provider(flask_app)
+
+    assert result is auth_provider
+    create_default_mcp_auth_factory.assert_called_once_with(flask_app)

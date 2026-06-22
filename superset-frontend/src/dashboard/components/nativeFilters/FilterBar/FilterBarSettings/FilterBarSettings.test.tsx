@@ -142,7 +142,7 @@ test('Popover opens with "Vertical" selected', async () => {
 
   const verticalItem = screen.getByText('Vertical (Left)');
   expect(
-    within(verticalItem.closest('li')!).getByLabelText('check'),
+    within(verticalItem.closest('li')!).getByLabelText('Selected'),
   ).toBeInTheDocument();
 });
 
@@ -158,7 +158,7 @@ test('Popover opens with "Horizontal" selected', async () => {
 
   const horizontalItem = screen.getByText('Horizontal (Top)');
   expect(
-    within(horizontalItem.closest('li')!).getByLabelText('check'),
+    within(horizontalItem.closest('li')!).getByLabelText('Selected'),
   ).toBeInTheDocument();
 });
 
@@ -182,7 +182,7 @@ test('On selection change, send request and update checked value', async () => {
 
   const verticalItem = await screen.findByText('Vertical (Left)');
   expect(
-    within(verticalItem.closest('li')!).getByLabelText('check'),
+    within(verticalItem.closest('li')!).getByLabelText('Selected'),
   ).toBeInTheDocument();
 
   userEvent.click(screen.getByText('Horizontal (Top)'));
@@ -192,7 +192,7 @@ test('On selection change, send request and update checked value', async () => {
 
   const horizontalItem = await screen.findByText('Horizontal (Top)');
   expect(
-    within(horizontalItem.closest('li')!).getByLabelText('check'),
+    within(horizontalItem.closest('li')!).getByLabelText('Selected'),
   ).toBeInTheDocument();
 
   await waitFor(() =>
@@ -211,10 +211,10 @@ test('On selection change, send request and update checked value', async () => {
     userEvent.hover(screen.getByText('Orientation of filter bar'));
     const updatedHorizontalItem = screen.getByText('Horizontal (Top)');
     expect(
-      within(updatedHorizontalItem.closest('li')!).getByLabelText('check'),
+      within(updatedHorizontalItem.closest('li')!).getByLabelText('Selected'),
     ).toBeInTheDocument();
     expect(
-      within(verticalItem.closest('li')!).queryByLabelText('check'),
+      within(verticalItem.closest('li')!).queryByLabelText('Selected'),
     ).not.toBeInTheDocument();
   });
 });
@@ -241,10 +241,10 @@ test('On failed request, restore previous selection', async () => {
 
   // Verify initial state
   expect(
-    within(verticalItem.closest('li')!).getByLabelText('check'),
+    within(verticalItem.closest('li')!).getByLabelText('Selected'),
   ).toBeInTheDocument();
   expect(
-    within(horizontalItem.closest('li')!).queryByLabelText('check'),
+    within(horizontalItem.closest('li')!).queryByLabelText('Selected'),
   ).not.toBeInTheDocument();
 
   // Click horizontal option
@@ -266,10 +266,10 @@ test('On failed request, restore previous selection', async () => {
     const verticalItemAfter = screen.getByText('Vertical (Left)');
     const horizontalItemAfter = screen.getByText('Horizontal (Top)');
     expect(
-      within(verticalItemAfter.closest('li')!).getByLabelText('check'),
+      within(verticalItemAfter.closest('li')!).getByLabelText('Selected'),
     ).toBeInTheDocument();
     expect(
-      within(horizontalItemAfter.closest('li')!).queryByLabelText('check'),
+      within(horizontalItemAfter.closest('li')!).queryByLabelText('Selected'),
     ).not.toBeInTheDocument();
   });
 });

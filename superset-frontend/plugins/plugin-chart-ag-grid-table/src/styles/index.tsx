@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 import { Select } from '@superset-ui/core/components';
 
 /* Components for AgGridTable */
@@ -309,6 +309,17 @@ export const StyledChartContainer = styled.div<{
       height: auto;
     }
 
+    .ag-cell {
+      color: var(--ag-cell-value-color, inherit);
+    }
+
+    .ag-row-hover .ag-cell {
+      color: var(
+        --ag-cell-value-hover-color,
+        var(--ag-cell-value-color, inherit)
+      );
+    }
+
     .ag-container {
       border-radius: 0px;
       border: var(--ag-wrapper-border);
@@ -406,6 +417,12 @@ export const StyledChartContainer = styled.div<{
 
       &::placeholder {
         color: ${theme.colorTextQuaternary};
+      }
+    }
+
+    .ag-header-center {
+      .ag-header-cell-label {
+        justify-content: center;
       }
     }
   `}
