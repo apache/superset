@@ -21,7 +21,7 @@ Adds a nullable ``deleted_at`` column and an index on it to the
 the ``SoftDeleteMixin`` infrastructure shipped in PR #39977.
 
 Revision ID: 3a8e6f2c1b95
-Revises: 31dae2559c05
+Revises: 78a40c08b4be
 Create Date: 2026-05-08 12:10:00.000000
 """
 
@@ -36,7 +36,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "3a8e6f2c1b95"
-down_revision = "31dae2559c05"
+down_revision = "78a40c08b4be"
 
 TABLE_NAME = "tables"
 INDEX_NAME = f"ix_{TABLE_NAME}_deleted_at"
