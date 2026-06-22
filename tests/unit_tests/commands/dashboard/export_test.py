@@ -256,27 +256,23 @@ def test_file_content_omits_roles_field_when_dashboard_has_no_roles():
     assert "roles" not in result
 
 
-def test_position_json_chart_id_leaks_env_local_integers() -> None:
+def test_position_json_chart_id_is_stable_across_environments() -> None:
     """
     Regression for #32972: dashboard export must produce stable output that does
     not vary with env-local integer chartIds.
 
     The export format includes a ``meta.chartId`` field inside each ``CHART-*``
-    position entry. That integer is the database auto-increment primary key from
-    the source environment. When the bundle is imported into a different
-    environment the importer (``update_id_refs``) rewrites those IDs to the
-    destination-env primary keys. A second export from the destination then
-    serializes the new env-local integers — the same logical chart produces
+    position entry. Historically that integer was the database auto-increment
+    primary key from the source environment. When a bundle is imported into a
+    different environment the importer (``update_id_refs``) rewrites those IDs to
+    the destination-env primary keys, so a second export from the destination
+    would serialize the new env-local integers — the same logical chart produced
     different ``chartId`` values in each environment.
 
-    This test asserts that two exports of the same logical dashboard are
-    identical even when the underlying chart has a different integer primary key
-    in each environment. ``meta.uuid`` is the stable identifier that should be
-    used instead of ``meta.chartId``.
-
-    Fix target: ``superset/commands/dashboard/export.py`` (``append_charts``
-    and ``_file_content``) — strip or UUID-replace ``chartId`` so the export
-    format is environment-independent.
+    The exporter now derives ``meta.chartId`` from the (stable) ``meta.uuid``
+    instead, so this test asserts that two exports of the same logical dashboard
+    agree on ``chartId`` even when the underlying chart has a different integer
+    primary key in each environment.
     """
     from superset.commands.dashboard.export import ExportDashboardsCommand
 
@@ -401,14 +397,12 @@ def test_position_json_chart_id_leaks_env_local_integers() -> None:
     )
 
     # ------------------------------------------------------------------ #
-    # THE REGRESSION: chartId must be stable (or absent) across envs.    #
+    # THE INVARIANT: chartId must be stable across environments.         #
     #                                                                     #
-    # With the current (broken) implementation both assertions below      #
-    # fail:                                                               #
-    #   - first export emits chartId 392 (source-env integer)            #
-    #   - second export emits chartId 1001 (destination-env integer)     #
-    # The fix should either omit chartId entirely or derive it from the  #
-    # UUID so that both exports agree.                                    #
+    # The source-env export and the destination-env export (whose        #
+    # position_json carries a different env-local integer after import)   #
+    # must agree on chartId, because it is derived from the stable        #
+    # meta.uuid rather than the env-local primary key.                    #
     # ------------------------------------------------------------------ #
     first_chart_id = first_chart_meta.get("chartId")
     second_chart_id = second_chart_meta.get("chartId")
@@ -418,9 +412,9 @@ def test_position_json_chart_id_leaks_env_local_integers() -> None:
         f"export produced chartId={first_chart_id!r} while the destination-env "
         f"export (after re-import with remapped IDs) produced "
         f"chartId={second_chart_id!r}. "
-        "Env-local integer IDs are leaking into the export format (issue #32972). "
-        "The fix: strip chartId from exported position_json or replace it with a "
-        "value derived from meta.uuid so the export is environment-independent."
+        "Env-local integer IDs must not leak into the export format (issue "
+        "#32972); chartId is derived from meta.uuid so the export stays "
+        "environment-independent."
     )
 
 
@@ -474,6 +468,50 @@ def _export_with_chart(
         content = ExportDashboardsCommand._file_content(dashboard)
 
     return yaml.safe_load(content)
+
+
+def test_orphan_chart_gets_uuid_derived_chart_id() -> None:
+    """
+    A chart in ``model.slices`` that is NOT referenced in ``position_json`` is
+    appended via ``append_charts`` (which writes the env-local ``chart.id``).
+    ``_stabilize_chart_ids`` runs afterwards, so the appended node must end up
+    with a UUID-derived ``chartId`` rather than the env-local integer.
+    """
+    from superset.commands.dashboard.export import (
+        ExportDashboardsCommand,
+        stable_chart_id,
+    )
+
+    chart_uuid = "812bc377-ac09-475a-8d34-a63f7f087bd7"
+    env_local_id = 392
+
+    orphan = MagicMock()
+    orphan.id = env_local_id
+    orphan.uuid = chart_uuid
+    orphan.slice_name = "Orphan Chart"
+
+    # position_json references no charts, so ``orphan`` is appended as an orphan.
+    mock_dashboard = _make_mock_dashboard({"native_filter_configuration": []})
+    mock_dashboard.slices = [orphan]
+
+    with patch(
+        "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+        return_value=False,
+    ):
+        content = ExportDashboardsCommand._file_content(mock_dashboard)
+
+    result = yaml.safe_load(content)
+    chart_nodes = [
+        node
+        for node in result["position"].values()
+        if isinstance(node, dict) and node.get("type") == "CHART"
+    ]
+    assert chart_nodes, "Orphan chart must be appended to the position tree"
+    chart_meta = chart_nodes[0]["meta"]
+    assert chart_meta["uuid"] == chart_uuid
+    # The env-local id must have been stabilized away, not serialized verbatim.
+    assert chart_meta["chartId"] == stable_chart_id(chart_uuid)
+    assert chart_meta["chartId"] != env_local_id
 
 
 def test_stabilize_chart_ids_skips_invalid_uuid() -> None:
@@ -563,7 +601,7 @@ def test_stable_chart_id_is_deterministic_and_in_range() -> None:
     """
     stable_chart_id must derive a stable, environment-independent integer from a
     chart UUID. The same UUID always yields the same id, and the id stays within
-    a signed 31-bit positive range so it can stand in for a database
+    the positive signed 32-bit range so it can stand in for a database
     auto-increment primary key without colliding with the sign bit.
     """
     from superset.commands.dashboard.export import (
@@ -580,8 +618,11 @@ def test_stable_chart_id_is_deterministic_and_in_range() -> None:
     other_uuid = "00000000-0000-4000-8000-000000000001"
     assert stable_chart_id(chart_uuid) != stable_chart_id(other_uuid)
 
-    # Bounded to [1, _STABLE_CHART_ID_MODULO]: positive and within 31 bits.
-    for candidate in (chart_uuid, other_uuid, str(uuid.uuid4())):
+    # Bounded to [1, _STABLE_CHART_ID_MODULO] for any UUID, including one whose
+    # high bits are all set (boundary case). Static inputs keep the test
+    # deterministic.
+    high_bits_uuid = "ffffffff-ffff-4fff-bfff-ffffffffffff"
+    for candidate in (chart_uuid, other_uuid, high_bits_uuid):
         derived = stable_chart_id(candidate)
         assert 1 <= derived <= _STABLE_CHART_ID_MODULO
 

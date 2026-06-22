@@ -106,10 +106,10 @@ def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any
     return position
 
 
-# Bound the derived id to a signed 31-bit positive integer so it stays well
-# within the range a database auto-increment primary key would occupy and
-# never collides with the sign bit. The concrete value is irrelevant — only
-# its stability across environments matters.
+# Bound the derived id to the largest positive signed 32-bit integer
+# (2**31 - 1) so it stays within the range a database auto-increment primary
+# key would occupy and never collides with the sign bit. The concrete value is
+# irrelevant — only its stability across environments matters.
 _STABLE_CHART_ID_MODULO = 2_147_483_647
 
 
