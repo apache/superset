@@ -277,8 +277,8 @@ test('shows CONTAINS and null operators when subject is multi-value', () => {
   const { isOperatorRelevant } = useSimpleTabFilterProps(
     props as unknown as Props,
   );
-  [Operators.Contains, Operators.IsNull, Operators.IsNotNull].forEach(operator =>
-    expect(isOperatorRelevant(operator, 'skills')).toBe(true),
+  [Operators.Contains, Operators.IsNull, Operators.IsNotNull].forEach(
+    operator => expect(isOperatorRelevant(operator, 'skills')).toBe(true),
   );
   // scalar operators are hidden for array columns
   [Operators.Equals, Operators.GreaterThan, Operators.Like].forEach(operator =>

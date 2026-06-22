@@ -25,7 +25,7 @@ from pytest_mock import MockerFixture
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
-from superset.superset_typing import QueryObjectDict
+from superset.superset_typing import AdhocColumn, Column, QueryObjectDict
 from superset.utils.core import (
     GenericDataType,
     get_column_name_from_column,
@@ -61,7 +61,7 @@ def _make_dataset(mocker: MockerFixture) -> SqlaTable:
     return dataset
 
 
-def _length_dimension() -> dict:
+def _length_dimension() -> AdhocColumn:
     return {
         "label": "skills_length",
         "column": "skills",
@@ -69,7 +69,7 @@ def _length_dimension() -> dict:
     }
 
 
-def _query_obj(dimension: dict) -> QueryObjectDict:
+def _query_obj(dimension: Column) -> QueryObjectDict:
     return {
         "granularity": None,
         "from_dttm": None,
@@ -142,7 +142,9 @@ def test_length_dimension_unsupported_engine_raises(
     dataset = _make_dataset(mocker)
     with app.test_request_context():  # noqa: SIM117
         with pytest.raises(QueryObjectValidationError):
-            dataset.get_sqla_query(**_query_obj(_length_dimension()))
+            dataset.get_query_str_extended(
+                _query_obj(_length_dimension()), mutate=False
+            )
 
 
 def test_length_dimension_unknown_base_column_raises(
@@ -151,14 +153,14 @@ def test_length_dimension_unknown_base_column_raises(
 ) -> None:
     """A length op referencing a missing base column is rejected."""
     dataset = _clickhouse_dataset(mocker)
-    bad = {
+    bad: AdhocColumn = {
         "label": "nope_length",
         "column": "does_not_exist",
         "columnOperation": MultiValueColumnOperation.LENGTH.value,
     }
     with app.test_request_context():  # noqa: SIM117
         with pytest.raises(QueryObjectValidationError):
-            dataset.get_sqla_query(**_query_obj(bad))
+            dataset.get_query_str_extended(_query_obj(bad), mutate=False)
 
 
 def test_unsupported_operation_raises(
@@ -167,7 +169,7 @@ def test_unsupported_operation_raises(
 ) -> None:
     """An unknown columnOperation is rejected rather than silently ignored."""
     dataset = _clickhouse_dataset(mocker)
-    bad = {
+    bad: AdhocColumn = {
         "label": "skills_x",
         "column": "skills",
         "columnOperation": "NOT_A_REAL_OP",
