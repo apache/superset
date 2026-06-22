@@ -39,6 +39,7 @@ import {
   Select,
   Space,
   Constants,
+  DROPDOWN_ALIGN_BOTTOM,
   Input,
 } from '@superset-ui/core/components';
 import {
@@ -120,7 +121,13 @@ export const getSelectDropdownAlign = (
   filterBarOrientation?: FilterBarOrientation,
 ) =>
   filterBarOrientation === FilterBarOrientation.Horizontal
-    ? { overflow: { adjustY: false } }
+    ? {
+        ...DROPDOWN_ALIGN_BOTTOM,
+        overflow: {
+          ...DROPDOWN_ALIGN_BOTTOM.overflow,
+          adjustY: false,
+        },
+      }
     : undefined;
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
