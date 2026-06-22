@@ -155,6 +155,29 @@ def test_apply_dashboard_filter_context_overrides_x_axis_time_grain() -> None:
     assert query["extras"]["time_grain_sqla"] == "P1Y"
 
 
+def test_apply_dashboard_filter_context_grain_targets_first_adhoc_column() -> None:
+    """
+    The grain override must land on ``columns[0]`` to match frontend logic.
+    """
+    query_context_json: dict[str, Any] = {
+        "queries": [
+            {
+                "columns": [
+                    {"timeGrain": "P1D", "sqlExpression": "order_date"},
+                    {"columnType": "BASE_AXIS", "sqlExpression": "other"},
+                ],
+                "extras": {},
+            }
+        ],
+    }
+
+    apply_dashboard_filter_context(query_context_json, {"time_grain_sqla": "P1Y"})
+
+    columns = query_context_json["queries"][0]["columns"]
+    assert columns[0]["timeGrain"] == "P1Y"  # the column get_time_grain reads
+    assert "timeGrain" not in columns[1]  # the BASE_AXIS-tagged one is untouched
+
+
 def test_apply_dashboard_filter_context_keeps_grain_when_no_grain_filter() -> None:
     """
     When the dashboard applies a non-grain filter (e.g. a value filter), the

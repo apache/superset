@@ -338,11 +338,10 @@ def apply_dashboard_filter_context(  # noqa: C901
         # top-level key, but query_context objects expect it as an extra key.
         if custom_time_grain := extra_form_data.get("time_grain_sqla"):
             extras["time_grain_sqla"] = custom_time_grain
-            # Inject ``filter_timegrain`` into X-Axis column
-            for column in query.get("columns") or []:
-                if isinstance(column, dict) and column.get("columnType") == "BASE_AXIS":
-                    column["timeGrain"] = custom_time_grain
-                    break
+            # get_time_grain() resolves grain from the first adhoc column (columns[0])
+            columns = query.get("columns") or []
+            if columns and isinstance(columns[0], dict):
+                columns[0]["timeGrain"] = custom_time_grain
 
         if extras:
             query["extras"] = extras
