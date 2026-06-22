@@ -32,7 +32,7 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
-from superset.superset_typing import QueryObjectDict
+from superset.superset_typing import AdhocColumn, Column, QueryObjectDict
 from superset.utils.core import MultiValueColumnOperation
 
 
@@ -70,7 +70,7 @@ def _make_dataset(mocker: MockerFixture) -> SqlaTable:
     return dataset
 
 
-def _explode_dimension() -> dict:
+def _explode_dimension() -> AdhocColumn:
     return {
         "label": "skill",
         "column": "skills",
@@ -78,7 +78,7 @@ def _explode_dimension() -> dict:
     }
 
 
-def _query_obj(dimension: dict) -> QueryObjectDict:
+def _query_obj(dimension: Column) -> QueryObjectDict:
     return {
         "granularity": None,
         "from_dttm": None,
@@ -152,7 +152,9 @@ def test_explode_unsupported_engine_raises(
     dataset = _make_dataset(mocker)
     with app.test_request_context():  # noqa: SIM117
         with pytest.raises(QueryObjectValidationError):
-            dataset.get_sqla_query(**_query_obj(_explode_dimension()))
+            dataset.get_query_str_extended(
+                _query_obj(_explode_dimension()), mutate=False
+            )
 
 
 def test_explode_unimplemented_dialect_raises_clean_error(
