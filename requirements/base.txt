@@ -270,7 +270,6 @@ packaging==25.0
     #   deprecation
     #   gunicorn
     #   limits
-    #   marshmallow
     #   shillelagh
 pandas==2.1.4
     # via apache-superset (pyproject.toml)
