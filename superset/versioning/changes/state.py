@@ -48,6 +48,7 @@ from sqlalchemy.orm import Session
 
 from superset.versioning.changes.table import version_changes_table
 from superset.versioning.diff import (
+    cap_records,
     ChangeRecord,
     diff_dashboard,
     diff_dataset,
@@ -219,7 +220,9 @@ def bulk_insert_records(
         return
     rows = []
     for (entity_kind, entity_id), records in buffered.items():
-        for seq, r in enumerate(records):
+        # Bound a single save's output: collapse field-level record explosions
+        # and truncate over-large values before they hit version_changes.
+        for seq, r in enumerate(cap_records(records)):
             rows.append(
                 {
                     "transaction_id": transaction_id,

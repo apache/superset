@@ -62,6 +62,16 @@ _LAYOUT_META_DIFF_DEPTH = 3
 _JSON_METADATA_DIFF_DEPTH = 6
 _SLICE_PARAMS_DIFF_DEPTH = 6
 
+# Output-safety caps applied at persistence time (see :func:`cap_records`).
+# Unlike the depth caps above (usefulness bounds), these are *safety* bounds:
+# they stop a single edit from writing an unbounded value or an unbounded
+# number of rows into ``version_changes`` (and thus the activity stream). A
+# 200 KB ``params``/SQL blob would otherwise become a 200 KB value, and a
+# 2000-element list edit 2000 rows — both demonstrated. ``version_changes`` is
+# an audit log, not a content store, so over-large output is summarised.
+MAX_VALUE_BYTES = 8 * 1024  # per from_value / to_value, JSON-serialised
+MAX_RECORDS_PER_FIELD = 100  # per top-level field; collapse beyond this
+
 # Columns that are always excluded from change records, regardless of
 # what ``__versioned__`` says. ``id`` / ``uuid`` are stable identifiers
 # (not edited in normal flows). The four audit fields change on every
@@ -206,6 +216,73 @@ class ChangeRecord:
 
 
 Key = str | int
+
+
+def _value_bytes(value: Any) -> int:
+    try:
+        return len(_json.dumps(value, default=str))
+    except (TypeError, ValueError):
+        return len(str(value))
+
+
+def _cap_value(value: Any) -> Any:
+    """Replace an over-large ``from_value``/``to_value`` with a bounded marker.
+
+    ``version_changes`` is an audit log, not a content store; a value past
+    :data:`MAX_VALUE_BYTES` is swapped for a marker recording the original size
+    and a short preview, so a huge ``params``/SQL/blob edit can't write a
+    multi-hundred-KB row (or balloon the activity response). Values within the
+    bound pass through unchanged.
+    """
+    size = _value_bytes(value)
+    if size <= MAX_VALUE_BYTES:
+        return value
+    preview = value if isinstance(value, str) else _json.dumps(value, default=str)
+    return {"__truncated__": True, "original_bytes": size, "preview": preview[:256]}
+
+
+def cap_records(records: list[ChangeRecord]) -> list[ChangeRecord]:
+    """Apply the output-safety caps to one entity's record list before it is
+    persisted.
+
+    1. **Record-count cap** — group by top-level field (``path[0]``); any field
+       producing more than :data:`MAX_RECORDS_PER_FIELD` records (a 2000-element
+       list edit, a 1000-key dict rewrite, a thousand-node layout churn) is
+       collapsed to a single summary record carrying the count. First-seen field
+       order is preserved.
+    2. **Value-size cap** — every surviving record's ``from_value``/``to_value``
+       is run through :func:`_cap_value`.
+    """
+    groups: dict[tuple[Any, ...], list[ChangeRecord]] = {}
+    for record in records:
+        groups.setdefault(tuple(record.path[:1]), []).append(record)
+
+    deduped: list[ChangeRecord] = []
+    for key, group in groups.items():
+        if len(group) > MAX_RECORDS_PER_FIELD:
+            first = group[0]
+            deduped.append(
+                ChangeRecord(
+                    kind=first.kind,
+                    operation="update",
+                    path=list(key),
+                    from_value={"__collapsed__": len(group)},
+                    to_value={"__collapsed__": len(group)},
+                )
+            )
+        else:
+            deduped.extend(group)
+
+    return [
+        ChangeRecord(
+            kind=r.kind,
+            operation=r.operation,
+            path=r.path,
+            from_value=_cap_value(r.from_value),
+            to_value=_cap_value(r.to_value),
+        )
+        for r in deduped
+    ]
 
 
 def _operation_from_values(from_value: Any, to_value: Any) -> str:
