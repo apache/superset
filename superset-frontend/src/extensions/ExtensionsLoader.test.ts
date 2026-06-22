@@ -234,13 +234,13 @@ test('passes an absolute remoteEntry URL through unchanged', async () => {
   script.restore();
 });
 
-test('logs error when initializeExtensions fails', async () => {
+test('logs error and rejects when initializeExtensions fails', async () => {
   const loader = ExtensionsLoader.getInstance();
   const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
   const fetchError = new Error('Network error');
   jest.spyOn(SupersetClient, 'get').mockRejectedValue(fetchError);
 
-  await loader.initializeExtensions();
+  await expect(loader.initializeExtensions()).rejects.toThrow('Network error');
 
   expect(errorSpy).toHaveBeenCalledWith(
     'Error setting up extensions:',

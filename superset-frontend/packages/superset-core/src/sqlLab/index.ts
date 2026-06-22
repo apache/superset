@@ -63,9 +63,10 @@ export interface Tab {
   id: string;
 
   /**
-   * The stable backend-assigned ID for this tab (the tabstateview integer ID).
-   * Set once the tab has been persisted to the backend. Undefined for new tabs
-   * before the first backend sync.
+   * The stable backend-assigned identifier for this tab. Exposed as an opaque
+   * string so the public extension API does not leak the backend's internal
+   * numeric tab id. Set once the tab has been persisted to the backend;
+   * undefined for new tabs before the first backend sync.
    */
   backendId?: string;
 
