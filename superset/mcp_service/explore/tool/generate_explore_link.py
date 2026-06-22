@@ -30,7 +30,9 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
-from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
+from superset.mcp_service.chart.chart_helpers import (
+    extract_form_data_key_from_url,
+)
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
     get_table_chart_type_label,
@@ -39,6 +41,9 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
+)
+from superset.mcp_service.utils.url_utils import (
+    extract_permalink_key_from_url,
 )
 
 logger = logging.getLogger(__name__)
@@ -135,6 +140,7 @@ async def generate_explore_link(
                 return {
                     "url": "",
                     "form_data": {},
+                    "permalink_key": None,
                     "form_data_key": None,
                     "chart_type_label": None,
                     "error": (
@@ -154,6 +160,7 @@ async def generate_explore_link(
                 return {
                     "url": "",
                     "form_data": {},
+                    "permalink_key": None,
                     "form_data_key": None,
                     "chart_type_label": None,
                     "error": (
@@ -178,6 +185,7 @@ async def generate_explore_link(
             return {
                 "url": default_url,
                 "form_data": {},
+                "permalink_key": None,
                 "form_data_key": None,
                 "chart_type_label": None,
                 "error": None,
@@ -209,7 +217,7 @@ async def generate_explore_link(
         # Add datasource to form_data for consistency with generate_chart
         # Only set if not already present to avoid overwriting
         if "datasource" not in form_data:
-            form_data["datasource"] = f"{request.dataset_id}__table"
+            form_data["datasource"] = f"{dataset.id}__table"
 
         await ctx.debug(
             "Form data generated with keys: %s, has_viz_type=%s, has_datasource=%s"
@@ -248,6 +256,7 @@ async def generate_explore_link(
             return {
                 "url": "",
                 "form_data": form_data,
+                "permalink_key": None,
                 "form_data_key": None,
                 "chart_type_label": None,
                 "error": error_payload,
@@ -262,19 +271,23 @@ async def generate_explore_link(
                 dataset_id=request.dataset_id, form_data=form_data
             )
 
-        # Extract form_data_key from the explore URL
-        form_data_key = extract_form_data_key_from_url(explore_url)
+        # Extract permalink_key (durable) or fall back to form_data_key (ephemeral)
+        permalink_key = extract_permalink_key_from_url(explore_url)
+        form_data_key = (
+            extract_form_data_key_from_url(explore_url) if not permalink_key else None
+        )
 
         await ctx.report_progress(4, 4, "URL generation complete")
         await ctx.info(
             "Explore link generated successfully: url_length=%s, dataset_id=%s, "
-            "form_data_key=%s"
-            % (len(explore_url or ""), request.dataset_id, form_data_key)
+            "permalink_key=%s, form_data_key=%s"
+            % (len(explore_url or ""), request.dataset_id, permalink_key, form_data_key)
         )
 
         return {
             "url": explore_url,
             "form_data": form_data,
+            "permalink_key": permalink_key,
             "form_data_key": form_data_key,
             "chart_type_label": get_table_chart_type_label(form_data.get("viz_type")),
             "error": None,
@@ -293,6 +306,7 @@ async def generate_explore_link(
         return {
             "url": "",
             "form_data": {},
+            "permalink_key": None,
             "form_data_key": None,
             "chart_type_label": None,
             "error": f"Failed to generate explore link: {str(e)}",

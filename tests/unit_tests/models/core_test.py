@@ -1556,3 +1556,70 @@ def test_database_execute_async_without_options(mocker: MockerFixture) -> None:
     mock_executor_class.assert_called_once_with(database)
     mock_executor.execute_async.assert_called_once_with("SELECT 1", None)
     assert result == mock_handle
+
+
+def test_clear_bootstrap_cache_logs_warning_on_failure(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that clear_bootstrap_cache logs a warning when cache invalidation fails.
+
+    Exercises the ``except Exception`` branch in the event listener so that
+    Codecov registers it as covered.  The function must not re-raise the
+    exception — callers (SQLAlchemy event dispatch) should be unaffected.
+    """
+    from superset.models.core import clear_bootstrap_cache
+
+    # Patch cache_manager so delete_memoized raises
+    mock_cache = mocker.MagicMock()
+    mock_cache.delete_memoized.side_effect = RuntimeError("Redis unavailable")
+
+    mock_cache_manager = mocker.patch("superset.models.core.cache_manager")
+    mock_cache_manager.cache = mock_cache
+
+    # Patch cached_common_bootstrap_data so the local import inside
+    # clear_bootstrap_cache resolves to our mock.
+    mocker.patch(
+        "superset.views.base.cached_common_bootstrap_data",
+        new=mocker.MagicMock(__name__="cached_common_bootstrap_data"),
+    )
+
+    mock_logger = mocker.patch("superset.models.core.logger")
+
+    # Should not raise even though delete_memoized raises
+    clear_bootstrap_cache(
+        _mapper=mocker.MagicMock(),
+        _connection=mocker.MagicMock(),
+        _target=mocker.MagicMock(),
+    )
+
+    # Verify logger.warning was called with the correct message format
+    mock_logger.warning.assert_called_once()
+    call_args = mock_logger.warning.call_args
+    assert call_args[0][0] == "Failed to clear theme bootstrap cache: %s"
+
+
+def test_execute_sql_preserves_line_comments_single_statement(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A single statement is executed verbatim, so the ``--`` line comments added by
+    ``SQL_QUERY_MUTATOR`` are not round-tripped through sqlglot (which would rewrite
+    them into ``/* */`` blocks). Regression test for the comment-mangling bug.
+    """
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_sqla_engine")
+    mocker.patch.object(database, "get_raw_connection")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[])
+    # Identity mutator so the test isolates whether the SQL got reformatted.
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql, **kwargs: sql
+    )
+    execute = mocker.patch.object(database.db_engine_spec, "execute")
+
+    sql = "SELECT 1 AS one\n-- user: alice\n-- company: dunder mifflin"
+    database._execute_sql_with_mutation_and_logging(sql, fetch_last_result=True)
+
+    executed_sql = execute.call_args.args[1]
+    assert executed_sql == sql
+    assert "/*" not in executed_sql
