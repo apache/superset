@@ -383,7 +383,7 @@ greenlet==3.5.1
     #   sqlalchemy
 griffelib==2.0.2
     # via fastmcp
-grpcio==1.71.0
+grpcio==1.81.1
     # via
     #   apache-superset
     #   google-api-core
@@ -1035,6 +1035,7 @@ typing-extensions==4.15.0
     #   apache-superset-core
     #   cattrs
     #   exceptiongroup
+    #   grpcio
     #   limits
     #   mcp
     #   opentelemetry-api
