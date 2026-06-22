@@ -91,7 +91,7 @@ class ImportModelsCommand(BaseCommand):
         # for the resulting ``version_transaction`` row and stamps
         # ``version_transaction.action_kind = 'import'``. Lets operators
         # explain otherwise-confusing diffs ("Cleared default_filters")
-        # as "this was an import". See data-model.md §"Three dimensions".
+        # as "this was an import".
         # Method-scoped import — defers the versioning bootstrap path
         # out of this command's module-load graph; see ``changes.py``
         # module docstring for the broader init-order rationale.

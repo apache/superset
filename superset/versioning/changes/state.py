@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
 
 # Per-model-class cache of the scalar-field set. Populated lazily on
 # first save of a model. Reading from ``__table__.columns`` is cheap
-# but not free; memoising keeps the save-path overhead budget (FR-021)
+# but not free; memoising keeps the save-path overhead budget
 # from slowly growing with the set of distinct model classes seen.
 _SCALAR_FIELDS_CACHE: dict[type, frozenset[str]] = {}
 

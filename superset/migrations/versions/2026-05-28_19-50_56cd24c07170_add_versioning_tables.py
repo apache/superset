@@ -65,10 +65,6 @@ composite unique key, not the row id; the API surfaces a deterministic
 UUIDv5 ``version_uuid`` derived from ``entity.uuid`` and
 ``transaction_id`` for stable external references.
 
-See spec FR-016..FR-021, data-model.md §``version_changes`` /
-§"Storage architecture", and the spike notes in
-``spike-continuum-restore.md``.
-
 Revision ID: 56cd24c07170
 Revises: 2bee73611e32
 Create Date: 2026-05-28 19:50:00.000000
@@ -306,8 +302,7 @@ def upgrade() -> None:
     #
     # Field-level diff log keyed to a (transaction, entity) pair. Each
     # row describes one atomic change (one field or one child-collection
-    # element) that occurred to one entity during a save. See spec
-    # FR-016..FR-021 and data-model.md §version_changes.
+    # element) that occurred to one entity during a save.
     #
     # ``(entity_kind, entity_id)`` is a polymorphic reference: depending
     # on ``entity_kind`` (``"chart"`` / ``"dashboard"`` / ``"dataset"``)
@@ -509,7 +504,7 @@ def upgrade() -> None:
     #
     # If that reshape is removed from the stack, the live table reverts to
     # carrying its surrogate ``id`` and this migration would need to
-    # match — see ``spike-continuum-restore.md`` "Branch maintenance".
+    # match.
     # ------------------------------------------------------------------
     op.create_table(
         "dashboard_slices_version",

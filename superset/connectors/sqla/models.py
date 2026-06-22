@@ -1351,7 +1351,7 @@ class SqlaTable(
     # security state, not user-authored content: permission maintenance
     # rewrites it in bulk, and versioning it produced phantom transactions
     # flooding the activity stream (one "updated" row per touched entity
-    # with no user edit — surfaced by the version-history UI, PR #40988).
+    # with no user edit — surfaced by the version-history UI).
     # Excluding it also means a restore can't resurrect stale permission
     # strings; the live, derived values stay authoritative.
     __versioned__: dict[str, Any] = {

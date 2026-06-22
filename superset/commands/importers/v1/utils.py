@@ -405,7 +405,11 @@ def _prime_versioning_unit_of_work() -> None:
         # pylint: disable=import-outside-toplevel
         from sqlalchemy_continuum import versioning_manager
 
-        if versioning_manager.options.get("versioning"):
+        # Mirror the exact condition Continuum's track_association_operations
+        # listener uses to decide whether it acts (versioning OR
+        # native_versioning), so the prime can't skip while the listener runs.
+        options = versioning_manager.options
+        if options.get("versioning") or options.get("native_versioning"):
             versioning_manager.unit_of_work(db.session)
     except Exception:  # pylint: disable=broad-except
         logger.warning(

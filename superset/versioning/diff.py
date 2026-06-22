@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Diff engine for the ``version_changes`` table (FR-016..FR-019).
+"""Diff engine for the ``version_changes`` table.
 
 Hand-rolled because:
 
@@ -31,8 +31,7 @@ Hand-rolled because:
   libraries default to list-index matching, which is wrong for our
   data.
 
-See ADR (plan.md §"Key Design Decision: Hand-rolled diff engine") for
-the full rationale.
+See the module docstring above for the full rationale.
 
 All functions in this module are pure: they take dicts (or lists of
 dicts) and return a list of :class:`ChangeRecord`. The ORM->dict
@@ -628,7 +627,7 @@ def diff_json_field(
 #                               merely *viewed* — producing phantom
 #                               "Properties updated" records with no
 #                               user edit (surfaced by the
-#                               version-history UI, PR #40988). The
+#                               version-history UI). The
 #                               view-time write itself is a separate
 #                               round-trip-asymmetry issue (cf. #39706);
 #                               this exclusion stops the change-record
@@ -862,8 +861,8 @@ def diff_dashboard(
 
     Promoting ``position_json`` to ``kind="layout"`` or
     ``json_metadata.native_filter_configuration`` to ``kind="filter"``
-    is deferred to Phase 2 alongside the UI that would render them
-    (spec Clarifications §Session 2026-04-24); until then, both fields
+    is deferred to Phase 2 alongside the UI that would render them;
+    until then, both fields
     fall through to ``kind="field"`` records keyed by sub-key.
     """
     records = diff_scalar_fields(pre, post, fields=fields)

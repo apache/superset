@@ -40,7 +40,7 @@ class VersionChangeRecordSchema(Schema):
 
     The frontend renders human-readable prose from (``kind``,
     ``from_value``, ``to_value``) via Flask-Babel. Server-side the
-    shape is deliberately machine-readable only — see spec FR-019.
+    shape is deliberately machine-readable only.
     """
 
     kind = fields.String(

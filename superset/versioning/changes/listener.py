@@ -56,7 +56,7 @@ Continuum shadow tables via the helpers in
 
 ``session.new`` entities are not processed in this listener:
 operation_type=0 transactions (baseline capture and first-save INSERTs)
-produce zero change records per spec §Clarifications 2026-04-24.
+produce zero change records by design.
 """
 
 from __future__ import annotations
@@ -137,7 +137,7 @@ ACTION_KINDS: frozenset[str] = frozenset(
 # by commands alongside ``ACTION_KIND_KEY`` when the avenue has a payload
 # the field-level diff can't express; the canonical case is restore,
 # whose transaction otherwise carries no pointer to WHICH version was
-# restored (surfaced by the version-history UI, PR #40988: "Restored to
+# restored (surfaced by the version-history UI: "Restored to
 # X from [date]" can't be rendered from API data alone).
 #
 # Build the value with :func:`build_action_headline` — the single owner

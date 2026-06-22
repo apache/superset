@@ -96,7 +96,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     # security state, not user-authored content: permission maintenance
     # rewrites it in bulk, and versioning it produced phantom transactions
     # flooding the activity stream (10 "Chart updated" rows for one user
-    # save — surfaced by the version-history UI, PR #40988). Excluding it
+    # save — surfaced by the version-history UI). Excluding it
     # also means a restore can't resurrect stale permission strings; the
     # live, derived values stay authoritative.
     __versioned__: dict[str, Any] = {
