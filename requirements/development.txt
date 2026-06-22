@@ -556,7 +556,7 @@ more-itertools==10.8.0
     # via
     #   jaraco-classes
     #   jaraco-functools
-msgpack==1.0.8
+msgpack==1.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -626,7 +626,6 @@ packaging==25.0
     #   google-cloud-bigquery
     #   gunicorn
     #   limits
-    #   marshmallow
     #   matplotlib
     #   pytest
     #   shillelagh
