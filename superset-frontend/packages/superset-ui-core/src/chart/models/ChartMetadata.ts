@@ -56,6 +56,12 @@ export interface ChartMetadataConfig {
   // suppressContextMenu: true hides the default context menu for the chart.
   // This is useful for viz plugins that define their own context menu.
   suppressContextMenu?: boolean;
+  // supportsCascadeDependencies: true allows a native filter to be selected
+  // as a dependency (cascade) parent for other filters. Filters that emit
+  // extraFormData tied to a specific dataset/column (e.g. time grain) should
+  // leave this unset, since that data isn't safe to merge into a child
+  // filter on a different dataset.
+  supportsCascadeDependencies?: boolean;
 }
 
 export default class ChartMetadata {
@@ -103,6 +109,8 @@ export default class ChartMetadata {
 
   suppressContextMenu?: boolean;
 
+  supportsCascadeDependencies: boolean;
+
   constructor(config: ChartMetadataConfig) {
     const {
       name,
@@ -126,6 +134,7 @@ export default class ChartMetadata {
       dynamicQueryObjectCount = false,
       parseMethod = 'json-bigint',
       suppressContextMenu = false,
+      supportsCascadeDependencies = false,
     } = config;
 
     this.name = name;
@@ -158,6 +167,7 @@ export default class ChartMetadata {
     this.dynamicQueryObjectCount = dynamicQueryObjectCount;
     this.parseMethod = parseMethod;
     this.suppressContextMenu = suppressContextMenu;
+    this.supportsCascadeDependencies = supportsCascadeDependencies;
   }
 
   canBeAnnotationType(type: string): boolean {

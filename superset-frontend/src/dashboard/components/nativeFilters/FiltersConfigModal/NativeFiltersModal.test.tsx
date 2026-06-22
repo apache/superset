@@ -34,7 +34,7 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 jest.mock('@superset-ui/core', () => {
-  const items = {
+  const items: Record<string, { value: Record<string, unknown> }> = {
     filter_select: {
       value: {
         datasourceCount: 1,

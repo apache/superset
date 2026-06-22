@@ -366,7 +366,16 @@ export default function getControlItemsMap({
             />
           }
         >
-          <DatasetColumnSelect datasetId={datasetId} onChange={notifyChange} />
+          <DatasetColumnSelect
+            datasetId={datasetId}
+            onChange={() => {
+              // We need reset default value when column changed
+              setNativeFilterFieldValues(form, filterId, {
+                defaultDataMask: null,
+              });
+              notifyChange();
+            }}
+          />
         </StyledFormItem>
       );
       mapMainControlItems[controlItem.name] = {
