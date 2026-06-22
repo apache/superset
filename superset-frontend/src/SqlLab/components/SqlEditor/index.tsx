@@ -283,6 +283,11 @@ const SqlEditor: FC<Props> = ({
   // Re-renders when an extension registers a northPane view after async load.
   const northPaneViews = useViews(ViewLocations.sqllab.northPane) || [];
 
+  // Resolve the per-tab localStorage key the same way every other SQL Lab
+  // consumer does (`tabViewId ?? id`), so the value written, read back, and
+  // observed via the `storage` event all agree once a tab is backend-persisted.
+  const northPaneStorageId = queryEditor.tabViewId ?? queryEditor.id;
+
   // ID of the northPane view active for this tab, or null for the default
   // SQL editor layout.  Set by an extension via PENDING_NORTH_PANE_VIEW_KEY
   // before calling createTab(); persisted per-tab in localStorage.
@@ -290,32 +295,33 @@ const SqlEditor: FC<Props> = ({
     const pendingViewId = localStorage.getItem(PENDING_NORTH_PANE_VIEW_KEY);
     if (pendingViewId) {
       localStorage.removeItem(PENDING_NORTH_PANE_VIEW_KEY);
-      localStorage.setItem(NORTH_PANE_VIEW_KEY(queryEditor.id), pendingViewId);
+      localStorage.setItem(
+        NORTH_PANE_VIEW_KEY(northPaneStorageId),
+        pendingViewId,
+      );
       return pendingViewId;
     }
-    return localStorage.getItem(NORTH_PANE_VIEW_KEY(queryEditor.id));
+    return localStorage.getItem(NORTH_PANE_VIEW_KEY(northPaneStorageId));
   });
 
   useEffect(() => {
-    const persistKey = NORTH_PANE_VIEW_KEY(
-      queryEditor.tabViewId ?? queryEditor.id,
-    );
+    const persistKey = NORTH_PANE_VIEW_KEY(northPaneStorageId);
     if (northPaneViewId) {
       localStorage.setItem(persistKey, northPaneViewId);
     } else {
       localStorage.removeItem(persistKey);
     }
-  }, [queryEditor.tabViewId, queryEditor.id, northPaneViewId]);
+  }, [northPaneStorageId, northPaneViewId]);
 
   useEffect(() => {
     const handler = (e: StorageEvent) => {
-      if (e.key === NORTH_PANE_VIEW_KEY(queryEditor.id)) {
+      if (e.key === NORTH_PANE_VIEW_KEY(northPaneStorageId)) {
         setNorthPaneViewId(e.newValue || null);
       }
     };
     window.addEventListener('storage', handler);
     return () => window.removeEventListener('storage', handler);
-  }, [queryEditor.id]);
+  }, [northPaneStorageId]);
 
   const [autorun, setAutorun] = useState(queryEditor.autorun);
   const [ctas, setCtas] = useState('');

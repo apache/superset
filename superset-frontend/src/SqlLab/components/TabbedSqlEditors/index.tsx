@@ -146,16 +146,31 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
     ];
   }, [open, onAddSqlEditor]);
 
-  const handleClick = (e: React.MouseEvent) => {
-    // Antd's Tabs wraps addIcon in its own <button onClick={() => onEdit('add')}>.
-    // Stop propagation so antd doesn't also call newQueryEditor() while we handle it.
-    e.stopPropagation();
+  const activate = () => {
     const primaryItems =
       menus.getMenu(ViewLocations.sqllab.newTab)?.primary ?? [];
     if (primaryItems.length === 0) {
       onAddSqlEditor();
     } else {
       setOpen(prev => !prev);
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Antd's Tabs wraps addIcon in its own <button onClick={() => onEdit('add')}>.
+    // Stop propagation so antd doesn't also call newQueryEditor() while we handle it.
+    e.stopPropagation();
+    activate();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // The same wrapper button activates on Enter/Space; intercept those keys so
+    // keyboard users reach the extension new-tab dropdown rather than antd's
+    // default add-tab path.
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      activate();
     }
   };
 
@@ -167,8 +182,12 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
         menu={{ items: dropdownItems }}
         trigger={[]}
       >
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
-        <span role="button" tabIndex={0} onClick={handleClick}>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
+        >
           {PlusIcon}
         </span>
       </Dropdown>
