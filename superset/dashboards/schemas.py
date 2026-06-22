@@ -47,6 +47,7 @@ screenshot_query_schema = {
     },
 }
 dashboard_title_description = "A title for the dashboard."
+description_description = "A description for the dashboard."
 slug_description = "Unique identifying part for the web address of the dashboard."
 roles_description = (
     "Roles is a list which defines access to the dashboard. "
@@ -295,6 +296,7 @@ class DashboardGetResponseSchema(Schema):
     created_on_humanized = fields.String(data_key="created_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     uuid = fields.UUID(allow_none=True)
+    description = fields.String(allow_none=True)
 
     # pylint: disable=unused-argument
     @post_dump()
@@ -419,8 +421,13 @@ class DashboardPostSchema(BaseDashboardSchema):
         allow_none=True,
         validate=[Length(1, 255)],
     )
+    description = fields.String(
+        metadata={"description": description_description},
+        allow_none=True,
+    )
     editors = fields.List(fields.Integer(metadata={"description": editors_description}))
     viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
+    roles = fields.List(fields.Integer(metadata={"description": roles_description}))
     position_json = fields.String(
         metadata={"description": position_json_description}, validate=validate_json
     )
@@ -473,6 +480,10 @@ class DashboardPutSchema(BaseDashboardSchema):
         allow_none=True,
         validate=Length(0, 500),
     )
+    description = fields.String(
+        metadata={"description": description_description},
+        allow_none=True,
+    )
     slug = fields.String(
         metadata={"description": slug_description},
         allow_none=True,
@@ -483,6 +494,9 @@ class DashboardPutSchema(BaseDashboardSchema):
     )
     viewers = fields.List(
         fields.Integer(metadata={"description": viewers_description}, allow_none=True)
+    )
+    roles = fields.List(
+        fields.Integer(metadata={"description": roles_description}, allow_none=True)
     )
     position_json = fields.String(
         metadata={"description": position_json_description},

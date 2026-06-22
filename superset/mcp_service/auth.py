@@ -1081,4 +1081,8 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     if "ctx" in new_wrapper.__annotations__:
         del new_wrapper.__annotations__["ctx"]
 
+    # Mark this wrapper as protected so a startup assertion can verify every
+    # registered tool went through mcp_auth_hook (see issue #39395).
+    new_wrapper._mcp_auth_protected = True  # type: ignore[attr-defined]
+
     return new_wrapper  # type: ignore[return-value]

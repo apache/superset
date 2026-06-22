@@ -473,14 +473,10 @@ const baseAggregatorTemplates = {
 
   extremes(mode: string, formatter = usFmt) {
     return function ([attr]: string[]) {
-      return function (data: any) {
+      return function () {
         return {
           val: null as any,
           currencySet: new Set<string>(),
-          sorter: getSort(
-            typeof data !== 'undefined' ? data.sorters : null,
-            attr,
-          ),
           push(record: PivotRecord) {
             const x = record[attr];
             if (['min', 'max'].includes(mode)) {
@@ -499,21 +495,9 @@ const baseAggregatorTemplates = {
                   this.val !== null ? this.val : coercedValue,
                 );
               }
-            } else if (
-              mode === 'first' &&
-              this.sorter(
-                x as any,
-                this.val !== null ? this.val : (x as any),
-              ) <= 0
-            ) {
-              this.val = x;
-            } else if (
-              mode === 'last' &&
-              this.sorter(
-                x as any,
-                this.val !== null ? this.val : (x as any),
-              ) >= 0
-            ) {
+            } else if (mode === 'first') {
+              this.val = this.val === null ? x : this.val;
+            } else if (mode === 'last') {
               this.val = x;
             }
             if (

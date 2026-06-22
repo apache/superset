@@ -25,6 +25,11 @@ from superset.dashboards.schemas import DashboardGetResponseSchema
 @pytest.fixture
 def mock_dashboard() -> MagicMock:
     dash = MagicMock()
+    # Real Dashboard objects are not subscriptable. Without this, marshmallow's
+    # get_value reads ``dash["changed_on"]`` (which a MagicMock happily returns
+    # as another mock) instead of the attribute, and marshmallow 4's DateTime
+    # field then fails serializing the mock via datetime.isoformat().
+    dash.__getitem__.side_effect = TypeError
     dash.id = 1
     dash.slug = "test-slug"
     dash.url = "/superset/dashboard/test-slug/"

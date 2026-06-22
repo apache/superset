@@ -859,7 +859,9 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
         fields.String(allow_none=False),
         metadata={"description": "Columns to group by on the table columns"},
     )
-    metric_fill_value = fields.Number(
+    # `fields.Number` became abstract in marshmallow 4; use `Float`, which
+    # preserves the previous "any numeric value" semantics for this field.
+    metric_fill_value = fields.Float(
         metadata={
             "description": "Value to replace missing values with in "
             "aggregate calculations."

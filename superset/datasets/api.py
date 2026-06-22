@@ -31,6 +31,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from jinja2.exceptions import TemplateSyntaxError
 from marshmallow import ValidationError
+from sqlalchemy.orm.exc import MultipleResultsFound
 
 from superset import event_logger, is_feature_enabled, security_manager
 from superset.commands.dataset.create import CreateDatasetCommand
@@ -1119,7 +1120,39 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response(400, message=ex.messages)
         table_name = body["table_name"]
         database_id = body["database_id"]
-        if table := DatasetDAO.get_table_by_name(database_id, table_name):
+        # Dual-path lookup. When the caller specifies ``schema``, query the
+        # full ``(database_id, catalog, schema, table_name)`` uniqueness key
+        # — this is the path that fixes #30377 by disambiguating datasets
+        # that share a ``table_name`` across schemas/catalogs. When the
+        # caller omits ``schema``, fall back to the legacy schema-agnostic
+        # ``get_table_by_name`` so external callers that relied on
+        # schema-blind matching still find their dataset (typically a
+        # physical Postgres/MySQL table stored with a non-NULL schema).
+        # If two datasets share the ``table_name`` across schemas and the
+        # caller omits ``schema``, surface a 400 with an actionable message
+        # instead of the original 500 ``MultipleResultsFound``.
+        # Catalog follows the same literal-pass rule: existing datasets
+        # created before multi-catalog support landed are stored with
+        # ``catalog=None``, so applying ``database.get_default_catalog()``
+        # would miss them.
+        schema = body.get("schema") or None
+        catalog = body.get("catalog") or None
+        if schema:
+            table = DatasetDAO.get_table_by_catalog_schema_and_name(
+                database_id, schema, table_name, catalog=catalog
+            )
+        else:
+            try:
+                table = DatasetDAO.get_table_by_name(database_id, table_name)
+            except MultipleResultsFound:
+                return self.response_400(
+                    message=(
+                        f"Multiple datasets named '{table_name}' exist in this "
+                        "database across different schemas. Specify the "
+                        "'schema' field to disambiguate."
+                    )
+                )
+        if table:
             return self.response(200, result={"table_id": table.id})
 
         body["database"] = database_id

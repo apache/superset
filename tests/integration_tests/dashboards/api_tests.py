@@ -87,6 +87,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     dashboard_data = {
         "dashboard_title": "title1_changed",
         "slug": "slug1_changed",
+        "description": "desc_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
         "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": [], "map_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',  # noqa: E501
@@ -544,7 +545,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         admin = self.get_user("admin")
         dashboard = self.insert_dashboard(
-            "title", "slug1", [admin.id], created_by=admin
+            "title", "slug1", [admin.id], created_by=admin, desc="description"
         )
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard.id}"
@@ -587,6 +588,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 "thumbnail_url": dashboard.thumbnail_url,
                 "is_managed_externally": False,
                 "theme": None,
+                "description": "description",
             }
         data = json.loads(rv.data.decode("utf-8"))
         assert "changed_on" in data["result"]

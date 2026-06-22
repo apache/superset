@@ -623,6 +623,7 @@ class SupersetTestCase(TestCase):
         published: bool = False,
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
+        desc: Optional[str] = None,
     ) -> Dashboard:
         obj_editors = list()  # noqa: C408
         obj_roles = list()  # noqa: C408
@@ -651,7 +652,9 @@ class SupersetTestCase(TestCase):
         dashboard = Dashboard(
             dashboard_title=dashboard_title,
             slug=slug,
+            description=desc,
             editors=obj_editors,
+            roles=obj_roles,
             position_json=position_json,
             css=css,
             json_metadata=json_metadata,

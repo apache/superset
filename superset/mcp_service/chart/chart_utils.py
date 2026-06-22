@@ -157,14 +157,31 @@ def validate_chart_dataset(
         )
 
 
-def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> str:
-    """Generate an explore link for the given dataset and form data."""
+def generate_explore_link(
+    dataset_id: int | str,
+    form_data: Dict[str, Any],
+    prefer_permalink: bool = True,
+) -> str:
+    """Generate an explore link for the given dataset and form data.
+
+    Prefers a durable explore permalink (DB-backed key-value store, does not
+    expire) over an ephemeral form_data_key (Redis cache, expires in ~24h).
+    Falls back to the form_data_key approach if permalink creation fails, then
+    to a plain dataset URL as a last resort.
+
+    Set ``prefer_permalink=False`` for callers that depend on a ``form_data_key``
+    in the returned URL (e.g. preview flows that extract and re-cache the key);
+    this skips the permalink path and returns an ``/explore/?form_data_key=...``
+    URL directly.
+    """
     from sqlalchemy.exc import SQLAlchemyError
 
     from superset.commands.exceptions import CommandException
     from superset.commands.explore.form_data.parameters import CommandParameters
+    from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
     from superset.daos.dataset import DatasetDAO
     from superset.exceptions import SupersetException
+    from superset.explore.permalink.exceptions import ExplorePermalinkCreateFailedError
     from superset.mcp_service.commands.create_form_data import (
         MCPCreateFormDataCommand,
     )
@@ -200,7 +217,27 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
             "datasource": f"{numeric_dataset_id}__table",
         }
 
-        # Try to create form_data in cache using MCP-specific CreateFormDataCommand
+        # Try durable permalink first (DB-backed key-value store, does not expire).
+        # CreateExplorePermalinkCommand wraps its internal failures (encode/create/
+        # SQLAlchemy errors) into ExplorePermalinkCreateFailedError, so catch only
+        # those expected modes here — letting programming errors (TypeError, etc.)
+        # surface instead of being silently masked by the form_data_key fallback.
+        # Callers that need a form_data_key URL opt out via prefer_permalink=False.
+        if prefer_permalink:
+            try:
+                state = {"formData": form_data_with_datasource}
+                permalink_key = CreateExplorePermalinkCommand(state=state).run()
+                return f"{base_url}/explore/p/{permalink_key}/"
+            except (
+                ExplorePermalinkCreateFailedError,
+                SQLAlchemyError,
+            ) as permalink_e:
+                logger.debug(
+                    "Permalink generation failed, falling back to form_data_key: %s",
+                    permalink_e,
+                )
+
+        # Fall back to ephemeral form_data_key (Redis-backed cache)
         cmd_params = CommandParameters(
             datasource_type=DatasourceType.TABLE,
             datasource_id=numeric_dataset_id,
@@ -208,23 +245,18 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
             tab_id=None,
             form_data=json.dumps(form_data_with_datasource),
         )
-
-        # Create the form_data cache entry and get the key
         form_data_key = MCPCreateFormDataCommand(cmd_params).run()
-
-        # Return URL with just the form_data_key
         return f"{base_url}/explore/?form_data_key={form_data_key}"
 
     except (
         CommandException,
         SupersetException,
         SQLAlchemyError,
-        KeyError,
-        ValueError,
-        AttributeError,
-        TypeError,
     ) as e:
-        # Fallback to basic explore URL with numeric ID if available
+        # Fallback to basic explore URL with numeric ID if available. Only the
+        # expected failure modes of dataset lookup / form_data creation are caught
+        # here; programming errors propagate to the tool handler so they aren't
+        # silently masked behind a fallback URL.
         logger.debug("Explore link generation fallback due to: %s", e)
         if numeric_dataset_id is not None:
             return (

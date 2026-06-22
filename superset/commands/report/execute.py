@@ -467,8 +467,12 @@ class BaseReportState:
         try:
             imges = []
             for screenshot in screenshots:
-                if imge := screenshot.get_screenshot(user=user):
-                    imges.append(imge)
+                imge = screenshot.get_screenshot(user=user)
+                if imge is None:
+                    raise ReportScheduleScreenshotFailedError(
+                        "Screenshot failed; aborting to avoid sending a partial report"
+                    )
+                imges.append(imge)
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "Screenshot capture took %.2fs - execution_id: %s",
