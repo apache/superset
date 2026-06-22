@@ -1,0 +1,31 @@
+---
+title: Apache Doris
+sidebar_label: Apache Doris
+description: "Apache Doris is a high-performance real-time analytical database."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"apache_doris","engine_name":"Apache Doris","module":"doris","documentation":{"description":"Apache Doris is a high-performance real-time analytical database.","logo":"doris.png","homepage_url":"https://doris.apache.org/","pypi_packages":["mysqlclient","pydoris"],"connection_string":"doris://{username}:{password}@{host}:{port}/{catalog}.{database}","default_port":9030,"parameters":{"username":"User name","password":"Password","host":"Doris FE Host","database":"Database name","port":"Doris FE port","catalog":"Catalog name"},"host_examples":[{"platform":"Localhost","host":"localhost or 127.0.0.1"},{"platform":"Docker on Linux","host":"172.18.0.1"},{"platform":"Docker on macOS","host":"docker.for.mac.host.internal"},{"platform":"On-premise","host":"IP address or hostname"}],"drivers":[{"name":"mysqlclient","pypi_package":"mysqlclient","connection_string":"mysql://{username}:{password}@{host}/{database}","is_recommended":true,"notes":"Recommended driver. May fail with caching_sha2_password auth."},{"name":"mysql-connector-python","pypi_package":"mysql-connector-python","connection_string":"mysql+mysqlconnector://{username}:{password}@{host}/{database}","is_recommended":false,"notes":"Required for newer MySQL databases using caching_sha2_password authentication."}],"categories":["APACHE_PROJECTS","ANALYTICAL_DATABASES","OPEN_SOURCE"],"custom_errors":[{"regex_name":"CONNECTION_ACCESS_DENIED_REGEX","message_template":"Either the username \"%(username)s\" or the password is incorrect.","error_type":"CONNECTION_ACCESS_DENIED_ERROR","category":"Authentication","description":"Access denied","issue_codes":[1014,1015],"invalid_fields":["username","password"]},{"regex_name":"CONNECTION_INVALID_HOSTNAME_REGEX","message_template":"Unknown Doris server host \"%(hostname)s\".","error_type":"CONNECTION_INVALID_HOSTNAME_ERROR","category":"Connection","description":"Invalid hostname","issue_codes":[1007],"invalid_fields":["host"]},{"regex_name":"CONNECTION_HOST_DOWN_REGEX","message_template":"The host \"%(hostname)s\" might be down and can't be reached.","error_type":"CONNECTION_HOST_DOWN_ERROR","category":"Connection","description":"Host unreachable","issue_codes":[1009],"invalid_fields":["host","port"]},{"regex_name":"CONNECTION_UNKNOWN_DATABASE_REGEX","message_template":"Unable to connect to database \"%(database)s\".","error_type":"CONNECTION_UNKNOWN_DATABASE_ERROR","category":"Connection","description":"Unknown database","issue_codes":[1015],"invalid_fields":["database"]},{"regex_name":"SYNTAX_ERROR_REGEX","message_template":"Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.","error_type":"SYNTAX_ERROR","category":"Query","description":"SQL syntax error","issue_codes":[1030]}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":false,"THIRTY_SECONDS":false,"MINUTE":true,"FIVE_MINUTES":false,"TEN_MINUTES":false,"FIFTEEN_MINUTES":false,"THIRTY_MINUTES":false,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":false,"WEEK_STARTING_MONDAY":true,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":79,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":true,"supports_catalog":true,"supports_dynamic_catalog":true,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":true,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Apache Doris" database={databaseInfo} />

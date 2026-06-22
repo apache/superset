@@ -21,10 +21,11 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy import types
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -82,6 +83,43 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
 SYNTAX_ERROR_REGEX = re.compile('syntax error at or near "(?P<syntax_error>.*?)"')
 
 
+def _check_not_redshift(dbapi_connection: Any, connection_record: Any) -> None:
+    """
+    Event that checks if database is Amazon Redshift.
+
+    SQLAlchemy pool `connect` event that checks whether the database is actually
+    Amazon Redshift by running `SELECT version()`. Redshift returns a version string
+    containing `Redshift`, e.g.::
+
+        PostgreSQL 8.0.2 on ... Redshift 1.0.77467
+
+    If detected, a `ValueError` is raised so that the user is prompted to
+    switch to the `redshift+psycopg2://` driver, which ensures the correct
+    sqlglot dialect is used for SQL transpilation.
+    """
+    try:
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("SELECT version()")
+            version = cursor.fetchone()[0]
+        finally:
+            cursor.close()
+
+        if "redshift" in str(version).lower():
+            raise ValueError(
+                "It looks like you're connecting to Amazon Redshift using the "
+                "PostgreSQL driver. Please use the Redshift driver instead "
+                "(redshift+psycopg2://) to ensure proper SQL dialect support."
+            )
+    except ValueError:
+        raise
+    except Exception:
+        logger.debug(
+            "Failed to check database version for Redshift detection",
+            exc_info=True,
+        )
+
+
 def parse_options(connect_args: dict[str, Any]) -> dict[str, str]:
     """
     Parse ``options`` from  ``connect_args`` into a dictionary.
@@ -96,6 +134,34 @@ def parse_options(connect_args: dict[str, Any]) -> dict[str, str]:
     )
 
     return {token[0]: token[1] for token in tokens}
+
+
+def _normalize_interval(v: Any) -> Optional[float]:
+    """Convert PostgreSQL INTERVAL values to milliseconds.
+
+    psycopg2 and psycopg3 always return INTERVAL values as datetime.timedelta
+    objects. We convert to milliseconds so users can apply the built-in
+    "DURATION" number format for human-readable display (e.g.,
+    "1d 2h 30m 45s") and so the values participate cleanly in numeric
+    aggregations in bar/pie charts.
+
+    Returns None for the NULL case (preserves NULL semantics) and for any
+    unexpected non-timedelta type (avoids producing a mixed-type column
+    when an unfamiliar driver surfaces something other than timedelta).
+    """
+    if v is None:
+        return None
+    if hasattr(v, "total_seconds"):
+        return v.total_seconds() * 1000
+    # Defensive: psycopg2/3 should always hand us a timedelta. If a future
+    # driver doesn't, surface the surprise in the logs rather than silently
+    # dropping the value so operators can diagnose it.
+    logger.warning(
+        "Cannot normalize PostgreSQL INTERVAL value of type %s to numeric; "
+        "returning None.",
+        type(v).__name__,
+    )
+    return None
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -464,8 +530,8 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
     # that specify exact paths rather than using the base class's catch-all "$.*".
     encrypted_extra_sensitive_fields = {
-        "$.aws_iam.external_id",
-        "$.aws_iam.role_arn",
+        "$.aws_iam.external_id": "AWS IAM External ID",
+        "$.aws_iam.role_arn": "AWS IAM Role ARN",
     }
 
     column_type_mappings = (
@@ -489,7 +555,16 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             ENUM(),
             GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^interval", re.IGNORECASE),
+            INTERVAL(),
+            GenericDataType.NUMERIC,
+        ),
     )
+
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        INTERVAL: _normalize_interval,
+    }
 
     @classmethod
     def get_schema_from_engine_params(
@@ -571,6 +646,15 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return uri, connect_args
 
     @staticmethod
+    def mutate_db_for_connection_test(database: Database) -> None:
+        """
+        Flag the database so that the Redshift `SELECT version()` check
+        runs during `test_connection`.  The actual check is injected as a
+        pool `connect` event inside `update_params_from_encrypted_extra`.
+        """
+        database._check_redshift_version = True
+
+    @staticmethod
     def update_params_from_encrypted_extra(
         database: Database,
         params: dict[str, Any],
@@ -581,6 +665,13 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         Handles AWS IAM authentication if configured, then merges any
         remaining encrypted_extra keys into params (standard behavior).
         """
+        # During test_connection, inject a pool event to detect Redshift by
+        # checking SELECT version().  This catches cases where the hostname
+        # doesn't reveal Redshift (custom domains, private endpoints, etc.).
+        if getattr(database, "_check_redshift_version", False) is True:
+            pool_events = params.setdefault("pool_events", [])
+            pool_events.append((_check_not_redshift, "connect"))
+
         if not database.encrypted_extra:
             return
 
@@ -641,7 +732,10 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         be anything, and we would have to block users from running any queries
         referencing tables without an explicit schema.
         """
-        return [f'set search_path = "{schema}"'] if schema else []
+        if not schema:
+            return []
+        escaped = schema.replace('"', '""')
+        return [f'set search_path = "{escaped}"']
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
@@ -768,6 +862,11 @@ WHERE datistemplate = false;
         :param cancel_query_id: Postgres PID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # PostgreSQL pg_backend_pid() returns an integer
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
+            return False
+
         try:
             cursor.execute(
                 "SELECT pg_terminate_backend(pid) "  # noqa: S608

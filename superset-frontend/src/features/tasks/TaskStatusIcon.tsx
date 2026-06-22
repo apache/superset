@@ -18,9 +18,12 @@
  */
 
 import React from 'react';
-import { useTheme, SupersetTheme, t } from '@apache-superset/core/ui';
+import { useSelector } from 'react-redux';
+import { useTheme, SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components';
+import type { RootState } from 'src/views/store';
 import { TaskStatus } from './types';
 import { formatProgressTooltip } from './timeUtils';
 
@@ -85,6 +88,7 @@ export default function TaskStatusIcon({
   exceptionType,
 }: TaskStatusIconProps) {
   const theme = useTheme();
+  const locale = useSelector((state: RootState) => state.common?.locale);
   const IconComponent = statusIcons[status];
   const label = statusLabels[status];
 
@@ -98,6 +102,7 @@ export default function TaskStatusIcon({
       progressTotal,
       progressPercent,
       durationSeconds,
+      locale,
     );
     tooltipContent = (
       <>

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC, Suspense } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { DashboardComponentMetadata, JsonObject } from '@superset-ui/core';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import cx from 'classnames';
@@ -125,7 +125,9 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
             <BackgroundStyleDropdown
               id={`${component.id}-background`}
               value={component.meta.background}
-              onChange={value => updateMeta('background', value)}
+              onChange={value =>
+                updateMeta('background', value as string | number)
+              }
             />,
           ]}
           editMode={editMode}

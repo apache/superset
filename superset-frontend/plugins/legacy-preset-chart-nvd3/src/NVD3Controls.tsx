@@ -18,7 +18,7 @@
  */
 /* eslint-disable react/jsx-key */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelSectionConfig,
   ControlSubSectionHeader,

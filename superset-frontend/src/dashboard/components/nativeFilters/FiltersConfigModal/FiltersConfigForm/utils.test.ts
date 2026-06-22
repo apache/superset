@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Column } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ChartsState,
   DatasourcesState,
@@ -30,6 +30,7 @@ import {
   shouldShowTimeRangePicker,
   mostUsedDataset,
   doesColumnMatchFilterType,
+  getTimeGrainOptions,
 } from './utils';
 
 // Test hasTemporalColumns - validates time range pre-filter visibility logic
@@ -275,4 +276,30 @@ test('isValidFilterValue returns false when range filter value is not an array',
   expect(isValidFilterValue('not an array', true)).toBe(false);
   expect(isValidFilterValue(null, true)).toBe(false);
   expect(isValidFilterValue(undefined, true)).toBe(false);
+});
+
+test('getTimeGrainOptions normalizes tuple payloads into visible select options', () => {
+  expect(
+    getTimeGrainOptions([
+      ['P1D', 'Day'],
+      ['PT1H', 'Hour'],
+      ['P1W', 'Week'],
+    ]),
+  ).toEqual([
+    { value: 'P1D', label: 'Day' },
+    { value: 'PT1H', label: 'Hour' },
+    { value: 'P1W', label: 'Week' },
+  ]);
+});
+
+test('getTimeGrainOptions falls back to value when tuple label is empty', () => {
+  expect(
+    getTimeGrainOptions([
+      ['P1D', ''],
+      ['P1W', 'Week'],
+    ]),
+  ).toEqual([
+    { value: 'P1D', label: 'P1D' },
+    { value: 'P1W', label: 'Week' },
+  ]);
 });

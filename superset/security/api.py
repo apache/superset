@@ -19,14 +19,14 @@ from typing import Any
 
 from flask import current_app, request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.api import rison, safe, SQLAInterface
+from flask_appbuilder.api import rison as parse_rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
 from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 from sqlalchemy import asc, desc
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import selectinload
 
 from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
@@ -83,6 +83,18 @@ class GuestTokenCreateSchema(PermissiveSchema):
     user = fields.Nested(UserSchema)
     resources = fields.List(fields.Nested(ResourceSchema), required=True)
     rls = fields.List(fields.Nested(RlsRuleSchema), required=True)
+    datasets = fields.List(
+        fields.Integer(),
+        load_default=None,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Optional allowlist of dataset IDs the guest may access. "
+                "When omitted all datasets linked to the embedded dashboard "
+                "are accessible, preserving the default behaviour."
+            )
+        },
+    )
 
 
 class RoleResponseSchema(PermissiveSchema):
@@ -187,7 +199,10 @@ class SecurityRestApi(BaseSupersetApi):
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
             token = self.appbuilder.sm.create_guest_access_token(
-                body["user"], body["resources"], body["rls"]
+                body.get("user", {}),
+                body["resources"],
+                body["rls"],
+                **({"datasets": body["datasets"]} if "datasets" in body else {}),
             )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
@@ -214,7 +229,7 @@ class RoleRestAPI(BaseSupersetApi):
     @event_logger.log_this
     @protect()
     @safe
-    @rison(get_list_schema)
+    @parse_rison(get_list_schema)
     @statsd_metrics
     @permission_name("list_roles")
     def get_list(self, **kwargs: Any) -> Response:
@@ -298,7 +313,9 @@ class RoleRestAPI(BaseSupersetApi):
             page_size = args.get("page_size", 10)
 
             query = db.session.query(Role).options(
-                joinedload(Role.permissions), joinedload(Role.user)
+                selectinload(Role.permissions),
+                selectinload(Role.user),
+                selectinload(Role.groups),
             )
 
             filters = args.get("filters", [])
@@ -318,6 +335,8 @@ class RoleRestAPI(BaseSupersetApi):
             if "name" in filter_dict:
                 query = query.filter(Role.name.ilike(f"%{filter_dict['name']}%"))
 
+            total_count = query.count()
+
             roles = (
                 query.order_by(order_by).offset(page * page_size).limit(page_size).all()
             )
@@ -334,7 +353,7 @@ class RoleRestAPI(BaseSupersetApi):
                     }
                     for role in roles
                 ],
-                count=query.count(),
+                count=total_count,
                 ids=[role.id for role in roles],
             )
         except ForbiddenError as e:
@@ -351,6 +370,11 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
     resource_name = "security/user_registrations"
     datamodel = SQLAInterface(RegisterUser)
     allow_browser_login = True
+    # NOTE: registration_hash is intentionally excluded from both list_columns
+    # and search_columns. It is a bearer token for the
+    # /register/activation/<hash> flow; exposing it in API responses (and thus
+    # logs/caches) or allowing it to be filtered on would let a holder activate
+    # the pending account.
     list_columns = [
         "id",
         "username",
@@ -358,5 +382,11 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
         "first_name",
         "last_name",
         "registration_date",
-        "registration_hash",
+    ]
+    search_columns = [
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "registration_date",
     ]

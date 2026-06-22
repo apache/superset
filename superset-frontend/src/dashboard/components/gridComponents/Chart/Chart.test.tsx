@@ -29,6 +29,15 @@ import chartQueries, {
 } from 'spec/fixtures/mockChartQueries';
 import Chart from './Chart';
 
+let capturedChartContainerProps: Record<string, unknown> = {};
+jest.mock('src/components/Chart/ChartContainer', () => {
+  const MockChartContainer = (props: Record<string, unknown>) => {
+    capturedChartContainerProps = props;
+    return <div data-test="chart-container" />;
+  };
+  return { __esModule: true, default: MockChartContainer };
+});
+
 const props = {
   id: queryId,
   width: 100,
@@ -370,6 +379,31 @@ test('should fallback to formData state when runtime state not available', () =>
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
 
+test('should not show a close button on chart error banners', () => {
+  const { queryByRole } = setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          queriesResponse: [
+            {
+              message: 'Something went wrong',
+              errors: [],
+            },
+          ],
+        },
+      },
+    },
+  );
+
+  expect(queryByRole('button', { name: /close/i })).not.toBeInTheDocument();
+});
+
 test('should handle chart state when no converter exists', () => {
   jest
     .spyOn(chartStateConverter, 'hasChartStateConverter')
@@ -426,4 +460,25 @@ test('should merge base ownState with converted chart state', () => {
   );
 
   expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should pass filterState from dataMask to ChartContainer', () => {
+  const mockFilterState = { value: ['bar'], selectedValues: ['bar'] };
+
+  setup(
+    {},
+    {
+      ...defaultState,
+      dataMask: {
+        [queryId]: {
+          filterState: mockFilterState,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps).toHaveProperty(
+    'filterState',
+    mockFilterState,
+  );
 });

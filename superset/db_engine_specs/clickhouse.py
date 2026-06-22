@@ -42,7 +42,6 @@ from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import cache_manager
 from superset.utils.core import GenericDataType
-from superset.utils.hashing import hash_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -288,13 +287,13 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        "pypi_packages": ["clickhouse-connect>=0.6.8"],
+        "pypi_packages": ["clickhouse-connect>=0.13.0"],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
         "drivers": [
             {
                 "name": "clickhouse-connect (Recommended)",
-                "pypi_package": "clickhouse-connect>=0.6.8",
+                "pypi_package": "clickhouse-connect>=0.13.0",
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}:{port}/{database}"
                 ),
@@ -330,7 +329,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             },
         ],
         "install_instructions": (
-            'echo "clickhouse-connect>=0.6.8" >> ./docker/requirements-local.txt'
+            'echo "clickhouse-connect>=0.13.0" >> ./docker/requirements-local.txt'
         ),
         "compatible_databases": [
             {
@@ -347,7 +346,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     DatabaseCategory.CLOUD_DATA_WAREHOUSES,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
-                "pypi_packages": ["clickhouse-connect>=0.6.8"],
+                "pypi_packages": ["clickhouse-connect>=0.13.0"],
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true"
                 ),
@@ -372,7 +371,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     DatabaseCategory.CLOUD_DATA_WAREHOUSES,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
-                "pypi_packages": ["clickhouse-connect>=0.6.8"],
+                "pypi_packages": ["clickhouse-connect>=0.13.0"],
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}/{database}?secure=true"
                 ),
@@ -517,17 +516,6 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                 )
             ]
         return []
-
-    @staticmethod
-    def _mutate_label(label: str) -> str:
-        """
-        Suffix with the first six characters from the md5 of the label to avoid
-        collisions with original column names
-
-        :param label: Expected expression label
-        :return: Conditionally mutated label
-        """
-        return f"{label}_{hash_from_str(label)[:6]}"
 
     @classmethod
     def adjust_engine_params(

@@ -18,9 +18,9 @@
  */
 import { FC } from 'react';
 import { FormItem, Input } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { CHART_CUSTOMIZATION_DIVIDER_PREFIX } from './utils';
 
 interface Props {

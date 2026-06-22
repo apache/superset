@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -28,16 +28,23 @@ import {
   Filters,
   NativeFilterType,
 } from '@superset-ui/core';
-import { styled, css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  useTheme,
+  SupersetTheme,
+} from '@apache-superset/core/theme';
 import {
   Typography,
   Select,
+  type LabeledValue,
   Popover,
   Loading,
   Icons,
   Tooltip,
   FormItem,
 } from '@superset-ui/core/components';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
@@ -46,6 +53,10 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { dispatchChartCustomizationHoverAction } from './utils';
 import { mergeExtraFormData } from '../../utils';
+import {
+  datasetLabel as getDatasetLabel,
+  datasetLabelLower,
+} from 'src/features/semanticLayers/label';
 
 interface ColumnApiResponse {
   column_name?: string;
@@ -201,6 +212,18 @@ const DescriptionTooltip = ({ description }: { description: string }) => (
   </ToolTipContainer>
 );
 
+// Sort display values by label: ascending when sortAscending is true, descending
+// when false, and source order (no sort) when it is unset.
+export const createLabelSortComparator =
+  (sortAscending?: boolean) =>
+  (a: LabeledValue, b: LabeledValue): number => {
+    if (sortAscending === undefined) {
+      return 0;
+    }
+    const labelComparator = propertyComparator('label');
+    return sortAscending ? labelComparator(a, b) : labelComparator(b, a);
+  };
+
 const GroupByFilterCardContent: FC<{
   customizationItem: ChartCustomization;
   hidePopover: () => void;
@@ -220,14 +243,6 @@ const GroupByFilterCardContent: FC<{
     }
     return t('None');
   }, [dataset, datasetName]);
-
-  const aggregationDisplay = useMemo(() => {
-    const sortMetric = customizationItem.controlValues?.sortMetric;
-    if (sortMetric) {
-      return sortMetric.toUpperCase();
-    }
-    return t('None');
-  }, [customizationItem.controlValues?.sortMetric]);
 
   return (
     <div>
@@ -257,15 +272,10 @@ const GroupByFilterCardContent: FC<{
       </Row>
 
       <Row>
-        <RowLabel>{t('Dataset')}</RowLabel>
+        <RowLabel>{getDatasetLabel()}</RowLabel>
         <RowValue>
-          {typeof datasetLabel === 'string' ? datasetLabel : 'Dataset'}
+          {typeof datasetLabel === 'string' ? datasetLabel : t('Dataset')}
         </RowValue>
-      </Row>
-
-      <Row>
-        <RowLabel>{t('Aggregation')}</RowLabel>
-        <RowValue>{aggregationDisplay}</RowValue>
       </Row>
     </div>
   );
@@ -332,6 +342,13 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const canSelectMultiple =
     customizationItem.controlValues?.canSelectMultiple ?? true;
+
+  const sortAscending = customizationItem.controlValues?.sortAscending;
+
+  const sortComparator = useMemo(
+    () => createLabelSortComparator(sortAscending),
+    [sortAscending],
+  );
 
   const columnDisplayName = useMemo(() => {
     if (customizationItem.name) {
@@ -470,7 +487,13 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
       } catch (error) {
         setColumnOptions([]);
         dispatch(
-          addDangerToast(t('Failed to load columns for dataset %s', datasetId)),
+          addDangerToast(
+            t(
+              'Failed to load columns for %s %s',
+              datasetLabelLower(),
+              datasetId,
+            ),
+          ),
         );
       } finally {
         setLoading(false);
@@ -579,6 +602,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
                   .toLowerCase()
                   .includes(input.toLowerCase())
               }
+              sortComparator={sortComparator}
               getPopupContainer={triggerNode => triggerNode.parentNode}
               oneLine={isHorizontalLayout}
               className="select-container"
@@ -608,6 +632,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
                 .toLowerCase()
                 .includes(input.toLowerCase())
             }
+            sortComparator={sortComparator}
             loading={loading}
           />
         </div>

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { xAxisForceCategoricalControl } from '../../src/shared-controls/customControls';
 import { checkColumnType } from '../../src/utils/checkColumnType';
 import type { ControlState } from '@superset-ui/chart-controls';

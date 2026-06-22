@@ -19,6 +19,7 @@
 Comprehensive unit tests for MCP generate_explore_link tool
 """
 
+import importlib
 import logging
 from unittest.mock import Mock, patch
 
@@ -35,9 +36,25 @@ from superset.mcp_service.chart.schemas import (
     TableChartConfig,
     XYChartConfig,
 )
+from superset.mcp_service.common.error_schemas import DatasetContext
+
+# The package ``__init__.py`` re-exports the ``generate_explore_link`` tool
+# function under the same dotted path as the module, so mock.patch's string
+# lookup of ``...generate_explore_link.<attr>`` can resolve to the function
+# on some Python versions. Hold a direct module reference for ``patch.object``.
+generate_explore_link_module = importlib.import_module(
+    "superset.mcp_service.explore.tool.generate_explore_link"
+)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+_PERMALINK_PATCH = (
+    "superset.commands.explore.permalink.create.CreateExplorePermalinkCommand.run"
+)
+_FORM_DATA_PATCH = (
+    "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
+)
 
 
 @pytest.fixture
@@ -57,6 +74,29 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
+def mock_dataset_access_granted():
+    """Grant dataset access by default; tests that need a denial override this."""
+    with patch.object(
+        generate_explore_link_module, "has_dataset_access", return_value=True
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def mock_validation_passes():
+    """Skip Tier-1 dataset validation by default so Mock datasets don't trip the
+    real validator. Individual tests that exercise validation override this."""
+    from superset.mcp_service.chart.compile import CompileResult
+
+    with patch.object(
+        generate_explore_link_module,
+        "validate_and_compile",
+        return_value=CompileResult(success=True),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def mock_webdriver_baseurl(app_context):
     """Mock WEBDRIVER_BASEURL_USER_FRIENDLY for consistent test URLs."""
     from flask import current_app
@@ -65,6 +105,17 @@ def mock_webdriver_baseurl(app_context):
     current_app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = "http://localhost:9001/"
     yield
     current_app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = original_value
+
+
+@pytest.fixture(autouse=True)
+def mock_permalink_creation():
+    """Create durable permalink by default.
+
+    Override in individual tests that need fallback-to-form_data_key or
+    fallback-to-basic-URL behaviour by patching _PERMALINK_PATCH to raise.
+    """
+    with patch(_PERMALINK_PATCH, return_value="test_permalink_key"):
+        yield
 
 
 def _mock_dataset(id: int = 1) -> Mock:
@@ -99,15 +150,11 @@ class TestGenerateExploreLink:
     """Comprehensive tests for generate_explore_link MCP tool."""
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
     async def test_generate_table_explore_link_minimal(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server
     ):
         """Test generating explore link for minimal table chart."""
-        mock_create_form_data.return_value = "test_form_data_key_123"
         mock_find_dataset.return_value = _mock_dataset(id=1)
 
         config = TableChartConfig(
@@ -123,20 +170,18 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:9001/explore/?form_data_key=test_form_data_key_123"
+                == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            mock_create_form_data.assert_called_once()
+            assert result.data["permalink_key"] == "test_permalink_key"
+            assert result.data["form_data_key"] is None
+            assert result.data["chart_type_label"] == "table chart"
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
     async def test_generate_table_explore_link_with_features(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server
     ):
         """Test generating explore link for table chart with features."""
-        mock_create_form_data.return_value = "comprehensive_key_456"
         mock_find_dataset.return_value = _mock_dataset(id=5)
 
         config = TableChartConfig(
@@ -162,20 +207,41 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:9001/explore/?form_data_key=comprehensive_key_456"
+                == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            mock_create_form_data.assert_called_once()
+            assert result.data["permalink_key"] == "test_permalink_key"
+            assert result.data["form_data_key"] is None
+            assert result.data["chart_type_label"] == "table chart"
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
+    @pytest.mark.asyncio
+    async def test_generate_ag_grid_table_explore_link_label(
+        self, mock_find_dataset, mcp_server
+    ) -> None:
+        """Test generating explore link reports AG Grid table label."""
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[ColumnRef(name="region")],
+        )
+        request = GenerateExploreLinkRequest(dataset_id="1", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["error"] is None
+            assert result.data["chart_type_label"] == "interactive table chart"
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
     async def test_generate_line_chart_explore_link(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server
     ):
         """Test generating explore link for line chart."""
-        mock_create_form_data.return_value = "line_chart_key_789"
         mock_find_dataset.return_value = _mock_dataset(id=3)
 
         config = XYChartConfig(
@@ -201,20 +267,14 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:9001/explore/?form_data_key=line_chart_key_789"
+                == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            mock_create_form_data.assert_called_once()
+            assert result.data["chart_type_label"] is None
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
-    async def test_generate_bar_chart_explore_link(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
-    ):
+    async def test_generate_bar_chart_explore_link(self, mock_find_dataset, mcp_server):
         """Test generating explore link for bar chart."""
-        mock_create_form_data.return_value = "bar_chart_key_abc"
         mock_find_dataset.return_value = _mock_dataset(id=7)
 
         config = XYChartConfig(
@@ -235,20 +295,15 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:9001/explore/?form_data_key=bar_chart_key_abc"
+                == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            mock_create_form_data.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
     async def test_generate_area_chart_explore_link(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server
     ):
         """Test generating explore link for area chart."""
-        mock_create_form_data.return_value = "area_chart_key_def"
         mock_find_dataset.return_value = _mock_dataset(id=2)
 
         config = XYChartConfig(
@@ -272,20 +327,15 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:9001/explore/?form_data_key=area_chart_key_def"
+                == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            mock_create_form_data.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
     async def test_generate_scatter_chart_explore_link(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server
     ):
         """Test generating explore link for scatter chart."""
-        mock_create_form_data.return_value = "scatter_chart_key_ghi"
         mock_find_dataset.return_value = _mock_dataset(id=4)
 
         config = XYChartConfig(
@@ -307,19 +357,30 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:9001/explore/?form_data_key=scatter_chart_key_ghi"
+                == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            mock_create_form_data.assert_called_once()
 
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
+    @patch(_PERMALINK_PATCH)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch(_FORM_DATA_PATCH)
     @pytest.mark.asyncio
-    async def test_generate_explore_link_cache_failure_fallback(
-        self, mock_create_form_data, mcp_server
+    async def test_generate_explore_link_permalink_fails_fallback_to_form_data_key(
+        self,
+        mock_create_form_data,
+        mock_find_dataset,
+        mock_create_permalink,
+        mcp_server,
     ):
-        """Test fallback when form_data cache creation fails."""
-        mock_create_form_data.side_effect = Exception("Cache storage failed")
+        """When permalink creation fails, fall back to ephemeral form_data_key URL."""
+        from superset.explore.permalink.exceptions import (
+            ExplorePermalinkCreateFailedError,
+        )
+
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+        mock_create_permalink.side_effect = ExplorePermalinkCreateFailedError(
+            "DB unavailable"
+        )
+        mock_create_form_data.return_value = "fallback_form_data_key"
 
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="test_col")]
@@ -331,26 +392,73 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            # Should fallback to basic URL format
+            assert result.data["error"] is None
+            assert (
+                result.data["url"]
+                == "http://localhost:9001/explore/?form_data_key=fallback_form_data_key"
+            )
+            assert result.data["form_data_key"] == "fallback_form_data_key"
+            assert result.data["permalink_key"] is None
+            mock_create_form_data.assert_called_once()
+
+    @patch(_PERMALINK_PATCH)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch(_FORM_DATA_PATCH)
+    @pytest.mark.asyncio
+    async def test_generate_explore_link_both_fail_fallback_to_basic_url(
+        self,
+        mock_create_form_data,
+        mock_find_dataset,
+        mock_create_permalink,
+        mcp_server,
+    ):
+        """When both permalink and form_data_key fail, fall back to basic URL."""
+        from superset.commands.exceptions import CommandException
+        from superset.explore.permalink.exceptions import (
+            ExplorePermalinkCreateFailedError,
+        )
+
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+        mock_create_permalink.side_effect = ExplorePermalinkCreateFailedError(
+            "DB unavailable"
+        )
+        mock_create_form_data.side_effect = CommandException("Cache storage failed")
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="test_col")]
+        )
+        request = GenerateExploreLinkRequest(dataset_id="1", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
             assert result.data["error"] is None
             assert (
                 result.data["url"]
                 == "http://localhost:9001/explore/?datasource_type=table&datasource_id=1"
             )
 
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
+    @patch(_PERMALINK_PATCH)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch(_FORM_DATA_PATCH)
     @pytest.mark.asyncio
     async def test_generate_explore_link_database_lock_fallback(
-        self, mock_create_form_data, mcp_server
+        self,
+        mock_create_form_data,
+        mock_find_dataset,
+        mock_create_permalink,
+        mcp_server,
     ):
-        """Test fallback when database is locked."""
+        """When permalink fails with SQLAlchemy error, fall back to form_data_key."""
         from sqlalchemy.exc import OperationalError
 
-        mock_create_form_data.side_effect = OperationalError(
+        mock_find_dataset.return_value = _mock_dataset(id=5)
+        mock_create_permalink.side_effect = OperationalError(
             "database is locked", None, None
         )
+        mock_create_form_data.return_value = "lock_fallback_key"
 
         config = XYChartConfig(
             chart_type="xy",
@@ -365,23 +473,18 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            # Should fallback to basic dataset URL
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:9001/explore/?datasource_type=table&datasource_id=5"
+                == "http://localhost:9001/explore/?form_data_key=lock_fallback_key"
             )
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
     async def test_generate_explore_link_with_many_columns(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server
     ):
         """Test generating explore link with many columns."""
-        mock_create_form_data.return_value = "many_columns_key"
         mock_find_dataset.return_value = _mock_dataset(id=1)
 
         # Create 15 columns
@@ -405,20 +508,15 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:9001/explore/?form_data_key=many_columns_key"
+                == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            mock_create_form_data.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
     async def test_generate_explore_link_with_many_filters(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server
     ):
         """Test generating explore link with many filters."""
-        mock_create_form_data.return_value = "many_filters_key"
         mock_find_dataset.return_value = _mock_dataset(id=1)
 
         # Create 12 filters
@@ -448,20 +546,15 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:9001/explore/?form_data_key=many_filters_key"
+                == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            mock_create_form_data.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
     async def test_explore_link_url_format_consistency(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server
     ):
-        """Test that all generated URLs follow consistent format."""
-        mock_create_form_data.return_value = "consistency_test_key"
+        """Test that all generated URLs follow consistent permalink format."""
         mock_find_dataset.return_value = _mock_dataset(id=1)
 
         configs = [
@@ -500,23 +593,19 @@ class TestGenerateExploreLink:
                     "generate_explore_link", {"request": request.model_dump()}
                 )
 
-                # All URLs should follow the same format
+                # All URLs should follow the same permalink format
                 assert (
                     result.data["url"]
-                    == "http://localhost:9001/explore/?form_data_key=consistency_test_key"
+                    == "http://localhost:9001/explore/p/test_permalink_key/"
                 )
                 assert result.data["error"] is None
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
     async def test_generate_explore_link_dataset_id_types(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server
     ):
         """Test explore link generation with different dataset_id formats."""
-        mock_create_form_data.return_value = "dataset_test_key"
         mock_find_dataset.return_value = _mock_dataset(id=1)
 
         config = TableChartConfig(
@@ -535,19 +624,15 @@ class TestGenerateExploreLink:
                 assert result.data["error"] is None
                 assert (
                     result.data["url"]
-                    == "http://localhost:9001/explore/?form_data_key=dataset_test_key"
+                    == "http://localhost:9001/explore/p/test_permalink_key/"
                 )
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
     async def test_generate_explore_link_complex_configuration(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server
     ):
         """Test explore link generation with complex chart configuration."""
-        mock_create_form_data.return_value = "complex_config_key"
         mock_find_dataset.return_value = _mock_dataset(id=10)
 
         config = XYChartConfig(
@@ -579,19 +664,31 @@ class TestGenerateExploreLink:
             assert result.data["error"] is None
             assert (
                 result.data["url"]
-                == "http://localhost:9001/explore/?form_data_key=complex_config_key"
+                == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            mock_create_form_data.assert_called_once()
 
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
+    @patch(_PERMALINK_PATCH)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch(_FORM_DATA_PATCH)
     @pytest.mark.asyncio
     async def test_fallback_url_different_datasets(
-        self, mock_create_form_data, mcp_server
+        self,
+        mock_create_form_data,
+        mock_find_dataset,
+        mock_create_permalink,
+        mcp_server,
     ):
-        """Test fallback URLs are correct for different dataset IDs."""
-        mock_create_form_data.side_effect = Exception(
+        """When both fallbacks fail, basic URL uses the correct dataset_id."""
+        from superset.commands.exceptions import CommandException
+        from superset.explore.permalink.exceptions import (
+            ExplorePermalinkCreateFailedError,
+        )
+
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+        mock_create_permalink.side_effect = ExplorePermalinkCreateFailedError(
+            "Always fail for fallback testing"
+        )
+        mock_create_form_data.side_effect = CommandException(
             "Always fail for fallback testing"
         )
 
@@ -607,13 +704,20 @@ class TestGenerateExploreLink:
                 )
 
                 # Should fallback to basic URL with correct dataset_id
-                expected_url = f"http://localhost:9001/explore/?datasource_type=table&datasource_id={dataset_id}"
+                expected_url = (
+                    f"http://localhost:9001/explore/?datasource_type=table"
+                    f"&datasource_id={dataset_id}"
+                )
                 assert result.data["error"] is None
                 assert result.data["url"] == expected_url
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
-    async def test_generate_explore_link_tool_exception_handling(self, mcp_server):
+    async def test_generate_explore_link_tool_exception_handling(
+        self, mock_find_dataset, mcp_server
+    ):
         """Test that tool-level exceptions are properly handled and return error."""
+        mock_find_dataset.return_value = _mock_dataset(id=1)
         import sys
 
         # Get the actual module object from sys.modules (not via __init__.py which
@@ -643,21 +747,21 @@ class TestGenerateExploreLink:
                 assert result.data["url"] == ""
                 assert result.data["form_data"] == {}
                 assert result.data["form_data_key"] is None
+                assert result.data["permalink_key"] is None
+                assert result.data["chart_type_label"] is None
                 assert "Invalid config structure" in result.data["error"]
         finally:
             # Restore original function
             explore_module.map_config_to_form_data = original_func
 
+    @patch(_PERMALINK_PATCH)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
-    async def test_generate_explore_link_returns_form_data_key(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+    async def test_generate_explore_link_returns_permalink_key(
+        self, mock_find_dataset, mock_create_permalink, mcp_server
     ):
-        """Test that form_data_key is properly extracted from URL."""
-        mock_create_form_data.return_value = "extracted_form_key_xyz"
+        """Test that permalink_key is properly extracted from the durable URL."""
+        mock_create_permalink.return_value = "extracted_permalink_xyz"
         mock_find_dataset.return_value = _mock_dataset(id=1)
 
         config = TableChartConfig(
@@ -671,19 +775,19 @@ class TestGenerateExploreLink:
             )
 
             assert result.data["error"] is None
-            assert result.data["form_data_key"] == "extracted_form_key_xyz"
-            assert "form_data_key=extracted_form_key_xyz" in result.data["url"]
+            assert result.data["permalink_key"] == "extracted_permalink_xyz"
+            assert result.data["form_data_key"] is None
+            assert "extracted_permalink_xyz" in result.data["url"]
+            assert result.data["url"] == (
+                "http://localhost:9001/explore/p/extracted_permalink_xyz/"
+            )
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch(
-        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
-    )
     @pytest.mark.asyncio
     async def test_generate_explore_link_returns_form_data(
-        self, mock_create_form_data, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server
     ):
         """Test that form_data dict is returned for external rendering."""
-        mock_create_form_data.return_value = "form_data_test_key"
         mock_find_dataset.return_value = _mock_dataset(id=1)
 
         config = XYChartConfig(
@@ -706,3 +810,339 @@ class TestGenerateExploreLink:
             assert result.data["form_data"].get("x_axis") == "date"
             # Verify datasource field format: "{dataset_id}__table"
             assert result.data["form_data"].get("datasource") == "1__table"
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_generate_explore_link_nonexistent_dataset(
+        self, mock_find_dataset, mcp_server
+    ):
+        """Test nonexistent dataset_id returns error instead of broken URL."""
+        mock_find_dataset.return_value = None
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="test_col")]
+        )
+        request = GenerateExploreLinkRequest(dataset_id="99999", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["url"] == ""
+            assert result.data["form_data"] == {}
+            assert result.data["form_data_key"] is None
+            assert result.data["permalink_key"] is None
+            assert result.data["chart_type_label"] is None
+            assert "Dataset not found: 99999" in result.data["error"]
+            assert "list_datasets" in result.data["error"]
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_generate_explore_link_without_config(
+        self, mock_find_dataset, mcp_server
+    ):
+        """Omitting config returns a default dataset explore URL."""
+        mock_find_dataset.return_value = _mock_dataset(id=42)
+
+        request = GenerateExploreLinkRequest(dataset_id="42")
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["error"] is None
+            assert (
+                result.data["url"]
+                == "http://localhost:9001/explore/?datasource_type=table"
+                "&datasource_id=42"
+            )
+            assert result.data["form_data"] == {}
+            assert result.data["form_data_key"] is None
+            assert result.data["permalink_key"] is None
+            assert result.data["chart_type_label"] is None
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_generate_explore_link_without_config_missing_dataset(
+        self, mock_find_dataset, mcp_server
+    ):
+        """Omitting config still surfaces a dataset-not-found error."""
+        mock_find_dataset.return_value = None
+
+        request = GenerateExploreLinkRequest(dataset_id="99999")
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["url"] == ""
+            assert result.data["form_data"] == {}
+            assert result.data["form_data_key"] is None
+            assert result.data["permalink_key"] is None
+            assert result.data["chart_type_label"] is None
+            assert "Dataset not found: 99999" in result.data["error"]
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_generate_explore_link_nonexistent_uuid_dataset(
+        self, mock_find_dataset, mcp_server
+    ):
+        """Test that nonexistent UUID dataset_id returns structured error."""
+        mock_find_dataset.return_value = None
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="test_col")]
+        )
+        request = GenerateExploreLinkRequest(
+            dataset_id="00000000-0000-0000-0000-000000000000", config=config
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["url"] == ""
+            assert result.data["form_data"] == {}
+            assert result.data["form_data_key"] is None
+            assert result.data["permalink_key"] is None
+            assert result.data["chart_type_label"] is None
+            assert "Dataset not found" in result.data["error"]
+
+
+class TestGenerateExploreLinkColumnNormalization:
+    """Tests that generate_explore_link normalizes column names.
+
+    This verifies the fix where user-provided column names in wrong case
+    (e.g., 'order_date') are normalized to the canonical dataset name
+    (e.g., 'OrderDate') before being used in form_data.
+    """
+
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator._get_dataset_context"
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_xy_chart_x_axis_normalized_in_form_data(
+        self,
+        mock_find_dataset,
+        mock_get_context,
+        mcp_server,
+    ):
+        """x-axis column name in wrong case is normalized in form_data."""
+        mock_find_dataset.return_value = _mock_dataset(id=18)
+        mock_get_context.return_value = DatasetContext(
+            id=18,
+            table_name="Vehicle Sales",
+            schema="public",
+            database_name="examples",
+            available_columns=[
+                {"name": "OrderDate", "type": "DATE", "is_temporal": True},
+                {"name": "Sales", "type": "FLOAT", "is_numeric": True},
+            ],
+            available_metrics=[],
+        )
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="line",
+        )
+        request = GenerateExploreLinkRequest(dataset_id="18", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["error"] is None
+            # x-axis should be normalized from 'orderdate' to 'OrderDate'
+            assert result.data["form_data"]["x_axis"] == "OrderDate"
+
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator._get_dataset_context"
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_filter_column_normalized_in_form_data(
+        self,
+        mock_find_dataset,
+        mock_get_context,
+        mcp_server,
+    ):
+        """Filter column name in wrong case is normalized in adhoc_filters."""
+        mock_find_dataset.return_value = _mock_dataset(id=18)
+        mock_get_context.return_value = DatasetContext(
+            id=18,
+            table_name="Vehicle Sales",
+            schema="public",
+            database_name="examples",
+            available_columns=[
+                {"name": "OrderDate", "type": "DATE", "is_temporal": True},
+                {"name": "Sales", "type": "FLOAT", "is_numeric": True},
+            ],
+            available_metrics=[],
+        )
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="line",
+            filters=[
+                FilterConfig(column="orderdate", op=">", value="2023-01-01"),
+            ],
+        )
+        request = GenerateExploreLinkRequest(dataset_id="18", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["error"] is None
+            form_data = result.data["form_data"]
+            # x-axis normalized
+            assert form_data["x_axis"] == "OrderDate"
+            # filter subject normalized to match x-axis
+            adhoc_filters = form_data.get("adhoc_filters", [])
+            # User filter + auto-added TEMPORAL_RANGE for temporal x-axis
+            assert len(adhoc_filters) == 2
+            assert adhoc_filters[0]["subject"] == "OrderDate"
+            assert adhoc_filters[0]["operator"] == ">"
+            assert adhoc_filters[1]["operator"] == "TEMPORAL_RANGE"
+            assert adhoc_filters[1]["subject"] == "OrderDate"
+
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator._get_dataset_context"
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_normalization_fallback_when_dataset_not_found(
+        self,
+        mock_find_dataset,
+        mock_get_context,
+        mcp_server,
+    ):
+        """When dataset context is unavailable, original names pass through."""
+        mock_find_dataset.return_value = _mock_dataset(id=99)
+        mock_get_context.return_value = None
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="line",
+        )
+        request = GenerateExploreLinkRequest(dataset_id="99", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["error"] is None
+            # original names should pass through unchanged
+            assert result.data["form_data"]["x_axis"] == "orderdate"
+
+
+class TestGenerateExploreLinkValidation:
+    """Tier-1 validation gate (DatasetValidator) and dataset access checks."""
+
+    @pytest.fixture(autouse=True)
+    def mock_validation_passes(self):
+        """Override the module-level autouse patch so each test in this class
+        can stub ``validate_and_compile`` itself. The fixture name MUST match
+        the module-level fixture for pytest's override-by-name to take effect.
+        """
+        return
+
+    @patch(_PERMALINK_PATCH)
+    @patch.object(generate_explore_link_module, "validate_and_compile")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_validation_failure_returns_structured_error(
+        self,
+        mock_find_dataset,
+        mock_validate,
+        mock_create_permalink,
+        mcp_server,
+    ):
+        """Non-existent column → structured ChartGenerationError with suggestions,
+        and CreateExplorePermalinkCommand must NOT be called (no cache write)."""
+        from superset.mcp_service.chart.compile import CompileResult
+        from superset.mcp_service.common.error_schemas import ChartGenerationError
+
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_validate.return_value = CompileResult(
+            success=False,
+            error="Column 'num_boys' does not exist in dataset",
+            error_code="CHART_VALIDATION_FAILED",
+            tier="validation",
+            error_obj=ChartGenerationError(
+                error_type="invalid_column",
+                message="Column 'num_boys' does not exist in dataset",
+                details="Available columns: ds, gender, name, num, sum_boys",
+                suggestions=["sum_boys"],
+                error_code="CHART_VALIDATION_FAILED",
+            ),
+        )
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="num_boys", aggregate="SUM")],
+            kind="line",
+        )
+        request = GenerateExploreLinkRequest(dataset_id="3", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["url"] == ""
+            assert result.data["form_data_key"] is None
+            assert result.data["permalink_key"] is None
+            assert result.data["chart_type_label"] is None
+            error = result.data["error"]
+            assert isinstance(error, dict)
+            assert error["error_code"] == "CHART_VALIDATION_FAILED"
+            assert "sum_boys" in error["suggestions"]
+            mock_create_permalink.assert_not_called()
+
+    @patch(_PERMALINK_PATCH)
+    @patch.object(
+        generate_explore_link_module, "has_dataset_access", return_value=False
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_dataset_access_denied_short_circuits(
+        self,
+        mock_find_dataset,
+        unused_access_mock,
+        mock_create_permalink,
+        mcp_server,
+    ):
+        """has_dataset_access=False blocks the tool before any permalink write."""
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="region")]
+        )
+        request = GenerateExploreLinkRequest(dataset_id="3", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["url"] == ""
+            assert result.data["chart_type_label"] is None
+            # Surface as "not found" rather than leaking that the dataset exists.
+            assert "Dataset not found" in result.data["error"]
+            mock_create_permalink.assert_not_called()

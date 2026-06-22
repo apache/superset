@@ -25,7 +25,7 @@ import {
   QueryResponse,
   QueryState,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
@@ -362,7 +362,7 @@ export const queryWithNoQueryLimit = {
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
       },
     ],
@@ -775,7 +775,7 @@ export const testQuery: ISaveableDatasource = {
   ],
 };
 
-export const mockdatasets = new Array(3).fill(undefined).map((_, i) => ({
+export const mockdatasets = Array.from({ length: 3 }, (_, i) => ({
   changed_by_name: 'user',
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
   changed_by: 'user',

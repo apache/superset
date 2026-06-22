@@ -226,6 +226,16 @@ test.skip('should pass appropriate dimensions to ResizableContainer', () => {
   // );
 });
 
+test('should render between-items Droppables for each child in editMode', () => {
+  const { getAllByTestId } = setup({ editMode: true });
+  // 1 top-edge droptarget + 1 after-child droptarget = 2 total
+  const droppables = getAllByTestId('mock-droppable');
+  expect(droppables).toHaveLength(2);
+  droppables.forEach(droppable => {
+    expect(droppable).toHaveAttribute('data-depth', `${props.depth}`);
+  });
+});
+
 test('should increment the depth of its children', () => {
   const { getByTestId } = setup();
   expect(getByTestId('mock-dashboard-component')).toHaveAttribute(

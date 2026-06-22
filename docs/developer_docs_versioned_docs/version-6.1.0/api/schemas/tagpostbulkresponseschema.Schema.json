@@ -1,0 +1,1 @@
+{"schema":{"properties":{"result":{"properties":{"objects_skipped":{"description":"Objects to tag","items":{},"type":"array"},"objects_tagged":{"description":"Objects to tag","items":{},"type":"array"}},"type":"object","title":"TagPostBulkResponseObject"}},"type":"object","title":"TagPostBulkResponseSchema"},"schemaType":"response"}

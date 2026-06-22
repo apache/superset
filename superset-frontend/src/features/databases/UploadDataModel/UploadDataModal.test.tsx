@@ -412,8 +412,10 @@ describe('UploadDataModal - Database and Schema Population', () => {
     await userEvent.click(selectDatabase);
     await userEvent.click(screen.getByText('database2'));
     await userEvent.click(selectSchema);
-    await waitFor(() => screen.getAllByText('schema1'));
-    await waitFor(() => screen.getAllByText('schema2'));
+    await waitFor(() => {
+      expect(screen.getAllByText('schema1')).not.toHaveLength(0);
+      expect(screen.getAllByText('schema2')).not.toHaveLength(0);
+    });
   }, 60000);
 });
 
@@ -433,6 +435,32 @@ describe('UploadDataModal - Form Validation', () => {
         screen.getByText('Selecting a database is required'),
       ).toBeInTheDocument();
       expect(screen.getByText('Table name is required')).toBeInTheDocument();
+    });
+  });
+
+  test('database validation error clears after selecting a database', async () => {
+    render(<UploadDataModal {...csvProps} />, { useRedux: true });
+
+    const uploadButton = screen.getByRole('button', { name: 'Upload' });
+    await userEvent.click(uploadButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Selecting a database is required'),
+      ).toBeInTheDocument();
+    });
+
+    const selectDatabase = screen.getByRole('combobox', {
+      name: /select a database/i,
+    });
+    await userEvent.click(selectDatabase);
+    await waitFor(() => screen.getByText('database1'));
+    await userEvent.click(screen.getByText('database1'));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Selecting a database is required'),
+      ).not.toBeInTheDocument();
     });
   });
 });

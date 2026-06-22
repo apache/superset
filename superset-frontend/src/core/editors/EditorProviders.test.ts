@@ -16,19 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { editors, contributions } from '@apache-superset/core';
+import type { editors } from '@apache-superset/core';
 import EditorProviders from './EditorProviders';
 
-type EditorLanguage = contributions.EditorLanguage;
-type EditorContribution = editors.EditorContribution;
+type EditorLanguage = editors.EditorLanguage;
+type Editor = editors.Editor;
 type EditorComponent = editors.EditorComponent;
 
 /**
- * Creates a mock editor contribution for testing.
+ * Creates a mock editor for testing.
  */
-function createMockEditorContribution(
-  overrides: Partial<EditorContribution> = {},
-): EditorContribution {
+function createMockEditor(overrides: Partial<Editor> = {}): Editor {
   return {
     id: 'test.mock-editor',
     name: 'Mock Editor',
@@ -61,37 +59,37 @@ test('creates singleton instance', () => {
 
 test('registers and retrieves a provider', () => {
   const manager = EditorProviders.getInstance();
-  const contribution = createMockEditorContribution();
+  const editor = createMockEditor();
   const component = createMockEditorComponent();
 
-  manager.registerProvider(contribution, component);
+  manager.registerProvider(editor, component);
 
   const provider = manager.getProvider('sql');
   expect(provider).toBeDefined();
-  expect(provider?.contribution).toEqual(contribution);
+  expect(provider?.editor).toEqual(editor);
   expect(provider?.component).toBe(component);
 });
 
 test('hasProvider returns true when provider is registered', () => {
   const manager = EditorProviders.getInstance();
-  const contribution = createMockEditorContribution();
+  const editor = createMockEditor();
   const component = createMockEditorComponent();
 
   expect(manager.hasProvider('sql')).toBe(false);
 
-  manager.registerProvider(contribution, component);
+  manager.registerProvider(editor, component);
 
   expect(manager.hasProvider('sql')).toBe(true);
 });
 
 test('hasProvider returns false for unregistered languages', () => {
   const manager = EditorProviders.getInstance();
-  const contribution = createMockEditorContribution({
+  const editor = createMockEditor({
     languages: ['sql'],
   });
   const component = createMockEditorComponent();
 
-  manager.registerProvider(contribution, component);
+  manager.registerProvider(editor, component);
 
   expect(manager.hasProvider('sql')).toBe(true);
   expect(manager.hasProvider('json')).toBe(false);
@@ -110,17 +108,17 @@ test('getAllProviders returns all registered providers', () => {
 
   expect(manager.getAllProviders()).toHaveLength(0);
 
-  const contribution1 = createMockEditorContribution({
+  const editor1 = createMockEditor({
     id: 'editor-1',
     languages: ['sql'],
   });
-  const contribution2 = createMockEditorContribution({
+  const editor2 = createMockEditor({
     id: 'editor-2',
     languages: ['json'],
   });
 
-  manager.registerProvider(contribution1, createMockEditorComponent());
-  manager.registerProvider(contribution2, createMockEditorComponent());
+  manager.registerProvider(editor1, createMockEditorComponent());
+  manager.registerProvider(editor2, createMockEditorComponent());
 
   const providers = manager.getAllProviders();
   expect(providers).toHaveLength(2);
@@ -128,10 +126,10 @@ test('getAllProviders returns all registered providers', () => {
 
 test('unregisters provider when disposable is disposed', () => {
   const manager = EditorProviders.getInstance();
-  const contribution = createMockEditorContribution();
+  const editor = createMockEditor();
   const component = createMockEditorComponent();
 
-  const disposable = manager.registerProvider(contribution, component);
+  const disposable = manager.registerProvider(editor, component);
 
   expect(manager.hasProvider('sql')).toBe(true);
 
@@ -143,12 +141,12 @@ test('unregisters provider when disposable is disposed', () => {
 
 test('supports multiple languages per provider', () => {
   const manager = EditorProviders.getInstance();
-  const contribution = createMockEditorContribution({
+  const editor = createMockEditor({
     languages: ['sql', 'json', 'yaml'],
   });
   const component = createMockEditorComponent();
 
-  manager.registerProvider(contribution, component);
+  manager.registerProvider(editor, component);
 
   expect(manager.hasProvider('sql')).toBe(true);
   expect(manager.hasProvider('json')).toBe(true);
@@ -168,15 +166,15 @@ test('warns when registering duplicate provider id', () => {
   const manager = EditorProviders.getInstance();
   const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-  const contribution = createMockEditorContribution({
+  const editor = createMockEditor({
     id: 'duplicate-editor',
   });
 
-  manager.registerProvider(contribution, createMockEditorComponent());
+  manager.registerProvider(editor, createMockEditorComponent());
 
   // Try to register with same ID
   const disposable = manager.registerProvider(
-    { ...contribution },
+    { ...editor },
     createMockEditorComponent(),
   );
 
@@ -199,17 +197,14 @@ test('fires onDidRegister event when provider is registered', () => {
 
   manager.onDidRegister(listener);
 
-  const contribution = createMockEditorContribution();
+  const editor = createMockEditor();
   const component = createMockEditorComponent();
 
-  manager.registerProvider(contribution, component);
+  manager.registerProvider(editor, component);
 
   expect(listener).toHaveBeenCalledTimes(1);
   expect(listener).toHaveBeenCalledWith({
-    provider: {
-      contribution,
-      component,
-    },
+    editor,
   });
 });
 
@@ -219,9 +214,9 @@ test('fires onDidUnregister event when provider is unregistered', () => {
 
   manager.onDidUnregister(listener);
 
-  const contribution = createMockEditorContribution();
+  const editor = createMockEditor();
   const disposable = manager.registerProvider(
-    contribution,
+    editor,
     createMockEditorComponent(),
   );
 
@@ -229,7 +224,7 @@ test('fires onDidUnregister event when provider is unregistered', () => {
 
   expect(listener).toHaveBeenCalledTimes(1);
   expect(listener).toHaveBeenCalledWith({
-    contribution,
+    editor,
   });
 });
 
@@ -241,7 +236,7 @@ test('event listeners can be disposed', () => {
 
   // Register first provider - listener should be called
   manager.registerProvider(
-    createMockEditorContribution({ id: 'editor-1' }),
+    createMockEditor({ id: 'editor-1' }),
     createMockEditorComponent(),
   );
 
@@ -252,7 +247,7 @@ test('event listeners can be disposed', () => {
 
   // Register second provider - listener should not be called
   manager.registerProvider(
-    createMockEditorContribution({ id: 'editor-2', languages: ['json'] }),
+    createMockEditor({ id: 'editor-2', languages: ['json'] }),
     createMockEditorComponent(),
   );
 
@@ -271,10 +266,7 @@ test('handles errors in event listeners gracefully', () => {
   manager.onDidRegister(errorListener);
   manager.onDidRegister(successListener);
 
-  manager.registerProvider(
-    createMockEditorContribution(),
-    createMockEditorComponent(),
-  );
+  manager.registerProvider(createMockEditor(), createMockEditorComponent());
 
   // Both listeners should have been called
   expect(errorListener).toHaveBeenCalledTimes(1);
@@ -293,11 +285,11 @@ test('reset clears all providers and language mappings', () => {
   const manager = EditorProviders.getInstance();
 
   manager.registerProvider(
-    createMockEditorContribution({ id: 'editor-1', languages: ['sql'] }),
+    createMockEditor({ id: 'editor-1', languages: ['sql'] }),
     createMockEditorComponent(),
   );
   manager.registerProvider(
-    createMockEditorContribution({ id: 'editor-2', languages: ['json'] }),
+    createMockEditor({ id: 'editor-2', languages: ['json'] }),
     createMockEditorComponent(),
   );
 
@@ -315,24 +307,24 @@ test('reset clears all providers and language mappings', () => {
 test('later registration replaces language mapping', () => {
   const manager = EditorProviders.getInstance();
 
-  const contribution1 = createMockEditorContribution({
+  const editor1 = createMockEditor({
     id: 'editor-1',
     name: 'Editor 1',
     languages: ['sql'],
   });
-  const contribution2 = createMockEditorContribution({
+  const editor2 = createMockEditor({
     id: 'editor-2',
     name: 'Editor 2',
     languages: ['sql'],
   });
 
-  manager.registerProvider(contribution1, createMockEditorComponent());
-  manager.registerProvider(contribution2, createMockEditorComponent());
+  manager.registerProvider(editor1, createMockEditorComponent());
+  manager.registerProvider(editor2, createMockEditorComponent());
 
   // The second registration should replace the first for the 'sql' language
   const provider = manager.getProvider('sql');
-  expect(provider?.contribution.id).toBe('editor-2');
-  expect(provider?.contribution.name).toBe('Editor 2');
+  expect(provider?.editor.id).toBe('editor-2');
+  expect(provider?.editor.name).toBe('Editor 2');
 
   // But both providers should exist
   expect(manager.getAllProviders()).toHaveLength(2);

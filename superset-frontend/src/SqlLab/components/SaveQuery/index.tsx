@@ -18,8 +18,8 @@
  */
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import {
   Input,
   Button,
@@ -233,7 +233,7 @@ const SaveQuery = ({
               {t('Cancel')}
             </Button>
             <Button
-              buttonStyle={isSaved ? undefined : 'primary'}
+              buttonStyle={isSaved ? 'secondary' : 'primary'}
               onClick={onSaveWrapper}
               cta
             >

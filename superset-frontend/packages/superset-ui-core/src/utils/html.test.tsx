@@ -33,6 +33,35 @@ describe('sanitizeHtml', () => {
     const sanitizedString = sanitizeHtml(htmlString);
     expect(sanitizedString).not.toContain('script');
   });
+
+  test('should preserve allowed presentational CSS properties', () => {
+    const htmlString =
+      '<div style="color: red; background-color: blue; font-size: 12px; text-align: center">x</div>';
+    const sanitizedString = sanitizeHtml(htmlString);
+    expect(sanitizedString).toContain('color:red');
+    expect(sanitizedString).toContain('background-color:blue');
+    expect(sanitizedString).toContain('font-size:12px');
+    expect(sanitizedString).toContain('text-align:center');
+  });
+
+  test('should strip layout and positioning CSS properties', () => {
+    const htmlString =
+      '<div style="color: red; position: fixed; z-index: 9999; width: 100%; height: 100%">x</div>';
+    const sanitizedString = sanitizeHtml(htmlString);
+    expect(sanitizedString).toContain('color:red');
+    expect(sanitizedString).not.toContain('position');
+    expect(sanitizedString).not.toContain('z-index');
+    expect(sanitizedString).not.toContain('width');
+    expect(sanitizedString).not.toContain('height');
+  });
+
+  test('should strip unsafe CSS property values', () => {
+    const htmlString =
+      '<div style="background-color: url(javascript:alert(1)); color: blue">x</div>';
+    const sanitizedString = sanitizeHtml(htmlString);
+    expect(sanitizedString).not.toContain('javascript');
+    expect(sanitizedString).not.toContain('url(');
+  });
 });
 
 describe('isProbablyHTML', () => {
@@ -106,6 +135,7 @@ describe('safeHtmlSpan', () => {
     expect(safeSpan).toEqual(
       <span
         className="safe-html-wrapper"
+        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: htmlString }}
       />,
     );

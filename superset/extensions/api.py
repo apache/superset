@@ -117,17 +117,21 @@ class ExtensionsRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/<id>", methods=("GET",))
-    def get(self, id: str, **kwargs: Any) -> Response:
-        """Get an extension by its id.
+    @expose("/<publisher>/<name>", methods=("GET",))
+    def get(self, publisher: str, name: str, **kwargs: Any) -> Response:
+        """Get an extension by its publisher and name.
         ---
         get:
-          summary: Get an extension by its id.
+          summary: Get an extension by its publisher and name.
           parameters:
           - in: path
             schema:
               type: string
-            name: id
+            name: publisher
+          - in: path
+            schema:
+              type: string
+            name: name
           responses:
             200:
               description: Extension details
@@ -154,8 +158,10 @@ class ExtensionsRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
+        # Reconstruct composite ID from publisher and name
+        composite_id = f"{publisher}.{name}"
         extensions = get_extensions()
-        extension = extensions.get(id)
+        extension = extensions.get(composite_id)
         if not extension:
             return self.response_404()
         extension_data = build_extension_data(extension)
@@ -163,8 +169,8 @@ class ExtensionsRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/<id>/<file>", methods=("GET",))
-    def content(self, id: str, file: str) -> Response:
+    @expose("/<publisher>/<name>/<file>", methods=("GET",))
+    def content(self, publisher: str, name: str, file: str) -> Response:
         """Get a frontend chunk of an extension.
         ---
         get:
@@ -173,8 +179,13 @@ class ExtensionsRestApi(BaseApi):
           - in: path
             schema:
               type: string
-            name: id
-            description: id of the extension
+            name: publisher
+            description: publisher of the extension
+          - in: path
+            schema:
+              type: string
+            name: name
+            description: technical name of the extension
           - in: path
             schema:
               type: string
@@ -199,8 +210,10 @@ class ExtensionsRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
+        # Reconstruct composite ID from publisher and name
+        composite_id = f"{publisher}.{name}"
         extensions = get_extensions()
-        extension = extensions.get(id)
+        extension = extensions.get(composite_id)
         if not extension:
             return self.response_404()
 
@@ -212,4 +225,9 @@ class ExtensionsRestApi(BaseApi):
         if not mimetype:
             mimetype = "application/octet-stream"
 
-        return send_file(BytesIO(chunk), mimetype=mimetype)
+        response = send_file(BytesIO(chunk), mimetype=mimetype)
+        # Chunk filenames include a content hash, so they are immutable.
+        response.cache_control.max_age = 31536000
+        response.cache_control.public = True
+        response.cache_control.immutable = True
+        return response

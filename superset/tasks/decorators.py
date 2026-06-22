@@ -22,7 +22,7 @@ import inspect
 import logging
 from typing import Any, Callable, cast, Generic, ParamSpec, TYPE_CHECKING, TypeVar
 
-from superset_core.api.tasks import TaskOptions, TaskScope, TaskStatus
+from superset_core.tasks.types import TaskOptions, TaskScope, TaskStatus
 
 from superset import is_feature_enabled
 from superset.commands.tasks.exceptions import GlobalTaskFrameworkDisabledError
@@ -32,7 +32,6 @@ from superset.tasks.context import TaskContext
 from superset.tasks.manager import TaskManager
 from superset.tasks.registry import TaskRegistry
 from superset.tasks.utils import generate_random_task_key
-from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
     from superset.models.tasks import Task
@@ -113,7 +112,20 @@ def task(
 
     def decorator(f: Callable[P, R]) -> "TaskWrapper[P]":
         # Use function name if no name provided
-        task_name = name if name is not None else f.__name__
+        base_task_name = name if name is not None else f.__name__
+
+        # Apply ambient context detection for ID prefixing (like MCP decorators)
+        from superset.extensions.context import get_current_extension_context
+
+        if context := get_current_extension_context():
+            # Extension context: prefix task name to prevent collisions
+            manifest = context.manifest
+            task_name = (
+                f"extensions.{manifest.publisher}.{manifest.name}.{base_task_name}"
+            )
+        else:
+            # Host context: use original task name
+            task_name = base_task_name
 
         # Create default options with no scope (scope is now in decorator)
         default_options = TaskOptions()
@@ -295,7 +307,6 @@ class TaskWrapper(Generic[P]):
                 "task_name": task_name,
                 "scope": scope.value,
                 "properties": properties,
-                "user_id": get_user_id(),
             }
         ).run_with_info()
 

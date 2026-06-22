@@ -25,7 +25,11 @@ from flask_babel import gettext as __
 from superset import db, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SerializationError, SupersetErrorException
+from superset.exceptions import (
+    SerializationError,
+    SupersetErrorException,
+    SupersetSecurityException,
+)
 from superset.models.sql_lab import Query
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.utils import core as utils
@@ -83,6 +87,18 @@ class SqlExecutionResultsCommand(BaseCommand):
                 status=404,
             )
 
+        try:
+            self._query.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__("Cannot access the query"),
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=403,
+            ) from ex
+
         # Now fetch results from backend (query exists, so this is a valid request)
         read_from_results_backend_start = now_as_float()
         self._blob = results_backend.get(self._key)
@@ -94,7 +110,7 @@ class SqlExecutionResultsCommand(BaseCommand):
         if not self._blob:
             # Query exists in DB but results not in S3 - enhanced diagnostics
             query_age_seconds = now_as_float() - (
-                self._query.end_time if self._query.end_time else now_as_float()
+                float(self._query.end_time) if self._query.end_time else now_as_float()
             )
             logger.warning(
                 "410 Error - Query exists in DB but results not in results backend"

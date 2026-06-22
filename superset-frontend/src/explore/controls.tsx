@@ -63,7 +63,8 @@ import {
   legacyValidateInteger,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
+import { datasetLabel } from 'src/features/semanticLayers/label';
 import { formatSelectOptions } from 'src/explore/exploreUtils';
 import { TIME_FILTER_LABELS } from './constants';
 import { StyledColumnOption } from './components/optionRenderers';
@@ -214,7 +215,7 @@ export const controls = {
 
   datasource: {
     type: 'DatasourceControl',
-    label: t('Dataset'),
+    label: datasetLabel(),
     default: null,
     description: null,
     mapStateToProps: ({ datasource }: ControlState) => ({

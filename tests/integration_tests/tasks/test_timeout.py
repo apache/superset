@@ -30,7 +30,7 @@ import uuid
 from typing import Any
 
 import pytest
-from superset_core.api.tasks import TaskScope, TaskStatus
+from superset_core.tasks.types import TaskScope, TaskStatus
 
 from superset.commands.tasks.cancel import CancelTaskCommand
 from superset.daos.tasks import TaskDAO

@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Tests for the examples importer, specifically SQL transpilation."""
+"""Tests for the examples importer: orchestration, transpilation, normalization."""
 
 from unittest.mock import MagicMock, patch
 
 from superset.commands.importers.v1.examples import transpile_virtual_dataset_sql
+from superset.examples.utils import _normalize_dataset_schema
 
 
 def test_transpile_virtual_dataset_sql_no_sql():
@@ -242,3 +243,133 @@ def test_transpile_virtual_dataset_sql_postgres_to_sqlite(mock_transpile, mock_d
 
     assert config["sql"] == transpiled_sql
     mock_transpile.assert_called_once_with(original_sql, "sqlite", "postgresql")
+
+
+@patch(
+    "superset.commands.importers.v1.examples.safe_insert_dashboard_chart_relationships"
+)
+@patch("superset.commands.importers.v1.examples.import_dashboard")
+@patch("superset.commands.importers.v1.examples.import_chart")
+@patch("superset.commands.importers.v1.examples.import_dataset")
+@patch("superset.commands.importers.v1.examples.import_database")
+def test_import_passes_ignore_permissions_to_all_importers(
+    mock_import_db,
+    mock_import_dataset,
+    mock_import_chart,
+    mock_import_dashboard,
+    mock_safe_insert,
+):
+    """_import() must pass ignore_permissions=True to all importers.
+
+    This is the key wiring test: the security bypass for system imports
+    only works if _import() passes ignore_permissions=True to each
+    sub-importer. Without this, SQLite example databases are blocked
+    by PREVENT_UNSAFE_DB_CONNECTIONS.
+    """
+    from superset.commands.importers.v1.examples import ImportExamplesCommand
+
+    db_uuid = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
+    dataset_uuid = "14f48794-ebfa-4f60-a26a-582c49132f1b"
+    chart_uuid = "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    dashboard_uuid = "dddddddd-dddd-dddd-dddd-dddddddddddd"
+
+    # Mock database import
+    mock_db_obj = MagicMock()
+    mock_db_obj.uuid = db_uuid
+    mock_db_obj.id = 1
+    mock_import_db.return_value = mock_db_obj
+
+    # Mock dataset import
+    mock_dataset_obj = MagicMock()
+    mock_dataset_obj.uuid = dataset_uuid
+    mock_dataset_obj.id = 10
+    mock_dataset_obj.table_name = "test_table"
+    mock_import_dataset.return_value = mock_dataset_obj
+
+    # Mock chart import
+    mock_chart_obj = MagicMock()
+    mock_chart_obj.uuid = chart_uuid
+    mock_chart_obj.id = 100
+    mock_import_chart.return_value = mock_chart_obj
+
+    # Mock dashboard import
+    mock_dashboard_obj = MagicMock()
+    mock_dashboard_obj.id = 1000
+    mock_import_dashboard.return_value = mock_dashboard_obj
+
+    configs = {
+        "databases/examples.yaml": {
+            "uuid": db_uuid,
+            "database_name": "examples",
+            "sqlalchemy_uri": "sqlite:///test.db",
+        },
+        "datasets/examples/test.yaml": {
+            "uuid": dataset_uuid,
+            "table_name": "test_table",
+            "database_uuid": db_uuid,
+            "schema": None,
+            "sql": None,
+        },
+        "charts/test/chart.yaml": {
+            "uuid": chart_uuid,
+            "dataset_uuid": dataset_uuid,
+        },
+        "dashboards/test.yaml": {
+            "uuid": dashboard_uuid,
+            "position": {},
+        },
+    }
+
+    with patch(
+        "superset.commands.importers.v1.examples.get_example_default_schema",
+        return_value=None,
+    ):
+        with patch(
+            "superset.commands.importers.v1.examples.find_chart_uuids",
+            return_value=[],
+        ):
+            with patch(
+                "superset.commands.importers.v1.examples.update_id_refs",
+                return_value=configs["dashboards/test.yaml"],
+            ):
+                ImportExamplesCommand._import(configs)
+
+    # Verify ALL importers received ignore_permissions=True
+    mock_import_db.assert_called_once()
+    assert mock_import_db.call_args[1].get("ignore_permissions") is True
+
+    mock_import_dataset.assert_called_once()
+    assert mock_import_dataset.call_args[1].get("ignore_permissions") is True
+
+    mock_import_chart.assert_called_once()
+    assert mock_import_chart.call_args[1].get("ignore_permissions") is True
+
+    mock_import_dashboard.assert_called_once()
+    assert mock_import_dashboard.call_args[1].get("ignore_permissions") is True
+
+
+def test_normalize_dataset_schema_converts_main_to_null():
+    """SQLite 'main' schema must be normalized to null in YAML content.
+
+    This normalization happens in the YAML import path (utils.py), which is
+    separate from the data_loading.py normalization. Both paths must handle
+    SQLite's default 'main' schema correctly.
+    """
+    content = "table_name: test\nschema: main\nuuid: abc-123"
+    result = _normalize_dataset_schema(content)
+    assert "schema: null" in result
+    assert "schema: main" not in result
+
+
+def test_normalize_dataset_schema_preserves_other_schemas():
+    """Non-'main' schemas should be left unchanged."""
+    content = "table_name: test\nschema: public\nuuid: abc-123"
+    result = _normalize_dataset_schema(content)
+    assert "schema: public" in result
+
+
+def test_normalize_dataset_schema_preserves_null_schema():
+    """Already-null schemas should remain null."""
+    content = "table_name: test\nschema: null\nuuid: abc-123"
+    result = _normalize_dataset_schema(content)
+    assert "schema: null" in result

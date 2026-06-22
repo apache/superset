@@ -165,6 +165,26 @@ function escapeSQLString(value: string): string {
   return value.replace(/'/g, "''");
 }
 
+/**
+ * Coerce a range-filter bound to a finite number, or null if it is not a valid
+ * numeric value. Unlike a bare Number() call, empty and whitespace-only strings
+ * are rejected (Number('') === 0), so they never get interpolated into SQL.
+ * @param value - Raw bound value from the AG Grid filter model
+ * @returns The finite number, or null if the value is not numeric
+ */
+function toFiniteNumber(value: FilterValue | undefined): number | null {
+  // Number(null) and Number('') both coerce to 0 and pass Number.isFinite,
+  // so reject nullish and empty/whitespace-only strings before coercing.
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === 'string' && value.trim() === '') {
+    return null;
+  }
+  const coerced = Number(value);
+  return Number.isFinite(coerced) ? coerced : null;
+}
+
 // Maximum column name length - conservative upper bound that exceeds all common
 // database identifier limits (MySQL: 64, PostgreSQL: 63, SQL Server: 128, Oracle: 128)
 const MAX_COLUMN_NAME_LENGTH = 255;
@@ -244,6 +264,47 @@ function formatValueForOperator(
     }
   }
   return value;
+}
+
+/**
+ * Format a date string to ISO format expected by Superset, preserving local timezone
+ */
+export function formatDateForSuperset(dateStr: string): string {
+  // AG Grid typically provides dates in format: "YYYY-MM-DD HH:MM:SS"
+  // Superset expects: "YYYY-MM-DDTHH:MM:SS" in local timezone (not UTC)
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) {
+    return dateStr; // Return as-is if invalid
+  }
+
+  // Format date in local timezone, not UTC
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  const formatted = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  return formatted;
+}
+
+/**
+ * Get the start of day (00:00:00) for a given date string
+ */
+export function getStartOfDay(dateStr: string): string {
+  const date = new Date(dateStr);
+  date.setHours(0, 0, 0, 0);
+  return formatDateForSuperset(date.toISOString());
+}
+
+/**
+ * Get the end of day (23:59:59) for a given date string
+ */
+export function getEndOfDay(dateStr: string): string {
+  const date = new Date(dateStr);
+  date.setHours(23, 59, 59, 999);
+  return formatDateForSuperset(date.toISOString());
 }
 
 /**
@@ -337,8 +398,17 @@ function simpleFilterToWhereClause(
     return '';
   }
 
-  if (type === FILTER_OPERATORS.IN_RANGE && filterTo !== undefined) {
-    return `${columnName} ${SQL_OPERATORS.BETWEEN} ${value} AND ${filterTo}`;
+  // Handle IN_RANGE unconditionally so a missing/cleared upper bound can never
+  // fall through to the generic clause below and emit an invalid single-operand
+  // BETWEEN. Range bounds are interpolated into the clause without quoting, so
+  // both ends must coerce to finite numbers; otherwise the clause is dropped.
+  if (type === FILTER_OPERATORS.IN_RANGE) {
+    const lowerBound = toFiniteNumber(value);
+    const upperBound = toFiniteNumber(filterTo);
+    if (lowerBound === null || upperBound === null) {
+      return '';
+    }
+    return `${columnName} ${SQL_OPERATORS.BETWEEN} ${lowerBound} AND ${upperBound}`;
   }
 
   const formattedValue = formatValueForOperator(type, value!);
@@ -416,47 +486,6 @@ function compoundFilterToWhereClause(
 
   const result = `(${clause1} ${operator} ${clause2})`;
   return result;
-}
-
-/**
- * Format a date string to ISO format expected by Superset, preserving local timezone
- */
-export function formatDateForSuperset(dateStr: string): string {
-  // AG Grid typically provides dates in format: "YYYY-MM-DD HH:MM:SS"
-  // Superset expects: "YYYY-MM-DDTHH:MM:SS" in local timezone (not UTC)
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) {
-    return dateStr; // Return as-is if invalid
-  }
-
-  // Format date in local timezone, not UTC
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  const formatted = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-  return formatted;
-}
-
-/**
- * Get the start of day (00:00:00) for a given date string
- */
-export function getStartOfDay(dateStr: string): string {
-  const date = new Date(dateStr);
-  date.setHours(0, 0, 0, 0);
-  return formatDateForSuperset(date.toISOString());
-}
-
-/**
- * Get the end of day (23:59:59) for a given date string
- */
-export function getEndOfDay(dateStr: string): string {
-  const date = new Date(dateStr);
-  date.setHours(23, 59, 59, 999);
-  return formatDateForSuperset(date.toISOString());
 }
 
 // Converts date filters to TEMPORAL_RANGE format for Superset backend

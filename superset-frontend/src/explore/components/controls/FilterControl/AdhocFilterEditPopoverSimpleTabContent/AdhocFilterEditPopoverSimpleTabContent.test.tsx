@@ -269,6 +269,26 @@ test('will convert from individual comparator to array if the operator changes t
   ).toEqual(Operators.In);
 });
 
+test('will preserve boolean false comparator when converting to multi operator', () => {
+  const booleanFalseFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'value',
+    operatorId: Operators.Equals,
+    operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
+    comparator: false,
+    clause: Clauses.Where,
+  });
+  const props = setup({ adhocFilter: booleanFalseFilter });
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onOperatorChange(Operators.In);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .comparator,
+  ).toEqual([false]);
+});
+
 test('will convert from array to individual comparators if the operator changes from multi', () => {
   const props = setup({
     adhocFilter: simpleMultiAdhocFilter,
@@ -464,6 +484,70 @@ test('sets comparator to undefined when operator is IS_NULL or IS_NOT_NULL', () 
         .comparator,
     ).toBe(undefined);
   });
+});
+
+test('hides the value input when operator is IS_NULL', () => {
+  setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: Operators.IsNull,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IsNull].operation,
+      comparator: undefined,
+      clause: Clauses.Where,
+    }),
+  });
+  expect(
+    screen.queryByPlaceholderText('Filter value (case sensitive)'),
+  ).not.toBeInTheDocument();
+});
+
+test('hides the value input when operator is IS_NOT_NULL', () => {
+  setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: Operators.IsNotNull,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IsNotNull].operation,
+      comparator: undefined,
+      clause: Clauses.Where,
+    }),
+  });
+  expect(
+    screen.queryByPlaceholderText('Filter value (case sensitive)'),
+  ).not.toBeInTheDocument();
+});
+
+test('hides the value input when operator is IS_TRUE', () => {
+  setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: Operators.IsTrue,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IsTrue].operation,
+      comparator: undefined,
+      clause: Clauses.Where,
+    }),
+  });
+  expect(
+    screen.queryByPlaceholderText('Filter value (case sensitive)'),
+  ).not.toBeInTheDocument();
+});
+
+test('hides the value input when operator is IS_FALSE', () => {
+  setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: Operators.IsFalse,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IsFalse].operation,
+      comparator: undefined,
+      clause: Clauses.Where,
+    }),
+  });
+  expect(
+    screen.queryByPlaceholderText('Filter value (case sensitive)'),
+  ).not.toBeInTheDocument();
 });
 
 test('should not call API when column has no advanced data type', async () => {

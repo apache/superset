@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps, SqlaFormData } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { EchartsBoxPlotChartProps } from '../../src/BoxPlot/types';
 import transformProps from '../../src/BoxPlot/transformProps';
 

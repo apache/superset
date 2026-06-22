@@ -22,29 +22,51 @@ import {
   screen,
   selectOption,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 import AdhocFilterEditPopoverSqlTabContent from '.';
 
+// Track resize calls for testing
+const mockResize = jest.fn();
+
+// Mock EditorHost with ref support for resize
+jest.mock('src/core/editors', () => {
+  const React = require('react');
+  return {
+    EditorHost: React.forwardRef(
+      (
+        {
+          value,
+          onChange,
+        }: {
+          value: string;
+          onChange: (v: string) => void;
+        },
+        ref: React.Ref<{ resize: () => void }>,
+      ) => {
+        React.useImperativeHandle(ref, () => ({
+          resize: mockResize,
+        }));
+        return (
+          <textarea
+            defaultValue={value}
+            onChange={e => onChange?.(e.target.value)}
+          />
+        );
+      },
+    ),
+  };
+});
+
 // Add cleanup after each test
 afterEach(async () => {
   cleanup();
+  mockResize.mockClear();
   // Wait for any pending effects to complete
   await new Promise(resolve => setTimeout(resolve, 0));
 });
-
-jest.mock('src/core/editors', () => ({
-  EditorHost: ({
-    value,
-    onChange,
-  }: {
-    value: string;
-    onChange: (v: string) => void;
-  }) => (
-    <textarea defaultValue={value} onChange={e => onChange?.(e.target.value)} />
-  ),
-}));
 
 const adhocFilter = new AdhocFilter({
   expressionType: ExpressionTypes.Sql,
@@ -88,4 +110,42 @@ test('calls onChange when the SQL expression changes', async () => {
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({ sqlExpression: input }),
   );
+});
+
+test('calls editor resize when adhocFilter changes', async () => {
+  const onChange = jest.fn();
+  const { rerender } = render(
+    <AdhocFilterEditPopoverSqlTabContent
+      adhocFilter={adhocFilter}
+      onChange={onChange}
+      options={[]}
+      height={100}
+    />,
+  );
+
+  // Initial render should call resize
+  await waitFor(() => {
+    expect(mockResize).toHaveBeenCalled();
+  });
+  mockResize.mockClear();
+
+  // Create a new filter to trigger the useEffect
+  const newFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Sql,
+    sqlExpression: 'value > 20',
+    clause: Clauses.Where,
+  });
+
+  rerender(
+    <AdhocFilterEditPopoverSqlTabContent
+      adhocFilter={newFilter}
+      onChange={onChange}
+      options={[]}
+      height={100}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockResize).toHaveBeenCalled();
+  });
 });

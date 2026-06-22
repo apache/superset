@@ -98,6 +98,18 @@ class QueryContextProcessor:
             force_cached=force_cached,
         )
 
+        # If cache is loaded but missing applied_filter_columns and query has filters,
+        # treat as cache miss to ensure fresh query with proper applied_filter_columns
+        if (
+            query_obj
+            and cache_key
+            and cache.is_loaded
+            and not cache.applied_filter_columns
+            and query_obj.filter
+            and len(query_obj.filter) > 0
+        ):
+            cache.is_loaded = False
+
         if query_obj and cache_key and not cache.is_loaded:
             try:
                 if invalid_columns := [
@@ -178,6 +190,18 @@ class QueryContextProcessor:
         )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
+        warning: str | None = None
+        if cache.bq_memory_limited:
+            row_count = cache.bq_memory_limited_row_count
+            chart_id = (self._query_context.form_data or {}).get("slice_id", "")
+            prefix = f"Chart {chart_id}: " if chart_id else ""
+            warning = _(
+                "%(prefix)sResults truncated to %(row_count)s rows"
+                " due to memory constraints.",
+                prefix=prefix,
+                row_count=f"{row_count:,}",
+            )
+
         return {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
@@ -198,6 +222,7 @@ class QueryContextProcessor:
             "from_dttm": query_obj.from_dttm,
             "to_dttm": query_obj.to_dttm,
             "label_map": label_map,
+            "warning": warning,
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
@@ -232,7 +257,7 @@ class QueryContextProcessor:
 
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]
-    ) -> str | list[dict[str, Any]]:
+    ) -> str | bytes | list[dict[str, Any]]:
         if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
@@ -245,9 +270,16 @@ class QueryContextProcessor:
                 result = csv.df_to_escaped_csv(
                     df, index=include_index, **current_app.config["CSV_EXPORT"]
                 )
+                # Encode using the configured CSV_EXPORT encoding (default utf-8)
+                # so dashboard chart exports honor the same encoding as SQL Lab.
+                result = result.encode(
+                    current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
+                )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel.apply_column_types(df, coltypes)
-                result = excel.df_to_excel(df, **current_app.config["EXCEL_EXPORT"])
+                result = excel.df_to_excel(
+                    df, index=include_index, **current_app.config["EXCEL_EXPORT"]
+                )
             return result or ""
 
         return df.to_dict(orient="records")
@@ -514,10 +546,14 @@ class QueryContextProcessor:
 
         :raises SupersetSecurityException: If the user cannot access the resource
         """
-        for query in self._query_context.queries:
-            query.validate()
-
+        # Evaluate access before validating the queries: query validation
+        # renders the request's filter expressions, so the access decision must
+        # come first to avoid rendering caller-supplied input for a resource the
+        # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
             security_manager.raise_for_access(query=self._qc_datasource)
         else:
             security_manager.raise_for_access(query_context=self._query_context)
+
+        for query in self._query_context.queries:
+            query.validate()

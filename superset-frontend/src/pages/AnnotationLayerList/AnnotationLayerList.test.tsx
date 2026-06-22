@@ -205,6 +205,6 @@ describe('AnnotationLayersList', () => {
     fireEvent.click(bulkSelectButton);
 
     // Wait for bulk select mode to be enabled
-    await screen.findByText('0 Selected');
+    expect(await screen.findByText('0 Selected')).toBeInTheDocument();
   }, 30000);
 });

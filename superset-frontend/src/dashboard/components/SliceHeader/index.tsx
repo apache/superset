@@ -19,14 +19,20 @@
 import {
   forwardRef,
   ReactNode,
+  RefObject,
   useContext,
   useEffect,
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
-import { getExtensionsRegistry, QueryData } from '@superset-ui/core';
-import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { getExtensionsRegistry, QueryData, VizType } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
@@ -56,6 +62,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   height: number;
   queriedDttm?: string | null;
   exportPivotExcel?: (arg0: string) => void;
+  chartHolderRef?: RefObject<HTMLDivElement>;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -166,6 +173,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       width,
       height,
       exportPivotExcel = () => ({}),
+      chartHolderRef,
     },
     ref,
   ) => {
@@ -198,14 +206,21 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     const rowLimit = Number(formData.row_limit ?? 0);
 
-    const isTableChart = formData.viz_type === 'table';
-    const countFromSecondQuery =
-      isTableChart && secondQueryResponse?.data?.[0]?.rowcount;
+    const isTableChart =
+      formData.viz_type === VizType.Table ||
+      formData.viz_type === VizType.TableAgGrid;
+    const countFromSecondQuery = isTableChart
+      ? secondQueryResponse?.data?.[0]?.rowcount
+      : undefined;
 
     const sqlRowCount =
       countFromSecondQuery != null
         ? countFromSecondQuery
-        : Number(firstQueryResponse?.sql_rowcount ?? 0);
+        : Number(
+            firstQueryResponse?.sql_rowcount ??
+              firstQueryResponse?.rowcount ??
+              0,
+          );
 
     const canExplore = !editMode && supersetCanExplore;
     const showRowLimitWarning =
@@ -365,6 +380,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
                   exportPivotExcel={exportPivotExcel}
+                  chartHolderRef={chartHolderRef}
                 />
               )}
             </>

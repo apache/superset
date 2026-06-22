@@ -190,8 +190,9 @@ class TestDatabaseModel(SupersetTestCase):
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
 
-        # assert virtual dataset
-        assert "SELECT\n  'user_abc' AS user,\n  'xyz_P1D' AS time_grain" in query
+        # assert virtual dataset (SQL is not reformatted when no RLS applies)
+        assert "'user_abc' as user" in query
+        assert "'xyz_P1D' as time_grain" in query
         # assert dataset calculated column
         assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert adhoc column

@@ -231,7 +231,7 @@ describe('ChartDataProvider', () => {
       mockLoadDatasource.mockImplementation(() => new Promise(() => {}));
 
       setup();
-      await screen.findByRole('status');
+      expect(await screen.findByRole('status')).toBeInTheDocument();
     });
 
     test('shows payload when loaded', async () => {

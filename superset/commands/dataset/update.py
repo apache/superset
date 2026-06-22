@@ -44,15 +44,27 @@ from superset.commands.dataset.exceptions import (
     DatasetUpdateFailedError,
     MultiCatalogDisabledValidationError,
 )
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.schemas import FolderSchema
-from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.exceptions import (
+    QueryClauseValidationException,
+    SupersetParseError,
+    SupersetSecurityException,
+)
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
+
+# Default folder UUIDs matching the frontend constants.
+# Stored as strings so comparisons work whether obj["uuid"] is str or UUID.
+DEFAULT_METRICS_FOLDER_UUID = "255b537d-58c8-443d-9fc1-4e4dc75047e2"
+DEFAULT_COLUMNS_FOLDER_UUID = "83a7ae8f-2e8a-4f2b-a8cb-ebaebef95b9b"
+DEFAULT_FOLDER_UUIDS = frozenset(
+    {DEFAULT_METRICS_FOLDER_UUID, DEFAULT_COLUMNS_FOLDER_UUID}
+)
 
 
 class UpdateDatasetCommand(UpdateMixin, BaseCommand):
@@ -204,9 +216,11 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         self._model = cast(SqlaTable, self._model)
         if columns := self._properties.get("columns"):
             self._validate_columns(columns, exceptions)
+            self._validate_expressions(columns, "columns", exceptions)
 
         if metrics := self._properties.get("metrics"):
             self._validate_metrics(metrics, exceptions)
+            self._validate_expressions(metrics, "metrics", exceptions)
 
         if folders := self._properties.get("folders"):
             valid_uuids: set[UUID] = set()
@@ -275,6 +289,47 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             if not DatasetDAO.validate_metrics_uniqueness(self._model_id, metric_names):
                 exceptions.append(DatasetMetricsExistsValidationError())
 
+    def _validate_expressions(
+        self,
+        items: list[dict[str, Any]],
+        label: str,
+        exceptions: list[ValidationError],
+    ) -> None:
+        """
+        Run each item's SQL expression through the parser-based validator that
+        already governs adhoc expressions, so stored column and metric
+        expressions cannot smuggle sub-queries, set operations, or
+        multi-statement SQL into chart queries.
+        """
+        self._model = cast(SqlaTable, self._model)
+        # `_validate_dataset_source` runs first and rebinds
+        # `self._properties["database"]` from the request's `database_id`
+        # to the resolved `Database` model when the user is repointing the
+        # dataset; otherwise the key is absent and we fall back to the
+        # currently-bound database on the model.
+        database = self._properties.get("database") or self._model.database
+        catalog = self._properties.get("catalog", self._model.catalog)
+        schema = self._properties.get("schema", self._model.schema)
+
+        for idx, item in enumerate(items):
+            expression = item.get("expression")
+            if not expression:
+                continue
+            try:
+                validate_stored_expression(database, catalog, schema, expression)
+            except (SupersetSecurityException, QueryClauseValidationException) as ex:
+                message = (
+                    ex.error.message
+                    if isinstance(ex, SupersetSecurityException)
+                    else ex.message
+                )
+                exceptions.append(
+                    ValidationError(
+                        message,
+                        field_name=f"{label}.{idx}.expression",
+                    )
+                )
+
     @staticmethod
     def _get_duplicates(data: list[dict[str, Any]], key: str) -> list[str]:
         duplicates = [
@@ -320,11 +375,19 @@ def validate_folders(  # noqa: C901
                 raise ValidationError(f"Duplicate folder name: {name}")
             seen_fqns.add(fqn)
 
-            if name.lower() in {"metrics", "columns"}:
+            # Allow default folders (by UUID) to use reserved names
+            if (
+                name.lower() in {"metrics", "columns"}
+                and str(uuid) not in DEFAULT_FOLDER_UUIDS
+            ):
                 raise ValidationError(f"Folder cannot have name '{name}'")
 
-        # check if metric/column UUID exists
-        elif not name and uuid not in valid_uuids:
+        # check if metric/column UUID exists (skip default folders)
+        elif (
+            not name
+            and uuid not in valid_uuids
+            and str(uuid) not in DEFAULT_FOLDER_UUIDS
+        ):
             raise ValidationError(f"Invalid UUID: {uuid}")
 
         # traverse children

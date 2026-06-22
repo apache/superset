@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useCallback, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getChartMetadataRegistry } from '@superset-ui/core';
-import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import { usePluginContext } from 'src/components';
 import { Icons, Modal } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';
