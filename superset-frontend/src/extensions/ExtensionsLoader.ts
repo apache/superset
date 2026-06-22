@@ -110,7 +110,12 @@ class ExtensionsLoader {
           );
         }
       } catch (error) {
+        // Reset so a later call can retry, and rethrow so callers (e.g.
+        // ExtensionsStartup) can surface the failure instead of it being
+        // swallowed here and the success path running regardless.
+        this.initializationPromise = null;
         logging.error('Error setting up extensions:', error);
+        throw error;
       }
     })();
     return this.initializationPromise;
