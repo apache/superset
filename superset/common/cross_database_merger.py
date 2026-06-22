@@ -259,7 +259,7 @@ class CrossDatabaseMerger:
                     logger.debug(
                         "Filter column '%s' not in merged result, skipping",
                         col,
-                        extra={"component": "hibi"},
+                        extra={"component": "superset"},
                     )
                     continue
                 try:
@@ -283,7 +283,7 @@ class CrossDatabaseMerger:
                         logger.debug(
                             "Unsupported filter operator '%s', skipping",
                             op,
-                            extra={"component": "hibi"},
+                            extra={"component": "superset"},
                         )
                 except Exception as ex:
                     logger.warning(
@@ -292,7 +292,7 @@ class CrossDatabaseMerger:
                         op,
                         val,
                         ex,
-                        extra={"component": "hibi"},
+                        extra={"component": "superset"},
                     )
 
         # -- Post-merge row-count check ------------------------------------
@@ -399,7 +399,7 @@ class CrossDatabaseMerger:
         ) - join_src_cols - join_tgt_cols
 
         if overlapping:
-            logger.debug("Overlapping columns detected: %s", overlapping, extra={"component": "hibi"})
+            logger.debug("Overlapping columns detected: %s", overlapping, extra={"component": "superset"})
 
         suffix_left = f"_{source_prefix}" if source_prefix else "_source"
         suffix_right = f"_{target_prefix}" if target_prefix else "_target"
@@ -526,7 +526,7 @@ class CrossDatabaseMerger:
             logger.warning(
                 "_validate_dtypes: %s",
                 "; ".join(warnings_list),
-                extra={"component": "hibi"},
+                extra={"component": "superset"},
             )
 
         return source_df, target_df

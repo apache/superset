@@ -84,7 +84,7 @@ def check_all_relationship_schemas() -> dict[str, Any]:
                 rel.id,
                 "; ".join(warnings),
                 [c.source_column_name for c in (rel.columns or [])],
-                extra={"component": "hibi"})
+                extra={"component": "superset"})
 
     db.session.commit()
     return result

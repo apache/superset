@@ -277,7 +277,7 @@ class RelationshipQueryInjector:
                 "Dataset has %d active relationships, truncating to %d",
                 len(relationships),
                 max_rels,
-                extra={"component": "hibi"},
+                extra={"component": "superset"},
             )
             relationships = relationships[:max_rels]
 
@@ -292,7 +292,7 @@ class RelationshipQueryInjector:
                     "Skipping JOIN injection.",
                     rel.name,
                     rel.id,
-                extra={"component": "hibi"},
+                extra={"component": "superset"},
                 )
                 continue
 
@@ -309,7 +309,7 @@ class RelationshipQueryInjector:
                 logger.debug(
                     "RIGHT JOIN detected; swapping source/target for relationship %s",
                     rel.name,
-                extra={"component": "hibi"},
+                extra={"component": "superset"},
                 )
                 joined = target_tbl.join(
                     joined,
@@ -332,7 +332,7 @@ class RelationshipQueryInjector:
                 rel.id,
                 rel.source_dataset_id,
                 rel.target_dataset_id,
-            extra={"component": "hibi"},
+            extra={"component": "superset"},
             )
 
         # Replace the FROM clause of the original query

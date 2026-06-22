@@ -100,10 +100,10 @@ class RelationshipQueryCache:
         try:
             cached = cache_manager.cache.get(key)
             if cached is not None:
-                logger.debug("Cache hit for key %s", key, extra={"component": "hibi"})
+                logger.debug("Cache hit for key %s", key, extra={"component": "superset"})
                 return cached
         except Exception:
-            logger.warning("Cache read error for key %s", key, exc_info=True, extra={"component": "hibi"})
+            logger.warning("Cache read error for key %s", key, exc_info=True, extra={"component": "superset"})
         return None
 
     @staticmethod
@@ -133,9 +133,9 @@ class RelationshipQueryCache:
         }
         try:
             cache_manager.cache.set(key, entry, timeout=ttl)
-            logger.debug("Cached merge result at key %s (ttl=%ds)", key, ttl, extra={"component": "hibi"})
+            logger.debug("Cached merge result at key %s (ttl=%ds)", key, ttl, extra={"component": "superset"})
         except Exception:
-            logger.warning("Cache write error for key %s", key, exc_info=True, extra={"component": "hibi"})
+            logger.warning("Cache write error for key %s", key, exc_info=True, extra={"component": "superset"})
 
     @staticmethod
     def invalidate_dataset(dataset_id: int) -> int:
@@ -183,7 +183,7 @@ class RelationshipQueryCache:
                 "Relationship cache invalidation error for id=%d",
                 relationship_id,
                 exc_info=True,
-            extra={"component": "hibi"},
+            extra={"component": "superset"},
             )
 
     @staticmethod

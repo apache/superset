@@ -302,7 +302,7 @@ def _build_target_filter_sql(
             logger.debug(
                 "Skipping filter on source column '%s': not in relationship pairs",
                 col,
-                extra={"component": "hibi"},
+                extra={"component": "superset"},
             )
             continue
 
