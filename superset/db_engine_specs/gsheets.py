@@ -308,9 +308,9 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             sa_info = params.pop("service_account_info")
             connect_args = params.setdefault("connect_args", {})
             adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
-            adapter_kwargs.setdefault("gsheetsapi", {})[
-                "service_account_info"
-            ] = sa_info
+            adapter_kwargs.setdefault("gsheetsapi", {})["service_account_info"] = (
+                sa_info
+            )
 
         if "catalog" in params:
             catalog = params["catalog"]  # keep in params for table listing

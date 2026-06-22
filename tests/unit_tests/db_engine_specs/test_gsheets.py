@@ -739,7 +739,8 @@ def test_update_params_from_encrypted_extra(mocker: MockerFixture) -> None:
 
     - oauth2_client_info must be removed
     - service_account_info must be moved to connect_args.adapter_kwargs.gsheetsapi
-    - catalog must be copied to connect_args.adapter_kwargs.gsheetsapi (and kept top-level)
+    - catalog must be copied to connect_args.adapter_kwargs.gsheetsapi (and kept
+      top-level)
     - other keys must remain as top-level params
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
