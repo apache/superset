@@ -29,6 +29,7 @@ from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql.parse import Table
 from superset.utils.database import get_example_database
+from tests.common.assert_utils import assert_called_once_with_text
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -1215,11 +1216,3 @@ def test_get_catalog_names(app_context: AppContext) -> None:
             "tpcds",
             "tpch",
         ]
-
-
-def assert_called_once_with_text(
-    m: mock.Mock,
-    q: str,
-):
-    m.assert_called_once()
-    assert m.call_args[0][0].text == q

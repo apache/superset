@@ -25,6 +25,7 @@ from sqlalchemy.sql import select
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
 from superset.sql.parse import Table
+from tests.common.assert_utils import assert_any_call_with_text
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
 
@@ -440,13 +441,3 @@ def test_get_table_names(
     mock_get_table_names.return_value = {"table1", "table2", "view1", "view2"}
     tables = HiveEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
     assert tables == {"table1", "table2"}
-
-
-def assert_any_call_with_text(
-    m: mock.Mock,
-    q: str,
-):
-    assert any(
-        hasattr(call_args_it[0][0], "text") and call_args_it[0][0].text == q
-        for call_args_it in m.call_args_list
-    )

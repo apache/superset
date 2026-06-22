@@ -36,6 +36,7 @@ from superset.db_engine_specs.doris import (
     TINYINT,
 )
 from superset.utils.core import GenericDataType
+from tests.common.assert_utils import assert_called_once_with_text
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
@@ -278,11 +279,3 @@ def test_get_catalog_names(
 
     # Verify the returned catalog names
     assert catalogs == expected_result
-
-
-def assert_called_once_with_text(
-    m: Mock,
-    q: str,
-):
-    m.assert_called_once()
-    assert m.call_args[0][0].text == q
