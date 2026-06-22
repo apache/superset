@@ -489,6 +489,7 @@ export function saveDashboardRequest(
       owners,
       roles,
       slug,
+      description,
       tags,
     } = data;
 
@@ -521,6 +522,7 @@ export function saveDashboardRequest(
             hasId(r) ? r.id : r,
           ),
       slug: slug || null,
+      description: description || null,
       tags: !isFeatureEnabled(FeatureFlag.TaggingSystem)
         ? undefined
         : ensureIsArray((tags || []) as JsonObject[]).map((r: JsonObject) =>
@@ -672,6 +674,7 @@ export function saveDashboardRequest(
               css: cleanedData.css,
               dashboard_title: cleanedData.dashboard_title,
               slug: cleanedData.slug,
+              description: cleanedData.description,
               owners: cleanedData.owners,
               roles: cleanedData.roles,
               tags: cleanedData.tags || [],

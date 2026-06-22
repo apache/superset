@@ -183,6 +183,7 @@ class TestBuildAppliedDashboardFilters:
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
             "chartsInScope": [1],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
             "targets": [{"column": {"name": "country"}, "datasetId": 7}],
             "defaultDataMask": {
                 "filterState": {"value": ["US"]},
@@ -226,7 +227,8 @@ class TestBuildAppliedDashboardFilters:
             "name": "Region",
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
-            "chartsInScope": [2, 3],  # chart 1 excluded
+            "chartsInScope": [2, 3],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": [1]},  # chart 1 excluded
             "targets": [{"column": {"name": "region"}, "datasetId": 7}],
             "defaultDataMask": {
                 "filterState": {"value": ["NA"]},
@@ -257,6 +259,7 @@ class TestBuildAppliedDashboardFilters:
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
             "chartsInScope": [1],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
             "targets": [{"column": {"name": "region"}, "datasetId": 7}],
             "controlValues": {"defaultToFirstItem": True},
             "defaultDataMask": {},

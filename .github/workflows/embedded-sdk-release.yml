@@ -34,15 +34,5 @@ jobs:
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: "./superset-embedded-sdk/.nvmrc"
-      # Diagnostic: confirm GitHub OIDC is granted to this job. npm trusted
-      # publishing needs the id-token request env vars; "no" here means OIDC was
-      # not issued and publishing cannot authenticate.
-      - name: Check OIDC availability
-        run: |
-          if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL}" ]; then
-            echo "GitHub OIDC available to job: yes"
-          else
-            echo "GitHub OIDC available to job: no"
-          fi
       - run: npm ci
       - run: npm run ci:release
