@@ -83,7 +83,8 @@ class SavedQueryTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-
 class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
         """
-        Filter saved queries to only those created by current user.
+        Filter saved queries to current user's queries unless the user can
+        access all queries.
 
         :returns: flask-sqlalchemy query
         """

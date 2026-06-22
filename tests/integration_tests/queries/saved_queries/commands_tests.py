@@ -57,9 +57,10 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         db.session.commit()
         super().tearDown()
 
+    @patch("superset.security.manager.g")
     @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    def test_export_query_command(self, mock_filter_g, mock_security_g):
+        mock_filter_g.user = mock_security_g.user = security_manager.find_user("admin")
 
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = dict(command.run())
@@ -85,12 +86,13 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
             "database_uuid": str(self.example_database.uuid),
         }
 
+    @patch("superset.security.manager.g")
     @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_no_related(self, mock_g):
+    def test_export_query_command_no_related(self, mock_filter_g, mock_security_g):
         """
         Test that only the query is exported when export_related=False.
         """
-        mock_g.user = security_manager.find_user("admin")
+        mock_filter_g.user = mock_security_g.user = security_manager.find_user("admin")
 
         command = ExportSavedQueriesCommand(
             [self.example_query.id], export_related=False
@@ -103,30 +105,33 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         ]
         assert expected == list(contents.keys())
 
+    @patch("superset.security.manager.g")
     @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_no_access(self, mock_g):
+    def test_export_query_command_no_access(self, mock_filter_g, mock_security_g):
         """Test that users can't export datasets they don't have access to"""
-        mock_g.user = security_manager.find_user("gamma")
+        mock_filter_g.user = mock_security_g.user = security_manager.find_user("gamma")
 
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = command.run()
         with self.assertRaises(SavedQueryNotFoundError):  # noqa: PT027
             next(contents)
 
+    @patch("superset.security.manager.g")
     @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_invalid_dataset(self, mock_g):
+    def test_export_query_command_invalid_dataset(self, mock_filter_g, mock_security_g):
         """Test that an error is raised when exporting an invalid dataset"""
-        mock_g.user = security_manager.find_user("admin")
+        mock_filter_g.user = mock_security_g.user = security_manager.find_user("admin")
 
         command = ExportSavedQueriesCommand([-1])
         contents = command.run()
         with self.assertRaises(SavedQueryNotFoundError):  # noqa: PT027
             next(contents)
 
+    @patch("superset.security.manager.g")
     @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_key_order(self, mock_g):
+    def test_export_query_command_key_order(self, mock_filter_g, mock_security_g):
         """Test that they keys in the YAML have the same order as export_fields"""
-        mock_g.user = security_manager.find_user("admin")
+        mock_filter_g.user = mock_security_g.user = security_manager.find_user("admin")
 
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = dict(command.run())
