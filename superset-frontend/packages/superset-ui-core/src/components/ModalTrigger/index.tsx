@@ -24,6 +24,8 @@ import { Modal } from '../Modal';
 const MENU_NAVIGATION_KEYS = new Set([
   'ArrowLeft',
   'ArrowRight',
+  'ArrowUp',
+  'ArrowDown',
   'Home',
   'End',
 ]);

@@ -115,21 +115,27 @@ test('should not block arrow key default behavior inside modal input when render
   input.focus();
   input.setSelectionRange(2, 2);
 
-  // Simulate pressing ArrowLeft
-  const arrowEvent = new KeyboardEvent('keydown', {
-    key: 'ArrowLeft',
-    bubbles: true,
-    cancelable: true,
+  // Simulate pressing navigation keys
+  const keys = [
+    'ArrowLeft',
+    'ArrowRight',
+    'ArrowUp',
+    'ArrowDown',
+    'Home',
+    'End',
+  ];
+
+  keys.forEach(key => {
+    const arrowEvent = new KeyboardEvent('keydown', {
+      key,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    const wasPrevented = !input.dispatchEvent(arrowEvent);
+
+    // jsdom might not fully support native cursor movement, so we check defaultPrevented
+    // meaning our wrapper successfully stopped propagation before it reached rc-menu.
+    expect(wasPrevented).toBe(false);
   });
-
-  const wasPrevented = !input.dispatchEvent(arrowEvent);
-
-  // jsdom might not fully support native cursor movement, so we check defaultPrevented
-  // meaning our wrapper successfully stopped propagation before it reached rc-menu.
-  expect(wasPrevented).toBe(false);
-
-  // If jsdom ever supports it, cursor should be at 1
-  if (input.selectionStart === 1) {
-    expect(input.selectionStart).toBe(1);
-  }
 });
