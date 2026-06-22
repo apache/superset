@@ -142,7 +142,7 @@ class VersionListResponseSchema(Schema):
     count = fields.Integer()
 
 
-# ---- Cross-entity activity view (sc-107283) -------------------------------
+# ---- Cross-entity activity view ------------------------------------------
 
 #: Allowed values for ``ActivityRecordSchema.entity_kind``. User-facing
 #: lowercase strings; the activity layer's internal kind dispatch keys off
@@ -151,16 +151,16 @@ class VersionListResponseSchema(Schema):
 #: :func:`superset.versioning.activity.apply_record_decoration`.
 ACTIVITY_ENTITY_KINDS: tuple[str, ...] = ("dashboard", "chart", "dataset")
 
-#: Allowed values for ``ActivityRecordSchema.source`` (spec AV-013).
+#: Allowed values for ``ActivityRecordSchema.source``.
 ACTIVITY_SOURCES: tuple[str, ...] = ("self", "related")
 
 #: Allowed values for ``ActivityRecordSchema.entity_deletion_state``.
 #: Hard-delete is communicated separately via ``entity_deleted=true``;
-#: the remaining state is the soft-delete sentinel (sc-103157).
+#: the remaining state is the soft-delete sentinel.
 ACTIVITY_DELETION_STATES: tuple[str, ...] = ("soft_deleted",)
 
 #: Allowed values for ``ActivityRecordSchema.kind`` — mirrors the
-#: change-record taxonomy from sc-103156 FR-016. ``"field"`` is the
+#: change-record taxonomy. ``"field"`` is the
 #: fallback for scalar changes without a more specific category.
 #:
 #: ``"restore"`` (previously the synthetic kind for restore events) is
@@ -185,7 +185,7 @@ ACTIVITY_CHANGE_KINDS: tuple[str, ...] = (
     # ACTION_META_KEY (the ``__meta__`` path convention): machine
     # namespace, clearly non-content. The canonical case is restore,
     # whose record's ``to_value`` carries the restored-to
-    # ``version_uuid`` / ``version_number`` (PR #40988 feedback).
+    # ``version_uuid`` / ``version_number``.
     "__meta__",
 )
 
@@ -218,8 +218,8 @@ class ActivityChangedBySchema(Schema):
 
     The activity-view payload exposes only the display fields
     (``id`` + given/family name); ``username`` is omitted by design (see
-    data-model.md §"ActivityRecord DTO"). ``null`` when the saving user
-    has been deleted from ``ab_user`` (sc-103156 §Session 2026-05-18
+    the ActivityRecord DTO). ``null`` when the saving user
+    has been deleted from ``ab_user`` (the saving user row is gone
     clarification).
     """
 
@@ -251,7 +251,7 @@ class ActivityRecordSchema(Schema):
     """One change record in the activity stream.
 
     One record per atomic field-level change. Fields mirror
-    data-model.md §"``ActivityRecord`` DTO" — see that doc for source
+    the ``ActivityRecord`` DTO — see the schema for source
     and required/optional details.
     """
 
@@ -308,7 +308,7 @@ class ActivityRecordSchema(Schema):
         metadata={
             "description": (
                 "Present when the source entity has non-null ``deleted_at`` "
-                "(sc-103157). Absent or ``null`` otherwise."
+                "Absent or ``null`` otherwise."
             )
         },
     )
@@ -318,7 +318,7 @@ class ActivityRecordSchema(Schema):
             "description": (
                 '``"self"`` if ``(entity_kind, entity_id)`` matches the '
                 'path entity; else ``"related"``. Drives the frontend\'s '
-                "no-group-under-save rendering rule (AV-013)."
+                "no-group-under-save rendering rule."
             )
         },
     )
@@ -399,7 +399,7 @@ class ActivityRecordSchema(Schema):
             "description": (
                 'Synthesized headline for ``source: "related"`` records — '
                 'e.g., ``"Dataset updated: Sales Transactions"`` '
-                '(AV-012). Absent for ``source: "self"`` records.'
+                'Absent for ``source: "self"`` records.'
             )
         },
     )

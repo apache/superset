@@ -1409,7 +1409,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ---
         get:
           summary: Activity stream — chart own edits + datasets the
-            chart pointed at during association (sc-107283 US2)
+            chart pointed at during association
           parameters:
           - in: path
             schema:

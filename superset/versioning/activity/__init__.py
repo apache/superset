@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Read-side queries for the cross-entity activity-view API (sc-107283).
+"""Read-side queries for the cross-entity activity-view API.
 
 Companion to :mod:`superset.versioning.queries`. Whereas ``queries.py``
 returns transaction-level history for a single entity, the helpers
@@ -39,7 +39,7 @@ Package layout (descends from public entry point to leaf helpers):
 * :mod:`.orchestrator` — :func:`get_activity` (public), the
   ``activity_endpoint`` REST helper, the request param parser
   (:func:`parse_activity_query_params`), and the observability
-  instrumentation that T037/T038 specify.
+  instrumentation (request-shape + per-kind metrics).
 * :mod:`.scope` — scope resolution (DB-touching):
   :func:`resolve_scope` / :func:`_resolve_dashboard_scope` /
   :func:`_resolve_chart_scope` / :func:`_resolve_related_scope`.
@@ -54,7 +54,7 @@ Package layout (descends from public entry point to leaf helpers):
   path-entity resolution, and tombstone-state lookup.
 * :mod:`.impact` — per-record impact-count computation (the only
   field that requires its own batched query).
-* :mod:`.visibility` — the AV-008 silent visibility filter; uses
+* :mod:`.visibility` — the silent visibility filter; uses
   the same SQL-side access filters FAB applies on list endpoints.
 * :mod:`.render` — record-decoration helpers that turn raw rows into
   the ActivityRecord DTO (summary headlines, ``changed_by`` projection,

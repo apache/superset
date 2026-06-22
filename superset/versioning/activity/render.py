@@ -20,7 +20,7 @@ After fetching + filtering, each record needs the synthesized fields
 the API contract documents — ``entity_kind`` translated to the user-
 facing form, ``entity_uuid``, ``entity_deleted`` /
 ``entity_deletion_state``, ``source`` (self vs. related),
-``summary`` (the AV-012 headline), ``impact`` (chart-count for
+``summary`` (the headline), ``impact`` (chart-count for
 dashboard→dataset records), ``version_uuid``, ``changed_by``.
 
 This module collects all those decorations:
@@ -32,7 +32,7 @@ This module collects all those decorations:
 * :func:`_lookup_entity_uuids` — one IN-clause query per kind to
   resolve live ``uuid`` for non-tombstoned entities.
 * :func:`_build_summary` — pure projection of (api_kind, record kind,
-  entity_name) onto the AV-012 headline string.
+  entity_name) onto the headline string.
 * :func:`_changed_by_dict` — projects the user columns onto the
   ``changed_by`` DTO shape.
 """
@@ -61,8 +61,8 @@ from superset.versioning.activity.queries import check_entity_tombstones
 from superset.versioning.queries import derive_version_uuid
 
 _SUMMARY_VERBS: dict[str, str] = {
-    # The kind taxonomy from FR-016 mapped to past-tense verbs for the
-    # AV-012 "<entity_label> <verb>: <entity_name>" headline. "field" is
+    # The kind taxonomy mapped to past-tense verbs for the
+    # "<entity_label> <verb>: <entity_name>" headline. "field" is
     # the fallback for scalar changes that don't map to a named verb.
     "filter": "filter changed",
     "metric": "metric changed",
@@ -137,7 +137,7 @@ def apply_record_decoration(
         record["changed_by"] = _changed_by_dict(record)
 
         if is_self:
-            # AV-012 leaves self records summary-less (the panel renders
+            # Self records are left summary-less (the panel renders
             # them from kind/path/values) — EXCEPT synthetic ``__meta__``
             # headlines, whose entire payload IS the summary and whose
             # primary surface is the entity's own stream ("restored to
@@ -158,8 +158,8 @@ def apply_record_decoration(
                 # diff CONTENT — filter values, column names, SQL/adhoc
                 # expressions — so a requester entitled only to the path
                 # entity can't read the internal change values of a deleted
-                # related entity. The entity_name and the AV-012 headline
-                # are kept deliberately (D-15: the panel shows "(deleted)
+                # related entity. The entity_name and the headline
+                # are kept deliberately (the panel shows "(deleted)
                 # <name>"); only the value payload is stripped. Self-path
                 # tombstones are untouched — the endpoint already gated them
                 # via ``raise_for_access`` on the path entity.
@@ -184,7 +184,7 @@ def _lookup_entity_uuids(
     tombstones: dict[tuple[str, int], dict[str, Any]],
 ) -> dict[tuple[str, int], UUID | None]:
     """Batch-fetch live ``uuid`` per ``(api_kind, entity_id)``. Tombstoned
-    entities are skipped (their ``entity_uuid`` is null per data-model.md).
+    entities are skipped (their ``entity_uuid`` is null).
     """
     result: dict[tuple[str, int], UUID | None] = {}
     by_kind: dict[str, list[int]] = {}
@@ -220,13 +220,13 @@ def _lookup_entity_uuids(
 
 
 def _build_summary(api_kind: str, record: dict[str, Any]) -> str:
-    """Build the AV-012 headline for a related record:
+    """Build the headline for a related record:
     ``"<Kind label> <verb>: <entity_name>"``."""
     label = API_KIND_LABEL.get(api_kind, api_kind)
     # Synthetic ``__meta__`` headlines carry their payload in to_value
     # and their verb on the transaction's ``action_kind`` (path stays
     # pure navigation). The restore variant names the version it
-    # restored to (PR #40988: "Restored to X from [date]" is not
+    # restored to ("Restored to X from [date]" is not
     # renderable from field diffs).
     if record.get("kind") == "__meta__":
         name = record.get("entity_name") or ""

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Per-AV-008 silent visibility filter for activity-view records.
+"""Silent visibility filter for activity-view records.
 
 Drops records whose source entity the requester can't read. Silent in
 the sense that dropped records contribute no count and no placeholder
@@ -58,6 +58,7 @@ from typing import Any
 
 from superset.extensions import db
 from superset.versioning.activity.kinds import (
+    ENTITY_ID_CHUNK_SIZE,
     load_shadow_model,
     NAME_COLUMN,
     TABLE_KIND_TO_API,
@@ -71,7 +72,7 @@ def filter_records_by_visibility(
 ) -> list[dict[str, Any]]:
     """Drop records whose source entity the requester can't read.
 
-    Per AV-008 the filter is silent: dropped records contribute no count
+    The filter is silent: dropped records contribute no count
     and no placeholder. Tombstoned entities (no live row) pass through
     — the decorator step marks them ``entity_deleted: true`` and the
     payload exposes no navigable ``entity_uuid``, so there's nothing
@@ -169,29 +170,34 @@ def _resolve_visibility(
                 visible[(api_kind, entity_id)] = True
             continue
         model_cls = load_shadow_model(NAME_COLUMN[api_kind][0])
-
-        # Live ids — what exists at all. Used to decide tombstone vs
-        # not-visible: an id missing from this set is tombstoned and
-        # passes through (True); an id in this set but absent from the
-        # access-filtered set is denied (False).
-        live_ids = {
-            row[0]
-            for row in db.session.query(model_cls.id)
-            .filter(model_cls.id.in_(entity_ids))
-            .all()
-        }
-
-        # Apply the SQL-side access filter to a query restricted to the
-        # candidate ids. Same predicate FAB uses for list endpoints, so
-        # results are consistent with the rest of the read surface.
         access_filter = access_filter_classes[api_kind]("id", SQLAInterface(model_cls))
-        visible_ids = {
-            row[0]
-            for row in access_filter.apply(
-                db.session.query(model_cls.id).filter(model_cls.id.in_(entity_ids)),
-                value=None,
-            ).all()
-        }
+
+        # Chunk the candidate ids to stay under SQLite's bind-variable floor
+        # (a dashboard built from a large chart library can exceed it).
+        live_ids: set[int] = set()
+        visible_ids: set[int] = set()
+        for start in range(0, len(entity_ids), ENTITY_ID_CHUNK_SIZE):
+            chunk = entity_ids[start : start + ENTITY_ID_CHUNK_SIZE]
+            # Live ids — what exists at all. Used to decide tombstone vs
+            # not-visible: an id missing from this set is tombstoned and
+            # passes through (True); an id in this set but absent from the
+            # access-filtered set is denied (False).
+            live_ids.update(
+                row[0]
+                for row in db.session.query(model_cls.id)
+                .filter(model_cls.id.in_(chunk))
+                .all()
+            )
+            # Apply the SQL-side access filter to a query restricted to the
+            # candidate ids. Same predicate FAB uses for list endpoints, so
+            # results are consistent with the rest of the read surface.
+            visible_ids.update(
+                row[0]
+                for row in access_filter.apply(
+                    db.session.query(model_cls.id).filter(model_cls.id.in_(chunk)),
+                    value=None,
+                ).all()
+            )
 
         for entity_id in entity_ids:
             if entity_id not in live_ids:

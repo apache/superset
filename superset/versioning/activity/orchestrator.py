@@ -24,7 +24,7 @@ model class to assemble the cross-entity activity stream:
 2. ``resolve_scope`` (scope.py) — build the related-entity window list.
 3. ``fetch_change_records`` (queries.py) — pull rows from
    ``version_changes`` joined with ``version_transaction`` and ``ab_user``.
-4. ``filter_records_by_visibility`` (visibility.py) — silent AV-008
+4. ``filter_records_by_visibility`` (visibility.py) — silent
    drop of records the requester can't read.
 5. ``apply_entity_name_denormalization`` (queries.py) — resolve entity names
    from the shadow row valid at each record's transaction_id.
@@ -36,8 +36,8 @@ Parameter parsing for the REST endpoints lives here too —
 :func:`parse_activity_query_params` is called by the three
 ``/activity/`` endpoint handlers before they call ``get_activity``.
 Same for the observability instrumentation: ``_phase_timer`` and
-``_emit_request_shape_attributes`` emit the metrics that T037/T038
-specify, on the same prefix the cross-coupling test pins.
+``_emit_request_shape_attributes`` emit the per-phase timing and
+request-shape metrics, on the same prefix the cross-coupling test pins.
 """
 
 from __future__ import annotations
@@ -72,6 +72,12 @@ _MAX_PAGE_SIZE = 200
 _VALID_INCLUDE_VALUES: frozenset[str] = frozenset({"self", "related", "all"})
 
 
+# Upper bound on the ``q`` search string. The search is a substring scan over
+# the (already-capped) materialized record set, so this is a cheap-DoS guard,
+# not a correctness limit.
+_MAX_Q_LENGTH = 1024
+
+
 class ActivityParamsError(ValueError):
     """Raised by :func:`parse_activity_query_params` when a query param is
     malformed. The endpoint catches this and maps to ``response_400``;
@@ -97,6 +103,8 @@ def parse_activity_query_params(args: Any) -> dict[str, Any]:
     if (until := _parse_optional_iso(args.get("until"), name="until")) is not None:
         params["until"] = until
     if q := (args.get("q") or "").strip():
+        if len(q) > _MAX_Q_LENGTH:
+            raise ActivityParamsError(f"'q' must be at most {_MAX_Q_LENGTH} characters")
         params["q"] = q
     return params
 
@@ -215,21 +223,21 @@ def get_activity(
     Single polymorphic entry point. Dispatches on *model_cls* to
     assemble the path entity's self records plus the transitive related-
     entity records (charts attached to a dashboard, datasets a chart
-    pointed at, etc.) per data-model.md §"Query phases".
+    pointed at, etc.).
 
     Returns ``(records, total_count, truncated)``. ``truncated`` is
     ``True`` when the per-request fetch ceiling
     (``queries._MAX_FETCHED_RECORDS``) bit — older records exist beyond
     what was materialized, so ``count`` is a floor, not the absolute
-    total. The count is post-visibility
-    (AV-008), post-include-filter, and — when ``q`` is supplied — post-
+    total. The count is post-visibility (silent visibility filter),
+    post-include-filter, and — when ``q`` is supplied — post-
     search-filter (``count`` reflects the matches, the contract the
     server-side search exists to provide), not just the size of the
     returned slice — clients paginate by passing ``page`` forward until
     ``page * page_size >= count``.
 
     Raises ``DashboardNotFoundError`` / ``ChartNotFoundError`` /
-    ``DatasetNotFoundError`` when the path entity doesn't exist (AV-009).
+    ``DatasetNotFoundError`` when the path entity doesn't exist.
     """
     _path_entity, path_id = resolve_path_entity(model_cls, entity_uuid)
     path_kind = model_cls.__name__
@@ -254,7 +262,7 @@ def get_activity(
     # ``entity_id`` column (which decoration strips), and dropping
     # invisible records early means we don't pay for name lookup +
     # tombstone probes + impact counts on records the requester
-    # can't see (AV-008's silent-filter contract).
+    # can't see (the silent-filter contract).
     with _phase_timer(kind_key, "fetch_ms"):
         records, truncated = fetch_change_records(entity_windows, since, until)
     with _phase_timer(kind_key, "visibility_filter_ms"):
@@ -268,11 +276,11 @@ def get_activity(
     with _phase_timer(kind_key, "decorate_ms"):
         apply_record_decoration(records, path_kind, path_id)
 
-    # Server-side search (PR #40988 feedback: the panel's client-side
+    # Server-side search (the panel's client-side
     # search only covers loaded pages). Applied post-decoration so the
     # synthesized ``summary`` / ``entity_name`` participate, and pre-
     # count so pagination paginates the MATCHES — the full record set
-    # is already materialized in Python (the documented AV-008 design),
+    # is already materialized in Python (the documented design),
     # so the filter adds no extra query.
     if q:
         records = [r for r in records if _record_matches(r, q)]
@@ -330,9 +338,9 @@ def activity_endpoint(
     return api.response(200, **payload)
 
 
-# ---- Observability (T037 / T038) ------------------------------------------
+# ---- Observability -------------------------------------------------------
 
-#: Common prefix for every metric this module emits. Per plan §D-17.
+#: Common prefix for every metric this module emits.
 _METRIC_PREFIX = "superset.activity_view"
 
 
@@ -367,7 +375,7 @@ def _emit_request_shape_attributes(
 ) -> None:
     """Emit non-PII shape counters about the request and its result set.
 
-    Per T038: include_mode / has_since_filter / page_size / record_count
+    Emits: include_mode / has_since_filter / page_size / record_count
     + per-related-kind entity counts. **No PII**: entity names, diff
     content, user identifiers — none of those reach the metric layer.
     The counters use ``incr`` (counters) since they're tags, not
@@ -389,7 +397,7 @@ def _emit_request_shape_attributes(
     sl.gauge(f"{_METRIC_PREFIX}.{kind_key}.page_size", float(page_size))
     sl.gauge(f"{_METRIC_PREFIX}.{kind_key}.record_count", float(record_count))
 
-    # Per-related-kind entity counts (T038 explicit fields). The scope
+    # Per-related-kind entity counts. The scope
     # list includes the path entity itself (the "self" window); exclude
     # it so the gauge reflects only the *related* entities the request
     # fanned out to, not "this request touched itself".

@@ -41,7 +41,11 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json as _json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -130,6 +134,63 @@ class TestDashboardActivityView(SupersetTestCase):
         self.login(ALPHA_USERNAME)
         rv = self._activity(dashboard_uuid)
         assert rv.status_code == 200
+
+    def test_visibility_filter_silently_drops_inaccessible_related(self) -> None:
+        """AV-008 security control: a related record whose entity the caller
+        cannot read is *silently* dropped — absent from the result, no
+        placeholder, no contribution to count. Exercises the real
+        enforcement point (``filter_records_by_visibility`` →
+        ``DashboardAccessFilter``) with a restricted Gamma principal.
+
+        Setup uses two dashboards (no datasource needed): one owned by
+        Gamma (readable), and an admin-owned one Gamma may not read.
+        """
+        from superset import security_manager
+        from superset.versioning.activity.visibility import (
+            filter_records_by_visibility,
+        )
+
+        admin = security_manager.find_user(ADMIN_USERNAME)
+        gamma = security_manager.find_user(GAMMA_USERNAME)
+        visible = Dashboard(
+            dashboard_title=f"vis-probe-owned {uuid4().hex[:8]}",
+            slug=f"vis-owned-{uuid4().hex[:8]}",
+            published=False,
+            owners=[gamma],
+        )
+        hidden = Dashboard(
+            dashboard_title=f"vis-probe-hidden {uuid4().hex[:8]}",
+            slug=f"vis-hidden-{uuid4().hex[:8]}",
+            published=False,
+            owners=[admin],
+        )
+        db.session.add_all([visible, hidden])
+        db.session.commit()
+        visible_id, hidden_id = visible.id, hidden.id
+        try:
+            records = [
+                {"entity_kind": "dashboard", "entity_id": visible_id},
+                {"entity_kind": "dashboard", "entity_id": hidden_id},
+            ]
+            self.login(GAMMA_USERNAME)
+            filtered = filter_records_by_visibility(records)
+            kept_ids = {r["entity_id"] for r in filtered}
+
+            assert visible_id in kept_ids, (
+                "published dashboard must stay visible to Gamma"
+            )
+            assert hidden_id not in kept_ids, (
+                "unpublished admin-owned dashboard must be dropped for Gamma"
+            )
+            # Silent: the dropped record leaves nothing behind (no placeholder).
+            assert len(filtered) == 1
+        finally:
+            db.session.rollback()
+            for did in (visible_id, hidden_id):
+                obj = db.session.query(Dashboard).filter(Dashboard.id == did).first()
+                if obj is not None:
+                    db.session.delete(obj)
+            db.session.commit()
 
     # ---- 200 happy paths ----
 

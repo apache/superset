@@ -61,7 +61,7 @@ def resolve_scope(path_kind: str, path_id: int, include: str) -> list[EntityWind
 
 def _resolve_related_scope(path_kind: str, path_id: int) -> list[EntityWindows]:
     """Walk the dependency edges from the path entity to its related
-    entities. Per AV-004, datasets have no transitive layer in V2."""
+    entities. Datasets have no transitive layer in V2."""
     if path_kind == "Dashboard":
         return _resolve_dashboard_scope(path_id)
     if path_kind == "Slice":

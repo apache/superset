@@ -36,7 +36,6 @@ mappers are configured.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -47,6 +46,7 @@ from flask_appbuilder import Model
 from superset.extensions import db
 from superset.versioning.activity.kinds import (
     API_KIND_TO_TABLE,
+    chunked_ids,
     EntityWindows,
     load_shadow_model,
     NAME_COLUMN,
@@ -62,9 +62,9 @@ from superset.versioning.changes import version_changes_table
 
 def resolve_path_entity(model_cls: type[Model], entity_uuid: UUID) -> tuple[Any, int]:
     """Resolve *entity_uuid* to ``(live_entity, entity_id)`` or raise a
-    typed 404 per AV-009.
+    typed 404.
 
-    Soft-delete handling (sc-103157) is inherited transparently from
+    Soft-delete handling is inherited transparently from
     :func:`superset.versioning.queries.find_active_by_uuid` once it
     learns to filter out ``deleted_at IS NOT NULL`` rows; at that point
     soft-deleted paths will also raise here.
@@ -161,25 +161,29 @@ def batch_datasets_used_by_charts(
     from superset.models.slice import Slice
 
     slices_tbl = version_class(Slice).__table__
-    rows = (
-        db.session.connection()
-        .execute(
-            sa.select(
-                slices_tbl.c.id,
-                slices_tbl.c.datasource_id,
-                slices_tbl.c.transaction_id,
-                slices_tbl.c.end_transaction_id,
-            ).where(
-                slices_tbl.c.id.in_(slice_ids),
-                slices_tbl.c.datasource_type == "table",
-                slices_tbl.c.operation_type != 2,
-                slices_tbl.c.datasource_id.is_not(None),
-            )
-        )
-        .mappings()
-        .all()
-    )
     grouped: dict[int, list[tuple[int, Window]]] = {}
+    # Chunk the IN-clause under SQLite's bind-variable floor (a dashboard can
+    # carry more charts than the floor allows in one statement).
+    rows: list[Any] = []
+    for chunk in chunked_ids(slice_ids):
+        rows.extend(
+            db.session.connection()
+            .execute(
+                sa.select(
+                    slices_tbl.c.id,
+                    slices_tbl.c.datasource_id,
+                    slices_tbl.c.transaction_id,
+                    slices_tbl.c.end_transaction_id,
+                ).where(
+                    slices_tbl.c.id.in_(chunk),
+                    slices_tbl.c.datasource_type == "table",
+                    slices_tbl.c.operation_type != 2,
+                    slices_tbl.c.datasource_id.is_not(None),
+                )
+            )
+            .mappings()
+            .all()
+        )
     for row in rows:
         grouped.setdefault(row["id"], []).append(
             (
@@ -218,7 +222,7 @@ def fetch_change_records(
     ``SQLITE_MAX_EXPR_DEPTH`` limit on dashboards with many slices
     or many historical attachment windows.
 
-    Per AV-008 the visibility filter runs after this function (records
+    The visibility filter runs after this function (records
     the requester can't read are silently dropped and must not
     contribute to ``count``), so the orchestrator paginates in Python
     over the filtered list — there is no DB-level page ``OFFSET`` here.
@@ -229,7 +233,7 @@ def fetch_change_records(
 
     Returns ``(records, truncated)``. Records are ordered by
     ``(issued_at DESC, transaction_id DESC, sequence DESC)`` — the
-    secondary keys break ties for AV-006's stable-ordering contract.
+    secondary keys break ties for the stable-ordering contract.
     """
     if not entity_window_tuples:
         return [], False
@@ -248,8 +252,26 @@ def fetch_change_records(
     if not ids_by_kind:
         return [], False
 
+    # Per-kind transaction_id bounds = the union of that kind's windows.
+    # Pushing these into the SQL WHERE ensures the per-statement LIMIT
+    # selects from IN-WINDOW rows. Without it, a related entity whose
+    # association window is far in the past would have the newest ``limit``
+    # (out-of-window) rows fetched and discarded, silently dropping its
+    # in-window records that lie beyond the limit. ``end_tx = None``
+    # (open-ended/current) means no upper bound for that kind.
+    bounds_by_kind: dict[str, tuple[int, int | None]] = {}
+    for (table_kind, _entity_id), windows in windows_by_entity.items():
+        for w in windows:
+            cur = bounds_by_kind.get(table_kind)
+            if cur is None:
+                bounds_by_kind[table_kind] = (w.start_tx, w.end_tx)
+                continue
+            lo = min(cur[0], w.start_tx)
+            hi = None if (cur[1] is None or w.end_tx is None) else max(cur[1], w.end_tx)
+            bounds_by_kind[table_kind] = (lo, hi)
+
     rows, truncated = _select_change_rows_for_kinds(
-        ids_by_kind, since, until, _MAX_FETCHED_RECORDS
+        ids_by_kind, bounds_by_kind, since, until, _MAX_FETCHED_RECORDS
     )
     filtered = [
         row
@@ -258,8 +280,19 @@ def fetch_change_records(
             row, windows_by_entity.get((row["entity_kind"], row["entity_id"]), [])
         )
     ]
+    # Sort key must be TOTAL so pagination is stable across requests: two
+    # records from different entities can share (issued_at, transaction_id,
+    # sequence), so append (entity_kind, entity_id) to break remaining ties
+    # deterministically. Without these the relative order of tied records
+    # depends on set-iteration order and a record could shift pages.
     filtered.sort(
-        key=lambda r: (r["issued_at"], r["transaction_id"], r["sequence"]),
+        key=lambda r: (
+            r["issued_at"],
+            r["transaction_id"],
+            r["sequence"],
+            r["entity_kind"],
+            r["entity_id"],
+        ),
         reverse=True,
     )
     return filtered, truncated
@@ -267,6 +300,7 @@ def fetch_change_records(
 
 def _select_change_rows_for_kinds(
     ids_by_kind: dict[str, set[int]],
+    bounds_by_kind: dict[str, tuple[int, int | None]],
     since: datetime | None,
     until: datetime | None,
     limit: int,
@@ -324,7 +358,7 @@ def _select_change_rows_for_kinds(
         # ``transaction_id`` share the same value. The column is
         # declared on the Continuum Table by ``VersionTransactionFactory``,
         # so ``tx_tbl.c.action_kind`` resolves cleanly here. See
-        # sc-103156 data-model.md §"Three dimensions".
+        # the three change-record dimensions.
         tx_tbl.c.action_kind,
         user_tbl.c.id.label("changed_by_id"),
         user_tbl.c.first_name,
@@ -341,7 +375,7 @@ def _select_change_rows_for_kinds(
         # dashboard built from a huge chart library can reach the floor.
         # Postgres + MySQL accept the full list, but the chunk is
         # dialect-agnostic for simplicity.
-        for chunk in _chunked_ids(entity_ids, _ENTITY_ID_CHUNK_SIZE):
+        for chunk in chunked_ids(entity_ids):
             stmt = (
                 sa.select(*select_cols)
                 .select_from(join_tree)
@@ -350,6 +384,13 @@ def _select_change_rows_for_kinds(
                     vc.c.entity_id.in_(chunk),
                 )
             )
+            # Bound by the kind's window union so the LIMIT picks in-window
+            # rows (see fetch_change_records). The per-entity window filter
+            # still runs in Python afterwards for exact membership.
+            tx_lo, tx_hi = bounds_by_kind[table_kind]
+            stmt = stmt.where(vc.c.transaction_id >= tx_lo)
+            if tx_hi is not None:
+                stmt = stmt.where(vc.c.transaction_id < tx_hi)
             if since is not None:
                 stmt = stmt.where(tx_tbl.c.issued_at >= since)
             if until is not None:
@@ -365,6 +406,7 @@ def _select_change_rows_for_kinds(
             stmt = stmt.order_by(
                 tx_tbl.c.issued_at.desc(),
                 vc.c.transaction_id.desc(),
+                vc.c.entity_id.desc(),
                 vc.c.sequence.desc(),
             ).limit(limit)
             rows = [
@@ -377,24 +419,12 @@ def _select_change_rows_for_kinds(
     return out, truncated
 
 
-# Bind-parameter floor: see ``_select_change_rows_for_kinds`` docstring.
-# 500 leaves room for the two literal-string filters and the optional
-# since/until datetime params.
-_ENTITY_ID_CHUNK_SIZE = 500
-
 # Per-statement safety ceiling on how many change rows a single activity
 # request will materialize (per kind-chunk). Bounds memory/CPU for a path
 # entity with very long history or many related entities; when a statement
 # returns a full ``_MAX_FETCHED_RECORDS`` the response is flagged
 # ``truncated`` so clients know older records exist beyond the window.
 _MAX_FETCHED_RECORDS = 5000
-
-
-def _chunked_ids(ids: set[int], size: int) -> Iterator[list[int]]:
-    """Yield *ids* in fixed-size lists. Final chunk may be smaller."""
-    items = list(ids)
-    for i in range(0, len(items), size):
-        yield items[i : i + size]
 
 
 def mark_first_tracked_saves(records: list[dict[str, Any]]) -> None:
@@ -405,7 +435,7 @@ def mark_first_tracked_saves(records: list[dict[str, Any]]) -> None:
     The first save of an entity that predates versioning replays every
     params-normalization delta against the retroactive baseline — a
     legacy chart's first Explore save produced ~74 records in one
-    transaction (version-history UI feedback, PR #40988). The server
+    transaction (version-history UI feedback). The server
     can't distinguish "normalization" from "the user changed 74 things",
     but it CAN say "this was the entity's first tracked save"; clients
     use the marker to collapse such transactions.
@@ -437,7 +467,7 @@ def mark_first_tracked_saves(records: list[dict[str, Any]]) -> None:
         live_model = load_shadow_model(model_name)
         live_tbl = live_model.__table__
         shadow_tbl = version_class(live_model).__table__
-        for chunk in _chunked_ids(entity_ids, _ENTITY_ID_CHUNK_SIZE):
+        for chunk in chunked_ids(entity_ids):
             stmt = (
                 sa.select(
                     shadow_tbl.c.id,
@@ -487,22 +517,25 @@ def _resolve_names_for_kind(
     model_name, name_col = NAME_COLUMN[api_kind]
     model_cls = load_shadow_model(model_name)
     shadow_tbl = version_class(model_cls).__table__
-    ids = sorted({eid for eid, _ in pairs})
-    rows = (
-        db.session.connection()
-        .execute(
-            sa.select(
-                shadow_tbl.c.id,
-                shadow_tbl.c.transaction_id,
-                shadow_tbl.c.end_transaction_id,
-                shadow_tbl.c[name_col],
-            ).where(shadow_tbl.c.id.in_(ids))
-        )
-        .all()
-    )
+    ids = {eid for eid, _ in pairs}
     per_entity: dict[int, list[tuple[int, int | None, Any]]] = {}
-    for row in rows:
-        per_entity.setdefault(row[0], []).append((row[1], row[2], row[3]))
+    # Chunk the IN-clause to stay under SQLite's bind-variable floor (the
+    # same reason _select_change_rows_for_kinds chunks).
+    for chunk in chunked_ids(ids):
+        rows = (
+            db.session.connection()
+            .execute(
+                sa.select(
+                    shadow_tbl.c.id,
+                    shadow_tbl.c.transaction_id,
+                    shadow_tbl.c.end_transaction_id,
+                    shadow_tbl.c[name_col],
+                ).where(shadow_tbl.c.id.in_(chunk))
+            )
+            .all()
+        )
+        for row in rows:
+            per_entity.setdefault(row[0], []).append((row[1], row[2], row[3]))
 
     resolved: dict[tuple[int, int], str] = {}
     for entity_id, target_tx in pairs:
@@ -559,12 +592,12 @@ def check_entity_tombstones(
 ) -> dict[tuple[str, int], dict[str, Any]]:
     """For each ``(api_kind, entity_id)``, report ``deleted`` (no live
     row) and ``deletion_state`` (``"soft_deleted"`` iff the live row has
-    a non-null ``deleted_at`` per sc-103157, else ``None``).
+    a non-null ``deleted_at``, else ``None``).
 
-    Pre-sc-103157 the model classes don't have a ``deleted_at`` column;
-    we probe with ``hasattr`` and report ``deletion_state=None``
-    universally in that case. Once sc-103157 lands, this helper picks up
-    the new column automatically.
+    The ``deleted_at`` column is probed for at runtime: when the model
+    classes don't have one, entities are reported as never soft-deleted
+    (``deletion_state=None``); when a ``deleted_at`` column exists, this
+    helper picks it up automatically.
     """
     result: dict[tuple[str, int], dict[str, Any]] = {}
     if not distinct_entities:
@@ -580,41 +613,50 @@ def check_entity_tombstones(
     # flush would otherwise trigger autoflush mid-read.
     with db.session.no_autoflush:
         for api_kind, entity_ids in by_kind.items():
-            if api_kind not in NAME_COLUMN:
-                for entity_id in entity_ids:
-                    result[(api_kind, entity_id)] = {
-                        "deleted": True,
-                        "deletion_state": None,
-                    }
-                continue
-
-            model_name, _ = NAME_COLUMN[api_kind]
-            model_cls = load_shadow_model(model_name)
-            live_tbl = model_cls.__table__
-            has_deleted_at = "deleted_at" in live_tbl.c
-
-            cols = [live_tbl.c.id]
-            if has_deleted_at:
-                cols.append(live_tbl.c.deleted_at)
-            rows = (
-                db.session.connection()
-                .execute(sa.select(*cols).where(live_tbl.c.id.in_(entity_ids)))
-                .all()
-            )
-            live: dict[int, Any] = {}
-            for row in rows:
-                live[row[0]] = row[1] if has_deleted_at else None
-
-            for entity_id in entity_ids:
-                if entity_id not in live:
-                    result[(api_kind, entity_id)] = {
-                        "deleted": True,
-                        "deletion_state": None,
-                    }
-                else:
-                    deleted_at = live[entity_id]
-                    result[(api_kind, entity_id)] = {
-                        "deleted": False,
-                        "deletion_state": "soft_deleted" if deleted_at else None,
-                    }
+            for entity_id, state in _tombstone_states_for_kind(
+                api_kind, entity_ids
+            ).items():
+                result[(api_kind, entity_id)] = state
     return result
+
+
+_TOMBSTONE = {"deleted": True, "deletion_state": None}
+
+
+def _tombstone_states_for_kind(
+    api_kind: str, entity_ids: list[int]
+) -> dict[int, dict[str, Any]]:
+    """Resolve ``{entity_id: {deleted, deletion_state}}`` for one kind.
+
+    Kinds outside the change-record taxonomy report as tombstoned. For a
+    known kind, an id with no live row is tombstoned; a live row with a
+    non-null ``deleted_at`` (when the column exists) is ``soft_deleted``.
+    """
+    if api_kind not in NAME_COLUMN:
+        return {entity_id: dict(_TOMBSTONE) for entity_id in entity_ids}
+
+    model_cls = load_shadow_model(NAME_COLUMN[api_kind][0])
+    live_tbl = model_cls.__table__
+    has_deleted_at = "deleted_at" in live_tbl.c
+    cols = [live_tbl.c.id] + ([live_tbl.c.deleted_at] if has_deleted_at else [])
+
+    live: dict[int, Any] = {}
+    # Chunk the IN-clause to stay under SQLite's bind-variable floor.
+    for chunk in chunked_ids(entity_ids):
+        for row in (
+            db.session.connection()
+            .execute(sa.select(*cols).where(live_tbl.c.id.in_(chunk)))
+            .all()
+        ):
+            live[row[0]] = row[1] if has_deleted_at else None
+
+    states: dict[int, dict[str, Any]] = {}
+    for entity_id in entity_ids:
+        if entity_id not in live:
+            states[entity_id] = dict(_TOMBSTONE)
+        else:
+            states[entity_id] = {
+                "deleted": False,
+                "deletion_state": "soft_deleted" if live[entity_id] else None,
+            }
+    return states

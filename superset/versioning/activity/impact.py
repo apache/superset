@@ -29,8 +29,7 @@ request:
   the matching charts validity-strategy-style.
 * :func:`impact_for_record` — pure projection from the pre-fetched
   counts onto each record (returns ``None`` for non-Dashboard paths
-  or non-SqlaTable kinds, matching data-model.md §"``impact``
-  computation").
+  or non-SqlaTable kinds, matching the ``impact`` computation).
 
 Splitting the count batching from the pure projection keeps the SQL
 inside one function (the batched read) and the per-record decoration
@@ -44,14 +43,18 @@ from typing import Any
 import sqlalchemy as sa
 
 from superset.extensions import db
-from superset.versioning.activity.kinds import TABLE_KIND_TO_API
+from superset.versioning.activity.kinds import (
+    chunked_ids,
+    ENTITY_ID_CHUNK_SIZE,
+    TABLE_KIND_TO_API,
+)
 
 
 def collect_impact_pairs(
     records: list[dict[str, Any]], path_kind: str
 ) -> set[tuple[int, int]]:
     """Distinct ``(dataset_id, transaction_id)`` pairs from *records*
-    that require an impact computation per data-model.md.
+    that require an impact computation.
 
     Only dashboard-path records whose related entity is a ``SqlaTable``
     produce a non-null ``impact`` field; for any other shape this set
@@ -99,22 +102,26 @@ def batch_chart_counts(
         return {}
 
     dataset_ids = {dataset_id for dataset_id, _ in pairs}
-    stmt = sa.select(
-        m2m_tbl.c.slice_id,
-        slices_tbl.c.datasource_id,
-        m2m_tbl.c.transaction_id.label("m2m_start"),
-        m2m_tbl.c.end_transaction_id.label("m2m_end"),
-        slices_tbl.c.transaction_id.label("slice_start"),
-        slices_tbl.c.end_transaction_id.label("slice_end"),
-    ).where(
-        m2m_tbl.c.dashboard_id == dashboard_id,
-        m2m_tbl.c.operation_type != 2,
-        slices_tbl.c.id == m2m_tbl.c.slice_id,
-        slices_tbl.c.datasource_id.in_(dataset_ids),
-        slices_tbl.c.datasource_type == "table",
-        slices_tbl.c.operation_type != 2,
-    )
-    rows = db.session.connection().execute(stmt).mappings().all()
+    # Chunk the datasource_id IN-clause to stay under SQLite's bind-variable
+    # floor (a dashboard pointing at very many datasets can exceed it).
+    rows: list[Any] = []
+    for chunk in chunked_ids(dataset_ids, ENTITY_ID_CHUNK_SIZE):
+        stmt = sa.select(
+            m2m_tbl.c.slice_id,
+            slices_tbl.c.datasource_id,
+            m2m_tbl.c.transaction_id.label("m2m_start"),
+            m2m_tbl.c.end_transaction_id.label("m2m_end"),
+            slices_tbl.c.transaction_id.label("slice_start"),
+            slices_tbl.c.end_transaction_id.label("slice_end"),
+        ).where(
+            m2m_tbl.c.dashboard_id == dashboard_id,
+            m2m_tbl.c.operation_type != 2,
+            slices_tbl.c.id == m2m_tbl.c.slice_id,
+            slices_tbl.c.datasource_id.in_(chunk),
+            slices_tbl.c.datasource_type == "table",
+            slices_tbl.c.operation_type != 2,
+        )
+        rows.extend(db.session.connection().execute(stmt).mappings().all())
 
     # For each pair, collect the slice_ids whose two validity windows
     # both straddle target_tx. ``set`` dedupes within a pair.
@@ -146,7 +153,7 @@ def impact_for_record(
     """Synthesize the ``impact`` field for one record using the pre-
     fetched *counts* mapping. Pure function — no DB.
 
-    Per data-model.md §"``impact`` computation": only
+    For the ``impact`` computation: only
     ``path=Dashboard`` and ``related=SqlaTable`` shapes carry an
     impact; everything else returns ``None``.
     """

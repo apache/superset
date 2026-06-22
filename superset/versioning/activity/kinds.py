@@ -33,6 +33,7 @@ discoverable at a glance.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 
 from flask_appbuilder import Model
@@ -42,21 +43,40 @@ from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.versioning.changes import ENTITY_KIND_BY_CLASS_NAME
 
+# Max entity ids per ``IN (...)`` clause across the activity-view queries.
+# Bounds the bind-parameter count under SQLite's ``SQLITE_MAX_VARIABLE_NUMBER``
+# floor (default 999 in many builds); Postgres/MySQL accept the full list but
+# the chunk is dialect-agnostic. 500 leaves headroom for the other bound
+# params on each statement.
+ENTITY_ID_CHUNK_SIZE = 500
+
+
+def chunked_ids(
+    ids: Iterable[int], size: int = ENTITY_ID_CHUNK_SIZE
+) -> Iterator[list[int]]:
+    """Yield *ids* in fixed-size lists (final chunk may be smaller). Shared by
+    the activity-view query helpers so every ``IN (...)`` stays under the
+    SQLite bind-variable floor."""
+    items = list(ids)
+    for i in range(0, len(items), size):
+        yield items[i : i + size]
+
+
 # ---- Kind translation -----------------------------------------------------
 
 # ``version_changes.entity_kind`` stores the friendly downstream-tooling
-# value (``"chart"``, ``"dashboard"``, ``"dataset"``) per sc-103156's
+# value (``"chart"``, ``"dashboard"``, ``"dataset"``) per the
 # ``ENTITY_KIND_BY_CLASS_NAME``. The activity-view DTO returns the
 # Python class name instead (``"Slice"``, ``"Dashboard"``,
 # ``"SqlaTable"``) so the contract aligns with ``__class__.__name__``
-# (data-model.md §"``ActivityRecord`` DTO"). Translate at the boundary.
+# (the ``ActivityRecord`` DTO). Translate at the boundary.
 TABLE_KIND_TO_API: dict[str, str] = {
     table_kind: class_name
     for class_name, table_kind in ENTITY_KIND_BY_CLASS_NAME.items()
 }
 API_KIND_TO_TABLE: dict[str, str] = dict(ENTITY_KIND_BY_CLASS_NAME)
 
-# Human-readable label for AV-012 summary headlines
+# Human-readable label for summary headlines
 # ("Dataset updated: Sales Transactions"). Keyed by the internal API kind
 # (Python class name; matches ``model_cls.__name__``).
 API_KIND_LABEL: dict[str, str] = {

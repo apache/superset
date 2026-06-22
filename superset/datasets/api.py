@@ -1686,8 +1686,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """Return the activity stream for a dataset.
         ---
         get:
-          summary: Activity stream — dataset's own edits only (sc-107283 US3).
-            Per AV-004, datasets have no transitive layer in V2 — chart and
+          summary: Activity stream — dataset's own edits only.
+            Datasets have no transitive layer in V2 — chart and
             dashboard edits that touch this dataset do NOT appear here;
             ``?include=related`` and ``?include=all`` collapse to the same
             self-only stream as ``?include=self``.
