@@ -23,7 +23,9 @@ existing cache infrastructure including query result cache, metadata cache,
 form data cache, and dashboard cache.
 """
 
-from pydantic import BaseModel, Field
+from typing import Annotated, Any
+
+from pydantic import BaseModel, Field, model_validator
 
 
 class CacheControlMixin(BaseModel):
@@ -37,22 +39,10 @@ class CacheControlMixin(BaseModel):
     - Dashboard Cache: Caches rendered dashboard components
     """
 
-    use_cache: bool = Field(
-        default=True,
-        description=(
-            "Whether to use Superset's cache layers. When True, will serve from "
-            "cache if available (query results, metadata, form data). When False, "
-            "will bypass cache and fetch fresh data."
-        ),
-    )
+    use_cache: bool = Field(default=True, description="Use cache if available")
 
     force_refresh: bool = Field(
-        default=False,
-        description=(
-            "Whether to force refresh cached data. When True, will invalidate "
-            "existing cache entries and fetch fresh data, then update the cache. "
-            "Overrides use_cache=True if both are specified."
-        ),
+        default=False, description="Invalidate cache and fetch fresh data"
     )
 
 
@@ -65,12 +55,7 @@ class QueryCacheControl(CacheControlMixin):
     """
 
     cache_timeout: int | None = Field(
-        default=None,
-        description=(
-            "Override the default cache timeout in seconds for this query. "
-            "If not specified, uses dataset-level or global cache settings. "
-            "Set to 0 to disable caching for this specific query."
-        ),
+        default=None, description="Cache timeout override in seconds (0 to disable)"
     )
 
 
@@ -83,11 +68,7 @@ class MetadataCacheControl(CacheControlMixin):
     """
 
     refresh_metadata: bool = Field(
-        default=False,
-        description=(
-            "Whether to refresh metadata cache for datasets, tables, and columns. "
-            "Useful when database schema has changed and you need fresh metadata."
-        ),
+        default=False, description="Refresh metadata cache for schema changes"
     )
 
 
@@ -100,12 +81,71 @@ class FormDataCacheControl(CacheControlMixin):
     """
 
     cache_form_data: bool = Field(
-        default=True,
-        description=(
-            "Whether to cache the form data configuration for future use. "
-            "When False, generates temporary configurations that are not cached."
-        ),
+        default=True, description="Cache form data for future use"
     )
+
+
+class CreatedByMeMixin(BaseModel):
+    """Mixin that adds a created_by_me filter flag to list request schemas.
+
+    Provides a clean caller-facing alternative to exposing foreign key IDs.
+    The server translates the flag into the appropriate FK filter and injects
+    the current user's ID automatically.
+    """
+
+    created_by_me: Annotated[
+        bool,
+        Field(
+            default=False,
+            description=(
+                "When true, return only items created by the current user. "
+                "Can be combined with 'filters' but not with 'search'."
+            ),
+        ),
+    ]
+
+    @model_validator(mode="after")
+    def _validate_created_by_me_with_search(self) -> Any:
+        if getattr(self, "search", None) and self.created_by_me:
+            raise ValueError(
+                "'created_by_me' cannot be combined with 'search'. "
+                "Use 'created_by_me' alone or with 'filters'."
+            )
+        return self
+
+
+class OwnedByMeMixin(BaseModel):
+    """Mixin that adds an owned_by_me filter flag to list request schemas.
+
+    Provides a clean caller-facing alternative to exposing M2M owner IDs.
+    The server translates the flag into the appropriate owner filter and injects
+    the current user's ID automatically.
+
+    When combined with created_by_me, returns items where the current user is
+    either the creator OR an owner (union, not intersection).
+    """
+
+    owned_by_me: Annotated[
+        bool,
+        Field(
+            default=False,
+            description=(
+                "When true, return only items where the current user is listed as "
+                "an owner. Can be combined with 'filters' but not with 'search'. "
+                "Can be combined with 'created_by_me' to return items where the "
+                "current user is either the creator or an owner."
+            ),
+        ),
+    ]
+
+    @model_validator(mode="after")
+    def _validate_owned_by_me(self) -> Any:
+        if getattr(self, "search", None) and self.owned_by_me:
+            raise ValueError(
+                "'owned_by_me' cannot be combined with 'search'. "
+                "Use 'owned_by_me' alone or with 'filters'."
+            )
+        return self
 
 
 class CacheStatus(BaseModel):

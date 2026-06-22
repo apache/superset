@@ -17,9 +17,11 @@
  * under the License.
  */
 import buildQuery from '../../src/Graph/buildQuery';
+import { DEFAULT_FORM_DATA } from '../../src/Graph/types';
 
 describe('Graph buildQuery', () => {
   const formData = {
+    ...DEFAULT_FORM_DATA,
     datasource: '5__table',
     granularity_sqla: 'ds',
     source: 'dummy_source',
@@ -28,7 +30,7 @@ describe('Graph buildQuery', () => {
     viz_type: 'my_chart',
   };
 
-  it('should build groupby with source and target categories', () => {
+  test('should build groupby with source and target categories', () => {
     const formDataWithCategories = {
       ...formData,
       source: 'dummy_source',
@@ -47,7 +49,7 @@ describe('Graph buildQuery', () => {
     expect(query.metrics).toEqual(['foo', 'bar']);
   });
 
-  it('should build groupby with source category', () => {
+  test('should build groupby with source category', () => {
     const formDataWithCategories = {
       ...formData,
       source: 'dummy_source',
@@ -64,7 +66,7 @@ describe('Graph buildQuery', () => {
     expect(query.metrics).toEqual(['foo', 'bar']);
   });
 
-  it('should build groupby with target category', () => {
+  test('should build groupby with target category', () => {
     const formDataWithCategories = {
       ...formData,
       source: 'dummy_source',
@@ -81,7 +83,7 @@ describe('Graph buildQuery', () => {
     expect(query.metrics).toEqual(['foo', 'bar']);
   });
 
-  it('should build groupby without any category', () => {
+  test('should build groupby without any category', () => {
     const formDataWithCategories = {
       ...formData,
       source: 'dummy_source',

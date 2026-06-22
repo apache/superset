@@ -16,17 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ComponentType, Layout } from 'src/dashboard/types';
+import type { Layout } from 'src/dashboard/types';
+import { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 import getComponentWidthFromDrop from './getComponentWidthFromDrop';
-
-export interface DropResult {
-  source: { id: string };
-  destination: { id: string };
-  dragging: {
-    id?: string;
-    type?: ComponentType;
-  };
-}
 
 export default function doesChildOverflowParent(
   dropResult: DropResult,

@@ -19,9 +19,10 @@
 import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { MemoryRouter } from 'react-router-dom';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import fetchMock from 'fetch-mock';
 import { ReactNode } from 'react';
 import { ListView, type ListViewProps } from './ListView';
 import { ListViewFilterOperator, type ListViewFetchDataConfig } from './types';
@@ -51,16 +52,6 @@ type MockedListViewProps = Omit<
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
-
-function makeMockLocation(query?: string) {
-  const queryStr = query ? encodeURIComponent(query) : '';
-  return {
-    protocol: 'http:',
-    host: 'localhost',
-    pathname: '/',
-    search: queryStr.length ? `?${queryStr}` : '',
-  } as Location;
-}
 
 const fetchSelectsMock = jest.fn(() =>
   Promise.resolve({ data: [], totalCount: 0 }),
@@ -215,9 +206,11 @@ test('redirects to first page when page index is invalid', async () => {
 const factory = (overrides?: Partial<ListViewProps>) => {
   const props = { ...mockedPropsComprehensive, ...overrides };
   return render(
-    <QueryParamProvider location={makeMockLocation()}>
-      <ListView {...props} />
-    </QueryParamProvider>,
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView {...props} />
+      </QueryParamProvider>
+    </MemoryRouter>,
     { store: mockStore() },
   );
 };
@@ -225,13 +218,11 @@ const factory = (overrides?: Partial<ListViewProps>) => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ListView', () => {
   beforeEach(() => {
-    fetchMock.reset();
     jest.clearAllMocks();
     factory();
   });
 
   afterEach(() => {
-    fetchMock.reset();
     mockedPropsComprehensive.fetchData.mockClear();
     mockedPropsComprehensive.bulkActions.forEach(ba => {
       ba.onSelect.mockClear();
@@ -248,7 +239,10 @@ describe('ListView', () => {
   });
 
   test('calls fetchData on sort', async () => {
-    const sortHeader = screen.getAllByTestId('sort-header')[1];
+    // sort-header[0] is the first data column ('id'); the select-all
+    // column header carries `data-test="header-toggle-all"` instead
+    // of `sort-header` (see TableCollection's `header.cell` slot).
+    const sortHeader = screen.getAllByTestId('sort-header')[0];
     await userEvent.click(sortHeader);
 
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalledWith({
@@ -310,15 +304,19 @@ describe('ListView', () => {
   });
 
   test('renders UI filters', () => {
-    const filterControls = screen.getAllByRole('combobox');
-    expect(filterControls).toHaveLength(2);
+    // select and datetime_range filters render as compact pill buttons;
+    // search filter renders as a text input
+    const filterPills = screen.getAllByTestId('compact-filter-pill');
+    expect(filterPills).toHaveLength(3); // ID, Age, Time
   });
 
   test('calls fetchData on filter', async () => {
-    // Handle select filter
-    const selectFilter = screen.getAllByRole('combobox')[0];
-    await userEvent.click(selectFilter);
-    const option = screen.getByText('foo');
+    // Click the ID compact pill to open its option panel
+    const idPill = screen.getByRole('button', { name: 'ID' });
+    await userEvent.click(idPill);
+
+    // Wait for and click the 'foo' option in the dropdown panel
+    const option = await screen.findByRole('option', { name: 'foo' });
     await userEvent.click(option);
 
     // Handle search filter
@@ -350,7 +348,10 @@ describe('ListView', () => {
       initialSort: [{ id: 'something' }],
     });
 
-    const sortSelect = screen.getByTestId('card-sort-select');
+    const sortSelectContainer = screen.getByTestId('card-sort-select');
+    const sortSelect = sortSelectContainer.querySelector(
+      '[data-test="compact-filter-pill"]',
+    ) as HTMLElement;
     await userEvent.click(sortSelect);
 
     const sortOption = screen.getByText('Alphabetical');

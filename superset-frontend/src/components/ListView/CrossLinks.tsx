@@ -18,7 +18,7 @@
  */
 import { memo, useMemo } from 'react';
 import { useTruncation } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Link } from 'react-router-dom';
 import CrossLinksTooltip from './CrossLinksTooltip';
 

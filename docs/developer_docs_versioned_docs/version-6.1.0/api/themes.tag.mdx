@@ -1,0 +1,25 @@
+---
+id: themes
+title: "Themes"
+description: "Themes"
+custom_edit_url: null
+---
+
+Manage UI themes for customizing Superset's appearance.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `DELETE` | [Bulk delete themes](./bulk-delete-themes) | `/api/v1/theme/` |
+| `GET` | [Get a list of themes](./get-a-list-of-themes) | `/api/v1/theme/` |
+| `POST` | [Create a theme](./create-a-theme) | `/api/v1/theme/` |
+| `GET` | [Get metadata information about this API resource (theme--info)](./get-metadata-information-about-this-api-resource-theme-info) | `/api/v1/theme/_info` |
+| `DELETE` | [Delete a theme](./delete-a-theme) | `/api/v1/theme/{pk}` |
+| `GET` | [Get a theme](./get-a-theme) | `/api/v1/theme/{pk}` |
+| `PUT` | [Update a theme](./update-a-theme) | `/api/v1/theme/{pk}` |
+| `PUT` | [Set a theme as the system dark theme](./set-a-theme-as-the-system-dark-theme) | `/api/v1/theme/{pk}/set_system_dark` |
+| `PUT` | [Set a theme as the system default theme](./set-a-theme-as-the-system-default-theme) | `/api/v1/theme/{pk}/set_system_default` |
+| `GET` | [Download multiple themes as YAML files](./download-multiple-themes-as-yaml-files) | `/api/v1/theme/export/` |
+| `POST` | [Import themes from a ZIP file](./import-themes-from-a-zip-file) | `/api/v1/theme/import/` |
+| `GET` | [Get related fields data (theme-related-column-name)](./get-related-fields-data-theme-related-column-name) | `/api/v1/theme/related/{column_name}` |
+| `DELETE` | [Clear the system dark theme](./clear-the-system-dark-theme) | `/api/v1/theme/unset_system_dark` |
+| `DELETE` | [Clear the system default theme](./clear-the-system-default-theme) | `/api/v1/theme/unset_system_default` |

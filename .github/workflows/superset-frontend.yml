@@ -16,14 +16,18 @@ concurrency:
 env:
   TAG: apache/superset:GHA-${{ github.run_id }}
 
+permissions:
+  contents: read
+
 jobs:
   frontend-build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     outputs:
       should-run: ${{ steps.check.outputs.frontend }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -54,14 +58,14 @@ jobs:
       - name: Save Docker Image as Artifact
         if: steps.check.outputs.frontend
         run: |
-          docker save $TAG | gzip > docker-image.tar.gz
+          docker save $TAG | zstd -3 --threads=0 > docker-image.tar.zst
 
       - name: Upload Docker Image Artifact
         if: steps.check.outputs.frontend
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: docker-image
-          path: docker-image.tar.gz
+          path: docker-image.tar.zst
 
   sharded-jest-tests:
     needs: frontend-build
@@ -71,14 +75,16 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
       fail-fast: false
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: docker-image
 
       - name: Load Docker Image
-        run: docker load < docker-image.tar.gz
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: npm run test with coverage
         run: |
@@ -87,10 +93,10 @@ jobs:
           -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
           --rm $TAG \
           bash -c \
-          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json-summary"
+          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json"
 
       - name: Upload Coverage Artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-artifacts-${{ matrix.shard }}
           path: superset-frontend/coverage
@@ -99,25 +105,41 @@ jobs:
     needs: [sharded-jest-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      id-token: write
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
       - name: Download Coverage Artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: coverage-artifacts-*
           path: coverage/
 
-      - name: Show Files
-        run: find coverage/
+      - name: Reorganize test result reports
+        run: |
+          find coverage/
+          for i in {1..8}; do
+            mv coverage/coverage-artifacts-${i}/coverage-final.json coverage/coverage-shard-${i}.json
+          done
+        shell: bash
 
       - name: Merge Code Coverage
         run: npx nyc merge coverage/ merged-output/coverage-summary.json
 
       - name: Upload Code Coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: javascript
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           verbose: true
+          disable_search: true
           files: merged-output/coverage-summary.json
           slug: apache/superset
 
@@ -125,15 +147,16 @@ jobs:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: docker-image
 
       - name: Load Docker Image
         run: |
-          docker load < docker-image.tar.gz
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: lint
         run: |
@@ -149,37 +172,36 @@ jobs:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: docker-image
 
       - name: Load Docker Image
-        run: docker load < docker-image.tar.gz
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: Build Plugins Packages
         run: |
           docker run --rm $TAG bash -c \
           "npm run plugins:build"
 
-      - name: Build Plugins Storybook
-        run: |
-          docker run --rm $TAG bash -c \
-          "npm run plugins:build-storybook"
-
   test-storybook:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: docker-image
 
       - name: Load Docker Image
-        run: docker load < docker-image.tar.gz
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
 
       - name: Build Storybook and Run Tests
         run: |

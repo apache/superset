@@ -23,8 +23,10 @@ import getKeyForFilterScopeTree from './getKeyForFilterScopeTree';
 import getSelectedChartIdForFilterScopeTree from './getSelectedChartIdForFilterScopeTree';
 
 interface FilterScopeMapItem {
-  checked?: number[];
+  checked?: (string | number)[];
   expanded?: string[];
+  nodes?: unknown[];
+  nodesFiltered?: unknown[];
 }
 
 interface FilterScopeMap {
@@ -65,7 +67,7 @@ export default function buildFilterScopeTreeEntry({
   const nodes = getFilterScopeNodesTree({
     components: layout,
     filterFields: editingList,
-    selectedChartId,
+    selectedChartId: selectedChartId ?? undefined,
   });
   const checkedChartIdSet = new Set<string>();
   editingList.forEach(filterField => {

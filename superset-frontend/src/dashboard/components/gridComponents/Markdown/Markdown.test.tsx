@@ -25,10 +25,28 @@ import {
   userEvent,
   RenderResult,
 } from 'spec/helpers/testing-library';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import MarkdownConnected from './Markdown';
+
+jest.mock('src/core/editors', () => ({
+  EditorHost: ({
+    value,
+    onChange,
+    onBlur,
+  }: {
+    value: string;
+    onChange?: (v: string) => void;
+    onBlur?: (v: string) => void;
+  }) => (
+    <textarea
+      defaultValue={value}
+      onChange={e => onChange?.(e.target.value)}
+      onBlur={e => onBlur?.(e.target.value)}
+    />
+  ),
+}));
 
 interface MarkdownProps {
   id: string;
@@ -165,7 +183,7 @@ test('should call updateComponents when switching from edit to preview with chan
   const updateComponents = jest.fn();
   const mockCode = 'new markdown!';
 
-  const { container } = await setup({
+  await setup({
     editMode: true,
     updateComponents,
     component: {
@@ -175,44 +193,30 @@ test('should call updateComponents when switching from edit to preview with chan
     },
   });
 
-  // Enter edit mode and change content
+  // Enter edit mode
+  const markdownHolder = screen.getByTestId('dashboard-component-chart-holder');
   await act(async () => {
-    const markdownHolder = screen.getByTestId(
-      'dashboard-component-chart-holder',
-    );
     fireEvent.click(markdownHolder);
+  });
 
-    // Wait for editor to be fully mounted
-    await new Promise(resolve => setTimeout(resolve, 50));
+  // Wait for the editor textarea to appear
+  const editor = await screen.findByRole('textbox');
 
-    // Find the actual textarea/input element
-    const editor = container.querySelector('.ace_text-input');
+  // Change content
+  await act(async () => {
+    fireEvent.change(editor, { target: { value: mockCode } });
+  });
 
-    if (editor) {
-      // Simulate direct input
-      fireEvent.input(editor, { target: { value: mockCode } });
-
-      // Force blur and change events
-      fireEvent.change(editor, { target: { value: mockCode } });
-      fireEvent.blur(editor);
-    }
-
-    // Wait for state update
-    await new Promise(resolve => setTimeout(resolve, 50));
-
-    // Click the Edit dropdown button
-    const editDropdown = screen.getByText('Edit');
+  // Click the Edit dropdown button
+  const editDropdown = screen.getByText('Edit');
+  await act(async () => {
     fireEvent.click(editDropdown);
+  });
 
-    // Wait for dropdown to open
-    await new Promise(resolve => setTimeout(resolve, 50));
-
-    // Find and click preview in dropdown
-    const previewOption = await screen.findByText(/preview/i);
+  // Find and click preview in dropdown
+  const previewOption = await screen.findByText(/preview/i);
+  await act(async () => {
     fireEvent.click(previewOption);
-
-    // Wait for update to complete
-    await new Promise(resolve => setTimeout(resolve, 50));
   });
 
   // Update assertion to match actual component structure
@@ -262,6 +266,9 @@ test('should handle markdown errors gracefully', async () => {
 
     await new Promise(resolve => setTimeout(resolve, 100));
   });
+
+  // Verify component still renders after error events
+  expect(screen.getByTestId('dashboard-markdown-editor')).toBeInTheDocument();
 });
 
 test('should resize editor when width changes', async () => {
@@ -288,6 +295,11 @@ test('should resize editor when width changes', async () => {
 
     await new Promise(resolve => setTimeout(resolve, 100));
   });
+
+  // Verify component still renders after resize
+  expect(
+    screen.getByTestId('dashboard-component-chart-holder'),
+  ).toBeInTheDocument();
 });
 
 test('should update content when undo/redo changes occur', async () => {
@@ -376,6 +388,27 @@ test('shouldFocusMarkdown returns false when clicking outside markdown container
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 });
 
+test('should re-enter edit mode on a single click after clicking outside', async () => {
+  await setup({ editMode: true });
+
+  const markdownContainer = screen.getByTestId(
+    'dashboard-component-chart-holder',
+  );
+
+  // Click to enter edit mode
+  userEvent.click(markdownContainer);
+  expect(await screen.findByRole('textbox')).toBeInTheDocument();
+
+  // Click outside to exit edit mode
+  userEvent.click(document.body);
+  await new Promise(resolve => setTimeout(resolve, 50));
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+
+  // Click back inside — editor should appear on a single click
+  userEvent.click(markdownContainer);
+  expect(await screen.findByRole('textbox')).toBeInTheDocument();
+});
+
 test('shouldFocusMarkdown keeps focus when clicking on menu items', async () => {
   await setup({ editMode: true });
 
@@ -390,9 +423,8 @@ test('shouldFocusMarkdown keeps focus when clicking on menu items', async () => 
   const editButton = screen.getByText('Edit');
 
   userEvent.click(editButton);
-  await new Promise(resolve => setTimeout(resolve, 50));
 
-  expect(screen.queryByRole('textbox')).toBeInTheDocument();
+  expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
 
 test('should exit edit mode when clicking outside in same row', async () => {

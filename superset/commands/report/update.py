@@ -26,17 +26,27 @@ from superset.commands.base import UpdateMixin
 from superset.commands.report.base import BaseReportScheduleCommand
 from superset.commands.report.exceptions import (
     DatabaseNotFoundValidationError,
+    ReportScheduleAlertRequiredDatabaseValidationError,
+    ReportScheduleDatabaseNotAllowedValidationError,
     ReportScheduleForbiddenError,
     ReportScheduleInvalidError,
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
+    ReportScheduleUserEmailNotFoundError,
 )
 from superset.daos.database import DatabaseDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
-from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
+from superset.reports.models import (
+    ReportCreationMethod,
+    ReportRecipientType,
+    ReportSchedule,
+    ReportScheduleType,
+    ReportState,
+)
 from superset.utils import json
+from superset.utils.core import get_user_email
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -87,6 +97,26 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         ):
             self._properties["last_state"] = ReportState.NOOP
 
+        # For reports created from charts or dashboards the recipient must always
+        # be the requesting user's own email address.
+        if (
+            self._model.creation_method
+            in (
+                ReportCreationMethod.CHARTS,
+                ReportCreationMethod.DASHBOARDS,
+            )
+            and "recipients" in self._properties
+        ):
+            if user_email := get_user_email():
+                self._properties["recipients"] = [
+                    {
+                        "type": ReportRecipientType.EMAIL,
+                        "recipient_config_json": {"target": user_email},
+                    }
+                ]
+            else:
+                exceptions.append(ReportScheduleUserEmailNotFoundError())
+
         # Validate name/type uniqueness if either is changing
         if name != self._model.name or report_type != self._model.type:
             if not ReportScheduleDAO.validate_update_uniqueness(
@@ -98,8 +128,22 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
                     )
                 )
 
+        # Determine effective database state (payload overrides model)
+        if "database" in self._properties:
+            has_database = self._properties["database"] is not None
+        else:
+            has_database = self._model.database_id is not None
+
+        # Validate database is not allowed on Report type
+        if report_type == ReportScheduleType.REPORT and has_database:
+            exceptions.append(ReportScheduleDatabaseNotAllowedValidationError())
+
+        # Validate Alert has a database
+        if report_type == ReportScheduleType.ALERT and not has_database:
+            exceptions.append(ReportScheduleAlertRequiredDatabaseValidationError())
+
         # Validate if DB exists (for alerts)
-        if report_type == ReportScheduleType.ALERT and database_id:
+        if report_type == ReportScheduleType.ALERT and database_id is not None:
             if not (database := DatabaseDAO.find_by_id(database_id)):
                 exceptions.append(DatabaseNotFoundValidationError())
             self._properties["database"] = database
@@ -115,6 +159,7 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
 
         # Validate chart or dashboard relations
         self.validate_chart_dashboard(exceptions, update=True)
+        self._validate_report_extra(exceptions)
 
         if "validator_config_json" in self._properties:
             self._properties["validator_config_json"] = json.dumps(

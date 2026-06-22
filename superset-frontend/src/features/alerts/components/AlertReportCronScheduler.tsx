@@ -18,8 +18,8 @@
  */
 import { useState, useCallback, FocusEvent, FC } from 'react';
 
-import { t } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 
 import {
   Input,

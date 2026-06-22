@@ -57,6 +57,22 @@ def get_superset_base_url() -> str:
         return default_url
 
 
+def extract_permalink_key_from_url(url: str | None) -> str | None:
+    """Extract the permalink key from an explore permalink URL.
+
+    Matches the /explore/p/<key>/ pattern produced by
+    CreateExplorePermalinkCommand.  Returns the key, or None if the URL
+    does not follow that pattern.
+    """
+    if not url:
+        return None
+    path = urlparse(url).path
+    parts = [p for p in path.split("/") if p]
+    if len(parts) >= 3 and parts[-3] == "explore" and parts[-2] == "p":
+        return parts[-1]
+    return None
+
+
 def get_mcp_service_url() -> str:
     """
     Get the MCP service base URL where screenshot endpoints are served.
@@ -89,31 +105,3 @@ def get_mcp_service_url() -> str:
 
     # Development fallback - direct access to MCP service on port 5008
     return "http://localhost:5008"
-
-
-def get_chart_screenshot_url(chart_id: int | str) -> str:
-    """
-    Generate a screenshot URL for a chart using the MCP service.
-
-    Args:
-        chart_id: Chart ID (numeric or string)
-
-    Returns:
-        Complete URL to the chart screenshot endpoint
-    """
-    mcp_base = get_mcp_service_url()
-    return f"{mcp_base}/screenshot/chart/{chart_id}.png"
-
-
-def get_explore_screenshot_url(form_data_key: str) -> str:
-    """
-    Generate a screenshot URL for an explore view using the MCP service.
-
-    Args:
-        form_data_key: Form data key for the explore view
-
-    Returns:
-        Complete URL to the explore screenshot endpoint
-    """
-    mcp_base = get_mcp_service_url()
-    return f"{mcp_base}/screenshot/explore/{form_data_key}.png"

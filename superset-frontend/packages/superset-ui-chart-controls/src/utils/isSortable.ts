@@ -21,7 +21,7 @@ import {
   isPhysicalColumn,
   QueryFormColumn,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { checkColumnType, ControlStateMapping } from '..';
 
 export function isSortable(controls: ControlStateMapping): boolean {

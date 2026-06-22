@@ -57,7 +57,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 let replaceState = jest.spyOn(window.history, 'replaceState');
@@ -78,7 +78,7 @@ test('should handle id', async () => {
   setup('/sqllab?id=1');
   await waitFor(() =>
     expect(
-      fetchMock.calls(`glob:*/api/v1/sqllab/permalink/kv:${id}`),
+      fetchMock.callHistory.calls(`glob:*/api/v1/sqllab/permalink/kv:${id}`),
     ).toHaveLength(1),
   );
   expect(replaceState).toHaveBeenCalledWith(
@@ -86,7 +86,7 @@ test('should handle id', async () => {
     expect.anything(),
     '/sqllab',
   );
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 test('should handle permalink', async () => {
   const key = '9sadkfl';
@@ -98,7 +98,7 @@ test('should handle permalink', async () => {
   setup('/sqllab/p/9sadkfl');
   await waitFor(() =>
     expect(
-      fetchMock.calls(`glob:*/api/v1/sqllab/permalink/${key}`),
+      fetchMock.callHistory.calls(`glob:*/api/v1/sqllab/permalink/${key}`),
     ).toHaveLength(1),
   );
   expect(replaceState).toHaveBeenCalledWith(
@@ -106,12 +106,14 @@ test('should handle permalink', async () => {
     expect.anything(),
     '/sqllab',
   );
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 test('should handle savedQueryId', async () => {
   setup('/sqllab?savedQueryId=1');
   await waitFor(() =>
-    expect(fetchMock.calls('glob:*/api/v1/saved_query/1')).toHaveLength(1),
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/saved_query/1'),
+    ).toHaveLength(1),
   );
   expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),

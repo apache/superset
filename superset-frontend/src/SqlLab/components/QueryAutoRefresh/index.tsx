@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { isObject } from 'lodash';
 import rison from 'rison';
 import {
@@ -82,7 +83,7 @@ function QueryAutoRefresh({
         .map(({ id }) => id),
     ),
   );
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const checkForRefresh = () => {
     const shouldRequestChecking = shouldCheckForQueries(queries);
@@ -122,7 +123,7 @@ function QueryAutoRefresh({
                   dispatch(
                     queryFailed(
                       query,
-                      query.errorMessage,
+                      query.errorMessage ?? '',
                       query.extra?.errors?.[0]?.extra?.link,
                       query.extra?.errors,
                     ),

@@ -24,18 +24,21 @@
     "lib"
   ],
   "dependencies": {
+    "@types/d3-array": "^3.2.2",
     "@types/react-redux": "^7.1.34",
+    "acorn": "^8.17.0",
     "d3-array": "^3.2.4",
-    "lodash": "^4.17.21"
+    "lodash": "^4.18.1",
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "dayjs": "^1.11.19",
+    "dayjs": "^1.11.21",
     "echarts": "*",
     "memoize-one": "*",
-    "react": "^17.0.2"
+    "react": "^18.3.0"
   },
   "publishConfig": {
     "access": "public"

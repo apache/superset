@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import re
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta
 from inspect import signature
 from re import Match, Pattern
 from typing import (
@@ -36,14 +36,14 @@ from typing import (
     Union,
 )
 from urllib.parse import urlencode, urljoin
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pandas as pd
 import requests
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
-from flask import current_app as app, g, url_for
+from flask import current_app as app, g
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
@@ -62,10 +62,17 @@ from superset import db
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    OAuth2TokenRefreshError,
+    SupersetParseError,
+)
+from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
+    Partition,
     RLSMethod,
     SQLScript,
     SQLStatement,
@@ -83,7 +90,12 @@ from superset.utils.core import ColumnSpec, GenericDataType, QuerySource
 from superset.utils.hashing import hash_from_str
 from superset.utils.json import redact_sensitive, reveal_sensitive
 from superset.utils.network import is_hostname_valid, is_port_open
-from superset.utils.oauth2 import encode_oauth2_state
+from superset.utils.oauth2 import (
+    encode_oauth2_state,
+    generate_code_challenge,
+    generate_code_verifier,
+    get_oauth2_redirect_uri,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -187,6 +199,135 @@ class MetricType(TypedDict, total=False):
     extra: str | None
 
 
+class DatabaseCategory:
+    """
+    Standard categories for database classification.
+    Used for organizing databases in documentation and UI.
+
+    Categories are grouped into:
+    - Cloud providers (where the database runs)
+    - Database types (what kind of database it is)
+    - Licensing (open source vs proprietary)
+    """
+
+    # Cloud providers
+    CLOUD_AWS = "Cloud - AWS"
+    CLOUD_GCP = "Cloud - Google"
+    CLOUD_AZURE = "Cloud - Azure"
+    CLOUD_DATA_WAREHOUSES = "Cloud Data Warehouses"
+
+    # Database types
+    APACHE_PROJECTS = "Apache Projects"
+    TRADITIONAL_RDBMS = "Traditional RDBMS"
+    ANALYTICAL_DATABASES = "Analytical Databases"
+    SEARCH_NOSQL = "Search & NoSQL"
+    QUERY_ENGINES = "Query Engines"
+    TIME_SERIES = "Time Series Databases"
+    OTHER = "Other Databases"
+
+    # Licensing
+    OPEN_SOURCE = "Open Source"
+    HOSTED_OPEN_SOURCE = "Hosted Open Source"
+    PROPRIETARY = "Proprietary"
+
+
+class DriverInfo(TypedDict, total=False):
+    """Information about a database driver."""
+
+    name: str
+    pypi_package: str
+    connection_string: str
+    is_recommended: bool
+    notes: str
+    docs_url: str
+
+
+class AuthenticationMethod(TypedDict, total=False):
+    """Information about an authentication method."""
+
+    name: str
+    description: str
+    requirements: str
+    connection_string: str
+    engine_parameters: dict[str, Any]
+    secure_extra: dict[str, Any]
+    notes: str
+
+
+class ConnectionExample(TypedDict, total=False):
+    """Example connection string configuration."""
+
+    description: str
+    connection_string: str
+
+
+class CompatibleDatabase(TypedDict, total=False):
+    """Information about a compatible/derived database."""
+
+    name: str
+    description: str
+    logo: str
+    homepage_url: str
+    pypi_packages: list[str]
+    connection_string: str
+    parameters: dict[str, str]
+    connection_examples: list[ConnectionExample]
+    notes: str
+    docs_url: str
+    categories: list[str]  # Override parent categories (e.g., for HOSTED_OPEN_SOURCE)
+
+
+class DBEngineSpecMetadata(TypedDict, total=False):
+    """
+    Metadata for database engine documentation and UI display.
+
+    This centralizes all documentation-related information for a database
+    engine, making it easier to add new databases without modifying
+    multiple files.
+    """
+
+    # Basic information
+    description: str
+    logo: str  # Filename in docs/static/img/databases/ or full URL
+    homepage_url: str
+    docs_url: str
+    sqlalchemy_docs_url: str
+    categories: list[str]  # Use DatabaseCategory constants, supports multiple
+
+    # Connection information
+    pypi_packages: list[str]
+    connection_string: str
+    default_port: int
+    parameters: dict[str, str]  # Parameter name -> description
+    connection_examples: list[ConnectionExample]
+
+    # Driver options (for databases with multiple drivers)
+    drivers: list[DriverInfo]
+
+    # Authentication methods
+    authentication_methods: list[AuthenticationMethod]
+
+    # Engine parameters (JSON configs for advanced options)
+    engine_parameters: list[dict[str, Any]]
+
+    # Additional information
+    notes: str
+    warnings: list[str]
+    tutorials: list[str]
+    install_instructions: str
+    version_requirements: str
+
+    # Related databases (e.g., PostgreSQL-compatible databases)
+    compatible_databases: list[CompatibleDatabase]
+
+    # Host examples (for databases with platform-specific configs)
+    host_examples: list[dict[str, str]]
+
+    # Advanced features documentation
+    ssl_configuration: dict[str, Any]
+    advanced_features: dict[str, str]
+
+
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """Abstract class for database engine specific configurations
 
@@ -202,6 +343,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """
 
     engine_name: str | None = None  # for user messages, overridden in child classes
+
+    # Documentation metadata for this engine spec. Centralizes all documentation
+    # information so adding a new database only requires modifying one file.
+    # See DBEngineSpecMetadata TypedDict for available fields.
+    metadata: DBEngineSpecMetadata = {}
 
     # These attributes map the DB engine spec to one or more SQLAlchemy dialects/drivers;  # noqa: E501
     # see the ``supports_url`` and ``supports_backend`` methods below.
@@ -387,16 +533,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length: int | None = None
+
+    # Some databases (e.g. Druid, Pinot) build cursor.description by inspecting
+    # the values in the first returned row rather than from query-plan metadata.
+    # For those engines WHERE FALSE returns no rows and therefore leaves
+    # cursor.description as None, which breaks the adhoc column type probe.
+    # Set this to True on any engine spec where at least one row must be
+    # fetched for cursor.description to be populated.
+    type_probe_needs_row: bool = False
+    requires_column_value_normalization: bool = False
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
     custom_errors: dict[
         Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
     ] = {}
 
-    # List of JSON path to fields in `encrypted_extra` that should be masked when the
-    # database is edited. By default everything is masked.
+    # JSONPath fields in `encrypted_extra` that should be masked when the database is
+    # edited. Can be a set of paths (labels will default to the path) or a dict mapping
+    # paths to human-readable labels for import validation error messages.
     # pylint: disable=invalid-name
-    encrypted_extra_sensitive_fields: set[str] = {"$.*"}
+    encrypted_extra_sensitive_fields: set[str] | dict[str, str] = {
+        "$.*": "Encrypted Extra",
+    }
 
     # Whether the engine supports file uploads
     # if True, database will be listed as option in the upload file form
@@ -422,6 +580,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the DB engine spec support cross-catalog queries?
     supports_cross_catalog_queries = False
 
+    # Does the DB engine support schemas? When set to False the schema selector is
+    # hidden in the dataset creation UI and schema is not required for table access.
+    supports_schemas = True
+
     # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
@@ -430,8 +592,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     oauth2_token_request_uri: str | None = None
     oauth2_token_request_type = "data"  # noqa: S105
 
+    # Driver-specific query params to be included in `get_oauth2_authorization_uri`
+    oauth2_additional_auth_uri_query_params: dict[str, Any] = {}
+    # Driver-specific params to be included in the `get_oauth2_token` request body
+    oauth2_additional_token_request_params: dict[str, Any] = {}
     # Driver-specific exception that should be mapped to OAuth2RedirectError
-    oauth2_exception = OAuth2RedirectError
+    oauth2_exception: type[Exception] | tuple[type[Exception], ...] = (
+        OAuth2RedirectError
+    )
 
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
@@ -440,6 +608,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    @classmethod
+    def encrypted_extra_sensitive_field_paths(cls) -> set[str]:
+        """
+        Returns a set of paths for fields that should be masked in the
+        ``masked_encrypted_extra`` JSON.
+
+        :param cls: Description
+        :return: Description
+        :rtype: set[str]
+        """
+        return (
+            set(cls.encrypted_extra_sensitive_fields)
+            if isinstance(cls.encrypted_extra_sensitive_fields, dict)
+            else cls.encrypted_extra_sensitive_fields
+        )
 
     @classmethod
     def get_rls_method(cls) -> RLSMethod:
@@ -474,9 +658,34 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         tab sends a message to the original tab informing that authorization was
         successful (or not), and then closes. The original tab will automatically
         re-run the query after authorization.
+
+        PKCE (RFC 7636) is used to protect against authorization code interception
+        attacks. A code_verifier is generated and stored server-side in the KV store,
+        while the code_challenge (derived from the verifier) is sent to the
+        authorization server.
         """
+        # Prevent circular import.
+        from superset.daos.key_value import KeyValueDAO
+
         tab_id = str(uuid4())
-        default_redirect_uri = url_for("DatabaseRestApi.oauth2", _external=True)
+        default_redirect_uri = get_oauth2_redirect_uri()
+
+        # Generate PKCE code verifier (RFC 7636)
+        code_verifier = generate_code_verifier()
+
+        # Store the code_verifier server-side in the KV store, keyed by tab_id.
+        # This avoids exposing it in the URL/browser history via the JWT state.
+        KeyValueDAO.delete_expired_entries(KeyValueResource.PKCE_CODE_VERIFIER)
+        KeyValueDAO.create_entry(
+            resource=KeyValueResource.PKCE_CODE_VERIFIER,
+            value={"code_verifier": code_verifier},
+            codec=JsonKeyValueCodec(),
+            key=UUID(tab_id),
+            expires_on=datetime.now() + timedelta(minutes=5),
+        )
+        # We need to commit here because we're going to raise an exception, which will
+        # revert any non-commited changes.
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then
@@ -504,7 +713,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if oauth2_config is None:
             raise OAuth2Error("No configuration found for OAuth2")
 
-        oauth_url = cls.get_oauth2_authorization_uri(oauth2_config, state)
+        oauth_url = cls.get_oauth2_authorization_uri(
+            oauth2_config,
+            state,
+            code_verifier=code_verifier,
+        )
 
         raise OAuth2RedirectError(oauth_url, tab_id, default_redirect_uri)
 
@@ -518,10 +731,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return None
 
         db_engine_spec_config = oauth2_config[cls.engine_name]
-        redirect_uri = app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            url_for("DatabaseRestApi.oauth2", _external=True),
-        )
+        redirect_uri = get_oauth2_redirect_uri()
 
         config: OAuth2ClientConfig = {
             "id": db_engine_spec_config["id"],
@@ -548,21 +758,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         config: OAuth2ClientConfig,
         state: OAuth2State,
+        code_verifier: str | None = None,
     ) -> str:
         """
         Return URI for initial OAuth2 request.
+
+        Uses standard OAuth 2.0 parameters plus PKCE (RFC 7636) parameters.
+        Subclasses can override to add provider-specific parameters
+        (e.g., Google's prompt=consent).
         """
         uri = config["authorization_request_uri"]
-        params = {
+        params: dict[str, str] = {
             "scope": config["scope"],
-            "access_type": "offline",
-            "include_granted_scopes": "false",
             "response_type": "code",
             "state": encode_oauth2_state(state),
             "redirect_uri": config["redirect_uri"],
             "client_id": config["id"],
-            "prompt": "consent",
+            **cls.oauth2_additional_auth_uri_query_params,
         }
+
+        # Add PKCE parameters (RFC 7636) if code_verifier is provided
+        if code_verifier:
+            params["code_challenge"] = generate_code_challenge(code_verifier)
+            params["code_challenge_method"] = "S256"
+
         return urljoin(uri, "?" + urlencode(params))
 
     @classmethod
@@ -570,22 +789,35 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         config: OAuth2ClientConfig,
         code: str,
+        code_verifier: str | None = None,
     ) -> OAuth2TokenResponse:
         """
         Exchange authorization code for refresh/access tokens.
+
+        If code_verifier is provided (PKCE flow), it will be included in the
+        token request per RFC 7636.
         """
         timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
-        req_body = {
+        req_body: dict[str, str] = {
             "code": code,
             "client_id": config["id"],
             "client_secret": config["secret"],
             "redirect_uri": config["redirect_uri"],
             "grant_type": "authorization_code",
+            **cls.oauth2_additional_token_request_params,
         }
-        if config["request_content_type"] == "data":
-            return requests.post(uri, data=req_body, timeout=timeout).json()
-        return requests.post(uri, json=req_body, timeout=timeout).json()
+        # Add PKCE code_verifier if present (RFC 7636)
+        if code_verifier:
+            req_body["code_verifier"] = code_verifier
+
+        response = (
+            requests.post(uri, data=req_body, timeout=timeout)
+            if config["request_content_type"] == "data"
+            else requests.post(uri, json=req_body, timeout=timeout)
+        )
+        response.raise_for_status()
+        return response.json()
 
     @classmethod
     def get_oauth2_fresh_token(
@@ -604,9 +836,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "refresh_token": refresh_token,
             "grant_type": "refresh_token",
         }
-        if config["request_content_type"] == "data":
-            return requests.post(uri, data=req_body, timeout=timeout).json()
-        return requests.post(uri, json=req_body, timeout=timeout).json()
+        response = (
+            requests.post(uri, data=req_body, timeout=timeout)
+            if config["request_content_type"] == "data"
+            else requests.post(uri, json=req_body, timeout=timeout)
+        )
+        if response.status_code in (400, 401, 403):
+            raise OAuth2TokenRefreshError(response.text)
+        response.raise_for_status()
+        return response.json()
 
     @classmethod
     def get_allows_alias_in_select(
@@ -1069,6 +1307,38 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def normalize_column_values(cls, col_values: list[Any]) -> list[Any]:
+        """
+        Engine-specific hook to normalize column values before PyArrow conversion.
+
+        Called when the initial pa.array() conversion raises an exception, giving
+        the engine a chance to clean up values (e.g. replace sentinel strings with
+        None) before a second conversion attempt.
+
+        :param col_values: Raw Python values for one column
+        :return: Normalized values; return the input list unchanged by default
+        """
+        return col_values
+
+    @classmethod
+    def resolve_column_type(
+        cls, cursor_type: str | None, pa_mapped: str | None
+    ) -> str | None:
+        """
+        Choose the reported column type from the cursor description type and the
+        type inferred by PyArrow.
+
+        The default prefers the cursor description when available.  Override in
+        engine specs where the cursor description is unreliable (e.g. pydruid
+        infers STRING from a None or special-float first row value).
+
+        :param cursor_type: Type string from the cursor description, or None
+        :param pa_mapped: Type string inferred by PyArrow, or None
+        :return: The type string to report for this column
+        """
+        return cursor_type or pa_mapped
+
+    @classmethod
     @deprecated(deprecated_in="3.0")
     def normalize_indexes(cls, indexes: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
@@ -1086,12 +1356,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         table: Table,
+        partition: Partition | None = None,
     ) -> TableMetadataResponse:
         """
         Returns basic table metadata
 
         :param database: Database instance
         :param table: A Table instance
+        :param partition: Optional partition info used by engines that support
+            partitioned tables (e.g. ODPS). Ignored by engines that don't.
         :return: Basic table metadata
         """
         return get_table_metadata(database, table)
@@ -1134,8 +1407,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param sql: SQL query
         :return: Value of limit clause in query
         """
-        script = SQLScript(sql, engine=cls.engine)
-        return script.statements[-1].get_limit_value()
+        try:
+            script = SQLScript(sql, engine=cls.engine)
+            return script.statements[-1].get_limit_value()
+        except SupersetParseError:
+            # SQL with a malformed LIMIT clause (e.g. LIMIT without a value) is
+            # not parseable in sqlglot 30+, which now requires an expression arg.
+            return None
 
     @classmethod
     def get_cte_query(cls, sql: str) -> str | None:
@@ -1152,6 +1430,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return statement.as_cte(cls.cte_alias).format()
 
         return None
+
+    @classmethod
+    def normalize_table_name_for_upload(
+        cls,
+        table_name: str,
+        schema_name: str | None = None,
+    ) -> tuple[str, str | None]:
+        """
+        Normalize table and schema names for file upload.
+
+        Some databases (e.g., Redshift) fold unquoted identifiers to lowercase,
+        which can cause issues when the upload creates a table with one case
+        but metadata operations use a different case. Override this method
+        to normalize names according to database-specific rules.
+
+        :param table_name: The table name to normalize
+        :param schema_name: The schema name to normalize (optional)
+        :return: Tuple of (normalized_table_name, normalized_schema_name)
+        """
+        return table_name, schema_name
 
     @classmethod
     def df_to_sql(
@@ -1485,7 +1783,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
         if schema and cls.try_remove_schema_from_table_name:
-            tables = {re.sub(f"^{schema}\\.", "", table) for table in tables}
+            escaped_schema = re.escape(schema)
+            tables = {re.sub(f"^{escaped_schema}\\.", "", table) for table in tables}
         return tables
 
     @classmethod
@@ -1513,7 +1812,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
         if schema and cls.try_remove_schema_from_table_name:
-            views = {re.sub(f"^{schema}\\.", "", view) for view in views}
+            escaped_schema = re.escape(schema)
+            views = {re.sub(f"^{escaped_schema}\\.", "", view) for view in views}
         return views
 
     @classmethod
@@ -1651,7 +1951,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         table: Table,
-        engine: Engine,
+        dialect: Dialect,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -1665,7 +1965,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param database: Database instance
         :param table: Table instance
-        :param engine: SqlAlchemy Engine instance
+        :param dialect: SqlAlchemy Dialect instance
         :param limit: limit to impose on query
         :param show_cols: Show columns in query; otherwise use "*"
         :param indent: Add indentation to query
@@ -1685,8 +1985,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if show_cols:
             fields = cls._get_fields(cols)
 
-        full_table_name = cls.quote_table(table, engine.dialect)
-        qry = select(fields).select_from(text(full_table_name))
+        full_table_name = cls.quote_table(table, dialect)
+        qry = select(*fields if isinstance(fields, list) else fields).select_from(
+            text(full_table_name)
+        )
 
         qry = qry.limit(limit)
         if latest_partition:
@@ -2177,6 +2479,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         return None
 
+    @staticmethod
+    def validate_cancel_query_id(
+        cancel_query_id: str | None,
+        pattern: str = r"^\d+$",
+    ) -> bool:
+        """
+        Validate that a cancel_query_id matches expected format.
+
+        This is a defense-in-depth measure to prevent SQL injection in cancel_query
+        implementations that use string interpolation. While cancel_query_id typically
+        comes from trusted database sources (e.g., CONNECTION_ID()), validation ensures
+        safety even if the data source is compromised.
+
+        :param cancel_query_id: The query identifier to validate
+        :param pattern: Regex pattern to match (default: numeric only)
+        :return: True if valid, False otherwise
+        """
+        if cancel_query_id is None:
+            return False
+        return bool(re.fullmatch(pattern, str(cancel_query_id)))
+
     @classmethod
     def cancel_query(  # pylint: disable=unused-argument
         cls,
@@ -2228,7 +2551,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         masked_encrypted_extra = redact_sensitive(
             config,
-            cls.encrypted_extra_sensitive_fields,
+            cls.encrypted_extra_sensitive_field_paths(),
         )
 
         return json.dumps(masked_encrypted_extra)
@@ -2254,7 +2577,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         new_config = reveal_sensitive(
             old_config,
             new_config,
-            cls.encrypted_extra_sensitive_fields,
+            cls.encrypted_extra_sensitive_field_paths(),
         )
 
         return json.dumps(new_config)
@@ -2272,6 +2595,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
+            "supports_schemas": cls.supports_schemas,
         }
 
     @classmethod

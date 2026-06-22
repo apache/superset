@@ -20,7 +20,7 @@ import json
 import os
 import re
 import subprocess
-from typing import List
+from typing import List, Optional
 from urllib.request import Request, urlopen
 
 # Define patterns for each group of files you're interested in
@@ -31,7 +31,9 @@ PATTERNS = {
         r"^superset/",
         r"^scripts/",
         r"^setup\.py",
+        r"^pyproject\.toml$",
         r"^requirements/.+\.txt",
+        r"^pyproject\.toml",
         r"^.pylintrc",
     ],
     "frontend": [
@@ -111,7 +113,7 @@ def main(event_type: str, sha: str, repo: str) -> None:
     """Main function to check for file changes based on event context."""
     print("SHA:", sha)
     print("EVENT_TYPE", event_type)
-    files = []
+    files: Optional[List[str]] = []
     if event_type == "pull_request":
         pr_number = os.getenv("GITHUB_REF", "").split("/")[-2]
         if is_int(pr_number):
@@ -124,11 +126,15 @@ def main(event_type: str, sha: str, repo: str) -> None:
         print("Files touched since previous commit:")
         print_files(files)
 
-    elif event_type == "workflow_dispatch":
-        print("Workflow dispatched, assuming all changed")
+    elif event_type in ("workflow_dispatch", "schedule"):
+        # Manual or cron-triggered runs aren't tied to a specific diff, so
+        # treat every group as changed. `files = None` makes the loop below
+        # short-circuit to True for every group via `files is None or ...`.
+        print(f"{event_type} run, assuming all changed")
+        files = None
 
     else:
-        raise ValueError("Unsupported event type")
+        raise ValueError(f"Unsupported event type: {event_type}")
 
     changes_detected = {}
     for group, regex_patterns in PATTERNS.items():
@@ -144,14 +150,14 @@ def main(event_type: str, sha: str, repo: str) -> None:
             # NOTE: as noted above, we assume that if 100 files are touched, we should
             # trigger all checks. This is a workaround for the GitHub API limit of 100
             # files. Using >= 99 because off-by-one errors are not uncommon
-            if changed or len(files) >= 99:
+            if changed or (files is not None and len(files) >= 99):
                 print(f"{check}=true", file=f)
                 print(f"Triggering group: {check}")
 
 
 def get_git_sha() -> str:
     return os.getenv("GITHUB_SHA") or subprocess.check_output(  # noqa: S603
-        ["git", "rev-parse", "HEAD"]  # noqa: S607
+        ["git", "rev-parse", "HEAD"]  # noqa: S603, S607
     ).strip().decode("utf-8")
 
 

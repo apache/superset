@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging } from '@superset-ui/core';
-import contentDisposition from 'content-disposition';
+import { SupersetClient } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
+import { parse as parseContentDisposition } from 'content-disposition';
 import handleResourceExport from './export';
 
 // Mock dependencies
@@ -25,14 +26,21 @@ jest.mock('@superset-ui/core', () => ({
   SupersetClient: {
     get: jest.fn(),
   },
+}));
+
+jest.mock('@apache-superset/core/utils', () => ({
   logging: {
     warn: jest.fn(),
     error: jest.fn(),
   },
 }));
 
-jest.mock('content-disposition');
+jest.mock('content-disposition', () => ({
+  parse: jest.fn(),
+  __esModule: true,
+}));
 
+// Default no-op mock for pathUtils; specific tests customize ensureAppRoot to simulate app root prefixing
 jest.mock('./pathUtils', () => ({
   ensureAppRoot: jest.fn((path: string) => path),
 }));
@@ -151,7 +159,7 @@ test('uses default filename when Content-Disposition is missing', async () => {
 });
 
 test('handles Content-Disposition parsing errors gracefully', async () => {
-  (contentDisposition.parse as jest.Mock).mockImplementationOnce(() => {
+  (parseContentDisposition as jest.Mock).mockImplementationOnce(() => {
     throw new Error('Invalid header');
   });
 
@@ -203,7 +211,7 @@ test('exports multiple resources with correct IDs', async () => {
 });
 
 test('parses filename from Content-Disposition with quotes', async () => {
-  (contentDisposition.parse as jest.Mock).mockReturnValueOnce({
+  (parseContentDisposition as jest.Mock).mockReturnValueOnce({
     type: 'attachment',
     parameters: { filename: 'my_custom_export.zip' },
   });
@@ -355,7 +363,7 @@ test('handles malformed Content-Disposition header', async () => {
   } as unknown as Response;
   (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
 
-  (contentDisposition.parse as jest.Mock).mockImplementationOnce(() => {
+  (parseContentDisposition as jest.Mock).mockImplementationOnce(() => {
     throw new Error('Parse error');
   });
 
@@ -396,3 +404,53 @@ test('handles export with empty IDs array', async () => {
     }),
   );
 });
+
+const { ensureAppRoot } = jest.requireMock('./pathUtils');
+
+const doublePrefixTestCases = [
+  {
+    name: 'subdirectory prefix',
+    appRoot: '/superset',
+    resource: 'dashboard',
+    ids: [1],
+  },
+  {
+    name: 'subdirectory prefix (dataset)',
+    appRoot: '/superset',
+    resource: 'dataset',
+    ids: [1],
+  },
+  {
+    name: 'nested prefix',
+    appRoot: '/my-app/superset',
+    resource: 'dataset',
+    ids: [1, 2],
+  },
+];
+
+test.each(doublePrefixTestCases)(
+  'handleResourceExport endpoint should not include app prefix: $name',
+  async ({ appRoot, resource, ids }) => {
+    // Simulate real ensureAppRoot behavior: prepend the appRoot
+    (ensureAppRoot as jest.Mock).mockImplementation(
+      (path: string) => `${appRoot}${path}`,
+    );
+
+    const doneMock = jest.fn();
+    await handleResourceExport(resource, ids, doneMock);
+
+    // The endpoint passed to SupersetClient.get should NOT have the appRoot prefix
+    // because SupersetClient.getUrl() adds it when building the full URL.
+    const expectedEndpoint = `/api/v1/${resource}/export/?q=!(${ids.join(',')})`;
+
+    // Explicitly verify no prefix in endpoint - this will fail if ensureAppRoot is used
+    const callArgs = (SupersetClient.get as jest.Mock).mock.calls.slice(
+      -1,
+    )[0][0];
+    expect(callArgs.endpoint).not.toContain(appRoot);
+    expect(callArgs.endpoint).toBe(expectedEndpoint);
+
+    // Reset mock for next test
+    (ensureAppRoot as jest.Mock).mockImplementation((path: string) => path);
+  },
+);

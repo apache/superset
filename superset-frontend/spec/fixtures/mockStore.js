@@ -137,6 +137,17 @@ export const getMockStoreWithNativeFilters = () =>
     initialState: stateWithNativeFilters,
   });
 
+export const stateWithNativeFiltersButNoValues = {
+  ...stateWithNativeFilters,
+  dataMask: {},
+};
+
+export const getMockStoreWithNativeFiltersButNoValues = () =>
+  setupStore({
+    disableDebugger: true,
+    initialState: stateWithNativeFiltersButNoValues,
+  });
+
 export const stateWithoutNativeFilters = {
   ...mockState,
   charts: {

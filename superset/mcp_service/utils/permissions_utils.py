@@ -26,6 +26,8 @@ from typing import Any, List, Optional, Set
 from flask_appbuilder.security.sqla.models import User
 from pydantic import BaseModel
 
+from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
+
 logger = logging.getLogger(__name__)
 
 # Define sensitive fields by object type
@@ -34,26 +36,17 @@ SENSITIVE_FIELDS = {
         "sql",  # Raw SQL queries may contain sensitive logic
         "extra",  # May contain connection strings or credentials
         "database_id",  # Internal database references
-        "changed_by_fk",  # Internal user references
-        "created_by_fk",  # Internal user references
     },
     "chart": {
         "query_context",  # May contain sensitive filters or parameters
         "cache_key",  # Internal cache references
-        "changed_by_fk",  # Internal user references
-        "created_by_fk",  # Internal user references
     },
     "dashboard": {
-        "json_metadata",  # May contain sensitive configuration
-        "position_json",  # Internal layout data
         "css",  # May contain sensitive styling info
-        "changed_by_fk",  # Internal user references
-        "created_by_fk",  # Internal user references
     },
     "common": {
         "uuid",  # Internal identifiers (keep for some use cases)
-        "changed_by_fk",  # Internal user references
-        "created_by_fk",  # Internal user references
+        *USER_DIRECTORY_FIELDS,
     },
 }
 
@@ -64,8 +57,6 @@ SENSITIVE_FIELD_PERMISSIONS = {
     "database_id": "can_this_form_get",  # Database access permissions
     "query_context": "can_explore_json",  # Explore permissions
     "cache_key": "can_warm_up_cache",  # Cache management permissions
-    "json_metadata": "can_this_form_get",  # Advanced dashboard permissions
-    "position_json": "can_this_form_get",  # Dashboard edit permissions
     "css": "can_this_form_get",  # Dashboard styling permissions
 }
 
@@ -98,11 +89,20 @@ def user_has_permission(
         return False
 
     try:
-        # Check if user is admin (has all permissions)
-        if hasattr(user, "roles"):
-            for role in user.roles:
-                if role.name in ("Admin", "admin"):
-                    return True
+        from flask import current_app
+
+        # Check if user is admin (has all permissions). Use the configured
+        # admin role name rather than hardcoding "Admin", so deployments that
+        # rename the admin role (AUTH_ROLE_ADMIN) still grant admins the bypass.
+        admin_role_name = current_app.config["AUTH_ROLE_ADMIN"]
+        # Collect role names granted directly AND inherited via group
+        # membership (FAB users can receive the admin role through a group),
+        # so a group-admin still gets the bypass.
+        role_names = {role.name for role in getattr(user, "roles", None) or []}
+        for group in getattr(user, "groups", None) or []:
+            role_names.update(role.name for role in getattr(group, "roles", None) or [])
+        if admin_role_name in role_names:
+            return True
 
         # Check specific permission
         from superset import security_manager
@@ -143,7 +143,7 @@ def get_allowed_fields(
         user = get_current_user()
 
     # Get sensitive fields for this object type
-    sensitive_fields = SENSITIVE_FIELDS.get(object_type, set())
+    sensitive_fields = set(SENSITIVE_FIELDS.get(object_type, set()))
     sensitive_fields.update(SENSITIVE_FIELDS.get("common", set()))
 
     # If no user, only allow non-sensitive fields
@@ -159,6 +159,8 @@ def get_allowed_fields(
 
     if requested_fields:
         for field in requested_fields:
+            if field in USER_DIRECTORY_FIELDS:
+                continue
             if field not in sensitive_fields:
                 # Non-sensitive field, always allowed
                 allowed_fields.add(field)
@@ -233,6 +235,8 @@ def filter_sensitive_data(
     # Filter the dictionary
     filtered_data = {}
     for key, value in data.items():
+        if key in USER_DIRECTORY_FIELDS:
+            continue
         if key in allowed_fields:
             filtered_data[key] = value
         else:

@@ -1,13 +1,8 @@
 import React from "react";
-import { core } from "@apache-superset/core";
+import { views } from "@apache-superset/core";
 
-export const activate = (context: core.ExtensionContext) => {
-  context.disposables.push(
-    core.registerViewProvider("{{ id }}.example", () => <p>{{ name }}</p>)
-  );
-  console.log("{{ name }} extension activated");
-};
-
-export const deactivate = () => {
-  console.log("{{ name }} extension deactivated");
-};
+views.registerView(
+  { id: "{{ id }}.example", name: "{{ display_name }}" },
+  "sqllab.panels",
+  () => <p>{{ display_name }}</p>,
+);

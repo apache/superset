@@ -157,7 +157,7 @@ const renderWelcome = (props = mockedProps) =>
   });
 
 afterEach(() => {
-  fetchMock.resetHistory();
+  fetchMock.clearHistory();
 });
 
 test('With sql role - renders', async () => {
@@ -189,35 +189,35 @@ test('With sql role - renders distinct recent activities', async () => {
 
 test('With sql role - calls api methods in parallel on page load', async () => {
   await renderWelcome();
-  expect(fetchMock.calls(chartsEndpoint)).toHaveLength(2);
-  expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(1);
-  expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(1);
-  expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(2);
+  expect(fetchMock.callHistory.calls(chartsEndpoint)).toHaveLength(2);
+  expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(savedQueryEndpoint)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(dashboardsEndpoint)).toHaveLength(2);
 });
 
 test('Without sql role - renders', async () => {
   /*
   We ignore the ts error here because the type does not recognize the absence of a role entry
   */
-  // @ts-ignore-next-line
+  // @ts-expect-error-next-line
   await renderWelcome(mockedPropsWithoutSqlRole);
   expect(await screen.findByText('Dashboards')).toBeInTheDocument();
 });
 
 test('Without sql role - renders all panels on the page on page load', async () => {
-  // @ts-ignore-next-line
+  // @ts-expect-error-next-line
   await renderWelcome(mockedPropsWithoutSqlRole);
   const panels = await screen.findAllByText(/Dashboards|Charts|Recents/);
   expect(panels).toHaveLength(3);
 });
 
 test('Without sql role - calls api methods in parallel on page load', async () => {
-  // @ts-ignore-next-line
+  // @ts-expect-error-next-line
   await renderWelcome(mockedPropsWithoutSqlRole);
-  expect(fetchMock.calls(chartsEndpoint)).toHaveLength(2);
-  expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(1);
-  expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(0);
-  expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(2);
+  expect(fetchMock.callHistory.calls(chartsEndpoint)).toHaveLength(2);
+  expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(savedQueryEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(dashboardsEndpoint)).toHaveLength(2);
 });
 
 // Mock specific to the tests related to the toggle switch
@@ -299,8 +299,8 @@ test('Should not make data fetch calls if `welcome.main.replacement` is defined'
     screen.getByText('welcome.main.replacement extension component'),
   ).toBeInTheDocument();
 
-  expect(fetchMock.calls(chartsEndpoint)).toHaveLength(0);
-  expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(0);
-  expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(0);
-  expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(chartsEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(dashboardsEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(savedQueryEndpoint)).toHaveLength(0);
 });

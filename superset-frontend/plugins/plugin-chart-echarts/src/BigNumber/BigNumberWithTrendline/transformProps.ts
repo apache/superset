@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
+  BRAND_COLOR,
   extractTimegrain,
   getNumberFormatter,
   NumberFormats,
@@ -24,10 +26,9 @@ import {
   getXAxisLabel,
   Metric,
   getValueFormatter,
-  t,
   tooltipHtml,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { EChartsCoreOption, graphic } from 'echarts/core';
 import { aggregationChoices } from '@superset-ui/chart-controls';
 import { TIMESERIES_CONSTANTS } from '../../constants';
@@ -83,7 +84,11 @@ export default function transformProps(
     hooks,
     inContextMenu,
     theme,
-    datasource: { currencyFormats = {}, columnFormats = {} },
+    datasource: {
+      currencyFormats = {},
+      columnFormats = {},
+      currencyCodeColumn,
+    },
   } = chartProps;
   const {
     colorPicker,
@@ -117,6 +122,7 @@ export default function transformProps(
     coltypes = [],
     from_dttm: fromDatetime,
     to_dttm: toDatetime,
+    detected_currency: detectedCurrency,
   } = queriesData[0];
 
   const aggregatedQueryData = queriesData.length > 1 ? queriesData[1] : null;
@@ -135,8 +141,9 @@ export default function transformProps(
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
-  const { r, g, b } = colorPicker;
-  const mainColor = `rgb(${r}, ${g}, ${b})`;
+  const mainColor = colorPicker
+    ? `rgb(${colorPicker.r}, ${colorPicker.g}, ${colorPicker.b})`
+    : undefined;
 
   const xAxisLabel = getXAxisLabel(rawFormData) as string;
   let trendLineData: TimeSeriesDatum[] | undefined;
@@ -210,10 +217,13 @@ export default function transformProps(
     }
   }
 
-  if (data.length > 0) {
-    const reversedData = [...sortedData].reverse();
-    // @ts-ignore
-    trendLineData = showTrendLine ? reversedData : undefined;
+  if (data.length > 0 && showTrendLine) {
+    // Filter out entries with null timestamps and reverse for chronological order
+    // TimeSeriesDatum requires [number, number | null] - timestamp must be non-null
+    const validData = sortedData.filter(
+      (d): d is [number, number | null] => d[0] !== null,
+    );
+    trendLineData = [...validData].reverse();
   }
 
   let className = '';
@@ -259,6 +269,10 @@ export default function transformProps(
     columnFormats,
     metricEntry?.d3format || yAxisFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
   const xAxisFormatter = getXAxisFormatter(timeFormat);
   const yAxisFormatter =
@@ -278,12 +292,12 @@ export default function transformProps(
             symbol: 'circle',
             symbolSize: 10,
             showSymbol: false,
-            color: mainColor,
+            color: mainColor ?? BRAND_COLOR,
             areaStyle: {
               color: new graphic.LinearGradient(0, 0, 0, 1, [
                 {
                   offset: 0,
-                  color: mainColor,
+                  color: mainColor ?? BRAND_COLOR,
                 },
                 {
                   offset: 1,
@@ -370,7 +384,7 @@ export default function transformProps(
     width,
     height,
     bigNumber,
-    // @ts-ignore
+    // @ts-expect-error
     bigNumberFallback,
     className,
     headerFormatter: yAxisFormatter,

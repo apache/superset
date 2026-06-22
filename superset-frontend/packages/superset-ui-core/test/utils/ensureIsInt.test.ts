@@ -19,7 +19,7 @@
 import { ensureIsInt } from '@superset-ui/core';
 
 describe('ensureIsInt', () => {
-  it('handle inputs correctly', () => {
+  test('handle inputs correctly', () => {
     expect(ensureIsInt(undefined, 0)).toEqual(0);
     expect(ensureIsInt('abc', 1)).toEqual(1);
     expect(ensureIsInt(undefined)).toEqual(NaN);

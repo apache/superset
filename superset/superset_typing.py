@@ -30,6 +30,46 @@ if TYPE_CHECKING:
 SQLType: TypeAlias = TypeEngine | type[TypeEngine]
 
 
+class DatasetColumnData(TypedDict, total=False):
+    """Type for column metadata in ExplorableData datasets."""
+
+    advanced_data_type: str | None
+    certification_details: str | None
+    certified_by: str | None
+    column_name: str
+    description: str | None
+    expression: str | None
+    filterable: bool
+    groupby: bool
+    id: int | None
+    uuid: str | None
+    is_certified: bool
+    is_dttm: bool
+    python_date_format: str | None
+    type: str
+    type_generic: NotRequired["GenericDataType" | None]
+    verbose_name: str | None
+    warning_markdown: str | None
+
+
+class DatasetMetricData(TypedDict, total=False):
+    """Type for metric metadata in ExplorableData datasets."""
+
+    certification_details: str | None
+    certified_by: str | None
+    currency: NotRequired[dict[str, Any]]
+    d3format: str | None
+    description: str | None
+    expression: str | None
+    id: int | None
+    uuid: str | None
+    is_certified: bool
+    metric_name: str
+    warning_markdown: str | None
+    warning_text: str | None
+    verbose_name: str | None
+
+
 class LegacyMetric(TypedDict):
     label: str | None
 
@@ -243,6 +283,7 @@ class ExplorableData(TypedDict, total=False):
         granularity_sqla: Available time granularities
         time_grain_sqla: Available time grains
         main_dttm_col: Main datetime column
+        currency_code_column: Column containing currency codes for dynamic formatting
         fetch_values_predicate: Predicate for fetching filter values
         template_params: Template parameters for Jinja
         is_sqllab_view: Whether this is a SQL Lab view
@@ -253,11 +294,12 @@ class ExplorableData(TypedDict, total=False):
     """
 
     # Core fields from BaseDatasource.data
-    id: int
+    id: int | str  # String for UUID-based explorables like SemanticView
     uid: str
     column_formats: dict[str, str | None]
     description: str | None
     database: dict[str, Any]
+    parent: dict[str, Any]
     default_endpoint: str | None
     filter_select: bool
     filter_select_enabled: bool
@@ -273,8 +315,8 @@ class ExplorableData(TypedDict, total=False):
     perm: str | None
     edit_url: str
     sql: str | None
-    columns: list[dict[str, Any]]
-    metrics: list[dict[str, Any]]
+    columns: list["DatasetColumnData"]
+    metrics: list["DatasetMetricData"]
     folders: Any  # JSON field, can be list or dict
     order_by_choices: list[tuple[str, str]]
     owners: list[int] | list[dict[str, Any]]  # Can be either format
@@ -282,11 +324,12 @@ class ExplorableData(TypedDict, total=False):
     select_star: str | None
 
     # Additional fields from SqlaTable and data_for_slices
-    column_types: list[Any]
-    column_names: set[str] | set[Any]
+    column_types: list["GenericDataType"]
+    column_names: set[str] | list[str]
     granularity_sqla: list[tuple[Any, Any]]
     time_grain_sqla: list[tuple[Any, Any]]
     main_dttm_col: str | None
+    currency_code_column: str | None
     fetch_values_predicate: str | None
     template_params: str | None
     is_sqllab_view: bool
@@ -354,7 +397,7 @@ class OAuth2TokenResponse(TypedDict, total=False):
     refresh_token: str
 
 
-class OAuth2State(TypedDict):
+class OAuth2State(TypedDict, total=False):
     """
     Type for the state passed during OAuth2.
     """

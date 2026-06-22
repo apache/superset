@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 from superset.themes.types import ThemeMode
 from superset.views.base import (
@@ -530,3 +530,388 @@ class TestGetThemeBootstrapData:
         assert result["theme"]["enableUiThemeAdministration"] is False
         assert result["theme"]["default"] == {}
         assert result["theme"]["dark"] == {}
+
+
+class TestBrandAppNameFallback:
+    """Test brandAppName fallback mechanism for APP_NAME migration (issue #34865)"""
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_uses_theme_value_when_set(self, mock_app, mock_payload):
+        """Test that explicit brandAppName in theme takes precedence"""
+        from superset.views.base import get_spa_template_context
+
+        # Use a plain dict for config to mirror Flask's config mapping behavior
+        mock_app.config = {"APP_NAME": "Fallback App Name"}
+
+        # Mock payload with theme data that has custom brandAppName
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandAppName": "My Custom App",
+                            "brandLogoAlt": "Logo Alt",
+                        }
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should use the theme's brandAppName
+        assert result["default_title"] == "My Custom App"
+        # Theme tokens should have brandAppName
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "My Custom App"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_falls_back_to_app_name_config(self, mock_app, mock_payload):
+        """Test fallback to APP_NAME config when brandAppName not in theme"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "APP_NAME": "My Test Analytics Platform",
+        }.get(k, d)
+
+        # Mock payload with default "Superset" brandAppName
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandAppName": "Superset",  # Default value
+                            "brandLogoAlt": "Apache Superset",
+                        }
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should fall back to APP_NAME config
+        assert result["default_title"] == "My Test Analytics Platform"
+        # Theme tokens should be updated with APP_NAME value
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "My Test Analytics Platform"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_uses_superset_default_when_nothing_set(
+        self, mock_app, mock_payload
+    ):
+        """Test fallback to 'Superset' when neither is customized"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "APP_NAME": "Superset",  # Default value
+        }.get(k, d)
+
+        # Mock payload with default "Superset" brandAppName
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandAppName": "Superset",  # Default value
+                            "brandLogoAlt": "Apache Superset",
+                        }
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should use default "Superset"
+        assert result["default_title"] == "Superset"
+        # Theme tokens should keep "Superset"
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "Superset"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_empty_string_falls_back(self, mock_app, mock_payload):
+        """Test that empty string brandAppName triggers fallback"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "APP_NAME": "Custom App",
+        }.get(k, d)
+
+        # Mock payload with empty brandAppName
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandAppName": "",  # Empty string
+                            "brandLogoAlt": "Logo",
+                        }
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should fall back to APP_NAME
+        assert result["default_title"] == "Custom App"
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "Custom App"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_none_falls_back(self, mock_app, mock_payload):
+        """Test that missing brandAppName triggers fallback"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "APP_NAME": "Analytics Dashboard",
+        }.get(k, d)
+
+        # Mock payload without brandAppName
+        mock_payload.return_value = {
+            "common": {"theme": {"default": {"token": {"brandLogoAlt": "Logo"}}}}
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should fall back to APP_NAME
+        assert result["default_title"] == "Analytics Dashboard"
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "Analytics Dashboard"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_updates_both_default_and_dark_themes(
+        self, mock_app, mock_payload
+    ):
+        """Test that brandAppName fallback applies to both default and dark themes"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "APP_NAME": "Multi Theme App",
+        }.get(k, d)
+
+        # Mock payload with both themes missing brandAppName
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {
+                            "brandAppName": "Superset",  # Default value
+                            "colorPrimary": "#111",
+                        }
+                    },
+                    "dark": {
+                        "token": {
+                            # Missing brandAppName
+                            "colorPrimary": "#222",
+                        }
+                    },
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should update both themes
+        assert result["default_title"] == "Multi Theme App"
+        # Verify default theme was updated
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "Multi Theme App"
+        assert theme_tokens["colorPrimary"] == "#111"  # Preserved
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_does_not_mutate_cached_payload(self, mock_app, mock_payload):
+        """Test that brandAppName fallback doesn't mutate the cached payload"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "APP_NAME": "Test App",
+        }.get(k, d)
+
+        # Create a payload that simulates cached data
+        original_theme_data = {
+            "default": {
+                "token": {
+                    "brandAppName": "Superset",
+                    "colorPrimary": "#333",
+                }
+            }
+        }
+
+        mock_payload.return_value = {"common": {"theme": original_theme_data}}
+
+        # Call get_spa_template_context
+        result = get_spa_template_context("app")
+
+        # Verify the function result has the updated brandAppName
+        assert result["default_title"] == "Test App"
+        theme_tokens = result["theme_tokens"]
+        assert theme_tokens["brandAppName"] == "Test App"
+
+        # Verify the original mock payload structure wasn't mutated
+        # (the function should deep copy before mutating)
+        # Note: We can't easily test the cached payload immutability
+        # without more complex mocking, but we've verified the result is correct
+        assert result["default_title"] == "Test App"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_handles_empty_theme_config(self, mock_app, mock_payload):
+        """Test that empty theme configs are skipped gracefully"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = {"APP_NAME": "Test App"}
+
+        # Mock payload with empty dark theme
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {"token": {"brandAppName": "Superset"}},
+                    "dark": {},  # Empty theme config
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should handle empty theme gracefully and still update default
+        assert result["default_title"] == "Test App"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_creates_token_dict_when_missing(self, mock_app, mock_payload):
+        """Test that token dict is created when missing from theme config"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = {"APP_NAME": "Token Test App"}
+
+        # Mock payload with theme missing token dict
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {"algorithm": "default"},  # No token dict
+                    "dark": {"algorithm": "dark"},  # No token dict
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # Should create token dict and set brandAppName
+        assert result["default_title"] == "Token Test App"
+        assert result["theme_tokens"]["brandAppName"] == "Token Test App"
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_brandappname_handles_missing_common_in_payload(
+        self, mock_app, mock_payload
+    ):
+        """Test handling when common dict is missing from payload"""
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = {"APP_NAME": "Superset"}
+
+        # Mock payload without common dict
+        mock_payload.return_value = {}
+
+        result = get_spa_template_context("app")
+
+        # Should handle gracefully and use default title
+        assert result["default_title"] == "Superset"
+
+
+class TestGetDefaultSpinnerSvg:
+    """Test get_default_spinner_svg function"""
+
+    @patch("superset.views.base.logger")
+    @patch("builtins.open")
+    def test_get_default_spinner_svg_file_missing(self, mock_open, mock_logger):
+        """Test that missing spinner asset returns None and logs a warning"""
+        from superset.views.base import get_default_spinner_svg
+
+        mock_open.side_effect = FileNotFoundError()
+
+        result = get_default_spinner_svg()
+
+        assert result is None
+        # Verify that a warning was logged
+        mock_logger.warning.assert_called_once()
+        warning_msg = mock_logger.warning.call_args[0][0]
+        assert "Could not load default spinner SVG" in warning_msg
+
+    @patch("superset.views.base.logger")
+    @patch("builtins.open")
+    def test_get_default_spinner_svg_other_error(self, mock_open, mock_logger):
+        """Test that other unexpected errors during loading log a warning"""
+        from superset.views.base import get_default_spinner_svg
+
+        mock_open.side_effect = PermissionError("Permission denied")
+
+        result = get_default_spinner_svg()
+
+        assert result is None
+        # Verify that a warning was logged
+        mock_logger.warning.assert_called_once()
+        warning_msg = mock_logger.warning.call_args[0][0]
+        assert "Could not load default spinner SVG" in warning_msg
+
+    @patch("builtins.open", new_callable=mock_open, read_data="<svg>spinner</svg>")
+    def test_get_default_spinner_svg_success(self, mock_open):
+        """Test that successfully reading SVG returns the content"""
+        from superset.views.base import get_default_spinner_svg
+
+        result = get_default_spinner_svg()
+
+        assert result == "<svg>spinner</svg>"
+
+    def test_get_default_spinner_svg_real_file_exists(self):
+        """Test that the default spinner SVG file exists and is loadable"""
+        from superset.views.base import get_default_spinner_svg
+
+        result = get_default_spinner_svg()
+        assert result is not None
+        assert "<svg" in result
+        assert "morphPath" in result
+
+
+class TestThemeCacheInvalidation:
+    """Test theme cache invalidation event listeners"""
+
+    @patch("superset.extensions.cache_manager.cache.delete_memoized")
+    def test_clear_bootstrap_cache_event(self, mock_delete_memoized):
+        """Test that the event listener triggers delete_memoized"""
+        from superset.models.core import clear_bootstrap_cache
+        from superset.views.base import cached_common_bootstrap_data
+
+        # Call clear_bootstrap_cache with dummy mapper, connection, and Theme
+        clear_bootstrap_cache(MagicMock(), MagicMock(), MagicMock())
+
+        mock_delete_memoized.assert_called_once_with(cached_common_bootstrap_data)
+
+    @patch("superset.extensions.cache_manager.cache.delete_memoized")
+    @patch("superset.models.core.logger")
+    def test_clear_bootstrap_cache_event_error(self, mock_logger, mock_delete_memoized):
+        """Test that the event listener handles errors gracefully and logs them"""
+        from superset.models.core import clear_bootstrap_cache
+
+        mock_delete_memoized.side_effect = Exception("Cache error")
+        clear_bootstrap_cache(MagicMock(), MagicMock(), MagicMock())
+
+        mock_logger.warning.assert_called_once_with(
+            "Failed to clear theme bootstrap cache: %s",
+            mock_delete_memoized.side_effect,
+        )

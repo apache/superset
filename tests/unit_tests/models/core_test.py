@@ -17,6 +17,7 @@
 
 # pylint: disable=import-outside-toplevel
 from datetime import datetime
+from typing import Any, Callable
 
 import pytest
 from flask import current_app
@@ -261,21 +262,6 @@ def test_table_column_database() -> None:
     assert TableColumn(database=database).database is database
 
 
-def test_get_prequeries(mocker: MockerFixture) -> None:
-    """
-    Tests for ``get_prequeries``.
-    """
-    mocker.patch.object(Database, "get_sqla_engine")
-    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
-    db_engine_spec.get_prequeries.return_value = ["set a=1", "set b=2"]
-
-    database = Database(database_name="db")
-    with database.get_raw_connection() as conn:
-        conn.cursor().execute.assert_has_calls(
-            [mocker.call("set a=1"), mocker.call("set b=2")]
-        )
-
-
 def test_catalog_cache() -> None:
     """
     Test the catalog cache.
@@ -410,6 +396,121 @@ def test_get_all_catalog_names_needs_oauth2(mocker: MockerFixture) -> None:
     assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
 
 
+def test_get_all_table_names_in_schema_needs_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_table_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_table_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_table_names_in_schema(catalog=None, schema="public")
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_get_all_view_names_in_schema_needs_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_view_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_view_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_view_names_in_schema(catalog=None, schema="public")
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_get_all_materialized_view_names_in_schema_needs_oauth2(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `get_all_materialized_view_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_materialized_view_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_materialized_view_names_in_schema(
+            catalog=None, schema="public"
+        )
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
 def test_get_sqla_engine(mocker: MockerFixture) -> None:
     """
     Test `_get_sqla_engine`.
@@ -433,6 +534,97 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
         make_url("trino:///"),
         connect_args={"source": "Apache Superset"},
     )
+
+
+def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
+    """
+    Regression for #27897: a single SQLAlchemy ``Engine`` should be created per
+    process/URL, not on every ``_get_sqla_engine`` call.
+
+    Per the SQLAlchemy docs (https://docs.sqlalchemy.org/en/20/core/connections.html),
+    the engine is meant to be created once and reused so its connection pool
+    can do its job. Calling ``create_engine`` repeatedly defeats pooling, so
+    user-configured pools (e.g. via ``DB_CONNECTION_MUTATOR``) never persist
+    state between requests.
+
+    Exercises the production default path (``nullpool=True``) — every
+    in-tree callsite uses it — so the assertion would have caught a fix
+    that only engaged under ``nullpool=False``.
+    """
+    from superset.models.core import _ENGINE_CACHE, Database
+
+    # Clear the process-wide cache so prior tests don't poison this assertion.
+    _ENGINE_CACHE.clear()
+
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+    create_engine = mocker.patch("superset.models.core.create_engine")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="trino://")
+    database.id = 1  # Cache is keyed on id; skipped for unsaved instances.
+    database._get_sqla_engine()
+    database._get_sqla_engine()
+
+    assert create_engine.call_count == 1, (
+        "Database._get_sqla_engine should reuse the engine for the same URL "
+        f"(create_engine called {create_engine.call_count} times)"
+    )
+
+
+def test_get_sqla_engine_does_not_cache_unsaved_instances(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Two distinct unsaved ``Database`` instances (``id is None``) with the
+    same URI must not share a cache entry — they're different in-memory
+    objects and may have diverging config that isn't yet persisted.
+    """
+    from superset.models.core import _ENGINE_CACHE, Database
+
+    _ENGINE_CACHE.clear()
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+    create_engine = mocker.patch("superset.models.core.create_engine")
+
+    Database(database_name="db_a", sqlalchemy_uri="trino://")._get_sqla_engine()
+    Database(database_name="db_b", sqlalchemy_uri="trino://")._get_sqla_engine()
+
+    assert create_engine.call_count == 2
+    assert _ENGINE_CACHE == {}
+
+
+def test_engine_cache_evicted_on_update_and_delete(mocker: MockerFixture) -> None:
+    """
+    Regression for #27897: engines cached for a database must be evicted when
+    that database is updated or deleted so that stale connections (old password,
+    old host, old SSH tunnel) do not linger in memory across config changes.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.models.core import (
+        _ENGINE_CACHE,
+        _ENGINE_CACHE_LOCK,
+        _evict_engine_cache,
+    )
+
+    # Seed the cache with two entries for database id=1 and one for id=2.
+    with _ENGINE_CACHE_LOCK:
+        _ENGINE_CACHE.clear()
+        _ENGINE_CACHE[(1, "postgresql://old-host/db", "")] = MagicMock()
+        _ENGINE_CACHE[(1, "postgresql://new-host/db", "")] = MagicMock()
+        _ENGINE_CACHE[(2, "postgresql://other/db", "")] = MagicMock()
+
+    db_instance = MagicMock()
+    db_instance.id = 1
+    _evict_engine_cache(mapper=None, connection=None, target=db_instance)
+
+    # Both id=1 entries gone; id=2 entry untouched.
+    assert not any(k[0] == 1 for k in _ENGINE_CACHE)
+    assert any(k[0] == 2 for k in _ENGINE_CACHE)
 
 
 def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
@@ -519,6 +711,145 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     )
 
 
+def test_get_sqla_engine_registers_prequery_event_listener(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_sqla_engine registers a connect event listener for prequeries.
+
+    Engines returned by get_sqla_engine must automatically execute prequeries
+    (e.g. SET search_path) on every new connection, so that callers don't need
+    to remember to call get_prequeries() themselves.
+    """
+
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = ['SET search_path = "my_schema"']
+    event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+    mocker.patch("superset.models.core.sqla.event.remove")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_sqla_engine(catalog="my_catalog", schema="my_schema"):
+        pass
+
+    db_engine_spec.get_prequeries.assert_called_once_with(
+        database=database,
+        catalog="my_catalog",
+        schema="my_schema",
+    )
+    event_listen.assert_called_once_with(mock_engine, "connect", mocker.ANY)
+
+    # Call the captured closure directly to verify cursor create → execute → close.
+    captured_fn = event_listen.call_args[0][2]
+    mock_dbapi_conn = mocker.MagicMock()
+    mock_cursor = mocker.MagicMock()
+    mock_dbapi_conn.cursor.return_value = mock_cursor
+    captured_fn(mock_dbapi_conn, None)
+    mock_cursor.execute.assert_called_once_with('SET search_path = "my_schema"')
+    mock_cursor.close.assert_called_once()
+
+
+def test_get_sqla_engine_prequery_cursor_closed_on_exception(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the cursor is always closed even when a prequery raises.
+    """
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = ['SET search_path = "bad_schema"']
+    event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+    mocker.patch("superset.models.core.sqla.event.remove")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_sqla_engine(catalog=None, schema="bad_schema"):
+        pass
+
+    captured_fn = event_listen.call_args[0][2]
+    mock_dbapi_conn = mocker.MagicMock()
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.execute.side_effect = Exception("invalid schema")
+    mock_dbapi_conn.cursor.return_value = mock_cursor
+
+    with pytest.raises(Exception, match="invalid schema"):
+        captured_fn(mock_dbapi_conn, None)
+
+    mock_cursor.close.assert_called_once()
+
+
+def test_get_sqla_engine_no_prequeries_no_event_listener(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_sqla_engine does not register an event listener when there
+    are no prequeries.
+    """
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = []
+    event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_sqla_engine(catalog=None, schema=None):
+        pass
+
+    event_listen.assert_not_called()
+
+
+def test_get_raw_connection_executes_prequeries_exactly_once(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_raw_connection() runs prequeries exactly once through the
+    connect event listener registered by get_sqla_engine().
+
+    Previously get_raw_connection() had its own manual prequery loop AND
+    called get_sqla_engine() (which registers the listener), so prequeries
+    ran twice.  After removing the manual loop the listener is the sole
+    execution point — this test proves exactly-once semantics.
+    """
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    prequery = 'SET search_path = "my_schema"'
+    db_engine_spec.get_prequeries.return_value = [prequery]
+
+    # Capture the closure registered via sqla.event.listen.
+    captured_listeners: list[Callable[..., None]] = []
+    original_listen = mocker.patch("superset.models.core.sqla.event.listen")
+    original_listen.side_effect = lambda engine, event, fn: captured_listeners.append(
+        fn
+    )
+    mocker.patch("superset.models.core.sqla.event.remove")
+
+    # Simulate SQLAlchemy firing the "connect" event when raw_connection() is called.
+    mock_dbapi_conn = mocker.MagicMock()
+    mock_cursor = mocker.MagicMock()
+    mock_dbapi_conn.cursor.return_value = mock_cursor
+
+    def raw_connection_side_effect() -> Any:
+        for listener in captured_listeners:
+            listener(mock_dbapi_conn, None)
+        return mock_dbapi_conn
+
+    mock_engine.raw_connection.side_effect = raw_connection_side_effect
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_raw_connection(schema="my_schema"):
+        pass
+
+    # Exactly one prequery, exactly once — not twice, not zero.
+    mock_cursor.execute.assert_called_once_with(prequery)
+    mock_cursor.close.assert_called_once()
+
+
 def test_is_oauth2_enabled() -> None:
     """
     Test the `is_oauth2_enabled` method.
@@ -553,8 +884,89 @@ def test_get_oauth2_config(app_context: None) -> None:
         "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
         "scope": "refresh_token session:role:USERADMIN",
         "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "data",  # Default value from BaseEngineSpec
+    }
+
+
+def test_get_oauth2_config_token_request_type_from_db_engine_specs(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    Test that DB Engine Spec overrides for ``oauth2_token_request_type`` are respected.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_token_request_type",
+        "json",
+    )
+
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+    assert database.get_oauth2_config() == {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:USERADMIN",
+        "redirect_uri": "http://example.com/api/v1/database/oauth2/",
         "request_content_type": "json",
     }
+
+
+def test_get_oauth2_config_custom_token_request_type_extra(app_context: None) -> None:
+    """
+    Test passing a custom ``token_request_type`` via ``encrypted_extra``
+    takes precedence.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    custom_oauth2_client_info = {
+        "oauth2_client_info": {
+            **oauth2_client_info["oauth2_client_info"],
+            "request_content_type": "json",
+        }
+    }
+
+    database.encrypted_extra = json.dumps(custom_oauth2_client_info)
+    assert database.get_oauth2_config() == {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:USERADMIN",
+        "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "json",
+    }
+
+
+def test_get_oauth2_config_redirect_uri_from_config(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that ``DATABASE_OAUTH2_REDIRECT_URI`` config takes precedence over
+    url_for default.
+    """
+    custom_redirect_uri = "https://custom.example.com/oauth/callback"
+    mocker.patch.dict(
+        "superset.utils.oauth2.app.config",
+        {"DATABASE_OAUTH2_REDIRECT_URI": custom_redirect_uri},
+    )
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+
+    config = database.get_oauth2_config()
+
+    assert config is not None
+    assert config["redirect_uri"] == custom_redirect_uri
 
 
 def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:
@@ -578,7 +990,7 @@ def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:
         sqlalchemy_uri="sqlite://",
         encrypted_extra=json.dumps(oauth2_client_info),
     )
-    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    database.db_engine_spec.oauth2_exception = OAuth2Error
     _get_sqla_engine = mocker.patch.object(database, "_get_sqla_engine")
     _get_sqla_engine.side_effect = OAuth2Error("OAuth2 required")
 
@@ -609,7 +1021,7 @@ def test_raw_connection_oauth_connection(mocker: MockerFixture) -> None:
         sqlalchemy_uri="sqlite://",
         encrypted_extra=json.dumps(oauth2_client_info),
     )
-    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    database.db_engine_spec.oauth2_exception = OAuth2Error
     get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
     get_sqla_engine().__enter__().raw_connection.side_effect = OAuth2Error(
         "OAuth2 required"
@@ -642,7 +1054,7 @@ def test_raw_connection_oauth_execute(mocker: MockerFixture) -> None:
         sqlalchemy_uri="sqlite://",
         encrypted_extra=json.dumps(oauth2_client_info),
     )
-    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    database.db_engine_spec.oauth2_exception = OAuth2Error
     get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
     get_sqla_engine().__enter__().raw_connection().cursor().execute.side_effect = (
         OAuth2Error("OAuth2 required")
@@ -1144,3 +1556,70 @@ def test_database_execute_async_without_options(mocker: MockerFixture) -> None:
     mock_executor_class.assert_called_once_with(database)
     mock_executor.execute_async.assert_called_once_with("SELECT 1", None)
     assert result == mock_handle
+
+
+def test_clear_bootstrap_cache_logs_warning_on_failure(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that clear_bootstrap_cache logs a warning when cache invalidation fails.
+
+    Exercises the ``except Exception`` branch in the event listener so that
+    Codecov registers it as covered.  The function must not re-raise the
+    exception — callers (SQLAlchemy event dispatch) should be unaffected.
+    """
+    from superset.models.core import clear_bootstrap_cache
+
+    # Patch cache_manager so delete_memoized raises
+    mock_cache = mocker.MagicMock()
+    mock_cache.delete_memoized.side_effect = RuntimeError("Redis unavailable")
+
+    mock_cache_manager = mocker.patch("superset.models.core.cache_manager")
+    mock_cache_manager.cache = mock_cache
+
+    # Patch cached_common_bootstrap_data so the local import inside
+    # clear_bootstrap_cache resolves to our mock.
+    mocker.patch(
+        "superset.views.base.cached_common_bootstrap_data",
+        new=mocker.MagicMock(__name__="cached_common_bootstrap_data"),
+    )
+
+    mock_logger = mocker.patch("superset.models.core.logger")
+
+    # Should not raise even though delete_memoized raises
+    clear_bootstrap_cache(
+        _mapper=mocker.MagicMock(),
+        _connection=mocker.MagicMock(),
+        _target=mocker.MagicMock(),
+    )
+
+    # Verify logger.warning was called with the correct message format
+    mock_logger.warning.assert_called_once()
+    call_args = mock_logger.warning.call_args
+    assert call_args[0][0] == "Failed to clear theme bootstrap cache: %s"
+
+
+def test_execute_sql_preserves_line_comments_single_statement(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A single statement is executed verbatim, so the ``--`` line comments added by
+    ``SQL_QUERY_MUTATOR`` are not round-tripped through sqlglot (which would rewrite
+    them into ``/* */`` blocks). Regression test for the comment-mangling bug.
+    """
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_sqla_engine")
+    mocker.patch.object(database, "get_raw_connection")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[])
+    # Identity mutator so the test isolates whether the SQL got reformatted.
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql, **kwargs: sql
+    )
+    execute = mocker.patch.object(database.db_engine_spec, "execute")
+
+    sql = "SELECT 1 AS one\n-- user: alice\n-- company: dunder mifflin"
+    database._execute_sql_with_mutation_and_logging(sql, fetch_last_result=True)
+
+    executed_sql = execute.call_args.args[1]
+    assert executed_sql == sql
+    assert "/*" not in executed_sql

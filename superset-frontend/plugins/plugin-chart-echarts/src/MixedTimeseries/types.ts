@@ -93,7 +93,7 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
 } & LegendFormData &
   TitleFormData;
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   annotationLayers: [],

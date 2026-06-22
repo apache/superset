@@ -127,13 +127,15 @@ beforeEach(() => {
     }),
   );
 
+  const getDashboardMockUrl = 'glob:*/api/v1/dashboard/*';
+  fetchMock.removeRoute(getDashboardMockUrl);
   fetchMock.get(
-    'glob:*/api/v1/dashboard/*',
+    getDashboardMockUrl,
     {
       result: mockDashboards[0],
     },
-    { overwriteRoutes: true },
-  ); // Add overwriteRoutes option
+    { name: getDashboardMockUrl },
+  );
 
   // Mock loading state for first render
   jest.spyOn(hooks, 'useListViewResource').mockImplementationOnce(() => ({
@@ -227,10 +229,10 @@ test('switches to Mine tab correctly', async () => {
 
 test('handles create dashboard button click', async () => {
   const assignMock = jest.fn();
-  Object.defineProperty(window, 'location', {
-    value: { assign: assignMock },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    assign: assignMock,
+  } as Location);
 
   render(
     <Router history={history}>
@@ -242,6 +244,7 @@ test('handles create dashboard button click', async () => {
   const createButton = screen.getByRole('button', { name: /dashboard$/i });
   await userEvent.click(createButton);
   expect(assignMock).toHaveBeenCalledWith('/dashboard/new');
+  locationSpy.mockRestore();
 });
 
 test('switches to Other tab when available', async () => {

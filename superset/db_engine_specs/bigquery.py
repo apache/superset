@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+import sys
 import urllib
 from datetime import datetime
 from re import Pattern
@@ -27,11 +28,13 @@ from typing import Any, TYPE_CHECKING, TypedDict
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from flask import current_app, g, has_app_context, has_request_context
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import column, func, types
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import column as sql_column, select, sqltypes
@@ -40,7 +43,11 @@ from sqlalchemy.sql.expression import table as sql_table
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicPropertiesType,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
@@ -101,6 +108,11 @@ SYNTAX_ERROR_REGEX = re.compile(
 
 ma_plugin = MarshmallowPlugin()
 
+# Initial sample size for the progressive fetch in ``fetch_data``. Reading a
+# small first batch lets us measure the row size before deciding how many
+# more rows fit within ``BQ_FETCH_MAX_MB``.
+_BQ_INITIAL_SAMPLE_ROWS = 1000
+
 
 class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedString(
@@ -129,6 +141,53 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     default_driver = "bigquery"
     sqlalchemy_uri_placeholder = "bigquery://{project_id}"
 
+    metadata = {
+        "description": (
+            "Google BigQuery is a serverless, highly scalable data warehouse."
+        ),
+        "logo": "google-big-query.svg",
+        "homepage_url": "https://cloud.google.com/bigquery/",
+        "categories": [
+            DatabaseCategory.CLOUD_GCP,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-bigquery"],
+        "connection_string": "bigquery://{project_id}",
+        "install_instructions": (
+            'echo "sqlalchemy-bigquery" >> ./docker/requirements-local.txt'
+        ),
+        "authentication_methods": [
+            {
+                "name": "Service Account JSON",
+                "description": (
+                    "Upload service account credentials JSON or paste in Secure Extra"
+                ),
+                "secure_extra": {
+                    "credentials_info": {
+                        "type": "service_account",
+                        "project_id": "...",
+                        "private_key_id": "...",
+                        "private_key": "...",
+                        "client_email": "...",
+                        "client_id": "...",
+                        "auth_uri": "...",
+                        "token_uri": "...",
+                    }
+                },
+            },
+        ],
+        "notes": (
+            "Create a Service Account via GCP console with access to "
+            "BigQuery datasets. For CSV/Excel uploads, also install pandas_gbq."
+        ),
+        "warnings": [
+            "Google BigQuery Python SDK is not compatible with gevent. "
+            "Use a worker type other than gevent when deploying with gunicorn.",
+        ],
+        "docs_url": "https://github.com/googleapis/python-bigquery-sqlalchemy",
+    }
+
     # BigQuery doesn't maintain context when running multiple statements in the
     # same cursor, so we need to run all statements at once
     run_multiple_statements_as_one = True
@@ -136,10 +195,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     allows_hidden_cc_in_orderby = True
 
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+    supports_dynamic_schema = True
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
-    encrypted_extra_sensitive_fields = {"$.credentials_info.private_key"}
+    encrypted_extra_sensitive_fields = {
+        "$.credentials_info.private_key": "Service Account Private Key",
+    }
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -249,13 +311,101 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return None
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
-        data = super().fetch_data(cursor, limit)
-        # Support type BigQuery Row, introduced here PR #4071
-        # google.cloud.bigquery.table.Row
-        if data and type(data[0]).__name__ == "Row":
-            data = [r.values() for r in data]  # type: ignore
-        return data
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:  # noqa: C901
+        """
+        Progressive fetch for BigQuery to prevent browser memory overload.
+
+        Samples a first batch to estimate row size, then extrapolates the
+        total number of rows that fit within ``BQ_FETCH_MAX_MB``.
+        Falls back to the parent implementation on any error.
+        """
+        # ``BQ_FETCH_MAX_MB`` has a default in ``config.py``, so use bracket
+        # access in-context — a missing key should surface as a loud KeyError
+        # rather than be silently masked by a duplicated default here. The
+        # 200 fallback is only used when running outside an app context
+        # (e.g., direct unit-test calls to ``fetch_data``).
+        max_mb: int = (
+            current_app.config["BQ_FETCH_MAX_MB"] if has_app_context() else 200
+        )
+        max_bytes = max_mb * 1024 * 1024
+
+        try:
+            initial_batch_size = (
+                min(_BQ_INITIAL_SAMPLE_ROWS, limit)
+                if limit
+                else _BQ_INITIAL_SAMPLE_ROWS
+            )
+            first_batch: list[Any] = cursor.fetchmany(initial_batch_size)
+
+            if not first_batch:
+                if has_request_context():
+                    g.bq_memory_limited = False
+                    g.bq_memory_limited_row_count = 0
+                return []
+
+            # Support BigQuery Row objects (PR #4071)
+            if type(first_batch[0]).__name__ == "Row":
+                first_batch = [r.values() for r in first_batch]
+
+            # Estimate how many rows fit in the memory budget.
+            # Sum container + element sizes (one level deep) for a better
+            # estimate. Most BigQuery cell values are primitives (str, int,
+            # float, date), so one level captures the dominant allocation.
+            first_batch_bytes = sum(
+                sys.getsizeof(row) + sum(sys.getsizeof(v) for v in row)
+                for row in first_batch
+            )
+            rows_fetched = len(first_batch)
+            avg_bytes_per_row = first_batch_bytes / rows_fetched
+            total_rows_for_target = int(max_bytes / avg_bytes_per_row)
+
+            if limit:
+                total_rows_for_target = min(limit, total_rows_for_target)
+
+            remaining_rows = total_rows_for_target - rows_fetched
+
+            # First batch already covers the budget or the result set
+            if rows_fetched < initial_batch_size or remaining_rows <= 0:
+                memory_limited = (
+                    remaining_rows <= 0 and rows_fetched == initial_batch_size
+                )
+                if has_request_context():
+                    g.bq_memory_limited = memory_limited
+                    g.bq_memory_limited_row_count = len(first_batch)
+                return first_batch
+
+            # Fetch one extra row to confirm truncation without false positives
+            second_batch: list[Any] = cursor.fetchmany(remaining_rows + 1) or []
+            if second_batch and type(second_batch[0]).__name__ == "Row":
+                second_batch = [r.values() for r in second_batch]
+
+            # Truncation is confirmed only when more rows exist beyond the budget
+            memory_limited = len(second_batch) > remaining_rows
+            if memory_limited:
+                second_batch = second_batch[:remaining_rows]
+
+            data = first_batch + second_batch
+
+            if has_request_context():
+                g.bq_memory_limited = memory_limited
+                g.bq_memory_limited_row_count = len(data)
+            return data
+
+        except Exception:  # pylint: disable=broad-except
+            # Broad catch on purpose: any failure in the size-estimation /
+            # progressive-fetch path (BigQuery DB-API errors, network or
+            # auth timeouts mid-fetch, ``sys.getsizeof`` raising on an
+            # unexpected cell type, or a future ``Row`` subclass we don't
+            # know how to unwrap) must degrade gracefully to the parent's
+            # straight fetch so the user still gets data.
+            # Fallback to parent implementation
+            data = super().fetch_data(cursor, limit)
+            if data and type(data[0]).__name__ == "Row":
+                data = [r.values() for r in data]  # type: ignore
+            if has_request_context():
+                g.bq_memory_limited = False
+                g.bq_memory_limited_row_count = len(data) if data else 0
+            return data
 
     @staticmethod
     def _mutate_label(label: str) -> str:
@@ -384,7 +534,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 sql = cls.select_star(
                     database,
                     table,
-                    engine,
+                    engine.dialect,
                     indent=False,
                     show_cols=False,
                     latest_partition=True,
@@ -591,10 +741,40 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         catalog: str | None = None,
         schema: str | None = None,
     ) -> tuple[URL, dict[str, Any]]:
-        if catalog:
-            uri = uri.set(host=catalog, database="")
+        if not uri.host:
+            # Triple-slash form (e.g., bigquery:///project): project is in database.
+            default_catalog = uri.database
+            default_schema = None
+        else:
+            # Standard forms: bigquery://project, bigquery://project/dataset
+            default_catalog = uri.host
+            default_schema = uri.database or None  # coerce empty string to None
+
+        uri = uri.set(
+            host=catalog or default_catalog,
+            database=schema or default_schema,
+        )
 
         return uri, connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: dict[str, Any],
+    ) -> str | None:
+        """
+        Return the default dataset encoded in a ``bigquery://project/dataset`` URI.
+
+        The BigQuery SQLAlchemy driver uses the URL ``database`` component as the
+        default dataset, but only when ``host`` (the project) is also present.
+        The triple-slash form ``bigquery:///project`` puts the project in
+        ``database`` with no host, so we guard against misidentifying it as a
+        dataset.
+        """
+        if sqlalchemy_uri.host and sqlalchemy_uri.database:
+            return sqlalchemy_uri.database
+        return None
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
@@ -721,7 +901,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         cls,
         database: Database,
         table: Table,
-        engine: Engine,
+        dialect: Dialect,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -781,7 +961,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return super().select_star(
             database,
             table,
-            engine,
+            dialect,
             limit,
             show_cols,
             indent,
@@ -829,6 +1009,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             # We will return the original exception
             return exception
 
+    @staticmethod
+    def _information_schema_ref(schema: str, catalog: str | None) -> str:
+        escaped_schema = schema.replace("`", "``")
+        if catalog:
+            escaped_catalog = catalog.replace("`", "``")
+            return f"`{escaped_catalog}.{escaped_schema}.INFORMATION_SCHEMA.TABLES`"
+        return f"`{escaped_schema}.INFORMATION_SCHEMA.TABLES`"
+
     @classmethod
     def get_materialized_view_names(
         cls,
@@ -845,14 +1033,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         if not schema:
             return set()
 
-        # Construct the query to get materialized views from INFORMATION_SCHEMA
-        if catalog := database.get_default_catalog():
-            information_schema = f"`{catalog}.{schema}.INFORMATION_SCHEMA.TABLES`"
-        else:
-            information_schema = f"`{schema}.INFORMATION_SCHEMA.TABLES`"
-
-        # Use string formatting for the table name since it's not user input
-        # The catalog and schema are from trusted sources (database configuration)
+        catalog = database.get_default_catalog()
+        information_schema = cls._information_schema_ref(schema, catalog)
         query = f"""
         SELECT table_name
         FROM {information_schema}
@@ -891,15 +1073,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         if not schema:
             return set()
 
-        # Construct the query to get regular views from INFORMATION_SCHEMA
         catalog = database.get_default_catalog()
-        if catalog:
-            information_schema = f"`{catalog}.{schema}.INFORMATION_SCHEMA.TABLES`"
-        else:
-            information_schema = f"`{schema}.INFORMATION_SCHEMA.TABLES`"
-
-        # Use string formatting for the table name since it's not user input
-        # The catalog and schema are from trusted sources (database configuration)
+        information_schema = cls._information_schema_ref(schema, catalog)
         query = f"""
         SELECT table_name
         FROM {information_schema}

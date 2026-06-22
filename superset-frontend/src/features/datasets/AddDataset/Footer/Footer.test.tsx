@@ -37,6 +37,7 @@ const mockCreateResource = jest.fn();
 jest.mock('src/views/CRUD/hooks', () => ({
   useSingleViewResource: () => ({
     createResource: mockCreateResource,
+    state: { loading: false },
   }),
   getDatabaseDocumentationLinks: () => ({
     support:
