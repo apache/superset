@@ -181,15 +181,18 @@ value in milliseconds in the JSON Metadata field:
 Here, the entire dashboard will refresh at once if periodic refresh is on. The stagger time of 2.5
 seconds is ignored.
 
-The manual **Refresh dashboard** button also staggers its chart requests. The window is controlled
-by the `SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS` server config in `superset_config.py`. The
-default is `5000` milliseconds, which matches the fallback used for timed refresh. A per-dashboard
-`stagger_time` metadata value still wins when it is larger. Set the server config to `0` to keep
-the older behavior where every chart request fires at the same time:
+The manual **Refresh dashboard** button can also stagger its chart requests, controlled by the
+`SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS` server config in `superset_config.py`. This defaults
+to `0`, which preserves the original behavior where every chart request fires at the same time when
+the button is clicked. To opt in to staggering, set a positive number of milliseconds; the window
+then becomes the larger of this value and the per-dashboard `stagger_time` metadata. If the config
+key is removed entirely (treated as null), the frontend falls back to a built-in default of `5000`
+milliseconds.
 
 ```python
 # superset_config.py
-SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS = 5000
+# 0 (the default) fires every chart at once; set a positive value to stagger.
+SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS = 0
 ```
 
 **Why does ‘flask fab’ or superset freeze/hang/not responding when started (my home directory is

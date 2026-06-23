@@ -85,16 +85,20 @@ export const useHeaderAutoRefresh = ({
   logEvent,
 }: HeaderAutoRefreshProps): HeaderAutoRefreshResult => {
   const store = useStore<AutoRefreshStoreState>();
-  // Read the manual-refresh stagger window from the server config. A value
-  // of 0 keeps the older behavior where every chart request fires at the
-  // same time; any non-zero value routes through the staggered branch of
-  // fetchCharts.
-  const manualRefreshStaggerMs = useSelector<RootState, number>(
-    state =>
-      (state.dashboardInfo?.common?.conf
-        ?.SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS as number | undefined) ??
-      DEFAULT_MANUAL_REFRESH_STAGGER_MS,
-  );
+  // Read the manual-refresh stagger window from the server config.
+  // - missing key (e.g. an older backend) -> fall back to the built-in default
+  // - 0 keeps the older behavior where every chart request fires at once
+  // - any positive value routes through the staggered branch of fetchCharts
+  // A negative or non-finite value is normalized to 0 so a malformed config can
+  // never enable staggering implicitly or produce a negative delay.
+  const manualRefreshStaggerMs = useSelector<RootState, number>(state => {
+    const configured = state.dashboardInfo?.common?.conf
+      ?.SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS as number | undefined;
+    if (configured == null) {
+      return DEFAULT_MANUAL_REFRESH_STAGGER_MS;
+    }
+    return Number.isFinite(configured) && configured > 0 ? configured : 0;
+  });
   const { startAutoRefresh, endAutoRefresh, setRefreshInFlight } =
     useAutoRefreshContext();
   const {
