@@ -28,6 +28,8 @@ class GreenplumEngineSpec(PostgresEngineSpec):
 
     engine = "greenplum"
     engine_name = "Greenplum"
+    # Inherited PostgreSQL presentation-zone SQL is not yet verified here.
+    supports_presentation_timezone = False
     default_driver = "psycopg2"
 
     metadata = {

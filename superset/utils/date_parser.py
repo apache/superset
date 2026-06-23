@@ -19,6 +19,9 @@ from __future__ import annotations
 import calendar
 import logging
 import re
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timedelta
 from functools import lru_cache
 from time import struct_time
@@ -66,6 +69,36 @@ ORDINAL_MAP: dict[str, int] = {
     "1st": 1,
 }
 
+# Anchor for relative date expressions ("now", "today", "Last week", …).
+# Unset (None) means the historical behaviour: the server's local clock.
+# Charts on a dataset with a presentation time zone set this — via
+# ``anchored_now`` — to the zone's current wall-clock so relative ranges
+# resolve in that zone rather than the server's.
+_RELATIVE_NOW: ContextVar[datetime | None] = ContextVar("relative_now", default=None)
+
+
+@contextmanager
+def anchored_now(dttm: datetime | None) -> Iterator[None]:
+    """Anchor relative date parsing at ``dttm`` for the duration of the block.
+
+    ``dttm`` must be a *naive* datetime — the wall-clock of the desired zone.
+    A ``None`` anchor is a no-op, preserving the default (server local time).
+    Only the anchor changes; the expressions themselves parse identically.
+    """
+    if dttm is None:
+        yield
+        return
+    token = _RELATIVE_NOW.set(dttm)
+    try:
+        yield
+    finally:
+        _RELATIVE_NOW.reset(token)
+
+
+def _now() -> datetime:
+    """The current anchor for relative expressions (server-local by default)."""
+    return _RELATIVE_NOW.get() or datetime.now()
+
 
 def parse_human_datetime(human_readable: str) -> datetime:
     """Returns ``datetime.datetime`` from human readable strings"""
@@ -73,11 +106,11 @@ def parse_human_datetime(human_readable: str) -> datetime:
     if re.search(x_periods, human_readable, re.IGNORECASE):
         raise TimeRangeAmbiguousError(human_readable)
     try:
-        default = datetime(year=datetime.now().year, month=1, day=1)
+        default = datetime(year=_now().year, month=1, day=1)
         dttm = parse(human_readable, default=default)
     except (ValueError, OverflowError) as ex:
         cal = parsedatetime.Calendar()
-        parsed_dttm, parsed_flags = cal.parseDT(human_readable)
+        parsed_dttm, parsed_flags = cal.parseDT(human_readable, sourceTime=_now())
         # 0 == not parsed at all
         if parsed_flags == 0:
             logger.debug(ex)
@@ -118,7 +151,7 @@ def get_past_or_future(
 ) -> datetime:
     cal = parsedatetime.Calendar()
     source_dttm = dttm_from_timetuple(
-        source_time.timetuple() if source_time else datetime.now().timetuple()
+        source_time.timetuple() if source_time else _now().timetuple()
     )
     return dttm_from_timetuple(cal.parse(human_readable or "", source_dttm)[0])
 
@@ -134,7 +167,7 @@ def parse_human_timedelta(
     True
     """
     source_dttm = dttm_from_timetuple(
-        source_time.timetuple() if source_time else datetime.now().timetuple()
+        source_time.timetuple() if source_time else _now().timetuple()
     )
     return get_past_or_future(human_readable, source_time) - source_dttm
 

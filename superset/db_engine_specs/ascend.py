@@ -28,6 +28,8 @@ class AscendEngineSpec(ImpalaEngineSpec):
     registry.register("ascend", "impala.sqlalchemy", "ImpalaDialect")
 
     engine_name = "Ascend"
+    # Inherited Impala presentation-zone SQL is not yet verified here.
+    supports_presentation_timezone = False
 
     metadata = {
         "description": (

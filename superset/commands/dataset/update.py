@@ -122,9 +122,51 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         self._validate_dataset_source(exceptions)
         self._validate_semantics(exceptions)
+        self._validate_presentation_timezone(exceptions)
 
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)
+
+    def _validate_presentation_timezone(
+        self, exceptions: list[ValidationError]
+    ) -> None:
+        """Reject a presentation/source zone on an engine that cannot honour it.
+
+        IANA-format validation happens in the schema; here we enforce the
+        capability gate so a zone is never persisted where it would silently
+        emit no conversion. Both the presentation *and* source zone are checked
+        for parity with the import path (``clear_unsupported_timezone``), so
+        neither entry point can persist inert, misleading zone config. The
+        *effective* value is checked (the incoming value if present, else the
+        model's existing one) against the *effective* database, so moving an
+        already-zoned dataset to an unsupported engine is also caught. ``None``
+        (clearing a zone) is always allowed.
+        """
+        self._model = cast(SqlaTable, self._model)
+        db = self._properties.get("database") or self._model.database
+        if db is None:
+            # A bad database reference is reported by `_validate_dataset_source`.
+            return
+        if db.supports_presentation_timezone:
+            return
+        message = (
+            f"The database engine ({db.db_engine_spec.engine}) does not "
+            "support a presentation time zone."
+        )
+        # Presentation zone: reject the *effective* value (the incoming update if
+        # present, else the stored one) so moving an already-zoned dataset onto
+        # an unsupported engine is also caught. Clearing it (None) is allowed.
+        effective_presentation = self._properties.get(
+            "presentation_timezone", self._model.presentation_timezone
+        )
+        if effective_presentation is not None:
+            exceptions.append(
+                ValidationError(message, field_name="presentation_timezone")
+            )
+        # Source zone: reject only a value being *set in this update* (parity with
+        # the import path's clear, without flagging untouched stored config).
+        if self._properties.get("source_timezone") is not None:
+            exceptions.append(ValidationError(message, field_name="source_timezone"))
 
     def _validate_dataset_source(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model

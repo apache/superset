@@ -199,6 +199,8 @@ folders:
     - uuid: 00000000-0000-0000-0000-000000000005
       type: column
       name: profit
+presentation_timezone: null
+source_timezone: null
 uuid: {payload["uuid"]}
 metrics:
 - metric_name: cnt

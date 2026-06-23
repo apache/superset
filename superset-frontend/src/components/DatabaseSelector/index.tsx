@@ -268,6 +268,14 @@ export function DatabaseSelector({
                   engine_information?: { supports_schemas?: boolean };
                 }
               ).engine_information?.supports_schemas !== false,
+            supports_presentation_timezone:
+              (
+                row as DatabaseObject & {
+                  engine_information?: {
+                    supports_presentation_timezone?: boolean;
+                  };
+                }
+              ).engine_information?.supports_presentation_timezone === true,
             order,
           }));
 

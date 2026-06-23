@@ -37,6 +37,7 @@ from superset.commands.dataset.exceptions import (
     MultiCatalogDisabledValidationError,
 )
 from superset.commands.dataset.importers.v1.utils import (
+    clear_unsupported_timezone,
     import_dataset,
     validate_data_uri,
 )
@@ -1182,3 +1183,72 @@ def test_redirect_handler_blocks_disallowed_redirect_target() -> None:
                 {},
                 "http://169.254.169.254/latest/meta-data/",
             )
+
+
+def test_clear_unsupported_timezone_drops_on_unsupported_engine(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """Importing a zone onto an engine that can't honour it clears it (inert)."""
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="sqlite_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    # SQLite does not support presentation time zones.
+    assert database.db_engine_spec.supports_presentation_timezone is False
+
+    config = {
+        "database_id": database.id,
+        "presentation_timezone": "America/New_York",
+        "source_timezone": "UTC",
+    }
+    clear_unsupported_timezone(config)
+
+    assert config["presentation_timezone"] is None
+    assert config["source_timezone"] is None
+
+
+def test_clear_unsupported_timezone_drops_dataset_source_only(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """A dataset-level source zone alone still trips the gate on a bad engine."""
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="sqlite_src_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    assert database.db_engine_spec.supports_presentation_timezone is False
+
+    # No presentation zone and no column zones — only the dataset source zone.
+    config = {
+        "database_id": database.id,
+        "presentation_timezone": None,
+        "source_timezone": "UTC",
+        "columns": [{"column_name": "ts"}],
+    }
+    clear_unsupported_timezone(config)
+
+    assert config["source_timezone"] is None
+
+
+def test_clear_unsupported_timezone_keeps_on_supported_engine(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """A supported engine keeps the imported zone untouched."""
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pg_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    mocker.patch.object(database.db_engine_spec, "supports_presentation_timezone", True)
+
+    config = {
+        "database_id": database.id,
+        "presentation_timezone": "America/New_York",
+        "source_timezone": "UTC",
+        "columns": [],
+    }
+    clear_unsupported_timezone(config)
+
+    assert config["presentation_timezone"] == "America/New_York"
+    assert config["source_timezone"] == "UTC"

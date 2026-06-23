@@ -34,6 +34,12 @@
         "description": "Allow metrics and columns to be grouped into folders in the chart builder"
       },
       {
+        "name": "DATASET_PRESENTATION_TIMEZONE",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Allow an operator to set a per-dataset presentation time zone, so a dataset's temporal columns are bucketed and filtered in that named IANA zone (DST-correct) instead of as stored. Off by default and inert until a dataset opts in; only supported engines expose the control."
+      },
+      {
         "name": "DATE_RANGE_TIMESHIFTS_ENABLED",
         "default": false,
         "lifecycle": "development",

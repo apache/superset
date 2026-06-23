@@ -400,6 +400,9 @@ class TestDatasetApi(SupersetTestCase):
                 "backend": main_db.backend,
                 "database_name": "examples",
                 "id": 1,
+                # True/False depending on the CI backend (PostgreSQL vs
+                # SQLite/MySQL examples database).
+                "supports_presentation_timezone": ANY,
                 "uuid": ANY,
             },
             "default_endpoint": None,

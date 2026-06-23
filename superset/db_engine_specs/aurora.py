@@ -47,6 +47,8 @@ class AuroraPostgresDataAPI(PostgresEngineSpec):
     engine = "postgresql"
     default_driver = "auroradataapi"
     engine_name = "Aurora PostgreSQL (Data API)"
+    # Inherited PostgreSQL presentation-zone SQL is not yet verified here.
+    supports_presentation_timezone = False
     sqlalchemy_uri_placeholder = (
         "postgresql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
         "{database_name}?"
@@ -79,4 +81,6 @@ class AuroraPostgresEngineSpec(PostgresEngineSpec):
 
     engine = "postgresql"
     engine_name = "Aurora PostgreSQL"
+    # Inherited PostgreSQL presentation-zone SQL is not yet verified here.
+    supports_presentation_timezone = False
     default_driver = "psycopg2"

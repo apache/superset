@@ -1957,12 +1957,24 @@ class DateColumn:
         )
 
 
+# The two python_date_format values that declare epoch-integer storage. The
+# predicate below is the single home for "is this column epoch-stored?" — the
+# SQL generators, filter boundaries, and format validators must all read the
+# same answer or epoch columns get bucketed and filtered inconsistently.
+EPOCH_DTTM_FORMATS = frozenset({"epoch_s", "epoch_ms"})
+
+
+def is_epoch_dttm_format(dttm_format: str | None) -> TypeGuard[str]:
+    """Whether a ``python_date_format`` declares epoch-integer storage."""
+    return dttm_format in EPOCH_DTTM_FORMATS
+
+
 def _process_datetime_column(
     df: pd.DataFrame,
     col: DateColumn,
 ) -> None:
     """Process a single datetime column with format detection."""
-    if col.timestamp_format in ("epoch_s", "epoch_ms"):
+    if is_epoch_dttm_format(col.timestamp_format):
         dttm_series = df[col.col_label]
         if is_numeric_dtype(dttm_series):
             # Column is formatted as a numeric value

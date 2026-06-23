@@ -26,6 +26,8 @@ from superset.db_engine_specs.postgres import PostgresEngineSpec
 class CockroachDbEngineSpec(PostgresEngineSpec):
     engine = "cockroachdb"
     engine_name = "CockroachDB"
+    # Inherited PostgreSQL presentation-zone SQL is not yet verified here.
+    supports_presentation_timezone = False
 
     metadata = {
         "description": (

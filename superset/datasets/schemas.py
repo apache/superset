@@ -34,6 +34,8 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
 from superset.utils import json
+from superset.utils.core import is_epoch_dttm_format
+from superset.utils.timezones import is_valid_timezone
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -57,8 +59,15 @@ openapi_spec_methods_override = {
 }
 
 
+def validate_timezone(name: str) -> bool:
+    """Validate an IANA time-zone name against the standard-library allowlist."""
+    if not is_valid_timezone(name):
+        raise ValidationError([_("Invalid time zone")])
+    return True
+
+
 def validate_python_date_format(dt_format: str) -> bool:
-    if dt_format in ("epoch_s", "epoch_ms"):
+    if is_epoch_dttm_format(dt_format):
         return True
     try:
         dt_str = datetime.now().strftime(dt_format)
@@ -185,6 +194,12 @@ class DatasetPutSchema(Schema):
     currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
     normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    presentation_timezone = fields.String(
+        allow_none=True, validate=[Length(1, 64), validate_timezone]
+    )
+    source_timezone = fields.String(
+        allow_none=True, validate=[Length(1, 64), validate_timezone]
+    )
     offset = fields.Integer(allow_none=True)
     default_endpoint = fields.String(allow_none=True)
     cache_timeout = fields.Integer(allow_none=True)
@@ -352,6 +367,12 @@ class ImportV1DatasetSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    presentation_timezone = fields.String(
+        allow_none=True, validate=[Length(1, 64), validate_timezone]
+    )
+    source_timezone = fields.String(
+        allow_none=True, validate=[Length(1, 64), validate_timezone]
+    )
     folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
     # data_file is used by the example loading system to reference Parquet files
     data_file = fields.String(allow_none=True, load_default=None)
