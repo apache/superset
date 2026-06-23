@@ -359,9 +359,12 @@ class TestSecurityRolesApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         error_detail = "raw-driver-detail-should-not-leak"
+        # Patch a symbol used only inside get_list's query construction so the
+        # failure happens within the handler's try/except, not in the @protect()
+        # auth check (which also touches db.session.query).
         with (
             patch(
-                "superset.security.api.db.session.query",
+                "superset.security.api.selectinload",
                 side_effect=Exception(error_detail),
             ),
             patch("superset.security.api.logger") as mock_logger,
