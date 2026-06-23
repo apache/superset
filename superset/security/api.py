@@ -358,8 +358,12 @@ class RoleRestAPI(BaseSupersetApi):
             )
         except ForbiddenError as e:
             return self.response_403(message=str(e))
-        except Exception as e:
-            return self.response_500(message=str(e))
+        except Exception:
+            # Log the full error server-side for operator visibility, but return
+            # a generic message so internal details (ORM/driver error text, SQL
+            # fragments, schema names) are not echoed back to the caller.
+            logger.exception("Unexpected error in RoleRestAPI.get_list")
+            return self.response_500(message="An unexpected error occurred")
 
 
 class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
