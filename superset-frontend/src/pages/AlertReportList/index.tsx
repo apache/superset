@@ -205,9 +205,13 @@ function AlertList({
             }),
           );
         },
-      ).finally(() => {
-        executingIdsRef.current.delete(alertId);
-      });
+      )
+        .catch(() => {
+          // Error already surfaced to the user via the onError callback above.
+        })
+        .finally(() => {
+          executingIdsRef.current.delete(alertId);
+        });
     },
     [executeReport, addSuccessToast, addDangerToast],
   );

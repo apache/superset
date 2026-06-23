@@ -477,7 +477,7 @@ class ReportScheduleExecuteResponseSchema(Schema):
     class Meta:
         unknown = EXCLUDE
 
-    execution_id = fields.String(
-        metadata={"description": "UUID to track the execution status"}
+    execution_id = fields.UUID(
+        metadata={"description": _("UUID to track the execution status")}
     )
-    message = fields.String(metadata={"description": "Success message"})
+    message = fields.String(metadata={"description": _("Success message")})

@@ -687,7 +687,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/execute", methods=("POST",))
     @protect()
     @safe
-    @permission_name("write")
+    @permission_name("execute")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.execute",

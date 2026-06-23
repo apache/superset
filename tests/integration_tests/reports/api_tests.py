@@ -21,6 +21,8 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
+from kombu.exceptions import OperationalError as KombuOperationalError
+
 import pytz
 
 import pytest
@@ -2961,9 +2963,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         """
         ReportSchedule Api: Test execute returns 503 when Celery broker is unreachable
         """
-        mock_execute.side_effect = Exception(
-            "kombu.exceptions.ConnectionError: broker connection refused"
-        )
+        mock_execute.side_effect = KombuOperationalError("broker connection refused")
 
         report_schedule = (
             db.session.query(ReportSchedule)

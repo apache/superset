@@ -20,6 +20,7 @@ from typing import Any, Optional
 from uuid import uuid4
 
 from flask import current_app
+from kombu.exceptions import OperationalError as KombuOperationalError
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
@@ -103,25 +104,10 @@ class ExecuteReportScheduleNowCommand(BaseCommand):
 
             try:
                 execute.apply_async((self._model.id,), **async_options)
+            except KombuOperationalError as celery_ex:
+                logger.error("Celery backend not configured: %s", str(celery_ex))
+                raise ReportScheduleCeleryNotConfiguredError() from celery_ex
             except Exception as celery_ex:
-                # Distinguish between broker connectivity errors and other failures.
-                # kombu raises transport/connection errors; we surface a user-friendly
-                # message in the former case rather than a generic 422.
-                error_msg = str(celery_ex).lower()
-                connectivity_keywords = (
-                    "no broker",
-                    "broker connection",
-                    "kombu",
-                    "redis",
-                    "rabbitmq",
-                    "not registered",
-                    "connection refused",
-                    "connection error",
-                    "connect timeout",
-                )
-                if any(kw in error_msg for kw in connectivity_keywords):
-                    logger.error("Celery backend not configured: %s", str(celery_ex))
-                    raise ReportScheduleCeleryNotConfiguredError() from celery_ex
                 logger.error("Celery task execution failed: %s", str(celery_ex))
                 raise ReportScheduleExecuteNowFailedError() from celery_ex
 
