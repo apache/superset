@@ -223,6 +223,40 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
+# -- Gateway API HTTPRoute for exposing Superset via a Gateway.
+# Requires the Gateway API CRDs (gateway.networking.k8s.io/v1) installed in the cluster.
+# @default -- see `values.yaml`
+httproute:
+  enabled: false
+  # -- HTTPRoute apiVersion. Override to gateway.networking.k8s.io/v1beta1 for
+  # older Gateway API installations that have not promoted HTTPRoute to v1.
+  apiVersion: gateway.networking.k8s.io/v1
+  # -- Additional labels to add to the HTTPRoute
+  labels: {}
+  # -- Annotations to add to the HTTPRoute
+  annotations: {}
+  # -- Gateways this HTTPRoute attaches to
+  parentRefs: []
+    # - name: my-gateway
+    #   namespace: gateway-system
+    #   sectionName: https
+  # -- Hostnames that match against the HTTP Host header (templated)
+  hostnames: []
+    # - chart-example.local
+  # -- Routing rules. Each rule is backed by the Superset service. Set `weight`
+  # per rule to leave room for traffic splitting (defaults to 1). When
+  # `supersetWebsockets.enabled` is true, an extra rule routing
+  # `supersetWebsockets.ingress.path` to the `-ws` service is appended
+  # automatically, mirroring the ingress behavior.
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+    # weight: 1
+    # filters: []
+    # timeouts: {}
+
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
