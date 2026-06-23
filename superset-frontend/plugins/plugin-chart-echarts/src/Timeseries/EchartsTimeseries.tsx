@@ -244,6 +244,7 @@ export default function EchartsTimeseries({
           // Cross-filter by dimension (original behavior)
           const { seriesName: name } = props;
           handleChange(name);
+<<<<<<< feat/xaxis-label-cross-filter
         } else if (canCrossFilterByXAxis) {
           // Cross-filter by X-axis value when no dimensions (issue #25334)
           const categoryAxisValue = getCategoryAxisValue(props.data);
@@ -253,6 +254,14 @@ export default function EchartsTimeseries({
           ) {
             handleXAxisChange(categoryAxisValue);
           }
+=======
+        } else if (canCrossFilterByXAxis && props.name != null) {
+          // Cross-filter by X-axis value when no dimensions (issue #25334).
+          // Use `name` (the category-axis value) instead of `data[0]`: for
+          // horizontal bars the data tuple is value-first, so `data[0]` would
+          // be the metric value rather than the category (issue #41102).
+          handleXAxisChange(props.name);
+>>>>>>> master
         }
       }, TIMER_DURATION);
     },
@@ -334,6 +343,7 @@ export default function EchartsTimeseries({
         let crossFilter;
         if (hasDimensions) {
           crossFilter = getCrossFilterDataMask(seriesName);
+<<<<<<< feat/xaxis-label-cross-filter
         } else if (canCrossFilterByXAxis) {
           const categoryAxisValue = getCategoryAxisValue(data);
           if (
@@ -342,6 +352,12 @@ export default function EchartsTimeseries({
           ) {
             crossFilter = getXAxisCrossFilterDataMask(categoryAxisValue);
           }
+=======
+        } else if (canCrossFilterByXAxis && eventParams.name != null) {
+          // Use `name` (the category-axis value), not `data[0]`, so horizontal
+          // bars cross-filter on the category and not the metric (issue #41102).
+          crossFilter = getXAxisCrossFilterDataMask(eventParams.name);
+>>>>>>> master
         }
 
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {

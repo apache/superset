@@ -14,28 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Add published column to dashboards
 
-Revision ID: d6ffdf31bdd4
-Revises: b4a38aa87893
-Create Date: 2018-03-30 14:00:44.929483
+from unittest.mock import patch
 
-"""
+from rich.console import Console
 
-# revision identifiers, used by Alembic.
-revision = "d6ffdf31bdd4"
-down_revision = "b4a38aa87893"
-
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
+from superset.cli.test_db import collect_connection_info
 
 
-def upgrade():
-    with op.batch_alter_table("dashboards") as batch_op:
-        batch_op.add_column(sa.Column("published", sa.Boolean(), nullable=True))
-    op.execute(sa.text("UPDATE dashboards SET published='1'"))
+def test_collect_connection_info_masking() -> None:
+    """Test that passwords are masked in CLI output."""
+    console = Console()
+    uri = "postgresql://user:pass@host/db"
 
+    with patch("builtins.input", return_value="n"):
+        # We need to mock sys.stdin.read because collect_connection_info might read it
+        with patch("sys.stdin.read", return_value="{}"):
+            with console.capture() as capture:
+                collect_connection_info(console, uri)
 
-def downgrade():
-    with op.batch_alter_table("dashboards") as batch_op:
-        batch_op.drop_column("published")
+            output = capture.get()
+            assert "user:pass@" not in output
+            assert "***" in output
+            assert "host" in output
