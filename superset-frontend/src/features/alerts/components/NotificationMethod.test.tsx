@@ -34,6 +34,82 @@ import {
 import { NotificationMethod, mapSlackValues } from './NotificationMethod';
 import { NotificationMethodOption, NotificationSetting } from '../types';
 
+type MockAsyncSelectOption = {
+  label: string;
+  value: string;
+};
+
+type MockAsyncSelectProps = {
+  ariaLabel?: string;
+  'data-test'?: string;
+  name?: string;
+  onChange?: (value: MockAsyncSelectOption[]) => void;
+  options?: (
+    filterValue: string,
+    page: number,
+    pageSize: number,
+  ) => Promise<{ data: MockAsyncSelectOption[]; totalCount: number }>;
+  placeholder?: string;
+  value?: MockAsyncSelectOption[];
+};
+
+jest.mock('@superset-ui/core/components', () => {
+  const actual = jest.requireActual('@superset-ui/core/components');
+  const React = jest.requireActual('react');
+
+  return {
+    ...actual,
+    AsyncSelect: ({
+      ariaLabel,
+      'data-test': dataTest,
+      name,
+      onChange,
+      options,
+      placeholder,
+      value = [],
+    }: MockAsyncSelectProps) => {
+      const [loadedOptions, setLoadedOptions] = React.useState<
+        MockAsyncSelectOption[]
+      >([]);
+
+      return (
+        <>
+          <input
+            aria-label={ariaLabel ?? name}
+            data-test={dataTest}
+            placeholder={placeholder}
+            value={value.map(option => option.value).join(',')}
+            onChange={({ target: { value: inputValue } }) =>
+              onChange?.(
+                inputValue
+                  .split(',')
+                  .map(option => option.trim())
+                  .filter(Boolean)
+                  .map(option => ({ label: option, value: option })),
+              )
+            }
+          />
+          {options && dataTest && (
+            <button
+              data-test={`${dataTest}-load-options`}
+              type="button"
+              onClick={async () => {
+                const result = await options('user', 0, 25);
+                setLoadedOptions(result.data);
+              }}
+            >
+              Load options
+            </button>
+          )}
+          {loadedOptions.map(option => (
+            <span key={option.value}>{option.label}</span>
+          ))}
+        </>
+      );
+    },
+  };
+});
+
 const mockOnUpdate = jest.fn();
 const mockOnRemove = jest.fn();
 const mockOnInputChange = jest.fn();
@@ -158,6 +234,47 @@ describe('NotificationMethod', () => {
       ...mockSetting,
       recipients: 'test1@example.com',
     });
+  });
+
+  test('should load email recipient options from report owners', async () => {
+    jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+      json: {
+        count: 1,
+        result: [
+          {
+            text: 'Test User',
+            value: 1,
+            extra: {
+              email: 'test@example.com',
+            },
+          },
+        ],
+      },
+    } as JsonResponse);
+
+    render(
+      <NotificationMethod
+        setting={mockSetting}
+        index={0}
+        onUpdate={mockOnUpdate}
+        onRemove={mockOnRemove}
+        onInputChange={mockOnInputChange}
+        email_subject={mockEmailSubject}
+        defaultSubject={mockDefaultSubject}
+        setErrorSubject={mockSetErrorSubject}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('recipients-load-options'));
+
+    expect(
+      await screen.findByText('Test User <test@example.com>'),
+    ).toBeInTheDocument();
+    expect(SupersetClient.get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: expect.stringContaining('/api/v1/report/related/owners?q='),
+      }),
+    );
   });
 
   test('should correctly map recipients when method is SlackV2', () => {
