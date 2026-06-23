@@ -2252,10 +2252,6 @@ msgid "Are you sure you want to delete the selected layers?"
 msgstr "Tem certeza que deseja remover as camadas selecionadas?"
 
 #, fuzzy
-msgid "Are you sure you want to delete the selected queries?"
-msgstr "Tem certeza que deseja remover as consultas selecionadas ?"
-
-#, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Tem certeza que deseja remover as camadas selecionadas?"
 
@@ -4035,10 +4031,6 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Falha na conexão, por favor verificar suas configurações de conexão"
 
 #, fuzzy
-msgid "Connection looks good!"
-msgstr "Conexão"
-
-#, fuzzy
 msgid "Contains"
 msgstr "Contínuo"
 
@@ -4120,10 +4112,6 @@ msgstr "Copiar consulta de partição para a área de transferência"
 
 msgid "Copy permalink to clipboard"
 msgstr "Copiar permalink para a área de transferência"
-
-#, fuzzy
-msgid "Copy query URL"
-msgstr "Copiar URL da consulta"
 
 msgid "Copy query link to your clipboard"
 msgstr "Copiar link de consulta para sua área de transferência"
@@ -5266,10 +5254,6 @@ msgid "Delete item"
 msgstr "Excluir modelo"
 
 #, fuzzy
-msgid "Delete query"
-msgstr "Excluir consulta?"
-
-#, fuzzy
 msgid "Delete role"
 msgstr "excluir"
 
@@ -5954,10 +5938,6 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "ERRO"
 
-#, fuzzy, python-format
-msgid "ERROR: %s"
-msgstr "Erro: %(msg)s"
-
 msgid "Edge length"
 msgstr "Comprimento da borda"
 
@@ -6054,10 +6034,6 @@ msgstr "modo de edição"
 
 msgid "Edit properties"
 msgstr "Editar propriedades"
-
-#, fuzzy
-msgid "Edit query"
-msgstr "Editar consulta"
 
 #, fuzzy
 msgid "Edit report"
@@ -6692,10 +6668,6 @@ msgstr "Falha no download da imagem, por favor atualizar e tentar novamente."
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "Relatório falhou"
-
-#, fuzzy
-msgid "Export query"
-msgstr "Consulta vazia?"
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8612,10 +8584,6 @@ msgstr "Coluna de linhas"
 
 msgid "Lines encoding"
 msgstr "Codificação de linhas"
-
-#, fuzzy
-msgid "Link Copied!"
-msgstr "SQL copiado !"
 
 #, fuzzy
 msgid "List"
@@ -14990,10 +14958,6 @@ msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Houve um erro ao buscar o status de favorito: %s"
 
 #, fuzzy
-msgid "There was an error generating the permalink."
-msgstr "Ocorreu um erro ao carregar os esquemas"
-
-#, fuzzy
 msgid "There was an error loading groups."
 msgstr "Ocorreu um erro ao carregar as tabelas"
 
@@ -15098,10 +15062,6 @@ msgstr "Houve um problema ao excluir os painéis selecionados:"
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Houve um problema ao excluir as camadas selecionadas: %s"
 
-#, fuzzy, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr "Houve um problema ao excluir os modelos selecionados: %s"
-
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Houve um problema ao excluir os modelos selecionados: %s"
@@ -15137,10 +15097,6 @@ msgstr "Houve um problema ao excluir os gráficos selecionados: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Houve um problema ao excluir os painéis selecionados:"
-
-#, fuzzy
-msgid "There was an issue exporting the selected queries"
-msgstr "Houve um problema ao excluir os modelos selecionados: %s"
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18635,10 +18591,6 @@ msgstr "Autorização necessária"
 msgid "quarter"
 msgstr "trimestre"
 
-#, fuzzy
-msgid "queries"
-msgstr "Consultas"
-
 msgid "query"
 msgstr "consulta"
 
@@ -18859,26 +18811,6 @@ msgstr ""
 
 msgid "zoom area"
 msgstr "área de zoom"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr ""

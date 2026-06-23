@@ -2215,9 +2215,6 @@ msgstr "Estàs segur que vols eliminar les regles seleccionades?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Estàs segur que vols eliminar les capes seleccionades?"
 
-msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
-
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Estàs segur que vols eliminar els rols seleccionats?"
 
@@ -3929,9 +3926,6 @@ msgstr "La connexió ha fallat, si us plau comprova la configuració de connexi�
 msgid "Connection failed, please check your connection settings."
 msgstr "La connexió ha fallat, si us plau comprova la configuració de connexió."
 
-msgid "Connection looks good!"
-msgstr ""
-
 #, fuzzy
 msgid "Contains"
 msgstr "Continu"
@@ -4009,9 +4003,6 @@ msgstr "Copiar consulta de partició al porta-retalls"
 
 msgid "Copy permalink to clipboard"
 msgstr "Copiar enllaç permanent al porta-retalls"
-
-msgid "Copy query URL"
-msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Copiar enllaç de consulta al teu porta-retalls"
@@ -5104,9 +5095,6 @@ msgstr "Eliminar rol"
 msgid "Delete item"
 msgstr "Eliminar plantilla"
 
-msgid "Delete query"
-msgstr ""
-
 msgid "Delete role"
 msgstr "Eliminar rol"
 
@@ -5792,10 +5780,6 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "ERROR"
 
-#, python-format
-msgid "ERROR: %s"
-msgstr ""
-
 msgid "Edge length"
 msgstr "Longitud de vora"
 
@@ -5887,9 +5871,6 @@ msgstr "Editar Regla"
 
 msgid "Edit properties"
 msgstr "Editar propietats"
-
-msgid "Edit query"
-msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6501,9 +6482,6 @@ msgstr "La descàrrega PDF ha fallat, si us plau actualitza i torna-ho a provar.
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "L'informe ha fallat"
-
-msgid "Export query"
-msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8369,9 +8347,6 @@ msgstr "Columna de línies"
 
 msgid "Lines encoding"
 msgstr "Codificació de línies"
-
-msgid "Link Copied!"
-msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14631,9 +14606,6 @@ msgstr "Hi ha hagut un error obtenint l'estat de favorit: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Hi ha hagut un error obtenint els gràfics i dashboards filtrats:"
 
-msgid "There was an error generating the permalink."
-msgstr ""
-
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Hi ha hagut un error carregant les taules"
@@ -14736,10 +14708,6 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Hi ha hagut un problema eliminant les capes seleccionades: %s"
 
 #, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
-
-#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Hi ha hagut un problema eliminant les plantilles seleccionades: %s"
 
@@ -14774,9 +14742,6 @@ msgstr "Hi ha hagut un problema eliminant els gràfics seleccionats: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Hi ha hagut un problema eliminant els dashboards seleccionats: "
-
-msgid "There was an issue exporting the selected queries"
-msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18181,9 +18146,6 @@ msgstr "Autorització necessària"
 msgid "quarter"
 msgstr "trimestre"
 
-msgid "queries"
-msgstr ""
-
 msgid "query"
 msgstr "consulta"
 
@@ -18398,26 +18360,6 @@ msgstr ""
 
 msgid "zoom area"
 msgstr "àrea de zoom"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Atribució de capa"

@@ -2027,9 +2027,6 @@ msgstr "選択したグループを削除してもよろしいですか？"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "選択したレイヤーを削除してもよろしいですか？"
 
-msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
-
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "選択したロールを削除してもよろしいですか？"
 
@@ -3609,9 +3606,6 @@ msgstr "接続に失敗しました。接続設定を確認してください"
 msgid "Connection failed, please check your connection settings."
 msgstr "接続に失敗しました。接続設定を確認してください。"
 
-msgid "Connection looks good!"
-msgstr ""
-
 msgid "Contains"
 msgstr "含む"
 
@@ -3687,9 +3681,6 @@ msgstr "パーティションクエリをクリップボードにコピー"
 
 msgid "Copy permalink to clipboard"
 msgstr "固定リンクをクリップボードにコピー"
-
-msgid "Copy query URL"
-msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "クエリのリンクをクリップボードにコピー"
@@ -4697,9 +4688,6 @@ msgstr "グループを削除"
 msgid "Delete item"
 msgstr "項目を削除"
 
-msgid "Delete query"
-msgstr ""
-
 msgid "Delete role"
 msgstr "ロールを削除"
 
@@ -5306,10 +5294,6 @@ msgstr "メールレポートのCTA"
 msgid "ERROR"
 msgstr "エラー"
 
-#, python-format
-msgid "ERROR: %s"
-msgstr ""
-
 msgid "Edge length"
 msgstr "エッジの長さ"
 
@@ -5398,9 +5382,6 @@ msgstr "グループを編集"
 
 msgid "Edit properties"
 msgstr "プロパティを編集"
-
-msgid "Edit query"
-msgstr ""
 
 msgid "Edit report"
 msgstr "レポートを編集"
@@ -5970,9 +5951,6 @@ msgstr "エクスポートに失敗しました。再試行してください"
 #, python-format
 msgid "Export failed: %s"
 msgstr "エクスポート失敗: %s"
-
-msgid "Export query"
-msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr "スクリーンショットをエクスポート (JPEG)"
@@ -7715,9 +7693,6 @@ msgstr "線の列"
 
 msgid "Lines encoding"
 msgstr "線のエンコーディング"
-
-msgid "Link Copied!"
-msgstr ""
 
 msgid "List"
 msgstr "一覧"
@@ -13442,9 +13417,6 @@ msgstr "お気に入り状態の取得中にエラーが発生しました: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "フィルタリングされたチャートおよびダッシュボードの取得中にエラーが発生しました:"
 
-msgid "There was an error generating the permalink."
-msgstr ""
-
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "ユーザーの読み込み中にエラーが発生しました。"
@@ -13542,10 +13514,6 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "選択したレイヤーの削除中に問題が発生しました: %s"
 
 #, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
-
-#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "選択したテンプレートの削除中に問題が発生しました: %s"
 
@@ -13578,9 +13546,6 @@ msgstr "選択したチャートのエクスポート中に問題が発生しま
 
 msgid "There was an issue exporting the selected dashboards"
 msgstr "選択したダッシュボードのエクスポート中に問題が発生しました"
-
-msgid "There was an issue exporting the selected queries"
-msgstr ""
 
 msgid "There was an issue exporting the selected themes"
 msgstr "選択したテーマのエクスポート中に問題が発生しました"
@@ -16705,9 +16670,6 @@ msgstr "認証が必要です"
 msgid "quarter"
 msgstr "四半期"
 
-msgid "queries"
-msgstr ""
-
 msgid "query"
 msgstr "クエリ"
 
@@ -16916,26 +16878,6 @@ msgstr "your-project-1234-a1"
 
 msgid "zoom area"
 msgstr "ズームエリア"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© レイヤー帰属情報"

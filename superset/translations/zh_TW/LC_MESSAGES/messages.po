@@ -2106,10 +2106,6 @@ msgid "Are you sure you want to delete the selected layers?"
 msgstr "確定要删除選定的圖層嗎？"
 
 #, fuzzy
-msgid "Are you sure you want to delete the selected queries?"
-msgstr "您確定要删除選定的查詢嗎？"
-
-#, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "確定要删除選定的圖層嗎？"
 
@@ -3853,10 +3849,6 @@ msgid "Connection failed, please check your connection settings."
 msgstr "連接失敗，請檢查您的連接配置"
 
 #, fuzzy
-msgid "Connection looks good!"
-msgstr "連接"
-
-#, fuzzy
 msgid "Contains"
 msgstr "連續式"
 
@@ -3939,10 +3931,6 @@ msgstr "將分區查詢複製到剪貼簿"
 #, fuzzy
 msgid "Copy permalink to clipboard"
 msgstr "將查詢链接複製到剪貼簿"
-
-#, fuzzy
-msgid "Copy query URL"
-msgstr "複製查詢 URL"
 
 msgid "Copy query link to your clipboard"
 msgstr "將查詢链接複製到剪貼簿"
@@ -5043,10 +5031,6 @@ msgid "Delete item"
 msgstr "删除模板"
 
 #, fuzzy
-msgid "Delete query"
-msgstr "確定删除查詢？"
-
-#, fuzzy
 msgid "Delete role"
 msgstr "删除"
 
@@ -5705,10 +5689,6 @@ msgstr "啟用郵件報告"
 msgid "ERROR"
 msgstr "錯誤"
 
-#, fuzzy, python-format
-msgid "ERROR: %s"
-msgstr "錯誤：%(msg)s"
-
 msgid "Edge length"
 msgstr "邊長"
 
@@ -5805,10 +5785,6 @@ msgstr "編輯規則"
 
 msgid "Edit properties"
 msgstr "編輯属性"
-
-#, fuzzy
-msgid "Edit query"
-msgstr "編輯查詢"
 
 #, fuzzy
 msgid "Edit report"
@@ -6441,10 +6417,6 @@ msgstr "圖片發送失敗，請刷新或重試"
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "報告失敗"
-
-#, fuzzy
-msgid "Export query"
-msgstr "查詢為空？"
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8367,10 +8339,6 @@ msgstr "線段列"
 #, fuzzy
 msgid "Lines encoding"
 msgstr "線段编碼"
-
-#, fuzzy
-msgid "Link Copied!"
-msgstr "SQL 複製成功！"
 
 #, fuzzy
 msgid "List"
@@ -14564,10 +14532,6 @@ msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "獲取此看板的收藏夹狀態時出現問題：%s。"
 
 #, fuzzy
-msgid "There was an error generating the permalink."
-msgstr "抱歉，這個看板在獲取圖表時發生錯誤："
-
-#, fuzzy
 msgid "There was an error loading groups."
 msgstr "您的請求有錯誤"
 
@@ -14671,10 +14635,6 @@ msgstr "删除所選看板時出現問題："
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "删除所選圖層時出現問題：%s"
 
-#, fuzzy, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr "删除所選模板時出現問題：%s"
-
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "删除所選模板時出現問題：%s"
@@ -14710,10 +14670,6 @@ msgstr "删除所選圖表時出現問題：%s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "删除所選看板時出現問題："
-
-#, fuzzy
-msgid "There was an issue exporting the selected queries"
-msgstr "删除所選模板時出現問題：%s"
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18024,10 +17980,6 @@ msgstr ""
 msgid "quarter"
 msgstr "季度"
 
-#, fuzzy
-msgid "queries"
-msgstr "查詢"
-
 msgid "query"
 msgstr "查詢"
 
@@ -18267,26 +18219,6 @@ msgstr ""
 
 msgid "zoom area"
 msgstr "縮放面積"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr ""

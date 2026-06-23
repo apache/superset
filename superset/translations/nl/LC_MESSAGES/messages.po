@@ -2194,9 +2194,6 @@ msgstr "Weet u zeker dat u de geselecteerde regels wilt verwijderen?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Weet je zeker dat je de geselecteerde lagen wilt verwijderen?"
 
-msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
-
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Weet u zeker dat u de geselecteerde regels wilt verwijderen?"
@@ -3946,9 +3943,6 @@ msgstr "Verbinding mislukt, controleer uw verbindingsinstellingen"
 msgid "Connection failed, please check your connection settings."
 msgstr "Verbinding mislukt, controleer uw verbindingsinstellingen"
 
-msgid "Connection looks good!"
-msgstr ""
-
 #, fuzzy
 msgid "Contains"
 msgstr "Doorlopend"
@@ -4028,9 +4022,6 @@ msgstr "Kopieer partitie query naar klembord"
 
 msgid "Copy permalink to clipboard"
 msgstr "Kopieer permalink naar klembord"
-
-msgid "Copy query URL"
-msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopieer query link naar uw klembord"
@@ -5147,9 +5138,6 @@ msgstr "verwijder"
 msgid "Delete item"
 msgstr "Verwijder template"
 
-msgid "Delete query"
-msgstr ""
-
 #, fuzzy
 msgid "Delete role"
 msgstr "verwijder"
@@ -5836,10 +5824,6 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "FOUT"
 
-#, python-format
-msgid "ERROR: %s"
-msgstr ""
-
 msgid "Edge length"
 msgstr "Rand lengte"
 
@@ -5933,9 +5917,6 @@ msgstr "Bewerk Regel"
 
 msgid "Edit properties"
 msgstr "Eigenschappen bewerken"
-
-msgid "Edit query"
-msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6564,9 +6545,6 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "Rapport mislukt"
-
-msgid "Export query"
-msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8466,9 +8444,6 @@ msgstr "Lijnen kolom"
 
 msgid "Lines encoding"
 msgstr "Lijnen codering"
-
-msgid "Link Copied!"
-msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14763,9 +14738,6 @@ msgstr "Er is een fout opgetreden bij het ophalen van de favoriete status: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Er is een fout opgetreden bij het ophalen van de favoriete status: %s"
 
-msgid "There was an error generating the permalink."
-msgstr ""
-
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Er is een fout opgetreden bij het laden van de tabellen"
@@ -14872,10 +14844,6 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Er was een probleem met het verwijderen van de geselecteerde lagen: %s"
 
 #, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
-
-#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Er was een probleem met het verwijderen van de geselecteerde templates: %s"
 
@@ -14910,9 +14878,6 @@ msgstr "Er was een probleem met het verwijderen van de geselecteerde grafieken: 
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Er was een probleem met het verwijderen van de geselecteerde dashboards: "
-
-msgid "There was an issue exporting the selected queries"
-msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18384,9 +18349,6 @@ msgstr ""
 msgid "quarter"
 msgstr "kwartaal"
 
-msgid "queries"
-msgstr ""
-
 msgid "query"
 msgstr "query"
 
@@ -18606,26 +18568,6 @@ msgstr ""
 
 msgid "zoom area"
 msgstr "zoom gebied"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr ""

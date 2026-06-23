@@ -2203,9 +2203,6 @@ msgstr "Voulez-vous vraiment supprimer les groupes sélectionnées?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Voulez-vous vraiment supprimer les couches sélectionnées?"
 
-msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
-
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Voulez-vous vraiment supprimer les roles sélectionnées?"
 
@@ -3922,9 +3919,6 @@ msgstr "La connexion a échoué, veuillez vérifier vos paramètres de connexion
 msgid "Connection failed, please check your connection settings."
 msgstr "La connexion a échoué, veuillez vérifier vos paramètres de connexion"
 
-msgid "Connection looks good!"
-msgstr ""
-
 msgid "Contains"
 msgstr "Contient"
 
@@ -4002,9 +3996,6 @@ msgstr "Copier la requête de partition vers le presse-papier"
 
 msgid "Copy permalink to clipboard"
 msgstr "Copier le lien dans le presse-papiers"
-
-msgid "Copy query URL"
-msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Copier le lien de la requête vers le presse-papier"
@@ -5116,9 +5107,6 @@ msgstr "supprimer le groupe"
 msgid "Delete item"
 msgstr "Supprimer l'élément"
 
-msgid "Delete query"
-msgstr ""
-
 msgid "Delete role"
 msgstr "supprimer le rôle"
 
@@ -5808,10 +5796,6 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "ERREUR"
 
-#, python-format
-msgid "ERROR: %s"
-msgstr ""
-
 msgid "Edge length"
 msgstr "Longueur du bord"
 
@@ -5902,9 +5886,6 @@ msgstr "mode edition"
 
 msgid "Edit properties"
 msgstr "Modifier les propriétés"
-
-msgid "Edit query"
-msgstr ""
 
 msgid "Edit report"
 msgstr "Modifier le rapport"
@@ -6525,9 +6506,6 @@ msgstr "Échec de l'export, veuillez réessayer."
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "Rapport échoué"
-
-msgid "Export query"
-msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8462,9 +8440,6 @@ msgstr "Colonne des lignes"
 
 msgid "Lines encoding"
 msgstr "Codage des lignes"
-
-msgid "Link Copied!"
-msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14975,9 +14950,6 @@ msgstr "Erreur à la récupération du statut favori de ce tableau de bord : %s
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Erreur à la récupération du statut favori de ce tableau de bord : %s"
 
-msgid "There was an error generating the permalink."
-msgstr ""
-
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Une erreur s'est produite lors de la récupération des tableaux"
@@ -15099,10 +15071,6 @@ msgstr ""
 "%s"
 
 #, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
-
-#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr ""
 "Il y a eu un problème lors de la suppression des modèles sélectionnées : "
@@ -15145,9 +15113,6 @@ msgstr ""
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Il y a eu un problème lors de la suppression des graphiques sélectionnés: "
-
-msgid "There was an issue exporting the selected queries"
-msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18723,9 +18688,6 @@ msgstr "Autorisation requise"
 msgid "quarter"
 msgstr "trimestre"
 
-msgid "queries"
-msgstr ""
-
 msgid "query"
 msgstr "requête"
 
@@ -18956,26 +18918,6 @@ msgstr ""
 
 msgid "zoom area"
 msgstr "zone de zoom"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Attribution de la couche"

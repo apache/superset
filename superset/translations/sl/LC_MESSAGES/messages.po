@@ -2216,9 +2216,6 @@ msgstr "Ali ste prepričani, da želite izbrisati izbrana pravila?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Ali ste prepričani, da želite izbrisati izbrane sloje?"
 
-msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
-
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Ali ste prepričani, da želite izbrisati izbrana pravila?"
@@ -3930,9 +3927,6 @@ msgstr "Povezava neuspešna. Preverite nastavitve povezave"
 msgid "Connection failed, please check your connection settings."
 msgstr "Povezava neuspešna. Preverite nastavitve povezave."
 
-msgid "Connection looks good!"
-msgstr ""
-
 #, fuzzy
 msgid "Contains"
 msgstr "Zvezno"
@@ -4010,9 +4004,6 @@ msgstr "Kopiraj particijsko poizvedbo na odložišče"
 
 msgid "Copy permalink to clipboard"
 msgstr "Kopiraj povezavo v odložišče"
-
-msgid "Copy query URL"
-msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopiraj povezavo do poizvedbe v odložišče"
@@ -5103,9 +5094,6 @@ msgstr "Izberite datoteko"
 msgid "Delete item"
 msgstr "Izbriši predlogo"
 
-msgid "Delete query"
-msgstr ""
-
 #, fuzzy
 msgid "Delete role"
 msgstr "Izberite datoteko"
@@ -5807,10 +5795,6 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "NAPAKA"
 
-#, python-format
-msgid "ERROR: %s"
-msgstr ""
-
 msgid "Edge length"
 msgstr "Dolžina povezave"
 
@@ -5904,9 +5888,6 @@ msgstr "Uredi pravilo"
 
 msgid "Edit properties"
 msgstr "Uredi lastnosti"
-
-msgid "Edit query"
-msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6524,9 +6505,6 @@ msgstr "Prenos slike ni uspel. Osvežite in poskusite ponovno."
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "Poročilo ni uspelo"
-
-msgid "Export query"
-msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8401,9 +8379,6 @@ msgstr "Stolpec črt"
 
 msgid "Lines encoding"
 msgstr "Kodiranje črt"
-
-msgid "Link Copied!"
-msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14612,9 +14587,6 @@ msgstr "Napaka pri pridobivanju statusa \"Priljubljeno\": %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Napaka pri pridobivanju filtriranih grafikonov in nadzornih plošč:"
 
-msgid "There was an error generating the permalink."
-msgstr ""
-
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Napaka pri nalaganju tabel"
@@ -14717,10 +14689,6 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Pri brisanju izbranih slojev je prišlo do težave: %s"
 
 #, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
-
-#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Pri brisanju izbranih predlog je prišlo do težave: %s"
 
@@ -14755,9 +14723,6 @@ msgstr "Pri brisanju izbranih grafikonov je prišlo do težave: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Pri brisanju izbranih nadzornih plošč je prišlo do težave: "
-
-msgid "There was an issue exporting the selected queries"
-msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18160,9 +18125,6 @@ msgstr "Potrebna je avtorizacija"
 msgid "quarter"
 msgstr "četrtletje"
 
-msgid "queries"
-msgstr ""
-
 msgid "query"
 msgstr "poizvedba"
 
@@ -18381,26 +18343,6 @@ msgstr ""
 
 msgid "zoom area"
 msgstr "približaj območje"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr ""

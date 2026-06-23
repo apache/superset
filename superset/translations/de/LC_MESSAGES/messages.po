@@ -2060,9 +2060,6 @@ msgstr "Möchten Sie die ausgewählten Gruppen wirklich löschen?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Möchten Sie die ausgewählten Ebenen wirklich löschen?"
 
-msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
-
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Möchten Sie die ausgewählten Rollen wirklich löschen?"
 
@@ -3701,9 +3698,6 @@ msgstr "Verbindung fehlgeschlagen, bitte überprüfen Sie Ihre Verbindungseinste
 msgid "Connection failed, please check your connection settings."
 msgstr "Verbindung fehlgeschlagen, bitte überprüfen Sie Ihre Verbindungseinstellungen."
 
-msgid "Connection looks good!"
-msgstr ""
-
 msgid "Contains"
 msgstr "Enthält"
 
@@ -3777,9 +3771,6 @@ msgstr "Partitionsabfrage in Zwischenablage kopieren"
 
 msgid "Copy permalink to clipboard"
 msgstr "Permalink in Zwischenablage kopieren"
-
-msgid "Copy query URL"
-msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Abfragelink in die Zwischenablage kopieren"
@@ -4803,9 +4794,6 @@ msgstr "Gruppe löschen"
 msgid "Delete item"
 msgstr "Element löschen"
 
-msgid "Delete query"
-msgstr ""
-
 msgid "Delete role"
 msgstr "Rolle Löschen"
 
@@ -5459,10 +5447,6 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "FEHLER"
 
-#, python-format
-msgid "ERROR: %s"
-msgstr ""
-
 msgid "Edge length"
 msgstr "Kantenlänge"
 
@@ -5551,9 +5535,6 @@ msgstr "Gruppe bearbeiten"
 
 msgid "Edit properties"
 msgstr "Eigenschaften bearbeiten"
-
-msgid "Edit query"
-msgstr ""
 
 msgid "Edit report"
 msgstr "Bericht bearbeiten"
@@ -6122,9 +6103,6 @@ msgstr "Export fehlgeschlagen - Bitte versuchen Sie es erneut"
 #, python-format
 msgid "Export failed: %s"
 msgstr "Export fehlgeschlagen: %s"
-
-msgid "Export query"
-msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr "Export Screenshot (jpeg)"
@@ -7887,9 +7865,6 @@ msgstr "Linien-Spalte"
 
 msgid "Lines encoding"
 msgstr "Zeilenkodierung"
-
-msgid "Link Copied!"
-msgstr ""
 
 msgid "List"
 msgstr "Auflisten"
@@ -13800,9 +13775,6 @@ msgstr "Beim Abrufen des Favoritenstatus ist ein Problem aufgetreten: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Beim Abrufen der gefilterten Diagramme und Dashboards ist ein Fehler aufgetreten:"
 
-msgid "There was an error generating the permalink."
-msgstr ""
-
 msgid "There was an error loading groups."
 msgstr "Beim Laden von Gruppen ist ein Fehler aufgetreten."
 
@@ -13898,10 +13870,6 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Beim Löschen der ausgewählten Ebenen ist ein Problem aufgetreten: %s"
 
 #, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
-
-#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Beim Löschen der ausgewählten Vorlagen ist ein Problem aufgetreten: %s"
 
@@ -13934,9 +13902,6 @@ msgstr "Beim Exportieren der ausgewählten Diagramme ist ein Problem aufgetreten
 
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Beim Exportieren der ausgewählten Dashboards ist ein Problem aufgetreten"
-
-msgid "There was an issue exporting the selected queries"
-msgstr ""
 
 msgid "There was an issue exporting the selected themes"
 msgstr "Beim Exportieren der ausgewählten Designs ist ein Problem aufgetreten"
@@ -17180,9 +17145,6 @@ msgstr "Autorisierung erteilen"
 msgid "quarter"
 msgstr "Quartal"
 
-msgid "queries"
-msgstr ""
-
 msgid "query"
 msgstr "Abfrage"
 
@@ -17391,26 +17353,6 @@ msgstr "dein-projekt-1234-a1"
 
 msgid "zoom area"
 msgstr "Zoombereich"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Layer Quellenangabe"

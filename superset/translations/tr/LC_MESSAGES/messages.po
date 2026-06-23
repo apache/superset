@@ -2015,9 +2015,6 @@ msgstr "%s’i silmek istiyor musunuz?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr ""
 
-msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
-
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "%s’i silmek istiyor musunuz?"
@@ -3647,9 +3644,6 @@ msgstr ""
 msgid "Connection failed, please check your connection settings."
 msgstr ""
 
-msgid "Connection looks good!"
-msgstr ""
-
 #, fuzzy
 msgid "Contains"
 msgstr "Devam"
@@ -3729,9 +3723,6 @@ msgstr ""
 
 msgid "Copy permalink to clipboard"
 msgstr "Linki panoya kopyala"
-
-msgid "Copy query URL"
-msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Sorgu linkini panoya kopyala"
@@ -4776,9 +4767,6 @@ msgstr "sil"
 msgid "Delete item"
 msgstr "Şablonu sil"
 
-msgid "Delete query"
-msgstr ""
-
 #, fuzzy
 msgid "Delete role"
 msgstr "sil"
@@ -5399,10 +5387,6 @@ msgstr ""
 msgid "ERROR"
 msgstr "HATA"
 
-#, python-format
-msgid "ERROR: %s"
-msgstr ""
-
 msgid "Edge length"
 msgstr ""
 
@@ -5496,9 +5480,6 @@ msgstr "Kuralı Düzenle"
 
 msgid "Edit properties"
 msgstr "Özellikleri düzenle"
-
-msgid "Edit query"
-msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6101,9 +6082,6 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "CSV’ye Aktar"
-
-msgid "Export query"
-msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -7890,9 +7868,6 @@ msgid "Lines column"
 msgstr ""
 
 msgid "Lines encoding"
-msgstr ""
-
-msgid "Link Copied!"
 msgstr ""
 
 #, fuzzy
@@ -13704,9 +13679,6 @@ msgstr ""
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Grafiği yüklerken hata oluştu"
 
-msgid "There was an error generating the permalink."
-msgstr ""
-
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Tabloları yüklerken hata oluştu"
@@ -13811,10 +13783,6 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr ""
 
 #, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
-
-#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr ""
 
@@ -13849,9 +13817,6 @@ msgstr "Şemaları yüklerken hata oluştu"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Grafiği yüklerken hata oluştu"
-
-msgid "There was an issue exporting the selected queries"
-msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -16972,9 +16937,6 @@ msgstr ""
 msgid "quarter"
 msgstr ""
 
-msgid "queries"
-msgstr ""
-
 msgid "query"
 msgstr ""
 
@@ -17186,26 +17148,6 @@ msgid "your-project-1234-a1"
 msgstr ""
 
 msgid "zoom area"
-msgstr ""
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
 msgstr ""
 
 msgid "© Layer attribution"

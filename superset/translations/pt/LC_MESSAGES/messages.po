@@ -2141,9 +2141,6 @@ msgstr ""
 msgid "Are you sure you want to delete the selected layers?"
 msgstr ""
 
-msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
-
 msgid "Are you sure you want to delete the selected roles?"
 msgstr ""
 
@@ -3863,9 +3860,6 @@ msgstr ""
 msgid "Connection failed, please check your connection settings."
 msgstr ""
 
-msgid "Connection looks good!"
-msgstr ""
-
 #, fuzzy
 msgid "Contains"
 msgstr "Coluna"
@@ -3949,9 +3943,6 @@ msgstr "Copiar query de partição para a área de transferência"
 #, fuzzy
 msgid "Copy permalink to clipboard"
 msgstr "Copiar query de partição para a área de transferência"
-
-msgid "Copy query URL"
-msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Copiar query de partição para a área de transferência"
@@ -5079,9 +5070,6 @@ msgstr "Eliminar"
 msgid "Delete item"
 msgstr "Carregue um modelo"
 
-msgid "Delete query"
-msgstr ""
-
 #, fuzzy
 msgid "Delete role"
 msgstr "Eliminar"
@@ -5742,10 +5730,6 @@ msgstr ""
 msgid "ERROR"
 msgstr "Erro"
 
-#, python-format
-msgid "ERROR: %s"
-msgstr ""
-
 msgid "Edge length"
 msgstr ""
 
@@ -5849,9 +5833,6 @@ msgstr "Query vazia?"
 
 msgid "Edit properties"
 msgstr "Editar propriedades da visualização"
-
-msgid "Edit query"
-msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6476,9 +6457,6 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "Nome do modelo"
-
-msgid "Export query"
-msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8388,9 +8366,6 @@ msgid "Lines column"
 msgstr "Coluna de tempo"
 
 msgid "Lines encoding"
-msgstr ""
-
-msgid "Link Copied!"
 msgstr ""
 
 #, fuzzy
@@ -14614,9 +14589,6 @@ msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 
-msgid "There was an error generating the permalink."
-msgstr ""
-
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Desculpe, houve um erro ao gravar este dashbard: "
@@ -14723,10 +14695,6 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr ""
 
 #, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
-
-#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr ""
 
@@ -14761,9 +14729,6 @@ msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Desculpe, houve um erro ao gravar este dashbard: "
-
-msgid "There was an issue exporting the selected queries"
-msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18043,9 +18008,6 @@ msgstr ""
 msgid "quarter"
 msgstr "Query"
 
-msgid "queries"
-msgstr ""
-
 msgid "query"
 msgstr "Query"
 
@@ -18271,26 +18233,6 @@ msgid "your-project-1234-a1"
 msgstr ""
 
 msgid "zoom area"
-msgstr ""
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
 msgstr ""
 
 msgid "© Layer attribution"

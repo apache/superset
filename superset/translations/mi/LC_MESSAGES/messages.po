@@ -2170,9 +2170,6 @@ msgstr "Kei te tino hiahia koe ki te muku i ngā ture kua tīpakohia?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā papa kua tīpakohia?"
 
-msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
-
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā tūranga kua tīpakohia?"
 
@@ -3868,9 +3865,6 @@ msgstr "I rahua te hononga, tēnā tirohia ō tautuhinga hononga"
 msgid "Connection failed, please check your connection settings."
 msgstr "I rahua te hononga, tēnā tirohia ō tautuhinga hononga."
 
-msgid "Connection looks good!"
-msgstr ""
-
 #, fuzzy
 msgid "Contains"
 msgstr "Auau tonu"
@@ -3948,9 +3942,6 @@ msgstr "Tārua pātai wāhanga ki te papatopenga"
 
 msgid "Copy permalink to clipboard"
 msgstr "Tārua hononga-ā-mau ki te papatopenga"
-
-msgid "Copy query URL"
-msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Tārua hono pātai ki tō papatopenga"
@@ -5040,9 +5031,6 @@ msgstr "Muku tūranga"
 msgid "Delete item"
 msgstr "Muku tauira"
 
-msgid "Delete query"
-msgstr ""
-
 msgid "Delete role"
 msgstr "Muku tūranga"
 
@@ -5721,10 +5709,6 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "HAPA"
 
-#, python-format
-msgid "ERROR: %s"
-msgstr ""
-
 msgid "Edge length"
 msgstr "Roa tapa"
 
@@ -5816,9 +5800,6 @@ msgstr "Whakatika Ture"
 
 msgid "Edit properties"
 msgstr "Whakatika āhuatanga"
-
-msgid "Edit query"
-msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6424,9 +6405,6 @@ msgstr "Tikanga tauira-anō Pandas"
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "I rahua te pūrongo"
-
-msgid "Export query"
-msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8301,9 +8279,6 @@ msgstr "Tīwae rārangi"
 
 msgid "Lines encoding"
 msgstr "Whakakohu rārangi"
-
-msgid "Link Copied!"
-msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14518,9 +14493,6 @@ msgstr ""
 "I puta he hapa i te tikitanga o ngā kauwhata me ngā papatohu kua "
 "tātaritia:"
 
-msgid "There was an error generating the permalink."
-msgstr ""
-
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "I puta he hapa i te utanga o ngā ripanga"
@@ -14623,10 +14595,6 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "I puta he take i te mukutanga o ngā papa kua tīpakohia: %s"
 
 #, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
-
-#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "I puta he take i te mukutanga o ngā tauira kua tīpakohia: %s"
 
@@ -14661,9 +14629,6 @@ msgstr "I puta he take i te mukutanga o ngā kauwhata kua tīpakohia: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "I puta he take i te mukutanga o ngā papatohu kua tīpakohia: "
-
-msgid "There was an issue exporting the selected queries"
-msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18101,9 +18066,6 @@ msgstr "E hiahiatia ana te whakamana"
 msgid "quarter"
 msgstr "hautakiwā"
 
-msgid "queries"
-msgstr ""
-
 msgid "query"
 msgstr "pātai"
 
@@ -18318,26 +18280,6 @@ msgstr ""
 
 msgid "zoom area"
 msgstr "horahanga topa"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Whakatuakī Papa"
