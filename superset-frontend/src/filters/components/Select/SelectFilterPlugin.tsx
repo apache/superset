@@ -584,6 +584,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
                 { value: 'false', label: t('is') },
               ]}
               onChange={handleExclusionToggle}
+              getPopupContainer={getSelectPopupContainer}
             />
           )}
           {isLikeOperator ? (
