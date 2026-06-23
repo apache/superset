@@ -350,6 +350,30 @@ class TestSecurityRolesApi(SupersetTestCase):
         )
         self.assert403(response)
 
+    def test_show_roles_unexpected_error_returns_generic_message(self):
+        """
+        Security API: an unexpected error in role listing returns a generic 500
+        body (no raw exception text) and is logged server-side.
+        """
+        from unittest.mock import patch
+
+        self.login(ADMIN_USERNAME)
+        error_detail = "raw-driver-detail-should-not-leak"
+        with (
+            patch(
+                "superset.security.api.db.session.query",
+                side_effect=Exception(error_detail),
+            ),
+            patch("superset.security.api.logger") as mock_logger,
+        ):
+            response = self.client.get(self.show_uri)
+
+        assert response.status_code == 500
+        body = response.data.decode("utf-8")
+        assert error_detail not in body
+        assert "An unexpected error occurred" in body
+        mock_logger.exception.assert_called_once()
+
     def test_show_roles_admin(self):
         """
         Security API: Admin should be able to show roles with permissions and users
