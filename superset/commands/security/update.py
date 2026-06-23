@@ -66,3 +66,9 @@ class UpdateRLSRuleCommand(BaseCommand):
                 raise DatasourceNotFoundValidationError()
             raise_for_datasource_access(tables)
             self._properties["tables"] = tables
+        else:
+            # A partial update that omits ``tables`` still mutates the rule, so
+            # enforce datasource access against the rule's existing tables to
+            # avoid letting a caller edit a rule bound to datasources they
+            # cannot access.
+            raise_for_datasource_access(self._model.tables)

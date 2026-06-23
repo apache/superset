@@ -159,15 +159,21 @@ def test_update_rls_rule_partial_update_preserves_tables_and_roles() -> None:
     those keys to the properties passed to the DAO, so the existing bindings
     are left untouched instead of being overwritten with empty lists.
     """
+    rule = MagicMock()
+    rule.tables = _mock_tables(1)
     with (
         patch(
             "superset.commands.security.update.RLSDAO.find_by_id",
-            return_value=MagicMock(),
+            return_value=rule,
         ),
         patch(
             "superset.commands.security.update.populate_roles",
         ) as populate_roles,
         patch("superset.commands.security.update.db.session.query") as query,
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            return_value=True,
+        ),
     ):
         command = UpdateRLSRuleCommand(1, {"name": "new name"})
         command.validate()
@@ -182,16 +188,22 @@ def test_update_rls_rule_partial_update_preserves_tables_and_roles() -> None:
 
 def test_update_rls_rule_only_roles_present_does_not_touch_tables() -> None:
     """Updating only ``roles`` must not resolve or overwrite ``tables``."""
+    rule = MagicMock()
+    rule.tables = _mock_tables(1)
     with (
         patch(
             "superset.commands.security.update.RLSDAO.find_by_id",
-            return_value=MagicMock(),
+            return_value=rule,
         ),
         patch(
             "superset.commands.security.update.populate_roles",
             return_value=["resolved-role"],
         ) as populate_roles,
         patch("superset.commands.security.update.db.session.query") as query,
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            return_value=True,
+        ),
     ):
         command = UpdateRLSRuleCommand(1, {"roles": [1]})
         command.validate()
@@ -200,6 +212,35 @@ def test_update_rls_rule_only_roles_present_does_not_touch_tables() -> None:
     query.assert_not_called()
     assert command._properties["roles"] == ["resolved-role"]
     assert "tables" not in command._properties
+
+
+def test_update_rls_rule_partial_update_enforces_access_on_existing_tables() -> None:
+    """A partial update that omits ``tables`` still enforces datasource access.
+
+    The rule's existing table bindings must be authorized so a caller cannot
+    edit a rule tied to datasources they cannot access by simply omitting
+    ``tables`` from the payload.
+    """
+    rule = MagicMock()
+    rule.tables = _mock_tables(1)
+    with (
+        patch(
+            "superset.commands.security.update.RLSDAO.find_by_id",
+            return_value=rule,
+        ),
+        patch("superset.commands.security.update.db.session.query") as query,
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            return_value=False,
+        ) as can_access,
+    ):
+        command = UpdateRLSRuleCommand(1, {"name": "new name"})
+        with pytest.raises(RLSDatasourceForbiddenError):
+            command.validate()
+
+    # Access is checked against the rule's existing tables, not a submitted set.
+    can_access.assert_called_once_with(datasource=rule.tables[0])
+    query.assert_not_called()
 
 
 def test_delete_rls_rule_forbidden_when_no_datasource_access() -> None:
