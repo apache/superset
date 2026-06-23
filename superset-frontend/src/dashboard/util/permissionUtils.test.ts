@@ -101,7 +101,6 @@ const dashboard: Dashboard = {
   changed_by: owner,
   changed_on: '2021-05-12T16:56:22.116839',
   charts: [],
-  roles: [],
   editors: [editorSubject],
   viewers: [],
 };
