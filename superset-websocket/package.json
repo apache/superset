@@ -50,5 +50,8 @@
   "engines": {
     "node": "^24.16.0",
     "npm": "^11.13.0"
+  },
+  "overrides": {
+    "@babel/core": "^7.29.6"
   }
 }
