@@ -3008,6 +3008,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         import pandas as pd
 
         from superset.connectors.sqla.models import RowLevelSecurityFilter
+        from superset.subjects.sync import sync_role_subject
+        from superset.subjects.utils import subjects_from_roles
 
         table = self.get_table(name="birth_names")
         gamma = security_manager.find_role("Gamma")
@@ -3031,7 +3033,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             group_key="gender",
         )
         rls.tables.append(table)
-        rls.roles.append(gamma)
+        sync_role_subject(gamma)
+        db.session.flush()
+        rls.subjects = subjects_from_roles([gamma])
         db.session.add(rls)
         db.session.commit()
         try:
