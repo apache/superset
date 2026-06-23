@@ -401,6 +401,10 @@ test('Logs out and clears local storage item redux', async () => {
   expect(localStorage.getItem('redux')).not.toBeNull();
   expect(sessionStorage.getItem('login_attempted')).not.toBeNull();
 
+  // Mock the Cache API so we can assert the namespaced store is purged.
+  const deleteMock = jest.fn().mockResolvedValue(true);
+  (global as any).caches = { delete: deleteMock };
+
   await userEvent.hover(await screen.findByText(/Settings/i));
 
   // Simulate user clicking the logout button
@@ -412,6 +416,10 @@ test('Logs out and clears local storage item redux', async () => {
     expect(localStorage.getItem('redux')).toBeNull();
     expect(sessionStorage.getItem('login_attempted')).toBeNull();
   });
+  // The namespaced Cache API store is purged on logout.
+  expect(deleteMock).toHaveBeenCalledWith('@SUPERSET-UI/CONNECTION');
+
+  delete (global as any).caches;
 });
 
 test('shows logout button when not embedded', async () => {
