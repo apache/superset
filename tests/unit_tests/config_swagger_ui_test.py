@@ -29,8 +29,21 @@ import pytest
 
 
 def _resolve_swagger_default(env_value: str | None) -> str:
+    """Resolve ``FAB_API_SWAGGER_UI`` for a given ``SUPERSET_ENABLE_SWAGGER_UI``.
+
+    Evaluates ``superset.config`` in a fresh subprocess under a controlled
+    environment so the result reflects only the supplied env var. Config-path
+    overrides are stripped so a local ``superset_config`` cannot taint the
+    default, and only the final stdout line is read in case config loading
+    emits banner output.
+    """
     env = dict(os.environ)
-    env.pop("SUPERSET_ENABLE_SWAGGER_UI", None)
+    for var in (
+        "SUPERSET_ENABLE_SWAGGER_UI",
+        "SUPERSET_CONFIG_PATH",
+        "SUPERSET_CONFIG",
+    ):
+        env.pop(var, None)
     if env_value is not None:
         env["SUPERSET_ENABLE_SWAGGER_UI"] = env_value
     result = subprocess.run(  # noqa: S603
@@ -44,7 +57,7 @@ def _resolve_swagger_default(env_value: str | None) -> str:
         text=True,
         check=True,
     )
-    return result.stdout.strip()
+    return result.stdout.strip().splitlines()[-1]
 
 
 @pytest.mark.parametrize(
@@ -60,4 +73,5 @@ def _resolve_swagger_default(env_value: str | None) -> str:
 def test_fab_api_swagger_ui_is_env_driven_and_off_by_default(
     env_value: str | None, expected: str
 ) -> None:
+    """Swagger UI defaults to off and follows ``SUPERSET_ENABLE_SWAGGER_UI``."""
     assert _resolve_swagger_default(env_value) == expected
