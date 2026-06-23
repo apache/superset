@@ -84,6 +84,7 @@ def fake_get_chart_csv_data_none(
     auth_cookies: dict[str, str] | None = None,
     timeout: float | None = None,
 ) -> bytes | None:
+    """Return ``None`` to mock a fetch that yields no payload."""
     return None
 
 
@@ -92,7 +93,7 @@ def fake_get_chart_csv_data_empty(
     auth_cookies: dict[str, str] | None = None,
     timeout: float | None = None,
 ) -> bytes | None:
-    # Return JSON with empty data so that the resulting DataFrame is empty
+    """Return an encoded empty-result payload for dataframe-empty scenarios."""
     fake_result: dict[str, Any] = {
         "result": [{"data": {}, "coltypes": [], "colnames": [], "indexnames": []}]
     }
@@ -104,7 +105,7 @@ def fake_get_chart_csv_data_valid(
     auth_cookies: dict[str, str] | None = None,
     timeout: float | None = None,
 ) -> bytes | None:
-    # Return JSON with non-temporal data and valid indexnames so that they are used.
+    """Return a non-temporal payload used to verify dataframe construction."""
     fake_result = {
         "result": [
             {
@@ -147,7 +148,7 @@ def fake_get_chart_csv_data_hierarchical(
     auth_cookies: dict[str, str] | None = None,
     timeout: float | None = None,
 ) -> bytes | None:
-    # Return JSON with hierarchical column (list-based) and matching index names.
+    """Return hierarchical-column mock data for MultiIndex assertions."""
     fake_result = {
         "result": [
             {
@@ -432,6 +433,7 @@ def test_get_chart_csv_data_passes_timeout_to_opener(
 
 
 def test_get_chart_dataframe_forwards_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    """get_chart_dataframe must forward its timeout down to get_chart_csv_data."""
     captured: dict[str, float | None] = {}
 
     def fake(
