@@ -1630,6 +1630,11 @@ class DeckGLMultiLayer(BaseViz):
     def _merge_filter_metadata(
         *filter_groups: list[dict[str, Any]] | None,
     ) -> list[dict[str, Any]]:
+        """Merge multiple filter metadata lists, de-duplicating identical entries.
+
+        Used to combine the applied/rejected filter metadata reported by each
+        child layer into a single list for the multi-layer chart payload.
+        """
         merged_filters: list[dict[str, Any]] = []
         seen_filters: set[str] = set()
 
@@ -1789,6 +1794,12 @@ class DeckGLMultiLayer(BaseViz):
 
     @deprecated(deprecated_in="3.0")
     def get_payload(self, query_obj: QueryObjectDict | None = None) -> VizPayload:
+        """Extend the base payload with merged child-layer filter metadata.
+
+        The applied/rejected filter metadata collected from each sub-slice in
+        ``get_data`` is merged into the base payload so dashboard filter badges
+        reflect the filters applied across all layers.
+        """
         payload = super().get_payload(query_obj)
         payload["applied_filters"] = self._merge_filter_metadata(
             payload.get("applied_filters"),
