@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-11 11:56-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -28,7 +28,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -863,6 +863,9 @@ msgstr "Databáze se stejným názvem již existuje."
 msgid "A date is required when using custom date shift"
 msgstr "Při použití vlastního posunu data je vyžadováno datum."
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -918,6 +921,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Metrika pro určení barvy"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Bude vytvořen nový graf a nová nástěnka."
@@ -1834,19 +1842,9 @@ msgstr "Při načítání hodnot schématu došlo k chybě: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "Při načítání stavu karty došlo k chybě"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "Při načítání metadat tabulky došlo k chybě"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "Při načítání metadat tabulky došlo k chybě"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"Při načítání metadat tabulky došlo k chybě. Kontaktujte prosím svého "
-"administrátora."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -3613,9 +3611,6 @@ msgstr "Sloupec „%(column)s“ není číselný nebo neexistuje ve výsledcíc
 msgid "Column Configuration"
 msgstr "Konfigurace sloupce"
 
-msgid "Column Formatting"
-msgstr "Formátování sloupce"
-
 msgid "Column Settings"
 msgstr "Nastavení sloupce"
 
@@ -3751,6 +3746,9 @@ msgid ""
 msgstr ""
 "Čárkou oddělené hranice intervalů, např. 2,4,5 pro intervaly 0-2, 2-4 a "
 "4-5. Poslední číslo by se mělo shodovat s hodnotou zadanou pro MAX."
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "Možnost komparátoru"
@@ -6813,12 +6811,6 @@ msgstr ""
 msgid "File settings"
 msgstr "Nastavení souboru"
 
-#, python-format
-msgid ""
-"File size %(size)s bytes exceeds the maximum allowed upload size of "
-"%(max_size)s bytes"
-msgstr ""
-
 msgid "File upload"
 msgstr "Nahrání souboru"
 
@@ -7134,9 +7126,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Formátované CSV přiloženo v e-mailu"
-
-msgid "Formatted date"
-msgstr "Formátované datum"
 
 msgid "Formatted value"
 msgstr "Formátovaná hodnota"
@@ -8036,9 +8025,6 @@ msgstr "Klávesové zkratky"
 
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
-
-msgid "Keys for table"
-msgstr "Klíče pro tabulku"
 
 msgid "Kilometers"
 msgstr "Kilometry"
@@ -9085,9 +9071,9 @@ msgid "Multiplier"
 msgstr "Násobitel"
 
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr ""
+msgstr "Abyste mohli tento graf přepsat, musíte být editorem grafu. Místo toho jej uložte jako nový graf."
 
 msgid "Must be unique"
 msgstr "Musí být jedinečný"
@@ -9774,6 +9760,12 @@ msgstr "Otevřít kartu Zdroje dat"
 msgid "Open SQL Lab in a new tab"
 msgstr "Otevřít SQL Lab v novém okně"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Otevřít v SQL Labu"
 
@@ -9858,9 +9850,6 @@ msgstr "Orientace stromu"
 
 msgid "Original"
 msgstr "Původní"
-
-msgid "Original table column order"
-msgstr "Původní pořadí sloupců tabulky"
 
 msgid "Original value"
 msgstr "Původní hodnota"
@@ -10026,6 +10015,10 @@ msgstr "Heslo"
 
 msgid "Password is required"
 msgstr "Heslo je povinné"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10393,6 +10386,9 @@ msgstr "Měřítko poloměru bodu"
 
 msgid "Point Radius Unit"
 msgstr "Jednotka poloměru bodu"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Velikost bodu"
@@ -10872,9 +10868,6 @@ msgstr "Odstranit položku"
 msgid "Remove query from log"
 msgstr "Odstranit dotaz z protokolu"
 
-msgid "Remove table preview"
-msgstr "Odstranit náhled tabulky"
-
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
@@ -10963,6 +10956,9 @@ msgstr "Report je aktivní"
 
 msgid "Report name"
 msgstr "Název reportu"
+
+msgid "Report not yet run"
+msgstr ""
 
 msgid "Report schedule client error"
 msgstr "Chyba klienta plánu reportu"
@@ -13570,6 +13566,9 @@ msgid ""
 "configuration details."
 msgstr ""
 
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
+
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -14203,6 +14202,11 @@ msgstr ""
 "Poloměr jednotlivých bodů (těch, které nejsou ve shluku). Buď číselný "
 "sloupec, nebo `Auto`, které škáluje bod na základě největšího shluku"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Report byl vytvořen"
 
@@ -14404,6 +14408,11 @@ msgstr "Jednotka pro velikost ikony"
 
 msgid "The unit for label size"
 msgstr "Jednotka pro velikost popisku"
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
+msgstr ""
 
 msgid "The unit of measure for the specified point radius"
 msgstr "Jednotka míry pro zadaný poloměr bodu"
@@ -15062,6 +15071,9 @@ msgid ""
 "This page is intended to be embedded in an iframe, but it looks like that"
 " is not the case."
 msgstr "Tato stránka je určena k vložení do iframe, ale zdá se, že tomu tak není."
+
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -16238,10 +16250,6 @@ msgstr "Zobrazit jako tabulku"
 msgid "View in SQL Lab"
 msgstr "Zobrazit v SQL Labu"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Zobrazit klíče a indexy (%s)"
-
 msgid "View query"
 msgstr "Zobrazit dotaz"
 
@@ -17246,26 +17254,31 @@ msgstr ""
 "moci plně vrátit zpět následující akce. Můžete uložit svůj aktuální stav "
 "pro resetování historie."
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
-msgstr ""
-"Pro úpravu musíte být vlastníkem sady dat. Obraťte se prosím na vlastníka"
-" sady dat a požádejte o úpravy nebo o přístup k úpravám."
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
+msgstr "Abyste mohli upravovat, musíte být editorem %s. Obraťte se na editora %s a požádejte o úpravy nebo přístup k úpravám."
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr "Abyste mohli upravovat, musíte být editorem datové sady. Obraťte se na editora datové sady a požádejte o úpravy nebo přístup k úpravám."
+
+msgid "You must change your password before continuing."
 msgstr ""
-"Pro úpravu musíte být vlastníkem sady dat. Obraťte se prosím na vlastníka"
-" sady dat a požádejte o úpravy nebo o přístup k úpravám."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Musíte vybrat název pro novou nástěnku"
 
 msgid "You must run the query successfully first"
 msgstr "Nejprve musíte úspěšně spustit dotaz"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr ""
@@ -17339,6 +17352,9 @@ msgstr "Váš dotaz byl aktualizován"
 
 msgid "Your report could not be deleted"
 msgstr "Váš report se nepodařilo smazat"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -17479,6 +17495,9 @@ msgstr "anotace"
 msgid "annotation_layer"
 msgstr "vrstva_anotací"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -17494,6 +17513,9 @@ msgstr "pozadí"
 #, fuzzy
 msgid "background color"
 msgstr "Barva pozadí"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr "základ"
@@ -18352,26 +18374,6 @@ msgstr "your-project-1234-a1"
 
 msgid "zoom area"
 msgstr "oblast přiblížení"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Atribuce vrstvy"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-11 11:56-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -854,6 +854,9 @@ msgstr "Baza danych o tej samej nazwie już istnieje."
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, fuzzy, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -916,6 +919,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Metryka do użycia jako kolor"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 #, fuzzy
 msgid "A new chart and dashboard will be created."
@@ -1807,13 +1815,13 @@ msgstr "Wystąpił błąd podczas pobierania dostępnych szablonów CSS."
 msgid "An error occurred while fetching available views"
 msgstr "Wystąpił błąd podczas pobierania dostępnych szablonów CSS."
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching chart editor values: %s"
-msgstr "Wystąpił błąd podczas usuwania wartości."
+msgstr "Wystąpił błąd podczas pobierania wartości edytorów wykresu: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching chart viewer values: %s"
-msgstr "Wystąpił błąd podczas usuwania wartości."
+msgstr "Wystąpił błąd podczas pobierania wartości przeglądających wykres: %s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -1823,13 +1831,13 @@ msgstr "Wystąpił błąd podczas pobierania nazw funkcji."
 msgid "An error occurred while fetching created by values: %s"
 msgstr "Wystąpił błąd podczas usuwania wartości."
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching dashboard editor values: %s"
-msgstr "Wystąpił błąd podczas pobierania pulpitów nawigacyjnych."
+msgstr "Wystąpił błąd podczas pobierania wartości edytorów pulpitu: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching dashboard viewer values: %s"
-msgstr "Wystąpił błąd podczas pobierania pulpitów nawigacyjnych."
+msgstr "Wystąpił błąd podczas pobierania wartości przeglądających pulpit: %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "Wystąpił błąd podczas pobierania pulpitów nawigacyjnych."
@@ -1850,17 +1858,17 @@ msgstr "Wystąpił błąd podczas pobierania stanu zakładki."
 msgid "An error occurred while fetching dataset datasource values: %s"
 msgstr "Wystąpił błąd podczas pobierania stanu zakładki."
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching dataset editor values: %s"
-msgstr "Wystąpił błąd podczas pobierania stanu zakładki."
+msgstr "Wystąpił błąd podczas pobierania wartości edytorów zestawu danych: %s"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching dataset related data: %s"
 msgstr "Wystąpił błąd podczas pobierania stanu zakładki."
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching editor values: %s"
-msgstr "Wystąpił błąd podczas usuwania wartości."
+msgstr "Wystąpił błąd podczas pobierania wartości edytorów: %s"
 
 msgid "An error occurred while fetching function names."
 msgstr "Wystąpił błąd podczas pobierania nazw funkcji."
@@ -1880,19 +1888,9 @@ msgstr "Wystąpił błąd podczas usuwania wartości."
 msgid "An error occurred while fetching tab state"
 msgstr "Wystąpił błąd podczas pobierania stanu zakładki."
 
-msgid "An error occurred while fetching table metadata"
-msgstr "Wystąpił błąd podczas pobierania metadanych tabeli."
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "Wystąpił błąd podczas pobierania metadanych tabeli."
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"Wystąpił błąd podczas pobierania metadanych tabeli. Skontaktuj się z "
-"administratorem."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -3129,11 +3127,11 @@ msgstr "Nie znaleziono wykresu %(id)s"
 msgid "Chart Data: %s"
 msgstr "Dane wykresu: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Chart Editor: %s"
 msgid_plural "Chart Editors: %s"
-msgstr[0] "Dane wykresu: %s"
-msgstr[1] ""
+msgstr[0] "Edytor wykresu: %s"
+msgstr[1] "Edytorzy wykresu: %s"
 
 msgid "Chart ID"
 msgstr "ID wykresu"
@@ -3188,9 +3186,8 @@ msgstr "Wartość filtra jest wymagana"
 msgid "Chart does not exist"
 msgstr "Wykres nie istnieje"
 
-#, fuzzy
 msgid "Chart editors"
-msgstr "Właściciele wykresu"
+msgstr "Edytorzy wykresu"
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
@@ -3708,10 +3705,6 @@ msgid "Column Configuration"
 msgstr "Konfiguracja kolumn"
 
 #, fuzzy
-msgid "Column Formatting"
-msgstr "Formatowanie kolumn"
-
-#, fuzzy
 msgid "Column Settings"
 msgstr "Ustawienia wielokątów"
 
@@ -3857,6 +3850,9 @@ msgstr ""
 "Granice przedziałów oddzielone przecinkami, np. 2,4,5 dla przedziałów "
 "0-2, 2-4 i 4-5. Ostatnia liczba powinna odpowiadać wartości podanej dla "
 "MAX."
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "Opcja porównania"
@@ -6141,27 +6137,19 @@ msgstr "Edytowano"
 msgid "Editing 1 filter:"
 msgstr "Edytowanie 1 filtra:"
 
-#, fuzzy
 msgid "Editor"
-msgstr "Edytuj"
+msgstr "Edytor"
 
-#, fuzzy
 msgid "Editors"
-msgstr "Edytuj"
+msgstr "Edytorzy"
 
-#, fuzzy
 msgid "Editors is a list of subjects who can alter the dashboard."
-msgstr ""
-"Właściciele to lista użytkowników, którzy mogą modyfikować pulpit "
-"nawigacyjny."
+msgstr "Edytorzy to lista podmiotów, które mogą modyfikować pulpit."
 
-#, fuzzy
 msgid ""
 "Editors is a list of subjects who can alter the dashboard. Searchable by "
 "name."
-msgstr ""
-"Właściciele to lista użytkowników, którzy mogą modyfikować pulpit "
-"nawigacyjny. Można ich wyszukać po nazwie lub nazwie użytkownika."
+msgstr "Edytorzy to lista podmiotów, które mogą modyfikować pulpit. Można ich wyszukiwać według nazwy."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Baza danych jest źle napisana lub nie istnieje."
@@ -7097,12 +7085,6 @@ msgstr ""
 msgid "File settings"
 msgstr "Ustawienia filtru"
 
-#, python-format
-msgid ""
-"File size %(size)s bytes exceeds the maximum allowed upload size of "
-"%(max_size)s bytes"
-msgstr ""
-
 #, fuzzy
 msgid "File upload"
 msgstr "Przesyłanie pliku"
@@ -7441,10 +7423,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Sformatowany CSV załączony w e-mailu"
-
-#, fuzzy
-msgid "Formatted date"
-msgstr "Sformatowana data"
 
 #, fuzzy
 msgid "Formatted value"
@@ -8382,9 +8360,6 @@ msgstr "Skróty klawiaturowe"
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
 
-msgid "Keys for table"
-msgstr "Klucze dla tabeli"
-
 msgid "Kilometers"
 msgstr "Kilometry"
 
@@ -8927,7 +8902,7 @@ msgid "Manage"
 msgstr "Zarządzaj"
 
 msgid "Manage dashboard editors and access permissions"
-msgstr ""
+msgstr "Zarządzaj edytorami pulpitu i uprawnieniami dostępu"
 
 msgid "Manage email report"
 msgstr "Zarządzaj raportem e-mailowym"
@@ -9450,9 +9425,9 @@ msgid "Multiplier"
 msgstr "Mnożnik"
 
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr ""
+msgstr "Musisz być edytorem wykresu, aby nadpisać ten wykres. Zapisz go jako nowy wykres."
 
 msgid "Must be unique"
 msgstr "Musi być unikalny"
@@ -10174,6 +10149,12 @@ msgstr "Otwórz kartę Źródło danych"
 msgid "Open SQL Lab in a new tab"
 msgstr "Uruchom zapytanie w nowej karcie"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Otwórz w SQL Lab"
 
@@ -10254,9 +10235,6 @@ msgstr "Orientacja drzewa"
 
 msgid "Original"
 msgstr "Oryginalny"
-
-msgid "Original table column order"
-msgstr "Oryginalna kolejność kolumn tabeli"
 
 msgid "Original value"
 msgstr "Wartość oryginalna"
@@ -10433,6 +10411,10 @@ msgstr "Hasło"
 #, fuzzy
 msgid "Password is required"
 msgstr "Typ jest wymagany"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10755,11 +10737,10 @@ msgstr "Proszę ponownie wprowadzić hasło."
 msgid "Please re-export your file and try importing again"
 msgstr "Proszę ponownie wyeksportować plik i spróbować ponownie zaimportować"
 
-#, fuzzy
 msgid "Please reach out to the Chart Editor for assistance."
 msgid_plural "Please reach out to the Chart Editors for assistance."
-msgstr[0] "Proszę skontaktować się z właścicielem wykresu w celu uzyskania pomocy."
-msgstr[1] "Proszę skontaktować się z właścicielami wykresu w celu uzyskania pomocy."
+msgstr[0] "Skontaktuj się z edytorem wykresu, aby uzyskać pomoc."
+msgstr[1] "Skontaktuj się z edytorami wykresu, aby uzyskać pomoc."
 
 msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
@@ -10822,6 +10803,9 @@ msgstr "Skala promienia punktu"
 
 msgid "Point Radius Unit"
 msgstr "Jednostka promienia punktu"
+
+msgid "Point Radius Units"
+msgstr ""
 
 #, fuzzy
 msgid "Point Size"
@@ -11347,9 +11331,6 @@ msgstr "Usuń element"
 msgid "Remove query from log"
 msgstr "Usuń zapytanie z dziennika"
 
-msgid "Remove table preview"
-msgstr "Usuń podgląd tabeli"
-
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
@@ -11448,6 +11429,9 @@ msgstr "Raport jest aktywny"
 
 msgid "Report name"
 msgstr "Nazwa raportu"
+
+msgid "Report not yet run"
+msgstr ""
 
 #, fuzzy
 msgid "Report schedule client error"
@@ -12160,9 +12144,8 @@ msgstr "Szukaj według tekstu zapytania"
 msgid "Search calculated columns by name"
 msgstr "Kolumny obliczeniowe"
 
-#, fuzzy
 msgid "Search charts by name, editor, or dashboard"
-msgstr "Nie dodano wykresów do tego panelu."
+msgstr "Szukaj wykresów według nazwy, edytora lub pulpitu"
 
 #, fuzzy
 msgid "Search columns"
@@ -12176,9 +12159,8 @@ msgstr "Szukaj w kolumnach"
 msgid "Search columns..."
 msgstr "Szukaj w kolumnach"
 
-#, fuzzy
 msgid "Search editors"
-msgstr "Wybierz właścicieli"
+msgstr "Szukaj edytorów"
 
 #, fuzzy
 msgid "Search in filters"
@@ -12192,9 +12174,8 @@ msgstr "Szukaj metryk i kolumn"
 msgid "Search tags"
 msgstr "Wybierz tagi"
 
-#, fuzzy
 msgid "Search viewers"
-msgstr "Wybierz właścicieli"
+msgstr "Szukaj przeglądających"
 
 msgid "Search..."
 msgstr "Szukaj…"
@@ -12500,9 +12481,8 @@ msgstr "Wybierz wymiar"
 msgid "Select dimension values"
 msgstr "Wybierz wymiar"
 
-#, fuzzy
 msgid "Select editors"
-msgstr "Wybierz właścicieli"
+msgstr "Wybierz edytorów"
 
 #, fuzzy
 msgid "Select file"
@@ -14247,6 +14227,9 @@ msgid ""
 "configuration details."
 msgstr ""
 
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
+
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -14895,6 +14878,11 @@ msgstr ""
 "Może to być kolumna numeryczna lub `Auto`, co skaluje punkt w zależności "
 "od największej grupy."
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Raport został utworzony."
 
@@ -15103,6 +15091,11 @@ msgid "The unit for icon size"
 msgstr "Rozmiar bąbelków"
 
 msgid "The unit for label size"
+msgstr ""
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -15799,6 +15792,9 @@ msgid ""
 msgstr ""
 "Ta strona jest przeznaczona do osadzenia w iframe, ale wygląda na to, że "
 "tak nie jest."
+
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -17046,10 +17042,6 @@ msgstr "Zobacz w formie tabeli"
 msgid "View in SQL Lab"
 msgstr "Zobacz w SQL Lab"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Pokaż klucze i indeksy (%s)"
-
 msgid "View query"
 msgstr "Zobacz zapytanie"
 
@@ -17064,13 +17056,11 @@ msgstr "Oglądane"
 msgid "Viewed %s"
 msgstr "Oglądano %s"
 
-#, fuzzy
 msgid "Viewer"
-msgstr "Oglądane"
+msgstr "Przeglądający"
 
-#, fuzzy
 msgid "Viewers"
-msgstr "Oglądane"
+msgstr "Przeglądający"
 
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
@@ -18082,28 +18072,31 @@ msgstr ""
 "będziesz mógł cofnąć kolejnych działań. Możesz zapisać swój obecny stan, "
 "aby zresetować historię."
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
-msgstr ""
-"Musisz być właścicielem zbioru danych, aby go edytować. Skontaktuj się z "
-"właścicielem zbioru danych, aby poprosić o modyfikacje lub dostęp do "
-"edycji."
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
+msgstr "Musisz być edytorem %s, aby edytować. Skontaktuj się z edytorem %s, aby poprosić o zmiany lub dostęp do edycji."
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr "Musisz być edytorem zestawu danych, aby edytować. Skontaktuj się z edytorem zestawu danych, aby poprosić o zmiany lub dostęp do edycji."
+
+msgid "You must change your password before continuing."
 msgstr ""
-"Musisz być właścicielem zbioru danych, aby go edytować. Skontaktuj się z "
-"właścicielem zbioru danych, aby poprosić o modyfikacje lub dostęp do "
-"edycji."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Musisz wybrać nazwę dla nowego pulpitu nawigacyjnego"
 
 msgid "You must run the query successfully first"
 msgstr "Musisz najpierw pomyślnie uruchomić zapytanie"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr ""
@@ -18178,6 +18171,9 @@ msgstr "Twoje zapytanie zostało zaktualizowane"
 
 msgid "Your report could not be deleted"
 msgstr "Twój raport nie mógł zostać usunięty"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -18323,6 +18319,9 @@ msgstr "adnotacja"
 msgid "annotation_layer"
 msgstr "warstwa adnotacji"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -18339,6 +18338,9 @@ msgstr "tło"
 #, fuzzy
 msgid "background color"
 msgstr "tło"
+
+msgid "banana"
+msgstr ""
 
 #, fuzzy
 msgid "basis"
@@ -18648,9 +18650,8 @@ msgstr ""
 msgid "edit mode"
 msgstr "tryb edycji"
 
-#, fuzzy
 msgid "editors"
-msgstr "Edytuj"
+msgstr "edytorzy"
 
 #, fuzzy
 msgid "email subject"
@@ -19295,26 +19296,6 @@ msgstr ""
 
 msgid "zoom area"
 msgstr "obszar powiększenia"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr ""

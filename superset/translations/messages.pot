@@ -25,14 +25,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-11 11:56-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -770,6 +770,9 @@ msgstr ""
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -814,6 +817,11 @@ msgid ""
 msgstr ""
 
 msgid "A metric to use for color"
+msgstr ""
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
 msgstr ""
 
 msgid "A new chart and dashboard will be created."
@@ -1637,16 +1645,8 @@ msgstr ""
 msgid "An error occurred while fetching tab state"
 msgstr ""
 
-msgid "An error occurred while fetching table metadata"
-msgstr ""
-
 #, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr ""
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
 msgstr ""
 
 msgid "An error occurred while fetching the configuration schema"
@@ -3263,9 +3263,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr ""
 
-msgid "Column Formatting"
-msgstr ""
-
 msgid "Column Settings"
 msgstr ""
 
@@ -3386,6 +3383,9 @@ msgstr ""
 msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Last number should match the value provided for MAX."
+msgstr ""
+
+msgid "Common (unit per pixel at zoom 0)"
 msgstr ""
 
 msgid "Comparator option"
@@ -6163,12 +6163,6 @@ msgstr ""
 msgid "File settings"
 msgstr ""
 
-#, python-format
-msgid ""
-"File size %(size)s bytes exceeds the maximum allowed upload size of "
-"%(max_size)s bytes"
-msgstr ""
-
 msgid "File upload"
 msgstr ""
 
@@ -6443,9 +6437,6 @@ msgid ""
 msgstr ""
 
 msgid "Formatted CSV attached in email"
-msgstr ""
-
-msgid "Formatted date"
 msgstr ""
 
 msgid "Formatted value"
@@ -7268,9 +7259,6 @@ msgid "Keyboard shortcuts"
 msgstr ""
 
 msgid "Keys are shown only once at creation. Store them securely."
-msgstr ""
-
-msgid "Keys for table"
 msgstr ""
 
 msgid "Kilometers"
@@ -8246,7 +8234,7 @@ msgid "Multiplier"
 msgstr ""
 
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
 msgstr ""
 
@@ -8886,6 +8874,12 @@ msgstr ""
 msgid "Open SQL Lab in a new tab"
 msgstr ""
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr ""
 
@@ -8958,9 +8952,6 @@ msgid "Orientation of tree"
 msgstr ""
 
 msgid "Original"
-msgstr ""
-
-msgid "Original table column order"
 msgstr ""
 
 msgid "Original value"
@@ -9107,6 +9098,10 @@ msgid "Password"
 msgstr ""
 
 msgid "Password is required"
+msgstr ""
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
 msgstr ""
 
 msgid "Password:"
@@ -9434,6 +9429,9 @@ msgid "Point Radius Scale"
 msgstr ""
 
 msgid "Point Radius Unit"
+msgstr ""
+
+msgid "Point Radius Units"
 msgstr ""
 
 msgid "Point Size"
@@ -9890,9 +9888,6 @@ msgstr ""
 msgid "Remove query from log"
 msgstr ""
 
-msgid "Remove table preview"
-msgstr ""
-
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
@@ -9977,6 +9972,9 @@ msgid "Report is active"
 msgstr ""
 
 msgid "Report name"
+msgstr ""
+
+msgid "Report not yet run"
 msgstr ""
 
 msgid "Report schedule client error"
@@ -12341,6 +12339,9 @@ msgid ""
 "configuration details."
 msgstr ""
 
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
+
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -12855,6 +12856,11 @@ msgid ""
 " cluster"
 msgstr ""
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr ""
 
@@ -13015,6 +13021,11 @@ msgid "The unit for icon size"
 msgstr ""
 
 msgid "The unit for label size"
+msgstr ""
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -13583,6 +13594,9 @@ msgstr ""
 msgid ""
 "This page is intended to be embedded in an iframe, but it looks like that"
 " is not the case."
+msgstr ""
+
+msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 
 msgid ""
@@ -14637,10 +14651,6 @@ msgstr ""
 msgid "View in SQL Lab"
 msgstr ""
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr ""
-
 msgid "View query"
 msgstr ""
 
@@ -15511,19 +15521,28 @@ msgstr ""
 
 #, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
 msgstr ""
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
+
+msgid "You must change your password before continuing."
 msgstr ""
 
 msgid "You must pick a name for the new dashboard"
 msgstr ""
 
 msgid "You must run the query successfully first"
+msgstr ""
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
 msgstr ""
 
 msgid "You need to"
@@ -15588,6 +15607,9 @@ msgid "Your query was updated"
 msgstr ""
 
 msgid "Your report could not be deleted"
+msgstr ""
+
+msgid "Your session has ended. Please sign in again."
 msgstr ""
 
 msgid "Your user information"
@@ -15716,6 +15738,9 @@ msgstr ""
 msgid "annotation_layer"
 msgstr ""
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr ""
 
@@ -15729,6 +15754,9 @@ msgid "background"
 msgstr ""
 
 msgid "background color"
+msgstr ""
+
+msgid "banana"
 msgstr ""
 
 msgid "basis"
@@ -16536,26 +16564,6 @@ msgid "your-project-1234-a1"
 msgstr ""
 
 msgid "zoom area"
-msgstr ""
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
 msgstr ""
 
 msgid "© Layer attribution"

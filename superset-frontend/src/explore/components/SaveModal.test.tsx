@@ -650,9 +650,8 @@ const ownerUser = {
 const makeMetadataDashboard = (id: number, title: string) => ({
   id,
   dashboard_title: title,
-  owners: [{ id: 1, first_name: 'Test', last_name: 'User' }],
-  extra_owners: [],
-  roles: [],
+  editors: [{ id: 1, label: 'Test User', type: 1 }],
+  viewers: [],
   url: `/superset/dashboard/${id}/`,
   slug: null,
   thumbnail_url: null,
@@ -672,12 +671,12 @@ test('pre-populates dashboard from metadata.dashboards when dashboardId prop is 
     dashboardId: null,
     metadata: {
       dashboards: [{ id: dashboardId, dashboard_title: dashboardTitle }],
-      owners: ['Test User'],
+      editors: ['Test User'],
       created_on_humanized: '2 days ago',
       changed_on_humanized: '1 day ago',
     },
     user: ownerUser,
-    slice: { slice_id: 1, slice_name: 'My Chart', owners: [1] },
+    slice: { slice_id: 1, slice_name: 'My Chart', editors: [{ id: 1 }] },
     dispatch: jest.fn(),
     addDangerToast: jest.fn(),
   };
@@ -720,12 +719,12 @@ test('skips non-editable dashboards and picks the first editable one from metada
         { id: 6, dashboard_title: 'Not Mine' },
         { id: editableId, dashboard_title: editableTitle },
       ],
-      owners: ['Test User'],
+      editors: ['Test User'],
       created_on_humanized: '2 days ago',
       changed_on_humanized: '1 day ago',
     },
     user: ownerUser,
-    slice: { slice_id: 1, slice_name: 'My Chart', owners: [1] },
+    slice: { slice_id: 1, slice_name: 'My Chart', editors: [{ id: 1 }] },
     dispatch: jest.fn(),
     addDangerToast: jest.fn(),
   };
@@ -733,7 +732,7 @@ test('skips non-editable dashboards and picks the first editable one from metada
   const component = new TestSaveModal(myProps);
 
   const notMine = makeMetadataDashboard(6, 'Not Mine');
-  notMine.owners = [{ id: 99, first_name: 'Other', last_name: 'Owner' }];
+  notMine.editors = [{ id: 99, label: 'Other User', type: 1 }];
   const editable = makeMetadataDashboard(editableId, editableTitle);
 
   component.loadDashboard = jest
@@ -771,12 +770,12 @@ test('does not use metadata fallback when dashboardId prop is set', async () => 
     dashboardId: propDashboardId,
     metadata: {
       dashboards: [{ id: 99, dashboard_title: 'Should Not Be Used' }],
-      owners: ['Test User'],
+      editors: ['Test User'],
       created_on_humanized: '2 days ago',
       changed_on_humanized: '1 day ago',
     },
     user: ownerUser,
-    slice: { slice_id: 1, slice_name: 'My Chart', owners: [1] },
+    slice: { slice_id: 1, slice_name: 'My Chart', editors: [{ id: 1 }] },
     dispatch: jest.fn(),
     addDangerToast: jest.fn(),
   };

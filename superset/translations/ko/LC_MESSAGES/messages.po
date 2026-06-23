@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-11 11:56-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -780,6 +780,9 @@ msgstr "같은 이름의 데이터베이스가 이미 존재합니다"
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -824,6 +827,11 @@ msgid ""
 msgstr ""
 
 msgid "A metric to use for color"
+msgstr ""
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
 msgstr ""
 
 #, fuzzy
@@ -1723,17 +1731,9 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "An error occurred while fetching tab state"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
-msgid "An error occurred while fetching table metadata"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -3495,10 +3495,6 @@ msgid "Column Configuration"
 msgstr ""
 
 #, fuzzy
-msgid "Column Formatting"
-msgstr "주석"
-
-#, fuzzy
 msgid "Column Settings"
 msgstr "Query 공유"
 
@@ -3631,6 +3627,9 @@ msgstr ""
 msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Last number should match the value provided for MAX."
+msgstr ""
+
+msgid "Common (unit per pixel at zoom 0)"
 msgstr ""
 
 msgid "Comparator option"
@@ -6654,12 +6653,6 @@ msgstr ""
 msgid "File settings"
 msgstr "Query 공유"
 
-#, python-format
-msgid ""
-"File size %(size)s bytes exceeds the maximum allowed upload size of "
-"%(max_size)s bytes"
-msgstr ""
-
 #, fuzzy
 msgid "File upload"
 msgstr "CSV 업로드"
@@ -6956,10 +6949,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr ""
-
-#, fuzzy
-msgid "Formatted date"
-msgstr "데이터베이스 선택"
 
 #, fuzzy
 msgid "Formatted value"
@@ -7858,9 +7847,6 @@ msgid "Keyboard shortcuts"
 msgstr ""
 
 msgid "Keys are shown only once at creation. Store them securely."
-msgstr ""
-
-msgid "Keys for table"
 msgstr ""
 
 #, fuzzy
@@ -8923,9 +8909,9 @@ msgid "Multiplier"
 msgstr ""
 
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr ""
+msgstr "이 차트를 덮어쓰려면 차트 편집자여야 합니다. 대신 새 차트로 저장하세요."
 
 msgid "Must be unique"
 msgstr ""
@@ -9625,6 +9611,12 @@ msgstr "데이터소스 명"
 msgid "Open SQL Lab in a new tab"
 msgstr "새로운 탭에서 Query실행"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "SQL Lab"
 
@@ -9705,9 +9697,6 @@ msgstr ""
 #, fuzzy
 msgid "Original"
 msgstr "원본 값"
-
-msgid "Original table column order"
-msgstr ""
 
 msgid "Original value"
 msgstr "원본 값"
@@ -9861,6 +9850,10 @@ msgstr "비밀번호"
 #, fuzzy
 msgid "Password is required"
 msgstr "데이터소스"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10213,6 +10206,9 @@ msgid "Point Radius Scale"
 msgstr ""
 
 msgid "Point Radius Unit"
+msgstr ""
+
+msgid "Point Radius Units"
 msgstr ""
 
 msgid "Point Size"
@@ -10720,9 +10716,6 @@ msgstr ""
 msgid "Remove query from log"
 msgstr "Query 로그 삭제"
 
-msgid "Remove table preview"
-msgstr ""
-
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
@@ -10812,6 +10805,9 @@ msgstr "차트 유형"
 
 msgid "Report name"
 msgstr "차트 유형"
+
+msgid "Report not yet run"
+msgstr ""
 
 msgid "Report schedule client error"
 msgstr ""
@@ -13437,6 +13433,9 @@ msgid ""
 "configuration details."
 msgstr ""
 
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
+
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -13966,6 +13965,11 @@ msgid ""
 " cluster"
 msgstr ""
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr ""
 
@@ -14131,6 +14135,11 @@ msgid "The unit for icon size"
 msgstr ""
 
 msgid "The unit for label size"
+msgstr ""
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -14731,6 +14740,9 @@ msgstr ""
 msgid ""
 "This page is intended to be embedded in an iframe, but it looks like that"
 " is not the case."
+msgstr ""
+
+msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 
 msgid ""
@@ -15871,10 +15883,6 @@ msgstr "탭 닫기"
 msgid "View in SQL Lab"
 msgstr "SQL Lab"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr ""
-
 msgid "View query"
 msgstr "Query 공유"
 
@@ -16760,19 +16768,28 @@ msgstr ""
 
 #, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
-msgstr ""
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
+msgstr "편집하려면 %s 편집자여야 합니다. 수정 또는 편집 권한을 요청하려면 %s 편집자에게 문의하세요."
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr "편집하려면 데이터셋 편집자여야 합니다. 수정 또는 편집 권한을 요청하려면 데이터셋 편집자에게 문의하세요."
+
+msgid "You must change your password before continuing."
 msgstr ""
 
 msgid "You must pick a name for the new dashboard"
 msgstr ""
 
 msgid "You must run the query successfully first"
+msgstr ""
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
 msgstr ""
 
 msgid "You need to"
@@ -16839,6 +16856,9 @@ msgstr ""
 #, fuzzy
 msgid "Your report could not be deleted"
 msgstr "차트를 삭제할 수 없습니다."
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -16971,6 +16991,9 @@ msgstr "주석"
 msgid "annotation_layer"
 msgstr "주석 레이어"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr ""
 
@@ -16987,6 +17010,9 @@ msgstr ""
 #, fuzzy
 msgid "background color"
 msgstr "컬럼 수정"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr ""
@@ -17878,26 +17904,6 @@ msgid "your-project-1234-a1"
 msgstr ""
 
 msgid "zoom area"
-msgstr ""
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
 msgstr ""
 
 msgid "© Layer attribution"

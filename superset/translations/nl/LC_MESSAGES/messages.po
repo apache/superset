@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-11 11:56-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -22,7 +22,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -816,6 +816,9 @@ msgstr "Een database met dezelfde naam bestaat al."
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, fuzzy, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -870,6 +873,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Een metriek te gebruiken voor kleur"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Een nieuwe grafiek en dashboard zullen worden aangemaakt."
@@ -1824,23 +1832,11 @@ msgstr "Er is een fout opgetreden tijdens het ophalen van schemawaarden: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "Er is een fout opgetreden tijdens het ophalen van de tabbladstatus"
 
-msgid "An error occurred while fetching table metadata"
-msgstr ""
-"Er is een fout opgetreden tijdens het ophalen van de metagegevens van de "
-"tabel"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr ""
 "Er is een fout opgetreden tijdens het ophalen van de metagegevens van de "
 "tabel"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"Er is een fout opgetreden tijdens het ophalen van de metagegevens van de "
-"tabel. Neem contact op met uw beheerder."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -3648,9 +3644,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Kolom Configuratie"
 
-msgid "Column Formatting"
-msgstr "Kolom Opmaak"
-
 #, fuzzy
 msgid "Column Settings"
 msgstr "Polygoon Instellingen"
@@ -3792,6 +3785,9 @@ msgstr ""
 "Kommagescheiden interval grenzen, bijvoorbeeld 2,4,5 voor intervallen "
 "0-2, 2-4 en 4-5. Laatste getal moet overeenkomen met de opgegeven waarde "
 "voor MAX."
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "Vergelijkingsoptie"
@@ -6897,12 +6893,6 @@ msgstr ""
 msgid "File settings"
 msgstr "Filter Instellingen"
 
-#, python-format
-msgid ""
-"File size %(size)s bytes exceeds the maximum allowed upload size of "
-"%(max_size)s bytes"
-msgstr ""
-
 #, fuzzy
 msgid "File upload"
 msgstr "Upload"
@@ -7223,9 +7213,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Opgemaakte CSV gekoppeld aan e-mail"
-
-msgid "Formatted date"
-msgstr "Opgemaakte datum"
 
 msgid "Formatted value"
 msgstr "Opgemaakte waarde"
@@ -8132,9 +8119,6 @@ msgstr "Toetsenbord snelkoppelingen"
 
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
-
-msgid "Keys for table"
-msgstr "Sleutels voor tabel"
 
 msgid "Kilometers"
 msgstr "Kilometers"
@@ -9201,9 +9185,9 @@ msgid "Multiplier"
 msgstr "Vermenigvuldiger"
 
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr ""
+msgstr "Je moet een grafiekbewerker zijn om deze grafiek te overschrijven. Sla deze in plaats daarvan op als nieuwe grafiek."
 
 msgid "Must be unique"
 msgstr "Moet uniek zijn"
@@ -9908,6 +9892,12 @@ msgstr "Open Gegevensbron Tabblad"
 msgid "Open SQL Lab in a new tab"
 msgstr "Query uitvoeren in een nieuw tabblad"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Openen in SQL Lab"
 
@@ -9988,9 +9978,6 @@ msgstr "Oriëntatie van de structuur"
 
 msgid "Original"
 msgstr "Origineel"
-
-msgid "Original table column order"
-msgstr "Originele tabel kolom volgorde"
 
 msgid "Original value"
 msgstr "Originele waarde"
@@ -10159,6 +10146,10 @@ msgstr "Wachtwoord"
 #, fuzzy
 msgid "Password is required"
 msgstr "Type is vereist"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10533,6 +10524,9 @@ msgstr "Punt Radius Schaal"
 
 msgid "Point Radius Unit"
 msgstr "Punt Radius Eenheid"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Punt Grootte"
@@ -11020,9 +11014,6 @@ msgstr "Item verwijderen"
 msgid "Remove query from log"
 msgstr "Verwijder de query uit de log"
 
-msgid "Remove table preview"
-msgstr "Verwijder tabel preview"
-
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
@@ -11113,6 +11104,9 @@ msgstr "E-mailrapporten actief"
 
 msgid "Report name"
 msgstr "Naam rapport"
+
+msgid "Report not yet run"
+msgstr ""
 
 msgid "Report schedule client error"
 msgstr "Meld schema client fout"
@@ -13753,6 +13747,9 @@ msgid ""
 "configuration details."
 msgstr ""
 
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
+
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -14390,6 +14387,11 @@ msgstr ""
 " Of een numerieke kolom of `Auto`, die het punt zal schalen gebaseerd op "
 "het grootste cluster"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Het rapport is gemaakt"
 
@@ -14596,6 +14598,11 @@ msgid "The unit for icon size"
 msgstr "Bubbelgrootte"
 
 msgid "The unit for label size"
+msgstr ""
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -15277,6 +15284,9 @@ msgstr ""
 msgid ""
 "This page is intended to be embedded in an iframe, but it looks like that"
 " is not the case."
+msgstr ""
+
+msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 
 msgid ""
@@ -16461,10 +16471,6 @@ msgstr "Bekijk als tabel"
 msgid "View in SQL Lab"
 msgstr "Bekijk in SQL Lab"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Bekijk sleutels & indexen (%s)"
-
 msgid "View query"
 msgstr "Bekijk zoekopdracht"
 
@@ -17496,28 +17502,31 @@ msgstr ""
 " volgende acties niet ongedaan maken. Je kunt je huidige status opslaan "
 "om de geschiedenis te resetten."
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
-msgstr ""
-"Je moet een dataset eigenaar zijn om te kunnen bewerken. Neem contact op "
-"met een dataset eigenaar om wijzigingen aan te vragen of toegang te "
-"bewerken."
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
+msgstr "Je moet een bewerker van %s zijn om te kunnen bewerken. Neem contact op met een bewerker van %s om wijzigingen of bewerkingstoegang aan te vragen."
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr "Je moet een datasetbewerker zijn om te kunnen bewerken. Neem contact op met een datasetbewerker om wijzigingen of bewerkingstoegang aan te vragen."
+
+msgid "You must change your password before continuing."
 msgstr ""
-"Je moet een dataset eigenaar zijn om te kunnen bewerken. Neem contact op "
-"met een dataset eigenaar om wijzigingen aan te vragen of toegang te "
-"bewerken."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "U moet een naam kiezen voor het nieuwe dashboard"
 
 msgid "You must run the query successfully first"
 msgstr "U moet de query eerst succesvol uitvoeren"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr ""
@@ -17590,6 +17599,9 @@ msgstr "Uw zoekopdracht werd bijgewerkt"
 
 msgid "Your report could not be deleted"
 msgstr "Uw rapport kon niet worden verwijderd"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -17732,6 +17744,9 @@ msgstr "aantekening"
 msgid "annotation_layer"
 msgstr "annotatie_laag"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -17747,6 +17762,9 @@ msgstr "achtergrond"
 #, fuzzy
 msgid "background color"
 msgstr "achtergrond"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr "basis"
@@ -18623,26 +18641,6 @@ msgstr ""
 
 msgid "zoom area"
 msgstr "zoom gebied"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr ""

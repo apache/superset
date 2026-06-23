@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-11 11:56-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -32,7 +32,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -871,6 +871,9 @@ msgstr "Există deja o bază de date cu același nume."
 msgid "A date is required when using custom date shift"
 msgstr "O dată este necesară când utilizați deplasare de dată personalizată"
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -926,6 +929,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Un indicator de utilizat pentru culoare"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Un grafic și un panou de control vor fi create."
@@ -1746,11 +1754,11 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching chart editor values: %s"
-msgstr ""
+msgstr "A apărut o eroare la preluarea valorilor editorilor graficului: %s"
 
 #, python-format
 msgid "An error occurred while fetching chart viewer values: %s"
-msgstr ""
+msgstr "A apărut o eroare la preluarea valorilor vizualizatorilor graficului: %s"
 
 msgid "An error occurred while fetching connections"
 msgstr ""
@@ -1761,11 +1769,11 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching dashboard editor values: %s"
-msgstr ""
+msgstr "A apărut o eroare la preluarea valorilor editorilor tabloului de bord: %s"
 
 #, python-format
 msgid "An error occurred while fetching dashboard viewer values: %s"
-msgstr ""
+msgstr "A apărut o eroare la preluarea valorilor vizualizatorilor tabloului de bord: %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "A apărut o eroare la preluarea panourilor de control"
@@ -1790,7 +1798,7 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching dataset editor values: %s"
-msgstr ""
+msgstr "A apărut o eroare la preluarea valorilor editorilor setului de date: %s"
 
 #, python-format
 msgid "An error occurred while fetching dataset related data: %s"
@@ -1798,7 +1806,7 @@ msgstr "A apărut o eroare la preluarea datelor conexe setului de date: %s"
 
 #, python-format
 msgid "An error occurred while fetching editor values: %s"
-msgstr ""
+msgstr "A apărut o eroare la preluarea valorilor editorilor: %s"
 
 msgid "An error occurred while fetching function names."
 msgstr "A apărut o eroare la preluarea numelor de funcții."
@@ -1816,19 +1824,9 @@ msgstr ""
 msgid "An error occurred while fetching tab state"
 msgstr "A apărut o eroare la preluarea stării filei"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "A apărut o eroare la preluarea metadatelor tabelului"
-
 #, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr ""
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"A apărut o eroare la preluarea metadatelor tabelului. Vă rugăm să "
-"contactați administratorul."
 
 msgid "An error occurred while fetching the configuration schema"
 msgstr ""
@@ -3042,9 +3040,9 @@ msgstr "Date Grafic: %s"
 #, python-format
 msgid "Chart Editor: %s"
 msgid_plural "Chart Editors: %s"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Editorul graficului: %s"
+msgstr[1] "Editorii graficului: %s"
+msgstr[2] "Editorii graficului: %s"
 
 msgid "Chart ID"
 msgstr "ID Grafic"
@@ -3098,7 +3096,7 @@ msgid "Chart does not exist"
 msgstr "Graficul nu există"
 
 msgid "Chart editors"
-msgstr ""
+msgstr "Editorii graficului"
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
@@ -3561,9 +3559,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Configurare Coloană"
 
-msgid "Column Formatting"
-msgstr "Formatare Coloană"
-
 msgid "Column Settings"
 msgstr "Setări Coloană"
 
@@ -3696,6 +3691,9 @@ msgstr ""
 "Limite de interval separate prin virgulă, de ex. 2,4,5 pentru intervale "
 "0-2, 2-4 și 4-5. Ultimul număr ar trebui să se potrivească cu valoarea "
 "furnizată pentru MAX."
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "Opțiune comparator"
@@ -4571,6 +4569,9 @@ msgstr "Setările bazei de date au fost actualizate"
 
 msgid "Database type does not support file uploads."
 msgstr "Tipul de bază de date nu acceptă încărcări de fișiere."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Încărcarea fișierului bazei de date a eșuat"
@@ -5798,18 +5799,18 @@ msgid "Editing 1 filter:"
 msgstr "Editare 1 filtru:"
 
 msgid "Editor"
-msgstr ""
+msgstr "Editor"
 
 msgid "Editors"
-msgstr ""
+msgstr "Editori"
 
 msgid "Editors is a list of subjects who can alter the dashboard."
-msgstr ""
+msgstr "Editorii sunt o listă de subiecte care pot modifica tabloul de bord."
 
 msgid ""
 "Editors is a list of subjects who can alter the dashboard. Searchable by "
 "name."
-msgstr ""
+msgstr "Editorii sunt o listă de subiecte care pot modifica tabloul de bord. Se pot căuta după nume."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Fie baza de date este scrisă incorect, fie nu există."
@@ -6640,12 +6641,6 @@ msgstr ""
 msgid "File settings"
 msgstr "Setări fișier"
 
-#, python-format
-msgid ""
-"File size %(size)s bytes exceeds the maximum allowed upload size of "
-"%(max_size)s bytes"
-msgstr ""
-
 msgid "File upload"
 msgstr "Încărcare fișier"
 
@@ -6948,9 +6943,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV formatat atașat în email"
-
-msgid "Formatted date"
-msgstr "Dată formatată"
 
 msgid "Formatted value"
 msgstr "Valoare formatată"
@@ -7819,9 +7811,6 @@ msgstr "Scurtături tastatură"
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
 
-msgid "Keys for table"
-msgstr "Chei pentru tabel"
-
 msgid "Kilometers"
 msgstr "Kilometri"
 
@@ -8328,7 +8317,7 @@ msgid "Manage"
 msgstr "Gestionează"
 
 msgid "Manage dashboard editors and access permissions"
-msgstr ""
+msgstr "Gestionați editorii tabloului de bord și permisiunile de acces"
 
 msgid "Manage email report"
 msgstr "Gestionează raport email"
@@ -8835,9 +8824,9 @@ msgid "Multiplier"
 msgstr "Multiplicator"
 
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr ""
+msgstr "Trebuie să fiți editor al graficului pentru a suprascrie acest grafic. Salvați-l ca un grafic nou."
 
 msgid "Must be unique"
 msgstr "Trebuie să fie unic"
@@ -9505,6 +9494,12 @@ msgstr "Deschide fila Sursă de Date"
 msgid "Open SQL Lab in a new tab"
 msgstr "Deschide SQL Lab într-o filă nouă"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Deschide în SQL Lab"
 
@@ -9589,9 +9584,6 @@ msgstr "Orientare arbore"
 
 msgid "Original"
 msgstr "Original"
-
-msgid "Original table column order"
-msgstr "Ordinea originală a coloanelor tabelului"
 
 msgid "Original value"
 msgstr "Valoare originală"
@@ -9759,6 +9751,10 @@ msgstr "Parolă"
 
 msgid "Password is required"
 msgstr "Parola este obligatorie"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 msgid "Password:"
 msgstr "Parolă:"
@@ -10050,9 +10046,9 @@ msgstr "Vă rugăm să re-exportați fișierul și să încercați din nou impor
 
 msgid "Please reach out to the Chart Editor for assistance."
 msgid_plural "Please reach out to the Chart Editors for assistance."
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Contactați editorul graficului pentru ajutor."
+msgstr[1] "Contactați editorii graficului pentru ajutor."
+msgstr[2] "Contactați editorii graficului pentru ajutor."
 
 msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
@@ -10112,6 +10108,9 @@ msgstr "Scală rază punct"
 
 msgid "Point Radius Unit"
 msgstr "Unitate rază punct"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Dimensiune punct"
@@ -10578,9 +10577,6 @@ msgstr "Elimină element"
 msgid "Remove query from log"
 msgstr "Elimină interogarea din jurnal"
 
-msgid "Remove table preview"
-msgstr "Elimină previzualizarea tabelului"
-
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
@@ -10671,6 +10667,9 @@ msgstr "Raportul este activ"
 
 msgid "Report name"
 msgstr "Nume raport"
+
+msgid "Report not yet run"
+msgstr ""
 
 msgid "Report schedule client error"
 msgstr "Eroare client programare raport"
@@ -11320,7 +11319,7 @@ msgid "Search calculated columns by name"
 msgstr ""
 
 msgid "Search charts by name, editor, or dashboard"
-msgstr ""
+msgstr "Căutați grafice după nume, editor sau tablou de bord"
 
 msgid "Search columns"
 msgstr "Caută coloane"
@@ -11332,7 +11331,7 @@ msgid "Search columns..."
 msgstr "Caută coloane..."
 
 msgid "Search editors"
-msgstr ""
+msgstr "Căutați editori"
 
 msgid "Search in filters"
 msgstr "Caută în filtre"
@@ -11344,7 +11343,7 @@ msgid "Search tags"
 msgstr "Caută etichete"
 
 msgid "Search viewers"
-msgstr ""
+msgstr "Căutați vizualizatori"
 
 msgid "Search..."
 msgstr "Caută..."
@@ -11604,7 +11603,7 @@ msgid "Select dimension values"
 msgstr "Selectează valori dimensiune"
 
 msgid "Select editors"
-msgstr ""
+msgstr "Selectați editori"
 
 msgid "Select file"
 msgstr "Selectează fișier"
@@ -13176,6 +13175,9 @@ msgid ""
 "configuration details."
 msgstr ""
 
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
+
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -13820,6 +13822,11 @@ msgstr ""
 "coloană numerică, fie `Auto`, care scalează punctul pe baza celui mai "
 "mare cluster"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Raportul a fost creat"
 
@@ -14021,6 +14028,11 @@ msgid "The unit for icon size"
 msgstr ""
 
 msgid "The unit for label size"
+msgstr ""
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -14670,6 +14682,9 @@ msgid ""
 msgstr ""
 "Această pagină este destinată să fie încorporată într-un iframe, dar se "
 "pare că nu este cazul."
+
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -15807,10 +15822,6 @@ msgstr "Vizualizare ca tabel"
 msgid "View in SQL Lab"
 msgstr "Vizualizare în SQL Lab"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Vezi chei și indexuri (%s)"
-
 msgid "View query"
 msgstr "Vizualizare interogare"
 
@@ -15825,10 +15836,10 @@ msgid "Viewed %s"
 msgstr "Vizualizat %s"
 
 msgid "Viewer"
-msgstr ""
+msgstr "Vizualizator"
 
 msgid "Viewers"
-msgstr ""
+msgstr "Vizualizatori"
 
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
@@ -16823,23 +16834,29 @@ msgstr ""
 
 #, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
-msgstr ""
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
+msgstr "Trebuie să fiți editor pentru %s pentru a edita. Contactați un editor pentru %s pentru a solicita modificări sau acces de editare."
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr "Trebuie să fiți editor al setului de date pentru a edita. Contactați un editor al setului de date pentru a solicita modificări sau acces de editare."
+
+msgid "You must change your password before continuing."
 msgstr ""
-"Trebuie să fiți proprietar al setului de date pentru a edita. Vă rugăm să"
-" contactați un proprietar al setului de date pentru a solicita modificări"
-" sau acces de editare."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Trebuie să alegeți un nume pentru panoul de control"
 
 msgid "You must run the query successfully first"
 msgstr "Trebuie să executați mai întâi interogarea cu succes"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr ""
@@ -16913,6 +16930,9 @@ msgstr "Interogarea dvs. a fost actualizată"
 
 msgid "Your report could not be deleted"
 msgstr "Raportul dvs. nu a putut fi șters"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 msgid "Your user information"
 msgstr ""
@@ -17051,6 +17071,9 @@ msgstr "adnotare"
 msgid "annotation_layer"
 msgstr "strat_adnotare"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -17064,6 +17087,9 @@ msgid "background"
 msgstr "fundal"
 
 msgid "background color"
+msgstr ""
+
+msgid "banana"
 msgstr ""
 
 msgid "basis"
@@ -17330,7 +17356,7 @@ msgid "edit mode"
 msgstr "mod editare"
 
 msgid "editors"
-msgstr ""
+msgstr "editori"
 
 msgid "email subject"
 msgstr "subiect email"
@@ -17889,26 +17915,6 @@ msgstr ""
 
 msgid "zoom area"
 msgstr "zonă zoom"
-
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Atribuire Strat"
