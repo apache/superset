@@ -193,4 +193,6 @@ def test_execute_now_sets_time_limit_when_working_timeout_configured() -> None:
 
     _, keyword_args = mock_task.apply_async.call_args
     assert "time_limit" in keyword_args
+    assert keyword_args["time_limit"] == 310  # working_timeout(300) + LAG(10)
     assert "soft_time_limit" in keyword_args
+    assert keyword_args["soft_time_limit"] == 305  # working_timeout(300) + SOFT_LAG(5)
