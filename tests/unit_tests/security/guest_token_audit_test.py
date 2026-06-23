@@ -21,7 +21,7 @@ import hashlib
 from superset.security.guest_token import build_guest_token_audit_payload
 
 
-def test_build_guest_token_audit_payload_captures_issuance_metadata():
+def test_build_guest_token_audit_payload_captures_issuance_metadata() -> None:
     body = {
         "user": {"username": "guest"},
         "resources": [{"type": "dashboard", "id": "abc-123"}],
@@ -43,7 +43,7 @@ def test_build_guest_token_audit_payload_captures_issuance_metadata():
     assert payload["rls_rule_count"] == 1
 
 
-def test_build_guest_token_audit_payload_hashes_token_and_omits_raw():
+def test_build_guest_token_audit_payload_hashes_token_and_omits_raw() -> None:
     token = "the-secret-token"  # noqa: S105
     payload = build_guest_token_audit_payload(
         issuer_user_id=1,
@@ -57,7 +57,7 @@ def test_build_guest_token_audit_payload_hashes_token_and_omits_raw():
     assert payload["token_sha256"] == hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def test_build_guest_token_audit_payload_omits_rls_clause_text():
+def test_build_guest_token_audit_payload_omits_rls_clause_text() -> None:
     body = {
         "resources": [],
         "rls": [{"dataset": 7, "clause": "secret_value = 'pii'"}],
