@@ -446,7 +446,11 @@ class SQLExecutor:
         # rejects a query that sets ``search_path``), so the denylist check and
         # RLS injection match execution instead of a schema that may never apply.
         catalog = opts.catalog or self.database.get_default_catalog()
-        schema = opts.schema or self._resolve_query_schema(sql, opts, catalog)
+        # Resolve unconditionally, even when an explicit schema is supplied, so
+        # the engine's per-query security gate always runs (parity with the
+        # estimate path); the explicit schema still wins as the effective target.
+        resolved_schema = self._resolve_query_schema(sql, opts, catalog)
+        schema = opts.schema or resolved_schema
 
         # 5. Apply RLS to transformed script only
         self._apply_rls_to_script(transformed_script, catalog, schema)
@@ -725,25 +729,8 @@ class SQLExecutor:
         :param catalog: Resolved catalog
         :returns: The runtime-resolved default schema, or None
         """
-        from superset.models.sql_lab import Query as QueryModel
-
-        # Build a transient (unsaved) Query so the engine spec can resolve the
-        # effective schema exactly as execution does. Mirror the probe built in
-        # ``QueryEstimationCommand``/``SupersetSecurityManager.raise_for_access``:
-        # set a ``client_id`` (the column is ``nullable=False``) and expunge it so
-        # the ``database`` backref's ``cascade="all, delete-orphan"`` cannot
-        # autoflush this incomplete row into the session.
-        probe_query = QueryModel(
-            database=self.database,
-            sql=sql,
-            schema=opts.schema or None,
-            catalog=catalog,
-            client_id=utils.shortid()[:10],
-            user_id=utils.get_user_id(),
-        )
-        db.session.expunge(probe_query)
-        return self.database.get_default_schema_for_query(
-            probe_query, opts.template_params
+        return self.database.resolve_query_default_schema(
+            sql, opts.schema, catalog, opts.template_params
         )
 
     def _check_disallowed_tables(

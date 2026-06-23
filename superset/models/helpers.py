@@ -1191,26 +1191,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if self.schema:
             return self.schema
         if not hasattr(self, "_denylist_default_schema"):
-            from superset.models.sql_lab import Query
-
             catalog = self.catalog or self.database.get_default_catalog()
-            # Build a transient (unsaved) Query so the engine spec can resolve
-            # the effective schema exactly as execution does. Set a ``client_id``
-            # (the column is ``nullable=False``) and expunge it so the
-            # ``database`` backref's ``cascade="all, delete-orphan"`` cannot
-            # autoflush this incomplete row into the session.
-            probe_query = Query(
-                database=self.database,
-                sql=sql,
-                schema=None,
-                catalog=catalog,
-                client_id=utils.shortid()[:10],
-                user_id=utils.get_user_id(),
-            )
-            if probe_query in db.session:
-                db.session.expunge(probe_query)
-            self._denylist_default_schema = self.database.get_default_schema_for_query(
-                probe_query
+            self._denylist_default_schema = self.database.resolve_query_default_schema(
+                sql, None, catalog
             )
         return self._denylist_default_schema
 

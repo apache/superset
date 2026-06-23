@@ -1446,6 +1446,39 @@ def test_resolve_query_schema_omits_blank_schema(
     assert probe.catalog is None
 
 
+def test_prepare_sql_runs_schema_gate_with_explicit_schema(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """The per-query schema gate must run even when an explicit schema is
+    supplied, so an explicit-schema request cannot smuggle a ``SET search_path``
+    past the gate the resolver enforces (parity with the estimate path, which
+    resolves unconditionally)."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.sql.execution.executor import SQLExecutor
+
+    gate = mocker.patch.object(
+        database,
+        "get_default_schema_for_query",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="blocked",
+                error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+    executor = SQLExecutor(database)
+
+    with pytest.raises(SupersetSecurityException):
+        executor._prepare_sql(
+            "SET search_path = secret; SELECT 1",
+            QueryOptions(schema="explicit"),
+        )
+
+    gate.assert_called_once()
+
+
 # =============================================================================
 # Async Query Status and Result Tests
 # =============================================================================

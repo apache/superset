@@ -34,7 +34,6 @@ from superset.exceptions import (
 )
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
-from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
 from superset.utils import core as utils
 from superset.utils.rls import apply_rls
@@ -116,24 +115,8 @@ class QueryEstimationCommand(BaseCommand):
         effective_schema = ""
         if disallowed_tables or rls_enabled:
             catalog = self._catalog or self._database.get_default_catalog()
-            # Build a transient (unsaved) Query so the engine spec can resolve the
-            # effective per-query schema exactly as the executor does. Mirror the
-            # probe built in ``SupersetSecurityManager.raise_for_access``: set a
-            # ``client_id`` (the column is ``nullable=False``) and expunge it, so
-            # the ``database`` backref's ``cascade="all, delete-orphan"`` cannot
-            # autoflush this incomplete row into the session when ``apply_rls``
-            # issues its own ``db.session`` query below.
-            probe_query = Query(
-                database=self._database,
-                sql=self._sql,
-                schema=self._schema or None,
-                catalog=catalog,
-                client_id=utils.shortid()[:10],
-                user_id=utils.get_user_id(),
-            )
-            db.session.expunge(probe_query)
-            resolved_schema = self._database.get_default_schema_for_query(
-                probe_query, self._template_params
+            resolved_schema = self._database.resolve_query_default_schema(
+                self._sql, self._schema, catalog, self._template_params
             )
             # An explicit schema still wins for matching/RLS targeting; otherwise
             # fall back to the runtime-resolved default.
