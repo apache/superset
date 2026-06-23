@@ -57,6 +57,21 @@ def get_version_metadata() -> dict[str, Any]:
     return metadata
 
 
+def visible_version_metadata(
+    metadata: dict[str, Any], expose_build_details: bool
+) -> dict[str, Any]:
+    """Return version metadata for user-facing surfaces.
+
+    The release ``version_string`` is always included. Precise build details
+    (the git SHA and build number), which let a viewer map the deployment to a
+    specific commit/build, are blanked out unless ``expose_build_details`` is
+    True (e.g. the viewer is an admin or the deployment opted in).
+    """
+    if expose_build_details:
+        return metadata
+    return {**metadata, "version_sha": "", "build_number": None}
+
+
 def get_dev_env_label() -> str:
     """
     Generate development environment label with branch/SHA info.
