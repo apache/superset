@@ -14,45 +14,50 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Tests for environment-driven Swagger UI config defaults."""
+"""Tests for environment-driven Swagger UI config defaults.
 
-import importlib
+``superset.config`` is imported in a fresh subprocess for each case so the
+module is evaluated under a controlled environment without reloading (and
+mutating) the config module shared by the rest of the test session.
+"""
+
 import os
+import subprocess
+import sys
 
 import pytest
+
+
+def _resolve_swagger_default(env_value: str | None) -> str:
+    env = dict(os.environ)
+    env.pop("SUPERSET_ENABLE_SWAGGER_UI", None)
+    if env_value is not None:
+        env["SUPERSET_ENABLE_SWAGGER_UI"] = env_value
+    result = subprocess.run(  # noqa: S603
+        [
+            sys.executable,
+            "-c",
+            "import superset.config as c; print(c.FAB_API_SWAGGER_UI)",
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip()
 
 
 @pytest.mark.parametrize(
     "env_value, expected",
     [
-        (None, False),  # unset -> off by default
-        ("true", True),
-        ("True", True),
-        ("false", False),
-        ("", False),
+        (None, "False"),  # unset -> off by default
+        ("true", "True"),
+        ("True", "True"),
+        ("false", "False"),
+        ("", "False"),
     ],
 )
 def test_fab_api_swagger_ui_is_env_driven_and_off_by_default(
-    monkeypatch: pytest.MonkeyPatch, env_value: str | None, expected: bool
+    env_value: str | None, expected: str
 ) -> None:
-    original = os.environ.get("SUPERSET_ENABLE_SWAGGER_UI")
-
-    if env_value is None:
-        monkeypatch.delenv("SUPERSET_ENABLE_SWAGGER_UI", raising=False)
-    else:
-        monkeypatch.setenv("SUPERSET_ENABLE_SWAGGER_UI", env_value)
-
-    import superset.config as config
-
-    importlib.reload(config)
-    try:
-        assert config.FAB_API_SWAGGER_UI is expected
-    finally:
-        # Reload against the env value present before this test ran so the
-        # module state stays consistent with what monkeypatch restores on
-        # teardown, avoiding leakage into other tests.
-        if original is None:
-            monkeypatch.delenv("SUPERSET_ENABLE_SWAGGER_UI", raising=False)
-        else:
-            monkeypatch.setenv("SUPERSET_ENABLE_SWAGGER_UI", original)
-        importlib.reload(config)
+    assert _resolve_swagger_default(env_value) == expected
