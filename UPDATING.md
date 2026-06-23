@@ -40,6 +40,10 @@ When the MCP service has JWT auth enabled (`MCP_AUTH_ENABLED = True`), an audien
 
 The git SHA and build number surfaced in the "About" section, the bootstrap payload, and the public `/version` endpoint are now only included for admin users by default; the release version string is still shown to everyone. To expose the build details to all users (the previous behavior), set the `SUPERSET_EXPOSE_BUILD_DETAILS` environment variable (or `EXPOSE_BUILD_DETAILS_TO_USERS = True` in `superset_config.py`).
 
+### Time-series tooltips follow the selected time grain
+
+Tooltips on the Time-series and Mixed Time-series ECharts plugins now respect the chart's time grain (and any dashboard-level time-grain override delivered via `extra_form_data`) when no explicit tooltip time format is set. Tooltips read grain-appropriate labels such as `Jan 2021` (month), `2021 Q1` (quarter), `2021` (year), and weekly date ranges, matching the behavior already applied to the x-axis. Charts that pin an explicit tooltip time format are unaffected — the explicit format always wins.
+
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
