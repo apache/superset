@@ -92,6 +92,10 @@ helm upgrade <release-name> superset/superset
 
 Alternatively, perform a fresh install. This is a one-time migration; subsequent upgrades are unaffected.
 
+### Time-series tooltips follow the selected time grain
+
+Tooltips on the Time-series and Mixed Time-series ECharts plugins now respect the chart's time grain (and any dashboard-level time-grain override delivered via `extra_form_data`) when no explicit tooltip time format is set. Tooltips read grain-appropriate labels such as `Jan 2021` (month), `2021 Q1` (quarter), `2021` (year), and weekly date ranges, matching the behavior already applied to the x-axis. Charts that pin an explicit tooltip time format are unaffected — the explicit format always wins.
+
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
