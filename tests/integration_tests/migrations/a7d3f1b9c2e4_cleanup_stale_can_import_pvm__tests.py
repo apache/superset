@@ -40,7 +40,7 @@ LIVE_PERM = "can_import_"  # trailing underscore (the real permission)
 
 
 @pytest.mark.usefixtures("app_context")
-def test_migration_reassigns_roles_and_removes_stale_pvm():
+def test_migration_reassigns_roles_and_removes_stale_pvm() -> None:
     # Arrange: simulate a metadata DB upgraded from an older era that still has
     # the stale ``can_import`` PVM on the ImportExportRestApi view menu, held by
     # a role.
@@ -73,7 +73,7 @@ def test_migration_reassigns_roles_and_removes_stale_pvm():
 
 
 @pytest.mark.usefixtures("app_context")
-def test_migration_is_noop_on_clean_install():
+def test_migration_is_noop_on_clean_install() -> None:
     # No stale PVM present (clean install). The migration must not error and must
     # leave the live permission intact.
     assert _find_pvm(db.session, VIEW, STALE_PERM) is None

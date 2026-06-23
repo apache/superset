@@ -45,6 +45,7 @@ revision = "a7d3f1b9c2e4"
 down_revision = "78a40c08b4be"
 
 from alembic import op  # noqa: E402
+from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from superset.migrations.shared.security_converge import (  # noqa: E402
@@ -71,6 +72,8 @@ PVM_MAP = {
 
 
 def do_upgrade(session: Session) -> None:
+    """Ensure the live ``can_import_`` PVM exists and migrate any role holding the
+    stale ``can_import`` PVM onto it before the stale row is removed."""
     # Guarantee the live PVM exists before we point roles at it. ``add_pvms`` is
     # idempotent: it only creates rows that are missing.
     add_pvms(session, NEW_PVMS)
@@ -81,6 +84,10 @@ def do_upgrade(session: Session) -> None:
 
 
 def do_downgrade(session: Session) -> None:
+    """Intentionally a no-op: the upgrade only removes a stale duplicate PVM and
+    leaves the live ``can_import_`` permission untouched, so there is no prior
+    state worth restoring (recreating the stale row would just reintroduce the
+    duplicate)."""
     # No-op by design. Recreating the stale ``can_import`` PVM and moving roles
     # back onto it would reintroduce the very duplicate permission this
     # migration removes (and the orphaned row serves no purpose). The live
@@ -89,15 +96,25 @@ def do_downgrade(session: Session) -> None:
     pass
 
 
-def upgrade():
+def upgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
     do_upgrade(session)
-    session.commit()
+    try:
+        session.commit()
+    except SQLAlchemyError as ex:
+        session.rollback()
+        raise Exception(f"An error occurred while upgrading permissions: {ex}") from ex
 
 
-def downgrade():
+def downgrade() -> None:
     bind = op.get_bind()
     session = Session(bind=bind)
     do_downgrade(session)
-    session.commit()
+    try:
+        session.commit()
+    except SQLAlchemyError as ex:
+        session.rollback()
+        raise Exception(
+            f"An error occurred while downgrading permissions: {ex}"
+        ) from ex
