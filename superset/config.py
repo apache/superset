@@ -1257,10 +1257,6 @@ EXTENSIONS_EPHEMERAL_STORAGE: CacheConfig = {
 EXTENSIONS_PERSISTENT_STORAGE: dict[str, Any] = {
     # Maximum storage quota per extension in bytes (default: 100 MB)
     "QUOTA_PER_EXTENSION": 100 * 1024 * 1024,
-    # Encryption keys for values stored at rest. Falls back to SECRET_KEY when
-    # not set. Rotate keys by prepending the new key — all keys are tried on
-    # decryption, enabling zero-downtime rotation.
-    "ENCRYPTION_KEYS": [],
 }
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation

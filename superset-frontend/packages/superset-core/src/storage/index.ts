@@ -54,13 +54,8 @@ export interface StorageAccessor {
    *
    * @param key The key to store.
    * @param value The value to store (must be JSON-serializable).
-   * @param options Optional settings (varies by tier).
    */
-  set(
-    key: string,
-    value: JsonValue,
-    options?: Record<string, JsonValue>,
-  ): Promise<void>;
+  set(key: string, value: JsonValue): Promise<void>;
 
   /**
    * Remove a value from storage.
@@ -90,11 +85,22 @@ export interface EphemeralSetOptions {
 }
 
 /**
+ * Options available when setting persistent (database-backed) state.
+ */
+export interface PersistentSetOptions {
+  encrypt?: boolean;
+}
+
+/**
  * Storage accessor for ephemeral state, requiring TTL on every set.
  */
 export interface EphemeralStorageAccessor {
   get(key: string): Promise<JsonValue | null>;
-  set(key: string, value: JsonValue, options: EphemeralSetOptions): Promise<void>;
+  set(
+    key: string,
+    value: JsonValue,
+    options: EphemeralSetOptions,
+  ): Promise<void>;
   remove(key: string): Promise<void>;
 }
 
@@ -103,6 +109,26 @@ export interface EphemeralStorageAccessor {
  */
 export interface EphemeralStorageTier extends EphemeralStorageAccessor {
   shared: EphemeralStorageAccessor;
+}
+
+/**
+ * Storage accessor for persistent state, supporting optional encryption.
+ */
+export interface PersistentStorageAccessor {
+  get(key: string): Promise<JsonValue | null>;
+  set(
+    key: string,
+    value: JsonValue,
+    options?: PersistentSetOptions,
+  ): Promise<void>;
+  remove(key: string): Promise<void>;
+}
+
+/**
+ * Storage tier for persistent (database-backed) state.
+ */
+export interface PersistentStorageTier extends PersistentStorageAccessor {
+  shared: PersistentStorageAccessor;
 }
 
 /**
@@ -136,5 +162,5 @@ export interface ExtensionStorage {
    * Data survives server restarts and cache evictions.
    * Use `.shared` for data visible to all users.
    */
-  persistent: StorageTier;
+  persistent: PersistentStorageTier;
 }

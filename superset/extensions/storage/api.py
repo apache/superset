@@ -402,9 +402,14 @@ class ExtensionStorageRestApi(BaseApi):
               application/json:
                 schema:
                   type: object
+                  required:
+                    - value
                   properties:
                     value:
                       description: The value to store (must be JSON-serializable)
+                    encrypt:
+                      type: boolean
+                      description: If true, the value is encrypted at rest
           responses:
             200:
               description: Value stored successfully
@@ -422,10 +427,13 @@ class ExtensionStorageRestApi(BaseApi):
         if "value" not in body:
             return self.response_400("Request body must contain 'value' field")
 
+        encrypt = bool(body.get("encrypt", False))
         shared = request.args.get("shared", "false").lower() == "true"
         user_fk = None if shared else g.user.id
         value_bytes = json.dumps(body["value"]).encode()
-        ExtensionStorageDAO.set(extension_id, key, value_bytes, user_fk=user_fk)
+        ExtensionStorageDAO.set(
+            extension_id, key, value_bytes, user_fk=user_fk, is_encrypted=encrypt
+        )
 
         return self.response(200, message="Value stored successfully")
 

@@ -308,10 +308,33 @@ def test_persistent_set_encodes_and_stores(
         extension_id = "acme.dashboard"
         value = {"theme": "dark"}
         value_bytes = json.dumps(value).encode()
-        mock_dao.set(extension_id, "prefs", value_bytes, user_fk=42)
+        mock_dao.set(extension_id, "prefs", value_bytes, user_fk=42, is_encrypted=False)
 
         mock_dao.set.assert_called_once_with(
-            "acme.dashboard", "prefs", value_bytes, user_fk=42
+            "acme.dashboard", "prefs", value_bytes, user_fk=42, is_encrypted=False
+        )
+
+
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.api.get_extensions")
+def test_persistent_set_encrypt_flag(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """Persistent PUT passes is_encrypted=True to DAO when encrypt=True in body."""
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+
+    with app.app_context():
+        g.user = MagicMock(id=42)
+
+        from superset.utils import json
+
+        extension_id = "acme.dashboard"
+        value = {"secret": "token"}
+        value_bytes = json.dumps(value).encode()
+        mock_dao.set(extension_id, "token", value_bytes, user_fk=42, is_encrypted=True)
+
+        mock_dao.set.assert_called_once_with(
+            "acme.dashboard", "token", value_bytes, user_fk=42, is_encrypted=True
         )
 
 

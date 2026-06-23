@@ -17,45 +17,54 @@
 
 from __future__ import annotations
 
-import base64
 import hashlib
+import hmac
 import logging
 
-from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 from flask import current_app
-from sqlalchemy import and_
+from sqlalchemy import and_, LargeBinary
 
 from superset import db
 from superset.extensions.storage.persistent_state_model import ExtensionStorage
+from superset.utils.encrypt import (
+    DEFAULT_ENCRYPTION_ENGINE_NAME,
+    EncryptedType,
+    resolve_encryption_engine,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def _key_to_fernet(raw_key: str | bytes) -> Fernet:
-    """Derive a Fernet instance from an arbitrary-length secret string.
+def _derive_key(secret: str, user_fk: int) -> str:
+    """Derive a per-user encryption key from the master secret and user ID.
 
-    SHA-256 compresses the key to exactly 32 bytes, which are then
-    base64url-encoded to satisfy Fernet's key format requirement.
+    Uses HMAC-SHA256 so the derived key is cryptographically bound to both.
+    Ciphertext encrypted for one user cannot be decrypted as another.
     """
-    if isinstance(raw_key, str):
-        raw_key = raw_key.encode()
-    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(raw_key).digest()))
+    return hmac.new(
+        secret.encode(),
+        str(user_fk).encode(),
+        hashlib.sha256,
+    ).hexdigest()
 
 
-def _fernet() -> MultiFernet:
-    """Return a MultiFernet built from EXTENSIONS_PERSISTENT_STORAGE["ENCRYPTION_KEYS"].
+def _enc_type(user_fk: int | None) -> EncryptedType:
+    """Return an EncryptedType for the given scope.
 
-    Falls back to SECRET_KEY when the list is absent or empty.  The first key in
-    the list is used for new encryptions; all keys are tried on decryption,
-    enabling zero-downtime rotation: add the new key at the front of
-    ENCRYPTION_KEYS, then run ``superset rotate-extension-storage-keys`` to
-    re-encrypt every row with the new key.
+    User-scoped rows use a key derived from SECRET_KEY and the user ID, so
+    ciphertext written for one user cannot be decrypted as another.
+    Shared rows (user_fk=None) use SECRET_KEY directly.
     """
-    persistent_cfg = current_app.config.get("EXTENSIONS_PERSISTENT_STORAGE", {})
-    raw_keys: list[str | bytes] = persistent_cfg.get("ENCRYPTION_KEYS") or [
-        current_app.config["SECRET_KEY"]
-    ]
-    return MultiFernet([_key_to_fernet(k) for k in raw_keys])
+    secret = current_app.config["SECRET_KEY"]
+    key = _derive_key(secret, user_fk) if user_fk is not None else secret
+    engine_name = current_app.config.get(
+        "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", DEFAULT_ENCRYPTION_ENGINE_NAME
+    )
+    return EncryptedType(
+        LargeBinary,
+        key=key,
+        engine=resolve_encryption_engine(engine_name),
+    )
 
 
 def _scope_filter(
@@ -136,8 +145,10 @@ class ExtensionStorageDAO:
             return None
         if entry.is_encrypted:
             try:
-                return _fernet().decrypt(entry.value)
-            except InvalidToken:
+                return _enc_type(entry.user_fk).process_result_value(
+                    entry.value, db.engine.dialect
+                )
+            except Exception:  # noqa: BLE001
                 logger.error(
                     "Failed to decrypt extension storage value for "
                     "extension_id=%s key=%s — possible key rotation issue",
@@ -163,7 +174,11 @@ class ExtensionStorageDAO:
         is_encrypted: bool = False,
     ) -> ExtensionStorage:
         """Upsert a storage entry.  Encrypts value when is_encrypted=True."""
-        stored_value = _fernet().encrypt(value) if is_encrypted else value
+        stored_value = (
+            _enc_type(user_fk).process_bind_param(value, db.engine.dialect)
+            if is_encrypted
+            else value
+        )
 
         entry = (
             db.session.query(ExtensionStorage)
