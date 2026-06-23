@@ -555,7 +555,7 @@ def _collect_sortable_identifiers(
 
     if stored_query_context:
         for query in stored_query_context.get("queries") or []:
-            for key in ("columns", "groupby", "metrics"):
+            for key in ("columns", "groupby", "metrics", "all_columns"):
                 add(query.get(key))
             add_orderby(query.get("orderby"))
 
@@ -577,6 +577,10 @@ def _orderby_modified(
     """
     allowed = _collect_sortable_identifiers(stored_chart, stored_query_context)
     form_data = query_context.form_data or {}
+    # Both ``form_data`` and each ``QueryObject`` can carry an order-by, and in
+    # the common frontend path they carry the same one. Either source could
+    # smuggle an unauthorized term, so validate the union of both rather than
+    # trusting one over the other; the duplication is harmless.
     requested = list(form_data.get("orderby") or [])
     for query in query_context.queries:
         requested.extend(getattr(query, "orderby", None) or [])
@@ -617,6 +621,10 @@ def _columns_metrics_modified(
         stored_values = {
             freeze_value(value) for value in stored_chart.params_dict.get(key) or []
         }
+        # ``form_data`` values are checked against ``params_dict`` alone;
+        # ``query_context`` values are checked below against the fuller set that
+        # also includes the stored query context. This asymmetry is intentional:
+        # each requested source is compared to its corresponding stored source.
         if not requested_values.issubset(stored_values):
             return True
 

@@ -31,6 +31,8 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import (
+    _collect_sortable_identifiers,
+    freeze_value,
     query_context_modified,
     SupersetSecurityManager,
 )
@@ -1312,6 +1314,33 @@ def test_query_context_modified_orderby_malformed_entry(
     """A malformed order-by entry (not a ``(term, bool)`` pair) is rejected."""
     query_context = _table_sort_query_context(mocker, orderby=[["gender"]])
     assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_stored_qc_only_column(
+    mocker: MockerFixture,
+) -> None:
+    """A column present only in the stored query context is an allowed sort target."""
+    query_context = _table_sort_query_context(mocker, orderby=[("age", True)])
+    # "age" is absent from params_dict but exposed via the stored query context,
+    # so sorting by it must be allowed.
+    query_context.slice_.params_dict = {"groupby": ["gender"], "metrics": ["count"]}
+    query_context.slice_.query_context = json.dumps(
+        {"queries": [{"columns": ["gender", "age"], "metrics": ["count"]}]}
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_collect_sortable_identifiers_includes_stored_qc_all_columns(
+    mocker: MockerFixture,
+) -> None:
+    """``all_columns`` exposed via the stored query context is a valid sort target."""
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"groupby": ["gender"], "metrics": ["count"]}
+    allowed = _collect_sortable_identifiers(
+        stored_chart,
+        {"queries": [{"all_columns": ["gender", "age"], "metrics": ["count"]}]},
+    )
+    assert freeze_value("age") in allowed
 
 
 def test_query_context_modified_time_grain_native_filter(
