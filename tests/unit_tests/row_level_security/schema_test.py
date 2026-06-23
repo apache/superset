@@ -16,14 +16,16 @@
 # under the License.
 """Tests for row-level security marshmallow schemas."""
 
+from typing import Any
+
 import pytest
 from marshmallow import ValidationError
 
 from superset.row_level_security.schemas import RLSPostSchema, RLSPutSchema
 
 
-def _post_payload(**overrides):
-    payload = {
+def _post_payload(**overrides: Any) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "name": "rule",
         "filter_type": "Regular",
         "tables": [1],
