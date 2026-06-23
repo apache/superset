@@ -32,6 +32,7 @@ from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
+from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
     MCP_STORE_CONFIG,
@@ -73,6 +74,13 @@ def _suppress_third_party_warnings() -> None:
         "ignore",
         category=FutureWarning,
         module=r"google\..*",
+    )
+    # authlib.jose deprecation warning is suppressed at package init time
+    # (superset/mcp_service/__init__.py), but add it here too for any late
+    # imports that may occur after tool execution begins.
+    warnings.filterwarnings(
+        "ignore",
+        message=r"authlib\.jose module is deprecated",
     )
 
 
@@ -508,6 +516,27 @@ def _fix_call_tool_arguments(tool: Any) -> Any:
     return tool
 
 
+def _fix_search_tool_query(tool: Any) -> Any:
+    """Fix anyOf schema in search_tools ``query`` for MCP bridge compatibility.
+
+    The optional ``query: str | None`` parameter emits an ``anyOf`` JSON
+    Schema with no top-level ``type``. Some MCP bridges (mcp-remote,
+    Claude Desktop) don't handle ``anyOf`` and strip it, leaving the field
+    typeless — the same failure mode ``_fix_call_tool_arguments`` guards
+    against. Replaces the ``anyOf`` with a flat ``type: string``.
+
+    Only the advertised schema changes; FastMCP validates calls against
+    the function signature, so omitting ``query`` remains valid.
+    """
+    if "query" in (props := (tool.parameters or {}).get("properties", {})):
+        props["query"] = {
+            "default": None,
+            "description": "Natural language query. Omit to list all available tools.",
+            "type": "string",
+        }
+    return tool
+
+
 def _normalize_call_tool_arguments(
     arguments: dict[str, Any] | None,
     tool_schema: dict[str, Any] | None,
@@ -618,7 +647,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     )
 
 
-def _create_search_transform(
+def _create_search_transform(  # noqa: C901
     *,
     strategy: str,
     kwargs: dict[str, Any],
@@ -626,6 +655,32 @@ def _create_search_transform(
 ) -> Any:
     """Create the configured search transform with tool-permission filtering."""
     from fastmcp.server.context import Context
+    from fastmcp.tools.tool import Tool
+
+    def _make_optional_query_search_tool(transform: Any) -> Any:
+        """Create search tool with optional query — returns all tools when omitted."""
+
+        async def search_tools(
+            query: Annotated[
+                str | None,
+                "Natural language query. Omit to list all available tools.",
+            ] = None,
+            ctx: Context = None,
+        ) -> str | list[dict[str, Any]]:
+            """Search for tools using natural language.
+
+            Returns matching tool definitions ranked by relevance.
+            If no query is provided, returns all available tools.
+            """
+            hidden = await transform._get_visible_tools(ctx)
+            if not query:
+                results = hidden
+            else:
+                results = await transform._search(hidden, query)
+            return await transform._render_results(results)
+
+        tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
+        return _fix_search_tool_query(tool)
 
     if strategy == "regex":
         from fastmcp.server.transforms.search import RegexSearchTransform
@@ -641,6 +696,10 @@ def _create_search_transform(
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
                 return make_normalizing_call_tool(self)
+
+            def _make_search_tool(self) -> Any:
+                """Build the optional-query ``search_tools`` for regex search."""
+                return _make_optional_query_search_tool(self)
 
         return _FixedRegexSearchTransform(**kwargs)
 
@@ -658,6 +717,10 @@ def _create_search_transform(
             """Build the normalized ``call_tool`` proxy for BM25 search."""
             return make_normalizing_call_tool(self)
 
+        def _make_search_tool(self) -> Any:
+            """Build the optional-query ``search_tools`` for BM25 search."""
+            return _make_optional_query_search_tool(self)
+
     return _FixedBM25SearchTransform(**kwargs)
 
 
@@ -665,7 +728,9 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
     """Create an auth provider from Flask app config.
 
     Tries MCP_AUTH_FACTORY first, then falls back to the default factory
-    when MCP_AUTH_ENABLED is True.
+    when either ``MCP_AUTH_ENABLED`` (JWT auth), ``MCP_API_KEY_ENABLED``, or
+    ``FAB_API_KEY_ENABLED`` (API key auth) is True. The default factory builds a
+    ``CompositeTokenVerifier`` that handles either or both auth modes.
     """
     auth_provider = None
     if auth_factory := flask_app.config.get("MCP_AUTH_FACTORY"):
@@ -678,7 +743,11 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
         except Exception:
             # Do not log the exception — it may contain secrets
             logger.error("Failed to create auth provider from MCP_AUTH_FACTORY")
-    elif flask_app.config.get("MCP_AUTH_ENABLED", False):
+    elif (
+        flask_app.config.get("MCP_AUTH_ENABLED", False)
+        or flask_app.config.get("MCP_API_KEY_ENABLED", False)
+        or flask_app.config.get("FAB_API_KEY_ENABLED", False)
+    ):
         from superset.mcp_service.mcp_config import (
             create_default_mcp_auth_factory,
         )
@@ -717,6 +786,53 @@ def build_middleware_list() -> list[Middleware]:
     ]
 
 
+def _build_starlette_middleware(
+    flask_app: Any | None = None, auth_provider: Any | None = None
+) -> list[Any]:
+    from starlette.middleware import Middleware as StarletteMiddleware
+
+    if flask_app is None:
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        flask_app = get_flask_app()
+    # Auth is active only when an instantiated provider was passed in.
+    # Config-flag presence is not sufficient — MCP_AUTH_FACTORY may return
+    # None, and use_factory_config auth lives outside Flask config entirely.
+    auth_enabled = auth_provider is not None
+    app_name: str = flask_app.config.get("APP_NAME", "Superset")
+    app_icon: str = flask_app.config.get("APP_ICON", "")
+    base_page_config: dict[str, Any] = {
+        "title": f"{app_name} MCP Server",
+        "server_key": app_name.lower().replace(" ", "-"),
+        "app_name": app_name,
+    }
+    if app_icon:
+        if app_icon.startswith(("http://", "https://")):
+            base_page_config["logo_url"] = app_icon
+        elif app_icon.startswith("/"):
+            # Relative path — combine with Superset webserver address if configured
+            superset_addr = flask_app.config.get(
+                "SUPERSET_WEBSERVER_ADDRESS", ""
+            ).rstrip("/")
+            if superset_addr:
+                base_page_config["logo_url"] = f"{superset_addr}{app_icon}"
+    mcp_hello_page = flask_app.config.get("MCP_HELLO_PAGE")
+    if mcp_hello_page is not None and not isinstance(mcp_hello_page, dict):
+        logger.warning(
+            "MCP_HELLO_PAGE must be a dict, ignoring value of type %s",
+            type(mcp_hello_page).__name__,
+        )
+        mcp_hello_page = None
+    page_config: dict[str, Any] = {**base_page_config, **(mcp_hello_page or {})}
+    return [
+        StarletteMiddleware(
+            BrowserHelloMiddleware,
+            auth_enabled=auth_enabled,
+            page_config=page_config,
+        )
+    ]
+
+
 def run_server(
     host: str = "127.0.0.1",
     port: int = 5008,
@@ -750,6 +866,9 @@ def run_server(
         logging.info("Creating MCP app from factory configuration...")
         factory_config = get_mcp_factory_config()
         mcp_instance = create_mcp_app(**factory_config)
+        # Capture the actual auth object so the hello page reflects real auth state
+        auth_provider = factory_config.get("auth")
+        flask_app = None
 
         # Apply tool search transform if configured
         tool_search_config = MCP_TOOL_SEARCH_CONFIG
@@ -794,6 +913,11 @@ def run_server(
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)
 
+    starlette_middleware = _build_starlette_middleware(
+        flask_app=flask_app,
+        auth_provider=auth_provider,
+    )
+
     env_key = f"FASTMCP_RUNNING_{port}"
     if not os.environ.get(env_key):
         os.environ[env_key] = "1"
@@ -807,6 +931,7 @@ def run_server(
                     transport="streamable-http",
                     event_store=event_store,
                     stateless_http=True,
+                    middleware=starlette_middleware,
                 )
                 uvicorn.run(app, host=host, port=port)
             else:
@@ -817,6 +942,7 @@ def run_server(
                     host=host,
                     port=port,
                     stateless_http=True,
+                    middleware=starlette_middleware,
                 )
         except Exception as e:
             logging.error("FastMCP failed: %s", e)

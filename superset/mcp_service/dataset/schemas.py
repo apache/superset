@@ -21,10 +21,9 @@ Pydantic schemas for dataset-related responses
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal
 
-import humanize
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -54,6 +53,7 @@ from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
 )
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.utils import json
 
 
@@ -96,6 +96,25 @@ class TableColumnInfo(BaseModel):
     groupby: bool | None = Field(None, description="Is groupable")
     filterable: bool | None = Field(None, description="Is filterable")
     description: str | None = Field(None, description="Column description")
+
+    @model_serializer(mode="wrap")
+    def _filter_column_fields_by_context(
+        self, serializer: Any, info: Any
+    ) -> Dict[str, Any]:
+        """Filter column fields based on serialization context.
+
+        If context contains 'column_fields', only include those fields plus
+        column_name (always required). Keeps wide datasets small when the
+        caller only needs column_name + type.
+        """
+        data = serializer(self)
+        if info.context and isinstance(info.context, dict):
+            column_fields = info.context.get("column_fields")
+            if column_fields is not None:
+                requested = set(column_fields)
+                requested.add("column_name")
+                return {k: v for k, v in data.items() if k in requested}
+        return data
 
 
 class SqlMetricInfo(BaseModel):
@@ -306,13 +325,34 @@ class DatasetError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatasetError":
         """Create a standardized DatasetError with timestamp."""
-        from datetime import datetime, timezone
-
         return cls(
             error=error,
             error_type=error_type,
             timestamp=datetime.now(timezone.utc),
         )
+
+
+DEFAULT_GET_DATASET_INFO_COLUMNS: List[str] = [
+    "id",
+    "table_name",
+    "schema",
+    "database_name",
+    "database_id",
+    "uuid",
+    "is_virtual",
+    "description",
+    "main_dttm_col",
+    "sql",
+    "url",
+    "columns",
+    "metrics",
+]
+
+DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS: List[str] = [
+    "column_name",
+    "type",
+    "is_dttm",
+]
 
 
 class GetDatasetInfoRequest(MetadataCacheControl):
@@ -322,6 +362,120 @@ class GetDatasetInfoRequest(MetadataCacheControl):
         int | str,
         Field(description="Dataset identifier - can be numeric ID or UUID string"),
     ]
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: list(DEFAULT_GET_DATASET_INFO_COLUMNS),
+            description=(
+                "Top-level fields to include in the response. Defaults to a lean "
+                "set that excludes verbose fields like params, template_params, "
+                "extra, tags, certification_details. Pass an explicit list to "
+                "override (e.g. ['id','table_name','columns'] for minimal output)."
+            ),
+        ),
+    ]
+    column_fields: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS),
+            description=(
+                "Per-column fields to include for entries in 'columns'. Defaults "
+                "to ['column_name','type','is_dttm']. Pass a wider list to "
+                "include 'verbose_name','groupby','filterable','description' "
+                "when needed."
+            ),
+        ),
+    ]
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def _parse_select_columns(cls, value: Any) -> Any:
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        if value is None:
+            return list(DEFAULT_GET_DATASET_INFO_COLUMNS)
+        parsed = parse_json_or_list(value, "select_columns")
+        return parsed if parsed else list(DEFAULT_GET_DATASET_INFO_COLUMNS)
+
+    @field_validator("column_fields", mode="before")
+    @classmethod
+    def _parse_column_fields(cls, value: Any) -> Any:
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        if value is None or value == "":
+            return list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+        parsed = parse_json_or_list(value, "column_fields")
+        return parsed
+
+
+class CreateDatasetRequest(BaseModel):
+    """Request schema for create_dataset to register a physical table as a dataset."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    database_id: Annotated[
+        int,
+        Field(
+            description="ID of the database connection to register the table against"
+        ),
+    ]
+    schema_: Annotated[
+        str | None,
+        Field(
+            default=None,
+            alias="schema",
+            serialization_alias="schema",
+            max_length=250,
+            description="Schema (namespace) where the table lives, e.g. 'public'. "
+            "Omit or pass None for databases without schema namespaces (e.g. SQLite).",
+        ),
+    ]
+    catalog: Annotated[
+        str | None,
+        Field(
+            default=None,
+            max_length=250,
+            description="Catalog where the table lives. Omit for databases without "
+            "catalog support.",
+        ),
+    ]
+    table_name: Annotated[
+        str,
+        Field(
+            min_length=1,
+            max_length=250,
+            description="Name of the physical table to register as a dataset",
+        ),
+    ]
+    owners: Annotated[
+        List[int] | None,
+        Field(
+            default=None,
+            description="Optional list of owner user IDs. "
+            "Defaults to the calling user.",
+        ),
+    ]
+
+    @field_validator("schema_", "catalog", mode="before")
+    @classmethod
+    def _normalize_optional_str(cls, v: object) -> object:
+        """Strip whitespace and convert blank strings to None.
+
+        Non-string values pass through unchanged so Pydantic's type validation
+        rejects them, rather than silently treating a malformed value (e.g. an
+        int or dict) as an omitted namespace.
+        """
+        if isinstance(v, str):
+            return v.strip() or None
+        return v
+
+    @field_validator("table_name", mode="before")
+    @classmethod
+    def _strip_table_name(cls, v: object) -> object:
+        """Strip leading/trailing whitespace from table_name."""
+        if isinstance(v, str):
+            return v.strip()
+        return v
 
 
 class CreateVirtualDatasetRequest(BaseModel):
@@ -554,13 +708,6 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
     return value
 
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    return humanize.naturaltime(datetime.now() - dt)
-
-
 def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> DatasetInfo:
     """Wrap dataset read-path descriptive fields before LLM exposure."""
     payload = dataset_info.model_dump(mode="python")
@@ -655,7 +802,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if isinstance(params, str):
         try:
             params = json.loads(params)
-        except Exception:
+        except (json.JSONDecodeError, TypeError):
             params = None
     columns = [
         TableColumnInfo(
@@ -691,11 +838,11 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
             certified_by=getattr(dataset, "certified_by", None),
             certification_details=getattr(dataset, "certification_details", None),
             changed_on=getattr(dataset, "changed_on", None),
-            changed_on_humanized=_humanize_timestamp(
+            changed_on_humanized=humanize_timestamp(
                 getattr(dataset, "changed_on", None)
             ),
             created_on=getattr(dataset, "created_on", None),
-            created_on_humanized=_humanize_timestamp(
+            created_on_humanized=humanize_timestamp(
                 getattr(dataset, "created_on", None)
             ),
             tags=[

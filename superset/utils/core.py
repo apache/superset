@@ -396,6 +396,27 @@ def parse_js_uri_path_item(
     return unquote_plus(item) if unquote and item else item
 
 
+# Matches a safe, opaque token suitable for use as a cookie name. Restricting the
+# allowed characters prevents client-controlled input from injecting unexpected
+# cookie attributes or control characters.
+COOKIE_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+
+
+def sanitize_cookie_token(token: str | None) -> str | None:
+    """Return the token if it is a valid cookie name, otherwise None.
+
+    The export endpoints echo a client-provided ``token`` query parameter back as
+    a cookie name to signal download completion. Validate it against a strict
+    allow-list before trusting it.
+
+    :param token: the client-provided token value
+    :return: the token if valid, else None
+    """
+    if token and COOKIE_TOKEN_RE.match(token):
+        return token
+    return None
+
+
 def cast_to_num(value: float | int | str | None) -> float | int | None:
     """Casts a value to an int/float
 
@@ -767,7 +788,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
             # run a SELECT 1.   use a core select() so that
             # the SELECT of a scalar value without a table is
             # appropriately formatted for the backend
-            connection.scalar(select([1]))
+            connection.scalar(select(1))
         except exc.DBAPIError as err:
             # catch SQLAlchemy's DBAPIError, which is a wrapper
             # for the DBAPI's exception.  It includes a .connection_invalidated
@@ -779,7 +800,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
                 # itself and establish a new connection.  The disconnect detection
                 # here also causes the whole connection pool to be invalidated
                 # so that all stale connections are discarded.
-                connection.scalar(select([1]))
+                connection.scalar(select(1))
             else:
                 raise
         finally:
@@ -829,6 +850,9 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     smtp_mail_to = recipients_string_to_list(to)
 
     msg = MIMEMultipart(mime_subtype)
+    # Strip CR/LF from the subject so the value cannot inject additional
+    # email headers via header folding/splitting.
+    subject = subject.replace("\r", "").replace("\n", " ").strip()
     msg["Subject"] = subject
     msg["From"] = smtp_mail_from
     msg["To"] = ", ".join(smtp_mail_to)
@@ -2107,8 +2131,21 @@ def check_is_safe_zip(zip_file: ZipFile) -> None:
             raise SupersetException("Found file with size above allowed threshold")
         uncompress_size += zip_file_element.file_size
         compress_size += zip_file_element.compress_size
-    compress_ratio = uncompress_size / compress_size
-    if compress_ratio > app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]:
+        # Bound the total decompressed size, not just the per-file size, so an
+        # archive of many individually-allowed entries cannot exhaust memory.
+        # Checked inside the loop to fail fast once the running total exceeds
+        # the cap rather than after summing every entry.
+        if uncompress_size > app.config["ZIP_FILE_MAX_TOTAL_SIZE"]:
+            raise SupersetException(
+                "Found total uncompressed size above allowed threshold"
+            )
+    # Guard the division: a zero compressed size would otherwise raise
+    # ZeroDivisionError instead of a clean error. The total-size cap above
+    # still bounds memory when compress_size is reported as zero.
+    if (
+        compress_size
+        and uncompress_size / compress_size > app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]
+    ):
         raise SupersetException("Zip compress ratio above allowed threshold")
 
 

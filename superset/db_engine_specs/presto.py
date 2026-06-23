@@ -33,7 +33,7 @@ import pandas as pd
 from flask import current_app as app
 from flask_babel import gettext as __, lazy_gettext as _
 from packaging.version import Version
-from sqlalchemy import Column, literal_column, types
+from sqlalchemy import Column, literal_column, text, types
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import Row as ResultRow
@@ -78,6 +78,7 @@ SCHEMA_DOES_NOT_EXIST_REGEX = re.compile(
     "line (?P<location>.+?): .*Schema '(?P<schema_name>.+?)' does not exist"
 )
 CONNECTION_ACCESS_DENIED_REGEX = re.compile("Access Denied: Invalid credentials")
+CONNECTION_ACCESS_DENIED_401_REGEX = re.compile(r"Unexpected status code 401")
 CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
     r"Failed to establish a new connection: \[Errno 8\] nodename nor servname "
     "provided, or not known"
@@ -325,7 +326,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         """
         Get all catalogs.
         """
-        return {catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")}
+        return {catalog for (catalog,) in inspector.bind.execute(text("SHOW CATALOGS"))}
 
     @classmethod
     def adjust_engine_params(
@@ -702,7 +703,9 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         :return: list of column objects
         """
         full_table_name = cls.quote_table(table, inspector.engine.dialect)
-        return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table_name}").fetchall()
+        return inspector.bind.execute(
+            text(f"SHOW COLUMNS FROM {full_table_name}")
+        ).fetchall()
 
     @classmethod
     def _create_column_info(
@@ -966,6 +969,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
             {},
+        ),
+        CONNECTION_ACCESS_DENIED_401_REGEX: (
+            __("Unexpected HTTP 401 response. Check your credentials."),
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {"invalid_credentials": True},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),

@@ -48,6 +48,7 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
     database.mutate_sql_based_on_config.return_value = "SELECT * FROM table LIMIT 1"
     db_engine_spec.fetch_data.return_value = [("col1", "col1", "STRING", None, False)]
     db_engine_spec.get_datatype.return_value = "STRING"
+    db_engine_spec.resolve_column_type.return_value = "STRING"
     db_engine_spec.get_column_spec.return_value.is_dttm = False
     db_engine_spec.get_column_spec.return_value.generic_type = "STRING"
 

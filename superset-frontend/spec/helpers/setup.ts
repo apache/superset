@@ -23,6 +23,10 @@ import React from 'react';
 import { configure as configureTestingLibrary } from '@testing-library/react';
 import { matchers } from '@emotion/jest';
 
+if (typeof Intl.DurationFormat === 'undefined') {
+  require('@formatjs/intl-durationformat/polyfill.js');
+}
+
 configureTestingLibrary({
   testIdAttribute: 'data-test',
 });

@@ -37,9 +37,9 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     assert (
         df.to_markdown()
         == """
-|    |    SUM(num) |
-|---:|------------:|
-|  0 | 8.06797e+07 |
+|    |   SUM(num) |
+|---:|-----------:|
+|  0 |   80679663 |
     """.strip()
     )
 
@@ -60,7 +60,7 @@ def test_pivot_df_no_cols_no_rows_single_metric():
         == f"""
 |                  |   ('SUM(num)',) |
 |:-----------------|----------------:|
-| ('{_("Total")} (Sum)',) |     8.06797e+07 |
+| ('{_("Total")} (Sum)',) |        80679663 |
     """.strip()
     )
 
@@ -82,7 +82,7 @@ def test_pivot_df_no_cols_no_rows_single_metric():
         == """
 |                  |   ('SUM(num)',) |
 |:-----------------|----------------:|
-| ('Total (Sum)',) |     8.06797e+07 |
+| ('Total (Sum)',) |        80679663 |
     """.strip()
     )
 
@@ -105,7 +105,7 @@ def test_pivot_df_no_cols_no_rows_single_metric():
         == f"""
 |               |   ('{_("Total")} (Sum)',) |
 |:--------------|-------------------:|
-| ('SUM(num)',) |        8.06797e+07 |
+| ('SUM(num)',) |           80679663 |
     """.strip()
     )
 
@@ -127,7 +127,7 @@ def test_pivot_df_no_cols_no_rows_single_metric():
         == f"""
 |                  |   ('SUM(num)',) |   ('Total (Sum)',) |
 |:-----------------|----------------:|-------------------:|
-| ('{_("Total")} (Sum)',) |     8.06797e+07 |        8.06797e+07 |
+| ('{_("Total")} (Sum)',) |        80679663 |           80679663 |
     """.strip()
     )
 
@@ -142,9 +142,9 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
     assert (
         df.to_markdown()
         == """
-|    |    SUM(num) |   MAX(num) |
-|---:|------------:|-----------:|
-|  0 | 8.06797e+07 |      37296 |
+|    |   SUM(num) |   MAX(num) |
+|---:|-----------:|-----------:|
+|  0 |   80679663 |      37296 |
     """.strip()
     )
 
@@ -165,7 +165,7 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
         == f"""
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |
 |:-----------------|----------------:|----------------:|
-| ('{_("Total")} (Sum)',) |     8.06797e+07 |           37296 |
+| ('{_("Total")} (Sum)',) |        80679663 |           37296 |
     """.strip()
     )
 
@@ -187,7 +187,7 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
         == """
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |
 |:-----------------|----------------:|----------------:|
-| ('Total (Sum)',) |     8.06797e+07 |           37296 |
+| ('Total (Sum)',) |        80679663 |           37296 |
     """.strip()
     )
 
@@ -210,8 +210,8 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
         == f"""
 |               |   ('{_("Total")} (Sum)',) |
 |:--------------|-------------------:|
-| ('SUM(num)',) |        8.06797e+07 |
-| ('MAX(num)',) |    37296           |
+| ('SUM(num)',) |           80679663 |
+| ('MAX(num)',) |              37296 |
     """.strip()
     )
 
@@ -234,7 +234,7 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
         == f"""
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('{_("Total")} (Sum)',) |
 |:-----------------|----------------:|----------------:|-------------------:|
-| ('{_("Total")} (Sum)',) |     8.06797e+07 |           37296 |         8.0717e+07 |
+| ('{_("Total")} (Sum)',) |        80679663 |           37296 |           80716959 |
     """.strip()
     )
 
@@ -1839,8 +1839,8 @@ def test_table():
     assert (
         formatted.to_markdown()
         == """
-|    | count      |
-|---:|:-----------|
+|    |      count |
+|---:|-----------:|
 |  0 | 80,679,663 |
     """.strip()
     )
@@ -2150,6 +2150,52 @@ COUNT(is_software_dev)
             }
         ]
     }
+
+
+def test_apply_client_processing_csv_format_escapes_formula_values():
+    """
+    A value starting with a formula trigger should be escaped in the CSV
+    output, consistent with the other CSV export paths.
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": "is_software_dev\n=SUM(1+1)\n",
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "table",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed = apply_client_processing(result, form_data)
+    # the leading "=" is neutralized with a single-quote prefix
+    assert "'=SUM(1+1)" in processed["queries"][0]["data"]
+    assert "\n=SUM(1+1)" not in processed["queries"][0]["data"]
 
 
 def test_apply_client_processing_csv_format_empty_string():
@@ -2788,3 +2834,114 @@ def test_apply_client_processing_csv_format_default_na_behavior():
     assert (
         "Alice," in lines[2]
     )  # Second data row should have empty last_name (NA converted to null)
+
+
+@with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
+def test_apply_client_processing_csv_format_custom_separator() -> None:
+    """
+    Test that apply_client_processing respects CSV_EXPORT config
+    for custom separator and decimal character.
+
+    This is a regression test for GitHub issue #32371.
+    """
+    # CSV data with numeric values
+    csv_data = "name,value\nAlice,1.5\nBob,2.75"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["name", "value"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+
+    # With sep=";", columns should be separated by semicolon
+    assert lines[0] == "name;value"
+    # With decimal=",", decimal values must use comma as separator.
+    # Asserting the exact formatted value ensures a regression that drops
+    # the `decimal` option (so floats keep a dot) will be caught.
+    assert "Alice;1,5" in lines[1]
+    assert "Bob;2,75" in lines[2]
+    # Guard explicitly against the dot form slipping through.
+    assert "1.5" not in lines[1]
+    assert "2.75" not in lines[2]
+
+
+@with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
+def test_apply_client_processing_csv_pivot_table_custom_separator() -> None:
+    """
+    Test that apply_client_processing respects CSV_EXPORT config
+    for pivot table exports with custom separator and decimal character.
+
+    This is a regression test for GitHub issue #32371 - specifically for
+    pivoted CSV exports which were not respecting the CSV_EXPORT config.
+    """
+    # CSV data with a numeric metric
+    csv_data = "COUNT(metric)\n1234.56"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 1,
+        "url_params": {},
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {"column_name": "metric"},
+                "expressionType": "SIMPLE",
+                "label": "COUNT(metric)",
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+
+    # After pivoting a single metric with no groupby rows/columns, the
+    # CSV for the "COUNT(metric)" column and "Total (Sum)" row should
+    # reflect the CSV_EXPORT config: semicolons as field separators and
+    # commas as the decimal separator.
+    assert lines[0] == ";COUNT(metric)"
+    assert "Total (Sum);1234,56" in lines[1]
+    # Guard explicitly against the dot form slipping through, which is
+    # what the previous (broken) implementation produced.
+    assert "1234.56" not in output_data

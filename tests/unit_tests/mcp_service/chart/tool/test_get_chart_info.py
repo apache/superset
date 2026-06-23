@@ -23,7 +23,7 @@ privacy behavior.
 import importlib
 from contextlib import nullcontext
 from types import SimpleNamespace
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
@@ -36,6 +36,7 @@ from superset.mcp_service.chart.chart_helpers import (
     ChartNotOnDashboardError,
 )
 from superset.mcp_service.chart.schemas import (
+    ChartError,
     ChartInfo,
     extract_filters_from_form_data,
     GetChartInfoRequest,
@@ -182,6 +183,7 @@ class TestBuildAppliedDashboardFilters:
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
             "chartsInScope": [1],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
             "targets": [{"column": {"name": "country"}, "datasetId": 7}],
             "defaultDataMask": {
                 "filterState": {"value": ["US"]},
@@ -225,7 +227,8 @@ class TestBuildAppliedDashboardFilters:
             "name": "Region",
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
-            "chartsInScope": [2, 3],  # chart 1 excluded
+            "chartsInScope": [2, 3],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": [1]},  # chart 1 excluded
             "targets": [{"column": {"name": "region"}, "datasetId": 7}],
             "defaultDataMask": {
                 "filterState": {"value": ["NA"]},
@@ -256,6 +259,7 @@ class TestBuildAppliedDashboardFilters:
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
             "chartsInScope": [1],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
             "targets": [{"column": {"name": "region"}, "datasetId": 7}],
             "controlValues": {"defaultToFirstItem": True},
             "defaultDataMask": {},
@@ -365,7 +369,8 @@ class TestGetChartInfoPrivacy:
         assert result["datasource_name"] is None
         assert result["datasource_type"] is None
         assert result["filters"] is None
-        assert result["form_data"] is None
+        # form_data is excluded from default select_columns, so it won't be in result
+        assert "form_data" not in result
 
     def test_form_data_override_does_not_double_sanitize(self) -> None:
         """Saved chart fields stay single-wrapped after unsaved overrides."""
@@ -491,4 +496,87 @@ class TestGetChartInfoPrivacy:
         assert result["datasource_name"] is None
         assert result["datasource_type"] is None
         assert result["filters"] is None
-        assert result["form_data"] is None
+        # form_data is excluded from default select_columns, so it won't
+        # appear in the response at all — which is even more restrictive than None.
+        assert "form_data" not in result
+
+    @pytest.mark.asyncio
+    async def test_unsaved_chart_select_columns_filters_response(
+        self, mcp_server
+    ) -> None:
+        """Unsaved-chart path (form_data_key without identifier) must apply
+        select_columns filtering just like the saved-chart path does."""
+        cached_form_data = (
+            '{"viz_type":"bar","datasource_name":"sales",'
+            '"datasource_type":"table","metrics":["revenue"]}'
+        )
+
+        with (
+            patch.object(
+                get_chart_info_module.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+            patch.object(
+                get_chart_info_module,
+                "user_can_view_data_model_metadata",
+                return_value=True,
+                create=True,
+            ),
+            patch.object(
+                get_chart_info_module,
+                "get_cached_form_data",
+                return_value=cached_form_data,
+            ),
+            patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        ):
+            async with Client(mcp_server) as client:
+                # Explicit select_columns: only id and slice_name
+                response = await client.call_tool(
+                    "get_chart_info",
+                    {
+                        "request": GetChartInfoRequest(
+                            form_data_key="cached-key",
+                            select_columns=["id", "slice_name", "viz_type"],
+                        ).model_dump()
+                    },
+                )
+
+        result = json.loads(response.content[0].text)
+        # Only requested fields must be present
+        assert "id" in result
+        assert "slice_name" in result
+        assert "viz_type" in result
+        # Fields NOT in select_columns must be absent
+        assert "form_data" not in result
+        assert "datasource_name" not in result
+
+    @pytest.mark.asyncio
+    async def test_unsaved_chart_error_returned_unchanged(self) -> None:
+        """ChartError results should not be serialized as success dictionaries."""
+        error = ChartError(error="Missing cached chart data", error_type="NotFound")
+
+        with (
+            patch.object(
+                get_chart_info_module.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+            patch.object(
+                get_chart_info_module,
+                "user_can_view_data_model_metadata",
+                return_value=True,
+                create=True,
+            ),
+            patch.object(
+                get_chart_info_module,
+                "_build_unsaved_chart_info",
+                return_value=error,
+            ),
+        ):
+            result = await get_chart_info_module.get_chart_info(
+                request=GetChartInfoRequest(form_data_key="missing-key"),
+                ctx=SimpleNamespace(info=AsyncMock()),
+            )
+
+        assert result is error

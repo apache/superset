@@ -129,8 +129,11 @@ export default function EchartsTimeseries({
               values.length === 0
                 ? []
                 : groupby.map((col, idx) => {
-                    const val = groupbyValues.map(v => v[idx]);
-                    if (val === null || val === undefined)
+                    const val = groupbyValues.map(v => {
+                      const metricsCount = v.length - groupby.length;
+                      return v[metricsCount + idx];
+                    });
+                    if (val.every(vv => vv == null))
                       return {
                         col,
                         op: 'IS NULL' as const,
@@ -231,9 +234,12 @@ export default function EchartsTimeseries({
           // Cross-filter by dimension (original behavior)
           const { seriesName: name } = props;
           handleChange(name);
-        } else if (canCrossFilterByXAxis && props.data?.[0] != null) {
-          // Cross-filter by X-axis value when no dimensions (issue #25334)
-          handleXAxisChange(props.data[0]);
+        } else if (canCrossFilterByXAxis && props.name != null) {
+          // Cross-filter by X-axis value when no dimensions (issue #25334).
+          // Use `name` (the category-axis value) instead of `data[0]`: for
+          // horizontal bars the data tuple is value-first, so `data[0]` would
+          // be the metric value rather than the category (issue #41102).
+          handleXAxisChange(props.name);
         }
       }, TIMER_DURATION);
     },
@@ -315,8 +321,10 @@ export default function EchartsTimeseries({
         let crossFilter;
         if (hasDimensions) {
           crossFilter = getCrossFilterDataMask(seriesName);
-        } else if (canCrossFilterByXAxis && data?.[0] != null) {
-          crossFilter = getXAxisCrossFilterDataMask(data[0]);
+        } else if (canCrossFilterByXAxis && eventParams.name != null) {
+          // Use `name` (the category-axis value), not `data[0]`, so horizontal
+          // bars cross-filter on the category and not the metric (issue #41102).
+          crossFilter = getXAxisCrossFilterDataMask(eventParams.name);
         }
 
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
