@@ -84,7 +84,9 @@ async def test_algorithm_mismatch(hs256_verifier):
 
 
 @pytest.mark.asyncio
-async def test_unpinned_algorithm_is_rejected(hs256_verifier):
+async def test_unpinned_algorithm_is_rejected(
+    hs256_verifier: DetailedJWTVerifier,
+) -> None:
     """A verifier with no pinned algorithm must reject signed tokens.
 
     The upstream JWTVerifier currently always defaults the algorithm to RS256,
