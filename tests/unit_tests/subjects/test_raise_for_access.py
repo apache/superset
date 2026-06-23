@@ -47,7 +47,6 @@ def _make_dashboard(
         dashboard.datasources = [MagicMock()]
     else:
         dashboard.datasources = []
-    dashboard.roles = []
     return dashboard
 
 

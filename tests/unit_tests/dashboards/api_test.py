@@ -49,7 +49,6 @@ def mock_dashboard() -> MagicMock:
     dash.created_by = MagicMock(id=1, first_name="admin", last_name="user")
     dash.created_on_humanized = "5 days ago"
     dash.charts = []
-    dash.roles = []
     dash.editors = []
     dash.viewers = []
     dash.tags = []

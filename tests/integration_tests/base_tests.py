@@ -44,7 +44,6 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql.parse import CTASMethod
 from superset.subjects.models import Subject
-from superset.subjects.sync import sync_role_subject
 from superset.subjects.types import SubjectType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema, shortid
@@ -615,7 +614,6 @@ class SupersetTestCase(TestCase):
         dashboard_title: str,
         slug: Optional[str],
         editor_user_ids: list[int],
-        roles: list[int] = [],  # noqa: B006
         created_by=None,
         slices: Optional[list[Slice]] = None,
         position_json: str = "",
@@ -627,7 +625,6 @@ class SupersetTestCase(TestCase):
         desc: Optional[str] = None,
     ) -> Dashboard:
         obj_editors = list()  # noqa: C408
-        obj_viewers = list()  # noqa: C408
         slices = slices or []
         for user_id in editor_user_ids:
             subject = (
@@ -637,18 +634,6 @@ class SupersetTestCase(TestCase):
             )
             if subject:
                 obj_editors.append(subject)
-        for role in roles:
-            role_obj = db.session.query(security_manager.role_model).get(role)
-            if role_obj:
-                sync_role_subject(role_obj)
-                db.session.flush()
-                subject = (
-                    db.session.query(Subject)
-                    .filter_by(role_id=role_obj.id, type=SubjectType.ROLE)
-                    .first()
-                )
-                if subject:
-                    obj_viewers.append(subject)
 
         # Defensive cleanup: remove any existing dashboard with the same slug
         if slug:
@@ -664,7 +649,6 @@ class SupersetTestCase(TestCase):
             slug=slug,
             description=desc,
             editors=obj_editors,
-            viewers=obj_viewers,
             position_json=position_json,
             css=css,
             json_metadata=json_metadata,

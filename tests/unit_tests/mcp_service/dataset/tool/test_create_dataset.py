@@ -64,7 +64,7 @@ def _make_mock_dataset(
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.is_favorite = None
     dataset.database_id = 1
@@ -135,14 +135,14 @@ class TestCreateDataset:
         assert call_kwargs["database"] == 1
         assert call_kwargs["schema"] == "public"
         assert call_kwargs["table_name"] == "orders"
-        assert "owners" not in call_kwargs
+        assert "editors" not in call_kwargs
 
     @patch.object(create_dataset_module, "CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_with_owners(
+    async def test_create_dataset_with_editors(
         self, mock_command_class, mcp_server
     ) -> None:
-        """Owners list is forwarded to the command when supplied."""
+        """Editors list is forwarded to the command when supplied."""
         mock_dataset = _make_mock_dataset()
         mock_command = MagicMock()
         mock_command.run.return_value = mock_dataset
@@ -156,7 +156,7 @@ class TestCreateDataset:
                         "database_id": 2,
                         "schema": "sales",
                         "table_name": "transactions",
-                        "owners": [5, 10],
+                        "editors": [5, 10],
                     }
                 },
             )
@@ -165,7 +165,24 @@ class TestCreateDataset:
         assert data["id"] == 42
 
         call_kwargs = mock_command_class.call_args[0][0]
-        assert call_kwargs["owners"] == [5, 10]
+        assert call_kwargs["editors"] == [5, 10]
+
+    @pytest.mark.asyncio
+    async def test_create_dataset_rejects_owners(self, mcp_server) -> None:
+        """The legacy owners field is not part of the create_dataset contract."""
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "create_dataset",
+                    {
+                        "request": {
+                            "database_id": 2,
+                            "schema": "sales",
+                            "table_name": "transactions",
+                            "owners": [5, 10],
+                        }
+                    },
+                )
 
     @patch.object(create_dataset_module, "CreateDatasetCommand")
     @pytest.mark.asyncio

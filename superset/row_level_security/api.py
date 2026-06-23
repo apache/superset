@@ -27,7 +27,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
-    RolesNotFoundValidationError,
 )
 from superset.commands.security.create import CreateRLSRuleCommand
 from superset.commands.security.delete import DeleteRLSRuleCommand
@@ -47,6 +46,7 @@ from superset.row_level_security.schemas import (
     RLSPutSchema,
     RLSShowSchema,
 )
+from superset.subjects.exceptions import SubjectsNotFoundValidationError
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -85,8 +85,6 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "filter_type",
         "tables.id",
         "tables.table_name",
-        "roles.id",
-        "roles.name",
         "subjects.id",
         "subjects.label",
         "subjects.secondary_label",
@@ -110,7 +108,6 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "description",
         "filter_type",
         "tables",
-        "roles",
         "subjects",
         "group_key",
         "clause",
@@ -224,9 +221,9 @@ class RLSRestApi(BaseSupersetModelRestApi):
         try:
             new_model = CreateRLSRuleCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
-        except RolesNotFoundValidationError as ex:
+        except SubjectsNotFoundValidationError as ex:
             logger.error(
-                "Role not found while creating RLS rule %s: %s",
+                "Subject not found while creating RLS rule %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,
@@ -317,9 +314,9 @@ class RLSRestApi(BaseSupersetModelRestApi):
         try:
             new_model = UpdateRLSRuleCommand(pk, item).run()
             return self.response(200, id=new_model.id, result=item)
-        except RolesNotFoundValidationError as ex:
+        except SubjectsNotFoundValidationError as ex:
             logger.error(
-                "Role not found while updating RLS rule %s: %s",
+                "Subject not found while updating RLS rule %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,

@@ -32,11 +32,6 @@ export default {
   },
 };
 
-const sampleRoles = [
-  { id: 1, name: 'Admin' },
-  { id: 2, name: 'Alpha' },
-];
-
 const sampleEditors = [
   { id: 10, name: 'Alice Smith', label: 'Alice Smith', type: 1 },
   { id: 11, name: 'Dashboard Editors', label: 'Dashboard Editors', type: 2 },
@@ -56,11 +51,9 @@ const noopFn = () => {};
 
 const baseProps = {
   isLoading: false,
-  roles: sampleRoles,
   tags: sampleTags,
   editors: sampleEditors,
   viewers: sampleViewers,
-  onChangeRoles: noopFn,
   onChangeEditors: noopFn,
   onChangeViewers: noopFn,
   onChangeTags: noopFn,
@@ -143,14 +136,7 @@ EditorsAndViewersNoTags.parameters = {
 };
 
 export const LoadingState = () => (
-  <AccessSection
-    {...baseProps}
-    isLoading
-    roles={[]}
-    tags={[]}
-    editors={[]}
-    viewers={[]}
-  />
+  <AccessSection {...baseProps} isLoading tags={[]} editors={[]} viewers={[]} />
 );
 LoadingState.decorators = [
   withFeatureFlags({

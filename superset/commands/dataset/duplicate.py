@@ -130,6 +130,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             editors = populate_subject_list(
                 self._properties.get("editors"),
                 default_to_user=True,
+                field_name="editors",
             )
             self._properties["editors"] = editors
         except ValidationError as ex:

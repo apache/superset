@@ -30,7 +30,6 @@ import pandas as pd
 import sqlalchemy as sa
 from flask import current_app
 from flask_appbuilder import Model
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from markupsafe import escape, Markup
@@ -110,7 +109,6 @@ from superset.models.slice import Slice
 from superset.models.sql_types.base import CurrencyType
 from superset.sql.parse import sanitize_clause, SQLStatement, Table
 from superset.subjects.models import sqlatable_editors, Subject
-from superset.subjects.types import SubjectType
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -186,8 +184,6 @@ class BaseDatasource(
     # ---------------------------------------------------------------
     __tablename__: str | None = None  # {connector_name}_datasource
     baselink: str | None = None  # url portion pointing to ModelView endpoint
-
-    owner_class: User | None = None
 
     # Used to do code highlighting when displaying the query in the UI
     query_language: str | None = None
@@ -1295,8 +1291,6 @@ class SqlaTable(
     )
     metric_class = SqlMetric
     column_class = TableColumn
-    owner_class = security_manager.user_model
-
     __tablename__ = "tables"
 
     # Note this uniqueness constraint is not part of the physical schema, i.e., it does
@@ -2247,21 +2241,6 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         secondary=RLSFilterSubjects,
         backref="row_level_security_filters",
     )
-
-    @property
-    def roles(self) -> list[Any]:
-        """Derive roles from role-type subjects (backwards compat)."""
-        return [s.role for s in self.subjects if s.type == SubjectType.ROLE and s.role]
-
-    @roles.setter
-    def roles(self, roles: list[Any]) -> None:
-        """Assign role-type subjects from legacy role objects."""
-        from superset.subjects.utils import subjects_from_roles
-
-        non_role_subjects = [
-            subject for subject in self.subjects if subject.type != SubjectType.ROLE
-        ]
-        self.subjects = non_role_subjects + subjects_from_roles(roles)
 
     tables = relationship(
         SqlaTable,

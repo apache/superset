@@ -95,7 +95,6 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
     dashboard.external_url = None
     dashboard.uuid = "test-dashboard-uuid-1"
     dashboard.thumbnail_url = None
-    dashboard.roles = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -161,7 +160,6 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
     dashboard.external_url = None
     dashboard.uuid = None
     dashboard.thumbnail_url = None
-    dashboard.roles = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -256,7 +254,6 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
     dashboard.external_url = None
     dashboard.uuid = None
     dashboard.thumbnail_url = None
-    dashboard.roles = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -350,7 +347,6 @@ async def test_get_dashboard_info_success(
     dashboard.slices = []
     dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -428,7 +424,6 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
     dashboard.slices = []
     dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
     dashboard.charts = []
     mock_info.return_value = dashboard
     permalink_value = {
@@ -520,7 +515,6 @@ async def test_get_dashboard_info_permalink_key_includes_filter_state(
     dashboard.slices = []
     dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
     dashboard.charts = []
     mock_info.return_value = dashboard
 
@@ -702,16 +696,9 @@ async def test_get_dashboard_info_access_denied(mock_info, mcp_server):
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_get_dashboard_info_does_not_expose_access_list_or_roles(
-    mock_info, mcp_server
-):
+async def test_get_dashboard_info_does_not_expose_access_list(mock_info, mcp_server):
     creator = Mock()
     creator.username = "workspace-admin"
-
-    dashboard_role = Mock()
-    dashboard_role.id = 3
-    dashboard_role.name = "PresetAlpha"
-    dashboard_role.permissions = []
 
     chart = Mock()
     chart.id = 10
@@ -755,7 +742,6 @@ async def test_get_dashboard_info_does_not_expose_access_list_or_roles(
     dashboard.slices = [chart]
     dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = [dashboard_role]
 
     mock_info.return_value = dashboard
 
@@ -768,7 +754,6 @@ async def test_get_dashboard_info_does_not_expose_access_list_or_roles(
     assert "created_by" not in result.data
     assert "changed_by" not in result.data
     assert "editors" not in result.data
-    assert "roles" not in result.data
     assert "created_by" not in result.data["charts"][0]
     assert "changed_by" not in result.data["charts"][0]
     assert "editors" not in result.data["charts"][0]
@@ -826,7 +811,6 @@ async def test_get_dashboard_info_restricted_user_redacts_data_model_metadata(
     dashboard.slices = [chart]
     dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
 
     mock_info.return_value = dashboard
 
@@ -878,7 +862,6 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
     dashboard.slices = []
     dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
 
     mock_info.return_value = dashboard
 
@@ -968,7 +951,6 @@ async def test_list_dashboards_omits_requested_user_directory_fields(
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = "test-dashboard-uuid-1"
-    dashboard.roles = [Mock()]
     dashboard._mapping = {}
     mock_list.return_value = ([dashboard], 1)
 
@@ -980,7 +962,6 @@ async def test_list_dashboards_omits_requested_user_directory_fields(
                 "id",
                 "dashboard_title",
                 "editors",
-                "roles",
                 "created_by",
                 "changed_by",
             ],
@@ -995,7 +976,7 @@ async def test_list_dashboards_omits_requested_user_directory_fields(
         "id": 1,
         "dashboard_title": _wrapped("Customer Success Home Dashboard"),
     }
-    for field in ("editors", "roles", "created_by", "changed_by"):
+    for field in ("editors", "created_by", "changed_by"):
         assert field not in data["columns_requested"]
         assert field not in data["columns_loaded"]
         assert field not in data["columns_available"]
@@ -1032,7 +1013,6 @@ async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
     dashboard.slices = []
     dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
 
     mock_find_object.return_value = dashboard
     async with Client(mcp_server) as client:
@@ -1071,7 +1051,6 @@ async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
     dashboard.slices = []
     dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
 
     mock_find_object.return_value = dashboard
     async with Client(mcp_server) as client:
@@ -1110,7 +1089,6 @@ async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.thumbnail_url = None
-    dashboard.roles = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -1191,7 +1169,6 @@ async def test_list_dashboards_sanitizes_dashboard_descriptions_and_filter_text(
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.thumbnail_url = None
-    dashboard.roles = []
     dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
@@ -1331,7 +1308,6 @@ class TestDashboardDefaultColumnFiltering:
         dashboard.is_managed_externally = False
         dashboard.external_url = None
         dashboard.thumbnail_url = None
-        dashboard.roles = []
         dashboard.charts = []
         mock_list.return_value = ([dashboard], 1)
 

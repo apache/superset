@@ -38,7 +38,6 @@ import {
 } from '@superset-ui/core/components';
 import { findPermission } from 'src/utils/findPermission';
 import { safeStringify } from 'src/utils/safeStringify';
-import Role from 'src/types/Role';
 import Subject from 'src/types/Subject';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -106,7 +105,6 @@ type DashboardPropertiesUpdate = {
   certifiedBy?: string;
   certificationDetails?: string;
   editors?: Subject[];
-  roles?: Role[];
   tags?: TagType[];
   theme?: { id: number; theme_name: string; json_data: string } | null;
   css?: string;
@@ -127,7 +125,6 @@ type DashboardInfoState = RootState['dashboardInfo'] & {
   last_modified_time?: number;
   certified_by?: string;
   certification_details?: string;
-  roles?: Role[];
   tags?: TagType[];
   metadata: RootState['dashboardInfo']['metadata'] & {
     timed_refresh_immune_slices?: number[];
@@ -442,7 +439,6 @@ const Header = (): JSX.Element => {
       dashboard_title: dashboardTitle,
       last_modified_time: actualLastModifiedTime,
       editors: dashboardInfo.editors,
-      roles: dashboardInfo.roles,
       slug,
       description: dashboardInfo.description,
       tags: (dashboardInfo.tags || []).filter(
@@ -492,7 +488,6 @@ const Header = (): JSX.Element => {
     dashboardInfo.id,
     dashboardInfo.metadata,
     dashboardInfo.editors,
-    dashboardInfo.roles,
     dashboardInfo.tags,
     dashboardTitle,
     layout,
@@ -564,7 +559,6 @@ const Header = (): JSX.Element => {
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
         editors: updates.editors,
-        roles: updates.roles,
         tags: updates.tags,
         // Conditional spread: omit `theme` key entirely when undefined
         // to prevent the reducer from overwriting the existing theme.

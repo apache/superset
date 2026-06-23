@@ -98,7 +98,6 @@ from superset.mcp_service.privacy import (
 )
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
-    RoleInfo,
     serialize_subject_object,
     SubjectInfo,
     TagInfo,
@@ -148,20 +147,6 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
         name=getattr(tag, "name", None),
         type=getattr(tag, "type", None),
         description=getattr(tag, "description", None),
-    )
-
-
-def serialize_role_object(role: Any) -> RoleInfo | None:
-    """Serialize a role object to RoleInfo"""
-    if not role:
-        return None
-
-    return RoleInfo(
-        id=getattr(role, "id", None),
-        name=getattr(role, "name", None),
-        permissions=[perm.name for perm in getattr(role, "permissions", [])]
-        if hasattr(role, "permissions")
-        else None,
     )
 
 

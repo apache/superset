@@ -876,7 +876,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     allowEdit
                       ? t('Edit')
                       : t(
-                          'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
+                          'You must be a dataset editor in order to edit. Please reach out to a dataset editor to request modifications or edit access.',
                         )
                   }
                   placement="bottom"
@@ -1073,7 +1073,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Editor'),
-        key: 'owner',
+        key: 'editor',
         id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,

@@ -28,10 +28,8 @@ id_description = "Unique if of rls filter"
 name_description = "Name of rls filter"
 description_description = "Detailed description"
 # pylint: disable=line-too-long
-filter_type_description = "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them."  # noqa: E501
+filter_type_description = "Regular filters add where clauses to queries if a user matches a subject referenced in the filter, base filters apply filters to all queries except the subjects defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them."  # noqa: E501
 tables_description = "These are the tables this filter will be applied to."
-# pylint: disable=line-too-long
-roles_description = "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data."  # noqa: E501
 # pylint: disable=line-too-long
 subjects_description = "Subjects (users, roles, groups) associated with this RLS rule. For regular filters, the rule applies to these subjects. For base filters, these subjects are excluded from the filter."  # noqa: E501
 # pylint: disable=line-too-long
@@ -57,11 +55,6 @@ openapi_spec_methods_override = {
 }
 
 
-class RolesSchema(Schema):
-    name = fields.String()
-    id = fields.Integer()
-
-
 class TablesSchema(Schema):
     schema = fields.String()
     table_name = fields.String()
@@ -77,7 +70,6 @@ class RLSListSchema(Schema):
             [filter_type.value for filter_type in RowLevelSecurityFilterType]
         ),
     )
-    roles = fields.List(fields.Nested(RolesSchema))
     subjects = fields.List(fields.Nested(SubjectResponseSchema))
     tables = fields.List(fields.Nested(TablesSchema))
     clause = fields.String(metadata={"description": "clause_description"})
@@ -98,7 +90,6 @@ class RLSShowSchema(Schema):
             [filter_type.value for filter_type in RowLevelSecurityFilterType]
         ),
     )
-    roles = fields.List(fields.Nested(RolesSchema))
     subjects = fields.List(fields.Nested(SubjectResponseSchema))
     tables = fields.List(fields.Nested(TablesSchema))
     clause = fields.String(metadata={"description": "clause_description"})
@@ -132,12 +123,6 @@ class RLSPostSchema(Schema):
         required=True,
         allow_none=False,
         validate=Length(1),
-    )
-    roles = fields.List(
-        fields.Integer(),
-        metadata={"description": "roles_description"},
-        required=False,
-        allow_none=False,
     )
     subjects = fields.List(
         fields.Integer(),
@@ -178,12 +163,6 @@ class RLSPutSchema(Schema):
     tables = fields.List(
         fields.Integer(),
         metadata={"description": "tables_description"},
-        required=False,
-        allow_none=False,
-    )
-    roles = fields.List(
-        fields.Integer(),
-        metadata={"description": "roles_description"},
         required=False,
         allow_none=False,
     )

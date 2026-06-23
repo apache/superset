@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+from typing import Any
 
 from flask import current_app, g
 from flask_babel import lazy_gettext as _
@@ -222,7 +222,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             )
         )
 
-        # Editors query (replaces owner_ids_query)
+        # Editors query
         editor_ids_query = (
             db.session.query(dashboard_editors.c.dashboard_id)
             .join(
@@ -275,28 +275,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             )
         )
 
-        return query
-
-
-class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
-    """
-    A filter to allow searching for related roles of a resource.
-
-    Use in the api by adding something like:
-    related_field_filters = {
-      "roles": RelatedFieldFilter("name", FilterRelatedRoles),
-    }
-    """
-
-    name = _("Role")
-    arg_name = "roles"
-
-    def apply(self, query: Query, value: Optional[Any]) -> Query:
-        role_model = security_manager.role_model
-        if value:
-            return query.filter(
-                role_model.name.ilike(f"%{value}%"),
-            )
         return query
 
 

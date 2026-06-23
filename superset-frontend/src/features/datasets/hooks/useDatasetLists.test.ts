@@ -360,7 +360,6 @@ test('useDatasetsList fetches datasets for schema-less databases without schema 
   const schemalessDb = {
     id: 2,
     database_name: 'ydb',
-    owners: [1] as [number],
     supports_schemas: false,
   };
 
@@ -405,7 +404,6 @@ test('useDatasetsList skips fetching when schema-less database id is undefined',
 
   const schemalessDb = {
     database_name: 'ydb',
-    owners: [1] as [number],
     supports_schemas: false,
   };
 

@@ -21,5 +21,5 @@ from marshmallow import ValidationError
 class SubjectsNotFoundValidationError(ValidationError):
     status = 422
 
-    def __init__(self) -> None:
-        super().__init__([_("Subjects are invalid")], field_name="editors")
+    def __init__(self, field_name: str = "subjects") -> None:
+        super().__init__([_("Subjects are invalid")], field_name=field_name)

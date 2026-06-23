@@ -153,7 +153,7 @@ User and Role Management:
 
 Row Level Security (Admin only):
 - list_rls_filters: List RLS filters with filtering and search (1-based pagination)
-- get_rls_filter_info: Get detailed RLS filter info by ID (tables, roles, clause)
+- get_rls_filter_info: Get detailed RLS filter info by ID (tables, subjects, clause)
 
 Alerts & Reports:
 - list_reports: List alerts and reports with filtering and search (1-based pagination)

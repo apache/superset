@@ -23,12 +23,10 @@ from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.security.exceptions import RLSRuleNotFoundError
 from superset.commands.security.utils import raise_for_datasource_access
-from superset.commands.utils import populate_roles, populate_subject_list
+from superset.commands.utils import populate_subject_list
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.daos.security import RLSDAO
 from superset.extensions import db
-from superset.subjects.models import Subject
-from superset.subjects.types import SubjectType
 from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
@@ -39,7 +37,6 @@ class UpdateRLSRuleCommand(BaseCommand):
         self._model_id = model_id
         self._properties = data.copy()
         self._tables = self._properties.get("tables", [])
-        self._roles = self._properties.get("roles", [])
         self._subjects = self._properties.get("subjects", [])
         self._model: Optional[RowLevelSecurityFilter] = None
 
@@ -54,31 +51,12 @@ class UpdateRLSRuleCommand(BaseCommand):
         if not self._model:
             raise RLSRuleNotFoundError()
 
-        # Resolve subjects: if `subjects` provided, use directly;
-        # if only `roles` provided, look up role-type subjects (backwards compat);
-        # if both provided, `subjects` wins.
         if self._subjects:
             subjects = populate_subject_list(
                 self._subjects,
                 default_to_user=False,
             )
             self._properties["subjects"] = subjects
-        elif self._roles:
-            roles = populate_roles(self._roles)
-            # Also resolve role-type subjects for the subjects relationship
-            role_ids = [r.id for r in roles]
-            subjects = (
-                db.session.query(Subject)
-                .filter(
-                    Subject.type == SubjectType.ROLE,
-                    Subject.role_id.in_(role_ids),
-                )
-                .all()
-            )
-            self._properties["subjects"] = subjects
-
-        # Remove roles from properties — it's a computed property on the model
-        self._properties.pop("roles", None)
 
         tables = (
             db.session.query(SqlaTable)

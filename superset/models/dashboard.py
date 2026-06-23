@@ -54,7 +54,6 @@ from superset.subjects.models import (
     dashboard_viewers,
     Subject,
 )
-from superset.subjects.types import SubjectType
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
@@ -163,11 +162,6 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         secondary=dashboard_viewers,
         passive_deletes=True,
     )
-
-    @property
-    def roles(self) -> list[Any]:
-        """Derive roles from role-type viewers (backwards compat)."""
-        return [s.role for s in self.viewers if s.type == SubjectType.ROLE and s.role]
 
     embedded = relationship(
         "EmbeddedDashboard",

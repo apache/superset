@@ -1985,10 +1985,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test update
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.put_assert_metric(uri, self.dashboard_data, "put")
@@ -2015,10 +2012,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test that a filter was added
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}/filters"
         rv = self.put_assert_metric(uri, self.dashboard_put_filters_data, "put_filters")
@@ -2036,7 +2030,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test that a filter was added
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "native_filter_configuration": [
                 {
@@ -2051,7 +2044,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -2073,7 +2065,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test filters reordered
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "native_filter_configuration": [
                 {
@@ -2094,7 +2085,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -2119,7 +2109,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test filters deleted
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "native_filter_configuration": [
                 {
@@ -2140,7 +2129,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -2165,10 +2153,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test modify filters with invalid data
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}/filters"
         put_data = {"invalid_key": "invalid_value"}
@@ -2184,10 +2169,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test that chart customizations were added
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
         put_data = {
@@ -2226,7 +2208,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test that chart customizations were modified
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "chart_customization_config": [
                 {
@@ -2240,7 +2221,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -2282,7 +2262,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test chart customizations reordered
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "chart_customization_config": [
                 {
@@ -2301,7 +2280,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -2331,7 +2309,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test chart customizations deleted
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "chart_customization_config": [
                 {
@@ -2350,7 +2327,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -2380,7 +2356,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         (modify, add, delete, reorder)
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
         json_metadata = {
             "chart_customization_config": [
                 {
@@ -2404,7 +2379,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "title1",
             "slug1",
             [admin.id],
-            roles=[admin_role.id],
             json_metadata=json.dumps(json_metadata),
         ).id
         self.login(ADMIN_USERNAME)
@@ -2451,10 +2425,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test modify chart customizations with invalid data
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
         put_data = {"invalid_key": "invalid_value"}
@@ -2484,10 +2455,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test chart customizations update forbidden for non-editor
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(GAMMA_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}/chart_customizations"
         put_data = {
@@ -2508,10 +2476,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Tests that no username is returned
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         model = db.session.query(Dashboard).get(dashboard_id)
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -2536,10 +2501,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Tests that no username is returned
         """
         admin = self.get_user("admin")
-        admin_role = self.get_role("Admin")
-        dashboard_id = self.insert_dashboard(
-            "title1", "slug1", [admin.id], roles=[admin_role.id]
-        ).id
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         model = db.session.query(Dashboard).get(dashboard_id)
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
@@ -3567,7 +3529,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_update_dashboard_add_tags_can_tag_on_dashboard(self):
         """
-        Validates an owner with can tag on dashboard permission can
+        Validates an editor with can tag on dashboard permission can
         add tags while updating a dashboard
         """
         self.login(GAMMA_USERNAME)
@@ -3602,7 +3564,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_update_dashboard_remove_tags_can_tag_on_dashboard(self):
         """
-        Validates an owner with can tag on dashboard permission can
+        Validates an editor with can tag on dashboard permission can
         remove tags from a dashboard
         """
         self.login(GAMMA_USERNAME)
@@ -3633,7 +3595,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_update_dashboard_add_tags_missing_permission(self):
         """
-        Validates an owner can't add tags to a dashboard if they don't
+        Validates an editor can't add tags to a dashboard if they don't
         have permission to it
         """
         self.login(GAMMA_USERNAME)
@@ -3671,7 +3633,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_update_dashboard_remove_tags_missing_permission(self):
         """
-        Validates an owner can't remove tags from a dashboard if they don't
+        Validates an editor can't remove tags from a dashboard if they don't
         have permission to it
         """
         self.login(GAMMA_USERNAME)
@@ -3705,7 +3667,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_update_dashboard_no_tag_changes(self):
         """
-        Validates an owner without permission to change tags is able to
+        Validates an editor without permission to change tags is able to
         update a dashboard when tags haven't changed
         """
         self.login(GAMMA_USERNAME)
@@ -4167,7 +4129,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         """Verify custom_tags filtering at model and API level.
 
         With DASHBOARD_LIST_CUSTOM_TAGS_ONLY=True in superset_test_config.py:
-        1. dashboard.tags returns ALL tags (custom + owner + type)
+        1. dashboard.tags returns ALL tags (custom + editor + type)
         2. dashboard.custom_tags returns ONLY custom tags
         3. API response returns ONLY custom tags in the "tags" property
         """
@@ -4197,7 +4159,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             all_tag_names = [t.name for t in all_tags]
             assert "critical" in all_tag_names, "Should include custom tag"
             assert any(t.name.startswith("editor:") for t in all_tags), (
-                "Should include owner tags"
+                "Should include editor tags"
             )
             assert any(t.name.startswith("type:") for t in all_tags), (
                 "Should include type tags"
@@ -4208,7 +4170,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             custom_tag_names = [t.name for t in custom_only]
             assert "critical" in custom_tag_names, "Should include custom tag"
             assert not any(t.name.startswith("editor:") for t in custom_only), (
-                f"custom_tags should NOT include owner tags, got: {custom_tag_names}"
+                f"custom_tags should NOT include editor tags, got: {custom_tag_names}"
             )
             assert not any(t.name.startswith("type:") for t in custom_only), (
                 f"custom_tags should NOT include type tags, got: {custom_tag_names}"
@@ -4240,7 +4202,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             assert "critical" in api_tag_names, "API should include custom tag"
             assert not any(
                 t["name"].startswith("editor:") for t in test_dash["tags"]
-            ), f"API should NOT include owner tags, got: {api_tag_names}"
+            ), f"API should NOT include editor tags, got: {api_tag_names}"
             assert not any(t["name"].startswith("type:") for t in test_dash["tags"]), (
                 f"API should NOT include type tags, got: {api_tag_names}"
             )

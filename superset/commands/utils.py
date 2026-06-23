@@ -62,6 +62,7 @@ def populate_subject_list(
     subject_ids: list[int] | None,
     default_to_user: bool,
     ensure_no_lockout: bool = False,
+    field_name: str = "subjects",
 ) -> list[Subject]:
     """
     Helper function for commands, will fetch all subjects from subject id's.
@@ -69,6 +70,7 @@ def populate_subject_list(
     :param subject_ids: list of subject id's
     :param default_to_user: add current user's subject if list is empty
     :param ensure_no_lockout: prevent non-admins from removing themselves
+    :param field_name: field name for validation errors
     :raises SubjectsNotFoundValidationError: if a subject id can't be resolved
     :returns: Final list of subjects
     """
@@ -92,7 +94,7 @@ def populate_subject_list(
     for sid in subject_ids:
         subject = get_subject(sid)
         if not subject:
-            raise SubjectsNotFoundValidationError()
+            raise SubjectsNotFoundValidationError(field_name)
         subjects.append(subject)
     return subjects
 
@@ -101,6 +103,7 @@ def compute_subject_list(
     current_subjects: list[Subject] | None,
     new_subject_ids: list[int] | None,
     ensure_no_lockout: bool = False,
+    field_name: str = "subjects",
 ) -> list[Subject]:
     """
     Helper function for update commands, to properly handle the subjects list.
@@ -109,6 +112,7 @@ def compute_subject_list(
     :param current_subjects: list of current subjects
     :param new_subject_ids: list of new subject ids specified in the update payload
     :param ensure_no_lockout: prevent non-admins from removing themselves
+    :param field_name: field name for validation errors
     :returns: Final list of subjects
     """
     current_subjects = current_subjects or []
@@ -119,6 +123,7 @@ def compute_subject_list(
         subject_ids,
         default_to_user=False,
         ensure_no_lockout=ensure_no_lockout,
+        field_name=field_name,
     )
 
 
@@ -139,6 +144,7 @@ def populate_subjects(
             properties.get("editors"),
             default_to_user=True,
             ensure_no_lockout=True,
+            field_name="editors",
         )
     except ValidationError as ex:
         exceptions.append(ex)
@@ -148,6 +154,7 @@ def populate_subjects(
             properties["viewers"] = populate_subject_list(
                 properties["viewers"],
                 default_to_user=False,
+                field_name="viewers",
             )
         except ValidationError as ex:
             exceptions.append(ex)
@@ -171,6 +178,7 @@ def compute_subjects(
             model.editors,
             properties.get("editors"),
             ensure_no_lockout=True,
+            field_name="editors",
         )
     except ValidationError as ex:
         exceptions.append(ex)
@@ -180,6 +188,7 @@ def compute_subjects(
             properties["viewers"] = compute_subject_list(
                 model.viewers,
                 properties.get("viewers"),
+                field_name="viewers",
             )
         except ValidationError as ex:
             exceptions.append(ex)

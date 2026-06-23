@@ -97,7 +97,7 @@ def test_user_directory_fields_removed_from_python_and_json_dumps(model):
     ("schema_cls", "omitted_fields"),
     [
         (ChartInfo, {"created_by", "changed_by", "changed_by_name", "editors"}),
-        (DashboardInfo, {"created_by", "changed_by", "editors", "roles"}),
+        (DashboardInfo, {"created_by", "changed_by", "editors"}),
         (DatasetInfo, {"created_by", "changed_by", "editors"}),
         (ReportInfo, {"created_by", "changed_by", "editors"}),
         (DatabaseInfo, {"created_by", "changed_by"}),

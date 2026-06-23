@@ -78,7 +78,6 @@ type PropertiesModalProps = {
   onlyApply?: boolean;
 };
 
-type Roles = { id: number; name: string }[];
 type DashboardInfo = {
   id: number;
   title: string;
@@ -119,7 +118,6 @@ const PropertiesModal = ({
   const jsonAnnotations = useJsonValidation(jsonMetadata, {
     errorPrefix: 'Invalid JSON metadata',
   });
-  const [roles, setRoles] = useState<Roles>([]);
   const [editors, setEditors] = useState<Subject[]>([]);
   const [viewers, setViewers] = useState<Subject[]>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
@@ -168,7 +166,6 @@ const PropertiesModal = ({
         slug,
         certified_by,
         certification_details,
-        roles,
         editors,
         viewers,
         metadata,
@@ -191,7 +188,6 @@ const PropertiesModal = ({
 
       form.setFieldsValue(dashboardInfo);
       setDashboardInfo(dashboardInfo);
-      setRoles(roles);
       setEditors(editors || []);
       setViewers(viewers || []);
       setCustomCss(css || '');
@@ -248,14 +244,6 @@ const PropertiesModal = ({
     } catch (_) {
       return {};
     }
-  };
-
-  const handleOnChangeRoles = (roles: { value: number; label: string }[]) => {
-    const parsedRoles: Roles = ensureIsArray(roles).map(r => ({
-      id: r.value,
-      name: r.label,
-    }));
-    setRoles(parsedRoles);
   };
 
   const handleOnChangeEditors = (values: SubjectPickerValue[]) => {
@@ -394,12 +382,10 @@ const PropertiesModal = ({
     currentJsonMetadata = jsonStringify(jsonMetadataObj);
 
     const moreOnSubmitProps: {
-      roles?: Roles;
       tags?: TagType[];
       viewers?: Subject[];
     } = {};
     const morePutProps: {
-      roles?: number[];
       tags?: (string | number | undefined)[];
       viewers?: number[];
     } = {};
@@ -763,11 +749,9 @@ const PropertiesModal = ({
               children: (
                 <AccessSection
                   isLoading={isLoading}
-                  roles={roles}
                   tags={tags}
                   editors={editors}
                   viewers={viewers}
-                  onChangeRoles={handleOnChangeRoles}
                   onChangeEditors={handleOnChangeEditors}
                   onChangeViewers={handleOnChangeViewers}
                   onChangeTags={handleChangeTags}

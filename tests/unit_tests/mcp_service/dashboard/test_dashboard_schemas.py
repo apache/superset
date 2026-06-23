@@ -54,7 +54,6 @@ def _mock_dashboard(
     editors: list[Any] | None = None,
     slices: list[Any] | None = None,
     tags: list[Any] | None = None,
-    roles: list[Any] | None = None,
 ) -> MagicMock:
     """Create a mock Dashboard ORM object."""
     dashboard = MagicMock()
@@ -80,7 +79,6 @@ def _mock_dashboard(
     dashboard.editors = editors or []
     dashboard.slices = slices or []
     dashboard.tags = tags or []
-    dashboard.roles = roles or []
     return dashboard
 
 

@@ -191,7 +191,7 @@ test('renders correct column headers', async () => {
     const chartHeader = screen
       .getAllByText('Chart')
       .find(el => el.closest('th'));
-    const ownersHeader = screen
+    const editorsHeader = screen
       .getAllByText('Chart editors')
       .find(el => el.closest('th'));
     const lastModifiedHeader = screen
@@ -202,7 +202,7 @@ test('renders correct column headers', async () => {
       .find(el => el.closest('th'));
 
     expect(chartHeader).toBeInTheDocument();
-    expect(ownersHeader).toBeInTheDocument();
+    expect(editorsHeader).toBeInTheDocument();
     expect(lastModifiedHeader).toBeInTheDocument();
     expect(dashboardHeader).toBeInTheDocument();
   });
@@ -240,10 +240,10 @@ test('enables sorting for Chart and Last modified columns', async () => {
       .find(el => el.closest('th'))
       ?.closest('th');
 
-    const ownersHeader = screen
-      .getAllByText('Chart editors')
-      .find(el => el.closest('th'))
-      ?.closest('th');
+      const editorsHeader = screen
+        .getAllByText('Chart editors')
+        .find(el => el.closest('th'))
+        ?.closest('th');
 
     const dashboardHeader = screen
       .getAllByText('Dashboard usage')
@@ -252,7 +252,7 @@ test('enables sorting for Chart and Last modified columns', async () => {
 
     expect(chartHeader).toHaveClass('ant-table-column-has-sorters');
     expect(lastModifiedHeader).toHaveClass('ant-table-column-has-sorters');
-    expect(ownersHeader).not.toHaveClass('ant-table-column-has-sorters');
+      expect(editorsHeader).not.toHaveClass('ant-table-column-has-sorters');
     expect(dashboardHeader).not.toHaveClass('ant-table-column-has-sorters');
   });
 });
@@ -577,7 +577,7 @@ test('can search charts by chart name', async () => {
   });
 });
 
-test('can search charts by owner name', async () => {
+test('can search charts by editor name', async () => {
   setupTest();
 
   await waitFor(() => {

@@ -353,7 +353,6 @@ class TestGetSchemaToolViaClient:
 
         for field in (
             "editors",
-            "roles",
             "created_by",
             "created_by_fk",
             "changed_by",
@@ -363,7 +362,7 @@ class TestGetSchemaToolViaClient:
             assert field not in info["sortable_columns"]
 
         # User-name and relationship fields stay out of filter_columns
-        for field in ("editors", "roles", "created_by", "changed_by"):
+        for field in ("editors", "created_by", "changed_by"):
             assert field not in info["filter_columns"]
 
         # ID-only filter columns are advertised so callers can filter via find_users

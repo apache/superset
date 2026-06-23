@@ -261,6 +261,19 @@ def _cleanup_test_dataset():
         db.session.commit()
 
 
+def _subject_for_role(role: Any) -> Subject:
+    """Return the ROLE-type subject for a FAB role."""
+    from superset.subjects.sync import sync_role_subject
+
+    sync_role_subject(role)
+    db.session.flush()
+    return (
+        db.session.query(Subject)
+        .filter_by(role_id=role.id, type=SubjectType.ROLE)
+        .one()
+    )
+
+
 class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
     def test_invalid_id_failure(self):
         self.login(ADMIN_USERNAME)
@@ -269,7 +282,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
             "clause": "1=1",
             "filter_type": "Base",
             "tables": [1],
-            "roles": [1],
+            "subjects": [1],
         }
         rv = self.client.put("/api/v1/rowlevelsecurity/99999999", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
@@ -277,7 +290,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         assert data["message"] == "Not found"
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_invalid_role_failure(self):
+    def test_invalid_subject_failure(self):
         table = db.session.query(SqlaTable).first()
 
         rls = RowLevelSecurityFilter(
@@ -291,12 +304,12 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         payload = {
-            "roles": [999999],
+            "subjects": [999999],
         }
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
         assert status_code == 422
-        assert data["message"] == "[l'Some roles do not exist']"
+        assert data["message"] == "[l'Subjects are invalid']"
 
         db.session.delete(rls)
         db.session.commit()
@@ -320,7 +333,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
             "clause": "1=1",
             "filter_type": "Base",
             "tables": [999999],
-            "roles": [1],
+            "subjects": [1],
         }
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
@@ -335,13 +348,14 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
     def test_put_success(self):
         tables = db.session.query(SqlaTable).limit(2).all()
         roles = db.session.query(security_manager.role_model).limit(2).all()
+        role_subjects = [_subject_for_role(role) for role in roles]
 
         rls = RowLevelSecurityFilter(
             name="rls 1",
             clause="1=1",
             filter_type="Regular",
             tables=[tables[0]],
-            roles=[roles[0]],
+            subjects=[role_subjects[0]],
         )
         db.session.add(rls)
         db.session.commit()
@@ -352,7 +366,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
             "clause": "2=2",
             "filter_type": "Base",
             "tables": [tables[1].id],
-            "roles": [roles[1].id],
+            "subjects": [role_subjects[1].id],
         }
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
         status_code, _data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
@@ -369,7 +383,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         assert rls.clause == "2=2"
         assert rls.filter_type == "Base"
         assert rls.tables[0].id == tables[1].id
-        assert rls.roles[0].id == roles[1].id
+        assert rls.subjects[0].role_id == roles[1].id
 
         db.session.delete(rls)
         db.session.commit()
@@ -391,20 +405,21 @@ class TestRowLevelSecurityDeleteAPI(SupersetTestCase):
     def test_bulk_delete_success(self):
         tables = db.session.query(SqlaTable).limit(2).all()
         roles = db.session.query(security_manager.role_model).limit(2).all()
+        role_subjects = [_subject_for_role(role) for role in roles]
 
         rls_1 = RowLevelSecurityFilter(
             name="rls 1",
             clause="1=1",
             filter_type="Regular",
             tables=[tables[0]],
-            roles=[roles[0]],
+            subjects=[role_subjects[0]],
         )
         rls_2 = RowLevelSecurityFilter(
             name="rls 2",
             clause="2=2",
             filter_type="Base",
             tables=[tables[1]],
-            roles=[roles[1]],
+            subjects=[role_subjects[1]],
         )
         db.session.add_all([rls_1, rls_2])
         db.session.commit()
@@ -559,7 +574,7 @@ def test_model_view_rls_add_success(admin_client):
             "description": "Some description",
             "filter_type": "Regular",
             "tables": [test_dataset.id],
-            "roles": [security_manager.find_role("Alpha").id],
+            "subjects": [_subject_for_role(security_manager.find_role("Alpha")).id],
             "group_key": "group_key_1",
             "clause": "client_id=1",
         },
@@ -585,7 +600,7 @@ def test_model_view_rls_add_name_unique(admin_client):
             "description": "Some description",
             "filter_type": "Regular",
             "tables": [test_dataset.id],
-            "roles": [security_manager.find_role("Alpha").id],
+            "subjects": [_subject_for_role(security_manager.find_role("Alpha")).id],
             "group_key": "group_key_1",
             "clause": "client_id=1",
         },
@@ -602,7 +617,7 @@ def test_model_view_rls_add_tables_required(admin_client):
             "description": "Some description",
             "filter_type": "Regular",
             "tables": [],
-            "roles": [security_manager.find_role("Alpha").id],
+            "subjects": [_subject_for_role(security_manager.find_role("Alpha")).id],
             "group_key": "group_key_1",
             "clause": "client_id=1",
         },
@@ -826,18 +841,18 @@ def test_rls_filter_applies_to_virtual_dataset_with_join():
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-def test_create_api_invalid_role_failure(admin_client):
+def test_create_api_invalid_subject_failure(admin_client):
     payload = {
         "name": "rls 1",
         "clause": "1=1",
         "filter_type": "Base",
         "tables": [1],
-        "roles": [999999],
+        "subjects": [999999],
     }
     rv = admin_client.post("/api/v1/rowlevelsecurity/", json=payload)
     status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
     assert status_code == 422
-    assert data["message"] == "[l'Some roles do not exist']"
+    assert data["message"] == "[l'Subjects are invalid']"
 
 
 def test_create_api_invalid_table_failure(admin_client):
@@ -846,7 +861,7 @@ def test_create_api_invalid_table_failure(admin_client):
         "clause": "1=1",
         "filter_type": "Base",
         "tables": [999999],
-        "roles": [1],
+        "subjects": [1],
     }
     rv = admin_client.post("/api/v1/rowlevelsecurity/", json=payload)
     status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
@@ -857,12 +872,13 @@ def test_create_api_invalid_table_failure(admin_client):
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_create_api_post_success(admin_client):
     table = db.session.query(SqlaTable).first()
+    subject = _subject_for_role(security_manager.find_role("Admin"))
     payload = {
         "name": "rls 1",
         "clause": "1=1",
         "filter_type": "Base",
         "tables": [table.id],
-        "roles": [1],
+        "subjects": [subject.id],
     }
     rv = admin_client.post("/api/v1/rowlevelsecurity/", json=payload)
     status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
@@ -880,7 +896,7 @@ def test_create_api_post_success(admin_client):
     assert rls.clause == "1=1"
     assert rls.filter_type == "Base"
     assert rls.tables[0].id == table.id
-    assert rls.roles[0].id == 1
+    assert rls.subjects[0].id == subject.id
 
     db.session.delete(rls)
     db.session.commit()
@@ -897,7 +913,7 @@ def test_update_api_invalid_id_failure(admin_client):
         "clause": "1=1",
         "filter_type": "Base",
         "tables": [1],
-        "roles": [1],
+        "subjects": [1],
     }
     rv = admin_client.put("/api/v1/rowlevelsecurity/99999999", json=payload)
     status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
@@ -906,7 +922,7 @@ def test_update_api_invalid_id_failure(admin_client):
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-def test_update_api_invalid_role_failure(admin_client):
+def test_update_api_invalid_subject_failure(admin_client):
     table = db.session.query(SqlaTable).first()
 
     rls = RowLevelSecurityFilter(
@@ -919,12 +935,12 @@ def test_update_api_invalid_role_failure(admin_client):
     db.session.commit()
 
     payload = {
-        "roles": [999999],
+        "subjects": [999999],
     }
     rv = admin_client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
     status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
     assert status_code == 422
-    assert data["message"] == "[l'Some roles do not exist']"
+    assert data["message"] == "[l'Subjects are invalid']"
 
     db.session.delete(rls)
     db.session.commit()
@@ -948,7 +964,7 @@ def test_update_api_invalid_table_failure(admin_client):
         "clause": "1=1",
         "filter_type": "Base",
         "tables": [999999],
-        "roles": [1],
+        "subjects": [1],
     }
     rv = admin_client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
     status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
@@ -963,17 +979,16 @@ def test_update_api_invalid_table_failure(admin_client):
     "load_birth_names_dashboard_with_slices", "load_energy_table_with_slice"
 )
 def test_update_api_put_success(admin_client):
-    from superset.subjects.utils import subjects_from_roles
-
     tables = db.session.query(SqlaTable).limit(2).all()
     roles = db.session.query(security_manager.role_model).limit(2).all()
+    role_subjects = [_subject_for_role(role) for role in roles]
 
     rls = RowLevelSecurityFilter(
         name="rls 1",
         clause="1=1",
         filter_type="Regular",
         tables=[tables[0]],
-        subjects=subjects_from_roles([roles[0]]),
+        subjects=[role_subjects[0]],
     )
     db.session.add(rls)
     db.session.commit()
@@ -983,7 +998,7 @@ def test_update_api_put_success(admin_client):
         "clause": "2=2",
         "filter_type": "Base",
         "tables": [tables[1].id],
-        "roles": [roles[1].id],
+        "subjects": [role_subjects[1].id],
     }
     rv = admin_client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
     status_code, _data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
@@ -1000,7 +1015,7 @@ def test_update_api_put_success(admin_client):
     assert rls.clause == "2=2"
     assert rls.filter_type == "Base"
     assert rls.tables[0].id == tables[1].id
-    assert rls.roles[0].id == roles[1].id
+    assert rls.subjects[0].role_id == roles[1].id
 
     db.session.delete(rls)
     db.session.commit()
@@ -1024,24 +1039,23 @@ def test_delete_api_invalid_id_failure(admin_client):
     "load_birth_names_dashboard_with_slices", "load_energy_table_with_slice"
 )
 def test_delete_api_bulk_delete_success(admin_client):
-    from superset.subjects.utils import subjects_from_roles
-
     tables = db.session.query(SqlaTable).limit(2).all()
     roles = db.session.query(security_manager.role_model).limit(2).all()
+    role_subjects = [_subject_for_role(role) for role in roles]
 
     rls_1 = RowLevelSecurityFilter(
         name="rls 1",
         clause="1=1",
         filter_type="Regular",
         tables=[tables[0]],
-        subjects=subjects_from_roles([roles[0]]),
+        subjects=[role_subjects[0]],
     )
     rls_2 = RowLevelSecurityFilter(
         name="rls 2",
         clause="2=2",
         filter_type="Base",
         tables=[tables[1]],
-        subjects=subjects_from_roles([roles[1]]),
+        subjects=[role_subjects[1]],
     )
     db.session.add_all([rls_1, rls_2])
     db.session.commit()

@@ -421,7 +421,7 @@ class GetDatasetInfoRequest(MetadataCacheControl):
 class CreateDatasetRequest(BaseModel):
     """Request schema for create_dataset to register a physical table as a dataset."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     database_id: Annotated[
         int,
@@ -457,11 +457,11 @@ class CreateDatasetRequest(BaseModel):
             description="Name of the physical table to register as a dataset",
         ),
     ]
-    owners: Annotated[
+    editors: Annotated[
         List[int] | None,
         Field(
             default=None,
-            description="Optional list of owner user IDs. "
+            description="Optional list of editor subject IDs. "
             "Defaults to the calling user.",
         ),
     ]

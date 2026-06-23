@@ -85,11 +85,10 @@ class Datasource(BaseSupersetView):
         )
         orm_datasource.database_id = database_id
 
-        if orm_datasource.owner_class is not None:
-            try:
-                security_manager.raise_for_editorship(orm_datasource)
-            except SupersetSecurityException as ex:
-                raise DatasetForbiddenError() from ex
+        try:
+            security_manager.raise_for_editorship(orm_datasource)
+        except SupersetSecurityException as ex:
+            raise DatasetForbiddenError() from ex
 
         duplicates = [
             name

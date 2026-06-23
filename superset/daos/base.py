@@ -433,31 +433,6 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         return query.filter_by(**filter_by).one_or_none()
 
     @classmethod
-    def _bridge_legacy_attributes(
-        cls, item: Any, attributes: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Bridge legacy ``roles`` keys to ``subjects``.
-
-        Since ``roles`` are now read-only computed properties,
-        they cannot be set via ``setattr``. This method converts them to
-        their subject equivalents and removes them from the dict.
-        """
-        from superset.subjects.utils import subjects_from_roles
-
-        attrs = dict(attributes)
-
-        # Bridge roles → viewers/subjects (only when the target not provided)
-        if "roles" in attrs:
-            roles = attrs.pop("roles")
-            role_subjects = subjects_from_roles(roles)
-            if hasattr(item, "viewers") and "viewers" not in attrs:
-                attrs["viewers"] = role_subjects
-            elif hasattr(item, "subjects") and "subjects" not in attrs:
-                attrs["subjects"] = role_subjects
-
-        return attrs
-
-    @classmethod
     def create(
         cls,
         item: T | None = None,
@@ -474,7 +449,6 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             item = cls.model_cls()  # type: ignore  # pylint: disable=not-callable
 
         if attributes:
-            attributes = cls._bridge_legacy_attributes(item, attributes)
             for key, value in attributes.items():
                 setattr(item, key, value)
 
@@ -498,7 +472,6 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             item = cls.model_cls()  # type: ignore  # pylint: disable=not-callable
 
         if attributes:
-            attributes = cls._bridge_legacy_attributes(item, attributes)
             for key, value in attributes.items():
                 setattr(item, key, value)
 

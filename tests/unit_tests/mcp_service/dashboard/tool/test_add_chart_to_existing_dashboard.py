@@ -121,7 +121,6 @@ def _mock_dashboard(
     dashboard.slices = slices or []
     dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
     dashboard.position_json = "{}"
     dashboard.json_metadata = None
     dashboard.css = None

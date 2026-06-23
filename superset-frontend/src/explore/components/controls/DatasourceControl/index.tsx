@@ -390,7 +390,7 @@ class DatasourceControl extends PureComponent<
         label: !allowEdit ? (
           <Tooltip
             title={t(
-              'You must be a %s owner in order to edit. Please reach out to a %s owner to request modifications or edit access.',
+              'You must be a %s editor in order to edit. Please reach out to a %s editor to request modifications or edit access.',
               datasetLabelLower(),
               datasetLabelLower(),
             )}

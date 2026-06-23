@@ -232,7 +232,6 @@ def test_save_always_checks_editorship_even_without_editors_field(
 ) -> None:
     """Editorship check runs even when 'editors' is absent from the payload."""
     mock_orm = MagicMock()
-    mock_orm.owner_class = MagicMock()  # not None — model supports editorship
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.side_effect = SupersetSecurityException(
         SupersetError(
@@ -277,7 +276,6 @@ def test_save_non_editor_with_editors_field_is_rejected(
 ) -> None:
     """A non-editor cannot use the save endpoint even when supplying an editors list."""
     mock_orm = MagicMock()
-    mock_orm.owner_class = MagicMock()  # not None — model supports editorship
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.side_effect = SupersetSecurityException(
         SupersetError(

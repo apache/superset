@@ -46,15 +46,11 @@ def test_create_rls_rule_forbidden_when_no_datasource_access() -> None:
     with (
         _patch_query("superset.commands.security.create", tables),
         patch(
-            "superset.commands.security.create.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=False,
         ) as can_access,
     ):
-        command = CreateRLSRuleCommand({"tables": [1], "roles": []})
+        command = CreateRLSRuleCommand({"tables": [1], "subjects": []})
         with pytest.raises(RLSDatasourceForbiddenError):
             command.validate()
 
@@ -67,15 +63,11 @@ def test_create_rls_rule_allowed_when_datasource_access() -> None:
     with (
         _patch_query("superset.commands.security.create", tables),
         patch(
-            "superset.commands.security.create.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=True,
         ) as can_access,
     ):
-        command = CreateRLSRuleCommand({"tables": [1, 2], "roles": []})
+        command = CreateRLSRuleCommand({"tables": [1, 2], "subjects": []})
         command.validate()
 
     # Access is checked for every referenced datasource.
@@ -89,15 +81,11 @@ def test_create_rls_rule_forbidden_if_any_datasource_denied() -> None:
     with (
         _patch_query("superset.commands.security.create", tables),
         patch(
-            "superset.commands.security.create.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             side_effect=[True, False],
         ),
     ):
-        command = CreateRLSRuleCommand({"tables": [1, 2], "roles": []})
+        command = CreateRLSRuleCommand({"tables": [1, 2], "subjects": []})
         with pytest.raises(RLSDatasourceForbiddenError):
             command.validate()
 
@@ -112,15 +100,11 @@ def test_update_rls_rule_forbidden_when_no_datasource_access() -> None:
             return_value=MagicMock(),
         ),
         patch(
-            "superset.commands.security.update.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=False,
         ) as can_access,
     ):
-        command = UpdateRLSRuleCommand(1, {"tables": [1], "roles": []})
+        command = UpdateRLSRuleCommand(1, {"tables": [1], "subjects": []})
         with pytest.raises(RLSDatasourceForbiddenError):
             command.validate()
 
@@ -137,15 +121,11 @@ def test_update_rls_rule_allowed_when_datasource_access() -> None:
             return_value=MagicMock(),
         ),
         patch(
-            "superset.commands.security.update.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=True,
         ) as can_access,
     ):
-        command = UpdateRLSRuleCommand(1, {"tables": [1], "roles": []})
+        command = UpdateRLSRuleCommand(1, {"tables": [1], "subjects": []})
         command.validate()
 
     can_access.assert_called_once_with(datasource=tables[0])
