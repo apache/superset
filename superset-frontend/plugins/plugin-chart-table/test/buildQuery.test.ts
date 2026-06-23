@@ -17,7 +17,9 @@
  * under the License.
  */
 import { QueryMode, TimeGranularity, VizType } from '@superset-ui/core';
-import buildQuery from '../src/buildQuery';
+import buildQuery, {
+  buildQuery as buildQueryUncached,
+} from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
@@ -352,6 +354,96 @@ describe('plugin-chart-table', () => {
         expect(queries[0]).toMatchObject({
           row_limit: 20,
           row_offset: 100,
+        });
+      });
+
+      test('restores the full first-page row limit after a filter change reset', () => {
+        // Uncached export lets us seed cachedChanges directly; the default
+        // export overrides extras with its own closure.
+        const { queries } = buildQueryUncached(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: 120,
+            server_page_length: 50,
+            slice_id: 104,
+          },
+          {
+            // User was on the capped last page (row_limit would be 20)...
+            ownState: {
+              currentPage: 2,
+              pageSize: 50,
+            },
+            // ...then an external filter changed, so the cached filters differ
+            // from the current ones and pagination resets to page 0.
+            extras: {
+              cachedChanges: {
+                104: [{ col: 'category', op: '==', val: 'previous' }],
+              },
+            },
+          },
+        );
+
+        expect(queries[0].row_limit).not.toBe(0);
+        expect(queries[0]).toMatchObject({
+          row_limit: 50,
+          row_offset: 0,
+        });
+      });
+
+      test('persists the user page size, not the capped limit, on filter reset', () => {
+        const setDataMask = jest.fn();
+        buildQueryUncached(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: 120,
+            server_page_length: 50,
+            slice_id: 106,
+          },
+          {
+            // On the capped last page, the per-request row_limit is 20.
+            ownState: {
+              currentPage: 2,
+              pageSize: 50,
+            },
+            extras: {
+              cachedChanges: {
+                106: [{ col: 'category', op: '==', val: 'previous' }],
+              },
+            },
+            hooks: { setDataMask, setCachedChanges: jest.fn() },
+          },
+        );
+
+        // The persisted page size must stay 50, not collapse to the capped 20.
+        expect(setDataMask).toHaveBeenCalledWith(
+          expect.objectContaining({
+            ownState: expect.objectContaining({
+              currentPage: 0,
+              pageSize: 50,
+            }),
+          }),
+        );
+      });
+
+      test('falls back to the page size when no row limit is configured', () => {
+        const { queries } = buildQuery(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: undefined,
+            server_page_length: 50,
+            slice_id: 105,
+          },
+          {
+            ownState: {
+              currentPage: 3,
+              pageSize: 50,
+            },
+          },
+        );
+
+        expect(queries[0]).toMatchObject({
+          row_limit: 50,
+          row_offset: 150,
         });
       });
     });

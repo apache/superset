@@ -54,7 +54,7 @@ export function getQueryMode(formData: TableChartFormData) {
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
-const buildQuery: BuildQuery<TableChartFormData> = (
+export const buildQuery: BuildQuery<TableChartFormData> = (
   formData: TableChartFormData,
   options,
 ) => {
@@ -217,6 +217,17 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
+    // Server pagination sizing, shared between the per-page request below and
+    // the filter-change reset further down.
+    const pageSize =
+      Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0;
+    const configuredRowLimit = Number(formDataCopy.row_limit) || 0;
+    // row_limit for the first page, capped by the configured row limit. Used
+    // when a filter change resets pagination back to page 0.
+    const firstPageRowLimit =
+      configuredRowLimit > 0
+        ? Math.min(pageSize, configuredRowLimit)
+        : pageSize;
     // Build Query flag to check if its for either download as csv, excel or json
     const isDownloadQuery =
       ['csv', 'xlsx'].includes(formData?.result_format || '') ||
@@ -229,25 +240,23 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     }
 
     if (!isDownloadQuery && formDataCopy.server_pagination) {
-      const pageSize =
-        Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0;
-      const rowLimit = Number(formDataCopy.row_limit) || 0;
-
       // Never page past the configured row limit. Clamping the page to the last
       // one that still falls within the limit keeps the request inside the cap
       // and avoids emitting row_limit: 0, which the backend treats as
       // "no limit" rather than "no rows" (see helpers.py get_sqla_query).
       const lastPage =
-        rowLimit > 0 && pageSize > 0
-          ? Math.max(Math.ceil(rowLimit / pageSize) - 1, 0)
+        configuredRowLimit > 0 && pageSize > 0
+          ? Math.max(Math.ceil(configuredRowLimit / pageSize) - 1, 0)
           : Number(ownState.currentPage) || 0;
       const currentPage = Math.min(Number(ownState.currentPage) || 0, lastPage);
       const rowOffset = currentPage * pageSize;
       const remainingRows =
-        rowLimit > 0 ? Math.max(rowLimit - rowOffset, 0) : pageSize;
+        configuredRowLimit > 0
+          ? Math.max(configuredRowLimit - rowOffset, 0)
+          : pageSize;
 
       moreProps.row_limit =
-        rowLimit > 0 ? Math.min(pageSize, remainingRows) : pageSize;
+        configuredRowLimit > 0 ? Math.min(pageSize, remainingRows) : pageSize;
       moreProps.row_offset = rowOffset;
     }
 
@@ -278,14 +287,19 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
         JSON.stringify(queryObject.filters)
     ) {
-      queryObject = { ...queryObject, row_offset: 0 };
+      // Reset to the first page: restore the full first-page row_limit rather
+      // than carrying over the last page's capped value.
+      queryObject = {
+        ...queryObject,
+        row_offset: 0,
+        row_limit: firstPageRowLimit,
+      };
       const modifiedOwnState = {
         ...options?.ownState,
         currentPage: 0,
         // Persist the user-selected page size, not the per-request row_limit,
         // which may be capped to the remaining rows on the last page.
-        pageSize:
-          Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0,
+        pageSize,
       };
       updateTableOwnState(options?.hooks?.setDataMask, modifiedOwnState);
     }
