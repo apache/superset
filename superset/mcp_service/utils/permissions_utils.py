@@ -89,11 +89,20 @@ def user_has_permission(
         return False
 
     try:
-        # Check if user is admin (has all permissions)
-        if hasattr(user, "roles"):
-            for role in user.roles:
-                if role.name in ("Admin", "admin"):
-                    return True
+        from flask import current_app
+
+        # Check if user is admin (has all permissions). Use the configured
+        # admin role name rather than hardcoding "Admin", so deployments that
+        # rename the admin role (AUTH_ROLE_ADMIN) still grant admins the bypass.
+        admin_role_name = current_app.config["AUTH_ROLE_ADMIN"]
+        # Collect role names granted directly AND inherited via group
+        # membership (FAB users can receive the admin role through a group),
+        # so a group-admin still gets the bypass.
+        role_names = {role.name for role in getattr(user, "roles", None) or []}
+        for group in getattr(user, "groups", None) or []:
+            role_names.update(role.name for role in getattr(group, "roles", None) or [])
+        if admin_role_name in role_names:
+            return True
 
         # Check specific permission
         from superset import security_manager

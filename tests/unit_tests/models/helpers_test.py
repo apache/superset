@@ -19,9 +19,10 @@
 
 from __future__ import annotations
 
+import copy
 from contextlib import contextmanager
 from typing import cast, TYPE_CHECKING
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_mock import MockerFixture
@@ -30,8 +31,9 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.elements import ColumnElement
 
-from superset.superset_typing import AdhocColumn
+from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
 from superset.utils.core import GenericDataType
+from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
     from superset.jinja_context import BaseTemplateProcessor
@@ -922,6 +924,118 @@ def test_process_orderby_expression_with_template_processor(
     assert call_args["template_processor"] is template_processor
 
     assert result == "processed_column DESC"
+
+
+def _assert_get_sqla_query_does_not_mutate_orderby(
+    database: Database,
+    sql_expression: str,
+    expected_sql_fragment: str,
+) -> None:
+    """
+    Order a query by an ad-hoc SQL metric and assert the caller's orderby
+    dicts are left untouched.
+
+    The processed (Jinja-rendered, sqlglot-normalized) expression must not be
+    written back into the shared dict, which would change the cache key of a
+    rehydrated query context (see issue #37114). ``expected_sql_fragment`` is
+    matched against the whitespace-stripped SQL, as sqlglot may normalize the
+    output slightly.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": sql_expression,
+        "label": "my metric",
+        "hasCustomLabel": True,
+    }
+    orderby: list[OrderBy] = [(copy.deepcopy(adhoc_metric), False)]
+    original_orderby = copy.deepcopy(orderby)
+
+    query = table.get_sqla_query(
+        metrics=[adhoc_metric],
+        orderby=orderby,
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            query.sqla_query.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    assert expected_sql_fragment in sql.replace(" ", "")
+    assert orderby == original_orderby
+    assert cast(AdhocMetric, orderby[0][0])["sqlExpression"] == sql_expression
+
+
+def test_get_sqla_query_does_not_mutate_adhoc_orderby(database: Database) -> None:
+    """
+    Test that `get_sqla_query` does not mutate ad-hoc ORDER BY entries.
+    """
+    _assert_get_sqla_query_does_not_mutate_orderby(
+        database,
+        "SUM(CASE \r\n      WHEN a > 0\r\n      THEN 1\r\n    END)",
+        "ORDERBY",
+    )
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_get_sqla_query_does_not_mutate_adhoc_orderby_with_jinja(
+    database: Database,
+) -> None:
+    """
+    Test that Jinja in an ad-hoc ORDER BY entry is not rendered back.
+    """
+    _assert_get_sqla_query_does_not_mutate_orderby(
+        database,
+        "SUM(CASE WHEN a > {{ 1 + 1 }} THEN 1 END)",
+        "a>2",
+    )
+
+
+def test_cache_key_stable_across_query_build(database: Database) -> None:
+    """
+    Test that `QueryObject.cache_key()` is unchanged by building the query.
+    """
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "SUM(CASE \r\n  WHEN a > 0\r\n  THEN a\r\nEND)",
+        "label": "my metric",
+        "hasCustomLabel": True,
+    }
+    query_obj = QueryObject(
+        datasource=table,
+        columns=[],
+        metrics=[adhoc_metric],
+        orderby=[(copy.deepcopy(adhoc_metric), False)],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    cache_key_before = query_obj.cache_key()
+    table.get_query_str_extended(query_obj.to_dict())
+
+    assert query_obj.cache_key() == cache_key_before
 
 
 def test_process_select_expression_basic(
@@ -2502,6 +2616,239 @@ def test_adhoc_column_to_sqla_skips_probe_when_not_forced(
     assert generic_type is None
 
 
+def _normalize_df_datasource(column: object) -> MagicMock:
+    """Bind ``ExploreMixin.normalize_df`` to a minimal datasource exposing a
+    single temporal ``column`` via ``get_column``."""
+    from superset.models.helpers import ExploreMixin
+
+    datasource = MagicMock()
+    datasource.offset = 0
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = [column]
+    datasource.get_column = lambda name: {"ts": column}.get(name)
+    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+    return datasource
+
+
+def _raw_query_object() -> MagicMock:
+    """A query object for a raw/unaggregated query: ``columns`` holds the plain
+    physical column name (no base-axis adhoc wrapper, no granularity)."""
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = None
+    query_object.time_shift = None
+    return query_object
+
+
+def test_normalize_df_applies_python_date_format_to_unaggregated_columns() -> None:
+    """A temporal column selected in a raw/unaggregated query is a plain column
+    name rather than a base-axis adhoc column, so it is excluded from
+    ``get_base_axis_labels``. It must still receive its ``python_date_format``,
+    so an ``epoch_s`` column is converted to datetimes the same way it is for
+    aggregated charts."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch seconds
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_df_applies_epoch_ms_to_unaggregated_columns() -> None:
+    """``epoch_ms`` is a separate conversion branch from ``epoch_s``; an
+    unaggregated column declaring it must also be converted to datetimes."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_ms",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch milliseconds
+    df = pd.DataFrame({"ts": [1577836800000, 1609459200000, 1640995200000]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_df_handles_dict_shaped_columns() -> None:
+    """Some datasources expose columns as dicts rather than objects. The raw
+    temporal-column lookup must read is_dttm and python_date_format from either
+    shape, the same way the base-axis path already does."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = {"column_name": "ts", "is_dttm": True, "python_date_format": "epoch_s"}
+    datasource = _normalize_df_datasource(ts_col)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_leaves_unconfigured_integer_dttm_columns_untouched() -> None:
+    """A column flagged temporal but with no ``python_date_format`` must not be
+    coerced: a plain integer column would otherwise be reinterpreted as
+    nanoseconds since the epoch (1577836800 -> 1970-01-01 00:00:01.5...). Only
+    columns that declare a format are normalized."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    int_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(int_col)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200, 1640995200]
+
+
+def test_normalize_df_without_get_column_is_a_noop() -> None:
+    """Not every datasource exposes ``get_column``; for those, the temporal
+    lookup must short-circuit instead of raising, leaving the data untouched."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.models.helpers import ExploreMixin
+
+    class _NoGetColumnDatasource:
+        """A datasource that does not implement ``get_column``."""
+
+        offset = 0
+        enforce_numerical_metrics = False
+        columns: list[object] = []
+
+    datasource = _NoGetColumnDatasource()
+    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())  # type: ignore[attr-defined]
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200]
+
+
+def test_normalize_df_normalizes_base_axis_temporal_columns() -> None:
+    """The aggregated path: a base-axis temporal column is normalized, and the
+    raw-column pass does not re-add it (it is already collected)."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = [
+        {"label": "ts", "sqlExpression": "ts", "columnType": "BASE_AXIS"}
+    ]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_dedups_column_in_granularity_and_columns() -> None:
+    """When the same temporal column is both the ``granularity`` and a selected
+    column, it is collected once (via the base path) and the raw pass does not
+    re-add it, so it is normalized a single time."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    assert datasource._collect_dttm_labels(query_object) == (("ts", "epoch_s"),)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_normalizes_legacy_time_column() -> None:
+    """The legacy ``__timestamp`` column is normalized using the granularity
+    column's python_date_format."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.utils.core import DTTM_ALIAS
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = []
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    df = pd.DataFrame({DTTM_ALIAS: [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result[DTTM_ALIAS])
+    assert result[DTTM_ALIAS][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
 def test_adhoc_column_to_sqla_returns_type_from_column_metadata(
     database: Database,
 ) -> None:
@@ -2650,3 +2997,199 @@ def test_filter_by_verbose_name_resolves_to_column(
     assert "WHERE" in sql, f"Expected WHERE clause, got SQL: {sql}"
     assert "country_code" in sql, f"Expected filter on 'country_code', got SQL: {sql}"
     assert "'US'" in sql, f"Expected filter value 'US', got SQL: {sql}"
+
+
+def test_format_time_humanized_activates_non_english_locale(
+    mocker: MockerFixture,
+) -> None:
+    """Regression for #28331: `_format_time_humanized` must call
+    `humanize.i18n.activate(locale)` before formatting when the user's locale
+    is not English. The original report described last-modified strings on
+    the chart editor header always rendering in English regardless of the
+    user's language setting.
+    """
+    from datetime import datetime, timedelta
+
+    from superset.models.helpers import AuditMixinNullable
+
+    mocker.patch(
+        "superset.models.helpers.get_locale",
+        return_value="es",  # Spanish
+    )
+    mock_activate = mocker.patch("superset.models.helpers.humanize.i18n.activate")
+    mock_deactivate = mocker.patch("superset.models.helpers.humanize.i18n.deactivate")
+
+    # Detached instance — we only need the method, not a session-bound row.
+    instance = AuditMixinNullable()
+    result = instance._format_time_humanized(datetime.now() - timedelta(hours=2))
+
+    mock_activate.assert_called_once_with("es")
+    mock_deactivate.assert_called_once()
+    assert isinstance(result, str), f"expected str, got {type(result).__name__}"
+    assert result, "_format_time_humanized returned empty string"
+
+
+def test_format_time_humanized_skips_activation_for_english(
+    mocker: MockerFixture,
+) -> None:
+    """Companion to the #28331 regression: for English, humanize already
+    defaults to English, so the i18n.activate call is intentionally skipped
+    as a perf optimization. This pins that fast-path so a future refactor
+    doesn't accidentally start calling activate('en') unconditionally."""
+    from datetime import datetime, timedelta
+
+    from superset.models.helpers import AuditMixinNullable
+
+    mocker.patch(
+        "superset.models.helpers.get_locale",
+        return_value="en",
+    )
+    mock_activate = mocker.patch("superset.models.helpers.humanize.i18n.activate")
+
+    instance = AuditMixinNullable()
+    instance._format_time_humanized(datetime.now() - timedelta(hours=2))
+
+    mock_activate.assert_not_called()
+
+
+# -----------------------------------------------------------------------------
+# _process_sql_expression denylist gate (adhoc expression validation)
+# -----------------------------------------------------------------------------
+
+
+def _patch_disallowed(
+    mocker: MockerFixture,
+    functions: dict[str, set[str]] | None = None,
+    tables: dict[str, set[str]] | None = None,
+) -> None:
+    """Inject the engine-keyed denylists into the live Flask app config that
+    `_process_sql_expression` consults via `app.config[...]`."""
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": functions or {},
+            "DISALLOWED_SQL_TABLES": tables or {},
+        },
+        clear=False,
+    )
+
+
+def test_process_sql_expression_rejects_disallowed_function(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Adhoc expressions are user-controlled SQL incorporated into the final
+    query via `literal_column(...)`. A function name on the operator's
+    DISALLOWED_SQL_FUNCTIONS list must be rejected at validation time,
+    before the rendered SQL is handed to the database."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLFunctionException
+
+    _patch_disallowed(mocker, functions={"postgresql": {"version"}})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        table._process_sql_expression(
+            expression="version()",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+
+
+def test_process_sql_expression_rejects_disallowed_function_in_aggregate(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """A denylisted function wrapped in a legitimate aggregate
+    (`MAX(version())`) must still be rejected: the wrapper is the obvious
+    bypass attempt."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLFunctionException
+
+    _patch_disallowed(mocker, functions={"postgresql": {"version"}})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        table._process_sql_expression(
+            expression="MAX(version())",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_process_sql_expression_rejects_disallowed_table(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Adhoc subqueries that reference a denylisted table must be rejected,
+    and the raised exception must carry only the tables actually found in
+    the expression (matching the canonical execution-time gate in
+    `superset.sql_lab._validate_query`). The branch is only reachable when
+    `ALLOW_ADHOC_SUBQUERY=True`; otherwise `validate_adhoc_subquery` rejects
+    the subquery first."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLTableException
+
+    _patch_disallowed(
+        mocker, tables={"postgresql": {"pg_authid", "pg_shadow", "pg_stat_activity"}}
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLTableException) as exc_info:
+        table._process_sql_expression(
+            expression="(SELECT id FROM pg_authid)",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+    # Assert on substring (set repr ordering): only the offending table is
+    # echoed back to the user, not the full operator denylist.
+    message = exc_info.value.error.message
+    assert "pg_authid" in message
+    assert "pg_shadow" not in message
+    assert "pg_stat_activity" not in message
+
+
+def test_process_sql_expression_allows_benign_expression(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Negative control: a benign aggregate over a regular column must pass
+    even when denylists are configured."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    _patch_disallowed(
+        mocker,
+        functions={"postgresql": {"version"}},
+        tables={"postgresql": {"pg_authid"}},
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    result = table._process_sql_expression(
+        expression="SUM(amount)",
+        database_id=database.id,
+        engine="postgresql",
+        schema="",
+        template_processor=None,
+    )
+    assert result is not None
+    assert "SUM" in result.upper()
+
+
+def test_process_sql_expression_no_gate_when_denylists_empty(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """When neither DISALLOWED_SQL_FUNCTIONS nor DISALLOWED_SQL_TABLES has an
+    entry for the engine, the new gate must not run an extra parse: any
+    SQL that passes the pre-existing `sanitize_clause` validation is
+    accepted."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    _patch_disallowed(mocker, functions={}, tables={})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    result = table._process_sql_expression(
+        expression="version()",
+        database_id=database.id,
+        engine="postgresql",
+        schema="",
+        template_processor=None,
+    )
+    assert result is not None

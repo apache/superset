@@ -212,6 +212,7 @@ def _format_report(
     environment: dict[str, str],
     user_context: dict[str, Any],
     timestamp: str,
+    mcp_call_id: str | None = None,
 ) -> str:
     """Render the final markdown report."""
     lines: list[str] = [
@@ -224,6 +225,10 @@ def _format_report(
         f"- **Platform:** {environment['platform']}",
         f"- **User ID:** {user_context['user_id']}",
         f"- **Roles:** {', '.join(user_context['roles']) or 'none'}",
+    ]
+    if mcp_call_id:
+        lines.append(f"- **MCP Call ID:** {mcp_call_id}")
+    lines += [
         "",
         "## What the user was doing",
         f"- **MCP tool:** {sanitized.get('tool_name') or 'not provided'}",
@@ -316,6 +321,7 @@ async def generate_bug_report(
             environment=environment,
             user_context=user_context,
             timestamp=timestamp,
+            mcp_call_id=request.mcp_call_id,
         )
 
     return GenerateBugReportResponse(

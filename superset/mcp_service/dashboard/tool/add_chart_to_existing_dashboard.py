@@ -149,29 +149,50 @@ def _first_tab_from_groups(
     return None
 
 
+def _collect_available_tab_names(layout: Dict[str, Any]) -> list[str]:
+    """Collect display entries (label + component ID) for all TAB components.
+
+    Always includes the component ID so callers can retry unambiguously even
+    when multiple tabs share the same display name or a label is blank.
+    """
+    entries: list[str] = []
+    for tabs_children in _collect_tabs_groups(layout):
+        for tab_id in tabs_children:
+            tab = layout.get(tab_id)
+            if not tab or tab.get("type") != "TAB":
+                continue
+            text = (tab.get("meta") or {}).get("text", "")
+            entries.append(f"{text} ({tab_id})" if text else tab_id)
+    return entries
+
+
 def _find_tab_insert_target(
     layout: Dict[str, Any], target_tab: str | None = None
 ) -> str | None:
     """
     Detect if the dashboard uses tabs and return the appropriate tab's ID.
 
-    If *target_tab* is provided the function first tries to match it against
-    tab ``meta.text`` (display name) or the raw component ID.  When no match
-    is found (or *target_tab* is ``None``) the first ``TAB`` child is used as
-    a fallback so that new rows are still placed inside the tab structure
-    rather than directly under ``GRID_ID``.
+    When *target_tab* is ``None`` the function returns the first TAB child so
+    that new rows are placed inside the tab structure rather than directly
+    under ``GRID_ID``.
+
+    When *target_tab* is provided the function tries to match it against tab
+    ``meta.text`` (display name) or the raw component ID.  If no match is
+    found ``None`` is returned — the caller is responsible for surfacing an
+    error rather than silently placing the chart in the wrong tab.
 
     Returns:
-        The ID of the matched (or first) TAB component, or ``None`` if the
-        dashboard does not use top-level tabs.
+        The ID of the matched (or first) TAB component, or ``None``.
     """
     groups = _collect_tabs_groups(layout)
 
-    if target_tab:
+    if target_tab is not None:
         for tabs_children in groups:
             matched = _match_tab_in_children(layout, tabs_children, target_tab)
             if matched:
                 return matched
+        # target_tab specified but not found — signal mismatch to the caller.
+        return None
 
     return _first_tab_from_groups(layout, groups)
 
@@ -316,6 +337,45 @@ def _ensure_layout_structure(
         layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
+def _resolve_parent_container(
+    layout: Dict[str, Any],
+    dashboard_id: int,
+    target_tab: str | None,
+) -> tuple[str, None] | tuple[None, AddChartToDashboardResponse]:
+    """Return (parent_id, None) on success or (None, error_response) on mismatch.
+
+    When *target_tab* is specified and not found the caller receives a
+    descriptive error listing available tabs rather than a silent fallback.
+    """
+    tab_target = _find_tab_insert_target(layout, target_tab=target_tab)
+
+    if target_tab is not None and tab_target is None:
+        available = _collect_available_tab_names(layout)
+        if available:
+            tab_list = ", ".join(available)
+            return None, AddChartToDashboardResponse(
+                dashboard=None,
+                dashboard_url=None,
+                position=None,
+                error=(
+                    f"Tab '{target_tab}' not found in dashboard {dashboard_id}. "
+                    f"Available tabs: {tab_list}."
+                ),
+            )
+        return None, AddChartToDashboardResponse(
+            dashboard=None,
+            dashboard_url=None,
+            position=None,
+            error=(
+                f"Dashboard {dashboard_id} has no tabs. "
+                "Remove the target_tab parameter to add the chart to "
+                "the default grid layout."
+            ),
+        )
+
+    return (tab_target if tab_target else "GRID_ID", None)
+
+
 def _find_and_authorize_dashboard(
     dashboard_id: int,
 ) -> tuple[Any, AddChartToDashboardResponse | None]:
@@ -369,7 +429,7 @@ def _find_and_authorize_dashboard(
         destructiveHint=False,
     ),
 )
-def add_chart_to_existing_dashboard(
+def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural (layout traversal + multi-step authorization), not accidental
     request: AddChartToDashboardRequest, ctx: Context
 ) -> AddChartToDashboardResponse:
     """
@@ -443,11 +503,16 @@ def add_chart_to_existing_dashboard(
             # Generate a unique ROW ID for the new row
             row_key = _find_next_row_position(current_layout)
 
-            # Detect tabbed dashboards and resolve target_tab by name or ID
-            tab_target = _find_tab_insert_target(
-                current_layout, target_tab=request.target_tab
+            # Detect tabbed dashboards and resolve target_tab by name or ID.
+            parent_id, tab_error = _resolve_parent_container(
+                current_layout, request.dashboard_id, request.target_tab
             )
-            parent_id = tab_target if tab_target else "GRID_ID"
+            if tab_error is not None:
+                return tab_error
+            if parent_id is None:
+                raise RuntimeError(
+                    "unreachable: tab_error is None implies parent_id is str"
+                )
 
             # Add chart, column, and row to layout
             chart_key, column_key, row_key = _add_chart_to_layout(

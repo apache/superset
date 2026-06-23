@@ -35,11 +35,18 @@ const SAFE_ABSOLUTE_URL_RE = /^(https?|ftp|mailto|tel):/i;
  * Potentially dangerous schemes such as javascript: and data: are not treated
  * as absolute and will be prefixed.
  *
+ * If `path` is null or undefined, it falls back to the application root so the
+ * caller (e.g. partial theme overrides leaving brand tokens unset) doesn't
+ * crash.
+ *
  * @param path A string path or URL to a resource
  */
-export function ensureAppRoot(path: string): string {
-  if (SAFE_ABSOLUTE_URL_RE.test(path) || path.startsWith('//')) {
+export function ensureAppRoot(path: string | null | undefined): string {
+  if (path && (SAFE_ABSOLUTE_URL_RE.test(path) || path.startsWith('//'))) {
     return path;
+  }
+  if (path == null) {
+    return applicationRoot() || '/';
   }
   const root = applicationRoot();
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;

@@ -52,6 +52,7 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
+    wrap_sql_adhoc_metrics,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.oauth2_utils import (
@@ -73,11 +74,13 @@ def _sanitize_generate_chart_form_data_for_llm_context(
     form_data: dict[str, Any],
 ) -> dict[str, Any]:
     """Wrap generated-chart form_data before returning it to LLM clients."""
-    return sanitize_for_llm_context(
+    wrapped = sanitize_for_llm_context(
         form_data,
         field_path=("form_data",),
         excluded_field_names=GENERATE_CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
     )
+    wrap_sql_adhoc_metrics(wrapped)
+    return wrapped
 
 
 __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_chart"]
@@ -138,6 +141,26 @@ async def generate_chart(  # noqa: C901
                 {"name": "quantity", "aggregate": "SUM"},
                 {"name": "revenue", "aggregate": "SUM", "label": "Total Revenue"}
             ]
+        }
+    }
+    ```
+
+    Example usage with a custom SQL metric (ratios, conditional aggregations,
+    unit conversions). Pass 'sql_expression' instead of 'name'+'aggregate'.
+    A 'label' is required and serves as the metric's display name:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "order_date"},
+            "y": [{
+                "sql_expression":
+                    "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / "
+                    "NULLIF(COUNT(*), 0)",
+                "label": "Win Rate"
+            }],
+            "kind": "line"
         }
     }
     ```
@@ -352,6 +375,20 @@ async def generate_chart(  # noqa: C901
                             "Chart creation failed - no chart ID returned"
                         )
 
+                    # Reload server-generated timestamps (created_on,
+                    # changed_on) so the serializer sees real values.
+                    from superset import db
+
+                    try:
+                        db.session.refresh(chart)
+                    except SQLAlchemyError:
+                        logger.warning(
+                            "Chart %s created but refresh failed; "
+                            "continuing with current values",
+                            chart.id,
+                            exc_info=True,
+                        )
+
                 await ctx.info(
                     "Chart created successfully: chart_id=%s, chart_name=%s"
                     % (
@@ -402,7 +439,7 @@ async def generate_chart(  # noqa: C901
                     )
 
                     execution_time = int((time.time() - start_time) * 1000)
-                    error = ChartGenerationError(
+                    error = compile_result.error_obj or ChartGenerationError(
                         error_type="compile_error",
                         message=(
                             "Chart query failed to execute. The chart was not saved."
@@ -490,7 +527,9 @@ async def generate_chart(  # noqa: C901
             # Generate explore link with cached form_data for preview-only mode
             from superset.mcp_service.chart.chart_utils import generate_explore_link
 
-            explore_url = generate_explore_link(request.dataset_id, form_data)
+            explore_url = generate_explore_link(
+                request.dataset_id, form_data, prefer_permalink=False
+            )
             await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
 
             # Extract form_data_key from the explore URL
@@ -532,7 +571,7 @@ async def generate_chart(  # noqa: C901
                     )
 
                     execution_time = int((time.time() - start_time) * 1000)
-                    error = ChartGenerationError(
+                    error = compile_result.error_obj or ChartGenerationError(
                         error_type="compile_error",
                         message=(
                             "Chart query failed to execute. "

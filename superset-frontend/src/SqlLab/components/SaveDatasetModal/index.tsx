@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import { useCallback, useState, FormEvent } from 'react';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
@@ -34,7 +34,6 @@ import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   JsonResponse,
-  JsonObject,
   QueryResponse,
   QueryFormData,
   VizType,
@@ -44,16 +43,15 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-import { useSelector, useDispatch } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import { useAppSelector } from 'src/SqlLab/hooks/useAppSelector';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import {
   DatasetRadioState,
   EXPLORE_CHART_DEFAULT,
   DatasetOwner,
-  SqlLabRootState,
 } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
@@ -221,7 +219,7 @@ export const SaveDatasetModal = ({
   openWindow = true,
   formData = {},
 }: SaveDatasetModalProps) => {
-  const defaultVizType = useSelector<SqlLabRootState, string>(
+  const defaultVizType = useAppSelector(
     state => state.common?.conf?.DEFAULT_VIZ_TYPE || VizType.Table,
   );
 
@@ -240,16 +238,16 @@ export const SaveDatasetModal = ({
   >(undefined);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const user = useSelector<SqlLabRootState, User>(state => state.user);
-  const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
+  const user = useAppSelector(state => state.user);
+  const dispatch = useAppDispatch();
   const [includeTemplateParameters, setIncludeTemplateParameters] =
     useState(false);
 
   const createWindow = (url: string) => {
     if (openWindow) {
-      window.open(url, '_blank', 'noreferrer');
+      window.open(sanitizeUrl(url), '_blank', 'noreferrer');
     } else {
-      window.location.href = url;
+      window.location.href = sanitizeUrl(url);
     }
   };
   const formDataWithDefaults = {

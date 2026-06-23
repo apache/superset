@@ -18,9 +18,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python: ${{ steps.check.outputs.python }}
+      frontend: ${{ steps.check.outputs.frontend }}
+      docker: ${{ steps.check.outputs.docker }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   setup_matrix:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     outputs:
       matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
     steps:
@@ -32,8 +53,13 @@ jobs:
 
   docker-build:
     name: docker-build
-    needs: setup_matrix
+    needs: [setup_matrix, changes]
+    if: >-
+      needs.changes.outputs.python == 'true' ||
+      needs.changes.outputs.frontend == 'true' ||
+      needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     strategy:
       matrix:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
@@ -44,20 +70,30 @@ jobs:
       IMAGE_TAG: apache/superset:GHA-${{ matrix.build_preset }}-${{ github.run_id }}
 
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
 
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Free up disk space
+        shell: bash
+        run: |
+          # Reclaim large preinstalled toolchains we don't use. The image
+          # build, and especially the docker-compose sanity check (which
+          # rebuilds from scratch whenever the registry cache image
+          # apache/superset-cache is unavailable), can otherwise exhaust the
+          # runner's root disk and fail with "no space left on device".
+          echo "Disk before cleanup:"; df -h /
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL \
+            /usr/local/share/boost || true
+          echo "Disk after cleanup:"; df -h /
 
       - name: Setup Docker Environment
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: ./.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
@@ -65,40 +101,56 @@ jobs:
           build: "true"
 
       - name: Setup supersetbot
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: ./.github/actions/setup-supersetbot/
 
       - name: Build Docker Image
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_PRESET: ${{ matrix.build_preset }}
         run: |
           # Single platform builds in pull_request context to speed things up
-          if [ "${{ github.event_name }}" = "push" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             PLATFORM_ARG="--platform linux/arm64 --platform linux/amd64"
             # can only --load images in single-platform builds
             PUSH_OR_LOAD="--push"
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+          elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             PLATFORM_ARG="--platform linux/amd64"
             PUSH_OR_LOAD="--load"
           fi
 
-          supersetbot docker \
-            $PUSH_OR_LOAD \
-            --preset ${{ matrix.build_preset }} \
-            --context "$EVENT" \
-            --context-ref "$RELEASE" $FORCE_LATEST \
-            --extra-flags "--build-arg INCLUDE_CHROMIUM=false --tag $IMAGE_TAG" \
-            $PLATFORM_ARG
+          # Retry to absorb transient Docker Hub registry errors (base-image
+          # pull timeouts, 504/401 on push, ECONNRESET) that otherwise fail
+          # the whole job. buildx reuses the buildkit layer cache from the
+          # failed attempt, so a retry mostly re-does just the failed push.
+          for attempt in 1 2 3; do
+            if supersetbot docker \
+              $PUSH_OR_LOAD \
+              --preset "$BUILD_PRESET" \
+              --context "$EVENT" \
+              --context-ref "$RELEASE" $FORCE_LATEST \
+              --extra-flags "--build-arg INCLUDE_CHROMIUM=false --tag $IMAGE_TAG" \
+              $PLATFORM_ARG; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::supersetbot docker build failed after 3 attempts"
+              exit 1
+            fi
+            echo "::warning::Build attempt ${attempt} failed; retrying in 30s..."
+            sleep 30
+          done
 
       # in the context of push (using multi-platform build), we need to pull the image locally
       - name: Docker pull
-        if: github.event_name == 'push' && (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker)
-        run:  docker pull $IMAGE_TAG
+        if: github.event_name == 'push'
+        run: |
+          for i in 1 2 3; do
+            docker pull $IMAGE_TAG && break
+            [ $i -lt 3 ] && sleep 30
+          done
 
       - name: Print docker stats
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         run: |
           echo "SHA: ${{ github.sha }}"
           echo "IMAGE: $IMAGE_TAG"
@@ -106,10 +158,12 @@ jobs:
           docker history $IMAGE_TAG
 
       - name: docker-compose sanity check
-        if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'dev'
+        if: matrix.build_preset == 'dev'
         shell: bash
+        env:
+          BUILD_PRESET: ${{ matrix.build_preset }}
         run: |
-          export SUPERSET_BUILD_TARGET=${{ matrix.build_preset }}
+          export SUPERSET_BUILD_TARGET=$BUILD_PRESET
           # This should reuse the CACHED image built in the previous steps
           docker compose build superset-init --build-arg DEV_MODE=false --build-arg INCLUDE_CHROMIUM=false
           docker compose up superset-init --exit-code-from superset-init
@@ -117,20 +171,31 @@ jobs:
   docker-compose-image-tag:
     # Run this job only on pushes to master (not for PRs)
     # goal is to check that building the latest image works, not required for all PR pushes
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: changes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Free up disk space
+        shell: bash
+        run: |
+          # The sanity check rebuilds the image from scratch whenever the
+          # registry cache image apache/superset-cache is unavailable, which
+          # can exhaust the runner's root disk ("no space left on device").
+          echo "Disk before cleanup:"; df -h /
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL \
+            /usr/local/share/boost || true
+          echo "Disk after cleanup:"; df -h /
       - name: Setup Docker Environment
-        if: steps.check.outputs.docker
         uses: ./.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
@@ -138,7 +203,6 @@ jobs:
           build: "false"
           install-docker-compose: "true"
       - name: docker-compose sanity check
-        if: steps.check.outputs.docker
         shell: bash
         run: |
           docker compose -f docker-compose-image-tag.yml up superset-init --exit-code-from superset-init

@@ -39,7 +39,7 @@
     "@superset-ui/core": "*",
     "@types/lodash": "*",
     "@types/react": "*",
-    "react": "^18.2.0"
+    "react": "^18.3.0"
   },
   "devDependencies": {
     "@types/d3-cloud": "^1.2.9"

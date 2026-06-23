@@ -117,6 +117,7 @@ type LaunchQueue = {
 
 const pendingTimerIds = new Set<ReturnType<typeof setTimeout>>();
 const MAX_CONSUMER_POLL_ATTEMPTS = 50;
+const consumerPromises: Promise<void>[] = [];
 
 // Defer the consumer call to a macrotask so it doesn't fire synchronously inside
 // the component's useEffect — calling it inline deadlocks Jest because the
@@ -131,7 +132,11 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
       if (fileHandle) {
         const id = setTimeout(() => {
           pendingTimerIds.delete(id);
-          consumer({ files: [fileHandle] });
+          consumerPromises.push(
+            Promise.resolve(consumer({ files: [fileHandle] })).then(
+              () => undefined,
+            ),
+          );
         }, 0);
         pendingTimerIds.add(id);
       }
@@ -165,9 +170,19 @@ beforeEach(() => {
     .launchQueue;
 });
 
-afterEach(() => {
+afterEach(async () => {
   pendingTimerIds.forEach(id => clearTimeout(id));
   pendingTimerIds.clear();
+  if (consumerPromises.length > 0) {
+    const results = await Promise.allSettled(consumerPromises);
+    results.forEach(r => {
+      if (r.status === 'rejected') {
+        // eslint-disable-next-line no-console
+        console.warn('LaunchQueue consumer rejected:', r.reason);
+      }
+    });
+    consumerPromises.length = 0;
+  }
   delete (window as unknown as Window & { launchQueue?: LaunchQueue })
     .launchQueue;
 });

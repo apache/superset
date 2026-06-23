@@ -589,7 +589,8 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
       : String;
 
-  const showMaxLabel = xAxisType === AxisType.Time && xAxisLabelRotation === 0;
+  const showMaxLabel =
+    xAxisType === AxisType.Time && xAxisLabelRotation === 0 && !!timeGrainSqla;
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;

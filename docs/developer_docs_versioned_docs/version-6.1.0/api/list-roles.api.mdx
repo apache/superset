@@ -1,0 +1,68 @@
+---
+id: list-roles
+title: "List roles"
+description: "Fetch a paginated list of roles with user and permission IDs."
+sidebar_label: "List roles"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVt9v2zYQ/leIwx4STInjbQ+Bij6kWdIfK7ogdrEBVuDS0tliSpEqSTlxBf3vw5GSItvJsDQve5JIHT99393x7mrI0KZGlE5oBTFcoktzxlnJV0JxhxmTwjqml8xoiZbdCZezyqJhXGWsRFMIa4VW7P3v9hgiKLnhBTo0FuJZDYIwv1VoNhCB4gXSEiKwaY4Fh7iG0ugSjRNoabUUMpytQTgs7L5FqiU9UFUFxDMgKnORWfp1T6bd8P+7icBtSvqvdUaoFTQRrLmskFB2vjS9rV7cYurgYYMbwze01iZDM0+1rApFEBkueSUdxCAyiHpefvEkgQCSCYNp8PsQh9t0ABRWFKRHkUq+wq3jJ72RUA5XaDqruRXft03Hj9juu6C5icCgLbWyIQK/nJyEQCiHytErL0spUk5SRrc26HkqwqmuwqF9lhS1YeD3LXaDYdB6JU9mi8geBwqpuJcAe0n0PDp9Mj7n2J7HI3DCSdq41hKvW9dPgj+fe9zun8d7XpQSB8EYt76fjW8efDq7aQh8uzxMqjRFa5eVlBtm0BmBa8xCbSDs316UG2iMNv/xXg5UtMcezPdov+EZM/itQuvYgVBrLkXGhCordxhY//p/ZH2pzUJkGSqPZTGtjHAbX1dv70KEqCTwFYUOJu135sNOxeL+KNUZTvwfQzmWXK0ghvTz9UeIQPIFyoel1ZVJiW5aGcmO/mZvL6Ysgdy5Mh6NpE65zLV18enJ6emIl2K0Ho86UiOfASOL3KT5KAGWJIli7OgdS+Cscrk24rv3ZszeIDdo2E9n5+cXk8l8+ucfF58SgCbq6V1tXK7VgGC/0VMURamN62JqE5Workax1/328QrdAfFgP6ojCqdz5Bka+7reUZNAzBJoFSXAfmbc34+5019RNYk6TFRphHIHHbtjyqaDw8Oh3g98zSc+7gPNW5sPodHKkuxeKr/jwrEldW2v9CU66y2xcbdmuzEk1V+6MNZB8dQL/hJONPQg9a8SFRhn3PGe7Y4vWiMt8Vjq1QGZHr4CSu0CXa4ziGGFzs8WLocY/l0LeQvNuhtAKkPOfNQnsHvfPtJnluEapS4LVI4FJB+rAFSXRjudatnEo1FNUE1cUyo2e2jnlXW66CBo6DCCLyR2XcrDbHd+ojlo/e2SHv4+b+O/m06vWI/TREBstvF6vXvkJp4Vo2/UCpk27P2V73/a7IA86qr2vLdu/IjQRcP3mSDSF6kaFj5TLrUpOOF9+GvaDYCU0eEr9LXSi24iOjw3uDRo8x8FoZFCLXWQs93FSjQWh71ysEW5E+zW4+AS6wruW0A7wX6kkTj0vB3HDJrIi0fpVovDezcqJRfKjxjG50y4CjPgpSDGYxj0hwg6auFKQASUPSE9ZlDXC27xs5FNQ9thOKerkglL+ZlBvOTSYgRfcdOO6+3ADP5WdonsG1AEoVx4hHDgLE3RV63u1F4z3brbby8olLxy+aCH9gFtXwi9m3vUZoBd18Ei1B+6hYGEL8DQ0AzzDx62Z9Y=
+sidebar_class_name: "get api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"List roles"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/security/roles/search/"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Fetch a paginated list of roles with user and permission IDs.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  {...require("./list-roles.ParamsDetails.json")}
+>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./list-roles.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./list-roles.StatusCodes.json")}
+>
+
+</StatusCodes>

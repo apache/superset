@@ -1,0 +1,68 @@
+---
+id: return-payload-data-response-for-a-chart
+title: "Return payload data response for a chart"
+description: "Takes a chart ID and uses the query context stored when the chart was saved to return payload data response."
+sidebar_label: "Return payload data response for a chart"
+hide_title: true
+hide_table_of_contents: true
+api: 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
+sidebar_class_name: "get api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Return payload data response for a chart"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/chart/{pk}/data/"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Takes a chart ID and uses the query context stored when the chart was saved to return payload data response.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  {...require("./return-payload-data-response-for-a-chart.ParamsDetails.json")}
+>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./return-payload-data-response-for-a-chart.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./return-payload-data-response-for-a-chart.StatusCodes.json")}
+>
+
+</StatusCodes>

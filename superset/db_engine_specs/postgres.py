@@ -21,10 +21,11 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy import text, types
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -133,6 +134,34 @@ def parse_options(connect_args: dict[str, Any]) -> dict[str, str]:
     )
 
     return {token[0]: token[1] for token in tokens}
+
+
+def _normalize_interval(v: Any) -> Optional[float]:
+    """Convert PostgreSQL INTERVAL values to milliseconds.
+
+    psycopg2 and psycopg3 always return INTERVAL values as datetime.timedelta
+    objects. We convert to milliseconds so users can apply the built-in
+    "DURATION" number format for human-readable display (e.g.,
+    "1d 2h 30m 45s") and so the values participate cleanly in numeric
+    aggregations in bar/pie charts.
+
+    Returns None for the NULL case (preserves NULL semantics) and for any
+    unexpected non-timedelta type (avoids producing a mixed-type column
+    when an unfamiliar driver surfaces something other than timedelta).
+    """
+    if v is None:
+        return None
+    if hasattr(v, "total_seconds"):
+        return v.total_seconds() * 1000
+    # Defensive: psycopg2/3 should always hand us a timedelta. If a future
+    # driver doesn't, surface the surprise in the logs rather than silently
+    # dropping the value so operators can diagnose it.
+    logger.warning(
+        "Cannot normalize PostgreSQL INTERVAL value of type %s to numeric; "
+        "returning None.",
+        type(v).__name__,
+    )
+    return None
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -526,7 +555,16 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             ENUM(),
             GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^interval", re.IGNORECASE),
+            INTERVAL(),
+            GenericDataType.NUMERIC,
+        ),
     )
+
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        INTERVAL: _normalize_interval,
+    }
 
     @classmethod
     def get_schema_from_engine_params(
@@ -747,10 +785,10 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return {
             catalog
             for (catalog,) in inspector.bind.execute(
-                """
+                text("""
 SELECT datname FROM pg_database
 WHERE datistemplate = false;
-            """
+                """)
             )
         }
 
@@ -824,6 +862,11 @@ WHERE datistemplate = false;
         :param cancel_query_id: Postgres PID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # PostgreSQL pg_backend_pid() returns an integer
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
+            return False
+
         try:
             cursor.execute(
                 "SELECT pg_terminate_backend(pid) "  # noqa: S608
