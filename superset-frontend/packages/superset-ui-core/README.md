@@ -27,7 +27,7 @@ Description
 #### Example usage
 
 ```js
-import { xxx } from '@superset-ui/core';
+import { getNumberFormatter, t } from '@superset-ui/core';
 ```
 
 #### API
