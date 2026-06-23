@@ -126,8 +126,10 @@ class TableColumnInfo(BaseModel):
 class SqlMetricInfo(BaseModel):
     metric_name: str = Field(
         ...,
-        description="Saved metric name. In chart configs, reference as "
-        '{"name": "<metric_name>", "saved_metric": true}.',
+        description=(
+            "Saved metric name. In chart configs, reference as "
+            '{"name": "<metric_name>", "saved_metric": true}.'
+        ),
     )
     verbose_name: str | None = Field(None, description="Verbose name")
     expression: str | None = Field(None, description="SQL expression")
@@ -418,6 +420,30 @@ class GetDatasetInfoRequest(MetadataCacheControl):
         return parsed
 
 
+class CreateDatasetMetric(BaseModel):
+    """Metric definition for dataset creation."""
+
+    metric_name: str = Field(..., description="Name of the metric")
+    expression: str = Field(..., description="SQL expression for the metric")
+    verbose_name: str | None = None
+    description: str | None = None
+    metric_type: str | None = None
+    d3format: str | None = None
+    warning_text: str | None = None
+
+
+class CreateDatasetCalculatedColumn(BaseModel):
+    """Calculated column definition for dataset creation."""
+
+    column_name: str = Field(..., description="Name of the calculated column")
+    expression: str = Field(..., description="SQL expression for the column")
+    verbose_name: str | None = None
+    description: str | None = None
+    type: str | None = None
+    advanced_data_type: str | None = None
+    is_dttm: bool | None = None
+
+
 class CreateDatasetRequest(BaseModel):
     """Request schema for create_dataset to register a physical table as a dataset."""
 
@@ -521,6 +547,16 @@ class CreateVirtualDatasetRequest(BaseModel):
     description: str | None = Field(
         None,
         description="Human-readable description of the dataset (optional).",
+    )
+    metrics: list[CreateDatasetMetric] | None = Field(
+        None,
+        description="Optional list of saved metrics to create. Each metric "
+        "must have 'metric_name' and 'expression'.",
+    )
+    calculated_columns: list[CreateDatasetCalculatedColumn] | None = Field(
+        None,
+        description="Optional list of calculated columns to create. Each column "
+        "must have 'column_name' and 'expression'.",
     )
 
     @field_validator("sql")
