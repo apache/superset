@@ -338,7 +338,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert "can_read" in data["permissions"]
         assert "can_write" in data["permissions"]
         assert "can_subscribe" in data["permissions"]
-        assert len(data["permissions"]) == 3
+        assert "can_execute" in data["permissions"]
+        assert len(data["permissions"]) == 4
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_report_schedule_not_found(self):
