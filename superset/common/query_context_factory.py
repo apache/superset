@@ -319,6 +319,17 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             main_dttm_col = getattr(datasource, "main_dttm_col", None)
             if main_dttm_col and main_dttm_col in temporal_columns:
                 query_object.granularity = main_dttm_col
+                # Remove any TEMPORAL_RANGE filter already targeting main_dttm_col
+                # so helpers.py doesn't add the same condition a second time via the
+                # filter loop (granularity covers it via from_dttm/to_dttm).
+                query_object.filter = [
+                    f
+                    for f in query_object.filter
+                    if not (
+                        f.get("op") == "TEMPORAL_RANGE"
+                        and f.get("col") == main_dttm_col
+                    )
+                ]
 
     def _apply_filters(self, query_object: QueryObject) -> None:
         if query_object.time_range:

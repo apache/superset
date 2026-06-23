@@ -379,12 +379,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       !granularity_sqla
     ) {
       showConfirm({
-        title: t('Time column not configured'),
+        title: t('No time filter on X-axis expression'),
         body: t(
-          `The X-axis is a SQL expression but no Time Column is configured. ` +
-            `Without a Time Column, time range filters cannot be applied and ` +
-            `queries may scan the entire table. ` +
-            `Set the Time Column in Query settings to enable time filtering.`,
+          `The X-axis is a SQL expression, so time range filtering is not ` +
+            `applied automatically. Without a time filter, queries may scan ` +
+            `the entire table. Add a filter on your dataset's time column in ` +
+            `the Filters section to limit the rows read.`,
         ),
         onConfirm: () => undefined,
         confirmText: t('OK'),
