@@ -21,6 +21,7 @@ Unit tests for MCP dashboard tools (list_dashboards, get_dashboard_info)
 
 import logging
 from importlib import import_module
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
@@ -31,6 +32,7 @@ from flask import g
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
     ListDashboardsRequest,
+    serialize_role_object,
 )
 from superset.mcp_service.dashboard.tool.get_dashboard_info import (
     _refresh_request_user_for_permalink_access,
@@ -132,6 +134,23 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
         assert "changed_on_humanized" in data["columns_requested"]
         assert "url" in data["columns_loaded"]
         assert "slug" in data["columns_loaded"]
+
+
+def test_dashboard_role_serializer_serializes_permission_view_names():
+    permission_view = SimpleNamespace(
+        permission=SimpleNamespace(name="can_read"),
+        view_menu=SimpleNamespace(name="Dashboard"),
+    )
+    role = SimpleNamespace(id=1, name="Gamma", permissions=[permission_view])
+
+    role_info = serialize_role_object(role)
+
+    assert role_info is not None
+    assert role_info.model_dump() == {
+        "id": 1,
+        "name": "Gamma",
+        "permissions": ["can_read on Dashboard"],
+    }
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")

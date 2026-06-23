@@ -79,6 +79,7 @@ from pydantic import (
     model_validator,
     PositiveInt,
 )
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
@@ -152,13 +153,39 @@ def serialize_role_object(role: Any) -> RoleInfo | None:
     if not role:
         return None
 
+    try:
+        raw_permissions = getattr(role, "permissions", None)
+    except DetachedInstanceError:
+        raw_permissions = None
+
+    permissions: list[str] | None = None
+    if raw_permissions is not None:
+        permissions = []
+        try:
+            for permission in raw_permissions:
+                permission_name = _serialize_permission_name(permission)
+                if permission_name is not None:
+                    permissions.append(permission_name)
+        except (DetachedInstanceError, TypeError):
+            permissions = []
+
     return RoleInfo(
         id=getattr(role, "id", None),
         name=getattr(role, "name", None),
-        permissions=[perm.name for perm in getattr(role, "permissions", [])]
-        if hasattr(role, "permissions")
-        else None,
+        permissions=permissions,
     )
+
+
+def _serialize_permission_name(permission: Any) -> str | None:
+    if (name := getattr(permission, "name", None)) is not None:
+        return str(name)
+
+    permission_name = getattr(getattr(permission, "permission", None), "name", None)
+    view_menu_name = getattr(getattr(permission, "view_menu", None), "name", None)
+    if permission_name and view_menu_name:
+        return f"{permission_name} on {view_menu_name}"
+
+    return None
 
 
 class DashboardFilter(ColumnOperator):
