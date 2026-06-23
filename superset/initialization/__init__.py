@@ -610,9 +610,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     with extension_context(extension.manifest):
                         eager_import(backend.entrypoint)
 
-                except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
-                    # Surface exceptions during initialization of extensions
-                    print(ex)
+                except Exception:  # pylint: disable=broad-except
+                    # Surface extension-initialization failures through the
+                    # configured logger (with traceback) so they reach log
+                    # aggregation, rather than being written to stdout.
+                    logger.exception(
+                        "Failed to initialize extension '%s'",
+                        extension.manifest.id,
+                    )
 
     def init_app_in_ctx(self) -> None:
         """
