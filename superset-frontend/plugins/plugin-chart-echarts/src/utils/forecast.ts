@@ -111,11 +111,11 @@ export const formatForecastTooltipSeries = ({
     // forecast values take the form of "20, y = 30 (10, 40)"
     // where the first part is the observation, the second part is the forecast trend
     // and the third part is the lower and upper bounds
-    if (isFiniteNumber(forecastTrend)) {
+    if (hasTrend) {
       if (value) value += ', ';
       value += `ŷ = ${formatter(forecastTrend)}`;
     }
-    if (isFiniteNumber(forecastLower) && isFiniteNumber(forecastUpper)) {
+    if (hasLower && hasUpper) {
       if (value) value += ' ';
       // the lower bound needs to be added to the upper bound
       value += `(${formatter(forecastLower)}, ${formatter(
