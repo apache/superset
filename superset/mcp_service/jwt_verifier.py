@@ -511,7 +511,17 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                     _sanitize_for_log(token_alg),
                 )
                 return None
-            if self.algorithm and token_alg != self.algorithm:
+            # Require a pinned signing algorithm. Without one, the accepted
+            # algorithm family would be whatever the verification key or the
+            # underlying library permits; refuse rather than validating against
+            # an unconstrained algorithm set. The production factory always
+            # pins an algorithm, so this guards the directly-constructed case.
+            if not self.algorithm:
+                reason = "No signing algorithm pinned"
+                _jwt_failure_reason.set(reason)
+                logger.debug("Rejected token: verifier has no pinned signing algorithm")
+                return None
+            if token_alg != self.algorithm:
                 reason = "Algorithm mismatch"
                 _jwt_failure_reason.set(reason)
                 logger.debug(

@@ -84,6 +84,29 @@ async def test_algorithm_mismatch(hs256_verifier):
 
 
 @pytest.mark.asyncio
+async def test_unpinned_algorithm_is_rejected(hs256_verifier):
+    """A verifier with no pinned algorithm must reject signed tokens.
+
+    The upstream JWTVerifier currently always defaults the algorithm to RS256,
+    so this state is not reachable through normal construction. This asserts the
+    fail-closed guard so the verifier does not silently rely on that upstream
+    default: if the pinned algorithm is ever absent, tokens are rejected rather
+    than validated against an unconstrained algorithm family.
+    """
+    # Simulate an unpinned verifier (e.g. a future upstream default change).
+    hs256_verifier.algorithm = None
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+
+    result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "No signing algorithm pinned"
+
+
+@pytest.mark.asyncio
 async def test_malformed_token_header(hs256_verifier):
     """Token with invalid header should report malformed header."""
     # A token with only 2 parts (missing signature)
