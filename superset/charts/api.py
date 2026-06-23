@@ -21,7 +21,7 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import current_app, redirect, request, Response, send_file, url_for
+from flask import redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
