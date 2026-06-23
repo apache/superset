@@ -28,4 +28,5 @@ export * as contributions from './contributions';
 export * as theme from './theme';
 export * as translation from './translation';
 export * as components from './components';
+export * as storage from './storage';
 export * as utils from './utils';

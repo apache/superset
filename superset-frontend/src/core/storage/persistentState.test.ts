@@ -64,7 +64,7 @@ test('set calls correct URL with value in body', async () => {
   await store.set('prefs', { theme: 'dark' });
   expect(mockPut).toHaveBeenCalledWith({
     endpoint: '/api/v1/extensions/myorg/myext/storage/persistent/prefs',
-    body: JSON.stringify({ value: { theme: 'dark' } }),
+    body: JSON.stringify({ value: { theme: 'dark' }, encrypt: false }),
     headers: { 'Content-Type': 'application/json' },
   });
 });
@@ -77,12 +77,14 @@ test('remove calls correct URL', async () => {
   });
 });
 
-test('throws when key exceeds 255 characters', () => {
+test('throws when key exceeds 255 characters', async () => {
   const store = createPersistentState('myorg.myext');
   const longKey = 'a'.repeat(256);
-  expect(() => store.get(longKey)).toThrow('255 characters or less');
-  expect(() => store.set(longKey, 'value')).toThrow('255 characters or less');
-  expect(() => store.remove(longKey)).toThrow('255 characters or less');
+  await expect(store.get(longKey)).rejects.toThrow('255 characters or less');
+  await expect(store.set(longKey, 'value')).rejects.toThrow(
+    '255 characters or less',
+  );
+  await expect(store.remove(longKey)).rejects.toThrow('255 characters or less');
 });
 
 test('keys are URL-encoded', async () => {
@@ -117,7 +119,7 @@ test('shared.set appends ?shared=true', async () => {
   expect(mockPut).toHaveBeenCalledWith({
     endpoint:
       '/api/v1/extensions/myorg/myext/storage/persistent/config?shared=true',
-    body: JSON.stringify({ value: { version: 2 } }),
+    body: JSON.stringify({ value: { version: 2 }, encrypt: false }),
     headers: { 'Content-Type': 'application/json' },
   });
 });

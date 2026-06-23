@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { type storage as StorageTypes } from '@apache-superset/core';
+import type {
+  JsonValue,
+  PersistentSetOptions,
+  PersistentStorageAccessor,
+  PersistentStorageTier,
+} from '@apache-superset/core/storage';
 import { SupersetClient } from '@superset-ui/core';
 
 /**
@@ -25,7 +30,7 @@ import { SupersetClient } from '@superset-ui/core';
  */
 export function createPersistentState(
   extensionId: string,
-): StorageTypes.StorageTier {
+): PersistentStorageTier {
   const MAX_KEY_LENGTH = 255;
   const [publisher, name] = extensionId.split('.');
 
@@ -42,38 +47,38 @@ export function createPersistentState(
     return shared ? `${url}?shared=true` : url;
   };
 
-  const shared: StorageTypes.StorageAccessor = {
-    get: async (key: string) => {
+  const shared: PersistentStorageAccessor = {
+    async get(key: string) {
       const response = await SupersetClient.get({
         endpoint: buildUrl(key, true),
       });
       return response.json?.result ?? null;
     },
-    set: async (key: string, value: StorageTypes.JsonValue) => {
+    async set(key: string, value: JsonValue, options?: PersistentSetOptions) {
       await SupersetClient.put({
         endpoint: buildUrl(key, true),
-        body: JSON.stringify({ value }),
+        body: JSON.stringify({ value, encrypt: options?.encrypt ?? false }),
         headers: { 'Content-Type': 'application/json' },
       });
     },
-    remove: async (key: string) => {
+    async remove(key: string) {
       await SupersetClient.delete({ endpoint: buildUrl(key, true) });
     },
   };
 
   return {
-    get: async (key: string) => {
+    async get(key: string) {
       const response = await SupersetClient.get({ endpoint: buildUrl(key) });
       return response.json?.result ?? null;
     },
-    set: async (key: string, value: StorageTypes.JsonValue) => {
+    async set(key: string, value: JsonValue, options?: PersistentSetOptions) {
       await SupersetClient.put({
         endpoint: buildUrl(key),
-        body: JSON.stringify({ value }),
+        body: JSON.stringify({ value, encrypt: options?.encrypt ?? false }),
         headers: { 'Content-Type': 'application/json' },
       });
     },
-    remove: async (key: string) => {
+    async remove(key: string) {
       await SupersetClient.delete({ endpoint: buildUrl(key) });
     },
     shared,

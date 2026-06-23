@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { type storage as StorageTypes } from '@apache-superset/core';
+import type {
+  EphemeralSetOptions,
+  EphemeralStorageAccessor,
+  EphemeralStorageTier,
+  JsonValue,
+} from '@apache-superset/core/storage';
 import { SupersetClient } from '@superset-ui/core';
 
 /**
@@ -25,7 +30,7 @@ import { SupersetClient } from '@superset-ui/core';
  */
 export function createEphemeralState(
   extensionId: string,
-): typeof StorageTypes.ephemeralState {
+): EphemeralStorageTier {
   const [publisher, name] = extensionId.split('.');
   const buildUrl = (key: string, shared?: boolean): string => {
     const encodedPublisher = encodeURIComponent(publisher);
@@ -35,18 +40,14 @@ export function createEphemeralState(
     return shared ? `${url}?shared=true` : url;
   };
 
-  const shared: typeof StorageTypes.ephemeralState.shared = {
+  const shared: EphemeralStorageAccessor = {
     get: async (key: string) => {
       const response = await SupersetClient.get({
         endpoint: buildUrl(key, true),
       });
       return response.json?.result ?? null;
     },
-    set: async (
-      key: string,
-      value: StorageTypes.JsonValue,
-      options: StorageTypes.ephemeralState.SetOptions,
-    ) => {
+    set: async (key: string, value: JsonValue, options: EphemeralSetOptions) => {
       await SupersetClient.put({
         endpoint: buildUrl(key, true),
         body: JSON.stringify({ value, ttl: options.ttl }),
@@ -63,11 +64,7 @@ export function createEphemeralState(
       const response = await SupersetClient.get({ endpoint: buildUrl(key) });
       return response.json?.result ?? null;
     },
-    set: async (
-      key: string,
-      value: StorageTypes.JsonValue,
-      options: StorageTypes.ephemeralState.SetOptions,
-    ) => {
+    set: async (key: string, value: JsonValue, options: EphemeralSetOptions) => {
       await SupersetClient.put({
         endpoint: buildUrl(key),
         body: JSON.stringify({ value, ttl: options.ttl }),
