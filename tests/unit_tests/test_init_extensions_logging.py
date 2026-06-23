@@ -22,7 +22,7 @@ from unittest.mock import MagicMock, patch
 from superset.initialization import SupersetAppInitializer
 
 
-def _extension_that_fails_to_init():
+def _extension_that_fails_to_init() -> MagicMock:
     extension = MagicMock()
     extension.backend = None  # skip the in-memory importer branch
     extension.manifest.id = "acme.broken_extension"
@@ -30,7 +30,7 @@ def _extension_that_fails_to_init():
     return extension
 
 
-def test_init_extensions_logs_exception_instead_of_printing():
+def test_init_extensions_logs_exception_instead_of_printing() -> None:
     """An extension entrypoint failure is routed through logger.exception."""
     initializer = object.__new__(SupersetAppInitializer)
     extension = _extension_that_fails_to_init()
