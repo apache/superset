@@ -18,7 +18,7 @@
  */
 
 import { ChartDataResponseResult } from '@superset-ui/core';
-import { applyTimeGrainAllowlist } from './FilterValue';
+import { applyTimeGrainAllowlist, resolveGranularitySqla } from './FilterValue';
 
 const baseResults = [
   {
@@ -57,4 +57,27 @@ test('applyTimeGrainAllowlist should return unfiltered results for non-timegrain
 test('applyTimeGrainAllowlist should return unfiltered results when allowlist is empty', () => {
   const filtered = applyTimeGrainAllowlist('filter_timegrain', [], baseResults);
   expect(filtered).toEqual(baseResults);
+});
+
+test('resolveGranularitySqla prefers the filter own granularity_sqla', () => {
+  expect(resolveGranularitySqla('order_date', true, 'main_dttm')).toEqual(
+    'order_date',
+  );
+  expect(resolveGranularitySqla('order_date', false, 'main_dttm')).toEqual(
+    'order_date',
+  );
+});
+
+test('resolveGranularitySqla falls back to main_dttm_col when a time_range parent cascades', () => {
+  expect(resolveGranularitySqla(undefined, true, 'main_dttm')).toEqual(
+    'main_dttm',
+  );
+});
+
+test('resolveGranularitySqla returns undefined without a time_range dependency', () => {
+  expect(resolveGranularitySqla(undefined, false, 'main_dttm')).toBeUndefined();
+});
+
+test('resolveGranularitySqla returns undefined when the datasource has no main_dttm_col', () => {
+  expect(resolveGranularitySqla(undefined, true, undefined)).toBeUndefined();
 });

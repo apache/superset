@@ -114,6 +114,20 @@ export const applyTimeGrainAllowlist = (
   });
 };
 
+/**
+ * Resolve the granularity_sqla a filter should send. A filter's own
+ * granularity_sqla always wins. Otherwise, when a Date Range parent filter is
+ * cascading a time_range down, fall back to the datasource's main_dttm_col so
+ * the temporal WHERE clause can be applied.
+ */
+export const resolveGranularitySqla = (
+  granularitySqla: string | undefined,
+  hasTimeRangeDependency: boolean,
+  datasourceMainDttmCol: string | undefined,
+): string | undefined =>
+  granularitySqla ||
+  (hasTimeRangeDependency ? datasourceMainDttmCol : undefined);
+
 const useShouldFilterRefresh = () => {
   const isDashboardRefreshing = useSelector<RootState, boolean>(
     state => state.dashboardState.isRefreshing,
@@ -194,11 +208,10 @@ const FilterValue: FC<FilterValueProps> = ({
   // datasets used by chart slices, so native-filter-only datasets are never
   // in state.datasources. Dispatch fetchDatasourceMetadata at mount time to
   // populate the cache explicitly for those datasets.
-  const datasourceMainDttmCol = useSelector<RootState, string | null | undefined>(
+  const datasourceMainDttmCol = useSelector<RootState, string | undefined>(
     state =>
       datasetId != null
-        ? (state.datasources as Record<string, any>)?.[`${datasetId}__table`]
-            ?.main_dttm_col
+        ? state.datasources?.[`${datasetId}__table`]?.main_dttm_col
         : undefined,
   );
 
@@ -239,11 +252,11 @@ const FilterValue: FC<FilterValueProps> = ({
       groupby,
       adhoc_filters: adhocFilters,
       time_range: timeRange,
-      granularity_sqla:
-        granularitySqla ||
-        (dependencies.time_range
-          ? datasourceMainDttmCol ?? undefined
-          : undefined),
+      granularity_sqla: resolveGranularitySqla(
+        granularitySqla,
+        Boolean(dependencies.time_range),
+        datasourceMainDttmCol,
+      ),
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
