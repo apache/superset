@@ -1807,6 +1807,10 @@ If you enable DML in the meta database users will be able to run DML queries on 
 
 Second, you might want to change the value of `SUPERSET_META_DB_LIMIT`. The default value is 1000, and defines how many are read from each database before any aggregations and joins are executed. You can also set this value `None` if you only have small tables.
 
+:::warning
+`SUPERSET_META_DB_LIMIT` is applied to **each** underlying table *before* the in-memory join runs, not to the final result. If any table involved in a join has more rows than the limit, the meta database will read only the first `SUPERSET_META_DB_LIMIT` rows of that table, which means matching rows can be silently dropped and the join can return **incomplete or even empty** results with no error. If you join tables larger than the limit, raise `SUPERSET_META_DB_LIMIT` to comfortably exceed your largest joined table, or set it to `None` when working only with small tables, to get correct results.
+:::
+
 Additionally, you might want to restrict the databases to with the meta database has access to. This can be done in the database configuration, under "Advanced" -> "Other" -> "ENGINE PARAMETERS" and adding:
 
 ```json

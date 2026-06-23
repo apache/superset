@@ -19,7 +19,7 @@
 
 import json  # noqa: TID251
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -31,6 +31,8 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import (
+    _collect_sortable_identifiers,
+    freeze_value,
     query_context_modified,
     SupersetSecurityManager,
 )
@@ -1225,6 +1227,129 @@ def test_query_context_modified_orderby(mocker: MockerFixture) -> None:
         }
     )
     assert query_context_modified(query_context)
+
+
+def _table_sort_query_context(
+    mocker: MockerFixture,
+    orderby: list[Any],
+    *,
+    stored_metrics: Optional[list[Any]] = None,
+    with_stored_query_context: bool = True,
+) -> Any:
+    """
+    Build a minimal table-chart query context for a guest that sorts by
+    ``orderby``. The stored chart groups by ``gender`` and aggregates ``count``.
+    """
+    metrics: list[Any] = stored_metrics if stored_metrics is not None else ["count"]
+    query_context = mocker.MagicMock()
+    query_context.queries = [
+        QueryObject(columns=["gender"], metrics=metrics, orderby=orderby),
+    ]
+    query_context.form_data = {"slice_id": 101, "groupby": ["gender"]}
+    query_context.slice_.id = 101
+    query_context.slice_.params_dict = {"groupby": ["gender"], "metrics": metrics}
+    query_context.slice_.query_context = (
+        json.dumps({"queries": [{"columns": ["gender"], "metrics": metrics}]})
+        if with_stored_query_context
+        else None
+    )
+    return query_context
+
+
+def test_query_context_modified_orderby_sort_by_column(mocker: MockerFixture) -> None:
+    """A guest sorting an embedded table by an existing column is allowed."""
+    query_context = _table_sort_query_context(mocker, orderby=[("gender", True)])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_metric(mocker: MockerFixture) -> None:
+    """A guest sorting by an existing metric is allowed."""
+    query_context = _table_sort_query_context(mocker, orderby=[("count", False)])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_adhoc_metric(
+    mocker: MockerFixture,
+) -> None:
+    """A guest sorting by an existing adhoc metric definition is allowed."""
+    adhoc_metric: AdhocMetric = {
+        "aggregate": "SUM",
+        "column": {"column_name": "num"},
+        "expressionType": "SIMPLE",
+        "hasCustomLabel": False,
+        "label": "SUM(num)",
+    }
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[(adhoc_metric, False)],
+        stored_metrics=[adhoc_metric],
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_unknown_column(mocker: MockerFixture) -> None:
+    """A guest sorting by a column the chart does not reference is rejected."""
+    query_context = _table_sort_query_context(mocker, orderby=[("salary", True)])
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_empty(mocker: MockerFixture) -> None:
+    """An empty order-by is not a modification."""
+    query_context = _table_sort_query_context(mocker, orderby=[])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_legacy_singular_metric(
+    mocker: MockerFixture,
+) -> None:
+    """A guest sorting by a legacy ``metric`` (singular) field is allowed."""
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[("num_sold", False)],
+        stored_metrics=[],
+        with_stored_query_context=False,
+    )
+    query_context.slice_.params_dict = {
+        "columns": ["gender"],
+        "groupby": ["gender"],
+        "metric": "num_sold",
+    }
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_malformed_entry(
+    mocker: MockerFixture,
+) -> None:
+    """A malformed order-by entry (not a ``(term, bool)`` pair) is rejected."""
+    query_context = _table_sort_query_context(mocker, orderby=[["gender"]])
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_stored_qc_only_column(
+    mocker: MockerFixture,
+) -> None:
+    """A column present only in the stored query context is an allowed sort target."""
+    query_context = _table_sort_query_context(mocker, orderby=[("age", True)])
+    # "age" is absent from params_dict but exposed via the stored query context,
+    # so sorting by it must be allowed.
+    query_context.slice_.params_dict = {"groupby": ["gender"], "metrics": ["count"]}
+    query_context.slice_.query_context = json.dumps(
+        {"queries": [{"columns": ["gender", "age"], "metrics": ["count"]}]}
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_collect_sortable_identifiers_includes_stored_qc_all_columns(
+    mocker: MockerFixture,
+) -> None:
+    """``all_columns`` exposed via the stored query context is a valid sort target."""
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"groupby": ["gender"], "metrics": ["count"]}
+    allowed = _collect_sortable_identifiers(
+        stored_chart,
+        {"queries": [{"all_columns": ["gender", "age"], "metrics": ["count"]}]},
+    )
+    assert freeze_value("age") in allowed
 
 
 def test_query_context_modified_time_grain_native_filter(
