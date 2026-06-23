@@ -202,13 +202,15 @@ class ReportScheduleDataFrameFailedError(CommandException):
 
 
 class ReportScheduleExecutorNotFoundError(CommandException):
+    """Raised when the configured report executor user cannot be resolved."""
+
     status = 422
 
     def __init__(self, username: str = "", exception: Optional[Exception] = None):
         super().__init__(
             _(
                 "Report Schedule executor user %(username)s was not found.",
-                username=f'"{username}"' if username else "",
+                username=f'"{username}"' if username else "(unknown)",
             ),
             exception,
         )

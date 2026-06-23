@@ -1121,8 +1121,9 @@ def test_get_content_raises_when_executor_user_missing(
     """
     When the configured executor user cannot be resolved
     (``security_manager.find_user`` returns ``None``), each content path raises a
-    dedicated ``ReportScheduleExecutorNotFoundError`` naming the username, rather
-    than passing ``None`` downstream and failing with an opaque NoneType error.
+    dedicated ``ReportScheduleExecutorNotFoundError`` naming the username at the
+    resolution boundary, rather than passing ``None`` further into the
+    webdriver/auth flow.
     """
     app.config.update(
         {
@@ -1143,6 +1144,17 @@ def test_get_content_raises_when_executor_user_missing(
 
         with pytest.raises(ReportScheduleExecutorNotFoundError, match="ghost_user"):
             getattr(report_state, method_name)()
+
+
+def test_executor_not_found_error_message_without_username() -> None:
+    """
+    When no username is available, the message falls back to ``(unknown)``
+    rather than leaving a double space ("...executor user  was not found.").
+    """
+    message = str(ReportScheduleExecutorNotFoundError().message)
+
+    assert "(unknown)" in message
+    assert "user  was" not in message
 
 
 def test_resolve_executor_user_returns_user_and_username(

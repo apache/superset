@@ -16,10 +16,9 @@
 # under the License.
 
 
-import datetime as datetime_module
-
 import pandas as pd
 import pytest
+from freezegun import freeze_time
 
 from superset.reports.notifications.exceptions import (
     NotificationParamException,
@@ -274,34 +273,6 @@ def test_send_treats_redirect_as_failure(monkeypatch, mock_header_data) -> None:
         webhook_notification.send()
 
 
-class _FakeBackoffDatetime:
-    """
-    Drop-in for the ``datetime`` *module* referenced as ``backoff._sync.datetime``.
-
-    backoff 2.2.1 computes the ``max_time`` elapsed via
-    ``datetime.datetime.now()`` inside ``backoff._sync`` (NOT via ``time``), so
-    patching only ``backoff._sync.time.sleep`` leaves ``elapsed`` pinned at 0 and
-    ``max_time`` never fires. This fake advances the clock a fixed ``step`` per
-    ``now()`` call so the wall-time bound is observable in a sub-second test.
-    A ``step`` of 0 holds the clock flat (elapsed stays 0).
-    """
-
-    def __init__(self, step_seconds: float) -> None:
-        base = datetime_module.datetime(2020, 1, 1)
-        state = {"calls": 0}
-
-        class _FakeDateTime:
-            @staticmethod
-            def now() -> datetime_module.datetime:
-                offset = datetime_module.timedelta(
-                    seconds=step_seconds * state["calls"]
-                )
-                state["calls"] += 1
-                return base + offset
-
-        self.datetime = _FakeDateTime
-
-
 def _make_webhook(mock_header_data) -> WebhookNotification:
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
@@ -336,10 +307,15 @@ def _allow_internal_app() -> type:
 def test_send_backoff_bounded_by_max_time(monkeypatch, mock_header_data) -> None:
     """
     A persistently failing (500) target gives up on wall-time (``max_time``),
-    not just ``max_tries``. With the fake clock stepping +50s per backoff sample,
-    elapsed crosses ``max_time=120`` between the 2nd and 3rd POST, so exactly 3
-    POSTs happen (distinct from ``max_tries=5``). The terminal exception type is
-    unchanged on giveup.
+    not just ``max_tries``. ``freeze_time(auto_tick_seconds=30)`` advances the
+    clock on every time access (backoff reads elapsed via the frozen clock, and
+    ``monotonic`` is frozen too), so cumulative elapsed crosses ``max_time=120``
+    before ``max_tries=5`` is exhausted. We assert the discriminating *property*
+    — gave up on wall-time strictly before exhausting ``max_tries`` — rather than
+    a pinned count, because freezegun's per-call tick count is an opaque
+    implementation detail. If ``max_time`` is removed this rises to the full 5
+    (RED); the flat-clock companion test below anchors that 5 is the ceiling.
+    The terminal exception type is unchanged on giveup.
     """
     webhook_notification = _make_webhook(mock_header_data)
     post_calls: list[int] = []
@@ -359,12 +335,13 @@ def test_send_backoff_bounded_by_max_time(monkeypatch, mock_header_data) -> None
         "superset.reports.notifications.webhook.requests.post", fake_post
     )
     monkeypatch.setattr("backoff._sync.time.sleep", lambda *a, **k: None)
-    monkeypatch.setattr("backoff._sync.datetime", _FakeBackoffDatetime(50))
 
-    with pytest.raises(NotificationUnprocessableException):
-        webhook_notification.send()
+    with freeze_time("2020-01-01", auto_tick_seconds=30):
+        with pytest.raises(NotificationUnprocessableException):
+            webhook_notification.send()
 
-    assert len(post_calls) == 3
+    # 1 < count < max_tries(5): wall-time bound fired before tries exhausted.
+    assert 1 < len(post_calls) < 5
 
 
 def test_send_flat_clock_falls_back_to_max_tries(monkeypatch, mock_header_data) -> None:
@@ -393,10 +370,10 @@ def test_send_flat_clock_falls_back_to_max_tries(monkeypatch, mock_header_data) 
         "superset.reports.notifications.webhook.requests.post", fake_post
     )
     monkeypatch.setattr("backoff._sync.time.sleep", lambda *a, **k: None)
-    monkeypatch.setattr("backoff._sync.datetime", _FakeBackoffDatetime(0))
 
-    with pytest.raises(NotificationUnprocessableException):
-        webhook_notification.send()
+    with freeze_time("2020-01-01"):
+        with pytest.raises(NotificationUnprocessableException):
+            webhook_notification.send()
 
     assert len(post_calls) == 5
 
@@ -406,9 +383,12 @@ def test_send_max_time_does_not_abandon_recovering_target(
 ) -> None:
     """
     No-regression guard: a target that fails twice (500) then succeeds on the
-    3rd attempt — cumulative elapsed well under ``max_time`` — still succeeds.
-    Confirms ``max_time=120`` is not set so low that it abandons a target that
-    recovers within the normal retry window.
+    3rd attempt still succeeds, and ``max_time=120`` is not set so low it
+    abandons recovery. The clock advances a small +5s per access so ``max_time``
+    is genuinely engaged (cumulative elapsed across 3 attempts stays comfortably
+    under 120), unlike a flat clock which would pin elapsed at 0 and let the test
+    pass at any ``max_time`` — including a misconfigured ``max_time=1``. Lower
+    ``max_time`` enough and this test correctly fails.
     """
     webhook_notification = _make_webhook(mock_header_data)
     post_calls: list[int] = []
@@ -434,8 +414,13 @@ def test_send_max_time_does_not_abandon_recovering_target(
         "superset.reports.notifications.webhook.requests.post", fake_post
     )
     monkeypatch.setattr("backoff._sync.time.sleep", lambda *a, **k: None)
-    monkeypatch.setattr("backoff._sync.datetime", _FakeBackoffDatetime(10))
 
-    webhook_notification.send()
+    with freeze_time("2020-01-01", auto_tick_seconds=5):
+        webhook_notification.send()
 
+    # The clock advances (+5s/access) so ``max_time`` is genuinely engaged, yet
+    # cumulative elapsed across 3 attempts stays well under 120: the recovering
+    # target (``fake_post`` succeeds on the 3rd) is not abandoned. A flat clock
+    # would pin elapsed at 0 and pass at any ``max_time``, including a broken
+    # ``max_time=1`` — this non-zero tick keeps the guard real.
     assert len(post_calls) == 3
