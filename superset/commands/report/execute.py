@@ -402,7 +402,6 @@ class BaseReportState:
         merged_params = self._merge_native_filters_into_url_params(
             base_state.get("urlParams"), native_filter_params
         )
-
         return [
             self._get_tab_url(
                 {
