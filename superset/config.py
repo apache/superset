@@ -2145,6 +2145,12 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
+# Timeout (in seconds) for outbound Slack API calls. The Slack SDK defaults to 30s;
+# exposing it here lets operators grant more time for large file uploads (multi-MB
+# CSVs, PDFs, screenshot sets) to congested or rate-limited Slack endpoints without
+# patching code, consistent with the SMTP/CSV/screenshot timeouts.
+SLACK_API_TIMEOUT = 30
+
 # The webdriver to use for generating reports when using Selenium (not Playwright).
 # This setting is ignored when PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled, as
 # Playwright always uses Chromium regardless of this value.
