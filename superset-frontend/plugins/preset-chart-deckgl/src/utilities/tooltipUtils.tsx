@@ -87,8 +87,12 @@ function extractValue(
   fieldName: string,
   checkPoints = true,
 ): any {
+  // Tooltip fields can come from transformed feature props, extraProps, or
+  // metric maps depending on chart path, so check all canonical containers.
   let value =
     o.object?.[fieldName] ||
+    o.object?.extraProps?.[fieldName] ||
+    o.object?.metrics?.[fieldName] ||
     o.object?.properties?.[fieldName] ||
     o.object?.data?.[fieldName] ||
     '';
@@ -143,7 +147,9 @@ function buildFieldBasedTooltipItems(
     if (!label || !fieldName) return;
 
     let { value } = extractValue(o, fieldName);
-    if (!value && item.item_type === 'metric') {
+    // we use an empty string as sentinal for "missing value"
+    // but want to keep other falsy values like '0'
+    if (value === '' && item.item_type === 'metric') {
       value = o.object?.metric || '';
     }
 
@@ -169,6 +175,36 @@ function buildFieldBasedTooltipItems(
       );
     }
   });
+
+  // In the geojson polygcon chart, where users can only pick columns as tooltip_contents,
+  // we still include the configured metric, so hover also shows the aggregation value.
+  const hasSelectedMetricItem = formData.tooltip_contents.some(
+    (item: any) =>
+      item && typeof item === 'object' && item.item_type === 'metric',
+  );
+  if (!hasSelectedMetricItem && formData.metric) {
+    let metricFieldName = '';
+    if (typeof formData.metric === 'string') {
+      metricFieldName = formData.metric;
+    } else {
+      const metric = formData.metric as { label?: string; value?: string };
+      metricFieldName = metric.label || metric.value || '';
+    }
+
+    if (metricFieldName) {
+      const { value } = extractValue(o, metricFieldName, false);
+      const metricValue = value === '' ? o.object?.metric || '' : value;
+      if (metricValue !== '') {
+        tooltipItems.push(
+          <TooltipRow
+            key="tooltip-configured-metric"
+            label={`${metricFieldName}: `}
+            value={formatValue(metricValue)}
+          />,
+        );
+      }
+    }
+  }
 
   return tooltipItems;
 }
@@ -215,7 +251,7 @@ function processTooltipContentItem(
   const extractResult = extractValue(o, fieldName);
   let { value } = extractResult;
 
-  if (item?.item_type === 'metric' && !value) {
+  if (item?.item_type === 'metric' && value === '') {
     value = o.object?.metric || '';
   }
 
