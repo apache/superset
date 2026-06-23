@@ -34,7 +34,11 @@ from superset.commands.dashboard.embedded.exceptions import (
 from superset.commands.exceptions import ForbiddenError
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
-from superset.security.guest_token import GuestTokenResourceType
+from superset.security.guest_token import (
+    build_guest_token_audit_payload,
+    GuestTokenResourceType,
+)
+from superset.utils.core import get_user_id
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
@@ -203,6 +207,15 @@ class SecurityRestApi(BaseSupersetApi):
                 body["resources"],
                 body["rls"],
                 **({"datasets": body["datasets"]} if "datasets" in body else {}),
+            )
+            logger.info(
+                "Guest token issued: %s",
+                build_guest_token_audit_payload(
+                    issuer_user_id=get_user_id(),
+                    source_ip=request.remote_addr,
+                    body=body,
+                    token=token,
+                ),
             )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
