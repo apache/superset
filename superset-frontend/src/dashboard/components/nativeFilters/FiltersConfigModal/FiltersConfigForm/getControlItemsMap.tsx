@@ -365,6 +365,12 @@ export default function getControlItemsMap({
               description={controlItem.config?.description}
             />
           }
+          rules={[
+            {
+              required: controlItem.config?.required && !removed,
+              message: t('This field is required'),
+            },
+          ]}
         >
           <DatasetColumnSelect
             datasetId={datasetId}

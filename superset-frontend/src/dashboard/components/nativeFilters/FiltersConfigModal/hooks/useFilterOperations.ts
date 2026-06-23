@@ -19,6 +19,7 @@
 import { useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
+  Behavior,
   Filter,
   Divider,
   NativeFilterType,
@@ -34,7 +35,10 @@ export function filterSupportsDependencies(
 ): boolean {
   if (!filterType) return false;
   const metadata = getChartMetadataRegistry().get(filterType);
-  return metadata?.supportsCascadeDependencies ?? false;
+  if (metadata?.supportsCascadeDependencies !== undefined) {
+    return metadata.supportsCascadeDependencies;
+  }
+  return metadata?.behaviors?.includes(Behavior.NativeFilter) ?? false;
 }
 
 interface AvailableFilterOption {

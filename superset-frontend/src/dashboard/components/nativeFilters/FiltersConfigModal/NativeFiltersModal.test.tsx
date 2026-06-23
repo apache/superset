@@ -39,6 +39,7 @@ jest.mock('@superset-ui/core', () => {
       value: {
         datasourceCount: 1,
         behaviors: ['NATIVE_FILTER'],
+        supportsCascadeDependencies: true,
       },
     },
   };
