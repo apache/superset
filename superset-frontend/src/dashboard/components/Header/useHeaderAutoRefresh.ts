@@ -29,9 +29,10 @@ import { useAutoRefreshContext } from 'src/dashboard/contexts/AutoRefreshContext
 import { AutoRefreshStatus } from 'src/dashboard/types/autoRefresh';
 import { RootState } from 'src/dashboard/types';
 
-// Fallback used when the server config is missing the manual stagger value
-// (for example when running against an older backend). Matches the default
-// shipped in superset/config.py.
+// Fallback applied only when the backend does not provide the manual stagger
+// value at all (e.g. an older backend that predates the config key, or it is
+// set to None). The value shipped in superset/config.py is 0 (staggering off);
+// this constant is the window used when the config value is null/undefined.
 const DEFAULT_MANUAL_REFRESH_STAGGER_MS = 5000;
 
 type RefreshLogEventPayload = {
