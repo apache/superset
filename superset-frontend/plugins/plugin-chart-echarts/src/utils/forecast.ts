@@ -98,15 +98,21 @@ export const formatForecastTooltipSeries = ({
 }): string[] => {
   const name = `${marker}${sanitizeHtml(seriesName)}`;
   let value = typeof observation === 'number' ? formatter(observation) : '';
-  if (forecastTrend || forecastLower || forecastUpper) {
+  // Use explicit numeric checks rather than truthiness so that legitimate
+  // zero values (e.g. a forecast that crosses zero, or a confidence bound of
+  // exactly 0) are not dropped from the tooltip.
+  const hasTrend = typeof forecastTrend === 'number';
+  const hasLower = typeof forecastLower === 'number';
+  const hasUpper = typeof forecastUpper === 'number';
+  if (hasTrend || hasLower || hasUpper) {
     // forecast values take the form of "20, y = 30 (10, 40)"
     // where the first part is the observation, the second part is the forecast trend
     // and the third part is the lower and upper bounds
-    if (forecastTrend) {
+    if (hasTrend) {
       if (value) value += ', ';
       value += `ŷ = ${formatter(forecastTrend)}`;
     }
-    if (forecastLower && forecastUpper) {
+    if (hasLower && hasUpper) {
       if (value) value += ' ';
       // the lower bound needs to be added to the upper bound
       value += `(${formatter(forecastLower)}, ${formatter(
