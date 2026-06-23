@@ -82,6 +82,7 @@ def _rate_limit_me_password_change(
 
     @functools.wraps(f)
     def wrapped(self: CurrentUserRestApi, *args: Any, **kwargs: Any) -> Response:
+        """Invoke ``f`` directly or through Flask-Limiter when rate limiting is on."""
         if not app.config.get("RATELIMIT_ENABLED", False):
             return f(self, *args, **kwargs)
         limiter = getattr(security_manager, "limiter", None)
@@ -95,6 +96,61 @@ def _rate_limit_me_password_change(
         return limited_view(self, *args, **kwargs)
 
     return wrapped
+
+
+class PasswordChangeConflictError(Exception):
+    """Raised when an optimistic password update loses a concurrent write race."""
+
+
+def _load_password_change_body(
+    schema: CurrentUserPasswordPutSchema,
+    payload: object,
+) -> dict[str, str]:
+    """Parse and policy-validate a password-change request payload."""
+    body = schema.load(payload or {})
+    validate_auth_db_password(body["new_password"])
+    return body
+
+
+def _commit_user_password_change(
+    api: CurrentUserRestApi,
+    user_id: int,
+    old_hash: str,
+    new_hash: str,
+) -> User:
+    """Persist a password change and rotate the user's session auth stamp."""
+    api.pre_update(g.user, {})
+    rows_updated = (
+        db.session.query(User)
+        .filter(User.id == user_id, User.password == old_hash)
+        .update(
+            {
+                User.password: new_hash,
+                User.changed_on: g.user.changed_on,
+                User.changed_by_fk: g.user.changed_by_fk,
+            },
+            synchronize_session=False,
+        )
+    )
+    if rows_updated != 1:
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        raise PasswordChangeConflictError
+
+    bump_user_session_auth_stamp(user_id)
+    db.session.commit()  # pylint: disable=consider-using-transaction
+    user_after = db.session.get(User, user_id)
+    if user_after is None:
+        logger.error("User missing after password commit for id=%s", user_id)
+        raise SQLAlchemyError("user missing after password commit")
+    return user_after
+
+
+def _reestablish_login_session(user: User) -> None:
+    """Clear the cookie session and log the user back in after a password change."""
+    for key in list(session.keys()):
+        session.pop(key)
+    login_user(user)
+    clear_flask_login_remember_cookie()
 
 
 class CurrentUserRestApi(BaseSupersetApi):
@@ -254,8 +310,8 @@ class CurrentUserRestApi(BaseSupersetApi):
           summary: Update the current user's password
           description: >-
             Changes the authenticated user's password when ``AUTH_TYPE`` is ``AUTH_DB``.
-            Requires the current password and a new password that satisfies ``AUTH_DB_CONFIG``
-            policy.
+            Requires the current password and a new password that satisfies
+            ``AUTH_DB_CONFIG`` policy.
           requestBody:
             required: true
             content:
@@ -285,51 +341,38 @@ class CurrentUserRestApi(BaseSupersetApi):
                     "Password change is only available when AUTH_TYPE is AUTH_DB."
                 ),
             )
-        try:
-            body = self.current_user_password_put_schema.load(request.json or {})
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
 
         try:
-            validate_auth_db_password(body["new_password"])
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-
-        user_db = db.session.get(User, g.user.id)
-        if user_db is None:
-            return self.response_404()
-
-        old_hash = user_db.password
-        if not verify_auth_db_password(old_hash, body["current_password"]):
-            return self.response_400(message="Incorrect current password.")
-
-        new_hash = hash_auth_db_password(body["new_password"])
-
-        try:
-            self.pre_update(g.user, {})
-            rows_updated = (
-                db.session.query(User)
-                .filter(User.id == g.user.id, User.password == old_hash)
-                .update(
-                    {
-                        User.password: new_hash,
-                        User.changed_on: g.user.changed_on,
-                        User.changed_by_fk: g.user.changed_by_fk,
-                    },
-                    synchronize_session=False,
-                )
+            body = _load_password_change_body(
+                self.current_user_password_put_schema,
+                request.json,
             )
-            if rows_updated != 1:
-                db.session.rollback()  # pylint: disable=consider-using-transaction
-                return self.response_400(
-                    message=(
-                        "Unable to update password. Your password may have been "
-                        "changed elsewhere; please try again."
-                    ),
-                )
+            user_db = db.session.get(User, g.user.id)
+            if user_db is None:
+                return self.response_404()
 
-            bump_user_session_auth_stamp(g.user.id)
-            db.session.commit()  # pylint: disable=consider-using-transaction
+            old_hash = user_db.password
+            if not verify_auth_db_password(old_hash, body["current_password"]):
+                return self.response_400(message="Incorrect current password.")
+
+            new_hash = hash_auth_db_password(body["new_password"])
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        try:
+            user_after = _commit_user_password_change(
+                self,
+                g.user.id,
+                old_hash,
+                new_hash,
+            )
+        except PasswordChangeConflictError:
+            return self.response_400(
+                message=(
+                    "Unable to update password. Your password may have been "
+                    "changed elsewhere; please try again."
+                ),
+            )
         except SQLAlchemyError:
             db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.exception("Failed to commit password change")
@@ -337,24 +380,7 @@ class CurrentUserRestApi(BaseSupersetApi):
                 message="Unable to update password. Please try again.",
             )
 
-        user_after = db.session.get(User, g.user.id)
-        if user_after is None:
-            logger.error("User missing after password commit for id=%s", g.user.id)
-            return self.response_500(
-                message="Unable to update password. Please try again.",
-            )
-
-        # Mitigate session fixation: clear the cookie session and re-establish login.
-        # Run only after a successful commit so a failed commit cannot wipe the session
-        # while leaving the old password in place. Reload the user from the DB so the
-        # identity matches the committed row (session expiry after commit).
-        for key in list(session.keys()):
-            session.pop(key)
-        login_user(user_after)
-        # Superset does not expose remember-me in the React login UI, but clear any
-        # Flask-Login persistent cookie so a prior remember token cannot bypass the
-        # rotated session auth stamp.
-        clear_flask_login_remember_cookie()
+        _reestablish_login_session(user_after)
         return self.response(200, result=user_response_schema.dump(user_after))
 
     @expose("/password/policy", methods=["GET"])

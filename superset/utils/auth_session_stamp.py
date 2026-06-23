@@ -27,6 +27,7 @@ from flask_login import current_user, logout_user
 from sqlalchemy.exc import IntegrityError
 
 from superset.extensions import db
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -41,22 +42,24 @@ def register_session_auth_stamp_hook(app: Flask) -> None:
 
     @app.before_request
     def _validate_user_session_auth_stamp() -> None:  # noqa: WPS430
+        """Log out requests whose session cookie carries an outdated auth stamp."""
         validate_session_auth_stamp_for_request()
 
 
+@transaction()
 def ensure_user_session_stamp_value(user_id: int) -> str:
-    """Return the stamp for ``user_id``, inserting a stable row if one does not exist."""
+    """Return the stamp for ``user_id``, inserting a stable row if missing."""
     from superset.models.user_session_auth_stamp import UserSessionAuthStamp
 
     row = db.session.get(UserSessionAuthStamp, user_id)
     if row is not None:
         return row.stamp
     stamp = str(uuid4())
-    db.session.add(UserSessionAuthStamp(user_id=user_id, stamp=stamp))
     try:
-        db.session.flush()
+        with db.session.begin_nested():
+            db.session.add(UserSessionAuthStamp(user_id=user_id, stamp=stamp))
+        return stamp
     except IntegrityError:
-        db.session.rollback()
         row = db.session.get(UserSessionAuthStamp, user_id)
         if row is None:
             logger.exception(
@@ -66,7 +69,6 @@ def ensure_user_session_stamp_value(user_id: int) -> str:
             )
             raise
         return row.stamp
-    return stamp
 
 
 def clear_flask_login_remember_cookie() -> None:
@@ -94,6 +96,7 @@ def sync_session_auth_stamp_on_login(user: Any) -> None:
     session[SESSION_AUTH_STAMP_SESSION_KEY] = stamp
 
 
+@transaction()
 def bump_user_session_auth_stamp(user_id: int) -> None:
     """Assign a new stamp so every other session for this user becomes invalid."""
     from superset.models.user_session_auth_stamp import UserSessionAuthStamp
@@ -101,23 +104,20 @@ def bump_user_session_auth_stamp(user_id: int) -> None:
     new_stamp = str(uuid4())
     row = db.session.get(UserSessionAuthStamp, user_id)
     if row is None:
-        db.session.add(UserSessionAuthStamp(user_id=user_id, stamp=new_stamp))
-    else:
-        row.stamp = new_stamp
-    try:
-        db.session.flush()
-    except IntegrityError:
-        db.session.rollback()
-        row = db.session.get(UserSessionAuthStamp, user_id)
-        if row is None:
-            logger.exception(
-                "Failed to resolve session auth stamp after IntegrityError "
-                "for user_id=%s",
-                user_id,
-            )
-            raise
-        row.stamp = str(uuid4())
-        db.session.flush()
+        try:
+            with db.session.begin_nested():
+                db.session.add(UserSessionAuthStamp(user_id=user_id, stamp=new_stamp))
+            return
+        except IntegrityError:
+            row = db.session.get(UserSessionAuthStamp, user_id)
+            if row is None:
+                logger.exception(
+                    "Failed to resolve session auth stamp after IntegrityError "
+                    "for user_id=%s",
+                    user_id,
+                )
+                raise
+    row.stamp = new_stamp
 
 
 def validate_session_auth_stamp_for_request() -> None:

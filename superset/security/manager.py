@@ -82,10 +82,7 @@ from superset.security.guest_token import (
 from superset.sql.parse import process_jinja_sql, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.auth_db_password_hash import (
-    hash_auth_db_password,
-    verify_auth_db_password,
-)
+from superset.utils.auth_db_password_hash import verify_auth_db_password
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
@@ -950,9 +947,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         (``g.user``) against the target ``userid``: they match for a
         self-service reset and differ for an admin reset.
         """
-        user = self.get_user_by_id(int(userid))
-        user.password = hash_auth_db_password(password)
-        self.update_user(user)
+        super().reset_password(userid, password)
 
         acting_user = getattr(g, "user", None)
         acting_user_id = getattr(acting_user, "id", None)

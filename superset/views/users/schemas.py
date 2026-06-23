@@ -73,7 +73,10 @@ class CurrentUserPasswordPutSchema(Schema):
     )
 
     @validates_schema
-    def validate_new_password_confirmation(self, data: dict[str, str], **kwargs: object) -> None:
+    def validate_new_password_confirmation(
+        self, data: dict[str, str], **kwargs: object
+    ) -> None:
+        """Reject payloads where ``new_password`` and ``confirm_password`` differ."""
         if data.get("new_password") != data.get("confirm_password"):
             raise ValidationError(
                 {"confirm_password": [_("Confirmation must match new_password.")]}

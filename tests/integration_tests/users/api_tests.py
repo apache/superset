@@ -19,17 +19,19 @@
 
 from unittest.mock import patch
 
+from flask import Flask
 from flask_appbuilder.const import AUTH_OAUTH
 
 from superset import security_manager
 from superset.extensions import db
+from superset.utils import json, slack  # noqa: F401
 from superset.utils.auth_db_password import get_public_auth_db_password_policy
 from superset.utils.auth_db_password_hash import hash_auth_db_password
-from superset.utils import json, slack  # noqa: F401
+from tests.conftest import with_config
 from tests.integration_tests.base_tests import DEFAULT_PASSWORD, SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME
-from tests.integration_tests.test_app import app as superset_integration_app
+from tests.integration_tests.test_app import app as superset_integration_app, login
 
 meUri = "/api/v1/me/"  # noqa: N816
 mePasswordUri = "/api/v1/me/password"  # noqa: N816
@@ -37,7 +39,7 @@ AVATAR_URL = "/internal/avatar.png"
 
 
 class TestCurrentUserApi(SupersetTestCase):
-    def _restore_admin_default_password(self, app=None) -> None:
+    def _restore_admin_default_password(self, app: Flask | None = None) -> None:
         """Reset the admin user's password after password-change API tests."""
         app = app or superset_integration_app
         user = security_manager.find_user(username=ADMIN_USERNAME)
@@ -113,14 +115,14 @@ class TestCurrentUserApi(SupersetTestCase):
         rv = self.client.put("/api/v1/me/", json={})
         assert rv.status_code == 400
 
-    def test_update_me_rejects_password_when_auth_db(self):
+    def test_update_me_rejects_password_when_auth_db(self) -> None:
         self.login(ADMIN_USERNAME)
         rv = self.client.put(meUri, json={"password": "ignored"})
         assert rv.status_code == 400
         data = json.loads(rv.data.decode("utf-8"))
         assert "AUTH_TYPE is AUTH_DB" in data["message"]
 
-    def test_put_my_password_wrong_current(self):
+    def test_put_my_password_wrong_current(self) -> None:
         self.login(ADMIN_USERNAME)
         rv = self.client.put(
             mePasswordUri,
@@ -134,7 +136,7 @@ class TestCurrentUserApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["message"] == "Incorrect current password."
 
-    def test_put_my_password_weak_new(self):
+    def test_put_my_password_weak_new(self) -> None:
         self.login(ADMIN_USERNAME)
         rv = self.client.put(
             mePasswordUri,
@@ -148,9 +150,9 @@ class TestCurrentUserApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert "new_password" in data["message"]
 
-    def test_put_my_password_success(self):
+    def test_put_my_password_success(self) -> None:
         self.login(ADMIN_USERNAME)
-        new_password = "AnotherStr0ng!Pass"
+        new_password = "AnotherStr0ng!Pass"  # noqa: S105
         try:
             rv = self.client.put(
                 mePasswordUri,
@@ -174,7 +176,7 @@ class TestCurrentUserApi(SupersetTestCase):
         finally:
             self._restore_admin_default_password()
 
-    def test_put_my_password_invalidates_cloned_session_client(self):
+    def test_put_my_password_invalidates_cloned_session_client(self) -> None:
         """
         Rotating the session stamp on password change logs out other clients that
         still present the pre-change signed session cookie.
@@ -196,7 +198,7 @@ class TestCurrentUserApi(SupersetTestCase):
             path=session_cookie.path or "/",
         )
 
-        new_password = "AnotherStr0ng!PassClone"
+        new_password = "AnotherStr0ng!PassClone"  # noqa: S105
         try:
             rv = client_a.put(
                 mePasswordUri,
@@ -212,7 +214,7 @@ class TestCurrentUserApi(SupersetTestCase):
         finally:
             self._restore_admin_default_password(app)
 
-    def test_put_my_password_clears_remember_cookie(self):
+    def test_put_my_password_clears_remember_cookie(self) -> None:
         """
         Password change schedules Flask-Login remember-me cookie deletion.
 
@@ -224,7 +226,7 @@ class TestCurrentUserApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         self.client.set_cookie(remember_name, "stale-remember-token")
 
-        new_password = "AnotherStr0ng!PassRemember"
+        new_password = "AnotherStr0ng!PassRemember"  # noqa: S105
         try:
             rv = self.client.put(
                 mePasswordUri,
@@ -246,9 +248,11 @@ class TestCurrentUserApi(SupersetTestCase):
         finally:
             self._restore_admin_default_password(app)
 
-    def test_put_my_password_invalid_hash_algorithm(self):
+    def test_put_my_password_invalid_hash_algorithm(self) -> None:
         self.login(ADMIN_USERNAME)
-        original_auth_db_config = superset_integration_app.config.get("AUTH_DB_CONFIG", {})
+        original_auth_db_config = superset_integration_app.config.get(
+            "AUTH_DB_CONFIG", {}
+        )
         try:
             superset_integration_app.config["AUTH_DB_CONFIG"] = {
                 **original_auth_db_config,
@@ -269,7 +273,7 @@ class TestCurrentUserApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert "password_hash_algorithm" in data["message"]
 
-    def test_put_my_password_unavailable_when_not_auth_db(self):
+    def test_put_my_password_unavailable_when_not_auth_db(self) -> None:
         self.login(ADMIN_USERNAME)
         original_auth = superset_integration_app.config["AUTH_TYPE"]
         try:
@@ -288,14 +292,14 @@ class TestCurrentUserApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert "AUTH_TYPE is AUTH_DB" in data["message"]
 
-    def test_get_my_password_policy_success(self):
+    def test_get_my_password_policy_success(self) -> None:
         self.login(ADMIN_USERNAME)
         rv = self.client.get("/api/v1/me/password/policy")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"] == get_public_auth_db_password_policy()
 
-    def test_get_my_password_policy_unavailable_when_not_auth_db(self):
+    def test_get_my_password_policy_unavailable_when_not_auth_db(self) -> None:
         self.login(ADMIN_USERNAME)
         original_auth = superset_integration_app.config["AUTH_TYPE"]
         try:
@@ -307,7 +311,7 @@ class TestCurrentUserApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert "AUTH_TYPE is AUTH_DB" in data["message"]
 
-    def test_put_my_password_confirmation_mismatch(self):
+    def test_put_my_password_confirmation_mismatch(self) -> None:
         self.login(ADMIN_USERNAME)
         rv = self.client.put(
             mePasswordUri,
