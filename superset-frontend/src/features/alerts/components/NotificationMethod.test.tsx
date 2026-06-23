@@ -53,12 +53,90 @@ type MockAsyncSelectProps = {
   value?: MockAsyncSelectOption[];
 };
 
+type MockInputProps = {
+  'data-test'?: string;
+  name?: string;
+  onChange?: (event: { target: { value: string } }) => void;
+  placeholder?: string;
+  type?: string;
+  value?: string;
+};
+
+type MockSelectProps = {
+  'data-test'?: string;
+  ariaLabel?: string;
+  loading?: boolean;
+  name?: string;
+  onChange?: (value: unknown) => void;
+  placeholder?: string;
+  value?: { label?: string; value?: string } | MockAsyncSelectOption[];
+};
+
 jest.mock('@superset-ui/core/components', () => {
-  const actual = jest.requireActual('@superset-ui/core/components');
   const React = jest.requireActual('react');
+  const Input = Object.assign(
+    ({
+      'data-test': dataTest,
+      onChange,
+      placeholder,
+      type = 'text',
+      value = '',
+      ...rest
+    }: MockInputProps) => (
+      <input
+        data-test={dataTest}
+        onChange={({ target: { value: inputValue } }) =>
+          onChange?.({ target: { value: inputValue } })
+        }
+        placeholder={placeholder}
+        type={type}
+        value={value}
+        {...rest}
+      />
+    ),
+    {
+      TextArea: ({
+        'data-test': dataTest,
+        onChange,
+        value = '',
+        ...rest
+      }: MockInputProps) => (
+        <textarea
+          data-test={dataTest}
+          onChange={({ target: { value: inputValue } }) =>
+            onChange?.({ target: { value: inputValue } })
+          }
+          value={value}
+          {...rest}
+        />
+      ),
+    },
+  );
 
   return {
-    ...actual,
+    Input,
+    Select: ({
+      'data-test': dataTest,
+      ariaLabel,
+      name,
+      placeholder,
+      value,
+    }: MockSelectProps) => {
+      const label = Array.isArray(value) ? undefined : value?.label;
+
+      return (
+        <div>
+          <input
+            aria-label={ariaLabel ?? name}
+            data-test={dataTest}
+            placeholder={placeholder}
+            readOnly
+            value={label ?? ''}
+          />
+          {label && <span title={label}>{label}</span>}
+        </div>
+      );
+    },
     AsyncSelect: ({
       ariaLabel,
       'data-test': dataTest,
@@ -71,6 +149,8 @@ jest.mock('@superset-ui/core/components', () => {
       const [loadedOptions, setLoadedOptions] = React.useState<
         MockAsyncSelectOption[]
       >([]);
+      const [searchValue, setSearchValue] = React.useState('');
+      const inputRef = React.useRef<HTMLInputElement>(null);
 
       return (
         <>
@@ -78,23 +158,29 @@ jest.mock('@superset-ui/core/components', () => {
             aria-label={ariaLabel ?? name}
             data-test={dataTest}
             placeholder={placeholder}
-            value={value.map(option => option.value).join(',')}
-            onChange={({ target: { value: inputValue } }) =>
+            ref={inputRef}
+            value={searchValue || value.map(option => option.value).join(',')}
+            onChange={({ target: { value: inputValue } }) => {
+              setSearchValue(inputValue);
               onChange?.(
                 inputValue
-                  .split(',')
+                  .split(/[,;]/)
                   .map(option => option.trim())
                   .filter(Boolean)
                   .map(option => ({ label: option, value: option })),
-              )
-            }
+              );
+            }}
           />
           {options && dataTest && (
             <button
               data-test={`${dataTest}-load-options`}
               type="button"
               onClick={async () => {
-                const result = await options('user', 0, 25);
+                const result = await options(
+                  inputRef.current?.value ?? '',
+                  0,
+                  25,
+                );
                 setLoadedOptions(result.data);
               }}
             >
@@ -107,6 +193,16 @@ jest.mock('@superset-ui/core/components', () => {
         </>
       );
     },
+  };
+});
+
+jest.mock('../AlertReportModal', () => {
+  const React = jest.requireActual('react');
+
+  return {
+    StyledInputContainer: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
   };
 });
 
@@ -237,7 +333,7 @@ describe('NotificationMethod', () => {
   });
 
   test('should load email recipient options from report owners', async () => {
-    jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    jest.spyOn(SupersetClient, 'get').mockResolvedValueOnce({
       json: {
         count: 1,
         result: [
@@ -254,7 +350,10 @@ describe('NotificationMethod', () => {
 
     render(
       <NotificationMethod
-        setting={mockSetting}
+        setting={{
+          ...mockSetting,
+          options: [NotificationMethodOption.Email],
+        }}
         index={0}
         onUpdate={mockOnUpdate}
         onRemove={mockOnRemove}
@@ -265,6 +364,9 @@ describe('NotificationMethod', () => {
       />,
     );
 
+    fireEvent.change(screen.getByTestId('recipients'), {
+      target: { value: 'test' },
+    });
     fireEvent.click(screen.getByTestId('recipients-load-options'));
 
     expect(
@@ -273,6 +375,11 @@ describe('NotificationMethod', () => {
     expect(SupersetClient.get).toHaveBeenCalledWith(
       expect.objectContaining({
         endpoint: expect.stringContaining('/api/v1/report/related/owners?q='),
+      }),
+    );
+    expect(SupersetClient.get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: expect.stringContaining('filter:test'),
       }),
     );
   });
