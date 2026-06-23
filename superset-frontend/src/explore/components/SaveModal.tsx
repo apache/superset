@@ -58,6 +58,7 @@ import {
   ChartStatusType,
   TabNode,
   TabTreeNode,
+  ExplorePageInitialData,
 } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
@@ -82,6 +83,7 @@ interface SaveModalProps extends RouteComponentProps {
   isVisible: boolean;
   dispatch: Dispatch;
   theme: SupersetTheme;
+  metadata?: ExplorePageInitialData['metadata'];
 }
 
 type SaveModalState = {
@@ -160,6 +162,35 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         this.props.addDangerToast(
           t('An error occurred while loading dashboard information.'),
         );
+      }
+    } else {
+      const metadataDashboards = this.props.metadata?.dashboards;
+      if (metadataDashboards?.length) {
+        // Fallback: the chart is already on one or more dashboards (from Explore API
+        // metadata). Pre-populate with the first dashboard the user can edit so the
+        // "Save & go to dashboard" button works out of the box.
+        try {
+          let editable: Dashboard | undefined;
+          for (const { id } of metadataDashboards) {
+            // eslint-disable-next-line no-await-in-loop
+            const result = await this.loadDashboard(id).catch(() => null);
+            if (result && canUserEditDashboard(result, this.props.user)) {
+              editable = result as Dashboard;
+              break;
+            }
+          }
+          if (editable) {
+            this.setState({
+              dashboard: {
+                label: editable.dashboard_title,
+                value: editable.id,
+              },
+            });
+            await this.loadTabs(editable.id);
+          }
+        } catch (error) {
+          logging.warn(error);
+        }
       }
     }
   }
@@ -807,6 +838,7 @@ interface StateProps {
   dashboards: any;
   alert: any;
   isVisible: boolean;
+  metadata?: ExplorePageInitialData['metadata'];
 }
 
 function mapStateToProps({
@@ -821,6 +853,7 @@ function mapStateToProps({
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
     isVisible: saveModal.isVisible,
+    metadata: explore.metadata,
   };
 }
 

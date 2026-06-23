@@ -119,9 +119,12 @@ describe('Test explore links', () => {
     cy.get('[data-test="new-chart-name"]').click();
     cy.get('[data-test="new-chart-name"]').clear();
     cy.get('[data-test="new-chart-name"]').type(newChartName);
-    // Add a new option using the "CreatableSelect" feature
+    // Add a new option using the "CreatableSelect" feature.
+    // Use a prefix match: when the chart is already on a dashboard, the modal
+    // pre-populates the select and the aria-label becomes
+    // "Select a dashboard: <title>" (see overwrite block below).
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
-      .find('input[aria-label="Select a dashboard"]')
+      .find('input[aria-label^="Select a dashboard"]')
       .type(`${dashboardTitle}`, { force: true });
 
     cy.get(`.ant-select-item[title="${dashboardTitle}"]`).click({
