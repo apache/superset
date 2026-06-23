@@ -224,8 +224,21 @@ export default function EchartsTimeseries({
   const categoryAxisValueIndex =
     formData.orientation === OrientationType.Horizontal ? 1 : 0;
   const getCategoryAxisValue = useCallback(
-    (data: unknown) =>
-      Array.isArray(data) ? data[categoryAxisValueIndex] : undefined,
+    (data: unknown, name: unknown) => {
+      if (Array.isArray(data)) {
+        const categoryAxisValue = data[categoryAxisValueIndex];
+        if (
+          typeof categoryAxisValue === 'string' ||
+          typeof categoryAxisValue === 'number'
+        ) {
+          return categoryAxisValue;
+        }
+      }
+      if (typeof name === 'string' || typeof name === 'number') {
+        return name;
+      }
+      return undefined;
+    },
     [categoryAxisValueIndex],
   );
 
@@ -247,11 +260,11 @@ export default function EchartsTimeseries({
 <<<<<<< feat/xaxis-label-cross-filter
         } else if (canCrossFilterByXAxis) {
           // Cross-filter by X-axis value when no dimensions (issue #25334)
-          const categoryAxisValue = getCategoryAxisValue(props.data);
-          if (
-            typeof categoryAxisValue === 'string' ||
-            typeof categoryAxisValue === 'number'
-          ) {
+          const categoryAxisValue = getCategoryAxisValue(
+            props.data,
+            props.name,
+          );
+          if (categoryAxisValue !== undefined) {
             handleXAxisChange(categoryAxisValue);
           }
 =======
@@ -345,11 +358,11 @@ export default function EchartsTimeseries({
           crossFilter = getCrossFilterDataMask(seriesName);
 <<<<<<< feat/xaxis-label-cross-filter
         } else if (canCrossFilterByXAxis) {
-          const categoryAxisValue = getCategoryAxisValue(data);
-          if (
-            typeof categoryAxisValue === 'string' ||
-            typeof categoryAxisValue === 'number'
-          ) {
+          const categoryAxisValue = getCategoryAxisValue(
+            data,
+            eventParams.name,
+          );
+          if (categoryAxisValue !== undefined) {
             crossFilter = getXAxisCrossFilterDataMask(categoryAxisValue);
           }
 =======
