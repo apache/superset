@@ -33,7 +33,7 @@ export default function createLengthFormatter(
 
   return new NumberFormatter({
     description,
-    formatFunc: value => {
+    formatFunc: (value: number) => {
       if (convertType === 'm => km') {
         return `${(value / 1000).toFixed(2)}km`;
       }
