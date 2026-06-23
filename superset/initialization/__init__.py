@@ -35,8 +35,10 @@ from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
+from sqlalchemy import text
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import (
     CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
@@ -810,10 +812,20 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         try:
             with self.superset_app.app_context():
                 # Simple connection test
-                db.engine.execute("SELECT 1")
+                db.engine.execute(text("SELECT 1"))
         except Exception:
             db_uri = self.database_uri
-            safe_uri = make_url_safe(db_uri) if db_uri else "Not configured"
+
+            if db_uri:
+                try:
+                    safe_uri = make_url_safe(db_uri).render_as_string(
+                        hide_password=True
+                    )
+                except DatabaseInvalidError:
+                    safe_uri = "<invalid database URI>"
+            else:
+                safe_uri = "Not configured"
+
             print(
                 f"{Fore.RED}ERROR: Cannot connect to database {safe_uri}\n"
                 f"NOTE: Most CLI commands require a database{Style.RESET_ALL}"

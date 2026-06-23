@@ -488,6 +488,8 @@ LANGUAGES = {
     "cs": {"flag": "cz", "name": "Czech"},
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
+    "sr": {"flag": "rs", "name": "Serbian (Cyrillic)"},
+    "sr_Latn": {"flag": "rs", "name": "Serbian (Latin)"},
     "lv": {"flag": "lv", "name": "Latvian"},
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "ua", "name": "Ukrainian"},

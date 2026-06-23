@@ -402,8 +402,8 @@ def test_raise_for_access_query_default_schema(
         )
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
 
@@ -1454,8 +1454,8 @@ def test_raise_for_access_catalog(
         sm.raise_for_access(query=query)
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `db1.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "db1.public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
     query.sql = "SELECT * FROM db2.public.ab_user"
@@ -1463,8 +1463,8 @@ def test_raise_for_access_catalog(
         sm.raise_for_access(query=query)
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `db2.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "db2.public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
 
