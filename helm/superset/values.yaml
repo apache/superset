@@ -369,6 +369,12 @@ supersetNode:
     failureThreshold: 3
     periodSeconds: 15
     successThreshold: 1
+  # -- Container lifecycle hooks, e.g. a preStop sleep so the Service/Ingress
+  # stops routing to the pod before gunicorn receives SIGTERM
+  lifecycle: {}
+  # -- Pod termination grace period (seconds). Set greater than GUNICORN_TIMEOUT so
+  # in-flight requests can drain before SIGKILL
+  terminationGracePeriodSeconds: ~
   # -- Resource settings for the supersetNode pods - these settings overwrite might existing values from the global resources object defined above.
   resources: {}
     # limits:
@@ -409,7 +415,7 @@ supersetWorker:
   command:
     - "/bin/sh"
     - "-c"
-    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; exec celery --app=superset.tasks.celery_app:app worker"
   # -- If true, forces deployment to reload on each upgrade
   forceReload: false
   # -- Init container
@@ -489,6 +495,10 @@ supersetWorker:
     failureThreshold: 3
     periodSeconds: 60
     successThreshold: 1
+  # -- Container lifecycle hooks for the worker pod
+  lifecycle: {}
+  # -- Pod termination grace period (seconds) for the worker pod so in-flight tasks can drain before SIGKILL
+  terminationGracePeriodSeconds: ~
   # -- No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic)
   startupProbe: {}
   # -- No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic)
@@ -513,7 +523,7 @@ supersetCeleryBeat:
   command:
     - "/bin/sh"
     - "-c"
-    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; exec celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
   # -- If true, forces deployment to reload on each upgrade
   forceReload: false
   # -- List of init containers
