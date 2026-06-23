@@ -180,6 +180,7 @@ def test_compute_subject_list(mock_populate, current_ids, new_ids, expected_call
         expected_call_ids,
         default_to_user=False,
         ensure_no_lockout=False,
+        field_name="subjects",
     )
 
 
@@ -200,6 +201,17 @@ def test_populate_subjects_all_variants(mock_populate):
     populate_subjects(props, exceptions := [])
     assert props["editors"] == editor_s
     assert props["viewers"] == viewer_s
+    mock_populate.assert_any_call(
+        [1],
+        default_to_user=True,
+        ensure_no_lockout=True,
+        field_name="editors",
+    )
+    mock_populate.assert_any_call(
+        [2],
+        default_to_user=False,
+        field_name="viewers",
+    )
     assert not exceptions
 
     # Viewers absent from payload → not populated
@@ -208,7 +220,12 @@ def test_populate_subjects_all_variants(mock_populate):
     props2: dict = {"editors": [1]}
     populate_subjects(props2, exceptions := [])
     assert "viewers" not in props2
-    assert mock_populate.call_count == 1
+    mock_populate.assert_called_once_with(
+        [1],
+        default_to_user=True,
+        ensure_no_lockout=True,
+        field_name="editors",
+    )
 
     # include_viewers=False → viewers key untouched
     mock_populate.reset_mock(side_effect=True)
@@ -216,7 +233,12 @@ def test_populate_subjects_all_variants(mock_populate):
     props3: dict = {"editors": [1], "viewers": [2]}
     populate_subjects(props3, exceptions := [], include_viewers=False)
     assert props3["viewers"] == [2]  # unchanged raw IDs
-    assert mock_populate.call_count == 1
+    mock_populate.assert_called_once_with(
+        [1],
+        default_to_user=True,
+        ensure_no_lockout=True,
+        field_name="editors",
+    )
 
 
 @patch("superset.commands.utils.compute_subject_list")
@@ -231,8 +253,13 @@ def test_compute_subjects_all_variants(mock_compute):
     props: dict = {"editors": [10], "viewers": [20]}
     compute_subjects(model, props, exceptions := [])
     assert mock_compute.call_count == 2
-    mock_compute.assert_any_call(model.editors, [10], ensure_no_lockout=True)
-    mock_compute.assert_any_call(model.viewers, [20])
+    mock_compute.assert_any_call(
+        model.editors,
+        [10],
+        ensure_no_lockout=True,
+        field_name="editors",
+    )
+    mock_compute.assert_any_call(model.viewers, [20], field_name="viewers")
     assert not exceptions
 
     # Model without viewers attr → only editors
@@ -241,10 +268,20 @@ def test_compute_subjects_all_variants(mock_compute):
     model_no_viewers = MagicMock(spec=["editors"])
     model_no_viewers.editors = [_make_subject(1)]
     compute_subjects(model_no_viewers, {"editors": [10]}, exceptions := [])
-    assert mock_compute.call_count == 1
+    mock_compute.assert_called_once_with(
+        model_no_viewers.editors,
+        [10],
+        ensure_no_lockout=True,
+        field_name="editors",
+    )
 
     # include_viewers=False → skip viewers
     mock_compute.reset_mock(side_effect=True)
     mock_compute.return_value = [_make_subject(10)]
     compute_subjects(model, {"editors": [10]}, exceptions := [], include_viewers=False)
-    assert mock_compute.call_count == 1
+    mock_compute.assert_called_once_with(
+        model.editors,
+        [10],
+        ensure_no_lockout=True,
+        field_name="editors",
+    )
