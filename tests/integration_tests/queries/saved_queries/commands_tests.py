@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=consider-using-transaction
 
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import yaml
@@ -57,10 +58,11 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         db.session.commit()
         super().tearDown()
 
-    @patch("superset.security.manager.g")
-    @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command(self, mock_filter_g, mock_security_g):
-        mock_filter_g.user = mock_security_g.user = security_manager.find_user("admin")
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
+    def test_export_query_command(self, mock_can_access_all_queries: Mock) -> None:
+        mock_can_access_all_queries.return_value = True
 
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = dict(command.run())
@@ -86,13 +88,14 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
             "database_uuid": str(self.example_database.uuid),
         }
 
-    @patch("superset.security.manager.g")
-    @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_no_related(self, mock_filter_g, mock_security_g):
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
+    def test_export_query_command_no_related(self, mock_can_access_all_queries):
         """
         Test that only the query is exported when export_related=False.
         """
-        mock_filter_g.user = mock_security_g.user = security_manager.find_user("admin")
+        mock_can_access_all_queries.return_value = True
 
         command = ExportSavedQueriesCommand(
             [self.example_query.id], export_related=False
@@ -105,33 +108,40 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         ]
         assert expected == list(contents.keys())
 
-    @patch("superset.security.manager.g")
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
     @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_no_access(self, mock_filter_g, mock_security_g):
+    def test_export_query_command_no_access(
+        self, mock_filter_g, mock_can_access_all_queries
+    ):
         """Test that users can't export datasets they don't have access to"""
-        mock_filter_g.user = mock_security_g.user = security_manager.find_user("gamma")
+        mock_can_access_all_queries.return_value = False
+        mock_filter_g.user = security_manager.find_user("gamma")
 
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = command.run()
         with self.assertRaises(SavedQueryNotFoundError):  # noqa: PT027
             next(contents)
 
-    @patch("superset.security.manager.g")
-    @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_invalid_dataset(self, mock_filter_g, mock_security_g):
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
+    def test_export_query_command_invalid_dataset(self, mock_can_access_all_queries):
         """Test that an error is raised when exporting an invalid dataset"""
-        mock_filter_g.user = mock_security_g.user = security_manager.find_user("admin")
+        mock_can_access_all_queries.return_value = True
 
         command = ExportSavedQueriesCommand([-1])
         contents = command.run()
         with self.assertRaises(SavedQueryNotFoundError):  # noqa: PT027
             next(contents)
 
-    @patch("superset.security.manager.g")
-    @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_key_order(self, mock_filter_g, mock_security_g):
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
+    def test_export_query_command_key_order(self, mock_can_access_all_queries):
         """Test that they keys in the YAML have the same order as export_fields"""
-        mock_filter_g.user = mock_security_g.user = security_manager.find_user("admin")
+        mock_can_access_all_queries.return_value = True
 
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = dict(command.run())

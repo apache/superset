@@ -62,6 +62,7 @@ import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import copyTextToClipboard from 'src/utils/copy';
+import type Owner from 'src/types/Owner';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
@@ -90,6 +91,15 @@ interface SavedQueryListProps {
     lastName: string;
   };
 }
+
+type SavedQueryCellProps = {
+  row: {
+    original: SavedQueryObject & {
+      changed_by?: Owner | null;
+      created_by?: Owner | null;
+    };
+  };
+};
 
 const StyledTableLabel = styled.div`
   .count {
@@ -435,7 +445,9 @@ function SavedQueryList({
               changed_on_delta_humanized: changedOn,
             },
           },
-        }: any) => <ModifiedInfo user={changedBy} date={changedOn} />,
+        }: SavedQueryCellProps) => (
+          <ModifiedInfo user={changedBy ?? undefined} date={changedOn} />
+        ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
@@ -450,7 +462,7 @@ function SavedQueryList({
           row: {
             original: { created_by: createdBy },
           },
-        }: any) =>
+        }: SavedQueryCellProps) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
       },
       {
@@ -616,9 +628,11 @@ function SavedQueryList({
           'saved_query',
           'created_by',
           createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching created_by values: %s',
-              errMsg,
+            addDangerToast(
+              t(
+                'An error occurred while fetching created by values: %s',
+                errMsg,
+              ),
             ),
           ),
           user,

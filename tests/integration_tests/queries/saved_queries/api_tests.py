@@ -14,13 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=consider-using-transaction
 # isort:skip_file
 """Unit tests for Superset"""
 
 from datetime import datetime
 from io import BytesIO
 from typing import Optional
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from zipfile import is_zipfile, ZipFile
 
 import yaml
@@ -794,6 +795,28 @@ class TestSavedQueryApi(SupersetTestCase):
         uri = f"api/v1/saved_query/?q={rison.dumps(saved_query_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
+    def test_delete_bulk_saved_query_all_query_access_keeps_owner_filter(
+        self, mock_can_access_all_queries: Mock
+    ) -> None:
+        """
+        Saved Query API: Test all_query_access does not bypass ownership for delete
+        """
+        mock_can_access_all_queries.return_value = True
+        admin = self.get_user("admin")
+        sample_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).first()
+        )
+
+        self.login(GAMMA_SQLLAB_USERNAME)
+        uri = f"api/v1/saved_query/?q={rison.dumps([sample_query.id])}"
+        rv = self.delete_assert_metric(uri, "bulk_delete")
+        assert rv.status_code == 404
+        assert db.session.query(SavedQuery).get(sample_query.id) is not None
 
     @pytest.mark.usefixtures("create_saved_queries")
     def test_delete_bulk_saved_query_not_found(self):

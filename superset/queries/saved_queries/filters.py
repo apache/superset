@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any
 
-from flask import g
+from flask import g, has_request_context, request
 from flask_babel import lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy import or_
@@ -83,12 +83,15 @@ class SavedQueryTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-
 class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
         """
-        Filter saved queries to current user's queries unless the user can
-        access all queries.
+        Filter saved queries to current user's queries unless this is a read
+        request and the user can access all queries.
 
         :returns: flask-sqlalchemy query
         """
-        if not security_manager.can_access_all_queries():
+        can_access_all_queries = security_manager.can_access_all_queries() and (
+            not has_request_context() or request.method == "GET"
+        )
+        if not can_access_all_queries:
             query = query.filter(
                 SavedQuery.created_by == g.user  # pylint: disable=comparison-with-callable
             )
