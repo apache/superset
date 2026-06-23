@@ -13000,15 +13000,8 @@ msgstr "데이터소스 명"
 msgid "Subtitle"
 msgstr "제목"
 
-msgid "Subtitle Font Size"
+msgid "Subtotal"
 msgstr ""
-
-msgid "Subvalue (%(aggfunc)s)"
-msgstr ""
-
-msgid "Subvalue (%(aggregatorName)s)"
-msgstr ""
-
 
 msgid "Success"
 msgstr ""

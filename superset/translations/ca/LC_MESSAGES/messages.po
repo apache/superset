@@ -13176,15 +13176,8 @@ msgstr "Categoria"
 msgid "Subtitle"
 msgstr "Subtítol"
 
-msgid "Subtitle Font Size"
-msgstr "Mida de Font del Subtítol"
-
-msgid "Subvalue (%(aggfunc)s)"
-msgstr "Subtotal (%(aggfunc)s)"
-
-msgid "Subvalue (%(aggregatorName)s)"
-msgstr "Subtotal (%(aggregatorName)s)"
-
+msgid "Subtotal"
+msgstr "Subtotal"
 
 msgid "Success"
 msgstr "Èxit"

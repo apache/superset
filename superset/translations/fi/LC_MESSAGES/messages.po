@@ -23381,11 +23381,9 @@ msgstr "Alaotsikko"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-msgid "Subvalue (%(aggfunc)s)"
-msgstr ""
-
-msgid "Subvalue (%(aggregatorName)s)"
-msgstr ""
+#, fuzzy
+msgid "Subtotal"
+msgstr "Välisumma"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]

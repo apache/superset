@@ -13526,16 +13526,8 @@ msgstr "Categoria"
 msgid "Subtitle"
 msgstr "Título da aba"
 
-#, fuzzy
-msgid "Subtitle Font Size"
-msgstr "Tamanho da bolha"
-
-msgid "Subvalue (%(aggfunc)s)"
-msgstr "Subtotal (%(aggfunc)s)"
-
-msgid "Subvalue (%(aggregatorName)s)"
-msgstr "Subtotal (%(aggregatorName)s)"
-
+msgid "Subtotal"
+msgstr "Subtotal"
 
 msgid "Success"
 msgstr "Sucesso"

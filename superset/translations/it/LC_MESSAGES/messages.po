@@ -13110,16 +13110,8 @@ msgstr "Query salvate"
 msgid "Subtitle"
 msgstr "%s - senza nome"
 
-#, fuzzy
-msgid "Subtitle Font Size"
-msgstr "Grandezza della bolla"
-
-msgid "Subvalue (%(aggfunc)s)"
+msgid "Subtotal"
 msgstr ""
-
-msgid "Subvalue (%(aggregatorName)s)"
-msgstr ""
-
 
 msgid "Success"
 msgstr ""

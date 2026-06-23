@@ -12798,16 +12798,8 @@ msgstr "Підкатегорії"
 msgid "Subtitle"
 msgstr "Підзаголовок"
 
-#, fuzzy
-msgid "Subtitle Font Size"
-msgstr "Розмір міхура"
-
-msgid "Subvalue (%(aggfunc)s)"
-msgstr "Суттєвий (%(aggfunc)s)"
-
-msgid "Subvalue (%(aggregatorName)s)"
-msgstr "Суттєвий (%(aggregatorName)s)"
-
+msgid "Subtotal"
+msgstr "Підсумок"
 
 msgid "Success"
 msgstr "Успіх"

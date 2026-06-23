@@ -13135,11 +13135,8 @@ msgstr "Podkategorie"
 msgid "Subtitle"
 msgstr "Podtitulek"
 
-msgid "Subvalue (%(aggfunc)s)"
-msgstr ""
-
-msgid "Subvalue (%(aggregatorName)s)"
-msgstr ""
+msgid "Subtotal"
+msgstr "Mezisoučet"
 
 msgid "Success"
 msgstr "Úspěch"

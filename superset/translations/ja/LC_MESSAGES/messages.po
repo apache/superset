@@ -12182,15 +12182,8 @@ msgstr "サブカテゴリ"
 msgid "Subtitle"
 msgstr "サブタイトル"
 
-msgid "Subtitle Font Size"
-msgstr "サブタイトル フォントサイズ"
-
-msgid "Subvalue (%(aggfunc)s)"
-msgstr "小計 (%(aggfunc)s)"
-
-msgid "Subvalue (%(aggregatorName)s)"
-msgstr "小計 (%(aggregatorName)s)"
-
+msgid "Subtotal"
+msgstr "小計"
 
 msgid "Success"
 msgstr "成功"

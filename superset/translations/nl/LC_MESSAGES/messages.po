@@ -13315,16 +13315,8 @@ msgstr "Categorie"
 msgid "Subtitle"
 msgstr "Titel tabblad"
 
-#, fuzzy
-msgid "Subtitle Font Size"
-msgstr "Bubbelgrootte"
-
-msgid "Subvalue (%(aggfunc)s)"
-msgstr "Subtotaal (%(aggfunc)s)"
-
-msgid "Subvalue (%(aggregatorName)s)"
-msgstr "Subtotaal (%(aggregatorName)s)"
-
+msgid "Subtotal"
+msgstr "Subtotaal"
 
 msgid "Success"
 msgstr "Succes"

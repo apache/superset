@@ -13444,12 +13444,8 @@ msgstr "Sous-catégorie"
 msgid "Subtitle"
 msgstr "Sous titre"
 
-msgid "Subvalue (%(aggfunc)s)"
-msgstr "Sous-total (%(aggfunc)s)"
-
-msgid "Subvalue (%(aggregatorName)s)"
-msgstr "Sous-total (%(aggregatorName)s)"
-
+msgid "Subtotal"
+msgstr "Sous-total"
 
 msgid "Success"
 msgstr "Réussite"

@@ -13088,15 +13088,8 @@ msgstr "Kāwai"
 msgid "Subtitle"
 msgstr "Taitara-iti"
 
-msgid "Subtitle Font Size"
-msgstr "Rahi Momotuhi Taitara-iti"
-
-msgid "Subvalue (%(aggfunc)s)"
-msgstr "Tapeke-iti (%(aggfunc)s)"
-
-msgid "Subvalue (%(aggregatorName)s)"
-msgstr "Tapeke-iti (%(aggregatorName)s)"
-
+msgid "Subtotal"
+msgstr "Tapeke-iti"
 
 msgid "Success"
 msgstr "Angitu"
