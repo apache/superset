@@ -384,6 +384,13 @@ class DBEventLogger(AbstractEventLogger):
         from superset.models.core import Log
 
         records = kwargs.get("records", [])
+        curated_payload = kwargs.get("curated_payload")
+
+        # If no records but curated_payload exists, use it as a single record
+        # This enables MCP middleware logging which passes curated_payload
+        if not records and curated_payload:
+            records = [curated_payload]
+
         logs = []
         for record in records:
             json_string: str | None

@@ -26,11 +26,13 @@ from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.chart_utils import (
     _add_adhoc_filters,
     _ensure_temporal_adhoc_filter,
+    _humanize_column,
     adhoc_filters_to_query_filters,
     configure_temporal_handling,
     create_metric_object,
     generate_chart_name,
     generate_explore_link,
+    get_table_chart_type_label,
     is_column_truly_temporal,
     map_config_to_form_data,
     map_filter_operator,
@@ -43,10 +45,32 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     FilterConfig,
     LegendConfig,
+    SortByConfig,
     TableChartConfig,
     XYChartConfig,
 )
 from superset.utils.core import FilterOperator, GenericDataType
+
+
+class TestGetTableChartTypeLabel:
+    """Test user-facing labels for table-family chart types."""
+
+    def test_regular_table_label(self) -> None:
+        assert get_table_chart_type_label("table") == "table chart"
+
+    def test_ag_grid_table_label(self) -> None:
+        assert get_table_chart_type_label("ag-grid-table") == (
+            "interactive table chart"
+        )
+
+    def test_non_table_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label("echarts_timeseries_bar") is None
+
+    def test_unknown_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label("my-custom-chart") is None
+
+    def test_missing_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label(None) is None
 
 
 class TestCreateMetricObject:
@@ -273,7 +297,7 @@ class TestMapTableConfig:
         assert result["adhoc_filters"][2]["comparator"] == ["Sports", "Racing"]
 
     def test_map_table_config_with_sort(self) -> None:
-        """Test table config mapping with sort"""
+        """Bare strings default to descending."""
         config = TableChartConfig(
             chart_type="table",
             columns=[ColumnRef(name="product")],
@@ -281,7 +305,26 @@ class TestMapTableConfig:
         )
 
         result = map_table_config(config)
-        assert result["order_by_cols"] == ["product", "revenue"]
+        assert result["order_by_cols"] == ['["product", false]', '["revenue", false]']
+
+    def test_map_table_config_with_sort_direction(self) -> None:
+        """SortByConfig entries honor the explicit ascending flag."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            sort_by=[
+                SortByConfig(column="product", ascending=True),
+                SortByConfig(column="revenue", ascending=False),
+                "category",
+            ],
+        )
+
+        result = map_table_config(config)
+        assert result["order_by_cols"] == [
+            '["product", true]',
+            '["revenue", false]',
+            '["category", false]',
+        ]
 
     def test_map_table_config_ag_grid_table(self) -> None:
         """Test table config mapping with AG Grid Interactive Table viz_type"""
@@ -390,6 +433,62 @@ class TestMapTableConfig:
         assert result["metrics"] == ["total_revenue", "avg_order_value"]
         assert "all_columns" not in result
 
+    def test_map_table_config_explicit_raw_mode(self) -> None:
+        """Test that explicit query_mode='raw' forces raw mode."""
+        config = TableChartConfig(
+            chart_type="table",
+            query_mode="raw",
+            columns=[
+                ColumnRef(name="product"),
+                ColumnRef(name="category"),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["viz_type"] == "table"
+        assert result["query_mode"] == "raw"
+        assert result["all_columns"] == ["product", "category"]
+        assert result["columns"] == ["product", "category"]
+        assert "metrics" not in result
+
+    def test_map_table_config_explicit_raw_mode_ignores_aggregates(self) -> None:
+        """Test that explicit query_mode='raw' ignores aggregate settings on columns."""
+        config = TableChartConfig(
+            chart_type="table",
+            query_mode="raw",
+            columns=[
+                ColumnRef(name="product"),
+                ColumnRef(name="sales", aggregate="SUM"),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["query_mode"] == "raw"
+        # Both columns treated as raw; aggregate setting on "sales" is ignored
+        assert result["all_columns"] == ["product", "sales"]
+        assert result["columns"] == ["product", "sales"]
+        assert "metrics" not in result
+
+    def test_map_table_config_explicit_aggregate_mode(self) -> None:
+        """Test that explicit query_mode='aggregate' uses inference logic."""
+        config = TableChartConfig(
+            chart_type="table",
+            query_mode="aggregate",
+            columns=[
+                ColumnRef(name="product"),
+                ColumnRef(name="revenue", aggregate="SUM"),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["query_mode"] == "aggregate"
+        assert len(result["metrics"]) == 1
+        assert result["metrics"][0]["aggregate"] == "SUM"
+        assert "product" in result["groupby"]
+
 
 class TestAddAdhocFilters:
     """Test _add_adhoc_filters helper function"""
@@ -496,7 +595,34 @@ class TestMapXYConfig:
 
         assert result["viz_type"] == "echarts_timeseries_scatter"
         assert result["show_legend"] is False
-        assert result["legend_orientation"] == "top"
+        assert result["legendOrientation"] == "top"
+
+    def test_map_xy_config_with_color_scheme(self) -> None:
+        """color_scheme propagates to form_data when set."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
+            color_scheme="lyftColors",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["color_scheme"] == "lyftColors"
+
+    def test_map_xy_config_without_color_scheme(self) -> None:
+        """color_scheme key omitted when not set, leaving Superset default."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
+        )
+
+        result = map_xy_config(config)
+
+        assert "color_scheme" not in result
 
     def test_map_xy_config_with_time_grain_month(self) -> None:
         """Test XY config mapping with monthly time grain"""
@@ -707,6 +833,38 @@ class TestMapXYConfig:
         assert result["row_limit"] == 10000
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_series_limit(self, mock_is_temporal) -> None:
+        """Test that series_limit is mapped to form_data when set."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            group_by=[ColumnRef(name="region")],
+            series_limit=10,
+        )
+
+        result = map_xy_config(config)
+
+        assert result["series_limit"] == 10
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_no_series_limit_by_default(self, mock_is_temporal) -> None:
+        """Test that series_limit is omitted from form_data when not set."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+        )
+
+        result = map_xy_config(config)
+
+        assert "series_limit" not in result
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
     def test_map_xy_config_saved_metric(self, mock_is_temporal: Any) -> None:
         """Test XY config with saved metric emits string in metrics list"""
         mock_is_temporal.return_value = True
@@ -769,6 +927,62 @@ class TestMapConfigToFormData:
         """Test mapping unsupported config type raises error"""
         with pytest.raises(ValueError, match="Unsupported config type"):
             map_config_to_form_data("invalid_config")  # type: ignore
+
+    @patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_map_xy_config_x_none_defaults_to_main_dttm_col(
+        self, mock_find_by_id: Any, mock_is_temporal: Any
+    ) -> None:
+        """When x is None, map_xy_config resolves it from dataset.main_dttm_col."""
+        mock_dataset = MagicMock()
+        mock_dataset.main_dttm_col = "order_date"
+        mock_find_by_id.return_value = mock_dataset
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=None,
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config, dataset_id=42)
+
+        assert result["x_axis"] == "order_date"
+        mock_find_by_id.assert_called_once_with(42)
+
+    def test_map_xy_config_x_none_no_dataset_id_raises(self) -> None:
+        """When x is None and no dataset_id, raise ValueError."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=None,
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+        )
+
+        with pytest.raises(ValueError, match="x-axis column is required"):
+            map_xy_config(config, dataset_id=None)
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_map_xy_config_x_none_no_main_dttm_col_raises(
+        self, mock_find_by_id: Any
+    ) -> None:
+        """When x is None and dataset has no main_dttm_col, raise ValueError."""
+        mock_dataset = MagicMock()
+        mock_dataset.main_dttm_col = None
+        mock_find_by_id.return_value = mock_dataset
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=None,
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+        )
+
+        with pytest.raises(ValueError, match="no primary datetime column"):
+            map_xy_config(config, dataset_id=42)
 
 
 class TestGenerateChartName:
@@ -962,13 +1176,25 @@ class TestGenerateExploreLink:
         self, mock_command, mock_get_base_url
     ) -> None:
         """Test generate_explore_link creates form_data_key when dataset exists"""
+        from superset.explore.permalink.exceptions import (
+            ExplorePermalinkCreateFailedError,
+        )
+
         mock_get_base_url.return_value = "http://localhost:9001"
         mock_command.return_value.run.return_value = "test_form_data_key"
 
-        # Mock dataset exists
+        # Mock dataset exists; force the durable-permalink path to fail so the
+        # function falls back to the ephemeral form_data_key.
         mock_dataset = type("Dataset", (), {"id": 123})()
-        with patch(
-            "superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_dataset
+        with (
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_dataset
+            ),
+            patch(
+                "superset.commands.explore.permalink.create."
+                "CreateExplorePermalinkCommand.run",
+                side_effect=ExplorePermalinkCreateFailedError("permalink unavailable"),
+            ),
         ):
             result = generate_explore_link(123, {"viz_type": "table"})
 
@@ -976,6 +1202,36 @@ class TestGenerateExploreLink:
             result == "http://localhost:9001/explore/?form_data_key=test_form_data_key"
         )
         mock_command.assert_called_once()
+
+    @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
+    @patch("superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand")
+    def test_generate_explore_link_prefer_permalink_false(
+        self, mock_command, mock_get_base_url
+    ) -> None:
+        """prefer_permalink=False skips the permalink path and returns a
+        form_data_key URL, so preview callers that re-parse the key keep working."""
+        mock_get_base_url.return_value = "http://localhost:9001"
+        mock_command.return_value.run.return_value = "test_form_data_key"
+
+        mock_dataset = type("Dataset", (), {"id": 123})()
+        with (
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_dataset
+            ),
+            patch(
+                "superset.commands.explore.permalink.create."
+                "CreateExplorePermalinkCommand.run"
+            ) as mock_permalink,
+        ):
+            result = generate_explore_link(
+                123, {"viz_type": "table"}, prefer_permalink=False
+            )
+
+        assert (
+            result == "http://localhost:9001/explore/?form_data_key=test_form_data_key"
+        )
+        mock_command.assert_called_once()
+        mock_permalink.assert_not_called()
 
     @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
     def test_generate_explore_link_exception_handling(self, mock_get_base_url) -> None:
@@ -1711,3 +1967,209 @@ class TestAdhocFiltersToQueryFilters:
         ]
         result = adhoc_filters_to_query_filters(adhoc)
         assert result == []
+
+
+# ---------------------------------------------------------------------------
+# Custom SQL metrics (sql_expression) — Ticket #3.
+#
+# Locks in the spec for how create_metric_object and the display helpers
+# behave when a ColumnRef carries sql_expression instead of name+aggregate.
+# ---------------------------------------------------------------------------
+
+
+_SQL_EXPR = "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / NULLIF(COUNT(*),0)"
+
+
+class TestSqlExpressionMetrics:
+    """create_metric_object + display helpers handle sql_expression metrics."""
+
+    def _sql_metric(self) -> ColumnRef:
+        return ColumnRef(sql_expression=_SQL_EXPR, label="Win Rate")
+
+    def test_create_metric_object_emits_sql_adhoc_dict(self) -> None:
+        result = create_metric_object(self._sql_metric())
+
+        assert isinstance(result, dict)
+        assert result["expressionType"] == "SQL"
+        assert result["sqlExpression"] == _SQL_EXPR
+        assert result["label"] == "Win Rate"
+        assert result["aggregate"] is None
+        assert result["column"] is None
+        assert result["hasCustomLabel"] is True
+
+    def test_sql_metric_option_name_is_deterministic(self) -> None:
+        """``optionName`` must be the same digest every time the same SQL
+        expression is mapped, including across processes. Regression test
+        for an earlier version that used Python's ``hash()`` (randomized
+        per process via PYTHONHASHSEED)."""
+        first = create_metric_object(self._sql_metric())
+        second = create_metric_object(self._sql_metric())
+
+        assert isinstance(first, dict)
+        assert isinstance(second, dict)
+        assert first["optionName"] == second["optionName"]
+        # md5 hex prefix is stable across runs; assert the exact digest so
+        # any change to the hashing scheme is caught explicitly.
+        assert first["optionName"] == "metric_sql_daa2cf81"
+
+    def test_humanize_column_returns_label_for_sql_metric(self) -> None:
+        assert _humanize_column(self._sql_metric()) == "Win Rate"
+
+    def test_metric_display_label_returns_label_for_sql_metric(self) -> None:
+        # _metric_display_label lives in chart.schemas; import locally so the
+        # red test fails for the right reason (sql_expression rejected) rather
+        # than a top-level ImportError.
+        from superset.mcp_service.chart.schemas import _metric_display_label
+
+        assert _metric_display_label(self._sql_metric()) == "Win Rate"
+
+
+class TestSqlExpressionAcrossChartMappers:
+    """Every chart-type mapper produces a SQL adhoc metric for sql_expression."""
+
+    def _sql_metric(self) -> ColumnRef:
+        return ColumnRef(sql_expression=_SQL_EXPR, label="Win Rate")
+
+    @staticmethod
+    def _assert_sql_adhoc(metric: Any) -> None:
+        assert isinstance(metric, dict)
+        assert metric["expressionType"] == "SQL"
+        assert metric["sqlExpression"] == _SQL_EXPR
+        assert metric["label"] == "Win Rate"
+        assert metric["aggregate"] is None
+        assert metric["column"] is None
+
+    def test_map_xy_config(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[self._sql_metric()],
+            kind="line",
+        )
+        form_data = map_xy_config(config, dataset_id="1")
+        assert len(form_data["metrics"]) == 1
+        self._assert_sql_adhoc(form_data["metrics"][0])
+
+    def test_map_table_config(self) -> None:
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[self._sql_metric()],
+        )
+        form_data = map_table_config(config)
+        assert len(form_data["metrics"]) == 1
+        self._assert_sql_adhoc(form_data["metrics"][0])
+
+    def test_map_pie_config(self) -> None:
+        from superset.mcp_service.chart.chart_utils import map_pie_config
+        from superset.mcp_service.chart.schemas import PieChartConfig
+
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="region"),
+            metric=self._sql_metric(),
+        )
+        form_data = map_pie_config(config)
+        self._assert_sql_adhoc(form_data["metric"])
+
+    def test_map_big_number_config(self) -> None:
+        from superset.mcp_service.chart.chart_utils import map_big_number_config
+        from superset.mcp_service.chart.schemas import BigNumberChartConfig
+
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=self._sql_metric(),
+        )
+        form_data = map_big_number_config(config)
+        self._assert_sql_adhoc(form_data["metric"])
+
+    def test_map_pivot_table_config(self) -> None:
+        from superset.mcp_service.chart.chart_utils import map_pivot_table_config
+        from superset.mcp_service.chart.schemas import PivotTableChartConfig
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="region")],
+            metrics=[self._sql_metric()],
+        )
+        form_data = map_pivot_table_config(config)
+        assert len(form_data["metrics"]) == 1
+        self._assert_sql_adhoc(form_data["metrics"][0])
+
+    def test_map_mixed_timeseries_config(self) -> None:
+        from superset.mcp_service.chart.chart_utils import (
+            map_mixed_timeseries_config,
+        )
+        from superset.mcp_service.chart.schemas import MixedTimeseriesChartConfig
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="ds"),
+            y=[self._sql_metric()],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+        )
+        form_data = map_mixed_timeseries_config(config, dataset_id="1")
+        assert len(form_data["metrics"]) == 1
+        self._assert_sql_adhoc(form_data["metrics"][0])
+
+
+class TestDatasetValidatorSkipsSqlMetrics:
+    """DatasetValidator skips SQL metrics (no underlying column to check)."""
+
+    @staticmethod
+    def _ctx():
+        from superset.mcp_service.common.error_schemas import DatasetContext
+
+        return DatasetContext(
+            id=1,
+            table_name="t",
+            database_name="db",
+            available_columns=[{"name": "ds", "is_numeric": False, "type": "DATE"}],
+            available_metrics=[],
+        )
+
+    def test_validate_columns_exist_skips_sql_metric(self) -> None:
+        from superset.mcp_service.chart.validation.dataset_validator import (
+            DatasetValidator,
+        )
+
+        refs = [ColumnRef(sql_expression=_SQL_EXPR, label="Win Rate")]
+        # Would crash on col_ref.name.lower() if sql_expression weren't skipped.
+        assert DatasetValidator._validate_columns_exist(refs, self._ctx()) is None
+
+    def test_superset_core_accepts_our_sql_adhoc_dict(self) -> None:
+        """The dict shape ``create_metric_object`` produces must satisfy
+        Superset core's ``is_adhoc_metric`` / ``get_metric_name`` helpers,
+        which the query engine uses to resolve the metric. Exercises the
+        cross-module contract without needing a real database."""
+        from superset.utils.core import get_metric_name, is_adhoc_metric
+
+        adhoc = create_metric_object(
+            ColumnRef(sql_expression=_SQL_EXPR, label="Win Rate")
+        )
+        assert isinstance(adhoc, dict)
+        # ``create_metric_object``'s declared return is ``dict | str``;
+        # narrow for mypy so the next two assertions type-check.
+        assert is_adhoc_metric(adhoc)  # type: ignore[arg-type]
+        # When ``label`` is set, core returns it directly.
+        assert get_metric_name(adhoc) == "Win Rate"
+
+    def test_normalize_column_names_skips_sql_metric_dicts(self) -> None:
+        """A SQL-metric ColumnRef dumps to {name: None, sql_expression: ...};
+        _get_canonical_column_name(None, ...) would crash without the guard."""
+        from superset.mcp_service.chart.validation.dataset_validator import (
+            DatasetValidator,
+        )
+
+        ctx = self._ctx()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(sql_expression=_SQL_EXPR, label="Win Rate")],
+            kind="line",
+        )
+        # Just asserting it doesn't raise — the normalized config still parses.
+        normalized = DatasetValidator.normalize_column_names(
+            config, dataset_id=1, dataset_context=ctx
+        )
+        assert normalized.y[0].sql_expression == _SQL_EXPR
+        assert normalized.y[0].name is None

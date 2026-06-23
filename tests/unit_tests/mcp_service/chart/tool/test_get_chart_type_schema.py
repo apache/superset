@@ -70,6 +70,24 @@ class TestGetChartTypeSchema:
         assert "valid_chart_types" in result
         assert result["valid_chart_types"] == VALID_CHART_TYPES
 
+    def test_invalid_chart_type_returns_structured_error(self) -> None:
+        """Invalid chart_type must return a populated, structured error body.
+
+        Without this guarantee, MCP clients see an empty/unstructured payload
+        and cannot self-correct (Eval 26 Test 26.5).
+        """
+        result = _call_schema("nonexistent")
+        err = result["error"]
+        assert isinstance(err, dict)
+        assert err["error_type"] == "invalid_chart_type"
+        assert err["error_code"] == "INVALID_CHART_TYPE"
+        assert "nonexistent" in err["message"]
+        assert err["details"]
+        assert err["suggestions"]
+        # Suggestions must name at least one valid chart type so callers know
+        # what to try next.
+        assert any(vt in " ".join(err["suggestions"]) for vt in VALID_CHART_TYPES)
+
     def test_examples_match_chart_type(self) -> None:
         result = _call_schema("pie")
         for example in result["examples"]:

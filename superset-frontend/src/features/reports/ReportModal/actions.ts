@@ -174,6 +174,28 @@ export const addReport =
         throw err;
       });
 
+export const SUBSCRIBE_REPORT = 'SUBSCRIBE_REPORT' as const;
+
+export interface SubscribeReportAction {
+  type: typeof SUBSCRIBE_REPORT;
+  json: ReportApiJsonResponse;
+}
+
+export const subscribeReport =
+  (report: Partial<ReportObject>) => (dispatch: Dispatch<AnyAction>) =>
+    SupersetClient.post({
+      endpoint: `/api/v1/report/subscribe`,
+      jsonPayload: report,
+    })
+      .then(({ json }) => {
+        dispatch({ type: SUBSCRIBE_REPORT, json } as SubscribeReportAction);
+        dispatch(addSuccessToast(t('The report has been created')));
+      })
+      .catch(err => {
+        dispatch(addDangerToast(t('Failed to create report')));
+        throw err;
+      });
+
 export const EDIT_REPORT = 'EDIT_REPORT' as const;
 
 export interface EditReportAction {
@@ -255,5 +277,6 @@ export function deleteActiveReport(report: DeletableReport) {
 export type ReportAction =
   | SetReportAction
   | AddReportAction
+  | SubscribeReportAction
   | EditReportAction
   | DeleteReportAction;

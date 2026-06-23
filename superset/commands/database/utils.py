@@ -47,7 +47,8 @@ def ping(engine: Engine) -> bool:
     except (sqlite3.ProgrammingError, RuntimeError):
         # SQLite can't run on a separate thread, so ``utils.timeout`` fails
         # RuntimeError catches the equivalent error from duckdb.
-        return engine.dialect.do_ping(engine)
+        with closing(engine.raw_connection()) as conn:
+            return engine.dialect.do_ping(conn)
 
 
 def add_permissions(database: Database) -> None:

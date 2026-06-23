@@ -62,3 +62,47 @@ def test_report_schedule_all_text_filter_applies_ilike() -> None:
     f = ReportScheduleAllTextFilter("name", MagicMock())
     f.apply(query, "test")
     query.filter.assert_called_once()
+
+
+@patch("superset.reports.filters.or_")
+@patch("superset.reports.filters.ReportSchedule")
+def test_report_schedule_all_text_filter_escapes_wildcards(
+    mock_report_schedule: MagicMock, mock_or: MagicMock
+) -> None:
+    """User-supplied wildcards must be escaped so they match literally."""
+    from superset.reports.filters import ReportScheduleAllTextFilter
+
+    query = MagicMock()
+    f = ReportScheduleAllTextFilter("name", MagicMock())
+    # raw input contains every LIKE special character plus a backslash
+    f.apply(query, "50%_off\\promo")
+
+    # %, _ and \ are all escaped, and the literal is wrapped for a "contains" match
+    expected = "%50\\%\\_off\\\\promo%"
+    for column in (
+        mock_report_schedule.name,
+        mock_report_schedule.description,
+        mock_report_schedule.sql,
+    ):
+        column.ilike.assert_called_once_with(expected, escape="\\")
+
+
+@patch("superset.reports.filters.or_")
+@patch("superset.reports.filters.ReportSchedule")
+def test_report_schedule_all_text_filter_coerces_non_string(
+    mock_report_schedule: MagicMock, mock_or: MagicMock
+) -> None:
+    """A non-string value (e.g. an int) must not raise when escaping."""
+    from superset.reports.filters import ReportScheduleAllTextFilter
+
+    query = MagicMock()
+    f = ReportScheduleAllTextFilter("name", MagicMock())
+    f.apply(query, 50)
+
+    expected = "%50%"
+    for column in (
+        mock_report_schedule.name,
+        mock_report_schedule.description,
+        mock_report_schedule.sql,
+    ):
+        column.ilike.assert_called_once_with(expected, escape="\\")

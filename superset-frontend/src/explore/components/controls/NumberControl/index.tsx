@@ -71,6 +71,11 @@ export default function NumberControl({
     onChange?.(pendingValueRef.current);
   };
 
+  const handleStep = (val: number) => {
+    pendingValueRef.current = val;
+    onChange?.(val);
+  };
+
   return (
     <FullWidthDiv>
       <ControlHeader {...rest} />
@@ -82,6 +87,7 @@ export default function NumberControl({
         value={value}
         onChange={handleChange}
         onBlur={handleBlur}
+        onStep={handleStep}
         disabled={disabled}
         aria-label={rest.label}
       />

@@ -268,6 +268,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
           onChange={onCssChange}
           value={currentCssTemplate?.css ?? ''}
           language="css"
+          height="250px"
           width="100%"
         />
       </TemplateContainer>

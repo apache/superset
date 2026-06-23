@@ -32,6 +32,7 @@ from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
 from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.dashboard_filter_context import (
+    apply_dashboard_filter_context,
     DashboardFilterContext,
     get_dashboard_filter_context,
 )
@@ -50,11 +51,7 @@ from superset.commands.chart.exceptions import (
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.sqla.models import BaseDatasource
-from superset.constants import (
-    CACHE_DISABLED_TIMEOUT,
-    EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
-    EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
-)
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import event_logger
@@ -204,38 +201,17 @@ class ChartDataRestApi(ChartRestApi):
             except SupersetSecurityException:
                 return self.response_403()
 
-            if dashboard_filter_context.extra_form_data:
-                efd = dashboard_filter_context.extra_form_data
-                extra_filters = efd.get("filters", [])
+            if efd := dashboard_filter_context.extra_form_data:
+                # Note: this helper currently mutates `json_body` and `efd` in place.
+                # Changes won't persist as these are dicts detached from the ORM state,
+                # but highlighting in case they're further used (mind the changes).
+                apply_dashboard_filter_context(json_body, efd)
 
-                for query in json_body.get("queries", []):
-                    if extra_filters:
-                        existing = query.get("filters") or []
-                        query["filters"] = existing + [
-                            {**f, "isExtra": True} for f in extra_filters
-                        ]
-
-                    extras = query.get("extras") or {}
-                    for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
-                        if key in efd:
-                            extras[key] = efd[key]
-                    if extras:
-                        query["extras"] = extras
-
-                    for (
-                        src_key,
-                        target_key,
-                    ) in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
-                        if src_key in efd:
-                            query[target_key] = efd[src_key]
-
-                    query["extra_form_data"] = efd
-
-                # We need to apply the form data to the global context as jinja
-                # templating pulls form data from the request globally, so this
-                # fallback ensures it has the filters and extra_form_data applied
-                # when used in get_sqla_query which constructs the final query.
-                g.form_data = json_body
+        # We need to apply the form data to the global context as jinja
+        # templating pulls form data from the request globally, so this
+        # fallback ensures it has the filters and extra_form_data applied
+        # when used in get_sqla_query which constructs the final query.
+        g.form_data = json_body
 
         try:
             query_context = self._create_query_context_from_form(json_body)
@@ -520,8 +496,11 @@ class ChartDataRestApi(ChartRestApi):
             # return multi-query results bundled as a zip file
             def _process_data(query_data: Any) -> Any:
                 if result_format == ChartDataResultFormat.CSV:
-                    encoding = app.config["CSV_EXPORT"].get("encoding", "utf-8")
-                    return query_data.encode(encoding)
+                    # CSV data is already encoded to bytes by the query context
+                    # processor, honoring the CSV_EXPORT encoding config.
+                    if isinstance(query_data, str):
+                        encoding = app.config["CSV_EXPORT"].get("encoding", "utf-8")
+                        return query_data.encode(encoding)
                 return query_data
 
             files = {
@@ -612,6 +591,13 @@ class ChartDataRestApi(ChartRestApi):
     def _extract_export_params_from_request(self) -> tuple[str | None, int | None]:
         """Extract filename and expected_rows from request for streaming exports."""
         filename = request.form.get("filename")
+        if filename:
+            # Sanitize the user-supplied filename before it is used in the
+            # Content-Disposition header (consistent with the generated-name
+            # path). secure_filename may reduce a name consisting entirely of
+            # unsupported characters to an empty string, in which case fall back
+            # to the generated default downstream.
+            filename = secure_filename(filename) or None
         if filename:
             logger.info("FRONTEND PROVIDED FILENAME: %s", filename)
 
@@ -723,6 +709,10 @@ class ChartDataRestApi(ChartRestApi):
 
             # Sanitize chart name for filename
             filename = secure_filename(f"superset_{chart_name}_{timestamp}.csv")
+        else:
+            # Sanitize the client-provided filename before placing it in the
+            # Content-Disposition header to avoid header/path injection.
+            filename = secure_filename(filename) or "export.csv"
 
         logger.info("Creating streaming CSV response: %s", filename)
         if expected_rows:
@@ -743,7 +733,10 @@ class ChartDataRestApi(ChartRestApi):
         # Create response with streaming headers
         response = Response(
             csv_generator_callable(),  # Call the callable to get generator
-            mimetype=f"text/csv; charset={encoding}",
+            # Use content_type (not mimetype) so the charset is set verbatim;
+            # passing a charset via mimetype makes Werkzeug append a second
+            # charset, producing a malformed doubled Content-Type header.
+            content_type=f"text/csv; charset={encoding}",
             headers={
                 "Content-Disposition": f'attachment; filename="{filename}"',
                 "Cache-Control": "no-cache",

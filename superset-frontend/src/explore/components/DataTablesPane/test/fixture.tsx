@@ -90,6 +90,10 @@ export const createSamplesPaneProps = ({
   ({
     isRequest,
     datasource: { ...datasource, id: datasourceId },
+    queryFormData: {
+      ...queryFormData,
+      datasource: `${datasourceId}__table`,
+    },
     queryForce,
     isVisible: true,
     setForceQuery: jest.fn(),

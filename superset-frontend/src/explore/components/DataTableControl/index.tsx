@@ -16,27 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useEffect, useRef, RefObject } from 'react';
+import { useMemo, useEffect, useRef, RefObject } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { getTimeFormatter, safeHtmlSpan, TimeFormats } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
-import { GenericDataType } from '@apache-superset/core/common';
-import { Column } from 'react-table';
+
 import { debounce } from 'lodash';
-import {
-  Constants,
-  Button,
-  Icons,
-  Input,
-  Popover,
-  Radio,
-} from '@superset-ui/core/components';
+import { Constants, Button, Icons, Input } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import {
   prepareCopyToClipboardTabularData,
   TabularDataRow,
 } from 'src/utils/common';
-import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
   color: ${({ theme }) => theme.colorTextTertiary};
@@ -58,29 +48,45 @@ export const CopyButton = styled(Button)`
 export const CopyToClipboardButton = ({
   data,
   columns,
+  disabled = false,
 }: {
   data?: TabularDataRow[];
   columns?: string[];
-}) => (
-  <CopyToClipboard
-    text={
-      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
-    }
-    wrapped={false}
-    copyNode={
-      <Icons.CopyOutlined
-        iconSize="l"
-        aria-label={t('Copy')}
-        role="button"
-        css={css`
-          &.anticon > * {
-            line-height: 0;
-          }
-        `}
-      />
-    }
-  />
-);
+  disabled?: boolean;
+}) => {
+  const theme = useTheme();
+  return (
+    <CopyToClipboard
+      text={
+        !disabled && data && columns
+          ? prepareCopyToClipboardTabularData(data, columns)
+          : ''
+      }
+      disabled={disabled}
+      wrapped={false}
+      copyNode={
+        <span
+          role="button"
+          aria-label={t('Copy')}
+          aria-disabled={disabled}
+          tabIndex={disabled ? -1 : 0}
+        >
+          <Icons.CopyOutlined
+            iconColor={theme.colorIcon}
+            iconSize="l"
+            css={css`
+              opacity: ${disabled ? 0.3 : 1};
+              cursor: ${disabled ? 'not-allowed' : 'pointer'};
+              &.anticon > * {
+                line-height: 0;
+              }
+            `}
+          />
+        </span>
+      }
+    />
+  );
+};
 
 export const FilterInput = ({
   onChangeHandler,
@@ -120,113 +126,6 @@ export const FilterInput = ({
   );
 };
 
-enum FormatPickerValue {
-  Formatted = 'formatted',
-  Original = 'original',
-}
-
-const FormatPicker = ({
-  onChange,
-  value,
-}: {
-  onChange: any;
-  value: FormatPickerValue;
-}) => (
-  <Radio.GroupWrapper
-    spaceConfig={{
-      direction: 'vertical',
-      align: 'start',
-      size: 15,
-      wrap: false,
-    }}
-    size="large"
-    value={value}
-    onChange={onChange}
-    options={[
-      { label: t('Formatted date'), value: FormatPickerValue.Formatted },
-      { label: t('Original value'), value: FormatPickerValue.Original },
-    ]}
-  />
-);
-
-const FormatPickerContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-
-  padding: ${({ theme }) => `${theme.sizeUnit * 4}px`};
-`;
-
-const FormatPickerLabel = styled.span`
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme }) => theme.colorText};
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
-`;
-
-const DataTableTemporalHeaderCell = ({
-  columnName,
-  onTimeColumnChange,
-  datasourceId,
-  isOriginalTimeColumn,
-  displayLabel,
-}: {
-  columnName: string;
-  onTimeColumnChange: (
-    columnName: string,
-    columnType: FormatPickerValue,
-  ) => void;
-  datasourceId?: string;
-  isOriginalTimeColumn: boolean;
-  displayLabel?: string;
-}) => {
-  const theme = useTheme();
-
-  const onChange = (e: any) => {
-    onTimeColumnChange(columnName, e.target.value);
-  };
-
-  const overlayContent = useMemo(
-    () =>
-      datasourceId ? ( // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-        <FormatPickerContainer
-          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
-        >
-          {/* hack to disable click propagation from popover content to table header, which triggers sorting column */}
-          <FormatPickerLabel>{t('Column Formatting')}</FormatPickerLabel>
-          <FormatPicker
-            onChange={onChange}
-            value={
-              isOriginalTimeColumn
-                ? FormatPickerValue.Original
-                : FormatPickerValue.Formatted
-            }
-          />
-        </FormatPickerContainer>
-      ) : null,
-    [datasourceId, isOriginalTimeColumn],
-  );
-
-  return datasourceId ? (
-    <span>
-      <Popover
-        trigger="click"
-        content={overlayContent}
-        placement="bottomLeft"
-        arrow={{ pointAtCenter: true }}
-      >
-        <Icons.SettingOutlined
-          iconSize="m"
-          iconColor={theme.colorIcon}
-          css={{ marginRight: `${theme.sizeUnit}px` }}
-          onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
-        />
-      </Popover>
-      {displayLabel ?? columnName}
-    </span>
-  ) : (
-    <span>{displayLabel ?? columnName}</span>
-  );
-};
-
 export const useFilteredTableData = (
   filterText: string,
   data?: Record<string, any>[],
@@ -251,121 +150,4 @@ export const useFilteredTableData = (
       ),
     );
   }, [data, filterText, rowsAsStrings]);
-};
-
-const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
-
-export const useTableColumns = (
-  colnames?: string[],
-  coltypes?: GenericDataType[],
-  data?: Record<string, any>[],
-  datasourceId?: string,
-  isVisible?: boolean,
-  moreConfigs?: { [key: string]: Partial<Column> },
-  allowHTML?: boolean,
-  columnDisplayNames?: Record<string, string>,
-) => {
-  const [originalFormattedTimeColumns, setOriginalFormattedTimeColumns] =
-    useState<string[]>(getTimeColumns(datasourceId));
-
-  const onTimeColumnChange = (
-    columnName: string,
-    columnType: FormatPickerValue,
-  ) => {
-    if (!datasourceId) {
-      return;
-    }
-    if (
-      columnType === FormatPickerValue.Original &&
-      !originalFormattedTimeColumns.includes(columnName)
-    ) {
-      const cols = getTimeColumns(datasourceId);
-      cols.push(columnName);
-      setTimeColumns(datasourceId, cols);
-      setOriginalFormattedTimeColumns(cols);
-    } else if (
-      columnType === FormatPickerValue.Formatted &&
-      originalFormattedTimeColumns.includes(columnName)
-    ) {
-      const cols = getTimeColumns(datasourceId);
-      cols.splice(cols.indexOf(columnName), 1);
-      setTimeColumns(datasourceId, cols);
-      setOriginalFormattedTimeColumns(cols);
-    }
-  };
-
-  useEffect(() => {
-    if (isVisible) {
-      setOriginalFormattedTimeColumns(getTimeColumns(datasourceId));
-    }
-  }, [datasourceId, isVisible]);
-
-  return useMemo(
-    () =>
-      colnames && data?.length
-        ? colnames
-            .filter((column: string) => Object.keys(data[0]).includes(column))
-            .map((key, index) => {
-              const colType = coltypes?.[index];
-              const firstValue = data[0][key];
-              const headerLabel = columnDisplayNames?.[key] ?? key;
-              const originalFormattedTimeColumnIndex =
-                colType === GenericDataType.Temporal
-                  ? originalFormattedTimeColumns.indexOf(key)
-                  : -1;
-              const isOriginalTimeColumn =
-                originalFormattedTimeColumns.includes(key);
-              return {
-                // react-table requires a non-empty id, therefore we introduce a fallback value in case the key is empty
-                id: key || String(index),
-                accessor: (row: Record<string, any>) => row[key],
-                Header:
-                  colType === GenericDataType.Temporal &&
-                  typeof firstValue !== 'string' ? (
-                    <DataTableTemporalHeaderCell
-                      columnName={key}
-                      datasourceId={datasourceId}
-                      onTimeColumnChange={onTimeColumnChange}
-                      isOriginalTimeColumn={isOriginalTimeColumn}
-                      displayLabel={headerLabel}
-                    />
-                  ) : (
-                    headerLabel
-                  ),
-                Cell: ({ value }) => {
-                  if (value === true) {
-                    return Constants.BOOL_TRUE_DISPLAY;
-                  }
-                  if (value === false) {
-                    return Constants.BOOL_FALSE_DISPLAY;
-                  }
-                  if (value === null) {
-                    return <CellNull>{Constants.NULL_DISPLAY}</CellNull>;
-                  }
-                  if (
-                    colType === GenericDataType.Temporal &&
-                    originalFormattedTimeColumnIndex === -1 &&
-                    typeof value === 'number'
-                  ) {
-                    return timeFormatter(value);
-                  }
-                  if (typeof value === 'string' && allowHTML) {
-                    return safeHtmlSpan(value);
-                  }
-                  return String(value);
-                },
-                ...moreConfigs?.[key],
-              } as Column;
-            })
-        : [],
-    [
-      colnames,
-      data,
-      coltypes,
-      datasourceId,
-      moreConfigs,
-      originalFormattedTimeColumns,
-      columnDisplayNames,
-    ],
-  );
 };

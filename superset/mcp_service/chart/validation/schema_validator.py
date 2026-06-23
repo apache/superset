@@ -185,22 +185,15 @@ class SchemaValidator:
         config: Dict[str, Any],
     ) -> Tuple[bool, ChartGenerationError | None]:
         """Pre-validate XY chart configuration."""
-        missing_fields = []
-
-        if "x" not in config:
-            missing_fields.append("'x' (X-axis column)")
+        # x is optional — defaults to dataset's main_dttm_col in map_xy_config
         if "y" not in config:
-            missing_fields.append("'y' (Y-axis metrics)")
-
-        if missing_fields:
             return False, ChartGenerationError(
                 error_type="missing_xy_fields",
-                message=f"XY chart missing required "
-                f"fields: {', '.join(missing_fields)}",
-                details="XY charts require both X-axis (dimension) and Y-axis ("
-                "metrics) specifications",
+                message="XY chart missing required field: 'y' (Y-axis metrics)",
+                details="XY charts require Y-axis (metrics) specifications. "
+                "X-axis is optional and defaults to the dataset's primary "
+                "datetime column when omitted.",
                 suggestions=[
-                    "Add 'x' field: {'name': 'column_name'} for X-axis",
                     "Add 'y' field: [{'name': 'metric_column', 'aggregate': 'SUM'}] "
                     "for Y-axis",
                     "Example: {'chart_type': 'xy', 'x': {'name': 'date'}, "
@@ -399,21 +392,46 @@ class SchemaValidator:
                 ],
                 error_code="INVALID_BIG_NUMBER_METRIC_TYPE",
             )
-        if not metric.get("aggregate") and not metric.get("saved_metric"):
+        if (
+            not metric.get("aggregate")
+            and not metric.get("saved_metric")
+            and not metric.get("sql_expression")
+        ):
             return False, ChartGenerationError(
                 error_type="missing_metric_aggregate",
-                message="Big Number metric must include an aggregate function "
-                "or reference a saved metric",
-                details="The metric must have an 'aggregate' field "
-                "or 'saved_metric': true",
+                message="Big Number metric must include an aggregate function, "
+                "a saved metric reference, or a SQL expression",
+                details="The metric must have an 'aggregate' field, "
+                "'saved_metric': true, or 'sql_expression'",
                 suggestions=[
                     "Add 'aggregate' to your metric: "
                     "{'name': 'col', 'aggregate': 'SUM'}",
                     "Or use a saved metric: "
                     "{'name': 'total_sales', 'saved_metric': true}",
+                    "Or a custom SQL metric: "
+                    "{'sql_expression': 'SUM(a)/SUM(b)', 'label': 'Ratio'}",
                     "Valid aggregates: SUM, COUNT, AVG, MIN, MAX",
                 ],
                 error_code="MISSING_BIG_NUMBER_AGGREGATE",
+            )
+        # ``label`` may be any JSON type here (pre-Pydantic), so test the
+        # string-ness explicitly before calling ``.strip()``.
+        label = metric.get("label")
+        if metric.get("sql_expression") and not (
+            isinstance(label, str) and label.strip()
+        ):
+            return False, ChartGenerationError(
+                error_type="missing_sql_metric_label",
+                message="Big Number metric with sql_expression requires a label",
+                details=(
+                    "Custom SQL metrics have no column name to derive a label "
+                    "from, so 'label' is required for display."
+                ),
+                suggestions=[
+                    "Add a 'label': "
+                    "{'sql_expression': 'SUM(a)/SUM(b)', 'label': 'Ratio'}",
+                ],
+                error_code="MISSING_SQL_METRIC_LABEL",
             )
 
         show_trendline = config.get("show_trendline", False)

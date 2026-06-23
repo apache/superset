@@ -36,6 +36,8 @@ import {
   SMART_DATE_ID,
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
+import { CellProps, Column, HeaderProps } from 'react-table';
+import DataTable from '../src/DataTable/DataTable';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
@@ -628,9 +630,11 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render cell without color', () => {
@@ -667,12 +671,14 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
-          'rgba(172, 225, 196, 0.812)',
+          'rgba(172, 225, 196, 0.81)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('preserves muted null styling when no formatter resolves text color', () => {
@@ -1057,10 +1063,10 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -1088,9 +1094,11 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with string column color formatter (operator containing)', () => {
@@ -1117,9 +1125,11 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with string column color formatter (operator not containing)', () => {
@@ -1146,10 +1156,10 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -1177,10 +1187,10 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -1207,13 +1217,13 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
       });
 
@@ -1241,9 +1251,11 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('true')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('false')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('false')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with boolean column color formatter (operator is false)', () => {
@@ -1270,9 +1282,11 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('false')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('true')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('true')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with boolean column color formatter (operator is null)', () => {
@@ -1299,10 +1313,14 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('true')).background).toBe('');
-        expect(getComputedStyle(screen.getByText('false')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('true')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
+        expect(getComputedStyle(screen.getByText('false')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with boolean column color formatter (operator is not null)', () => {
@@ -1331,12 +1349,14 @@ describe('plugin-chart-table', () => {
         const trueElements = screen.getAllByText('true');
         const falseElements = screen.getAllByText('false');
         expect(getComputedStyle(trueElements[0]).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(falseElements[0]).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with column color formatter to entire row', () => {
@@ -1365,13 +1385,13 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('0.123456')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
       });
 
@@ -1642,7 +1662,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with useGradient true returns gradient color', () => {
@@ -1672,9 +1694,11 @@ describe('plugin-chart-table', () => {
 
         // When useGradient is true, should return gradient color with opacity
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with useGradient undefined defaults to gradient (backward compatibility)', () => {
@@ -1703,9 +1727,11 @@ describe('plugin-chart-table', () => {
 
         // When useGradient is undefined, should default to gradient for backward compatibility
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with useGradient false and None operator returns solid color', () => {
@@ -1739,6 +1765,219 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
           'rgb(172, 225, 196)',
         );
+      });
+
+      test('clicking a cell emits cross-filter, clicking again clears it', () => {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+        const { rerender } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // Click a string cell to apply cross-filter
+        const nameCell = screen.getByText('Michael');
+        fireEvent.click(nameCell);
+
+        // Find the cross-filter call (not the ownState call)
+        const crossFilterCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState?.filters,
+        );
+        expect(crossFilterCall).toBeDefined();
+        const firstCallArg = crossFilterCall![0];
+        // Should set the filter
+        expect(firstCallArg.filterState.filters).toEqual({
+          name: ['Michael'],
+        });
+        expect(firstCallArg.extraFormData.filters).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              col: 'name',
+              op: 'IN',
+              val: ['Michael'],
+            }),
+          ]),
+        );
+
+        // Now simulate Redux updating the filters prop (as would happen in dashboard)
+        setDataMask.mockClear();
+        rerender(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={{ name: ['Michael'] }}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The cell should now have the active filter class
+        const activeCells = document.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Click same cell again to clear cross-filter
+        setDataMask.mockClear();
+        const sameCellAgain = screen.getByText('Michael');
+        fireEvent.click(sameCellAgain);
+
+        // Find the cross-filter clearing call
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        const secondCallArg = clearCall![0];
+        // Should clear the filter
+        expect(secondCallArg.filterState.filters).toBeNull();
+        expect(secondCallArg.extraFormData.filters).toEqual([]);
+      });
+
+      test('cross-filter toggle works with DateWithFormatter values', () => {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+
+        // The data has a __timestamp column with DateWithFormatter values
+        // after processDataRecords. Let's verify this.
+        const timestampVal = props.data[0].__timestamp;
+        expect(timestampVal).toBeInstanceOf(DateWithFormatter);
+
+        const { rerender } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // Click a timestamp cell - find it by text content
+        const timestampCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(timestampCell);
+
+        const crossFilterCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState?.filters,
+        );
+        expect(crossFilterCall).toBeDefined();
+        const firstCallArg = crossFilterCall![0];
+
+        // Now re-render with the filters from the first click
+        // This simulates what happens via Redux in the real app
+        setDataMask.mockClear();
+        rerender(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={firstCallArg.filterState.filters}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The timestamp cell should be active
+        const activeCells = document.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Click the same timestamp cell again to clear
+        setDataMask.mockClear();
+        const sameCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(sameCell);
+
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        // Should CLEAR the filter (not re-apply it)
+        expect(clearCall![0].filterState.filters).toBeNull();
+        expect(clearCall![0].extraFormData.filters).toEqual([]);
+      });
+
+      test('cross-filter toggle clears when DateWithFormatter references differ', () => {
+        // Regression test: when memoizeOne cache misses between renders,
+        // new DateWithFormatter instances are created with different references.
+        // isActiveFilterValue must compare by time value, not reference.
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+
+        const timestampVal = props.data[0].__timestamp as DateWithFormatter;
+        expect(timestampVal).toBeInstanceOf(DateWithFormatter);
+
+        // Build filters with a DIFFERENT DateWithFormatter instance (same time value)
+        const filterKey = '__timestamp';
+        const differentRef = new DateWithFormatter(timestampVal.input, {
+          formatter: timestampVal.formatter,
+        });
+        expect(differentRef).not.toBe(timestampVal); // different reference
+        expect(differentRef.getTime()).toBe(timestampVal.getTime()); // same time
+
+        const { container } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={{ [filterKey]: [differentRef] }}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The cell should show active filter despite different reference
+        const activeCells = container.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Clicking should CLEAR the filter, not re-apply it
+        setDataMask.mockClear();
+        const timestampCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(timestampCell);
+
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        expect(clearCall![0].filterState.filters).toBeNull();
+        expect(clearCall![0].extraFormData.filters).toEqual([]);
+      });
+
+      test('page size selector arrow stays above resize handles (#39305)', () => {
+        // .resize-handle elements in dashboard ResizableContainer sit at
+        // z-index: 10 — the page size arrow must stack above them or it
+        // gets covered on dashboard charts.
+        const { container } = render(
+          ProviderWrapper({
+            children: (
+              <TableChart {...transformProps(testData.basic)} sticky={false} />
+            ),
+          }),
+        );
+
+        const arrow = container.querySelector(
+          '.dt-select-page-size .ant-select .ant-select-arrow',
+        );
+        expect(arrow).not.toBeNull();
+        expect(getComputedStyle(arrow as HTMLElement).zIndex).toBe('11');
       });
 
       test('recalculates totals when user filters data', async () => {
@@ -1784,6 +2023,222 @@ describe('plugin-chart-table', () => {
             String(totalAfterFilter),
           );
           expect(totalCellAfter).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text across temporal table rerenders', async () => {
+        const formDataWithSearch = {
+          ...testData.basic.formData,
+          include_search: true,
+          server_pagination: false,
+        };
+
+        const renderChart = () => {
+          const props = transformProps({
+            ...testData.basic,
+            formData: formDataWithSearch,
+          });
+          props.includeSearch = true;
+
+          return (
+            <ProviderWrapper>
+              <TableChart {...props} sticky={false} />
+            </ProviderWrapper>
+          );
+        };
+
+        const { rerender } = render(renderChart());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderChart());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text when rerendered with empty data', async () => {
+        const formDataWithSearch = {
+          ...testData.basic.formData,
+          include_search: true,
+          server_pagination: false,
+        };
+
+        const renderChart = (data = testData.basic.queriesData[0].data) => {
+          const props = transformProps({
+            ...testData.basic,
+            formData: formDataWithSearch,
+            queriesData: [
+              {
+                ...testData.basic.queriesData[0],
+                data,
+              },
+            ],
+          });
+          props.includeSearch = true;
+
+          return (
+            <ProviderWrapper>
+              <TableChart {...props} sticky={false} />
+            </ProviderWrapper>
+          );
+        };
+
+        const { rerender } = render(renderChart());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderChart([]));
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByLabelText('Search 0 records')).toHaveValue(
+            'Michael',
+          );
+        });
+      });
+
+      test('preserves client-side search text for function accessor columns', async () => {
+        type DataRow = {
+          city: string;
+          firstName: string;
+        };
+
+        const makeColumns = (): Column<DataRow>[] => [
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>First name</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            id: 'firstName',
+            accessor: ((row: DataRow) => row.firstName) as never,
+          },
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>City</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            id: 'city',
+            accessor: ((row: DataRow) => row.city) as never,
+          },
+        ];
+
+        const data: DataRow[] = [
+          { firstName: 'Michael', city: 'Paris' },
+          { firstName: 'Jordan', city: 'London' },
+        ];
+
+        const renderDataTable = () => (
+          <ProviderWrapper>
+            <DataTable<DataRow>
+              columns={makeColumns()}
+              data={data}
+              rowCount={data.length}
+              serverPagination={false}
+              serverPaginationData={{}}
+              onServerPaginationChange={jest.fn()}
+              handleSortByChange={jest.fn()}
+              sortByFromParent={[]}
+              onSearchColChange={jest.fn()}
+              searchOptions={[]}
+              sticky={false}
+            />
+          </ProviderWrapper>
+        );
+
+        const { rerender } = render(renderDataTable());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderDataTable());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text for string accessor columns without ids', async () => {
+        type DataRow = {
+          city: string;
+          firstName: string;
+        };
+
+        const makeColumns = (): Column<DataRow>[] => [
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>First name</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            accessor: 'firstName',
+          },
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>City</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            accessor: 'city',
+          },
+        ];
+
+        const data: DataRow[] = [
+          { firstName: 'Michael', city: 'Paris' },
+          { firstName: 'Jordan', city: 'London' },
+        ];
+
+        const renderDataTable = () => (
+          <ProviderWrapper>
+            <DataTable<DataRow>
+              columns={makeColumns()}
+              data={data}
+              rowCount={data.length}
+              serverPagination={false}
+              serverPaginationData={{}}
+              onServerPaginationChange={jest.fn()}
+              handleSortByChange={jest.fn()}
+              sortByFromParent={[]}
+              onSearchColChange={jest.fn()}
+              searchOptions={[]}
+              sticky={false}
+            />
+          </ProviderWrapper>
+        );
+
+        const { rerender } = render(renderDataTable());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderDataTable());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
         });
       });
     });
@@ -1928,4 +2383,154 @@ describe('plugin-chart-table', () => {
       expect(filters[0].val).toEqual(['Michael']);
     });
   });
+});
+
+/**
+ * DRILL-TO-DETAIL FIX VERIFICATION (#23847)
+ */
+describe('Drill-to-Detail Temporal Range Logic', () => {
+  const renderChartAndOpenContextMenu = (
+    timeGrain?: TimeGranularity,
+    timestampValue?: string | number | null,
+  ) => {
+    const onContextMenu = jest.fn();
+    const data = cloneDeep(testData.basic);
+
+    if (timestampValue !== undefined) {
+      data.queriesData[0].data[0].__timestamp = timestampValue;
+    }
+
+    const props = transformProps({
+      ...data,
+      rawFormData: {
+        ...data.rawFormData,
+        ...(timeGrain ? { time_grain_sqla: timeGrain } : {}),
+      },
+      hooks: { onAddFilter: jest.fn(), onContextMenu, setDataMask: jest.fn() },
+    });
+    render(<TableChart {...props} sticky={false} />);
+
+    const tbody = screen.getAllByRole('rowgroup')[1];
+    fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
+
+    const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
+    return drillToDetail.find((f: any) => f.col === '__timestamp');
+  };
+
+  test('uses TEMPORAL_RANGE for monthly grain', () => {
+    const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH);
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toContain(
+      '2020-01-01T12:34:56.000Z : 2020-02-01T00:00:00.000Z',
+    );
+  });
+
+  test('uses the full bucket for week ending sunday grain', () => {
+    const filter = renderChartAndOpenContextMenu(
+      TimeGranularity.WEEK_ENDING_SUNDAY,
+      '2020-01-05T00:00:00',
+    );
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toBe(
+      '2019-12-30T00:00:00.000Z : 2020-01-06T00:00:00.000Z',
+    );
+  });
+
+  test('uses the full bucket for week ending saturday grain', () => {
+    const filter = renderChartAndOpenContextMenu(
+      TimeGranularity.WEEK_ENDING_SATURDAY,
+      '2020-01-04T00:00:00',
+    );
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toBe(
+      '2019-12-29T00:00:00.000Z : 2020-01-05T00:00:00.000Z',
+    );
+  });
+
+  test('correctly handles NULL values by emitting IS NULL instead of 1970 timestamp', () => {
+    const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH, null);
+
+    expect(filter.op).toBe('IS NULL');
+    expect(filter.val).toBeNull();
+  });
+});
+
+// Numeric values with String dataType (e.g. backend mis-reports type for computed columns)
+// get 'alphanumeric' sort, which treats raw numbers as non-strings and produces unstable order.
+// They should sort numerically regardless of display format.
+test('sorts numeric-backed percentage column numerically when dataType is String', async () => {
+  const props = transformProps({
+    ...testData.raw,
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      order_desc: false,
+      metrics: ['pct'],
+      column_config: {
+        pct: { d3NumberFormat: '.1%' },
+      },
+    },
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['pct'],
+        coltypes: [GenericDataType.String],
+        data: [
+          { pct: 0.4 },
+          { pct: 0.056 },
+          { pct: 0.506 },
+          { pct: 0.066 },
+          { pct: 0.41 },
+        ],
+      },
+    ],
+  });
+
+  render(
+    ProviderWrapper({
+      children: <TableChart {...props} sticky={false} />,
+    }),
+  );
+
+  const header = screen.getByText('pct');
+  fireEvent.click(header);
+
+  const cells = document.querySelectorAll('tbody td');
+  const values = Array.from(cells).map(td => td.textContent);
+  expect(values).toEqual(['5.6%', '6.6%', '40.0%', '41.0%', '50.6%']);
+});
+
+test('sorts genuinely string columns alphanumerically', () => {
+  const props = transformProps({
+    ...testData.raw,
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      order_desc: false,
+      metrics: [],
+      columns: ['label'],
+    },
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['label'],
+        coltypes: [GenericDataType.String],
+        data: [{ label: 'banana' }, { label: 'apple' }, { label: 'cherry' }],
+      },
+    ],
+  });
+
+  render(
+    ProviderWrapper({
+      children: <TableChart {...props} sticky={false} />,
+    }),
+  );
+
+  const header = screen.getByText('label');
+  fireEvent.click(header);
+
+  const cells = document.querySelectorAll('tbody td');
+  const values = Array.from(cells).map(td => td.textContent);
+  expect(values).toEqual(['apple', 'banana', 'cherry']);
 });
