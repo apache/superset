@@ -2994,8 +2994,12 @@ def test_resolve_denylist_schema_memoizes_across_expressions(
     )
     table = SqlaTable(database=database, schema=None, table_name="t")
 
-    for _ in range(3):
-        assert table._resolve_denylist_schema("SELECT 1") == "resolved"
+    # Distinct expression shapes (column / metric / order-by) mirror a real
+    # request, where validation runs once per selected field with different
+    # SQL each time. Caching must be keyed on the datasource instance, not the
+    # SQL string, so a single resolution still covers all of them.
+    for sql in ("price", "SUM(price)", "created_at DESC"):
+        assert table._resolve_denylist_schema(sql) == "resolved"
     query_aware.assert_called_once()
 
 

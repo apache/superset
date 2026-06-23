@@ -33,6 +33,8 @@ assists people when migrating to a new version.
 
 Deployments that legitimately query these (for example tooling that introspects `information_schema`) can restore the previous behavior by overriding `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` in `superset_config.py` to drop the entries they need.
 
+Because the denylist now resolves the effective schema through the query-aware path, PostgreSQL queries that change the `search_path` (e.g. `SET search_path = ...`) are rejected on the SQL Lab execution and cost-estimate paths whenever any `DISALLOWED_SQL_TABLES` entry is configured (the default for PostgreSQL), matching the behavior previously applied only when `RLS_IN_SQLLAB` was enabled.
+
 ### Webhook alerts/reports block private/internal hosts by default
 
 Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
