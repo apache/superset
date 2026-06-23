@@ -35,9 +35,7 @@ def mcp_server():
 @pytest.fixture(autouse=True)
 def mock_auth():
     """Mock authentication for all tests in this module."""
-    with patch(
-        "superset.mcp_service.auth.get_user_from_request"
-    ) as mock_get_user:
+    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         with patch("superset.security_manager.raise_for_ownership"):
             mock_user = Mock()
             mock_user.id = 1
@@ -112,12 +110,14 @@ class TestUpdateDashboard:
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "update_dashboard",
-                {"request": {
-                    "identifier": 42,
-                    "position_json": position,
-                    "json_metadata_overrides": overrides,
-                    "css": ".x{color:red}",
-                }},
+                {
+                    "request": {
+                        "identifier": 42,
+                        "position_json": position,
+                        "json_metadata_overrides": overrides,
+                        "css": ".x{color:red}",
+                    }
+                },
             )
 
         # All three top-level writes applied to the model
@@ -194,12 +194,14 @@ class TestUpdateDashboard:
         async with Client(mcp_server) as client:
             await client.call_tool(
                 "update_dashboard",
-                {"request": {
-                    "identifier": 42,
-                    "dashboard_title": "Renamed",
-                    "slug": "renamed-slug",
-                    "published": True,
-                }},
+                {
+                    "request": {
+                        "identifier": 42,
+                        "dashboard_title": "Renamed",
+                        "slug": "renamed-slug",
+                        "published": True,
+                    }
+                },
             )
 
         assert dash.dashboard_title == "Renamed"
@@ -209,9 +211,7 @@ class TestUpdateDashboard:
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
-    async def test_update_description(
-        self, mock_session, mock_get, mcp_server
-    ) -> None:
+    async def test_update_description(self, mock_session, mock_get, mcp_server) -> None:
         """A description-only update writes ``description`` and reports
         it in ``changed_fields`` without touching other fields."""
         dash = _mock_dashboard(id=42)
@@ -222,10 +222,12 @@ class TestUpdateDashboard:
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "update_dashboard",
-                {"request": {
-                    "identifier": 42,
-                    "description": "Q4 executive review — refreshed weekly.",
-                }},
+                {
+                    "request": {
+                        "identifier": 42,
+                        "description": "Q4 executive review — refreshed weekly.",
+                    }
+                },
             )
 
         assert dash.description == "Q4 executive review — refreshed weekly."
@@ -255,9 +257,7 @@ class TestUpdateDashboard:
 
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @pytest.mark.asyncio
-    async def test_non_owner_gets_permission_denied(
-        self, mock_get, mcp_server
-    ) -> None:
+    async def test_non_owner_gets_permission_denied(self, mock_get, mcp_server) -> None:
         """A user without ownership on the dashboard receives a
         permission_denied response — the class-level Dashboard.write
         permission is not enough on its own.
@@ -277,10 +277,12 @@ class TestUpdateDashboard:
             async with Client(mcp_server) as client:
                 result = await client.call_tool(
                     "update_dashboard",
-                    {"request": {
-                        "identifier": 42,
-                        "dashboard_title": "Hostile rename",
-                    }},
+                    {
+                        "request": {
+                            "identifier": 42,
+                            "dashboard_title": "Hostile rename",
+                        }
+                    },
                 )
 
         payload = json.loads(result.content[0].text)
@@ -300,8 +302,10 @@ class TestUpdateDashboard:
             with pytest.raises(ToolError, match="dashboard_title"):
                 await client.call_tool(
                     "update_dashboard",
-                    {"request": {
-                        "identifier": 42,
-                        "dashboard_title": "<script>alert(1)</script>",
-                    }},
+                    {
+                        "request": {
+                            "identifier": 42,
+                            "dashboard_title": "<script>alert(1)</script>",
+                        }
+                    },
                 )

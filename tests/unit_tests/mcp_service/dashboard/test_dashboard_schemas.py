@@ -652,9 +652,7 @@ class TestGenerateDashboardRequestLayoutTheme:
             "label_colors": {"Electronics": "#4C78A8"},
             "cross_filters_enabled": False,
         }
-        req = GenerateDashboardRequest(
-            chart_ids=[1], json_metadata_overrides=overrides
-        )
+        req = GenerateDashboardRequest(chart_ids=[1], json_metadata_overrides=overrides)
         assert req.json_metadata_overrides == overrides
 
     def test_css_accepted(self) -> None:
@@ -701,7 +699,7 @@ class TestUpdateDashboardRequest:
 
     def test_identifier_required(self) -> None:
         with pytest.raises(ValidationError, match="Field required"):
-            UpdateDashboardRequest()  # type: ignore[call-arg]
+            UpdateDashboardRequest()
 
     def test_int_identifier_accepted(self) -> None:
         req = UpdateDashboardRequest(identifier=42)
@@ -752,9 +750,7 @@ class TestUpdateDashboardRequest:
         """Mirror of ``test_title_partial_strip_emits_warning`` on the
         create path — sanitization removes the HTML, the title survives,
         and a warning records that the input was altered."""
-        req = UpdateDashboardRequest(
-            identifier=1, dashboard_title="Q1 <b>Review</b>"
-        )
+        req = UpdateDashboardRequest(identifier=1, dashboard_title="Q1 <b>Review</b>")
         assert req.dashboard_title == "Q1 Review"
         assert len(req.sanitization_warnings) == 1
         assert "dashboard_title" in req.sanitization_warnings[0]

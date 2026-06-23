@@ -844,10 +844,8 @@ def init_fastmcp_server(
     # re-enters mcp_service during startup; must stay lazy inside the function.
     from superset.mcp_service.flask_singleton import app as flask_app  # noqa: PLC0415
 
-    # APP_NAME is defined with a default in superset/config.py, so a
-    # direct key access is the right pattern — config.get with a fallback
-    # would hide a missing-config bug.
-    app_name = flask_app.config["APP_NAME"]
+    # Derive branding from Superset's APP_NAME config (defaults to "Superset")
+    app_name = flask_app.config.get("APP_NAME", "Superset")
     branding = app_name
     default_name = f"{app_name} MCP Server"
 

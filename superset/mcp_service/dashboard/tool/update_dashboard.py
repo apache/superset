@@ -102,9 +102,7 @@ def _find_and_authorize_dashboard(
     return dashboard, None
 
 
-def _apply_field_updates(
-    dashboard: Any, request: UpdateDashboardRequest
-) -> list[str]:
+def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> list[str]:
     """Apply each explicitly-passed field to the dashboard.
 
     Returns the names of fields actually changed. Mutates ``dashboard``
@@ -238,9 +236,7 @@ def update_dashboard(
                 "Database rollback failed during error handling",
                 exc_info=True,
             )
-        logger.error(
-            "Dashboard update failed: %s", db_err, exc_info=True
-        )
+        logger.error("Dashboard update failed: %s", db_err, exc_info=True)
         return DashboardError(
             error="Failed to update dashboard due to a database error.",
             error_type="DatabaseError",

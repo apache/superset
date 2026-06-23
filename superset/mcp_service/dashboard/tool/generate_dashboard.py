@@ -375,9 +375,7 @@ def generate_dashboard(  # noqa: C901
                         "Database rollback failed during error handling",
                         exc_info=True,
                     )
-                logger.error(
-                    "Dashboard creation failed: %s", db_err, exc_info=True
-                )
+                logger.error("Dashboard creation failed: %s", db_err, exc_info=True)
                 # Slug uniqueness is the only IntegrityError a caller
                 # can fix on retry; surface a clear, structured message
                 # so the LLM can propose a different slug. Detection
@@ -399,10 +397,7 @@ def generate_dashboard(  # noqa: C901
                 return GenerateDashboardResponse(
                     dashboard=None,
                     dashboard_url=None,
-                    error=(
-                        "Failed to create dashboard due to a database "
-                        "constraint."
-                    ),
+                    error=("Failed to create dashboard due to a database constraint."),
                 )
             except SQLAlchemyError as db_err:
                 try:
@@ -428,9 +423,7 @@ def generate_dashboard(  # noqa: C901
         # outcome the URL doesn't change. Bind it once so the three
         # downstream consumers (partial response, DashboardInfo.url,
         # response.dashboard_url) share a single source.
-        dashboard_url = (
-            f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
-        )
+        dashboard_url = f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
 
         # Re-fetch with eager-loaded relationships for serialization.
         # The preceding commit may invalidate the session in multi-tenant

@@ -767,9 +767,7 @@ class UpdateDashboardRequest(BaseModel):
     slug: str | None = Field(
         None,
         max_length=255,
-        description=(
-            "Optional new URL slug. Pass empty string to clear a slug."
-        ),
+        description=("Optional new URL slug. Pass empty string to clear a slug."),
     )
     published: bool | None = Field(
         None,
@@ -797,8 +795,7 @@ class UpdateDashboardRequest(BaseModel):
         None,
         max_length=50000,
         description=(
-            "Optional new dashboard CSS. Pass empty string to clear "
-            "existing CSS."
+            "Optional new dashboard CSS. Pass empty string to clear existing CSS."
         ),
     )
     sanitization_warnings: List[str] = Field(
@@ -875,9 +872,7 @@ class UpdateDashboardResponse(BaseModel):
     dashboard: DashboardInfo | None = Field(
         None, description="The updated dashboard info, if successful"
     )
-    dashboard_url: str | None = Field(
-        None, description="URL to view the dashboard"
-    )
+    dashboard_url: str | None = Field(None, description="URL to view the dashboard")
     error: str | None = Field(None, description="Error message, if update failed")
     permission_denied: bool = Field(
         default=False,
@@ -1363,12 +1358,8 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
             url=absolute_url,
             created_on_humanized=dashboard.created_on_humanized,
             changed_on_humanized=dashboard.changed_on_humanized,
-            created_by=_safe_user_label(
-                getattr(dashboard, "created_by_name", None)
-            ),
-            changed_by=_safe_user_label(
-                getattr(dashboard, "changed_by_name", None)
-            ),
+            created_by=_safe_user_label(getattr(dashboard, "created_by_name", None)),
+            changed_by=_safe_user_label(getattr(dashboard, "changed_by_name", None)),
             chart_count=len(dashboard.slices) if dashboard.slices else 0,
             native_filters=_extract_native_filters(
                 json_metadata_str,

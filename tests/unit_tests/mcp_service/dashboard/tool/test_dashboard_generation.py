@@ -498,9 +498,9 @@ class TestGenerateDashboard:
             statement="INSERT INTO dashboards ...",
             params={},
             orig=Exception(
-                'duplicate key value violates unique constraint '
+                "duplicate key value violates unique constraint "
                 '"dashboards_slug_key"\n'
-                'DETAIL:  Key (slug)=(my-slug) already exists.'
+                "DETAIL:  Key (slug)=(my-slug) already exists."
             ),
         )
         mock_dashboard_cls.return_value = _mock_dashboard(id=100)
@@ -512,9 +512,7 @@ class TestGenerateDashboard:
         }
 
         async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "generate_dashboard", {"request": request}
-            )
+            result = await client.call_tool("generate_dashboard", {"request": request})
 
             err = result.structured_content["error"]
             assert err is not None
@@ -546,8 +544,12 @@ class TestGenerateDashboard:
         mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=1)]
         mock_filter.first.return_value = Mock(
-            id=1, username="admin", first_name="Admin",
-            last_name="User", email="admin@example.com", active=True,
+            id=1,
+            username="admin",
+            first_name="Admin",
+            last_name="User",
+            email="admin@example.com",
+            active=True,
         )
         mock_db_session.query.return_value = mock_query
         mock_db_session.commit.side_effect = IntegrityError(
@@ -563,9 +565,7 @@ class TestGenerateDashboard:
         request = {"chart_ids": [1], "dashboard_title": "No Slug Dashboard"}
 
         async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "generate_dashboard", {"request": request}
-            )
+            result = await client.call_tool("generate_dashboard", {"request": request})
 
             err = result.structured_content["error"]
             assert err is not None
@@ -734,9 +734,7 @@ class TestGenerateDashboard:
         }
 
         async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "generate_dashboard", {"request": request}
-            )
+            result = await client.call_tool("generate_dashboard", {"request": request})
 
             assert result.structured_content["error"] is None
             created = mock_dashboard_cls.return_value
@@ -787,9 +785,7 @@ class TestGenerateDashboard:
         }
 
         async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "generate_dashboard", {"request": request}
-            )
+            result = await client.call_tool("generate_dashboard", {"request": request})
 
             assert result.structured_content["error"] is None
             created = mock_dashboard_cls.return_value
@@ -837,9 +833,7 @@ class TestGenerateDashboard:
         }
 
         async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "generate_dashboard", {"request": request}
-            )
+            result = await client.call_tool("generate_dashboard", {"request": request})
 
             assert result.structured_content["error"] is None
             created = mock_dashboard_cls.return_value
