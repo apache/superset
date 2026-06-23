@@ -7180,7 +7180,7 @@ msgstr ""
 
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "Id schede non validi: %s(tab_ids)"
+msgstr "Id schede non validi: %s(tab_ids)s"
 
 msgid "Invalid username or password"
 msgstr ""
