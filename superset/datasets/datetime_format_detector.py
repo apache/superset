@@ -123,7 +123,7 @@ class DatetimeFormatDetector:
             sql = database.apply_limit_to_sql(sql, limit=self.sample_size, force=True)
 
             # Execute query and get results
-            df = database.get_df(sql, dataset.schema)
+            df = database.get_df(sql, dataset.catalog, dataset.schema)
 
             if df.empty or column.column_name not in df.columns:
                 logger.warning(

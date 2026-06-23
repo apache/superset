@@ -308,6 +308,18 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     if filter["col"] != filter_to_remove
                 ]
 
+        elif is_adhoc_column(x_axis) and (  # type: ignore
+            query_object.from_dttm or query_object.to_dttm
+        ):
+            # x-axis is a SQL expression (not a physical temporal column) and a
+            # time range is configured, but no time column (granularity) was set.
+            # Fall back to the dataset's main datetime column so helpers.py adds a
+            # WHERE time filter — without it engines like ClickHouse perform a full
+            # table scan and trigger max_rows_to_read errors.
+            main_dttm_col = getattr(datasource, "main_dttm_col", None)
+            if main_dttm_col and main_dttm_col in temporal_columns:
+                query_object.granularity = main_dttm_col
+
     def _apply_filters(self, query_object: QueryObject) -> None:
         if query_object.time_range:
             for filter_object in query_object.filter:

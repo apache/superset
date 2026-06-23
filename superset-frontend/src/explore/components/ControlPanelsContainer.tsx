@@ -35,6 +35,7 @@ import {
   QueryFormData,
   DatasourceType,
   isDefined,
+  isAdhocColumn,
   JsonValue,
   NO_TIME_RANGE,
   usePrevious,
@@ -321,7 +322,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const { form_data, actions } = props;
   const { setControlValue } = actions;
-  const { x_axis, adhoc_filters } = form_data;
+  const { x_axis, adhoc_filters, granularity_sqla } = form_data;
 
   const previousXAxis = usePrevious(x_axis);
 
@@ -369,6 +370,28 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     props.exploreState.datasource,
     showConfirm,
   ]);
+
+  useEffect(() => {
+    if (
+      x_axis &&
+      x_axis !== previousXAxis &&
+      isAdhocColumn(x_axis) &&
+      !granularity_sqla
+    ) {
+      showConfirm({
+        title: t('Time column not configured'),
+        body: t(
+          `The X-axis is a SQL expression but no Time Column is configured. ` +
+            `Without a Time Column, time range filters cannot be applied and ` +
+            `queries may scan the entire table. ` +
+            `Set the Time Column in Query settings to enable time filtering.`,
+        ),
+        onConfirm: () => undefined,
+        confirmText: t('OK'),
+        cancelText: t('Dismiss'),
+      });
+    }
+  }, [x_axis, previousXAxis, granularity_sqla, showConfirm]);
 
   useEffect(() => {
     let shouldUpdateControls = false;
