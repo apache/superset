@@ -291,6 +291,7 @@ class DashboardRestApi(
         "list_versions",
         "get_version",
         "activity",
+        "restore_version",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -306,6 +307,7 @@ class DashboardRestApi(
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "restore": "write",
+        "restore_version": "write",
         # Reuse the dashboard ``can_export`` permission (the frontend gates the
         # menu item on it) instead of the ``can_export_xlsx`` FAB would otherwise
         # derive from the method name.
@@ -2704,11 +2706,96 @@ class DashboardRestApi(
     )
     def activity(self, uuid_str: str) -> Response:
         """Return the cross-entity activity stream for a dashboard.
+                ---
+                get:
+                  summary: Activity stream — dashboard own edits + transitive
+                    chart-on-dashboard and dataset-via-chart edits, time-bounded
+                    by association windows
+                  parameters:
+                  - in: path
+                    schema:
+                      type: string
+                      format: uuid
+                    name: uuid_str
+                    description: Dashboard UUID
+        <<<<<<< HEAD
+                  - in: query
+                    schema:
+                      type: string
+                      format: date-time
+                    name: since
+                    description: Lower bound on issued_at (ISO 8601, UTC)
+                  - in: query
+                    schema:
+                      type: string
+                      format: date-time
+                    name: until
+                    description: Upper bound on issued_at (ISO 8601, UTC)
+                  - in: query
+                    schema:
+                      type: string
+                      enum: [self, related, all]
+                      default: all
+                    name: include
+                  - in: query
+                    schema:
+                      type: string
+                    name: q
+                    description: >-
+                      Case-insensitive search over the full history (summary,
+                      entity name, kind, path, values) — applied before
+                      pagination, so `count` reflects the matches.
+                  - in: query
+                    schema:
+                      type: integer
+                      minimum: 0
+                      default: 0
+                    name: page
+                  - in: query
+                    schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 200
+                      default: 25
+                    name: page_size
+                  responses:
+                    200:
+                      description: Activity stream ordered newest-first
+                      content:
+                        application/json:
+                          schema: ActivityResponseSchema
+                    400:
+                      $ref: '#/components/responses/400'
+                    401:
+                      $ref: '#/components/responses/401'
+                    403:
+                      $ref: '#/components/responses/403'
+                    404:
+                      $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.activity import activity_endpoint
+
+        return activity_endpoint(self, Dashboard, uuid_str, request.args)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/restore",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),
+        log_to_statsd=False,
+    )
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a dashboard to a previous version.
         ---
-        get:
-          summary: Activity stream — dashboard own edits + transitive
-            chart-on-dashboard and dataset-via-chart edits, time-bounded
-            by association windows
+        post:
+          summary: Revert a dashboard to an earlier version (non-destructive)
           parameters:
           - in: path
             schema:
@@ -2716,51 +2803,24 @@ class DashboardRestApi(
               format: uuid
             name: uuid_str
             description: Dashboard UUID
-          - in: query
+          - in: path
             schema:
               type: string
-              format: date-time
-            name: since
-            description: Lower bound on issued_at (ISO 8601, UTC)
-          - in: query
-            schema:
-              type: string
-              format: date-time
-            name: until
-            description: Upper bound on issued_at (ISO 8601, UTC)
-          - in: query
-            schema:
-              type: string
-              enum: [self, related, all]
-              default: all
-            name: include
-          - in: query
-            schema:
-              type: string
-            name: q
+              format: uuid
+            name: version_uuid_str
             description: >-
-              Case-insensitive search over the full history (summary,
-              entity name, kind, path, values) — applied before
-              pagination, so `count` reflects the matches.
-          - in: query
-            schema:
-              type: integer
-              minimum: 0
-              default: 0
-            name: page
-          - in: query
-            schema:
-              type: integer
-              minimum: 1
-              maximum: 200
-              default: 25
-            name: page_size
+              Version UUID as returned by the list-versions endpoint.
+              Stable across retention pruning.
           responses:
             200:
-              description: Activity stream ordered newest-first
+              description: Dashboard was restored
               content:
                 application/json:
-                  schema: ActivityResponseSchema
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             400:
               $ref: '#/components/responses/400'
             401:
@@ -2769,8 +2829,37 @@ class DashboardRestApi(
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
         """
         # pylint: disable=import-outside-toplevel
-        from superset.versioning.activity import activity_endpoint
+        from uuid import UUID
 
-        return activity_endpoint(self, Dashboard, uuid_str, request.args)
+        from superset.commands.dashboard.restore_version import (
+            RestoreDashboardVersionCommand,
+        )
+
+        try:
+            entity_uuid = UUID(uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid UUID")
+        try:
+            version_uuid = UUID(version_uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid version UUID")
+
+        try:
+            RestoreDashboardVersionCommand(entity_uuid, version_uuid).run()
+        except DashboardNotFoundError:
+            return self.response_404()
+        except DashboardForbiddenError:
+            return self.response_403()
+        except DashboardUpdateFailedError as ex:
+            logger.error("Error restoring dashboard version: %s", ex)
+            return self.response_422(message=str(ex))
+
+        from superset.versioning.etag import set_version_etag_by_uuid
+
+        return set_version_etag_by_uuid(
+            self.response(200, message="OK"), Dashboard, entity_uuid
+        )
