@@ -265,7 +265,7 @@
     "@playwright/test": "^1.61.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
     "@storybook/addon-docs": "10.4.5",
-    "@storybook/addon-links": "10.4.4",
+    "@storybook/addon-links": "10.4.6",
     "@storybook/react-webpack5": "10.4.4",
     "@storybook/test-runner": "0.24.4",
     "@svgr/webpack": "^8.1.0",
