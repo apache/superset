@@ -18,7 +18,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import ColorBreakpointOption from './ColorBreakpointOption';
 import { ColorBreakpointType, ColorBreakpointsControlProps } from './types';

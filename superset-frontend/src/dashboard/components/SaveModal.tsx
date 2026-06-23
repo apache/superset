@@ -27,7 +27,8 @@ import {
   Divider,
   Flex,
 } from '@superset-ui/core/components';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 
 import {
   ModalTrigger,

@@ -84,27 +84,27 @@ beforeEach(() => {
   );
 });
 
-it('Renders the dashboard title', () => {
+test('Renders the dashboard title', () => {
   const titleElement = screen.getByText('Sample Dashboard');
   expect(titleElement).toBeInTheDocument();
 });
 
-it('Renders the certification details', () => {
+test('Renders the certification details', () => {
   const certificationDetailsElement = screen.getByLabelText(/certified/i);
   expect(certificationDetailsElement).toBeInTheDocument();
 });
 
-it('Renders the published status', () => {
+test('Renders the published status', () => {
   const publishedElement = screen.getByText(/published/i);
   expect(publishedElement).toBeInTheDocument();
 });
 
-it('Renders the modified date', () => {
+test('Renders the modified date', () => {
   const modifiedDateElement = screen.getByText('Modified 2 days ago');
   expect(modifiedDateElement).toBeInTheDocument();
 });
 
-it('should fetch thumbnail when dashboard has no thumbnail URL and feature flag is enabled', async () => {
+test('should fetch thumbnail when dashboard has no thumbnail URL and feature flag is enabled', async () => {
   const mockGet = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: { thumbnail_url: '/new-thumbnail.png' } },
   } as unknown as JsonResponse);

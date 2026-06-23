@@ -20,7 +20,7 @@ import { parsePostForm, JsonObject, waitForChartLoad } from 'cypress/utils';
 import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 import { WORLD_HEALTH_CHARTS } from './utils';
 
-describe.skip('Dashboard form data', () => {
+describe('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };
   before(() => {
     cy.visit(WORLD_HEALTH_DASHBOARD, { qs: urlParams });

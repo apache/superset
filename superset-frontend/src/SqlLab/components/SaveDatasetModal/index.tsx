@@ -30,9 +30,8 @@ import {
   Icons,
   Flex,
 } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
 import {
-  styled,
-  t,
   SupersetClient,
   JsonResponse,
   JsonObject,
@@ -43,8 +42,9 @@ import {
   isFeatureEnabled,
   getClientErrorObject,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { useSelector, useDispatch } from 'react-redux';
-import dayjs from 'dayjs';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -59,6 +59,8 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { isEmpty } from 'lodash';
+import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
+import { navigateTo } from 'src/utils/navigationUtils';
 
 interface QueryDatabase {
   id?: number;
@@ -170,6 +172,9 @@ const updateDataset = async (
     headers,
     body,
   });
+
+  clearDatasetCache(datasetId);
+
   return data.json.result;
 };
 
@@ -209,16 +214,9 @@ export const SaveDatasetModal = ({
   const [includeTemplateParameters, setIncludeTemplateParameters] =
     useState(false);
 
-  const createWindow = (url: string) => {
-    if (openWindow) {
-      window.open(url, '_blank', 'noreferrer');
-    } else {
-      window.location.href = url;
-    }
-  };
   const formDataWithDefaults = {
     ...EXPLORE_CHART_DEFAULT,
-    ...(formData || {}),
+    ...formData,
   };
   const handleOverwriteDataset = async () => {
     // if user wants to overwrite a dataset we need to prompt them
@@ -254,10 +252,10 @@ export const SaveDatasetModal = ({
       ]);
       setLoading(false);
 
-      const url = mountExploreUrl(null, {
+      const url = mountExploreUrl('base', {
         [URL_PARAMS.formDataKey.name]: key,
       });
-      createWindow(url);
+      navigateTo(url, { newWindow: openWindow });
 
       setShouldOverwriteDataset(false);
       setDatasetName(getDefaultDatasetName());
@@ -340,28 +338,30 @@ export const SaveDatasetModal = ({
     dispatch(
       createDatasource({
         sql: datasource.sql,
-        dbId: datasource.dbId || datasource?.database?.id,
-        catalog: datasource?.catalog,
-        schema: datasource?.schema,
+        dbId: (datasource.dbId ?? datasource?.database?.id) as number,
+        catalog: datasource?.catalog ?? null,
+        schema: datasource?.schema ?? '',
         templateParams,
         datasourceName: datasetName,
       }),
     )
-      .then((data: { id: number }) =>
-        postFormData(data.id, 'table', {
+      .then((data: { id: number }) => {
+        clearDatasetCache(data.id);
+
+        return postFormData(data.id, 'table', {
           ...formDataWithDefaults,
           datasource: `${data.id}__table`,
           ...(defaultVizType === VizType.Table && {
             all_columns: selectedColumns.map(column => column.column_name),
           }),
-        }),
-      )
+        });
+      })
       .then((key: string) => {
         setLoading(false);
-        const url = mountExploreUrl(null, {
+        const url = mountExploreUrl('base', {
           [URL_PARAMS.formDataKey.name]: key,
         });
-        createWindow(url);
+        navigateTo(url, { newWindow: openWindow });
         setDatasetName(getDefaultDatasetName());
         onHide();
       })

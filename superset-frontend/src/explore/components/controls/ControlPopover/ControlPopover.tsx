@@ -57,7 +57,6 @@ const ControlPopover: FC<PopoverProps> = ({
   ...props
 }) => {
   const triggerElementRef = useRef<HTMLElement>();
-
   const [visible, setVisible] = useState(
     visibleProp === undefined ? props.defaultOpen : visibleProp,
   );
@@ -65,7 +64,7 @@ const ControlPopover: FC<PopoverProps> = ({
     React.useState<TooltipPlacement>(initialPlacement);
 
   const calculatePlacement = useCallback(() => {
-    if (!triggerElementRef.current) return;
+    if (!triggerElementRef.current || !visible) return;
 
     const { yRatio, xRatio } = getVisibilityRatio(triggerElementRef.current);
 
@@ -87,10 +86,10 @@ const ControlPopover: FC<PopoverProps> = ({
     if (newPlacement !== placement) {
       setPlacement(newPlacement);
     }
-  }, [getVisibilityRatio]);
+  }, [getVisibilityRatio, visible, placement]);
 
   const changeContainerScrollStatus = useCallback(
-    visible => {
+    (visible: boolean | undefined) => {
       const element = getSectionContainerElement();
       if (element) {
         element.style.setProperty(
@@ -106,7 +105,6 @@ const ControlPopover: FC<PopoverProps> = ({
   const handleGetPopupContainer = useCallback(
     (triggerNode: HTMLElement) => {
       triggerElementRef.current = triggerNode;
-
       return getPopupContainer?.(triggerNode) || document.body;
     },
     [calculatePlacement, getPopupContainer],
@@ -117,7 +115,6 @@ const ControlPopover: FC<PopoverProps> = ({
       if (visible === undefined) {
         changeContainerScrollStatus(visible);
       }
-
       setVisible(!!visible);
       props.onOpenChange?.(!!visible);
     },
@@ -132,6 +129,14 @@ const ControlPopover: FC<PopoverProps> = ({
       }
     },
     [props],
+  );
+  const handleAfterOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        calculatePlacement();
+      }
+    },
+    [calculatePlacement],
   );
 
   useEffect(() => {
@@ -157,9 +162,34 @@ const ControlPopover: FC<PopoverProps> = ({
   }, [handleDocumentKeyDownListener, visible]);
 
   useEffect(() => {
-    if (visible) {
-      calculatePlacement();
-    }
+    if (!visible || !triggerElementRef.current) return () => {};
+
+    const resizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(() => {
+        calculatePlacement();
+      });
+    });
+
+    const intersectionObserver = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            calculatePlacement();
+          }
+        });
+      },
+      { threshold: [0, 0.25, 0.5, 0.75, 1] },
+    );
+
+    resizeObserver.observe(
+      triggerElementRef.current.parentElement || document.body,
+    );
+    intersectionObserver.observe(triggerElementRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      intersectionObserver.disconnect();
+    };
   }, [visible, calculatePlacement]);
 
   return (
@@ -171,6 +201,7 @@ const ControlPopover: FC<PopoverProps> = ({
       onOpenChange={handleOnVisibleChange}
       getPopupContainer={handleGetPopupContainer}
       destroyTooltipOnHide={destroyTooltipOnHide}
+      afterOpenChange={handleAfterOpenChange}
     />
   );
 };

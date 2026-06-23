@@ -59,10 +59,14 @@ embedDashboard({
           // ...
       }
   },
-    // optional additional iframe sandbox attributes
+  // optional additional iframe sandbox attributes
   iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox'],
+  // optional Permissions Policy features
+  iframeAllowExtras: ['clipboard-write', 'fullscreen'],
   // optional config to enforce a particular referrerPolicy
-  referrerPolicy: "same-origin"
+  referrerPolicy: "same-origin",
+  // optional callback to customize permalink URLs
+  resolvePermalinkUrl: ({ key }) => `https://my-app.com/analytics/share/${key}`
 });
 ```
 
@@ -159,6 +163,20 @@ To pass additional sandbox attributes you can use `iframeSandboxExtras`:
   iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
 ```
 
+### Permissions Policy
+
+To enable specific browser features within the embedded iframe, use `iframeAllowExtras` to set the iframe's [Permissions Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Permissions_Policy) (the `allow` attribute):
+
+```js
+  // optional Permissions Policy features
+  iframeAllowExtras: ['clipboard-write', 'fullscreen']
+```
+
+Common permissions you might need:
+- `clipboard-write` - Required for "Copy permalink to clipboard" functionality
+- `fullscreen` - Required for fullscreen chart viewing
+- `camera`, `microphone` - If your dashboards include media capture features
+
 ### Enforcing a ReferrerPolicy on the request triggered by the iframe
 
 By default, the Embedded SDK creates an `iframe` element without a `referrerPolicy` value enforced. This means that a policy defined for `iframe` elements at the host app level would reflect to it.
@@ -166,3 +184,42 @@ By default, the Embedded SDK creates an `iframe` element without a `referrerPoli
 This can be an issue as during the embedded enablement for a dashboard it's possible to specify which domain(s) are allowed to embed the dashboard, and this validation happens throuth the `Referrer` header. That said, in case the hosting app has a more restrictive policy that would omit this header, this validation would fail.
 
 Use the `referrerPolicy` parameter in the `embedDashboard` method to specify [a particular policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy) that works for your implementation.
+
+### Customizing Permalink URLs
+
+When users click share buttons inside an embedded dashboard, Superset generates permalinks using Superset's domain. If you want to use your own domain and URL format for these permalinks, you can provide a `resolvePermalinkUrl` callback:
+
+```js
+embedDashboard({
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
+  fetchGuestToken: () => fetchGuestTokenFromBackend(),
+
+  // Customize permalink URLs
+  resolvePermalinkUrl: ({ key }) => {
+    // key: the permalink key (e.g., "xyz789")
+    return `https://my-app.com/analytics/share/${key}`;
+  }
+});
+```
+
+To restore the dashboard state from a permalink in your app:
+
+```js
+// In your route handler for /analytics/share/:key
+const permalinkKey = routeParams.key;
+
+embedDashboard({
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
+  fetchGuestToken: () => fetchGuestTokenFromBackend(),
+  resolvePermalinkUrl: ({ key }) => `https://my-app.com/analytics/share/${key}`,
+  dashboardUiConfig: {
+    urlParams: {
+      permalink_key: permalinkKey,  // Restores filters, tabs, chart states, and scrolls to anchor
+    }
+  }
+});
+```

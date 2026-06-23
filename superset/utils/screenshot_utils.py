@@ -74,7 +74,7 @@ def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
         return output.getvalue()
 
     except Exception as e:
-        logger.exception(f"Failed to combine screenshot tiles: {e}")
+        logger.exception("Failed to combine screenshot tiles: %s", e)
         # Return the first tile as fallback
         return screenshot_tiles[0]
 
@@ -116,8 +116,11 @@ def take_tiled_screenshot(
         dashboard_top = element_info["top"]
 
         logger.info(
-            f"Dashboard: {dashboard_width}x{dashboard_height}px at "
-            f"({dashboard_left}, {dashboard_top})"
+            "Dashboard: %sx%spx at (%s, %s)",
+            dashboard_width,
+            dashboard_height,
+            dashboard_left,
+            dashboard_top,
         )
 
         # Calculate number of tiles needed
@@ -176,14 +179,14 @@ def take_tiled_screenshot(
             tile_screenshot = page.screenshot(type="png", clip=clip)
             screenshot_tiles.append(tile_screenshot)
 
-            logger.debug(f"Captured tile {i + 1}/{num_tiles} with clip {clip}")
+            logger.debug("Captured tile %s/%s with clip %s", i + 1, num_tiles, clip)
 
         # Combine all tiles
-        logger.debug("Captured tile %s/%s with clip %s", i + 1, num_tiles, clip)
+        logger.info("Combining screenshot tiles...")
         combined_screenshot = combine_screenshot_tiles(screenshot_tiles)
 
         return combined_screenshot
 
     except Exception as e:
-        logger.exception(f"Tiled screenshot failed: {e}")
+        logger.exception("Tiled screenshot failed: %s", e)
         return None

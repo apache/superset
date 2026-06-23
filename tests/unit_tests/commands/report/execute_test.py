@@ -259,6 +259,12 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["url1"],
             ["superset/dashboard/p/url1/"],
         ),
+        # Test JSON scalar string anchor falls back to single tab
+        (
+            json.dumps("mock_tab_anchor_1"),
+            ["url1"],
+            ["superset/dashboard/p/url1/"],
+        ),
     ],
 )
 @patch(
@@ -284,6 +290,10 @@ def test_get_dashboard_urls_with_multiple_tabs(
             "urlParams": None,
         }
     }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore
+        "()",
+        [],
+    )
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -327,6 +337,10 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
             "urlParams": None,
         }
     }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore
+        "()",
+        [],
+    )
     mock_run.return_value = "url1"
 
     class_instance: BaseReportState = BaseReportState(
@@ -397,6 +411,55 @@ def test_get_tab_url(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == urllib.parse.urljoin(base_url, "superset/dashboard/p/uri/")
+
+
+@patch(
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+)
+@with_feature_flags(ALERT_REPORT_TABS=False)
+def test_get_dashboard_urls_native_filters_without_tabs(
+    mock_run,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Native filters should be applied even when ALERT_REPORT_TABS is disabled."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
+    extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "NATIVE_FILTER-abc",
+                    "filterType": "filter_select",
+                    "columnName": "col1",
+                    "filterValues": ["val1"],
+                }
+            ]
+        }
+    }
+    mock_report_schedule.extra = extra  # type: ignore[assignment]
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore
+        "(NATIVE_FILTER-abc:!(val1))",
+        [],
+    )
+
+    mock_dashboard = mocker.MagicMock()
+    mock_dashboard.uuid = UUID("12345678-1234-1234-1234-123456789abc")
+    mock_report_schedule.dashboard = mock_dashboard
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_run.return_value = "permalink_key"
+
+    result: list[str] = class_instance.get_dashboard_urls()
+
+    assert len(result) == 1
+    assert "permalink_key" in result[0]
 
 
 def create_report_schedule(

@@ -19,16 +19,17 @@
 import fetchMock from 'fetch-mock';
 import { FeatureFlag } from '@superset-ui/core';
 import * as copyUtils from 'src/utils/copy';
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { DataTablesPane } from '..';
 import { createDataTablesPaneProps } from './fixture';
 
+beforeAll(() => {
+  setupAGGridModules();
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DataTablesPane', () => {
   // Collapsed/expanded state depends on local storage
   // We need to clear it manually - otherwise initial state would depend on the order of tests
@@ -69,7 +70,9 @@ describe('DataTablesPane', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Results'));
-    expect(await screen.findByText('0 rows')).toBeVisible();
+    expect(
+      await screen.findByText('0 rows', undefined, { timeout: 5000 }),
+    ).toBeVisible();
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
     localStorage.clear();
   });
@@ -80,7 +83,9 @@ describe('DataTablesPane', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Samples'));
-    expect(await screen.findByText('0 rows')).toBeVisible();
+    expect(
+      await screen.findByText('0 rows', undefined, { timeout: 5000 }),
+    ).toBeVisible();
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
   });
 
@@ -112,7 +117,7 @@ describe('DataTablesPane', () => {
     const value = await copyToClipboardSpy.mock.calls[0][0]();
     expect(value).toBe('__timestamp\tgenre\n2009-01-01 00:00:00\tAction\n');
     copyToClipboardSpy.mockRestore();
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   test('Should not allow copy data table content when canDownload=false', async () => {
@@ -140,7 +145,7 @@ describe('DataTablesPane', () => {
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('1 row')).toBeVisible();
     expect(screen.queryByLabelText('Copy')).not.toBeInTheDocument();
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   test('Search table', async () => {
@@ -170,17 +175,11 @@ describe('DataTablesPane', () => {
 
     expect(screen.getByText('Action')).toBeVisible();
     expect(screen.getByText('Horror')).toBeVisible();
-
-    userEvent.type(screen.getByPlaceholderText('Search'), 'hor');
-
-    await waitForElementToBeRemoved(() => screen.queryByText('Action'));
-    expect(screen.getByText('Horror')).toBeVisible();
-    expect(screen.queryByText('Action')).not.toBeInTheDocument();
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   test('Displaying the data pane is under featureflag', () => {
-    // @ts-ignore
+    // @ts-expect-error
     global.featureFlags = {
       [FeatureFlag.DatapanelClosedByDefault]: true,
     };

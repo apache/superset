@@ -73,7 +73,10 @@ export interface ValidatedPickingData {
   sourcePosition?: [number, number];
   targetPosition?: [number, number];
   path?: string;
-  geometry?: any;
+  geometry?: {
+    type: string;
+    coordinates: number[] | number[][] | number[][][];
+  };
 }
 
 const getFiltersBySpatialType = ({
@@ -96,7 +99,7 @@ const getFiltersBySpatialType = ({
     type,
     delimiter,
   } = spatialData;
-  let values: any[] = [];
+  let values: (string | number | [number, number] | [number, number][])[] = [];
   let filters: QueryObjectFilterClause[] = [];
   let customColumnLabel;
 
@@ -128,16 +131,14 @@ const getFiltersBySpatialType = ({
           values = position;
           customColumnLabel = cols.join(', ');
 
-          filters = [
-            ...cols.map(
-              (col, index) =>
-                ({
-                  col,
-                  op: '==',
-                  val: position[index],
-                }) as QueryObjectFilterClause,
-            ),
-          ];
+          filters = cols.map(
+            (col, index) =>
+              ({
+                col,
+                op: '==',
+                val: position[index],
+              }) as QueryObjectFilterClause,
+          );
         } else if (positionBounds) {
           values = [positionBounds.from, positionBounds.to];
           customColumnLabel = `From ${lonCol}, ${latCol} to ${lonCol}, ${latCol}`;

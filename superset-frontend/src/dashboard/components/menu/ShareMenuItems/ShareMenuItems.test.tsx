@@ -45,29 +45,27 @@ const createProps = () => ({
   submenuKey: 'share',
 });
 
-const { location } = window;
+const originalLocation = window.location;
 
-beforeAll((): void => {
-  // @ts-ignore
-  delete window.location;
-  fetchMock.post(
-    `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
-    { key: '123', url: 'http://localhost/superset/dashboard/p/123/' },
-    {
-      sendAsJson: true,
-    },
-  );
-});
+const postDashboardPermalinkMockUrl = `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  window.location = {
-    href: '',
-  } as any;
+  // @ts-expect-error
+  delete window.location;
+  window.location = { href: '' } as any;
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.post(
+    postDashboardPermalinkMockUrl,
+    { key: '123', url: 'http://localhost/superset/dashboard/p/123/' },
+    { name: postDashboardPermalinkMockUrl },
+  );
 });
 
-afterAll((): void => {
-  window.location = location;
+afterEach(() => {
+  window.location = originalLocation;
+  window.featureFlags = {};
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const MenuWrapper = (
@@ -113,7 +111,7 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByText('Copy dashboard URL'));
+  await userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -145,7 +143,7 @@ test('Click on "Copy dashboard URL" and fail', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByText('Copy dashboard URL'));
+  await userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -177,7 +175,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(screen.getByText('Share dashboard by email'));
+  await userEvent.click(screen.getByText('Share dashboard by email'));
 
   await waitFor(() => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
@@ -188,11 +186,8 @@ test('Click on "Share dashboard by email" and succeed', async () => {
 });
 
 test('Click on "Share dashboard by email" and fail', async () => {
-  fetchMock.post(
-    `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
-    { status: 404 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoute(postDashboardPermalinkMockUrl);
+  fetchMock.post(postDashboardPermalinkMockUrl, { status: 404 });
   const props = createProps();
   render(
     <MenuWrapper
@@ -210,7 +205,7 @@ test('Click on "Share dashboard by email" and fail', async () => {
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(screen.getByText('Share dashboard by email'));
+  await userEvent.click(screen.getByText('Share dashboard by email'));
 
   await waitFor(() => {
     expect(window.location.href).toBe('');
@@ -219,4 +214,119 @@ test('Click on "Share dashboard by email" and fail', async () => {
       'Sorry, something went wrong. Try again later.',
     );
   });
+});
+
+test('Should show "Embed code" menu item when feature flag is enabled and chart has data', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  const propsWithFormData = {
+    ...props,
+    latestQueryFormData: {
+      datasource: '1__table',
+      viz_type: 'table',
+    },
+  };
+  render(
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={propsWithFormData}
+    />,
+    { useRedux: true },
+  );
+  expect(screen.getByText('Embed code')).toBeInTheDocument();
+});
+
+test('Should NOT show "Embed code" when feature flag is disabled', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: false,
+  };
+  const props = createProps();
+  const propsWithFormData = {
+    ...props,
+    latestQueryFormData: {
+      datasource: '1__table',
+      viz_type: 'table',
+    },
+  };
+  render(
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={propsWithFormData}
+    />,
+    { useRedux: true },
+  );
+  expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+});
+
+test('Should NOT show "Embed code" when chart has no data', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  render(
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={props}
+    />,
+    { useRedux: true },
+  );
+  expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+});
+
+test('Should NOT show "Embed code" when latestQueryFormData is empty object', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  const propsWithEmptyFormData = {
+    ...props,
+    latestQueryFormData: {},
+  };
+  render(
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={propsWithEmptyFormData}
+    />,
+    { useRedux: true },
+  );
+  expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+});
+
+test('Should render "Embed code" with data-test attribute', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  const propsWithFormData = {
+    ...props,
+    latestQueryFormData: {
+      datasource: '1__table',
+      viz_type: 'table',
+    },
+  };
+  render(
+    <MenuWrapper
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+      shareProps={propsWithFormData}
+    />,
+    { useRedux: true },
+  );
+  expect(screen.getByTestId('embed-code-button')).toBeInTheDocument();
 });

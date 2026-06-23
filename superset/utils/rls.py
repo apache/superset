@@ -34,9 +34,11 @@ def apply_rls(
     catalog: str | None,
     schema: str,
     parsed_statement: BaseSQLStatement[Any],
-) -> None:
+) -> bool:
     """
     Modify statement inplace to ensure RLS rules are applied.
+
+    :returns: True if any RLS predicates were actually applied, False otherwise.
     """
     # There are two ways to insert RLS: either replacing the table with a subquery
     # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
@@ -57,7 +59,9 @@ def apply_rls(
             if predicate
         ]
 
+    has_predicates = any(predicates.values())
     parsed_statement.apply_rls(catalog, schema, predicates, method)
+    return has_predicates
 
 
 def get_predicates_for_table(
@@ -98,6 +102,16 @@ def get_predicates_for_table(
     if not dataset:
         return []
 
+    # Exclude global (unscoped) guest RLS to prevent double application in
+    # virtual datasets. Global guest rules will be applied to the outer query
+    # via get_sqla_row_level_filters() on the virtual dataset itself.
+    # Dataset-scoped guest rules are still included here because they target
+    # this specific physical dataset and won't match on the outer query.
+    # Note: this path is also used by SQL Lab (sql_lab.py, executor.py) via
+    # apply_rls(). Guest users with the default Public role cannot access SQL Lab
+    # (PUBLIC_EXCLUDED_VIEW_MENUS in security/manager.py). If the guest role is
+    # extended to include SQL Lab access, global guest RLS predicates for
+    # underlying tables would be skipped here.
     return [
         str(
             predicate.compile(
@@ -105,7 +119,9 @@ def get_predicates_for_table(
                 compile_kwargs={"literal_binds": True},
             )
         )
-        for predicate in dataset.get_sqla_row_level_filters()
+        for predicate in dataset.get_sqla_row_level_filters(
+            include_global_guest_rls=False
+        )
     ]
 
 

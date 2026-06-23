@@ -181,9 +181,11 @@ class TestTakeTiledScreenshot:
             with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
                 take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
-                # Should log dashboard dimensions
-                mock_logger.info.assert_any_call("Dashboard: 800x5000px at (50, 100)")
-                # Should log number of tiles
+                # Should log dashboard dimensions with lazy logging format
+                mock_logger.info.assert_any_call(
+                    "Dashboard: %sx%spx at (%s, %s)", 800, 5000, 50, 100
+                )
+                # Should log number of tiles with lazy logging format
                 mock_logger.info.assert_any_call("Taking %s screenshot tiles", 3)
 
     def test_exception_handling_returns_none(self):
@@ -195,9 +197,10 @@ class TestTakeTiledScreenshot:
             result = take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
             assert result is None
-            mock_logger.exception.assert_called_once_with(
-                "Tiled screenshot failed: Unexpected error"
-            )
+            # The exception object is passed, not the string
+            call_args = mock_logger.exception.call_args
+            assert call_args[0][0] == "Tiled screenshot failed: %s"
+            assert str(call_args[0][1]) == "Unexpected error"
 
     def test_screenshot_clip_parameters(self, mock_page):
         """Test that screenshot clipping parameters are correct."""

@@ -25,7 +25,10 @@ import {
   formatTimeRangeComparison,
 } from '../../src/time-comparison/fetchTimeRange';
 
-afterEach(() => fetchMock.restore());
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+
+afterEach(() => fetchMock.clearHistory().removeRoutes());
 
 test('generates proper time range string', () => {
   expect(
@@ -84,34 +87,41 @@ test('returns a formatted time range from empty response', async () => {
 });
 
 test('returns a formatted error message from response', async () => {
-  fetchMock.get('glob:*/api/v1/time_range/?q=%27Last+day%27', {
-    throws: new Response(JSON.stringify({ message: 'Network error' })),
-  });
+  const getTimeRangeUrl = 'glob:*/api/v1/time_range/?q=%27Last+day%27';
+  fetchMock.get(
+    getTimeRangeUrl,
+    {
+      throws: new Response(JSON.stringify({ message: 'Network error' })),
+    },
+    { name: getTimeRangeUrl },
+  );
   let timeRange = await fetchTimeRange('Last day');
   expect(timeRange).toEqual({
     error: 'Network error',
   });
 
+  fetchMock.removeRoute(getTimeRangeUrl);
   fetchMock.get(
-    'glob:*/api/v1/time_range/?q=%27Last+day%27',
+    getTimeRangeUrl,
     {
       throws: new Error('Internal Server Error'),
     },
-    { overwriteRoutes: true },
+    { name: getTimeRangeUrl },
   );
   timeRange = await fetchTimeRange('Last day');
   expect(timeRange).toEqual({
     error: 'Internal Server Error',
   });
 
+  fetchMock.removeRoute(getTimeRangeUrl);
   fetchMock.get(
-    'glob:*/api/v1/time_range/?q=%27Last+day%27',
+    getTimeRangeUrl,
     {
       throws: new Response(JSON.stringify({ statusText: 'Network error' }), {
         statusText: 'Network error',
       }),
     },
-    { overwriteRoutes: true },
+    { name: getTimeRangeUrl },
   );
   timeRange = await fetchTimeRange('Last day');
   expect(timeRange).toEqual({

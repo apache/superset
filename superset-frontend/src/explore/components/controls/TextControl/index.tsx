@@ -25,7 +25,9 @@ import { Constants, Input } from '@superset-ui/core/components';
 type InputValueType = string | number;
 
 export interface TextControlProps<T extends InputValueType = InputValueType> {
+  name?: string;
   label?: string;
+  description?: string;
   disabled?: boolean;
   isFloat?: boolean;
   isInt?: boolean;
@@ -35,6 +37,9 @@ export interface TextControlProps<T extends InputValueType = InputValueType> {
   value?: T | null;
   controlId?: string;
   renderTrigger?: boolean;
+  validationErrors?: string[];
+  hovered?: boolean;
+  showHeader?: boolean;
 }
 
 export interface TextControlState {

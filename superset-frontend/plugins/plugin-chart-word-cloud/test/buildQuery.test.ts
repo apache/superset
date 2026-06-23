@@ -29,7 +29,7 @@ describe('WordCloud buildQuery', () => {
     viz_type: VizType.WordCloud,
   };
 
-  it('should build columns from series in form data', () => {
+  test('should build columns from series in form data', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.columns).toEqual(['foo']);

@@ -17,87 +17,79 @@
  * under the License.
  */
 
-import { Layout } from 'src/dashboard/types';
+import { type Dispatch, type SetStateAction } from 'react';
+import { JsonObject } from '@superset-ui/core';
+import {
+  DashboardInfo as DashboardInfoType,
+  Layout,
+} from 'src/dashboard/types';
 import { ChartState } from 'src/explore/types';
 import { AlertObject } from 'src/features/alerts/types';
+import { ToastMeta } from 'src/components/MessageToasts/types';
 
-interface DashboardInfo {
-  id: number;
-  userId: string | undefined;
-  dash_edit_perm: boolean;
-  dash_save_perm: boolean;
-  metadata?: Record<string, any>;
-  common?: { conf: Record<string, any> };
-  theme?: {
-    id: number;
-    name: string;
-  } | null;
-}
+type ToastOptions = Partial<Omit<ToastMeta, 'id' | 'toastType' | 'text'>>;
 
 export interface HeaderDropdownProps {
-  addSuccessToast: (msg: string) => void;
-  addDangerToast: () => void;
-  customCss: string;
+  addSuccessToast: (msg: string, options?: ToastOptions) => void;
+  addDangerToast: (msg: string, options?: ToastOptions) => void;
+  customCss?: string;
   colorNamespace?: string;
   colorScheme?: string;
   dashboardId: number;
-  dashboardInfo: DashboardInfo;
-  dashboardTitle: string;
+  dashboardInfo: DashboardInfoType;
+  dashboardTitle?: string;
   editMode: boolean;
-  expandedSlices: Record<number, boolean>;
-  forceRefreshAllCharts: () => void;
+  expandedSlices?: Record<number, boolean>;
+  forceRefreshAllCharts: () => unknown;
   hasUnsavedChanges: boolean;
   isLoading: boolean;
   layout: Layout;
-  onChange: () => void;
-  onSave: () => void;
+  onSave: (...args: unknown[]) => unknown;
   refreshFrequency: number;
-  setRefreshFrequency: (refreshInterval: number, isPersistent: boolean) => void;
   shouldPersistRefreshFrequency: boolean;
   showPropertiesModal: () => void;
-  startPeriodicRender: (interval: number) => void;
-  updateCss: (css: string) => void;
-  userCanEdit: boolean;
-  userCanSave: boolean;
-  userCanShare: boolean;
+  showRefreshModal: () => void;
+  userCanEdit: boolean | undefined;
+  userCanSave: boolean | undefined;
+  userCanShare: boolean | undefined;
   userCanCurate: boolean;
+  userCanExport: boolean | undefined;
   manageEmbedded: () => void;
-  dataMask: any;
   lastModifiedTime: number;
-  logEvent: () => void;
-  refreshLimit: number;
-  refreshWarning: string;
-  directPathToChild: string[];
+  logEvent: (...args: unknown[]) => unknown;
+  refreshLimit?: number;
+  refreshWarning?: string;
+  directPathToChild?: string[];
   showReportModal: () => void;
-  setCurrentReportDeleting: (alert: AlertObject | null) => void;
+  setCurrentReportDeleting: Dispatch<SetStateAction<AlertObject | null>>;
 }
 
 export interface HeaderProps {
-  addSuccessToast: () => void;
-  addDangerToast: () => void;
-  addWarningToast: () => void;
+  addSuccessToast: (msg: string, options?: ToastOptions) => void;
+  addDangerToast: (msg: string, options?: ToastOptions) => void;
+  addWarningToast: (msg: string, options?: ToastOptions) => void;
   colorNamespace?: string;
-  charts: ChartState | {};
+  charts: ChartState | JsonObject;
   colorScheme?: string;
-  customCss: string;
-  user: Object | undefined;
-  dashboardInfo: DashboardInfo;
-  dashboardTitle: string;
+  customCss?: string;
+  user: object | undefined;
+  dashboardInfo: DashboardInfoType;
+  dashboardTitle?: string;
   setColorScheme: () => void;
   setUnsavedChanges: () => void;
   isStarred: boolean;
   isPublished: boolean;
   onChange: () => void;
-  onSave: () => void;
+  onSave: (...args: unknown[]) => unknown;
   fetchFaveStar: () => void;
   saveFaveStar: () => void;
   savePublished: (dashboardId: number, isPublished: boolean) => void;
-  updateDashboardTitle: () => void;
+  updateDashboardTitle: (nextTitle: string) => void;
   editMode: boolean;
   setEditMode: () => void;
   showBuilderPane: () => void;
   updateCss: () => void;
-  logEvent: () => void;
+  logEvent: (eventName: string, eventData: JsonObject) => void;
   hasUnsavedChanges: boolean;
   maxUndoHistoryExceeded: boolean;
   lastModifiedTime: number;

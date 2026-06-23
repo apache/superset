@@ -17,7 +17,6 @@
  * under the License.
  */
 import '@cypress/code-coverage/support';
-import '@applitools/eyes-cypress/commands';
 import { expect } from 'chai';
 import rison from 'rison';
 

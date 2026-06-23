@@ -1,0 +1,185 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Generate stack .env file
+description: |
+  This workflow is triggered by the deploy workflows to generate the .env file based on the
+  example/template .env files in the repository.
+
+  The contents of the .env file generated in the following order:
+  1. The example/template .env file
+  2. The common GitHub variables/inputs, or `inputs.default_config` when provided
+    - inputs.name
+    - inputs.environment
+    - inputs.stack_name
+    - inputs.aws_account_id
+    - inputs.aws_region
+    - inputs.domain_name
+  3. The stack configuration, normally this just needs mapping to `vars.STACK_CONFIG`
+  4. The stack secrets, normally this just needs mapping to `inputs.stack_secrets`
+  5. Any overrides provided in the `inputs.override` JSON object
+  6. SSM parameters from `inputs.ssm_param_map` (fetched and appended; keys need not exist in the template)
+
+  AWS credentials must be configured on the runner before this action runs (e.g. `aws-actions/configure-aws-credentials`).
+
+inputs:
+  name:
+    description: The subdomain name to deploy to
+    required: true
+  environment:
+    description: The environment to deploy to
+    required: true
+  stack_name:
+    description: The CloudFormation stack name
+    required: true
+  cdk_working_directory:
+    description: The directory the CDK application is in, can be omitted if it is the root directory
+    required: false
+    default: .
+  file:
+    description: The name of the file to generate
+    required: false
+    default: .env
+  template:
+    description: The name of the example/template .env file to use
+    required: false
+    default: .env.dist
+  aws_account_id:
+    description: The AWS account ID
+    required: true
+  aws_region:
+    description: The AWS region
+    required: true
+  domain_name:
+    description: The service domain name
+    required: true
+  default_config:
+    description: >
+      Optional JSON object of key/value pairs to substitute as basic env vars.
+      When provided, replaces the hardcoded substitutions for environment/stackName/etc.
+      Use this when the template uses different key names.
+    required: false
+    default: ''
+  stack_config:
+    description: JSON object of stack configuration
+    required: true
+  stack_secrets:
+    description: JSON object of stack secrets
+    required: false
+    default: ''
+  override:
+    description: JSON object of vars to override in the .env file
+    required: false
+    default: ''
+  ssm_param_map:
+    description: >
+      Optional JSON object mapping .env variable names to SSM parameter paths.
+      Paths may include `{environment}` (replaced with `inputs.environment`).
+      When non-empty, values are fetched via `aws ssm get-parameters` and appended to the .env file.
+    required: false
+    default: ''
+runs:
+  using: "composite"
+
+  steps:
+    - name: Do we have secrets?
+      shell: bash
+      id: has_secrets
+      run: |
+        echo "HAS_STACK_SECRETS=$([ -n "${{ (inputs.stack_secrets != '') || '' }}" ] && echo 1 || echo 0)" >> "$GITHUB_OUTPUT"
+
+    - name: Create dotenv file
+      shell: bash
+      working-directory: ${{ inputs.cdk_working_directory }}
+      run: cp ${{ inputs.template }} ${{ inputs.file }}
+
+    - name: Configure basic environment variables
+      shell: bash
+      working-directory: ${{ inputs.cdk_working_directory }}
+      if: ${{ inputs.default_config == '' }}
+      run: |
+        sed -i 's|environment=.*|environment=${{ inputs.environment }}|' ${{ inputs.file }}
+        sed -i 's|stackName=.*|stackName=${{ inputs.stack_name }}|' ${{ inputs.file }}
+        sed -i 's|accountId=.*|accountId=${{ inputs.aws_account_id }}|' ${{ inputs.file }}
+        sed -i 's|region=.*|region=${{ inputs.aws_region }}|' ${{ inputs.file }}
+        sed -i 's|hostName=.*|hostName=${{ inputs.name }}|' ${{ inputs.file }}
+        sed -i 's|domainName=.*|domainName=${{ inputs.domain_name }}|' ${{ inputs.file }}
+
+    - name: Configure basic environment variables (from default_config)
+      shell: bash
+      working-directory: ${{ inputs.cdk_working_directory }}
+      if: ${{ inputs.default_config != '' }}
+      run: |
+        echo '${{ inputs.default_config }}' | jq -r 'to_entries |
+            .[] |
+            ["s|",.key,"=.*|",.key, "=", (.value | tostring | gsub("&";"\\&")), "|"] |
+            add' |
+          xargs -I{} -0 sed -i {} ${{ inputs.file }}
+
+    - name: Apply stack configuration
+      shell: bash
+      working-directory: ${{ inputs.cdk_working_directory }}
+      run: |
+        echo '${{ inputs.stack_config }}' | jq -r 'to_entries |
+            .[] |
+            ["s|",.key,"=.*|",.key, "=", (.value | tostring | gsub("&";"\\&")), "|"] |
+            add' |
+          xargs -I{} -0 sed -i {} ${{ inputs.file }}
+
+    - name: Fetch SSM parameters and append to dotenv
+      shell: bash
+      working-directory: ${{ inputs.cdk_working_directory }}
+      if: ${{ inputs.ssm_param_map != '' }}
+      env:
+        DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+        ENV_FILE: ${{ inputs.file }}
+        SSM_PARAM_MAP: ${{ inputs.ssm_param_map }}
+      run: ${{ github.action_path }}/scripts/fetch-ssm-params.sh
+
+    - name: Apply any environment variables overrides
+      shell: bash
+      working-directory: ${{ inputs.cdk_working_directory }}
+      if: ${{ inputs.override != '' }}
+      run: |
+        echo '${{ inputs.override }}' |
+          jq -r 'to_entries |
+            .[] |
+            ["s|",.key,"=.*|",.key, "=", (.value | tostring | gsub("&";"\\&")), "|"] |
+            add' |
+          xargs -I{} -0 sed -i {} ${{ inputs.file }}
+
+    - name: Create sanitised copy and obfuscate secrets
+      shell: bash
+      run: |
+        cp "${{ inputs.cdk_working_directory }}/${{ inputs.file }}" "env.sanitised-${{ inputs.environment }}"
+        if [[ -z '${{ inputs.stack_secrets }}' ]]; then
+          echo "No stack secrets found"
+        else
+          echo '${{ inputs.stack_secrets }}' | jq -r 'to_entries |
+            .[] |
+            ["s|",.key,"=.*|",.key, "=\"********\"|"] |
+            add' |
+          xargs -I{} -0 sed -i {} "env.sanitised-${{ inputs.environment }}"
+        fi
+        if [[ -n '${{ inputs.ssm_param_map }}' ]]; then
+          echo '${{ inputs.ssm_param_map }}' | jq -r 'to_entries |
+            .[] |
+            ["s|",.key,"=.*|",.key, "=\"********\"|"] |
+            add' |
+          xargs -I{} -0 sed -i {} "env.sanitised-${{ inputs.environment }}"
+        fi
+
+    - name: Upload sanitised env
+      uses: actions/upload-artifact@v4
+      with:
+        name: env-${{ github.run_id }}-${{ inputs.environment }}-${{ inputs.name }}
+        path: env.sanitised-${{ inputs.environment }}
+
+    - name: Add secrets to environment variables
+      shell: bash
+      working-directory: ${{ inputs.cdk_working_directory }}
+      if: ${{ inputs.stack_secrets != '' }}
+      run: |
+        echo '${{ inputs.stack_secrets }}' | jq -r 'to_entries |
+            .[] |
+            ["s|",.key,"=.*|",.key, "=", (.value | tostring | gsub("&";"\\&")), "|"] |
+            add' |
+          xargs -I{} -0 sed -i {} ${{ inputs.file }}

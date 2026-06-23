@@ -17,11 +17,13 @@
  * under the License.
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Input, CssEditor, Modal } from '@superset-ui/core/components';
+import { Input, Modal } from '@superset-ui/core/components';
+import { EditorHost } from 'src/core/editors';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { OnlyKeyWithType } from 'src/utils/types';
 import { TemplateObject } from './types';
@@ -36,7 +38,7 @@ interface CssTemplateModalProps {
 
 type CssTemplateStringKeys = keyof Pick<
   TemplateObject,
-  OnlyKeyWithType<TemplateObject, String>
+  OnlyKeyWithType<TemplateObject, string>
 >;
 
 const StyledCssTemplateTitle = styled.div(
@@ -45,7 +47,7 @@ const StyledCssTemplateTitle = styled.div(
   `,
 );
 
-const StyledCssEditor = styled(CssEditor)`
+const StyledEditorHost = styled(EditorHost)`
   ${({ theme }) => css`
     border-radius: ${theme.borderRadius}px;
     border: 1px solid ${theme.colorPrimaryBg};
@@ -240,7 +242,9 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       }
     >
       <StyledCssTemplateTitle>
-        <Typography.Title level={4}>{t('Basic information')}</Typography.Title>
+        <Typography.Title level={4}>
+          {t('General information')}
+        </Typography.Title>
       </StyledCssTemplateTitle>
       <TemplateContainer>
         <div className="control-label">
@@ -259,9 +263,12 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
           {t('css')}
           <span className="required">*</span>
         </div>
-        <StyledCssEditor
+        <StyledEditorHost
+          id="css-template-editor"
           onChange={onCssChange}
-          value={currentCssTemplate?.css}
+          value={currentCssTemplate?.css ?? ''}
+          language="css"
+          height="250px"
           width="100%"
         />
       </TemplateContainer>

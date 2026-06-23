@@ -59,9 +59,9 @@ test('should render a table', () => {
 test('should render the headers', () => {
   render(<TableView {...mockedProps} />);
   expect(screen.getAllByRole('columnheader')).toHaveLength(3);
-  expect(screen.getByText('ID')).toBeInTheDocument();
-  expect(screen.getByText('Age')).toBeInTheDocument();
-  expect(screen.getByText('Name')).toBeInTheDocument();
+  expect(screen.getByTitle('ID')).toBeInTheDocument();
+  expect(screen.getByTitle('Age')).toBeInTheDocument();
+  expect(screen.getByTitle('Name')).toBeInTheDocument();
 });
 
 test('should render the rows', () => {

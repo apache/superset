@@ -123,7 +123,7 @@ def migrate_chart(config: dict[str, Any]) -> dict[str, Any]:
     except (json.JSONDecodeError, TypeError):
         query_context = {}
     if "form_data" in query_context:
-        query_context["form_data"] = output["params"]
+        query_context["form_data"] = params
         output["query_context"] = json.dumps(query_context)
 
     return output

@@ -19,13 +19,30 @@
 import { ContourLayer } from '@deck.gl/aggregation-layers';
 import { PolygonLayer } from '@deck.gl/layers';
 import { Position } from '@deck.gl/core';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import { ColorType } from '../../types';
 import TooltipRow from '../../TooltipRow';
+import { getSafeCellSize } from './getSafeCellSize';
+import {
+  createTooltipContent,
+  CommonTooltipRows,
+} from '../../utilities/tooltipUtils';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
+
+function defaultTooltipGenerator(o: any) {
+  return (
+    <div className="deckgl-tooltip">
+      {CommonTooltipRows.centroid(o)}
+      <TooltipRow
+        label={t('Threshold: ')}
+        value={`${o?.object?.contour?.threshold}`}
+      />
+    </div>
+  );
+}
 
 function setTooltipContent(o: any) {
   return (
@@ -41,6 +58,7 @@ function setTooltipContent(o: any) {
     </div>
   );
 }
+
 export const getLayer: GetLayerType<ContourLayer> = function ({
   formData,
   payload,
@@ -58,6 +76,18 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
     cellSize = '200',
   } = fd;
   let data = payload.data.features;
+
+  // Store original data for tooltip access
+  const originalDataMap = new Map();
+  data.forEach((d: any) => {
+    if (d.position) {
+      const key = `${Math.floor(d.position[0] * 1000)},${Math.floor(d.position[1] * 1000)}`;
+      if (!originalDataMap.has(key)) {
+        originalDataMap.set(key, []);
+      }
+      originalDataMap.get(key)?.push(d.originalData || d);
+    }
+  });
 
   const contours = rawContours?.map(
     (contour: {
@@ -89,11 +119,64 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
     data = jsFnMutatorFunction(data);
   }
 
+  // Create wrapper for tooltip content that adds nearby points
+  const tooltipContentGenerator = (o: any) => {
+    // Find nearby points based on hover coordinate
+    const nearbyPoints: any[] = [];
+    if (o.coordinate) {
+      const searchKey = `${Math.floor(o.coordinate[0] * 1000)},${Math.floor(o.coordinate[1] * 1000)}`;
+      const points = originalDataMap.get(searchKey) || [];
+      nearbyPoints.push(...points);
+
+      // Also check neighboring cells for better coverage
+      for (let dx = -1; dx <= 1; dx += 1) {
+        for (let dy = -1; dy <= 1; dy += 1) {
+          if (dx !== 0 || dy !== 0) {
+            const neighborKey = `${Math.floor(o.coordinate[0] * 1000) + dx},${Math.floor(o.coordinate[1] * 1000) + dy}`;
+            const neighborPoints = originalDataMap.get(neighborKey) || [];
+            nearbyPoints.push(...neighborPoints);
+          }
+        }
+      }
+
+      // Enhance the object with nearby points data
+      if (nearbyPoints.length > 0) {
+        const enhancedObject = {
+          ...o.object,
+          nearbyPoints: nearbyPoints.slice(0, 5), // Limit to first 5 points
+          totalPoints: nearbyPoints.length,
+          // Add first point's data at top level for easy access
+          ...nearbyPoints[0],
+        };
+        Object.assign(o, { object: enhancedObject });
+      }
+    }
+
+    // Use createTooltipContent with the enhanced object
+    const baseTooltipContent = createTooltipContent(
+      fd,
+      defaultTooltipGenerator,
+    );
+    return baseTooltipContent(o);
+  };
+
+  const safeCellSize = getSafeCellSize({
+    cellSize,
+    viewport: fd.viewport,
+    onAutoAdjust: ({ original, adjusted, estimatedCells }) => {
+      console.warn(
+        `[DeckGL Contour] cellSize=${original} would create ~${Math.round(
+          estimatedCells,
+        )} cells. Auto-adjusted to ${adjusted} to prevent WebGL crash.`,
+      );
+    },
+  });
+
   return new ContourLayer({
     id: `contourLayer-${fd.slice_id}`,
     data,
     contours,
-    cellSize: Number(cellSize || '200'),
+    cellSize: safeCellSize,
     aggregation: aggregation.toUpperCase(),
     getPosition: (d: { position: number[]; weight: number }) =>
       d.position as Position,
@@ -101,7 +184,7 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
     ...commonLayerProps({
       formData: fd,
       setTooltip,
-      setTooltipContent,
+      setTooltipContent: tooltipContentGenerator,
       onContextMenu,
       setDataMask,
       filterState,

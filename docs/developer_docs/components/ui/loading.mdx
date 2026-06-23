@@ -1,0 +1,187 @@
+---
+title: Loading
+sidebar_label: Loading
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Loading
+
+The Loading component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="Loading"
+  props={{
+  size: "m",
+  position: "normal",
+  muted: false
+}}
+  controls={[
+  {
+    name: "size",
+    label: "Size",
+    type: "select",
+    options: [
+      "s",
+      "m",
+      "l"
+    ],
+    description: "Size of the spinner: s (40px), m (70px), or l (100px)."
+  },
+  {
+    name: "position",
+    label: "Position",
+    type: "select",
+    options: [
+      "normal",
+      "floating",
+      "inline"
+    ],
+    description: "Position style: normal (inline flow), floating (overlay), or inline."
+  },
+  {
+    name: "muted",
+    label: "Muted",
+    type: "boolean",
+    description: "Whether to show a muted/subtle version of the spinner."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <div>
+      {['normal', 'floating', 'inline'].map(position => (
+        <div
+          key={position}
+          style={{
+            marginBottom: 40,
+            padding: 20,
+            border: '1px solid #eee',
+            position: 'relative',
+            minHeight: 80,
+          }}
+        >
+          <h4 style={{ marginTop: 0 }}>{position}</h4>
+          <Loading position={position} size="m" />
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+## Size and Opacity Showcase
+
+```tsx live
+function SizeShowcase() {
+  const sizes = ['s', 'm', 'l'];
+  return (
+    <div style={{ padding: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, alignItems: 'center' }}>
+        <div><strong>Size</strong></div>
+        <div><strong>Normal</strong></div>
+        <div><strong>Muted</strong></div>
+        <div><strong>Usage</strong></div>
+        {sizes.map(size => (
+          <React.Fragment key={size}>
+            <div style={{ fontWeight: 'bold' }}>
+              {size.toUpperCase()} ({size === 's' ? '40px' : size === 'm' ? '70px' : '100px'})
+            </div>
+            <div style={{ textAlign: 'center', padding: 10, border: '1px solid #eee' }}>
+              <Loading size={size} position="normal" />
+            </div>
+            <div style={{ textAlign: 'center', padding: 10, border: '1px solid #eee' }}>
+              <Loading size={size} muted position="normal" />
+            </div>
+            <div style={{ fontSize: 12, color: '#666' }}>
+              {size === 's' && 'Filter bars, inline'}
+              {size === 'm' && 'Explore pages'}
+              {size === 'l' && 'Full page loading'}
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+## Contextual Examples
+
+```tsx live
+function ContextualDemo() {
+  return (
+    <div style={{ padding: 20 }}>
+      <h4>Filter Bar (size="s", muted)</h4>
+      <div style={{ height: 40, backgroundColor: '#f5f5f5', display: 'flex', alignItems: 'center', padding: '0 10px', gap: 10, marginBottom: 30 }}>
+        <span>Filter 1:</span>
+        <Loading size="s" muted position="normal" />
+        <span>Filter 2:</span>
+        <Loading size="s" muted position="normal" />
+      </div>
+
+      <h4>Dashboard Grid (size="s", muted)</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 30 }}>
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ height: 100, backgroundColor: '#fafafa', border: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Loading size="s" muted position="normal" />
+          </div>
+        ))}
+      </div>
+
+      <h4>Main Loading (size="l")</h4>
+      <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #ccc' }}>
+        <Loading size="l" position="normal" />
+      </div>
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `size` | `string` | `"m"` | Size of the spinner: s (40px), m (70px), or l (100px). |
+| `position` | `string` | `"normal"` | Position style: normal (inline flow), floating (overlay), or inline. |
+| `muted` | `boolean` | `false` | Whether to show a muted/subtle version of the spinner. |
+
+## Import
+
+```tsx
+import { Loading } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Loading/Loading.stories.tsx).
+:::

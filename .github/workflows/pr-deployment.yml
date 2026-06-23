@@ -47,9 +47,11 @@ jobs:
         }
 
     permissions:
+      actions: read
       contents: read
       deployments: write
       id-token: write
+      packages: read
 
   # lokalise_auto_merge:
   #   name: Lokalise Auto Merge

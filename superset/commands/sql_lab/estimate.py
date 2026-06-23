@@ -22,7 +22,7 @@ from typing import Any, TypedDict
 from flask import current_app as app
 from flask_babel import gettext as __
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetTimeoutException
@@ -67,6 +67,7 @@ class QueryEstimationCommand(BaseCommand):
                 ),
                 status=404,
             )
+        security_manager.raise_for_access(database=self._database)
 
     def run(
         self,

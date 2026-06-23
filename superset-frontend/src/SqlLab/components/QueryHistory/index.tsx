@@ -21,19 +21,16 @@ import { shallowEqual, useSelector } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import { omit } from 'lodash';
 import { EmptyState, Skeleton } from '@superset-ui/core/components';
-import {
-  t,
-  styled,
-  css,
-  FeatureFlag,
-  isFeatureEnabled,
-  useTheme,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/theme';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { useEditorQueriesQuery } from 'src/hooks/apiResources/queries';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import PanelToolbar from 'src/components/PanelToolbar';
+import { ViewLocations } from 'src/SqlLab/contributions';
 
 interface QueryHistoryProps {
   queryEditorId: string | number;
@@ -68,7 +65,6 @@ const QueryHistory = ({
   const { id, tabViewId } = useQueryEditor(String(queryEditorId), [
     'tabViewId',
   ]);
-  const theme = useTheme();
   const editorId = tabViewId ?? id;
   const [ref, hasReachedBottom] = useInView({ threshold: 0 });
   const [pageIndex, setPageIndex] = useState(0);
@@ -124,11 +120,8 @@ const QueryHistory = ({
   }
 
   return editorQueries.length > 0 ? (
-    <div
-      css={css`
-        padding-left: ${theme.sizeUnit * 4}px;
-      `}
-    >
+    <>
+      <PanelToolbar viewId={ViewLocations.sqllab.queryHistory} />
       <QueryTable
         columns={[
           'state',
@@ -154,7 +147,7 @@ const QueryHistory = ({
         />
       )}
       {isFetching && <Skeleton active />}
-    </div>
+    </>
   ) : (
     <StyledEmptyStateWrapper>
       <EmptyState

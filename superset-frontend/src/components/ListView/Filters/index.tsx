@@ -24,7 +24,7 @@ import {
   RefObject,
 } from 'react';
 
-import { withTheme } from '@superset-ui/core';
+import { withTheme } from '@apache-superset/core/theme';
 
 import type {
   ListViewFilterValue as FilterValue,
@@ -72,6 +72,7 @@ function UIFilters(
             key,
             id,
             input,
+            optionFilterProps,
             paginate,
             selects,
             toolTipDescription,
@@ -81,6 +82,8 @@ function UIFilters(
             min,
             max,
             dropdownStyle,
+            autoComplete,
+            inputName,
           },
           index,
         ) => {
@@ -107,6 +110,7 @@ function UIFilters(
 
                   updateFilterValue(index, option);
                 }}
+                optionFilterProps={optionFilterProps}
                 paginate={paginate}
                 selects={selects}
                 loading={loading ?? false}
@@ -121,7 +125,7 @@ function UIFilters(
                 Header={Header}
                 initialValue={initialValue}
                 key={key}
-                name={id}
+                name={inputName ?? id}
                 toolTipDescription={toolTipDescription}
                 onSubmit={(value: string) => {
                   if (onFilterUpdate) {
@@ -130,6 +134,7 @@ function UIFilters(
 
                   updateFilterValue(index, value);
                 }}
+                autoComplete={autoComplete}
               />
             );
           }

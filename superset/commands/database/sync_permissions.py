@@ -38,7 +38,6 @@ from superset.commands.database.utils import (
 )
 from superset.daos.database import DatabaseDAO
 from superset.daos.dataset import DatasetDAO
-from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.db_engine_specs.base import GenericDBException
 from superset.exceptions import OAuth2RedirectError
 from superset.extensions import celery_app, db
@@ -63,7 +62,6 @@ class SyncPermissionsCommand(BaseCommand):
         username: str | None,
         old_db_connection_name: str | None = None,
         db_connection: Database | None = None,
-        ssh_tunnel: SSHTunnel | None = None,
     ):
         """
         Constructor method.
@@ -72,7 +70,6 @@ class SyncPermissionsCommand(BaseCommand):
         self.username = username
         self._old_db_connection_name: str | None = old_db_connection_name
         self._db_connection: Database | None = db_connection
-        self.db_connection_ssh_tunnel: SSHTunnel | None = ssh_tunnel
 
         self.async_mode: bool = app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
 
@@ -99,20 +96,13 @@ class SyncPermissionsCommand(BaseCommand):
         if not self._db_connection:
             raise DatabaseNotFoundError()
 
-        if not self.db_connection_ssh_tunnel:
-            self.db_connection_ssh_tunnel = DatabaseDAO.get_ssh_tunnel(
-                self.db_connection_id
-            )
-
         # Need user info to impersonate for OAuth2 connections
         if not self.username or not security_manager.get_user_by_username(
             self.username
         ):
             raise UserNotFoundInSessionError()
 
-        with self.db_connection.get_sqla_engine(
-            override_ssh_tunnel=self.db_connection_ssh_tunnel
-        ) as engine:
+        with self.db_connection.get_sqla_engine() as engine:
             try:
                 alive = ping(engine)
             except Exception as err:
@@ -209,10 +199,7 @@ class SyncPermissionsCommand(BaseCommand):
                 self.db_connection.db_engine_spec.supports_cross_catalog_queries
                 or self.db_connection.allow_multi_catalog
             ):
-                return self.db_connection.get_all_catalog_names(
-                    force=True,
-                    ssh_tunnel=self.db_connection_ssh_tunnel,
-                )
+                return self.db_connection.get_all_catalog_names(force=True)
             else:
                 return {self.db_connection.get_default_catalog()}
         except OAuth2RedirectError:
@@ -226,11 +213,7 @@ class SyncPermissionsCommand(BaseCommand):
         Helper method to load schemas.
         """
         try:
-            return self.db_connection.get_all_schema_names(
-                force=True,
-                catalog=catalog,
-                ssh_tunnel=self.db_connection_ssh_tunnel,
-            )
+            return self.db_connection.get_all_schema_names(force=True, catalog=catalog)
         except OAuth2RedirectError:
             # raise OAuth2 exceptions as-is
             raise
@@ -335,14 +318,12 @@ def sync_database_permissions_task(
             db_connection = DatabaseDAO.find_by_id(database_id)
             if not db_connection:
                 raise DatabaseNotFoundError()
-            ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database_id)
 
             SyncPermissionsCommand(
                 database_id,
                 username,
                 old_db_connection_name=old_db_connection_name,
                 db_connection=db_connection,
-                ssh_tunnel=ssh_tunnel,
             ).sync_database_permissions()
 
             logger.info(

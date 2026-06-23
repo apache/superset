@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { Button, Popover } from '@superset-ui/core/components';
 import { FC, useState } from 'react';
 import { MapViewConfigs, MapViewConfigsControlProps } from './types';

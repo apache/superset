@@ -24,12 +24,13 @@ import {
   useMemo,
   useState,
 } from 'react';
+import {} from '@superset-ui/core';
 import {
   type AnyThemeConfig,
   type ThemeContextType,
   Theme,
   ThemeMode,
-} from '@superset-ui/core';
+} from '@apache-superset/core/theme';
 import { ThemeController } from './ThemeController';
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
@@ -78,7 +79,8 @@ export function SupersetThemeProvider({
   // setCrudTheme removed - dashboards should NOT modify the global controller
 
   const setTemporaryTheme = useCallback(
-    (config: AnyThemeConfig) => themeController.setTemporaryTheme(config),
+    (config: AnyThemeConfig, themeId?: number | null) =>
+      themeController.setTemporaryTheme(config, themeId),
     [themeController],
   );
 
@@ -117,6 +119,11 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
+  const getAppliedThemeId = useCallback(
+    () => themeController.getAppliedThemeId(),
+    [themeController],
+  );
+
   const contextValue = useMemo(
     () => ({
       theme: currentTheme,
@@ -132,6 +139,7 @@ export function SupersetThemeProvider({
       canSetTheme,
       canDetectOSPreference,
       createDashboardThemeProvider,
+      getAppliedThemeId,
     }),
     [
       currentTheme,
@@ -147,6 +155,7 @@ export function SupersetThemeProvider({
       canSetTheme,
       canDetectOSPreference,
       createDashboardThemeProvider,
+      getAppliedThemeId,
     ],
   );
 

@@ -79,6 +79,7 @@ test('should render 3 elements when maxTags is set to 3', async () => {
   expect(tagsListItems[2]).toHaveTextContent('+3...');
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Tag type filtering', () => {
   test('should render only custom type tags (type: 1)', async () => {
     const mixedTypeTags = [

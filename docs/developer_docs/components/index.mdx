@@ -1,0 +1,74 @@
+---
+title: UI Components Overview
+sidebar_label: Overview
+sidebar_position: 0
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+# Superset Design System
+
+A design system is a complete set of standards intended to manage design at scale using reusable components and patterns.
+
+The Superset Design System uses [Atomic Design](https://bradfrost.com/blog/post/atomic-web-design/) principles with adapted terminology:
+
+| Atomic Design | Atoms | Molecules | Organisms | Templates | Pages / Screens |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Superset Design** | Foundations | Components | Patterns | Templates | Features |
+
+<img src="/img/atomic-design.png" alt="Atoms = Foundations, Molecules = Components, Organisms = Patterns, Templates = Templates, Pages / Screens = Features" style={{maxWidth: '100%'}} />
+
+---
+
+## Component Library
+
+Interactive documentation for Superset's UI component library. **53 components** documented across 2 categories.
+
+### [Core Components](./ui/)
+46 components — Buttons, inputs, modals, selects, and other fundamental UI elements.
+
+### [Layout Components](./design-system/)
+7 components — Grid, Layout, Table, Flex, Space, and container components for page structure.
+
+
+## Usage
+
+All components are exported from `@superset-ui/core/components`:
+
+```tsx
+import { Button, Modal, Select } from '@superset-ui/core/components';
+```
+
+## Contributing
+
+This documentation is auto-generated from Storybook stories. To add or update component documentation:
+
+1. Create or update the component's `.stories.tsx` file
+2. Add a descriptive `title` and `description` in the story meta
+3. Export an interactive story with `args` for configurable props
+4. Run `yarn generate:superset-components` in the `docs/` directory
+
+:::info Work in Progress
+This component library is actively being documented. See the [Components TODO](./TODO) page for a list of components awaiting documentation.
+:::
+
+---
+
+*Auto-generated from Storybook stories in the [Design System/Introduction](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/components/DesignSystem.stories.tsx) story.*

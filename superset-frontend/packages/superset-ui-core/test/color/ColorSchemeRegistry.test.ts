@@ -22,20 +22,20 @@ import schemes from '../../src/color/colorSchemes/categorical/d3';
 import CategoricalScheme from '../../src/color/CategoricalScheme';
 
 describe('ColorSchemeRegistry', () => {
-  it('exists', () => {
+  test('exists', () => {
     expect(ColorSchemeRegistry).toBeDefined();
     expect(ColorSchemeRegistry).toBeInstanceOf(Function);
   });
-  it('returns undefined', () => {
+  test('returns undefined', () => {
     const registry = new ColorSchemeRegistry();
     expect(registry.get('something')).toBeUndefined();
   });
-  it('returns default', () => {
+  test('returns default', () => {
     const registry = new ColorSchemeRegistry();
     registry.registerValue('SUPERSET_DEFAULT', schemes[0]);
     expect(registry.get('something')).toBeInstanceOf(CategoricalScheme);
   });
-  it('returns undefined in strict mode', () => {
+  test('returns undefined in strict mode', () => {
     const registry = new ColorSchemeRegistry();
     registry.registerValue('SUPERSET_DEFAULT', schemes[0]);
     expect(registry.get('something', true)).toBeUndefined();

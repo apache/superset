@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   ExtraFormData,
-  t,
   TimeGranularity,
-  tn,
 } from '@superset-ui/core';
+import { tn } from '@apache-superset/core/translation';
 import { useEffect, useMemo, useState } from 'react';
 import {
   FormItem,
@@ -125,7 +125,7 @@ export default function PluginFilterTimegrain(
           allowClear
           value={value}
           placeholder={placeholderText}
-          // @ts-ignore
+          // @ts-expect-error
           onChange={handleChange}
           onBlur={unsetFocusedFilter}
           onFocus={setFocusedFilter}

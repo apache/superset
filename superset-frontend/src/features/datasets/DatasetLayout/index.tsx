@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactElement, JSXElementConstructor } from 'react';
-import { useTheme } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import ResizableSidebar from 'src/components/ResizableSidebar';
 
 import {

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { Form } from '@superset-ui/core/components';
 import { Tag } from 'src/components';
 import { FC, useState } from 'react';
@@ -194,7 +195,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseWidthDescription}
           value={baseWidth}
           name="baseWidth"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseWidthChange}
           step={1}
           min={0}
@@ -206,7 +207,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseHeightDescription}
           value={baseHeight}
           name="baseHeight"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseHeightChange}
           step={1}
           min={0}
@@ -218,7 +219,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseSlopeDescription}
           value={baseSlope}
           name="slope"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseSlopeChange}
           disabled={!!(value && !isZoomConfigsLinear(value))}
           step={1}
@@ -231,14 +232,16 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseExponentDescription}
           value={baseExponent}
           name="exponent"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseExponentChange}
           disabled={!!(value && !isZoomConfigsExp(value))}
           step={0.2}
           min={0}
           max={3}
         />
-        <Tag>Current Zoom: {value?.configs.zoom}</Tag>
+        <Tag>
+          {t('Current Zoom')}: {value?.configs.zoom}
+        </Tag>
       </Form>
       <ZoomConfigsChart
         name="zoomlevels"

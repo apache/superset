@@ -147,7 +147,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         dashboard = create_dashboard_to_db(published=True, slices=[slice])
         self.login(GAMMA_USERNAME)
 
-        # assert redirect on regular rbac access denied
+        # assert 404 on regular rbac access denied (prevents information leakage)
         response = self.get_dashboard_view_response(dashboard)
         assert response.status_code == 404
 

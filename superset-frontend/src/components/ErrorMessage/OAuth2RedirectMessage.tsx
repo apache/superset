@@ -25,7 +25,8 @@ import { RootState } from 'src/dashboard/types';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
-import { QueryResponse, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { QueryResponse } from '@superset-ui/core';
 
 import type { ErrorMessageComponentProps } from './types';
 import { ErrorAlert } from './ErrorAlert';
@@ -62,6 +63,7 @@ interface OAuth2RedirectExtra {
 export function OAuth2RedirectMessage({
   error,
   source,
+  closable,
 }: ErrorMessageComponentProps<OAuth2RedirectExtra>) {
   const oAuthTab = useRef<Window | null>(null);
   const { extra, level } = error;
@@ -123,7 +125,7 @@ export function OAuth2RedirectMessage({
         } else if (source === 'explore' && chartId) {
           dispatch(triggerQuery(true, chartId));
         } else if (source === 'dashboard') {
-          dispatch(onRefresh(chartList, true, 0, dashboardId));
+          dispatch(onRefresh(chartList.map(Number), true, 0, dashboardId));
         }
       }
     };
@@ -145,24 +147,23 @@ export function OAuth2RedirectMessage({
 
   const body = (
     <p>
-      This database uses OAuth2 for authentication. Please click the link above
-      to grant Apache Superset permission to access the data. Your personal
-      access token will be stored encrypted and used only for queries run by
-      you.
+      {t(
+        'This database uses OAuth2 for authentication. Please click the link above to grant Apache Superset permission to access the data. Your personal access token will be stored encrypted and used only for queries run by you.',
+      )}
     </p>
   );
   const subtitle = (
     <>
-      You need to{' '}
+      {t('You need to')}{' '}
       <a
         href={extra.url}
         onClick={handleOAuthClick}
         target="_blank"
         rel="noreferrer"
       >
-        provide authorization
+        {t('provide authorization')}
       </a>{' '}
-      in order to run this operation.
+      {t('in order to run this operation.')}
     </>
   );
 
@@ -172,6 +173,7 @@ export function OAuth2RedirectMessage({
       message={subtitle}
       type={level}
       description={body}
+      closable={closable}
     />
   );
 }

@@ -26,6 +26,7 @@ import useStoredSidebarWidth from './useStoredSidebarWidth';
 
 const INITIAL_WIDTH = 300;
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useStoredSidebarWidth', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -35,7 +36,7 @@ describe('useStoredSidebarWidth', () => {
     localStorage.clear();
   });
 
-  it('returns a default filterBar width by initialWidth', () => {
+  test('returns a default filterBar width by initialWidth', () => {
     const id = '123';
     const { result } = renderHook(() =>
       useStoredSidebarWidth(id, INITIAL_WIDTH),
@@ -45,7 +46,7 @@ describe('useStoredSidebarWidth', () => {
     expect(actualWidth).toEqual(INITIAL_WIDTH);
   });
 
-  it('returns a stored filterBar width from localStorage', () => {
+  test('returns a stored filterBar width from localStorage', () => {
     const id = '123';
     const expectedWidth = 378;
     setItem(LocalStorageKeys.CommonResizableSidebarWidths, {
@@ -61,7 +62,7 @@ describe('useStoredSidebarWidth', () => {
     expect(actualWidth).not.toEqual(250);
   });
 
-  it('returns a setter for filterBar width that stores the state in localStorage together', () => {
+  test('returns a setter for filterBar width that stores the state in localStorage together', () => {
     const id = '123';
     const expectedWidth = 378;
     const otherDashboardId = '456';

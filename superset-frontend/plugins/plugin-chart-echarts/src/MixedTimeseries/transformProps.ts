@@ -25,7 +25,6 @@ import {
   CategoricalColorNamespace,
   CurrencyFormatter,
   ensureIsArray,
-  GenericDataType,
   getCustomFormatter,
   getNumberFormatter,
   getXAxisLabel,
@@ -37,11 +36,13 @@ import {
   isTimeseriesAnnotationLayer,
   QueryFormData,
   QueryFormMetric,
+  resolveAutoCurrency,
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
   tooltipHtml,
   ValueFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { getOriginalSeries } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { SeriesOption } from 'echarts';
@@ -54,9 +55,11 @@ import {
 import {
   EchartsTimeseriesSeriesType,
   ForecastSeriesEnum,
+  LegendOrientation,
   Refs,
 } from '../types';
 import { parseAxisBound } from '../utils/controls';
+import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import {
   dedupSeries,
   extractDataTotalValues,
@@ -65,10 +68,12 @@ import {
   extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
+  getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
   getOverMaxHiddenFormatter,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import {
   extractAnnotationLabels,
   getAnnotationData,
@@ -99,6 +104,7 @@ import {
 } from '../utils/formatters';
 import moment from 'moment';
 import { getMetricDisplayName } from '../utils/metricDisplayName';
+import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
 const getFormatter = (
   customFormatters: Record<string, ValueFormatter>,
@@ -122,7 +128,7 @@ export default function transformProps(
   const {
     width,
     height,
-    formData,
+    formData: { echartOptions: _echartOptions, ...formData },
     queriesData,
     hooks,
     filterState,
@@ -139,10 +145,11 @@ export default function transformProps(
     verboseMap = {},
     currencyFormats = {},
     columnFormats = {},
+    currencyCodeColumn,
   } = datasource;
-  const { label_map: labelMap } =
+  const { label_map: labelMap, detected_currency: backendDetectedCurrency } =
     queriesData[0] as TimeseriesChartDataResponseResult;
-  const { label_map: labelMapB } =
+  const { label_map: labelMapB, detected_currency: backendDetectedCurrencyB } =
     queriesData[1] as TimeseriesChartDataResponseResult;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
@@ -161,6 +168,7 @@ export default function transformProps(
     legendOrientation,
     legendMargin,
     legendType,
+    legendSort,
     logAxis,
     logAxisSecondary,
     markerEnabled,
@@ -214,6 +222,7 @@ export default function transformProps(
     sortSeriesAscending,
     sortSeriesAscendingB,
     timeGrainSqla,
+    forceMaxInterval,
     percentageThreshold,
     showQueryIdentifiers = false,
     metrics = [],
@@ -243,12 +252,22 @@ export default function transformProps(
     },
   );
 
-  const MetricDisplayNameA = getMetricDisplayName(metrics[0], verboseMap);
-  const MetricDisplayNameB = getMetricDisplayName(metricsB[0], verboseMap);
+  const MetricDisplayNameA: string =
+    getMetricDisplayName(metrics[0], verboseMap) || '';
+  const MetricDisplayNameB: string =
+    getMetricDisplayName(metricsB[0], verboseMap) || '';
 
   const dataTypes = getColtypesMapping(queriesData[0]);
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
+  const xAxisType = getAxisType(
+    stack,
+    xAxisForceCategorical,
+    xAxisDataType,
+    seriesType === EchartsTimeseriesSeriesType.Bar ||
+      seriesTypeB === EchartsTimeseriesSeriesType.Bar
+      ? EchartsTimeseriesSeriesType.Bar
+      : seriesType,
+  );
 
   const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
@@ -278,20 +297,34 @@ export default function transformProps(
     xAxisType,
   });
   const series: SeriesOption[] = [];
+
+  const resolvedCurrency = resolveAutoCurrency(
+    currencyFormat,
+    backendDetectedCurrency,
+    data1,
+    currencyCodeColumn,
+  );
+  const resolvedCurrencySecondary = resolveAutoCurrency(
+    currencyFormatSecondary,
+    backendDetectedCurrencyB,
+    data2,
+    currencyCodeColumn,
+  );
+
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')
-    : currencyFormat?.symbol
+    : resolvedCurrency?.symbol
       ? new CurrencyFormatter({
           d3Format: yAxisFormat,
-          currency: currencyFormat,
+          currency: resolvedCurrency,
         })
       : getNumberFormatter(yAxisFormat);
   const formatterSecondary = contributionMode
     ? getNumberFormatter(',.0%')
-    : currencyFormatSecondary?.symbol
+    : resolvedCurrencySecondary?.symbol
       ? new CurrencyFormatter({
           d3Format: yAxisFormatSecondary,
-          currency: currencyFormatSecondary,
+          currency: resolvedCurrencySecondary,
         })
       : getNumberFormatter(yAxisFormatSecondary);
   const customFormatters = buildCustomFormatters(
@@ -299,14 +332,18 @@ export default function transformProps(
     currencyFormats,
     columnFormats,
     yAxisFormat,
-    currencyFormat,
+    resolvedCurrency,
+    data1,
+    currencyCodeColumn,
   );
   const customFormattersSecondary = buildCustomFormatters(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,
     columnFormats,
     yAxisFormatSecondary,
-    currencyFormatSecondary,
+    resolvedCurrencySecondary,
+    data2,
+    currencyCodeColumn,
   );
 
   const primarySeries = new Set<string>();
@@ -337,7 +374,7 @@ export default function transformProps(
         series.push(
           transformFormulaAnnotation(
             layer,
-            data1,
+            rebasedDataA as TimeseriesDataRecord[],
             xAxisLabel,
             xAxisType,
             colorScale,
@@ -399,10 +436,12 @@ export default function transformProps(
 
     if (groupby.length > 0) {
       // When we have groupby, format as "metric, dimension"
-      const metricPart = showQueryIdentifiers
+      const metricPart: string = showQueryIdentifiers
         ? `${MetricDisplayNameA} (Query A)`
         : MetricDisplayNameA;
-      displayName = `${metricPart}, ${entryName}`;
+      displayName = entryName.includes(metricPart)
+        ? entryName
+        : `${metricPart}, ${entryName}`;
     } else {
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
@@ -470,10 +509,12 @@ export default function transformProps(
 
     if (groupbyB.length > 0) {
       // When we have groupby, format as "metric, dimension"
-      const metricPart = showQueryIdentifiers
+      const metricPart: string = showQueryIdentifiers
         ? `${MetricDisplayNameB} (Query B)`
         : MetricDisplayNameB;
-      displayName = `${metricPart}, ${entryName}`;
+      displayName = entryName.includes(metricPart)
+        ? entryName
+        : `${metricPart}, ${entryName}`;
     } else {
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
@@ -546,18 +587,87 @@ export default function transformProps(
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat)
+      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
       : String;
 
-  const addYAxisTitleOffset = !!(yAxisTitle || yAxisTitleSecondary);
-  const addXAxisTitleOffset = !!xAxisTitle;
+  const showMaxLabel = xAxisType === AxisType.Time && xAxisLabelRotation === 0;
+  const deduplicatedFormatter = showMaxLabel
+    ? (() => {
+        let lastLabel: string | undefined;
+        const wrapper = (value: number | string) => {
+          const label =
+            typeof xAxisFormatter === 'function'
+              ? (xAxisFormatter as Function)(value)
+              : String(value);
+          if (label === lastLabel) {
+            return '';
+          }
+          lastLabel = label;
+          return label;
+        };
+        if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
+          (wrapper as any).id = (xAxisFormatter as any).id;
+        }
+        return wrapper;
+      })()
+    : xAxisFormatter;
+
+  const addYAxisTitleOffset =
+    !!(yAxisTitle || yAxisTitleSecondary) &&
+    convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisTitleOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
+  const baseChartPadding = getPadding(
+    showLegend,
+    legendOrientation,
+    addYAxisTitleOffset,
+    zoomable,
+    legendMargin,
+    addXAxisTitleOffset,
+    yAxisTitlePosition,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
+  );
+  const legendData = series
+    .filter(
+      entry =>
+        extractForecastSeriesContext((entry.name || '') as string).type ===
+        ForecastSeriesEnum.Observation,
+    )
+    .map(entry => entry.name)
+    .filter((name): name is string => Boolean(name))
+    .concat(extractAnnotationLabels(annotationLayers))
+    .sort((a: string, b: string) => {
+      if (!legendSort) return 0;
+      return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+    });
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
+    availableWidth:
+      legendOrientation === LegendOrientation.Top ||
+      legendOrientation === LegendOrientation.Bottom
+        ? getHorizontalLegendAvailableWidth({
+            chartWidth: width,
+            orientation: legendOrientation,
+            padding: baseChartPadding,
+            zoomable,
+          })
+        : undefined,
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
 
   const chartPadding = getPadding(
     showLegend,
     legendOrientation,
     addYAxisTitleOffset,
     zoomable,
-    legendMargin,
+    effectiveLegendMargin,
     addXAxisTitleOffset,
     yAxisTitlePosition,
     convertInteger(yAxisTitleMargin),
@@ -579,17 +689,28 @@ export default function transformProps(
       nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
-        formatter: xAxisFormatter,
+        hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
+        formatter: deduplicatedFormatter,
         rotate: xAxisLabelRotation,
         interval: xAxisLabelInterval,
+        ...(showMaxLabel && {
+          showMaxLabel: true,
+          alignMaxLabel: 'right',
+        }),
       },
       minorTick: { show: minorTicks },
       minInterval:
-        xAxisType === AxisType.Time && timeGrainSqla
+        xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
               timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
             ]
           : 0,
+      maxInterval:
+        xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
+          ? TIMEGRAIN_TO_TIMESTAMP[
+              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+            ]
+          : undefined,
       ...getMinAndMaxFromBounds(
         xAxisType,
         truncateXAxis,
@@ -712,7 +833,7 @@ export default function transformProps(
         if (seriesName) {
           const regex = new RegExp('.*(\\d+) (\\w+) ago');
           const result = seriesName.match(regex);
-          if (result && result.length == 3) {
+          if (result && result.length === 3) {
             const [_, diff, diffType] = result;
             xValue = moment
               .utc(xValue)
@@ -725,7 +846,7 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(
-        legendType,
+        effectiveLegendType,
         legendOrientation,
         showLegend,
         theme,
@@ -733,15 +854,7 @@ export default function transformProps(
         legendState,
         chartPadding,
       ),
-      // @ts-ignore
-      data: series
-        .filter(
-          entry =>
-            extractForecastSeriesContext((entry.name || '') as string).type ===
-            ForecastSeriesEnum.Observation,
-        )
-        .map(entry => entry.id || entry.name || '')
-        .concat(extractAnnotationLabels(annotationLayers)),
+      data: legendData,
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
@@ -774,11 +887,25 @@ export default function transformProps(
     focusedSeries = seriesName;
   };
 
+  let customEchartOptions;
+  try {
+    // Parse custom EChart options safely using AST analysis
+    // This replaces the unsafe `new Function()` approach with a secure parser
+    // that only allows static data structures (no function callbacks)
+    customEchartOptions = safeParseEChartOptions(_echartOptions);
+  } catch (_) {
+    customEchartOptions = undefined;
+  }
+
+  const mergedEchartOptions = customEchartOptions
+    ? mergeCustomEChartOptions(echartOptions, customEchartOptions)
+    : echartOptions;
+
   return {
     formData,
     width,
     height,
-    echartOptions,
+    echartOptions: mergedEchartOptions,
     setDataMask,
     emitCrossFilters,
     labelMap,

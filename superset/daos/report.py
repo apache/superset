@@ -94,7 +94,20 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     def find_by_extra_metadata(slug: str) -> list[ReportSchedule]:
         return (
             db.session.query(ReportSchedule)
-            .filter(ReportSchedule.extra_json.like(f"%{slug}%"))
+            .filter(ReportSchedule.extra_json.contains(slug, autoescape=True))
+            .all()
+        )
+
+    @staticmethod
+    def find_by_native_filter_id(native_filter_id: str) -> list[ReportSchedule]:
+        """
+        searches extra_json for a filter ID string
+        """
+        return (
+            db.session.query(ReportSchedule)
+            .filter(
+                ReportSchedule.extra_json.contains(native_filter_id, autoescape=True)
+            )
             .all()
         )
 
@@ -187,7 +200,8 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
             item = ReportSchedule()
 
         if attributes:
-            if recipients := attributes.pop("recipients", None):
+            if "recipients" in attributes:
+                recipients = attributes.pop("recipients")
                 attributes["recipients"] = [
                     ReportRecipients(
                         type=recipient["type"],

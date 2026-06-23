@@ -18,13 +18,15 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List
 
 import dateutil.parser
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Query
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.daos.base import BaseDAO
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -35,9 +37,63 @@ from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
 
+# Custom filterable fields for datasets (not direct model columns)
+DATASET_CUSTOM_FIELDS: dict[str, list[str]] = {
+    "database_name": ["eq", "like", "ilike"],
+    "owner": ["eq", "in"],
+}
+
 
 class DatasetDAO(BaseDAO[SqlaTable]):
+    """
+    DAO for datasets. Supports filtering on model fields, hybrid properties, and custom
+    fields:
+    - tags: list of tags (eq, in_, like)
+    - owner: user id (eq, in_)
+    """
+
     base_filter = DatasourceFilter
+
+    @classmethod
+    def apply_column_operators(
+        cls,
+        query: Query,
+        column_operators: list[ColumnOperator] | None = None,
+    ) -> Query:
+        """Override to handle database_name filter via subquery on Database.
+
+        database_name lives on Database, not SqlaTable, so we intercept it
+        here and use a subquery to avoid duplicate joins with DatasourceFilter.
+        """
+        if not column_operators:
+            return query
+
+        remaining_operators: list[ColumnOperator] = []
+        for c in column_operators:
+            if not isinstance(c, ColumnOperator):
+                c = ColumnOperator.model_validate(c)
+            if c.col == "database_name":
+                operator_enum = ColumnOperatorEnum(c.opr)
+                subq = select(Database.id).where(
+                    operator_enum.apply(Database.database_name, c.value)
+                )
+                query = query.filter(SqlaTable.database_id.in_(subq))
+            elif c.col == "owner":
+                from superset.connectors.sqla.models import sqlatable_user
+
+                operator_enum = ColumnOperatorEnum(c.opr)
+                subq = select(sqlatable_user.c.table_id).where(
+                    operator_enum.apply(sqlatable_user.c.user_id, c.value)
+                )
+                query = query.filter(
+                    SqlaTable.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
+            else:
+                remaining_operators.append(c)
+
+        if remaining_operators:
+            query = super().apply_column_operators(query, remaining_operators)
+        return query
 
     @staticmethod
     def get_database_by_id(database_id: int) -> Database | None:
@@ -350,6 +406,13 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             .filter_by(database_id=database_id, table_name=table_name)
             .one_or_none()
         )
+
+    @classmethod
+    def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
+        filterable = super().get_filterable_columns_and_operators()
+        # Add custom fields
+        filterable.update(DATASET_CUSTOM_FIELDS)
+        return filterable
 
 
 class DatasetColumnDAO(BaseDAO[TableColumn]):

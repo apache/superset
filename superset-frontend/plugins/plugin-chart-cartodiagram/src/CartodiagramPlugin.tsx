@@ -17,7 +17,7 @@
  * under the License.
  */
 import { createRef, useState } from 'react';
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import OlMap from 'ol/Map';
 import {
   CartodiagramPluginProps,

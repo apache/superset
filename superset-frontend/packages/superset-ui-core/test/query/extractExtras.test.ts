@@ -27,7 +27,7 @@ describe('extractExtras', () => {
     viz_type: 'my_viz',
   };
 
-  it('should populate time range endpoints and override formData with double underscored date options', () => {
+  test('should populate time range endpoints and override formData with double underscored date options', () => {
     expect(
       extractExtras({
         ...baseQueryFormData,
@@ -64,7 +64,7 @@ describe('extractExtras', () => {
     });
   });
 
-  it('should create regular filters from non-reserved columns', () => {
+  test('should create regular filters from non-reserved columns', () => {
     expect(
       extractExtras({
         ...baseQueryFormData,
@@ -102,7 +102,7 @@ describe('extractExtras', () => {
     });
   });
 
-  it('should create regular filters from reserved and non-reserved columns', () => {
+  test('should create regular filters from reserved and non-reserved columns', () => {
     expect(
       extractExtras({
         ...baseQueryFormData,

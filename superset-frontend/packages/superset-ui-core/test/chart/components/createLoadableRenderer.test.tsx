@@ -59,13 +59,13 @@ describe('createLoadableRenderer', () => {
   });
 
   describe('returns a LoadableRenderer class', () => {
-    it('LoadableRenderer.preload() preloads the lazy-load components', () => {
+    test('LoadableRenderer.preload() preloads the lazy-load components', () => {
       expect(LoadableRenderer.preload).toBeInstanceOf(Function);
       LoadableRenderer.preload();
       expect(loadChartSuccess).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onRenderSuccess when succeeds', async () => {
+    test('calls onRenderSuccess when succeeds', async () => {
       const onRenderSuccess = jest.fn();
       const onRenderFailure = jest.fn();
       renderTestComponent(
@@ -82,7 +82,7 @@ describe('createLoadableRenderer', () => {
       expect(onRenderFailure).not.toHaveBeenCalled();
     });
 
-    it('calls onRenderFailure when fails', () =>
+    test('calls onRenderFailure when fails', () =>
       new Promise(done => {
         const loadChartFailure = jest.fn(() =>
           Promise.reject(new Error('Invalid chart')),
@@ -111,7 +111,7 @@ describe('createLoadableRenderer', () => {
         }, 10);
       }));
 
-    it('onRenderFailure is optional', () =>
+    test('onRenderFailure is optional', () =>
       new Promise(done => {
         const loadChartFailure = jest.fn(() =>
           Promise.reject(new Error('Invalid chart')),
@@ -131,7 +131,7 @@ describe('createLoadableRenderer', () => {
         }, 10);
       }));
 
-    it('renders the lazy-load components', () =>
+    test('renders the lazy-load components', () =>
       new Promise(done => {
         renderTestComponent(<LoadableRenderer />);
         // lazy-loaded component not rendered immediately
@@ -143,7 +143,7 @@ describe('createLoadableRenderer', () => {
         }, 10);
       }));
 
-    it('does not throw if loaders are empty', () => {
+    test('does not throw if loaders are empty', () => {
       const NeverLoadingRenderer = createLoadableRenderer({
         loader: {},
         loading,

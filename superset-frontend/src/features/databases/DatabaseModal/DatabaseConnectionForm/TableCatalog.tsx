@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, SupersetTheme, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import {
   FormLabel,
   LabeledErrorBoundInput as ValidatedInput,

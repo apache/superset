@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { Button, Form } from '@superset-ui/core/components';
 import { FC, useEffect, useState } from 'react';
 import { MapViewConfigs, MapViewPopoverContentProps } from './types';

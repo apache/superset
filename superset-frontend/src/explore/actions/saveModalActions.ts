@@ -18,12 +18,12 @@
  */
 import rison from 'rison';
 import { Dispatch } from 'redux';
+import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
   type QueryFormData,
   SimpleAdhocFilter,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
@@ -159,6 +159,15 @@ export const getSlicePayload = async (
     }
   }
 
+  const queryContext = await buildV1ChartDataPayload({
+    formData,
+    force: false,
+    resultFormat: 'json',
+    resultType: 'full',
+    setDataMask: undefined,
+    ownState: undefined,
+  });
+
   const payload: Partial<PayloadSlice> = {
     params: JSON.stringify(formData),
     slice_name: sliceName,
@@ -167,16 +176,7 @@ export const getSlicePayload = async (
     datasource_type: datasourceType,
     dashboards,
     owners,
-    query_context: JSON.stringify(
-      await buildV1ChartDataPayload({
-        formData,
-        force: false,
-        resultFormat: 'json',
-        resultType: 'full',
-        setDataMask: null,
-        ownState: null,
-      }),
-    ),
+    query_context: JSON.stringify(queryContext),
   };
 
   return payload;

@@ -19,6 +19,7 @@
 import { render, screen } from '@superset-ui/core/spec';
 import LeftCell from './LeftCell';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('LeftCell', () => {
   test('should render column label for column row type', () => {
     const columnRow = {

@@ -1,0 +1,171 @@
+---
+title: Tooltip
+sidebar_label: Tooltip
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Tooltip
+
+The Tooltip component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="Tooltip"
+  props={{
+  title: "Simple tooltip text",
+  mouseEnterDelay: 0.1,
+  mouseLeaveDelay: 0.1
+}}
+  controls={[
+  {
+    name: "title",
+    label: "Title",
+    type: "text",
+    description: "Text or content shown in the tooltip."
+  },
+  {
+    name: "mouseEnterDelay",
+    label: "Mouse Enter Delay",
+    type: "number",
+    description: "Delay in seconds before showing the tooltip on hover."
+  },
+  {
+    name: "mouseLeaveDelay",
+    label: "Mouse Leave Delay",
+    type: "number",
+    description: "Delay in seconds before hiding the tooltip after mouse leave."
+  },
+  {
+    name: "placement",
+    label: "Placement",
+    type: "select",
+    options: [
+      "bottom",
+      "bottomLeft",
+      "bottomRight",
+      "left",
+      "leftBottom",
+      "leftTop",
+      "right",
+      "rightBottom",
+      "rightTop",
+      "top",
+      "topLeft",
+      "topRight"
+    ],
+    description: "Position of the tooltip relative to the trigger element."
+  },
+  {
+    name: "trigger",
+    label: "Trigger",
+    type: "select",
+    options: [
+      "hover",
+      "focus",
+      "click",
+      "contextMenu"
+    ],
+    description: "How the tooltip is triggered."
+  },
+  {
+    name: "color",
+    label: "Color",
+    type: "color",
+    description: "Custom background color for the tooltip."
+  }
+]}
+  sampleChildren={[{"component":"Button","props":{"children":"Hover me"}}]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Tooltip title="This is a helpful tooltip">
+      <Button>Hover me</Button>
+    </Tooltip>
+  );
+}
+```
+
+## Placements
+
+```tsx live
+function Placements() {
+  const placements = ['top', 'bottom', 'left', 'right', 'topLeft', 'topRight', 'bottomLeft', 'bottomRight'];
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {placements.map(placement => (
+        <Tooltip key={placement} title={placement} placement={placement}>
+          <Button>{placement}</Button>
+        </Tooltip>
+      ))}
+    </div>
+  );
+}
+```
+
+## Trigger Types
+
+```tsx live
+function Triggers() {
+  return (
+    <div style={{ display: 'flex', gap: 12 }}>
+      <Tooltip title="Hover trigger" trigger="hover">
+        <Button>Hover</Button>
+      </Tooltip>
+      <Tooltip title="Click trigger" trigger="click">
+        <Button>Click</Button>
+      </Tooltip>
+      <Tooltip title="Focus trigger" trigger="focus">
+        <Button>Focus</Button>
+      </Tooltip>
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `string` | `"Simple tooltip text"` | Text or content shown in the tooltip. |
+| `mouseEnterDelay` | `number` | `0.1` | Delay in seconds before showing the tooltip on hover. |
+| `mouseLeaveDelay` | `number` | `0.1` | Delay in seconds before hiding the tooltip after mouse leave. |
+
+## Import
+
+```tsx
+import { Tooltip } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Tooltip/Tooltip.stories.tsx).
+:::

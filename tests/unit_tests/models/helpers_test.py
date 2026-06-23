@@ -25,7 +25,7 @@ from unittest.mock import patch
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.elements import ColumnElement
@@ -59,7 +59,7 @@ def database(mocker: MockerFixture, session: Session) -> Database:
     # since we're using an in-memory SQLite database, make sure we always
     # return the same engine where the table was created
     @contextmanager
-    def mock_get_sqla_engine():
+    def mock_get_sqla_engine(catalog=None, schema=None, **kwargs):
         yield engine
 
     mocker.patch.object(
@@ -78,6 +78,9 @@ def test_values_for_column(database: Database) -> None:
     NULL values should be returned as `None`, not `np.nan`, since NaN cannot be
     serialized to JSON.
     """
+    import numpy as np
+    import pandas as pd
+
     from superset.connectors.sqla.models import SqlaTable, TableColumn
 
     table = SqlaTable(
@@ -86,13 +89,20 @@ def test_values_for_column(database: Database) -> None:
         table_name="t",
         columns=[TableColumn(column_name="a")],
     )
-    assert table.values_for_column("a") == [1, None]
+
+    # Mock pd.read_sql_query to return a dataframe with the expected values
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1, np.nan]}),
+    ):
+        assert table.values_for_column("a") == [1, None]
 
 
 def test_values_for_column_with_rls(database: Database) -> None:
     """
     Test the `values_for_column` method with RLS enabled.
     """
+    import pandas as pd
     from sqlalchemy.sql.elements import TextClause
 
     from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -105,12 +115,20 @@ def test_values_for_column_with_rls(database: Database) -> None:
             TableColumn(column_name="a"),
         ],
     )
-    with patch.object(
-        table,
-        "get_sqla_row_level_filters",
-        return_value=[
-            TextClause("a = 1"),
-        ],
+
+    # Mock RLS filters and pd.read_sql_query
+    with (
+        patch.object(
+            table,
+            "get_sqla_row_level_filters",
+            return_value=[
+                TextClause("a = 1"),
+            ],
+        ),
+        patch(
+            "pandas.read_sql_query",
+            return_value=pd.DataFrame({"column_values": [1]}),
+        ),
     ):
         assert table.values_for_column("a") == [1]
 
@@ -119,6 +137,7 @@ def test_values_for_column_with_rls_no_values(database: Database) -> None:
     """
     Test the `values_for_column` method with RLS enabled and no values.
     """
+    import pandas as pd
     from sqlalchemy.sql.elements import TextClause
 
     from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -131,12 +150,20 @@ def test_values_for_column_with_rls_no_values(database: Database) -> None:
             TableColumn(column_name="a"),
         ],
     )
-    with patch.object(
-        table,
-        "get_sqla_row_level_filters",
-        return_value=[
-            TextClause("a = 2"),
-        ],
+
+    # Mock RLS filters and pd.read_sql_query to return empty dataframe
+    with (
+        patch.object(
+            table,
+            "get_sqla_row_level_filters",
+            return_value=[
+                TextClause("a = 2"),
+            ],
+        ),
+        patch(
+            "pandas.read_sql_query",
+            return_value=pd.DataFrame({"column_values": []}),
+        ),
     ):
         assert table.values_for_column("a") == []
 
@@ -148,6 +175,8 @@ def test_values_for_column_calculated(
     """
     Test that calculated columns work.
     """
+    import pandas as pd
+
     from superset.connectors.sqla.models import SqlaTable, TableColumn
 
     table = SqlaTable(
@@ -161,7 +190,13 @@ def test_values_for_column_calculated(
             )
         ],
     )
-    assert table.values_for_column("starts_with_A") == ["yes", "nope"]
+
+    # Mock pd.read_sql_query to return expected values for calculated column
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": ["yes", "nope"]}),
+    ):
+        assert table.values_for_column("starts_with_A") == ["yes", "nope"]
 
 
 def test_values_for_column_double_percents(
@@ -171,6 +206,8 @@ def test_values_for_column_double_percents(
     """
     Test the behavior of `double_percents`.
     """
+    import pandas as pd
+
     from superset.connectors.sqla.models import SqlaTable, TableColumn
 
     with database.get_sqla_engine() as engine:
@@ -188,31 +225,26 @@ def test_values_for_column_double_percents(
         ],
     )
 
-    mutate_sql_based_on_config = mocker.patch.object(
-        database,
-        "mutate_sql_based_on_config",
-        side_effect=lambda sql: sql,
+    # Mock pd.read_sql_query to capture the SQL and return expected values
+    read_sql_mock = mocker.patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": ["yes", "nope"]}),
     )
-    pd = mocker.patch("superset.models.helpers.pd")
 
-    table.values_for_column("starts_with_A")
+    result = table.values_for_column("starts_with_A")
 
-    # make sure the SQL originally had double percents
-    mutate_sql_based_on_config.assert_called_with(
-        "SELECT DISTINCT CASE WHEN b LIKE 'A%%' THEN 'yes' ELSE 'nope' END "
-        "AS column_values \nFROM t\n LIMIT 10000 OFFSET 0"
-    )
-    # make sure final query has single percents
-    with database.get_sqla_engine() as engine:
-        expected_sql = text(
-            "SELECT DISTINCT CASE WHEN b LIKE 'A%' THEN 'yes' ELSE 'nope' END "
-            "AS column_values \nFROM t\n LIMIT 10000 OFFSET 0"
-        )
-        called_sql = pd.read_sql_query.call_args.kwargs["sql"]
-        called_conn = pd.read_sql_query.call_args.kwargs["con"]
+    # Verify the result
+    assert result == ["yes", "nope"]
 
-        assert called_sql.compare(expected_sql) is True
-        assert called_conn.engine == engine
+    # Verify read_sql_query was called
+    read_sql_mock.assert_called_once()
+
+    # Get the SQL that was passed to read_sql_query
+    called_sql = str(read_sql_mock.call_args[1]["sql"])
+
+    # The SQL should have single percents (after replacement)
+    assert "LIKE 'A%'" in called_sql
+    assert "LIKE 'A%%'" not in called_sql
 
 
 def test_apply_series_others_grouping(database: Database) -> None:
@@ -1490,6 +1522,68 @@ def test_adhoc_column_to_sqla_with_temporal_column_types(database: Database) -> 
         assert "time_col" in result_str
 
 
+def test_get_temporal_column_for_filter() -> None:
+    """Test _get_temporal_column_for_filter method with multiple strategies."""
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.utils.core import FilterOperator
+
+    # Create a mock SqlaTable with columns
+    table = SqlaTable()
+    # Test Strategy 1: Use column from existing TEMPORAL_RANGE filter
+    query_object = QueryObject(
+        datasource=table,
+        filters=[
+            {
+                "col": "date_column",
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2024-01-01 : 2024-12-31",
+            }
+        ],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result == "date_column"
+
+    # Test Strategy 1 with dict column (sqlExpression)
+    query_object = QueryObject(
+        datasource=table,
+        filters=[
+            {
+                "col": {"label": "custom_date", "sqlExpression": "DATE(created_at)"},
+                "op": FilterOperator.TEMPORAL_RANGE,
+                "val": "2024-01-01 : 2024-12-31",
+            }
+        ],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result == "custom_date"
+
+    # Test Strategy 2: Use explicitly set granularity
+    query_object = QueryObject(
+        datasource=table,
+        granularity="created_at",
+        filters=[],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result == "created_at"
+
+    # Test Strategy 3: Use x_axis_label if it exists
+    query_object = QueryObject(
+        datasource=table,
+        filters=[],
+    )
+    result = table._get_temporal_column_for_filter(query_object, "timestamp_col")
+    assert result == "timestamp_col"
+
+    # Test no temporal column found
+    query_object = QueryObject(
+        datasource=table,
+        filters=[],
+    )
+    result = table._get_temporal_column_for_filter(query_object, None)
+    assert result is None
+
+
 def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> None:
     """
     Test that column names with spaces are properly quoted in the generated SQL.
@@ -1609,3 +1703,311 @@ def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
     # Verify SELECT and FROM clauses are present
     assert "SELECT" in sql
     assert "FROM" in sql
+
+
+def test_orderby_adhoc_column(database: Database) -> None:
+    """
+    Test that orderby works with adhoc column labels.
+
+    When orderby contains a string that matches the label of an adhoc column
+    in the columns list, it should correctly convert to a SQLAlchemy column
+    instead of raising QueryObjectValidationError.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+            TableColumn(column_name="b"),
+        ],
+    )
+
+    # Should not raise QueryObjectValidationError
+    result = table.get_sqla_query(
+        columns=[
+            {"expressionType": "SQL", "label": "custom_col", "sqlExpression": "a + 1"},
+            "b",
+        ],
+        orderby=[("custom_col", False)],  # Order by adhoc column label
+        metrics=[],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    # Verify the SQL contains the expression from the adhoc column
+    sql = str(result.sqla_query)
+    assert "ORDER BY" in sql.upper()
+
+
+def test_extras_where_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that extras.where is wrapped in parentheses when composed with other
+    filters.
+
+    Without parentheses, an extras.where containing OR operators combined
+    with other filters via AND could produce unexpected evaluation order due
+    to SQL operator precedence (AND binds tighter than OR). Wrapping in
+    parentheses ensures the expression is treated as a single logical unit.
+    """
+    from unittest.mock import patch
+
+    from sqlalchemy import text as sa_text
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    with (
+        patch.object(
+            table,
+            "get_sqla_row_level_filters",
+            return_value=[sa_text("(b = 'restricted')")],
+        ),
+        patch.object(
+            table,
+            "_process_select_expression",
+            return_value="1 = 1 OR 1 = 1",
+        ),
+    ):
+        sqla_query = table.get_sqla_query(
+            columns=["a"],
+            extras={"where": "1=1 OR 1=1"},
+            is_timeseries=False,
+            metrics=[],
+        )
+
+        with database.get_sqla_engine() as engine:
+            sql = str(
+                sqla_query.sqla_query.compile(
+                    dialect=engine.dialect,
+                    compile_kwargs={"literal_binds": True},
+                )
+            )
+
+        assert "(1 = 1 OR 1 = 1)" in sql, (
+            f"extras.where should be wrapped in parentheses. Generated SQL: {sql}"
+        )
+
+        assert "b = 'restricted'" in sql, (
+            f"Additional filters should be present in query. Generated SQL: {sql}"
+        )
+
+
+def test_extras_having_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that extras.having is wrapped in parentheses when composed with
+    other HAVING filters, to ensure correct evaluation order.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+        metrics=[
+            SqlMetric(metric_name="cnt", expression="COUNT(*)"),
+        ],
+    )
+
+    with patch.object(
+        table,
+        "_process_select_expression",
+        return_value="COUNT(*) > 0 OR 1 = 1",
+    ):
+        sqla_query = table.get_sqla_query(
+            groupby=["b"],
+            metrics=["cnt"],
+            extras={"having": "COUNT(*) > 0 OR 1=1"},
+            is_timeseries=False,
+        )
+
+        with database.get_sqla_engine() as engine:
+            sql = str(
+                sqla_query.sqla_query.compile(
+                    dialect=engine.dialect,
+                    compile_kwargs={"literal_binds": True},
+                )
+            )
+
+        assert "(COUNT(*) > 0 OR 1 = 1)" in sql, (
+            f"extras.having should be wrapped in parentheses. Generated SQL: {sql}"
+        )
+
+
+def _run_probe(
+    database: Database,
+    type_probe_needs_row: bool = False,
+) -> str:
+    """
+    Run adhoc_column_to_sqla with a mocked get_columns_description and
+    return the SQL that was passed to it.
+
+    ``type_probe_needs_row`` is patched onto the database's real engine spec
+    class so every other method keeps working normally.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "round(a / 50) * 50 / 1000",
+        "label": "Duration",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+    captured: list[str] = []
+
+    def fake_get_columns_description(
+        db: object,
+        catalog: object,
+        schema: object,
+        sql: str,
+    ) -> list[dict[str, object]]:
+        captured.append(sql)
+        return [
+            {
+                "column_name": "Duration",
+                "name": "Duration",
+                "type": "FLOAT",
+                "is_dttm": False,
+            }
+        ]
+
+    spec_cls = database.db_engine_spec
+    with (
+        patch(
+            "superset.connectors.sqla.models.get_columns_description",
+            side_effect=fake_get_columns_description,
+        ),
+        patch.object(spec_cls, "type_probe_needs_row", type_probe_needs_row),
+    ):
+        result = table.adhoc_column_to_sqla(adhoc_col)
+
+    assert result is not None
+    assert len(captured) == 1, "Expected exactly one type-probe query"
+    return captured[0]
+
+
+def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
+    """
+    Most engines populate cursor.description from query-plan metadata, so the
+    probe uses WHERE FALSE — zero rows read, no table scan.
+
+    SQLAlchemy renders sa.false() differently per dialect:
+      - Most databases:  WHERE false
+      - SQLite:          WHERE 0 = 1
+    """
+    probe_sql = _run_probe(database, type_probe_needs_row=False).lower()
+
+    always_false_patterns = ("where false", "where 0 = 1")
+    assert any(p in probe_sql for p in always_false_patterns), (
+        f"Probe query should use a WHERE false condition to avoid scanning the "
+        f"table, but got: {probe_sql}"
+    )
+    assert "limit" not in probe_sql, (
+        f"WHERE false probe must not contain LIMIT, but got: {probe_sql}"
+    )
+
+
+def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
+    database: Database,
+) -> None:
+    """
+    Druid and Pinot build cursor.description by inspecting the first returned
+    row. WHERE FALSE yields no rows, so description stays None. These engines
+    must fall back to LIMIT 1.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+    from superset.db_engine_specs.pinot import PinotEngineSpec
+
+    for spec_cls in (DruidEngineSpec, PinotEngineSpec):
+        assert spec_cls.type_probe_needs_row is True, (
+            f"{spec_cls.__name__} must declare type_probe_needs_row = True"
+        )
+
+    probe_sql = _run_probe(database, type_probe_needs_row=True).lower()
+
+    assert "limit 1" in probe_sql, (
+        f"Row-dependent engines: probe should use LIMIT 1, got: {probe_sql}"
+    )
+    always_false_patterns = ("where false", "where 0 = 1")
+    assert not any(p in probe_sql for p in always_false_patterns), (
+        f"Row-dependent engines: probe must NOT use WHERE false, got: {probe_sql}"
+    )
+
+
+def test_filter_by_verbose_name_resolves_to_column(
+    database: Database,
+) -> None:
+    """
+    A filter whose "col" value matches a column's verbose_name
+    (e.g. the label emitted by "Drill to detail by") must resolve to that
+    column and produce a WHERE clause on the underlying column_name.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(
+                column_name="country_code",
+                verbose_name="Country",
+                type="TEXT",
+            ),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["b"],
+        # Filter uses the verbose label, as "Drill to detail by" does.
+        filter=[{"col": "Country", "op": "==", "val": "US"}],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The filter should be translated to a WHERE clause on the real column.
+    assert "WHERE" in sql, f"Expected WHERE clause, got SQL: {sql}"
+    assert "country_code" in sql, f"Expected filter on 'country_code', got SQL: {sql}"
+    assert "'US'" in sql, f"Expected filter value 'US', got SQL: {sql}"

@@ -50,12 +50,14 @@ function run(cmd, options) {
 function getPackages(packagePattern, tsOnly = false) {
   let pattern = packagePattern;
   if (pattern === '*' && !tsOnly) {
-    return `@superset-ui/!(${[...META_PACKAGES].join('|')})`;
+    return `{@superset-ui/!(${[...META_PACKAGES].join('|')}),@apache-superset/*}`;
   }
   if (!pattern.includes('*')) {
     pattern = `*${pattern}`;
   }
-  const packages = [
+
+  // Find packages in both @superset-ui and @apache-superset scopes
+  const supersetUiPackages = [
     ...new Set(
       fastGlob
         .sync([
@@ -67,12 +69,44 @@ function getPackages(packagePattern, tsOnly = false) {
         .filter(x => !META_PACKAGES.has(x)),
     ),
   ];
-  if (packages.length === 0) {
+
+  const apachePackages = [
+    ...new Set(
+      fastGlob
+        .sync([
+          `./node_modules/@apache-superset/${pattern}/src/**/*.${
+            tsOnly ? '{ts,tsx}' : '{ts,tsx,js,jsx}'
+          }`,
+        ])
+        .map(x => x.split('/')[3]),
+    ),
+  ];
+
+  const allScopes = [];
+  if (supersetUiPackages.length > 0) {
+    allScopes.push(
+      `@superset-ui/${
+        supersetUiPackages.length > 1
+          ? `{${supersetUiPackages.join(',')}}`
+          : supersetUiPackages[0]
+      }`,
+    );
+  }
+  if (apachePackages.length > 0) {
+    allScopes.push(
+      `@apache-superset/${
+        apachePackages.length > 1
+          ? `{${apachePackages.join(',')}}`
+          : apachePackages[0]
+      }`,
+    );
+  }
+
+  if (allScopes.length === 0) {
     throw new Error('No matching packages');
   }
-  return `@superset-ui/${
-    packages.length > 1 ? `{${packages.join(',')}}` : packages[0]
-  }`;
+
+  return allScopes.length > 1 ? `{${allScopes.join(',')}}` : allScopes[0];
 }
 
 let scope = getPackages(glob);

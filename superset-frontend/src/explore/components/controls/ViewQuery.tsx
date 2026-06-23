@@ -26,7 +26,9 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import rison from 'rison';
-import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import {
   Icons,
   Switch,
@@ -38,6 +40,7 @@ import {
 import { CopyToClipboard } from 'src/components';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
+import { makeUrl } from 'src/utils/pathUtils';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
   preloadLanguages,
@@ -136,7 +139,9 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       if (domEvent.metaKey || domEvent.ctrlKey) {
         domEvent.preventDefault();
         window.open(
-          `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(currentSQL)}`,
+          makeUrl(
+            `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(currentSQL)}`,
+          ),
           '_blank',
         );
       } else {

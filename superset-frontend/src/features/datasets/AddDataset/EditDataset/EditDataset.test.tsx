@@ -35,7 +35,7 @@ test('should render edit dataset view with tabs', async () => {
   const metricsTab = screen.getByRole('tab', { name: /metrics/i });
   const usageTab = screen.getByRole('tab', { name: /usage/i });
 
-  expect(fetchMock.calls(DATASET_ENDPOINT)).toBeTruthy();
+  expect(fetchMock.callHistory.calls(DATASET_ENDPOINT)).toBeTruthy();
   expect(columnTab).toBeInTheDocument();
   expect(metricsTab).toBeInTheDocument();
   expect(usageTab).toBeInTheDocument();

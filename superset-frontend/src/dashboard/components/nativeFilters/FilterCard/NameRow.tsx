@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { t, css, SupersetTheme, useTheme, useTruncation } from '@superset-ui/core';
+import { isChartCustomization, useTruncation } from '@superset-ui/core';
+import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { RootState } from 'src/dashboard/types';
@@ -46,6 +47,8 @@ export const NameRow = ({
       initialFilterId: filter.id,
     });
 
+  const isCustomization = isChartCustomization(filter);
+
   return (
     <Row
       css={(theme: SupersetTheme) => css`
@@ -54,14 +57,23 @@ export const NameRow = ({
       `}
     >
       <InternalRow>
-        <Icons.FilterOutlined
-          iconSize="s"
-          css={(theme: SupersetTheme) => css`
-            margin-right: ${theme.sizeUnit}px;
-          `}
-        />
-        <TooltipWithTruncation title={elementsTruncated ? t(filter.name) : null}>
-          <FilterName ref={filterNameRef}>{t(filter.name)}</FilterName>
+        {isCustomization ? (
+          <Icons.GroupOutlined
+            iconSize="s"
+            css={theme => css`
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          />
+        ) : (
+          <Icons.FilterOutlined
+            iconSize="s"
+            css={(theme: SupersetTheme) => css`
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          />
+        )}
+        <TooltipWithTruncation title={elementsTruncated ? filter.name : null}>
+          <FilterName ref={filterNameRef}>{filter.name}</FilterName>
         </TooltipWithTruncation>
       </InternalRow>
       {canEdit && (

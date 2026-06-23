@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Test comment for pre-commit
 import {
   forwardRef,
   ReactNode,
@@ -27,6 +28,7 @@ import {
 } from 'react';
 import ReactDOM from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
   BinaryQueryObjectFilterClause,
@@ -38,9 +40,8 @@ import {
   getExtensionsRegistry,
   isFeatureEnabled,
   QueryFormData,
-  t,
-  useTheme,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import { RootState } from 'src/dashboard/types';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { usePermissions } from 'src/hooks/usePermissions';
@@ -184,7 +185,14 @@ const ChartContextMenu = (
   const showDrillBy =
     isFeatureEnabled(FeatureFlag.DrillBy) &&
     canDrillBy &&
-    isDisplayed(ContextMenuItem.DrillBy);
+    isDisplayed(ContextMenuItem.DrillBy) &&
+    !(
+      formData.matrixify_enable === true &&
+      ((formData.matrixify_mode_rows !== undefined &&
+        formData.matrixify_mode_rows !== 'disabled') ||
+        (formData.matrixify_mode_columns !== undefined &&
+          formData.matrixify_mode_columns !== 'disabled'))
+    ); // Disable drill by when matrixify is enabled
 
   const datasetResource = useDatasetDrillInfo(
     formData.datasource,
@@ -230,9 +238,9 @@ const ChartContextMenu = (
     datasetResource.status,
     datasetResource.result,
     showDrillBy,
-    filters?.drillBy?.groupbyFieldName,
+    enhancedFilters?.drillBy?.groupbyFieldName,
     formData.x_axis,
-    formData[filters?.drillBy?.groupbyFieldName ?? ''],
+    formData[enhancedFilters?.drillBy?.groupbyFieldName ?? ''],
     additionalConfig?.drillBy?.excludedColumns,
     loadDrillByOptionsExtension,
   ]);
@@ -268,7 +276,7 @@ const ChartContextMenu = (
     setShowModal: setDrillModalIsOpen,
     dataset: filteredDataset,
     isLoadingDataset,
-    ...(additionalConfig?.drillToDetail || {}),
+    ...additionalConfig?.drillToDetail,
   });
 
   if (showCrossFilters) {
@@ -418,6 +426,9 @@ const ChartContextMenu = (
         trigger={['click']}
         onOpenChange={value => {
           setVisible(value);
+          if (!value) {
+            onClose();
+          }
         }}
         open={visible}
       >
@@ -437,7 +448,7 @@ const ChartContextMenu = (
         <DrillDetailModal
           initialFilters={modalFilters}
           chartId={id}
-          formData={formData}
+          formData={drillFormData}
           showModal={drillModalIsOpen}
           onHideModal={() => {
             setDrillModalIsOpen(false);
@@ -448,10 +459,10 @@ const ChartContextMenu = (
       {showDrillByModal &&
         drillByColumn &&
         filteredDataset &&
-        filters?.drillBy && (
+        enhancedFilters?.drillBy && (
           <DrillByModal
             column={drillByColumn}
-            drillByConfig={filters?.drillBy}
+            drillByConfig={enhancedFilters?.drillBy}
             formData={formData}
             onHideModal={handleCloseDrillByModal}
             dataset={filteredDataset}

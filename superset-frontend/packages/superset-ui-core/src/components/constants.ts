@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '..';
+import { t } from '@apache-superset/core/translation';
 
 export const Constants = {
   FAST_DEBOUNCE: 250,

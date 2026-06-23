@@ -45,6 +45,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
     SupersetErrorsException,
@@ -111,7 +112,9 @@ def handle_query_error(
     elif isinstance(ex, SupersetErrorsException):
         errors = ex.errors
     else:
-        errors = query.database.db_engine_spec.extract_errors(str(ex))
+        errors = query.database.db_engine_spec.extract_errors(
+            str(ex), database_name=query.database.unique_name
+        )
 
     errors_payload = [dataclasses.asdict(error) for error in errors]
     if errors:
@@ -127,12 +130,11 @@ def handle_query_error(
 def get_query_backoff_handler(details: dict[Any, Any]) -> None:
     stats_logger = app.config["STATS_LOGGER"]
     query_id = details["kwargs"]["query_id"]
-    logger.error(
-        "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
-    )
     stats_logger.incr(f"error_attempting_orm_query_{details['tries'] - 1}")
-    logger.error(
-        "Query %s: Sleeping for a sec before retrying...", str(query_id), exc_info=True
+    logger.warning(
+        "Query with id `%s` could not be retrieved, sleeping for a sec before retrying",
+        str(query_id),
+        exc_info=True,
     )
 
 
@@ -409,6 +411,20 @@ def execute_sql_statements(  # noqa: C901
         disallowed_functions
     ):
         raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+
+    disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(
+        db_engine_spec.engine,
+        set(),
+    )
+    if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
+        # Report only the tables actually found in the query
+        found_tables = set()
+        for statement in parsed_script.statements:
+            present = {table.table.lower() for table in statement.tables}
+            for table in disallowed_tables:
+                if table.lower() in present:
+                    found_tables.add(table)
+        raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
 
     if parsed_script.has_mutation() and not database.allow_dml:
         raise SupersetDMLNotAllowedException()

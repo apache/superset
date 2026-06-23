@@ -12,8 +12,23 @@ do
     locale=${locale%\/LC_MESSAGES\/messages.json}
     if [ -f "../locales/$locale/translation.json" ]
     then
-      output=$(jq -s '.[0].locale_data.superset *= (.[1] | with_entries({key:.key,value:[.value]})) | first' $file "../locales/$locale/translation.json")
-      echo $output > $file
+      output=$(
+        jq -s '
+          .[0].locale_data.superset *= (
+            .[1]
+            | with_entries(
+                select(.value != "")
+                | if (.value | type) == "object" and (.value | has("one")) and (.value | has("other")) then
+                    .value = [.value.one, .value.other]
+                  else
+                    .value = [.value]
+                  end
+              )
+          )
+          | first
+        ' "$file" "../locales/$locale/translation.json"
+      )
+      echo "$output" > "$file"
     fi
   fi
 done

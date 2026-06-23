@@ -22,12 +22,14 @@ export const navigateTo = (
   url: string,
   options?: { newWindow?: boolean; assign?: boolean },
 ) => {
+  // encodeURI is a CodeQL-recognised sanitiser for DOM navigation sinks.
+  const target = encodeURI(ensureAppRoot(url));
   if (options?.newWindow) {
-    window.open(ensureAppRoot(url), '_blank', 'noopener noreferrer');
+    window.open(target, '_blank', 'noopener noreferrer');
   } else if (options?.assign) {
-    window.location.assign(ensureAppRoot(url));
+    window.location.assign(target);
   } else {
-    window.location.href = ensureAppRoot(url);
+    window.location.href = target;
   }
 };
 
@@ -36,9 +38,10 @@ export const navigateWithState = (
   state: Record<string, unknown>,
   options?: { replace?: boolean },
 ) => {
+  const target = encodeURI(ensureAppRoot(url));
   if (options?.replace) {
-    window.history.replaceState(state, '', ensureAppRoot(url));
+    window.history.replaceState(state, '', target);
   } else {
-    window.history.pushState(state, '', ensureAppRoot(url));
+    window.history.pushState(state, '', target);
   }
 };

@@ -22,7 +22,6 @@ from flask import current_app as app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
@@ -31,7 +30,6 @@ from superset.commands.database.exceptions import (
     DatabaseInvalidError,
     DatabaseRequiredFieldValidationError,
 )
-from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelCreateFailedError,
     SSHTunnelDatabasePortError,
@@ -41,7 +39,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.commands.database.utils import add_permissions
 from superset.daos.database import DatabaseDAO
-from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.databases.utils import make_url_safe
 from superset.exceptions import OAuth2RedirectError, SupersetErrorsException
 from superset.extensions import event_logger
 from superset.models.core import Database
@@ -59,6 +57,12 @@ class CreateDatabaseCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
 
+        if "sqlalchemy_uri" not in self._properties:
+            raise DatabaseRequiredFieldValidationError("sqlalchemy_uri")
+
+        url = make_url_safe(self._properties["sqlalchemy_uri"])
+        engine = url.get_backend_name()
+
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
@@ -74,32 +78,21 @@ class CreateDatabaseCommand(BaseCommand):
         ) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
-                engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+                engine=engine,
             )
             # So we can show the original message
             raise
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
-                engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+                engine=engine,
             )
             raise DatabaseConnectionFailedError() from ex
 
-        ssh_tunnel: Optional[SSHTunnel] = None
-
         try:
+            # create database and associated schema/catalog permissions
             database = self._create_database()
-
-            if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
-                if not is_feature_enabled("SSH_TUNNELING"):
-                    raise SSHTunnelingNotEnabledError()
-
-                ssh_tunnel = CreateSSHTunnelCommand(
-                    database, ssh_tunnel_properties
-                ).run()
-
-            # add catalog/schema permissions
-            add_permissions(database, ssh_tunnel)
+            add_permissions(database)
         except (
             SSHTunnelInvalidError,
             SSHTunnelCreateFailedError,
@@ -108,7 +101,7 @@ class CreateDatabaseCommand(BaseCommand):
         ) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
-                engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+                engine=engine,
             )
             # So we can show the original message
             raise
@@ -118,25 +111,23 @@ class CreateDatabaseCommand(BaseCommand):
         ) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
-                engine=database.db_engine_spec.__name__,
+                engine=engine,
             )
             raise DatabaseCreateFailedError() from ex
-
-        if ssh_tunnel:
-            stats_logger.incr("db_creation_success.ssh_tunnel")
 
         return database
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
+
         sqlalchemy_uri: Optional[str] = self._properties.get("sqlalchemy_uri")
-        database_name: Optional[str] = self._properties.get("database_name")
         if not sqlalchemy_uri:
             exceptions.append(DatabaseRequiredFieldValidationError("sqlalchemy_uri"))
+
+        database_name: Optional[str] = self._properties.get("database_name")
         if not database_name:
             exceptions.append(DatabaseRequiredFieldValidationError("database_name"))
         else:
-            # Check database_name uniqueness
             if not DatabaseDAO.validate_uniqueness(database_name):
                 exceptions.append(DatabaseExistsValidationError())
 
@@ -161,4 +152,5 @@ class CreateDatabaseCommand(BaseCommand):
 
         database = DatabaseDAO.create(attributes=self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+
         return database

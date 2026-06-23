@@ -28,7 +28,7 @@ import {
 
 describe('controlPanelUtil', () => {
   describe('getLayerConfig', () => {
-    it('returns the correct layer config', () => {
+    test('returns the correct layer config', () => {
       const layerConfigs: CustomControlItem = {
         name: 'layer_configs',
         config: {
@@ -82,14 +82,14 @@ describe('controlPanelUtil', () => {
   });
 
   describe('selectedChartMutator', () => {
-    it('returns empty array for empty inputs', () => {
+    test('returns empty array for empty inputs', () => {
       const response = {};
       const value = undefined;
       const result = selectedChartMutator(response, value);
       expect(result).toEqual([]);
     });
 
-    it('returns parsed value if response is empty', () => {
+    test('returns parsed value if response is empty', () => {
       const response = {};
 
       const sliceName = 'foobar';
@@ -105,7 +105,7 @@ describe('controlPanelUtil', () => {
       expect(result[0].label).toEqual(sliceName);
     });
 
-    it('returns response options if no value is chosen', () => {
+    test('returns response options if no value is chosen', () => {
       const sliceName1 = 'foo';
       const sliceName2 = 'bar';
       const response = {
@@ -131,7 +131,7 @@ describe('controlPanelUtil', () => {
       expect(result[1].label).toEqual(sliceName2);
     });
 
-    it('returns correct result if id of chosen config does not exist in response', () => {
+    test('returns correct result if id of chosen config does not exist in response', () => {
       const response = {
         result: [
           {
@@ -171,7 +171,7 @@ describe('controlPanelUtil', () => {
       expect(threeDifferentIds).toEqual(true);
     });
 
-    it('returns correct result if id of chosen config already exists', () => {
+    test('returns correct result if id of chosen config already exists', () => {
       const response = {
         result: [
           {

@@ -17,8 +17,10 @@
  * under the License.
  */
 import { getChartControlPanelRegistry } from '@superset-ui/core';
+import { convertAgGridStateToOwnState } from '@superset-ui/plugin-chart-ag-grid-table';
 import MainPreset from '../visualizations/presets/MainPreset';
 import setupPluginsExtra from './setupPluginsExtra';
+import { registerChartStateConverter } from '../dashboard/util/chartStateConverter';
 
 import Separator from '../explore/controlPanels/Separator';
 
@@ -27,6 +29,9 @@ export default function setupPlugins() {
 
   // TODO: Remove these shims once the control panel configs are moved into the plugin package.
   getChartControlPanelRegistry().registerValue('separator', Separator);
+
+  // Register chart state converters for stateful charts
+  registerChartStateConverter('ag-grid-table', convertAgGridStateToOwnState);
 
   setupPluginsExtra();
 }

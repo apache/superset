@@ -30,7 +30,6 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from superset import security_manager
-from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.db_engine_specs.base import GenericDBException
 from superset.models.core import Database
 from superset.security.manager import SupersetSecurityManager
@@ -48,10 +47,11 @@ def ping(engine: Engine) -> bool:
     except (sqlite3.ProgrammingError, RuntimeError):
         # SQLite can't run on a separate thread, so ``utils.timeout`` fails
         # RuntimeError catches the equivalent error from duckdb.
-        return engine.dialect.do_ping(engine)
+        with closing(engine.raw_connection()) as conn:
+            return engine.dialect.do_ping(conn)
 
 
-def add_permissions(database: Database, ssh_tunnel: SSHTunnel | None) -> None:
+def add_permissions(database: Database) -> None:
     """
     Add DAR for catalogs and schemas.
     """
@@ -66,10 +66,7 @@ def add_permissions(database: Database, ssh_tunnel: SSHTunnel | None) -> None:
             database.db_engine_spec.supports_cross_catalog_queries
             or database.allow_multi_catalog
         ):
-            catalogs = database.get_all_catalog_names(
-                cache=False,
-                ssh_tunnel=ssh_tunnel,
-            )
+            catalogs = database.get_all_catalog_names(cache=False)
         else:
             catalogs = {database.get_default_catalog()}
 
@@ -86,11 +83,7 @@ def add_permissions(database: Database, ssh_tunnel: SSHTunnel | None) -> None:
 
     for catalog in catalogs:
         try:
-            for schema in database.get_all_schema_names(
-                catalog=catalog,
-                cache=False,
-                ssh_tunnel=ssh_tunnel,
-            ):
+            for schema in database.get_all_schema_names(catalog=catalog, cache=False):
                 security_manager.add_permission_view_menu(
                     "schema_access",
                     security_manager.get_schema_perm(

@@ -16,14 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Behavior } from '@superset-ui/core';
 import transformProps from './transformProps';
 import controlPanel from './controlPanel';
 import buildQuery from './buildQuery';
 import { EchartsChartPlugin } from '../types';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example1 from './images/example1.png';
+import example1Dark from './images/example1-dark.png';
 import example2 from './images/example2.png';
+import example2Dark from './images/example2-dark.png';
 
 export default class EchartsGanttChartPlugin extends EchartsChartPlugin {
   constructor() {
@@ -46,7 +50,11 @@ export default class EchartsGanttChartPlugin extends EchartsChartPlugin {
         ),
         tags: [t('ECharts'), t('Featured'), t('Timeline'), t('Time')],
         thumbnail,
-        exampleGallery: [{ url: example1 }, { url: example2 }],
+        thumbnailDark,
+        exampleGallery: [
+          { url: example1, urlDark: example1Dark },
+          { url: example2, urlDark: example2Dark },
+        ],
       },
       transformProps,
     });

@@ -17,15 +17,12 @@
 import logging
 from functools import partial
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.chart.exceptions import (
     ChartFaveError,
-    ChartForbiddenError,
     ChartNotFoundError,
 )
 from superset.daos.chart import ChartDAO
-from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
 from superset.utils.decorators import on_error, transaction
 
@@ -47,10 +44,5 @@ class AddFavoriteChartCommand(BaseCommand):
         chart = ChartDAO.find_by_id(self._chart_id)
         if not chart:
             raise ChartNotFoundError()
-
-        try:
-            security_manager.raise_for_ownership(chart)
-        except SupersetSecurityException as ex:
-            raise ChartForbiddenError() from ex
 
         self._chart = chart

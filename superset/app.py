@@ -33,13 +33,43 @@ else:
     if TYPE_CHECKING:
         from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
-
 from flask import Flask, Response
 from werkzeug.exceptions import NotFound
 
+from superset.extensions.local_extensions_watcher import (
+    start_local_extensions_watcher_thread,
+)
 from superset.initialization import SupersetAppInitializer
 
 logger = logging.getLogger(__name__)
+
+
+def _update_theme_tokens_for_app_root(app: Flask, app_root: str) -> None:
+    """Update theme token URLs for subdirectory deployments."""
+    for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
+        theme = app.config[theme_key]
+        if not theme:
+            continue
+        token = theme.get("token", {})
+        if token.get("brandLogoUrl", "").startswith("/static/"):
+            token["brandLogoUrl"] = f"{app_root}{token['brandLogoUrl']}"
+        if token.get("brandLogoHref") == "/":
+            token["brandLogoHref"] = app_root
+
+
+def _configure_app_root(app: Flask, app_root: str) -> None:
+    """Configure Flask app for subdirectory deployments."""
+    if app_root == "/":
+        return
+
+    app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
+    if not app.config["STATIC_ASSETS_PREFIX"]:
+        app.config["STATIC_ASSETS_PREFIX"] = app_root
+    if app.config.get("APP_ICON", "").startswith("/static/"):
+        app.config["APP_ICON"] = f"{app_root}{app.config['APP_ICON']}"
+        _update_theme_tokens_for_app_root(app, app_root)
+    if app.config["APPLICATION_ROOT"] == "/":
+        app.config["APPLICATION_ROOT"] = app_root
 
 
 def create_app(
@@ -58,19 +88,19 @@ def create_app(
         # Allow application to sit on a non-root path
         # *Please be advised that this feature is in BETA.*
         app_root = cast(
-            str, superset_app_root or os.environ.get("SUPERSET_APP_ROOT", "/")
+            str,
+            superset_app_root
+            or os.environ.get("SUPERSET_APP_ROOT")
+            or app.config["APPLICATION_ROOT"],
         )
-        if app_root != "/":
-            app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
-            # If not set, manually configure options that depend on the
-            # value of app_root so things work out of the box
-            if not app.config["STATIC_ASSETS_PREFIX"]:
-                app.config["STATIC_ASSETS_PREFIX"] = app_root
-            if app.config["APPLICATION_ROOT"] == "/":
-                app.config["APPLICATION_ROOT"] = app_root
+        _configure_app_root(app, app_root)
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
+
+        # Set up LOCAL_EXTENSIONS file watcher when in debug mode
+        if app.debug:
+            start_local_extensions_watcher_thread(app)
 
         return app
 
@@ -94,8 +124,8 @@ class SupersetApp(Flask):
                 return super().send_static_file(filename)
             except NotFound:
                 logger.debug(
-                    "Webpack hot-update file not found (likely HMR "
-                    f"race condition): {filename}"
+                    "Webpack hot-update file not found (likely HMR race condition): %s",
+                    filename,
                 )
                 return Response("", status=204)  # No Content
         return super().send_static_file(filename)

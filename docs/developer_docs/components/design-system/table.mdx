@@ -1,0 +1,311 @@
+---
+title: Table
+sidebar_label: Table
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Table
+
+A data table component with sorting, pagination, row selection, resizable columns, reorderable columns, and virtualization for large datasets.
+
+## Live Example
+
+<StoryWithControls
+  component="Table"
+  props={{
+  size: "small",
+  bordered: false,
+  loading: false,
+  sticky: true,
+  resizable: false,
+  reorderable: false,
+  usePagination: false,
+  key: 5,
+  name: "1GB USB Flash Drive",
+  category: "Portable Storage",
+  price: 9.99,
+  height: 350,
+  defaultPageSize: 5,
+  pageSizeOptions: [
+    "5",
+    "10"
+  ],
+  data: [
+    {
+      key: 1,
+      name: "Floppy Disk 10 pack",
+      category: "Disk Storage",
+      price: 9.99
+    },
+    {
+      key: 2,
+      name: "DVD 100 pack",
+      category: "Optical Storage",
+      price: 27.99
+    },
+    {
+      key: 3,
+      name: "128 GB SSD",
+      category: "Harddrive",
+      price: 49.99
+    },
+    {
+      key: 4,
+      name: "4GB 144mhz",
+      category: "Memory",
+      price: 19.99
+    },
+    {
+      key: 5,
+      name: "1GB USB Flash Drive",
+      category: "Portable Storage",
+      price: 9.99
+    },
+    {
+      key: 6,
+      name: "256 GB SSD",
+      category: "Harddrive",
+      price: 89.99
+    },
+    {
+      key: 7,
+      name: "1 TB SSD",
+      category: "Harddrive",
+      price: 349.99
+    },
+    {
+      key: 8,
+      name: "16 GB DDR4",
+      category: "Memory",
+      price: 59.99
+    },
+    {
+      key: 9,
+      name: "32 GB DDR5",
+      category: "Memory",
+      price: 129.99
+    },
+    {
+      key: 10,
+      name: "Blu-ray 50 pack",
+      category: "Optical Storage",
+      price: 34.99
+    },
+    {
+      key: 11,
+      name: "64 GB USB Drive",
+      category: "Portable Storage",
+      price: 14.99
+    },
+    {
+      key: 12,
+      name: "2 TB HDD",
+      category: "Harddrive",
+      price: 59.99
+    }
+  ],
+  columns: [
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+      width: 200
+    },
+    {
+      title: "Category",
+      dataIndex: "category",
+      key: "category",
+      width: 150
+    },
+    {
+      title: "Price",
+      dataIndex: "price",
+      key: "price",
+      width: 100
+    }
+  ]
+}}
+  controls={[
+  {
+    name: "size",
+    label: "Size",
+    type: "select",
+    options: [
+      "small",
+      "middle",
+      "large"
+    ],
+    description: "Table size."
+  },
+  {
+    name: "bordered",
+    label: "Bordered",
+    type: "boolean",
+    description: "Whether to show all table borders."
+  },
+  {
+    name: "loading",
+    label: "Loading",
+    type: "boolean",
+    description: "Whether the table is in a loading state."
+  },
+  {
+    name: "sticky",
+    label: "Sticky",
+    type: "boolean",
+    description: "Whether the table header is sticky."
+  },
+  {
+    name: "resizable",
+    label: "Resizable",
+    type: "boolean",
+    description: "Whether columns can be resized by dragging column edges."
+  },
+  {
+    name: "reorderable",
+    label: "Reorderable",
+    type: "boolean",
+    description: "EXPERIMENTAL: Whether columns can be reordered by dragging. May not work in all contexts."
+  },
+  {
+    name: "usePagination",
+    label: "Use Pagination",
+    type: "boolean",
+    description: "Whether to enable pagination. When enabled, the table displays 5 rows per page."
+  },
+  {
+    name: "key",
+    label: "Key",
+    type: "number"
+  },
+  {
+    name: "name",
+    label: "Name",
+    type: "text"
+  },
+  {
+    name: "category",
+    label: "Category",
+    type: "text"
+  },
+  {
+    name: "price",
+    label: "Price",
+    type: "number"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  const data = [
+    { key: 1, name: 'PostgreSQL', type: 'Database', status: 'Active' },
+    { key: 2, name: 'MySQL', type: 'Database', status: 'Active' },
+    { key: 3, name: 'SQLite', type: 'Database', status: 'Inactive' },
+    { key: 4, name: 'Presto', type: 'Query Engine', status: 'Active' },
+  ];
+  const columns = [
+    { title: 'Name', dataIndex: 'name', key: 'name', width: 150 },
+    { title: 'Type', dataIndex: 'type', key: 'type' },
+    { title: 'Status', dataIndex: 'status', key: 'status', width: 100 },
+  ];
+  return <Table data={data} columns={columns} size="small" />;
+}
+```
+
+## With Pagination
+
+```tsx live
+function PaginatedTable() {
+  const data = Array.from({ length: 20 }, (_, i) => ({
+    key: i,
+    name: 'Record ' + (i + 1),
+    value: Math.round(Math.random() * 1000),
+    category: ['A', 'B', 'C'][i % 3],
+  }));
+  const columns = [
+    { title: 'Name', dataIndex: 'name', key: 'name' },
+    { title: 'Value', dataIndex: 'value', key: 'value', width: 100 },
+    { title: 'Category', dataIndex: 'category', key: 'category', width: 100 },
+  ];
+  return (
+    <Table
+      data={data}
+      columns={columns}
+      size="small"
+      pageSizeOptions={['5', '10']}
+      defaultPageSize={5}
+    />
+  );
+}
+```
+
+## Loading State
+
+```tsx live
+function LoadingTable() {
+  const columns = [
+    { title: 'Name', dataIndex: 'name', key: 'name' },
+    { title: 'Status', dataIndex: 'status', key: 'status' },
+  ];
+  return <Table data={[]} columns={columns} size="small" loading />;
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `size` | `string` | `"small"` | Table size. |
+| `bordered` | `boolean` | `false` | Whether to show all table borders. |
+| `loading` | `boolean` | `false` | Whether the table is in a loading state. |
+| `sticky` | `boolean` | `true` | Whether the table header is sticky. |
+| `resizable` | `boolean` | `false` | Whether columns can be resized by dragging column edges. |
+| `reorderable` | `boolean` | `false` | EXPERIMENTAL: Whether columns can be reordered by dragging. May not work in all contexts. |
+| `usePagination` | `boolean` | `false` | Whether to enable pagination. When enabled, the table displays 5 rows per page. |
+| `key` | `number` | `5` | - |
+| `name` | `string` | `"1GB USB Flash Drive"` | - |
+| `category` | `string` | `"Portable Storage"` | - |
+| `price` | `number` | `9.99` | - |
+| `height` | `number` | `350` | - |
+| `defaultPageSize` | `number` | `5` | - |
+| `pageSizeOptions` | `any` | `["5","10"]` | - |
+| `data` | `any` | `[{"key":1,"name":"Floppy Disk 10 pack","category":"Disk Storage","price":9.99},{"key":2,"name":"DVD 100 pack","category":"Optical Storage","price":27.99},{"key":3,"name":"128 GB SSD","category":"Harddrive","price":49.99},{"key":4,"name":"4GB 144mhz","category":"Memory","price":19.99},{"key":5,"name":"1GB USB Flash Drive","category":"Portable Storage","price":9.99},{"key":6,"name":"256 GB SSD","category":"Harddrive","price":89.99},{"key":7,"name":"1 TB SSD","category":"Harddrive","price":349.99},{"key":8,"name":"16 GB DDR4","category":"Memory","price":59.99},{"key":9,"name":"32 GB DDR5","category":"Memory","price":129.99},{"key":10,"name":"Blu-ray 50 pack","category":"Optical Storage","price":34.99},{"key":11,"name":"64 GB USB Drive","category":"Portable Storage","price":14.99},{"key":12,"name":"2 TB HDD","category":"Harddrive","price":59.99}]` | - |
+| `columns` | `any` | `[{"title":"Name","dataIndex":"name","key":"name","width":200},{"title":"Category","dataIndex":"category","key":"category","width":150},{"title":"Price","dataIndex":"price","key":"price","width":100}]` | - |
+
+## Import
+
+```tsx
+import { Table } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Table/Table.stories.tsx).
+:::

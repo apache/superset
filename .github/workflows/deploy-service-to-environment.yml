@@ -65,9 +65,11 @@ jobs:
     concurrency:
       group: ${{ inputs.environment }}-${{ inputs.name }}
     permissions:
+      actions: read
       contents: read
       id-token: write
       deployments: write
+      packages: read
 
     steps:
       - name: Bootstrap Environment Variables
@@ -76,12 +78,19 @@ jobs:
           echo "STACK_NAME=$(tr '[:upper:]' '[:lower:]' <<< "${INPUT_STACK:-${{ inputs.name }}-${{ inputs.environment }}}")" >> $GITHUB_ENV
           echo "HAS_STACK_SECRETS=$([ -n "${{ (secrets.STACK_SECRETS != '') || '' }}" ] && echo 1 || echo 0)" >> "$GITHUB_ENV"
 
-      - name: Checkout code
+      - name: Checkout generate-dotenv action
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions/generate-dotenv
+          path: dotenv-action
+
+      - name: Checkout CDK code
         uses: actions/checkout@v4
         with:
           repository: Webgains/superset-service
           ref: main
           ssh-key: ${{ secrets.SSH_KEY }}
+          path: cdk
 
       - name: Assume AWS role
         id: assume_role
@@ -92,7 +101,7 @@ jobs:
           role-session-name: deploy-${{ github.run_id }}
 
       - name: Create Environment File
-        uses: webgains/action-generate-dotenv@main
+        uses: ./dotenv-action/.github/actions/generate-dotenv
         with:
           file: .env
           template: .env.dist
@@ -104,7 +113,7 @@ jobs:
           domain_name: ${{ env.DOMAIN_NAME }}
           stack_config: ${{ env.STACK_CONFIG }}
           stack_secrets: ${{ secrets.STACK_SECRETS }}
-          cdk_working_directory: ${{ inputs.cdk_working_directory }}
+          cdk_working_directory: cdk/${{ inputs.cdk_working_directory }}
           override: ${{ inputs.override }}
 
       - name: Set up Node.js
@@ -113,11 +122,11 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        working-directory: ${{ inputs.cdk_working_directory }}
+        working-directory: cdk/${{ inputs.cdk_working_directory }}
         run: npm install
 
       - name: CDK Deploy
-        working-directory: ${{ inputs.cdk_working_directory }}
+        working-directory: cdk/${{ inputs.cdk_working_directory }}
         run: |
           cat .env
           npm run cdk deploy -- \

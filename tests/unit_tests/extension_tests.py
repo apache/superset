@@ -14,12 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from os.path import dirname
+from os.path import dirname, join
 from unittest.mock import Mock
 
 from superset.extensions import UIManifestProcessor
 
 APP_DIR = f"{dirname(__file__)}/fixtures"
+SUPERSET_DIR = join(dirname(__file__), "..", "..", "superset")
 
 
 def test_get_manifest_with_prefix():
@@ -49,3 +50,21 @@ def test_get_manifest_no_prefix():
     assert manifest["js_manifest"]("styles") == ["/static/dist/styles-js.js"]
     assert manifest["css_manifest"]("styles") == []
     assert manifest["assets_prefix"] == ""
+
+
+def test_spa_template_includes_css_bundles():
+    """
+    Verify spa.html loads CSS bundles for production builds.
+    """
+    template_path = join(SUPERSET_DIR, "templates", "superset", "spa.html")
+    with open(template_path) as f:
+        template_content = f.read()
+
+    assert "css_bundle(assets_prefix, 'theme')" in template_content, (
+        "spa.html must call css_bundle for the 'theme' entry to load "
+        "extracted CSS (including font @font-face declarations) in production builds"
+    )
+    assert "css_bundle(assets_prefix, entry)" in template_content, (
+        "spa.html must call css_bundle for the page entry to load "
+        "entry-specific extracted CSS in production builds"
+    )

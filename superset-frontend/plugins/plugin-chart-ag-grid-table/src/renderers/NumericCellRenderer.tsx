@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import {
+  styled,
+  useTheme,
+  type SupersetTheme,
+} from '@apache-superset/core/theme';
 import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGridReact';
-import { BasicColorFormatterType, InputColumn } from '../types';
+import { BasicColorFormatterType, InputColumn, ValueRange } from '../types';
 import { useIsDark } from '../utils/useTableTheme';
 
 const StyledTotalCell = styled.div`
@@ -53,8 +57,6 @@ const Bar = styled.div<{
   z-index: 1;
 `;
 
-type ValueRange = [number, number];
-
 /**
  * Cell background width calculation for horizontal bar chart
  */
@@ -64,7 +66,7 @@ function cellWidth({
   alignPositiveNegative,
 }: {
   value: number;
-  valueRange: ValueRange;
+  valueRange: [number, number];
   alignPositiveNegative: boolean;
 }) {
   const [minValue, maxValue] = valueRange;
@@ -89,7 +91,7 @@ function cellOffset({
   alignPositiveNegative,
 }: {
   value: number;
-  valueRange: ValueRange;
+  valueRange: [number, number];
   alignPositiveNegative: boolean;
 }) {
   if (alignPositiveNegative) {
@@ -109,13 +111,15 @@ function cellBackground({
   value,
   colorPositiveNegative = false,
   isDarkTheme = false,
+  theme,
 }: {
   value: number;
   colorPositiveNegative: boolean;
   isDarkTheme: boolean;
+  theme: SupersetTheme | null;
 }) {
   if (!colorPositiveNegative) {
-    return isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'; // transparent or neutral
+    return 'transparent'; // Use transparent background when colorPositiveNegative is false
   }
 
   const r = value < 0 ? 150 : 0;
@@ -132,7 +136,7 @@ export const NumericCellRenderer = (
     basicColorFormatters: {
       [Key: string]: BasicColorFormatterType;
     }[];
-    valueRange: any;
+    valueRange: ValueRange;
     alignPositiveNegative: boolean;
     colorPositiveNegative: boolean;
   },
@@ -150,6 +154,7 @@ export const NumericCellRenderer = (
   } = params;
 
   const isDarkTheme = useIsDark();
+  const theme = !colorPositiveNegative ? null : useTheme();
 
   if (node?.rowPinned === 'bottom') {
     return <StyledTotalCell>{valueFormatted ?? value}</StyledTotalCell>;
@@ -195,6 +200,7 @@ export const NumericCellRenderer = (
     value: value as number,
     colorPositiveNegative,
     isDarkTheme,
+    theme,
   });
 
   return (

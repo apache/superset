@@ -81,7 +81,7 @@ const setup = (overrides = {}) => (
   <QueryHistory {...mockedProps} {...overrides} />
 );
 
-afterEach(() => fetchMock.reset());
+afterEach(() => fetchMock.clearHistory().removeRoutes());
 
 test('Renders an empty state for query history', () => {
   render(setup(), { useRedux: true, initialState });
@@ -102,7 +102,7 @@ test('fetches the query history when the persistence mode is enabled', async () 
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
   render(setup(), { useRedux: true, initialState });
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
   const queryResultText = screen.getByText(fakeApiResult.result[0].rows);
   expect(queryResultText).toBeInTheDocument();
@@ -127,7 +127,7 @@ test('fetches the query history by the tabViewId', async () => {
     },
   });
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
   const queryResultText = screen.getByText(fakeApiResult.result[0].rows);
   expect(queryResultText).toBeInTheDocument();
@@ -213,7 +213,7 @@ test('displays multiple queries with newest query first', async () => {
   const { container } = render(setup(), { useRedux: true, initialState });
 
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
 
   expect(screen.getByTestId('listview-table')).toBeVisible();

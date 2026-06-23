@@ -36,14 +36,14 @@ export type EchartsTreeFormData = QueryFormData & {
   nodeLabelPosition: 'top' | 'bottom' | 'left' | 'right';
   childLabelPosition: 'top' | 'bottom' | 'left' | 'right';
   emphasis: 'none' | 'ancestor' | 'descendant';
+  initialTreeDepth: number;
 };
 
 export interface TreeChartDataResponseResult extends ChartDataResponseResult {
   data: TreeDataRecord[];
 }
 
-export interface EchartsTreeChartProps
-  extends BaseChartProps<EchartsTreeFormData> {
+export interface EchartsTreeChartProps extends BaseChartProps<EchartsTreeFormData> {
   formData: EchartsTreeFormData;
   queriesData: TreeChartDataResponseResult[];
 }

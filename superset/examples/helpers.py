@@ -16,36 +16,16 @@
 # under the License.
 """Helpers for loading Superset example datasets.
 
-All Superset example data files (CSV, JSON, etc.) are fetched via the
-jsDelivr CDN instead of raw.githubusercontent.com to avoid GitHub API
-rate limits (60 anonymous requests/hour/IP).
+Example datasets are stored as Parquet files organized by example name:
+    superset/examples/{example_name}/data.parquet
 
-jsDelivr is a multi‑CDN front for public GitHub repos and supports
-arbitrary paths including nested folders. It doesn’t use the GitHub REST API
-and advertises unlimited bandwidth for open-source use.
-
-Example URL::
-
-    https://cdn.jsdelivr.net/gh/apache-superset/examples-data@master/datasets/examples/slack/messages.csv
-
-Environment knobs
------------------
-``SUPERSET_EXAMPLES_DATA_REF``  (default: ``master``)
-    Tag / branch / SHA to pin so builds remain reproducible.
-
-``SUPERSET_EXAMPLES_BASE_URL``
-    Override the base completely if you want to host the files elsewhere
-    (internal mirror, S3 bucket, ASF downloads, …).  **Include any query
-    string required by your hosting (e.g. ``?raw=true`` if you point back
-    to a GitHub *blob* URL).**
+Parquet is an Apache-friendly, compressed columnar format.
 """
 
 from __future__ import annotations
 
 import os
-import time
 from typing import Any
-from urllib.error import HTTPError
 
 import pandas as pd
 from flask import current_app
@@ -56,15 +36,6 @@ from superset.models.slice import Slice
 from superset.utils import json
 
 EXAMPLES_PROTOCOL = "examples://"
-
-# ---------------------------------------------------------------------------
-# Public sample‑data mirror configuration
-# ---------------------------------------------------------------------------
-BASE_COMMIT: str = os.getenv("SUPERSET_EXAMPLES_DATA_REF", "master")
-BASE_URL: str = os.getenv(
-    "SUPERSET_EXAMPLES_BASE_URL",
-    f"https://cdn.jsdelivr.net/gh/apache-superset/examples-data@{BASE_COMMIT}/",
-)
 
 # Slices assembled into a 'Misc Chart' dashboard
 misc_dash_slices: set[str] = set()
@@ -119,52 +90,98 @@ def get_slice_json(defaults: dict[Any, Any], **kwargs: Any) -> str:
     return json.dumps(defaults_copy, indent=4, sort_keys=True)
 
 
-def get_example_url(filepath: str) -> str:
-    """Return an absolute URL to *filepath* under the examples‑data repo.
-
-    All calls are routed through jsDelivr unless overridden. Supports nested
-    paths like ``datasets/examples/slack/messages.csv``.
-    """
-    return f"{BASE_URL}{filepath}"
-
-
 def normalize_example_data_url(url: str) -> str:
-    """Convert example data URLs to use the configured CDN.
+    """Normalize example data URLs for consistency.
 
-    Transforms examples:// URLs to the configured CDN URL.
-    Non-example URLs are returned unchanged.
+    This function ensures that example data URLs are properly formatted.
+    Since the schema validator expects valid URLs and our examples:// protocol
+    isn't standard, we convert to file:// URLs pointing to the actual location.
+
+    Args:
+        url: URL to normalize (e.g., "examples://birth_names")
+
+    Returns:
+        Normalized file:// URL pointing to the Parquet file, or the original URL
+        if it's a remote URL (http://, https://, etc.)
     """
-    if url.startswith(EXAMPLES_PROTOCOL):
-        relative_path = url[len(EXAMPLES_PROTOCOL) :]
-        return get_example_url(relative_path)
+    import os
 
-    # Not an examples URL, return unchanged
-    return url
+    # Handle existing examples:// protocol
+    if url.startswith(EXAMPLES_PROTOCOL):
+        # Remove the protocol for processing
+        example_name = url[len(EXAMPLES_PROTOCOL) :]
+    elif url.startswith(("file://", "http://", "https://", "s3://", "gs://")):
+        # Already a valid URL protocol, return as-is
+        return url
+    else:
+        # Assume it's a local example name
+        example_name = url
+
+    # Strip any extension
+    for ext in (".parquet", ".csv", ".gz"):
+        if example_name.endswith(ext):
+            example_name = example_name[: -len(ext)]
+            break
+
+    # Normalize name (lowercase, underscores)
+    example_name = example_name.lower().replace(" ", "_").replace("-", "_")
+
+    # Build the full file path: {examples_folder}/{example_name}/data.parquet
+    examples_folder = get_examples_folder()
+    full_path = os.path.join(examples_folder, example_name, "data.parquet")
+
+    # Security: Ensure the path doesn't traverse outside examples folder
+    full_path = os.path.abspath(full_path)
+    examples_folder = os.path.abspath(examples_folder)
+    if not full_path.startswith(examples_folder + os.sep):
+        raise ValueError(f"Invalid path: {example_name} attempts directory traversal")
+
+    # Convert to file:// URL for schema validation
+    return f"file://{full_path}"
 
 
 def read_example_data(
     filepath: str,
-    max_attempts: int = 5,
-    wait_seconds: float = 60,
+    table_name: str | None = None,
     **kwargs: Any,
 ) -> pd.DataFrame:
-    """Load CSV or JSON from example data mirror with retry/backoff."""
-    url = normalize_example_data_url(filepath)
-    is_json = filepath.endswith(".json") or filepath.endswith(".json.gz")
+    """Load data from local Parquet files.
 
-    for attempt in range(1, max_attempts + 1):
-        try:
-            if is_json:
-                return pd.read_json(url, **kwargs)
-            return pd.read_csv(url, **kwargs)
-        except HTTPError:
-            if attempt < max_attempts:
-                sleep_time = wait_seconds * (2 ** (attempt - 1))
-                print(
-                    f"HTTP 429 received from {url}. ",
-                    f"Retrying in {sleep_time:.1f}s ",
-                    f"(attempt {attempt}/{max_attempts})...",
-                )
-                time.sleep(sleep_time)
-            else:
-                raise
+    Examples are organized as:
+        superset/examples/{example_name}/data.parquet
+
+    Args:
+        filepath: Example name (e.g., "examples://birth_names" or just "birth_names")
+        table_name: Ignored (kept for backward compatibility)
+        **kwargs: Ignored (kept for backward compatibility)
+
+    Returns:
+        DataFrame with the loaded data
+    """
+    import os
+
+    # Extract example name from filepath
+    if filepath.startswith(EXAMPLES_PROTOCOL):
+        example_name = filepath[len(EXAMPLES_PROTOCOL) :]
+    elif filepath.startswith("file://"):
+        # file:// protocol - use as-is for direct file access
+        return pd.read_parquet(filepath[7:])
+    else:
+        example_name = filepath
+
+    # Strip any extension
+    for ext in (".parquet", ".csv", ".gz"):
+        if example_name.endswith(ext):
+            example_name = example_name[: -len(ext)]
+            break
+
+    # Normalize name (lowercase, underscores)
+    example_name = example_name.lower().replace(" ", "_").replace("-", "_")
+
+    # Build path: {examples_folder}/{example_name}/data.parquet
+    local_path = os.path.join(get_examples_folder(), example_name, "data.parquet")
+
+    if not os.path.exists(local_path):
+        raise FileNotFoundError(f"Example data file not found: {local_path}")
+
+    return pd.read_parquet(local_path)

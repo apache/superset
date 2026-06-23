@@ -19,7 +19,7 @@
 import { hexToRGB } from '../../src/utils/colors';
 
 describe('colors', () => {
-  it('hexToRGB()', () => {
+  test('hexToRGB()', () => {
     expect(hexToRGB('#ffffff')).toEqual([255, 255, 255, 255]);
   });
 });

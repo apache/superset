@@ -55,6 +55,7 @@ const createDashboards = (numberOfItems: number) => {
   return dashboards;
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardsSubMenu', () => {
   test('exports SEARCH_THRESHOLD constant', () => {
     expect(SEARCH_THRESHOLD).toBe(10);

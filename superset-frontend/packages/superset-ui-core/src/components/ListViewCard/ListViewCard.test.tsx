@@ -47,17 +47,17 @@ describe('ListViewCard', () => {
     render(<ListViewCard {...props} />);
   });
 
-  it('is a valid element', () => {
+  test('is a valid element', () => {
     expect(screen.getByTestId('styled-card')).toBeInTheDocument();
   });
 
-  it('renders Actions', () => {
+  test('renders Actions', () => {
     expect(screen.getByTestId('card-actions')).toBeVisible();
     expect(screen.getByText('Action 1')).toBeVisible();
     expect(screen.getByText('Action 2')).toBeVisible();
   });
 
-  it('renders an ImageLoader', () => {
+  test('renders an ImageLoader', () => {
     expect(screen.getByTestId('image-loader')).toBeVisible();
   });
 });

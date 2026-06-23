@@ -42,6 +42,7 @@ import {
   getLegendProps,
   sanitizeHtml,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 
@@ -188,6 +189,7 @@ export default function transformProps(
     legendMargin,
     legendOrientation,
     legendType,
+    legendSort,
     showLegend,
     baseEdgeWidth,
     baseNodeSize,
@@ -297,6 +299,20 @@ export default function transformProps(
   });
 
   const categoryList = [...categories];
+  const legendData = categoryList.sort((a: string, b: string) => {
+    if (!legendSort) return 0;
+    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+  });
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
   const series: GraphSeriesOption[] = [
     {
       zoom: DEFAULT_GRAPH_SERIES_OPTION.zoom,
@@ -323,7 +339,7 @@ export default function transformProps(
       edgeSymbol: parseEdgeSymbol(edgeSymbol),
       edgeSymbolSize: baseEdgeWidth * 2,
       selectedMode,
-      ...getChartPadding(showLegend, legendOrientation, legendMargin),
+      ...getChartPadding(showLegend, legendOrientation, effectiveLegendMargin),
       animation: DEFAULT_GRAPH_SERIES_OPTION.animation,
       label: {
         ...DEFAULT_GRAPH_SERIES_OPTION.label,
@@ -352,8 +368,13 @@ export default function transformProps(
       },
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: categoryList,
+      ...getLegendProps(
+        effectiveLegendType,
+        legendOrientation,
+        showLegend,
+        theme,
+      ),
+      data: legendData,
     },
     series,
   };

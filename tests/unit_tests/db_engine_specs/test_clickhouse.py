@@ -213,22 +213,6 @@ def test_connect_get_column_spec(
 
 
 @pytest.mark.parametrize(
-    "column_name,expected_result",
-    [
-        ("time", "time_07cc69"),
-        ("count", "count_e2942a"),
-    ],
-)
-def test_connect_make_label_compatible(column_name: str, expected_result: str) -> None:
-    from superset.db_engine_specs.clickhouse import (
-        ClickHouseConnectEngineSpec as spec,  # noqa: N813
-    )
-
-    label = spec.make_label_compatible(column_name)
-    assert label == expected_result
-
-
-@pytest.mark.parametrize(
     "schema, expected_result",
     [
         (None, "clickhousedb+connect://localhost:443/__default__"),

@@ -28,6 +28,7 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import UserInfo from 'src/pages/UserInfo';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
@@ -58,12 +59,13 @@ const mockUser: UserWithPermissionsAndRoles = {
   },
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UserInfo', () => {
   const renderPage = async () =>
     act(async () => {
       render(
         <MemoryRouter>
-          <QueryParamProvider>
+          <QueryParamProvider adapter={ReactRouter5Adapter}>
             <UserInfo user={mockUser} />
           </QueryParamProvider>
         </MemoryRouter>,
@@ -72,7 +74,7 @@ describe('UserInfo', () => {
     });
 
   beforeEach(() => {
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.get(meEndpoint, {
       result: {
         ...mockUser,
@@ -83,10 +85,10 @@ describe('UserInfo', () => {
   });
 
   afterEach(() => {
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
   });
 
-  it('renders the user info page', async () => {
+  test('renders the user info page', async () => {
     await renderPage();
 
     expect(
@@ -101,14 +103,14 @@ describe('UserInfo', () => {
     expect(screen.getByText('john@example.com')).toBeInTheDocument();
   });
 
-  it('calls the /me endpoint on mount', async () => {
+  test('calls the /me endpoint on mount', async () => {
     await renderPage();
     await waitFor(() => {
-      expect(fetchMock.called(meEndpoint)).toBe(true);
+      expect(fetchMock.callHistory.called(meEndpoint)).toBe(true);
     });
   });
 
-  it('opens the reset password modal on button click', async () => {
+  test('opens the reset password modal on button click', async () => {
     await renderPage();
 
     const button = await screen.findByTestId('reset-password-button');
@@ -119,7 +121,7 @@ describe('UserInfo', () => {
     expect(await screen.findByText(/Reset password/i)).toBeInTheDocument();
   });
 
-  it('opens the edit user modal on button click', async () => {
+  test('opens the edit user modal on button click', async () => {
     await renderPage();
 
     const button = await screen.findByTestId('edit-user-button');

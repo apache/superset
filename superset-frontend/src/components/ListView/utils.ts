@@ -117,7 +117,7 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
           (Array.isArray(f.value) && !f.value.length)
         ),
     )
-    .map(({ value, operator, id }) => {
+    .flatMap(({ value, operator, id }) => {
       // handle between filter using 2 api filters
       if (operator === 'between' && Array.isArray(value)) {
         return [
@@ -138,8 +138,7 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
         operator,
         id,
       };
-    })
-    .flat();
+    });
 }
 
 // convertFilters but to handle new decoded rison format
@@ -273,23 +272,23 @@ export function useListViewState({
   } = useTable(
     {
       columns: columnsWithSelect,
-      count,
       data,
       disableFilters: true,
       disableSortRemove: true,
-      initialState,
+      initialState: initialState as any,
       manualFilters: true,
       manualPagination: true,
       manualSortBy: true,
       autoResetFilters: false,
       pageCount: Math.ceil(count / initialPageSize),
+      ...({ count } as any),
     },
     useFilters,
     useSortBy,
     usePagination,
     useRowState,
     useRowSelect,
-  );
+  ) as any;
 
   const [internalFilters, setInternalFilters] = useState<InternalFilter[]>(
     query.filters && initialFilters.length

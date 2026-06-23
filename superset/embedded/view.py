@@ -24,6 +24,7 @@ from flask_wtf.csrf import same_origin
 from superset import event_logger, is_feature_enabled
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.superset_typing import FlaskResponse
+from superset.translations.locale_utils import apply_request_locale
 from superset.utils import json
 from superset.views.base import BaseSupersetView, common_bootstrap_payload
 
@@ -70,6 +71,11 @@ class EmbeddedView(BaseSupersetView):
         # This view needs to be visible to all users,
         # and building the page fails if g.user and/or ctx.user aren't present.
         login_user(AnonymousUserMixin(), force=True)
+
+        apply_request_locale(
+            request.args.get("lang"),
+            current_app.config.get("LANGUAGES", {}),
+        )
 
         add_extra_log_payload(
             embedded_dashboard_id=uuid,
