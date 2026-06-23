@@ -152,6 +152,56 @@ def test_update_rls_rule_allowed_when_datasource_access() -> None:
     assert command._properties["tables"] == tables
 
 
+def test_update_rls_rule_partial_update_preserves_tables_and_roles() -> None:
+    """A partial update without tables/roles must not clear those bindings.
+
+    When the request body omits ``tables``/``roles``, validate() must not add
+    those keys to the properties passed to the DAO, so the existing bindings
+    are left untouched instead of being overwritten with empty lists.
+    """
+    with (
+        patch(
+            "superset.commands.security.update.RLSDAO.find_by_id",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "superset.commands.security.update.populate_roles",
+        ) as populate_roles,
+        patch("superset.commands.security.update.db.session.query") as query,
+    ):
+        command = UpdateRLSRuleCommand(1, {"name": "new name"})
+        command.validate()
+
+    # Omitted relationships are not resolved or written back.
+    populate_roles.assert_not_called()
+    query.assert_not_called()
+    assert "tables" not in command._properties
+    assert "roles" not in command._properties
+    assert command._properties["name"] == "new name"
+
+
+def test_update_rls_rule_only_roles_present_does_not_touch_tables() -> None:
+    """Updating only ``roles`` must not resolve or overwrite ``tables``."""
+    with (
+        patch(
+            "superset.commands.security.update.RLSDAO.find_by_id",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "superset.commands.security.update.populate_roles",
+            return_value=["resolved-role"],
+        ) as populate_roles,
+        patch("superset.commands.security.update.db.session.query") as query,
+    ):
+        command = UpdateRLSRuleCommand(1, {"roles": [1]})
+        command.validate()
+
+    populate_roles.assert_called_once()
+    query.assert_not_called()
+    assert command._properties["roles"] == ["resolved-role"]
+    assert "tables" not in command._properties
+
+
 def test_delete_rls_rule_forbidden_when_no_datasource_access() -> None:
     tables = _mock_tables(1)
     rule = MagicMock()
