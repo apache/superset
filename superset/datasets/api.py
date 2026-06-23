@@ -135,6 +135,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "restore": "write",
+        "restore_version": "write",
     }
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
@@ -152,6 +153,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "list_versions",
         "get_version",
         "activity",
+        "restore_version",
     }
     list_columns = [
         "id",
@@ -1952,3 +1954,89 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         from superset.versioning.activity import activity_endpoint
 
         return activity_endpoint(self, SqlaTable, uuid_str, request.args)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/restore",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),
+        log_to_statsd=False,
+    )
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a dataset to a previous version.
+        ---
+        post:
+          summary: Revert a dataset to an earlier version (non-destructive)
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: >-
+              Version UUID as returned by the list-versions endpoint.
+              Stable across retention pruning.
+          responses:
+            200:
+              description: Dataset was restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        # pylint: disable=import-outside-toplevel
+        from uuid import UUID
+
+        from superset.commands.dataset.restore_version import (
+            RestoreDatasetVersionCommand,
+        )
+
+        try:
+            entity_uuid = UUID(uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid UUID")
+        try:
+            version_uuid = UUID(version_uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid version UUID")
+
+        try:
+            RestoreDatasetVersionCommand(entity_uuid, version_uuid).run()
+        except DatasetNotFoundError:
+            return self.response_404()
+        except DatasetForbiddenError:
+            return self.response_403()
+        except DatasetUpdateFailedError as ex:
+            logger.error("Error restoring dataset version: %s", ex)
+            return self.response_422(message=str(ex))
+
+        from superset.versioning.etag import set_version_etag_by_uuid
+
+        return set_version_etag_by_uuid(
+            self.response(200, message="OK"), SqlaTable, entity_uuid
+        )

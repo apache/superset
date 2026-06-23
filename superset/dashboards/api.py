@@ -2706,72 +2706,71 @@ class DashboardRestApi(
     )
     def activity(self, uuid_str: str) -> Response:
         """Return the cross-entity activity stream for a dashboard.
-                ---
-                get:
-                  summary: Activity stream — dashboard own edits + transitive
-                    chart-on-dashboard and dataset-via-chart edits, time-bounded
-                    by association windows
-                  parameters:
-                  - in: path
-                    schema:
-                      type: string
-                      format: uuid
-                    name: uuid_str
-                    description: Dashboard UUID
-        <<<<<<< HEAD
-                  - in: query
-                    schema:
-                      type: string
-                      format: date-time
-                    name: since
-                    description: Lower bound on issued_at (ISO 8601, UTC)
-                  - in: query
-                    schema:
-                      type: string
-                      format: date-time
-                    name: until
-                    description: Upper bound on issued_at (ISO 8601, UTC)
-                  - in: query
-                    schema:
-                      type: string
-                      enum: [self, related, all]
-                      default: all
-                    name: include
-                  - in: query
-                    schema:
-                      type: string
-                    name: q
-                    description: >-
-                      Case-insensitive search over the full history (summary,
-                      entity name, kind, path, values) — applied before
-                      pagination, so `count` reflects the matches.
-                  - in: query
-                    schema:
-                      type: integer
-                      minimum: 0
-                      default: 0
-                    name: page
-                  - in: query
-                    schema:
-                      type: integer
-                      minimum: 1
-                      maximum: 200
-                      default: 25
-                    name: page_size
-                  responses:
-                    200:
-                      description: Activity stream ordered newest-first
-                      content:
-                        application/json:
-                          schema: ActivityResponseSchema
-                    400:
-                      $ref: '#/components/responses/400'
-                    401:
-                      $ref: '#/components/responses/401'
-                    403:
-                      $ref: '#/components/responses/403'
-                    404:
-                      $ref: '#/components/responses/404'
+        ---
+        get:
+          summary: Activity stream — dashboard own edits + transitive
+            chart-on-dashboard and dataset-via-chart edits, time-bounded
+            by association windows
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dashboard UUID
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: since
+            description: Lower bound on issued_at (ISO 8601, UTC)
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: until
+            description: Upper bound on issued_at (ISO 8601, UTC)
+          - in: query
+            schema:
+              type: string
+              enum: [self, related, all]
+              default: all
+            name: include
+          - in: query
+            schema:
+              type: string
+            name: q
+            description: >-
+              Case-insensitive search over the full history (summary,
+              entity name, kind, path, values) — applied before
+              pagination, so `count` reflects the matches.
+          - in: query
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            name: page
+          - in: query
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 200
+              default: 25
+            name: page_size
+          responses:
+            200:
+              description: Activity stream ordered newest-first
+              content:
+                application/json:
+                  schema: ActivityResponseSchema
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
         """
         # pylint: disable=import-outside-toplevel
         from superset.versioning.activity import activity_endpoint
