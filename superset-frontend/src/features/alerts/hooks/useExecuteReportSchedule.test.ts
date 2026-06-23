@@ -58,7 +58,9 @@ test('successfully executes a report', async () => {
   expect(result.current.loading).toBe(false);
   expect(result.current.error).toBe(null);
   expect(executeResult).toEqual(mockExecuteResponse);
-  expect(fetchMock.callHistory.calls()).toHaveLength(1);
+  expect(
+    fetchMock.callHistory.calls(`glob:*/api/v1/report/${reportId}/execute`),
+  ).toHaveLength(1);
 });
 
 test('handles execution errors', async () => {

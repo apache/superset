@@ -64,10 +64,15 @@ export function useExecuteReportSchedule() {
       } catch (error) {
         let errorMessage = t('An error occurred while triggering the report');
 
-        if (error !== null && typeof error === 'object' && 'json' in error) {
-          const errorJson = (error as { json: ErrorPayload }).json;
-          if (errorJson?.message) {
-            errorMessage = errorJson.message;
+        // SupersetClient rejects non-2xx responses with the raw Response object
+        if (error instanceof Response) {
+          try {
+            const errorJson: ErrorPayload = await error.json();
+            if (errorJson?.message) {
+              errorMessage = errorJson.message;
+            }
+          } catch {
+            // JSON parse failed — keep the default message
           }
         }
 
