@@ -63,13 +63,15 @@ def visible_version_metadata(
     """Return version metadata for user-facing surfaces.
 
     The release ``version_string`` is always included. Precise build details
-    (the git SHA and build number), which let a viewer map the deployment to a
+    (the git SHAs and build number), which let a viewer map the deployment to a
     specific commit/build, are blanked out unless ``expose_build_details`` is
     True (e.g. the viewer is an admin or the deployment opted in).
     """
     if expose_build_details:
         return metadata
-    return {**metadata, "version_sha": "", "build_number": None}
+    redacted = {**metadata, "version_sha": "", "build_number": None}
+    redacted.pop("full_sha", None)
+    return redacted
 
 
 def get_dev_env_label() -> str:

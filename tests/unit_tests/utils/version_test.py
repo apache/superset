@@ -16,10 +16,12 @@
 # under the License.
 """Tests for superset.utils.version helpers."""
 
+from typing import Any
+
 from superset.utils.version import visible_version_metadata
 
 
-def _metadata():
+def _metadata() -> dict[str, Any]:
     return {
         "version_string": "4.0.0",
         "version_sha": "abcdef12",
@@ -27,7 +29,7 @@ def _metadata():
     }
 
 
-def test_visible_version_metadata_hides_build_details_when_not_exposed():
+def test_visible_version_metadata_hides_build_details_when_not_exposed() -> None:
     """Build details are blanked while the release version string is kept."""
     result = visible_version_metadata(_metadata(), expose_build_details=False)
     assert result["version_string"] == "4.0.0"
@@ -35,14 +37,21 @@ def test_visible_version_metadata_hides_build_details_when_not_exposed():
     assert result["build_number"] is None
 
 
-def test_visible_version_metadata_keeps_build_details_when_exposed():
+def test_visible_version_metadata_drops_full_sha_when_not_exposed() -> None:
+    """The exact commit SHA must not survive redaction."""
+    metadata = {**_metadata(), "full_sha": "abcdef1234567890"}
+    result = visible_version_metadata(metadata, expose_build_details=False)
+    assert "full_sha" not in result
+
+
+def test_visible_version_metadata_keeps_build_details_when_exposed() -> None:
     """All details pass through unchanged when exposure is allowed."""
     metadata = _metadata()
     result = visible_version_metadata(metadata, expose_build_details=True)
     assert result == metadata
 
 
-def test_visible_version_metadata_does_not_mutate_input():
+def test_visible_version_metadata_does_not_mutate_input() -> None:
     """Hiding build details must not mutate the caller's metadata dict."""
     metadata = _metadata()
     visible_version_metadata(metadata, expose_build_details=False)
