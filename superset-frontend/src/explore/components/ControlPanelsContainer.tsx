@@ -71,6 +71,7 @@ import {
 import Tabs from '@superset-ui/core/components/Tabs';
 import { PluginContext } from 'src/components';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
@@ -301,6 +302,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const theme = useTheme();
   const pluginContext = useContext(PluginContext);
   const { showConfirm, ConfirmModal } = useConfirmModal();
+  const { addWarningToast } = useToasts();
 
   const prevState = usePrevious(props.exploreState);
   const prevDatasource = usePrevious(props.exploreState.datasource);
@@ -374,24 +376,20 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   useEffect(() => {
     if (
       x_axis &&
-      x_axis !== previousXAxis &&
+      (previousXAxis === undefined || x_axis !== previousXAxis) &&
       isAdhocColumn(x_axis) &&
       !granularity_sqla
     ) {
-      showConfirm({
-        title: t('No time filter on X-axis expression'),
-        body: t(
+      addWarningToast(
+        t(
           `The X-axis is a SQL expression, so time range filtering is not ` +
             `applied automatically. Without a time filter, queries may scan ` +
             `the entire table. Add a filter on your dataset's time column in ` +
             `the Filters section to limit the rows read.`,
         ),
-        onConfirm: () => undefined,
-        confirmText: t('OK'),
-        cancelText: t('Dismiss'),
-      });
+      );
     }
-  }, [x_axis, previousXAxis, granularity_sqla, showConfirm]);
+  }, [x_axis, previousXAxis, granularity_sqla, addWarningToast]);
 
   useEffect(() => {
     let shouldUpdateControls = false;
