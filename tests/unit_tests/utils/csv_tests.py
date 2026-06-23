@@ -82,7 +82,7 @@ def test_escape_value():
 def fake_get_chart_csv_data_none(
     chart_url: str,
     auth_cookies: dict[str, str] | None = None,
-    timeout: int | None = None,
+    timeout: float | None = None,
 ) -> bytes | None:
     return None
 
@@ -90,7 +90,7 @@ def fake_get_chart_csv_data_none(
 def fake_get_chart_csv_data_empty(
     chart_url: str,
     auth_cookies: dict[str, str] | None = None,
-    timeout: int | None = None,
+    timeout: float | None = None,
 ) -> bytes | None:
     # Return JSON with empty data so that the resulting DataFrame is empty
     fake_result: dict[str, Any] = {
@@ -102,7 +102,7 @@ def fake_get_chart_csv_data_empty(
 def fake_get_chart_csv_data_valid(
     chart_url: str,
     auth_cookies: dict[str, str] | None = None,
-    timeout: int | None = None,
+    timeout: float | None = None,
 ) -> bytes | None:
     # Return JSON with non-temporal data and valid indexnames so that they are used.
     fake_result = {
@@ -122,7 +122,7 @@ def fake_get_chart_csv_data_valid(
 def fake_get_chart_csv_data_temporal(
     chart_url: str,
     auth_cookies: dict[str, str] | None = None,
-    timeout: int | None = None,
+    timeout: float | None = None,
 ) -> bytes | None:
     """
     Return JSON with a temporal column and valid indexnames
@@ -145,7 +145,7 @@ def fake_get_chart_csv_data_temporal(
 def fake_get_chart_csv_data_hierarchical(
     chart_url: str,
     auth_cookies: dict[str, str] | None = None,
-    timeout: int | None = None,
+    timeout: float | None = None,
 ) -> bytes | None:
     # Return JSON with hierarchical column (list-based) and matching index names.
     fake_result = {
@@ -165,7 +165,7 @@ def fake_get_chart_csv_data_hierarchical(
 def fake_get_chart_csv_data_with_na_values(
     chart_url: str,
     auth_cookies: dict[str, str] | None = None,
-    timeout: int | None = None,
+    timeout: float | None = None,
 ) -> bytes | None:
     # Return JSON with data containing "NA" string value that will be treated as null
     fake_result = {
@@ -432,12 +432,12 @@ def test_get_chart_csv_data_passes_timeout_to_opener(
 
 
 def test_get_chart_dataframe_forwards_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
-    captured: dict[str, int | None] = {}
+    captured: dict[str, float | None] = {}
 
     def fake(
         chart_url: str,
         auth_cookies: dict[str, str] | None = None,
-        timeout: int | None = None,
+        timeout: float | None = None,
     ) -> bytes | None:
         captured["timeout"] = timeout
         return None

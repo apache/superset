@@ -941,6 +941,7 @@ def send_mime_email(
     # A missing timeout means the socket blocks forever when the SMTP server is
     # unreachable, wedging the report schedule in the WORKING state. Fall back to
     # the key being absent for backwards compatibility with custom configs.
+    # Keep this fallback in sync with the SMTP_TIMEOUT default in config.py.
     smtp_timeout = config.get("SMTP_TIMEOUT", 30)
 
     if dryrun:
