@@ -16,6 +16,7 @@
 # under the License.
 """Tests for SupersetAppInitializer.check_secret_key."""
 
+from typing import Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -24,7 +25,12 @@ from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.initialization import SupersetAppInitializer
 
 
-def _make_initializer(secret_key, *, debug=False, testing=False):
+def _make_initializer(
+    secret_key: Optional[str],
+    *,
+    debug: bool = False,
+    testing: bool = False,
+) -> SupersetAppInitializer:
     """Build a bare initializer with just the attributes check_secret_key needs."""
     init = object.__new__(SupersetAppInitializer)
     init.config = {"SECRET_KEY": secret_key}
@@ -36,7 +42,9 @@ def _make_initializer(secret_key, *, debug=False, testing=False):
 
 
 @pytest.mark.parametrize("secret_key", ["", None, CHANGE_ME_SECRET_KEY])
-def test_check_secret_key_refuses_to_start_when_insecure(secret_key):
+def test_check_secret_key_refuses_to_start_when_insecure(
+    secret_key: Optional[str],
+) -> None:
     """An empty/missing or placeholder key fails closed in non-debug mode."""
     initializer = _make_initializer(secret_key)
     with patch("superset.initialization.is_test", return_value=False):
@@ -45,7 +53,9 @@ def test_check_secret_key_refuses_to_start_when_insecure(secret_key):
 
 
 @pytest.mark.parametrize("secret_key", ["", None, CHANGE_ME_SECRET_KEY])
-def test_check_secret_key_warns_but_starts_in_debug(secret_key):
+def test_check_secret_key_warns_but_starts_in_debug(
+    secret_key: Optional[str],
+) -> None:
     """In debug/testing mode an insecure key warns but does not exit."""
     initializer = _make_initializer(secret_key, debug=True)
     with patch("superset.initialization.is_test", return_value=False):
@@ -53,7 +63,7 @@ def test_check_secret_key_warns_but_starts_in_debug(secret_key):
         initializer.check_secret_key()
 
 
-def test_check_secret_key_accepts_strong_key():
+def test_check_secret_key_accepts_strong_key() -> None:
     """A non-empty, non-placeholder key starts without warning or exit."""
     initializer = _make_initializer("a-strong-random-secret-key")
     with (
