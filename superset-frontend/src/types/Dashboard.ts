@@ -17,7 +17,6 @@
  * under the License.
  */
 import User from './User';
-import Role from './Role';
 import Subject from './Subject';
 
 export interface Dashboard {
@@ -34,7 +33,6 @@ export interface Dashboard {
   changed_by: User;
   changed_on: string;
   charts: string[]; // just chart names, unfortunately...
-  roles: Role[];
   editors?: Subject[];
   viewers?: Subject[];
   theme?: {

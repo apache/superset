@@ -485,7 +485,7 @@ function AlertList({
       },
       {
         Header: t('Editor'),
-        key: 'owner',
+        key: 'editor',
         id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,

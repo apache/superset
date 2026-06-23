@@ -24,6 +24,24 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Owners, dashboard roles, and RLS roles replaced by Subjects
+
+Superset now uses subject-based access assignments for dashboards, charts, datasets,
+alerts/reports, and Row Level Security. A Subject can represent a user, role, or group.
+
+This is a breaking API and metadata change:
+
+- `owners` is replaced by `editors` for dashboards, charts, datasets, and alerts/reports.
+- Dashboard `roles` and the `DASHBOARD_RBAC` feature flag are replaced by dashboard/chart
+  `viewers`, enabled with `ENABLE_VIEWERS`.
+- RLS `roles` is replaced by `subjects`.
+- The legacy `dashboard_user`, `slice_user`, `sqlatable_user`, `report_schedule_user`,
+  `dashboard_roles`, and `rls_filter_roles` tables are migrated into subject junction tables
+  and dropped on upgrade.
+
+API clients and automation should send and read `editors`, `viewers`, and `subjects` instead
+of the legacy fields.
+
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.

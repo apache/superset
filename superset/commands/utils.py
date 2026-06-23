@@ -20,13 +20,11 @@ from collections import Counter
 from typing import Any, Optional, TYPE_CHECKING
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import Role
 from marshmallow import ValidationError
 
 from superset import security_manager
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
-    RolesNotFoundValidationError,
     TagForbiddenError,
     TagNotFoundValidationError,
 )
@@ -42,20 +40,6 @@ from superset.utils.core import DatasourceType, get_user_id
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
-
-
-def populate_roles(role_ids: list[int] | None = None) -> list[Role]:
-    """
-    Helper function for commands, will fetch all roles from roles id's
-     :raises RolesNotFoundValidationError: If a role in the input list is not found
-    :param role_ids: A List of roles by id's
-    """
-    roles: list[Role] = []
-    if role_ids:
-        roles = security_manager.find_roles_by_id(role_ids)
-        if len(roles) != len(role_ids):
-            raise RolesNotFoundValidationError()
-    return roles
 
 
 def populate_subject_list(

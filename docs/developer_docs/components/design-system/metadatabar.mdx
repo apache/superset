@@ -26,7 +26,7 @@ import { StoryWithControls } from '../../../src/components/StorybookWrapper';
 
 # MetadataBar
 
-MetadataBar displays a row of metadata items (SQL info, owners, last modified, tags, dashboards, etc.) that collapse responsively based on available width.
+MetadataBar displays a row of metadata items (SQL info, editors, last modified, tags, dashboards, etc.) that collapse responsively based on available width.
 
 ## Live Example
 
@@ -43,9 +43,9 @@ MetadataBar displays a row of metadata items (SQL info, owners, last modified, t
       title: "Click to view query"
     },
     {
-      type: "owner",
+      type: "editor",
       createdBy: "Jane Smith",
-      owners: [
+      editors: [
         "John Doe",
         "Mary Wilson"
       ],
@@ -104,9 +104,9 @@ function Demo() {
   const items = [
     { type: 'sql', title: 'Click to view query' },
     {
-      type: 'owner',
+      type: 'editor',
       createdBy: 'Jane Smith',
-      owners: ['John Doe', 'Mary Wilson'],
+      editors: ['John Doe', 'Mary Wilson'],
       createdOn: 'a week ago',
     },
     {
@@ -125,7 +125,7 @@ function Demo() {
 ```tsx live
 function MinimalMetadata() {
   const items = [
-    { type: 'owner', createdBy: 'Admin', owners: ['Admin'], createdOn: 'yesterday' },
+    { type: 'editor', createdBy: 'Admin', editors: ['Admin'], createdOn: 'yesterday' },
     { type: 'lastModified', value: '2 hours ago', modifiedBy: 'Admin' },
   ];
   return <MetadataBar items={items} />;
@@ -138,7 +138,7 @@ function MinimalMetadata() {
 function FullMetadata() {
   const items = [
     { type: 'sql', title: 'SELECT * FROM ...' },
-    { type: 'owner', createdBy: 'Jane Smith', owners: ['Jane Smith', 'John Doe', 'Bob Wilson'], createdOn: '2 weeks ago' },
+    { type: 'editor', createdBy: 'Jane Smith', editors: ['Jane Smith', 'John Doe', 'Bob Wilson'], createdOn: '2 weeks ago' },
     { type: 'lastModified', value: '3 days ago', modifiedBy: 'John Doe' },
     { type: 'tags', values: ['production', 'finance', 'quarterly'] },
     { type: 'dashboards', title: 'Used in 12 dashboards' },
@@ -158,7 +158,7 @@ function FullMetadata() {
 | `createdBy` | `string` | `"Jane Smith"` | - |
 | `modifiedBy` | `string` | `"Jane Smith"` | - |
 | `description` | `string` | `"To preview the list of dashboards go to More settings."` | - |
-| `items` | `any` | `[{"type":"sql","title":"Click to view query"},{"type":"owner","createdBy":"Jane Smith","owners":["John Doe","Mary Wilson"],"createdOn":"a week ago"},{"type":"lastModified","value":"a week ago","modifiedBy":"Jane Smith"},{"type":"tags","values":["management","research","poc"]},{"type":"dashboards","title":"Added to 3 dashboards","description":"To preview the list of dashboards go to More settings."}]` | Items displayed in the metadata bar. The `owner` type shows editors/creators. |
+| `items` | `any` | `[{"type":"sql","title":"Click to view query"},{"type":"editor","createdBy":"Jane Smith","editors":["John Doe","Mary Wilson"],"createdOn":"a week ago"},{"type":"lastModified","value":"a week ago","modifiedBy":"Jane Smith"},{"type":"tags","values":["management","research","poc"]},{"type":"dashboards","title":"Added to 3 dashboards","description":"To preview the list of dashboards go to More settings."}]` | Items displayed in the metadata bar. The `editor` type shows editors/creators. |
 
 ## Import
 

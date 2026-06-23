@@ -105,13 +105,6 @@ class ImportFailedError(CommandException):
     message = "Import failed for an unknown reason"
 
 
-class RolesNotFoundValidationError(ValidationError):
-    status = 422
-
-    def __init__(self) -> None:
-        super().__init__([_("Some roles do not exist")], field_name="roles")
-
-
 class DatasourceTypeInvalidError(ValidationError):
     status = 422
 

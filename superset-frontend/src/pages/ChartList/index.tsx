@@ -704,7 +704,7 @@ function ChartList(props: ChartListProps) {
         : []),
       {
         Header: t('Editor'),
-        key: 'owner',
+        key: 'editor',
         id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,

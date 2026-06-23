@@ -788,7 +788,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             if not dataset:
                 return self.response_404()
 
-            # Check ownership
+            # Check editorship
             try:
                 security_manager.raise_for_editorship(dataset)
             except Exception:  # pylint: disable=broad-except

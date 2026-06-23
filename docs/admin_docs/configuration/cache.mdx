@@ -139,9 +139,9 @@ from superset.tasks.types import FixedExecutor
 THUMBNAIL_EXECUTORS = [FixedExecutor("admin")]
 ```
 
-When using the default `ExecutorType.OWNER` executor, thumbnails are rendered as the primary
-user-type editor of the dashboard or chart. Only user-type subjects are considered from the
-editors list, since tasks can only be executed as actual users (not roles or groups).
+When using `ExecutorType.EDITOR`, thumbnails are rendered as the primary user-type editor of
+the dashboard or chart. Only user-type subjects are considered from the editors list, since
+tasks can only be executed as actual users (not roles or groups).
 
 For this feature you will need a cache system and celery workers. All thumbnails are stored on cache
 and are processed asynchronously by the workers.
@@ -183,10 +183,10 @@ WEBDRIVER_BASEURL = "https://superset.company.com"
 
 To control which user account is used for rendering thumbnails and warming up caches, configure
 `THUMBNAIL_EXECUTORS` and `CACHE_WARMUP_EXECUTORS`. Each accepts a list of executor types (which
-resolve to an owner, creator, modifier, or the currently-logged-in user) and/or a `FixedExecutor`
-pinned to a specific username. By default, thumbnails render as the current user
-(`ExecutorType.CURRENT_USER`) and cache warmup runs as the chart/dashboard owner
-(`ExecutorType.OWNER`).
+resolve to an editor, creator, modifier, or the currently-logged-in user) and/or a
+`FixedExecutor` pinned to a specific username. By default, thumbnails render as the current user
+(`ExecutorType.CURRENT_USER`) and cache warmup uses editor-based execution
+(`ExecutorType.EDITOR`) where executor-based cache warmup is used.
 
 To force both to run as a dedicated service account (`admin` in this example):
 

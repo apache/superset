@@ -261,7 +261,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     currentRule.subjects?.forEach(subject => subjects.push(subject.value));
 
     const data: any = { ...currentRule, tables, subjects };
-    delete data.roles;
 
     if (isEditMode && currentRule.id) {
       const updateId = currentRule.id;
@@ -350,7 +349,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
               {t('Filter Type')}{' '}
               <InfoTooltip
                 tooltip={t(
-                  'Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.',
+                  'Regular filters add where clauses to queries if a user matches a subject referenced in the filter. Base filters apply filters to all queries except the subjects defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.',
                 )}
               />
             </div>
