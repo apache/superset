@@ -232,9 +232,11 @@ class BaseSupersetApiMixin:
         with the caller's identity, the endpoint, and the attempted value.
         """
         # Sanitize the user-supplied column name to a single, bounded token so
-        # it cannot inject newlines or forge extra log lines.
+        # it cannot inject newlines or forge extra key=value tokens in the log
+        # line. Restrict to a safe character set (column names are alphanumeric
+        # plus ``_-.``) and replace anything else with ``?``.
         sanitized_column = "".join(
-            ch for ch in str(column_name) if ch.isprintable() and ch not in "\r\n"
+            ch if (ch.isalnum() or ch in "_-.") else "?" for ch in str(column_name)
         )[:200]
         logger.warning(
             "Rejected disallowed field access: user_id=%s endpoint=%s.%s column=%s",
