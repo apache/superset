@@ -4550,7 +4550,7 @@ msgstr "Jeu de données"
 
 #, fuzzy, python-format
 msgid "Dataset %(table)s already exists"
-msgstr "Le jeu de données %(name)s existe déjà"
+msgstr "Le jeu de données %(table)s existe déjà"
 
 msgid "Dataset Name"
 msgstr "Nom du jeu de données"
