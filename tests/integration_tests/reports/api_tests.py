@@ -2885,3 +2885,96 @@ class TestReportSchedulesApi(SupersetTestCase):
         db.session.delete(report_b)
         db.session.delete(dashboard)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @patch("superset.tasks.scheduler.execute.apply_async")
+    def test_execute_report_schedule(self, mock_execute: Any) -> None:
+        """
+        ReportSchedule Api: Test execute report schedule
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        assert report_schedule is not None
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/report/{report_schedule.id}/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "execution_id" in data
+        assert "message" in data
+        assert data["message"] == "Report schedule execution started successfully"
+
+        mock_execute.assert_called_once()
+        call_args = mock_execute.call_args
+        # First positional arg is the tuple of task args
+        assert call_args[0][0] == (report_schedule.id,)
+        # eta must be set so the downstream task receives a valid scheduled_dttm
+        assert "eta" in call_args[1]
+        assert call_args[1]["eta"] is not None
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_execute_report_schedule_not_found(self) -> None:
+        """
+        ReportSchedule Api: Test execute report schedule not found
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/report/9999999/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_execute_report_schedule_not_owned(self) -> None:
+        """
+        ReportSchedule Api: Test execute report schedule forbidden for non-owner
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        assert report_schedule is not None
+
+        self.login(GAMMA_USERNAME)
+        uri = f"api/v1/report/{report_schedule.id}/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 403
+
+    @with_feature_flags(ALERT_REPORTS=False)
+    def test_execute_report_schedule_feature_disabled(self) -> None:
+        """
+        ReportSchedule Api: Test execute returns 404 when ALERT_REPORTS
+        feature is disabled
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/report/1/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @patch("superset.tasks.scheduler.execute.apply_async")
+    def test_execute_report_schedule_celery_error(self, mock_execute: Any) -> None:
+        """
+        ReportSchedule Api: Test execute returns 503 when Celery broker is unreachable
+        """
+        mock_execute.side_effect = Exception(
+            "kombu.exceptions.ConnectionError: broker connection refused"
+        )
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        assert report_schedule is not None
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/report/{report_schedule.id}/execute"
+        rv = self.client.post(uri)
+        assert rv.status_code == 503
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "Celery" in data["message"]
+        assert "broker" in data["message"].lower()
