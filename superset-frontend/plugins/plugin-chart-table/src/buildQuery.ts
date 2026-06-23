@@ -231,9 +231,18 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     if (!isDownloadQuery && formDataCopy.server_pagination) {
       const pageSize =
         Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0;
-      const currentPage = Number(ownState.currentPage) || 0;
-      const rowOffset = currentPage * pageSize;
       const rowLimit = Number(formDataCopy.row_limit) || 0;
+
+      // Never page past the configured row limit. Clamping the page to the last
+      // one that still falls within the limit keeps the request inside the cap
+      // and avoids emitting row_limit: 0, which the backend treats as
+      // "no limit" rather than "no rows" (see helpers.py get_sqla_query).
+      const lastPage =
+        rowLimit > 0 && pageSize > 0
+          ? Math.max(Math.ceil(rowLimit / pageSize) - 1, 0)
+          : Number(ownState.currentPage) || 0;
+      const currentPage = Math.min(Number(ownState.currentPage) || 0, lastPage);
+      const rowOffset = currentPage * pageSize;
       const remainingRows =
         rowLimit > 0 ? Math.max(rowLimit - rowOffset, 0) : pageSize;
 
@@ -273,7 +282,10 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       const modifiedOwnState = {
         ...options?.ownState,
         currentPage: 0,
-        pageSize: queryObject.row_limit ?? 0,
+        // Persist the user-selected page size, not the per-request row_limit,
+        // which may be capped to the remaining rows on the last page.
+        pageSize:
+          Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0,
       };
       updateTableOwnState(options?.hooks?.setDataMask, modifiedOwnState);
     }

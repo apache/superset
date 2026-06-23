@@ -329,6 +329,31 @@ describe('plugin-chart-table', () => {
           row_offset: 0,
         });
       });
+
+      test('clamps pages beyond the row limit instead of emitting row_limit: 0', () => {
+        const { queries } = buildQuery(
+          {
+            ...baseFormDataWithServerPagination,
+            row_limit: 120,
+            server_page_length: 50,
+            slice_id: 103,
+          },
+          {
+            ownState: {
+              // Page 5 is well past the cap; offset would be 250 > 120, which
+              // previously made row_limit collapse to 0 ("no limit").
+              currentPage: 5,
+              pageSize: 50,
+            },
+          },
+        );
+
+        expect(queries[0].row_limit).not.toBe(0);
+        expect(queries[0]).toMatchObject({
+          row_limit: 20,
+          row_offset: 100,
+        });
+      });
     });
   });
 });
