@@ -240,10 +240,10 @@ test('enables sorting for Chart and Last modified columns', async () => {
       .find(el => el.closest('th'))
       ?.closest('th');
 
-      const editorsHeader = screen
-        .getAllByText('Chart editors')
-        .find(el => el.closest('th'))
-        ?.closest('th');
+    const editorsHeader = screen
+      .getAllByText('Chart editors')
+      .find(el => el.closest('th'))
+      ?.closest('th');
 
     const dashboardHeader = screen
       .getAllByText('Dashboard usage')
@@ -252,7 +252,7 @@ test('enables sorting for Chart and Last modified columns', async () => {
 
     expect(chartHeader).toHaveClass('ant-table-column-has-sorters');
     expect(lastModifiedHeader).toHaveClass('ant-table-column-has-sorters');
-      expect(editorsHeader).not.toHaveClass('ant-table-column-has-sorters');
+    expect(editorsHeader).not.toHaveClass('ant-table-column-has-sorters');
     expect(dashboardHeader).not.toHaveClass('ant-table-column-has-sorters');
   });
 });
