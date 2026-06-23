@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
-import { RootState } from 'src/dashboard/types';
+import { JsonObject, SupersetClient } from '@superset-ui/core';
+import { Datasource, DatasourcesState, RootState } from 'src/dashboard/types';
 import {
   DatasourcesAction,
   fetchDatasourceMetadata,
@@ -26,10 +26,19 @@ import {
 
 const KEY = '7__table';
 
+type ClientResponse = Awaited<ReturnType<typeof SupersetClient.get>>;
+
+// Minimal typed stand-ins so the tests avoid `any` while exercising the thunk.
+const datasource = (json: JsonObject = { uid: KEY, main_dttm_col: 'ds' }) =>
+  json as unknown as Datasource;
+
+const jsonResponse = (json: JsonObject): ClientResponse =>
+  ({ json }) as unknown as ClientResponse;
+
 const buildGetState =
-  (datasources: Record<string, any> = {}) =>
+  (datasources: DatasourcesState = {}) =>
   () =>
-    ({ datasources }) as RootState;
+    ({ datasources }) as unknown as RootState;
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -38,7 +47,7 @@ afterEach(() => {
 test('fetchDatasourceMetadata uses the cached datasource without a network call', () => {
   const getSpy = jest.spyOn(SupersetClient, 'get');
   const dispatch = jest.fn();
-  const cached = { uid: KEY, main_dttm_col: 'ds' } as any;
+  const cached = datasource();
 
   fetchDatasourceMetadata(KEY)(dispatch, buildGetState({ [KEY]: cached }));
 
@@ -50,7 +59,7 @@ test('fetchDatasourceMetadata fetches and caches an uncached datasource', async 
   const json = { uid: KEY, main_dttm_col: 'ds' };
   const getSpy = jest
     .spyOn(SupersetClient, 'get')
-    .mockResolvedValue({ json } as any);
+    .mockResolvedValue(jsonResponse(json));
   const dispatch = jest.fn();
 
   await fetchDatasourceMetadata(KEY)(dispatch, buildGetState());
@@ -66,11 +75,11 @@ test('fetchDatasourceMetadata fetches and caches an uncached datasource', async 
 });
 
 test('fetchDatasourceMetadata deduplicates concurrent in-flight requests for the same key', async () => {
-  let resolveGet: (value: unknown) => void = () => {};
+  let resolveGet: (value: ClientResponse) => void = () => {};
   const getSpy = jest.spyOn(SupersetClient, 'get').mockReturnValue(
-    new Promise(resolve => {
+    new Promise<ClientResponse>(resolve => {
       resolveGet = resolve;
-    }) as any,
+    }),
   );
   const dispatch = jest.fn();
   const getState = buildGetState();
@@ -82,7 +91,7 @@ test('fetchDatasourceMetadata deduplicates concurrent in-flight requests for the
 
   expect(getSpy).toHaveBeenCalledTimes(1);
 
-  resolveGet({ json: { uid: KEY, main_dttm_col: 'ds' } });
+  resolveGet(jsonResponse({ uid: KEY, main_dttm_col: 'ds' }));
   await Promise.resolve();
 });
 
@@ -90,7 +99,7 @@ test('fetchDatasourceMetadata clears the in-flight key after a failed request so
   const getSpy = jest
     .spyOn(SupersetClient, 'get')
     .mockRejectedValueOnce(new Error('boom'))
-    .mockResolvedValueOnce({ json: { uid: KEY } } as any);
+    .mockResolvedValueOnce(jsonResponse({ uid: KEY }));
   const dispatch = jest.fn();
   const getState = buildGetState();
 

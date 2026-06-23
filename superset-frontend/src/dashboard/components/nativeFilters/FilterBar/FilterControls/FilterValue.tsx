@@ -42,6 +42,7 @@ import {
   isChartCustomization,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
+import { logging } from '@apache-superset/core/utils';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
@@ -217,7 +218,15 @@ const FilterValue: FC<FilterValueProps> = ({
 
   useEffect(() => {
     if (datasetId != null) {
-      dispatch(fetchDatasourceMetadata(`${datasetId}__table`));
+      // Best-effort prime of the datasource cache for the granularity_sqla
+      // fallback. A failure here is non-fatal — the filter still works, just
+      // without the time-range cascade fallback — so handle the rejection
+      // explicitly to avoid an unhandled promise rejection.
+      Promise.resolve(
+        dispatch(fetchDatasourceMetadata(`${datasetId}__table`)),
+      ).catch(error =>
+        logging.warn('Failed to fetch filter datasource metadata', error),
+      );
     }
   }, [datasetId, dispatch]);
 
