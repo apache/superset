@@ -397,3 +397,17 @@ test('formatForecastTooltipSeries should show forecast trend and band all at zer
     }),
   ).toEqual(['<img>qwerty', 'ŷ = 0 (0, 0)']);
 });
+
+test('formatForecastTooltipSeries should skip non-finite forecast values', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: NaN,
+      forecastLower: Infinity,
+      forecastUpper: -Infinity,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10']);
+});

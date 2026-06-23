@@ -98,12 +98,13 @@ export const formatForecastTooltipSeries = ({
 }): string[] => {
   const name = `${marker}${sanitizeHtml(seriesName)}`;
   let value = typeof observation === 'number' ? formatter(observation) : '';
-  // Use explicit numeric checks rather than truthiness so that legitimate
+  // Use finite-number checks rather than truthiness so that legitimate
   // zero values (e.g. a forecast that crosses zero, or a confidence bound of
-  // exactly 0) are not dropped from the tooltip.
-  const hasTrend = typeof forecastTrend === 'number';
-  const hasLower = typeof forecastLower === 'number';
-  const hasUpper = typeof forecastUpper === 'number';
+  // exactly 0) are not dropped from the tooltip, while non-finite values
+  // (NaN/Infinity) are still excluded.
+  const hasTrend = Number.isFinite(forecastTrend);
+  const hasLower = Number.isFinite(forecastLower);
+  const hasUpper = Number.isFinite(forecastUpper);
   if (hasTrend || hasLower || hasUpper) {
     // forecast values take the form of "20, y = 30 (10, 40)"
     // where the first part is the observation, the second part is the forecast trend
