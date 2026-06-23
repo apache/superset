@@ -302,7 +302,15 @@ export default function SemanticLayerModal({
       const hasSatisfiedDeps = Object.values(dynamicDeps).some(deps =>
         areDependenciesSatisfied(deps, data, configSchema ?? undefined),
       );
-      if (!hasSatisfiedDeps) return;
+      if (!hasSatisfiedDeps) {
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+          debounceTimerRef.current = null;
+        }
+        setRefreshingSchema(false);
+        lastDepSnapshotRef.current = '';
+        return;
+      }
 
       // Only re-fetch if dependency values actually changed
       const snapshot = serializeDependencyValues(dynamicDeps, data);
