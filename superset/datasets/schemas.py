@@ -295,11 +295,16 @@ class ImportV1MetricSchema(Schema):
         return data
 
     @pre_load
-    def fix_template_params(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def fix_template_params(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
         """
         Fix for template_params initially being exported as an empty string.
         """
-        if isinstance(data.get("template_params"), str) and data["template_params"].strip() == "":
+        if (
+            isinstance(data.get("template_params"), str)
+            and data["template_params"].strip() == ""
+        ):
             data["template_params"] = None
         return data
 
