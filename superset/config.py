@@ -224,13 +224,15 @@ SUPERSET_WEBSERVER_TIMEOUT = int(timedelta(minutes=1).total_seconds())
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 
-# Manual dashboard refresh staggers chart data requests across this many
-# milliseconds so they do not all hit the backend at the same instant. The
-# value behaves like the existing stagger_time dashboard metadata: the
-# frontend uses the larger of this value and the dashboard's stagger_time.
-# Set this to 0 to keep the older behavior where every chart request fires
-# at the same time when the user clicks the Refresh dashboard button.
-SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS = 5000
+# Manual dashboard refresh can stagger chart data requests across this many
+# milliseconds so they do not all hit the backend at the same instant. This
+# defaults to 0, which preserves the original behavior where every chart
+# request fires at the same time when the user clicks the Refresh dashboard
+# button. Set a positive value to opt in to staggering; the frontend then
+# uses the larger of this value and the dashboard's stagger_time metadata.
+# If this key is removed entirely (treated as null), the frontend falls back
+# to a built-in default of 5000 ms.
+SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS = 0
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 CUSTOM_SECURITY_MANAGER = None

@@ -135,3 +135,20 @@ test('forceRefresh keeps the older unstaggered behavior when the config value is
     expect.objectContaining({ interval: 0 }),
   );
 });
+
+test('forceRefresh normalizes a negative config value to 0 (unstaggered)', async () => {
+  const { result, props } = renderHeaderAutoRefresh({
+    SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS: -1000,
+  });
+
+  await act(async () => {
+    await result.current.forceRefresh();
+  });
+
+  const [, , interval] = props.onRefresh.mock.calls[0];
+  expect(interval).toBe(0);
+  expect(props.logEvent).toHaveBeenCalledWith(
+    LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
+    expect.objectContaining({ interval: 0 }),
+  );
+});
