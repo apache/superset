@@ -1414,7 +1414,7 @@ msgid "Allow CREATE TABLE AS"
 msgstr "Permetti CREATE TABLE AS"
 
 msgid "Allow CREATE VIEW AS"
-msgstr "Permette CREATE TABLE AS"
+msgstr "Permette CREATE VIEW AS"
 
 msgid "Allow DDL and DML"
 msgstr "Permette DDL e DML"
