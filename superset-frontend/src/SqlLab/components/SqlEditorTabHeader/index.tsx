@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, FC } from 'react';
+import { useMemo, useState, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
 import { useSelector, shallowEqual } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
-import { MenuDotsDropdown } from '@superset-ui/core/components';
+import { MenuDotsDropdown, Modal, Input } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
 import { QueryState } from '@superset-ui/core';
@@ -107,13 +107,20 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
     [dispatch],
   );
 
-  function renameTab() {
-    // TODO: Replace native prompt with a proper modal dialog
-    // eslint-disable-next-line no-alert
-    const newTitle = prompt(t('Enter a new title for the tab'));
-    if (newTitle) {
-      actions.queryEditorSetTitle(qe, newTitle, qe.id);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+
+  function openRenameModal() {
+    setNewTitle(qe.name);
+    setIsRenameModalOpen(true);
+  }
+
+  function handleRenameTab() {
+    const trimmedTitle = newTitle.trim();
+    if (trimmedTitle) {
+      actions.queryEditorSetTitle(qe, trimmedTitle, qe.id);
     }
+    setIsRenameModalOpen(false);
   }
   const getStatusColor = (state: QueryState, theme: SupersetTheme): string => {
     const statusColors: Record<QueryState, string> = {
@@ -158,7 +165,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               } as MenuItemType,
               {
                 key: '2',
-                onClick: renameTab,
+                onClick: openRenameModal,
                 'data-test': 'rename-tab-menu-option',
                 label: (
                   <>
@@ -220,6 +227,22 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
         iconSize="m"
         iconColor={getStatusColor(queryState, theme)}
       />{' '}
+      <Modal
+        show={isRenameModalOpen}
+        onHide={() => setIsRenameModalOpen(false)}
+        title={t('Rename tab')}
+        onHandledPrimaryAction={handleRenameTab}
+        primaryButtonName={t('Save')}
+        disablePrimaryButton={!newTitle.trim()}
+      >
+        <Input
+          data-test="rename-tab-input"
+          aria-label={t('Tab name')}
+          value={newTitle}
+          onChange={e => setNewTitle(e.target.value)}
+          onPressEnter={handleRenameTab}
+        />
+      </Modal>
     </TabTitleWrapper>
   );
 };
