@@ -227,13 +227,26 @@ const SaveModal = ({
   const history = useHistory();
   const theme = useTheme();
 
+  const isCurrentUserOwner = useCallback((): boolean => {
+    const userId = user?.userId;
+    if (userId === undefined) {
+      return false;
+    }
+    // Owners can arrive either as plain ids (number) or as objects depending on
+    // where the slice was hydrated from (bootstrap vs. SLICE_UPDATED reducer),
+    // so normalize to the numeric id before comparing.
+    return Boolean(
+      slice?.owners?.some((owner: number | { id?: number }) =>
+        typeof owner === 'number' ? owner === userId : owner?.id === userId,
+      ),
+    );
+  }, [slice, user]);
+
   const canOverwriteSlice = useCallback(
     (): boolean =>
-      (can_overwrite ||
-        isUserAdmin(user) ||
-        slice?.owners?.includes(user.userId)) &&
+      (can_overwrite || isUserAdmin(user) || isCurrentUserOwner()) &&
       !slice?.is_managed_externally,
-    [can_overwrite, slice, user],
+    [can_overwrite, slice, user, isCurrentUserOwner],
   );
 
   const [newSliceName, setNewSliceName] = useState<string | undefined>(
