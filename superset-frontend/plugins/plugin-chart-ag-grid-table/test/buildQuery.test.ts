@@ -1363,4 +1363,33 @@ describe('plugin-chart-ag-grid-table', () => {
       expect(query.extras?.where || undefined).toBeUndefined();
     });
   });
+
+  describe('buildQuery - percent metric summary totals (#104600)', () => {
+    test('totals query keeps the contribution rename for percent metrics', () => {
+      const { queries } = buildQuery(
+        {
+          ...basicFormData,
+          metrics: ['revenue'],
+          percent_metrics: ['revenue'],
+          show_totals: true,
+        },
+        { ownState: {} },
+      );
+
+      // queries[0] is the data query; the summary/totals query is the extra
+      // aggregate query with no row limit.
+      const totalsQuery = queries.slice(1).find(q => q.row_limit === 0);
+      expect(totalsQuery).toBeDefined();
+
+      const contributionOp = (totalsQuery?.post_processing || []).find(
+        (op: any) => op?.operation === 'contribution',
+      );
+      // Regression: the totals query previously used post_processing: [] which
+      // dropped the metric -> %metric rename, leaving the summary row at 0.000%.
+      expect(contributionOp).toBeDefined();
+      expect((contributionOp as any)?.options?.rename_columns).toContain(
+        '%revenue',
+      );
+    });
+  });
 });
