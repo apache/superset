@@ -433,6 +433,88 @@ test('dataset mismatch: display control for a different dataset does not affect 
   expectGroupBy(result, ['original_column']);
 });
 
+test('dynamic group by replaces base groupby with the user selection (subset case)', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['status'], ['status', 'category']),
+  );
+  expectGroupBy(result, ['status']);
+});
+
+test('timeseries chart: dynamic group by replaces base groupby with the user selection', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+  const result = getFormDataWithExtraFilters({
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'echarts_timeseries_line',
+        datasource: '3__table',
+        groupby: ['series_col', 'breakdown_col'],
+        x_axis: 'time_col',
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['series_col'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({ id: customizationId }),
+    ],
+  });
+  expectGroupBy(result, ['series_col']);
+});
+
+test('regression #39356: an all-conflicting selection keeps the base groupby and never empties it', () => {
+  // Selecting only the x_axis (already in use) contributes no new dimension, so the
+  // base groupby survives unchanged rather than the chart losing its dimensions.
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+  const result = getFormDataWithExtraFilters({
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'echarts_timeseries_line',
+        datasource: '3__table',
+        groupby: ['series_col', 'breakdown_col'],
+        x_axis: 'time_col',
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['time_col'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({ id: customizationId }),
+    ],
+  });
+  expectGroupBy(result, ['series_col', 'breakdown_col']);
+});
+
+test('SC-100237: selecting base dimension + new dimension keeps BOTH in groupby', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['product_line', 'deal_size'], ['product_line']),
+  );
+  expectGroupBy(result, ['product_line', 'deal_size']);
+  expectGroupByLength(result, 2);
+});
+
+test('dynamic group by replaces base with mixed (overlap + new) selection', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['status', 'new_col'], ['status', 'category']),
+  );
+  expectGroupBy(result, ['status', 'new_col']);
+});
+
 test('Scope boundary: display control with chartsInScope:[] does not affect the chart', () => {
   const customizationId = 'CHART_CUSTOMIZATION-groupby-out-of-scope';
   const argsOutOfScope: GetFormDataWithExtraFiltersArguments = {

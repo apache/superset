@@ -34,6 +34,7 @@ import {
   JsonValue,
   QueryFormData,
   SetDataMaskHook,
+  getMapProviderMapStyle,
 } from '@superset-ui/core';
 import type { Layer } from '@deck.gl/core';
 import Legend from './components/Legend';
@@ -139,7 +140,8 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
     const { current } = containerRef;
     if (current) {
-      current.setTooltip(tooltip);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (current as any).setTooltip(tooltip);
     }
   }, []);
 
@@ -317,6 +319,12 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     },
     [categories],
   );
+  const selectedMap = getMapProviderMapStyle({
+    mapProvider: props.formData.map_renderer,
+    maplibreStyle: props.formData.maplibre_style,
+    mapboxStyle: props.formData.mapbox_style,
+    legacyMapStyle: props.formData.map_style,
+  });
 
   return (
     <div style={{ position: 'relative' }}>
@@ -325,14 +333,8 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
         viewport={viewport}
         layers={getLayers()}
         setControlValue={props.setControlValue}
-        mapStyle={
-          props.formData.map_renderer === 'mapbox'
-            ? props.formData.mapbox_style
-            : props.formData.maplibre_style
-        }
-        mapProvider={
-          props.formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre'
-        }
+        mapStyle={selectedMap.mapStyle}
+        mapProvider={selectedMap.mapProvider}
         mapboxApiKey={getMapboxApiKey()}
         width={props.width}
         height={props.height}

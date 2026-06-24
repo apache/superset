@@ -19,7 +19,7 @@ from typing import Any
 
 from flask import current_app, request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.api import rison, safe, SQLAInterface
+from flask_appbuilder.api import rison as parse_rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
@@ -34,7 +34,11 @@ from superset.commands.dashboard.embedded.exceptions import (
 from superset.commands.exceptions import ForbiddenError
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
-from superset.security.guest_token import GuestTokenResourceType
+from superset.security.guest_token import (
+    build_guest_token_audit_payload,
+    GuestTokenResourceType,
+)
+from superset.utils.core import get_user_id
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
@@ -83,6 +87,18 @@ class GuestTokenCreateSchema(PermissiveSchema):
     user = fields.Nested(UserSchema)
     resources = fields.List(fields.Nested(ResourceSchema), required=True)
     rls = fields.List(fields.Nested(RlsRuleSchema), required=True)
+    datasets = fields.List(
+        fields.Integer(),
+        load_default=None,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Optional allowlist of dataset IDs the guest may access. "
+                "When omitted all datasets linked to the embedded dashboard "
+                "are accessible, preserving the default behaviour."
+            )
+        },
+    )
 
 
 class RoleResponseSchema(PermissiveSchema):
@@ -187,7 +203,19 @@ class SecurityRestApi(BaseSupersetApi):
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
             token = self.appbuilder.sm.create_guest_access_token(
-                body["user"], body["resources"], body["rls"]
+                body.get("user", {}),
+                body["resources"],
+                body["rls"],
+                **({"datasets": body["datasets"]} if "datasets" in body else {}),
+            )
+            logger.info(
+                "Guest token issued: %s",
+                build_guest_token_audit_payload(
+                    issuer_user_id=get_user_id(),
+                    source_ip=request.remote_addr,
+                    body=body,
+                    token=token,
+                ),
             )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
@@ -214,7 +242,7 @@ class RoleRestAPI(BaseSupersetApi):
     @event_logger.log_this
     @protect()
     @safe
-    @rison(get_list_schema)
+    @parse_rison(get_list_schema)
     @statsd_metrics
     @permission_name("list_roles")
     def get_list(self, **kwargs: Any) -> Response:
@@ -343,8 +371,12 @@ class RoleRestAPI(BaseSupersetApi):
             )
         except ForbiddenError as e:
             return self.response_403(message=str(e))
-        except Exception as e:
-            return self.response_500(message=str(e))
+        except Exception:
+            # Log the full error server-side for operator visibility, but return
+            # a generic message so internal details (ORM/driver error text, SQL
+            # fragments, schema names) are not echoed back to the caller.
+            logger.exception("Unexpected error in RoleRestAPI.get_list")
+            return self.response_500(message="An unexpected error occurred")
 
 
 class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
@@ -355,6 +387,11 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
     resource_name = "security/user_registrations"
     datamodel = SQLAInterface(RegisterUser)
     allow_browser_login = True
+    # NOTE: registration_hash is intentionally excluded from both list_columns
+    # and search_columns. It is a bearer token for the
+    # /register/activation/<hash> flow; exposing it in API responses (and thus
+    # logs/caches) or allowing it to be filtered on would let a holder activate
+    # the pending account.
     list_columns = [
         "id",
         "username",
@@ -362,5 +399,11 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
         "first_name",
         "last_name",
         "registration_date",
-        "registration_hash",
+    ]
+    search_columns = [
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "registration_date",
     ]

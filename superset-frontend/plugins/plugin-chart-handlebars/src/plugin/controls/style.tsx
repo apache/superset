@@ -22,7 +22,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
+import { useTheme, useThemeMode } from '@apache-superset/core/theme';
 import { InfoTooltip } from '@superset-ui/core/components';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
@@ -35,6 +35,7 @@ interface StyleCustomControlProps {
 
 const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
   const theme = useTheme();
+  const isDarkMode = useThemeMode();
   const htmlSanitization = props.htmlSanitization ?? true;
 
   const defaultValue = props?.value
@@ -49,7 +50,7 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
     <div>
       <ControlHeader>
         <div>
-          {props.label}
+          {typeof props.label === 'function' ? null : props.label}
           {htmlSanitization && (
             <InfoTooltip
               iconStyle={{ marginLeft: theme.sizeUnit }}
@@ -63,7 +64,7 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
         </div>
       </ControlHeader>
       <CodeEditor
-        theme="dark"
+        theme={isDarkMode ? 'dark' : 'light'}
         mode="css"
         value={props.value}
         defaultValue={defaultValue}
@@ -87,8 +88,8 @@ export const styleControlSetItem: ControlSetItem = {
     valueKey: null,
 
     validators: [],
-    mapStateToProps: ({ controls, common }) => ({
-      value: controls?.handlebars_template?.value,
+    mapStateToProps: ({ form_data, common }) => ({
+      value: form_data?.styleTemplate ?? form_data?.style_template,
       htmlSanitization: common?.conf?.HTML_SANITIZATION ?? true,
     }),
   },

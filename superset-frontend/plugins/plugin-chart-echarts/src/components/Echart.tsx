@@ -56,6 +56,7 @@ import {
   VisualMapComponent,
   LegendComponent,
   DataZoomComponent,
+  type DataZoomComponentOption,
   ToolboxComponent,
   GraphicComponent,
   AriaComponent,
@@ -179,7 +180,13 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        chartRef.current = init(divRef.current, null, { locale });
+        // Pass width and height to init to avoid "Can't get DOM width or height" warning
+        // since the DOM element may not have its dimensions yet when init is called
+        chartRef.current = init(divRef.current, null, {
+          locale,
+          width,
+          height,
+        });
       }
       // did mount
       handleSizeChange({ width, height });
@@ -274,12 +281,59 @@ function Echart(
 
       const notMerge = !isDashboardRefreshing;
       chartRef.current?.dispatchAction({ type: 'hideTip' });
+      // setOption(notMerge:true) replaces the dataZoom config, dropping any
+      // range the user has engaged. Preserve it across the call.
+      const previousZoom = notMerge
+        ? (
+            chartRef.current?.getOption() as {
+              dataZoom?: DataZoomComponentOption[];
+            }
+          )?.dataZoom
+        : undefined;
       chartRef.current?.setOption(themedEchartOptions, {
         notMerge,
         replaceMerge: notMerge ? undefined : ['series'],
         // lazyUpdate defers render, causing tooltip crashes on stale shapes (#39247)
         lazyUpdate: false,
       });
+      if (previousZoom?.length) {
+        // Skip restore when the new option reshapes dataZoom (different count
+        // means index-based restore could land on the wrong component).
+        const newZoom = (
+          chartRef.current?.getOption() as {
+            dataZoom?: DataZoomComponentOption[];
+          }
+        )?.dataZoom;
+        if (newZoom?.length === previousZoom.length) {
+          const batch = previousZoom
+            .map((dz, dataZoomIndex) => ({
+              dataZoomIndex,
+              start: dz.start,
+              end: dz.end,
+              startValue: dz.startValue,
+              endValue: dz.endValue,
+            }))
+            .filter(b => {
+              const hasAny =
+                b.start !== undefined ||
+                b.end !== undefined ||
+                b.startValue !== undefined ||
+                b.endValue !== undefined;
+              if (!hasAny) return false;
+              // Default full-range zoom is functionally identical to the
+              // fresh state setOption already produces — skip the dispatch.
+              const isDefaultRange =
+                b.start === 0 &&
+                b.end === 100 &&
+                b.startValue === undefined &&
+                b.endValue === undefined;
+              return !isDefaultRange;
+            });
+          if (batch.length) {
+            chartRef.current?.dispatchAction({ type: 'dataZoom', batch });
+          }
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isDashboardRefreshing intentionally excluded to prevent extra setOption calls
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);

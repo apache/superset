@@ -22,9 +22,11 @@ import {
   DataRecordFilters,
   DataRecordValue,
   ensureIsArray,
+  getColumnLabel,
   JsonObject,
   PartialFilters,
   ChartCustomization,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import {
   ChartConfiguration,
@@ -122,8 +124,13 @@ function extractColumnNames(columns: unknown[]): string[] {
     columns.forEach((col: unknown) => {
       if (typeof col === 'string') {
         columnNames.push(col);
-      } else if (col && typeof col === 'object' && 'column_name' in col) {
-        columnNames.push((col as { column_name: string }).column_name);
+      } else if (col && typeof col === 'object') {
+        if ('column_name' in col) {
+          columnNames.push((col as { column_name: string }).column_name);
+        } else if ('sqlExpression' in col) {
+          const label = getColumnLabel(col as QueryFormColumn);
+          if (label) columnNames.push(label);
+        }
       }
     });
   }
@@ -134,6 +141,7 @@ function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
   const existingColumns = new Set<string>();
   const chartType = chart.form_data?.viz_type;
 
+  // Base groupby is excluded: Dynamic Group By REPLACES it with the user's selection.
   const xAxisColumn = chart.form_data?.x_axis;
   if (xAxisColumn && chartType !== 'heatmap' && chartType !== 'heatmap_v2') {
     existingColumns.add(xAxisColumn);
@@ -279,7 +287,6 @@ function processGroupByCustomizations(
   >,
 ): {
   groupby?: string[];
-  order_by_cols?: string[];
   x_axis?: string;
   series?: string;
   columns?: string[];
@@ -324,7 +331,6 @@ function processGroupByCustomizations(
   const xAxisColumn = chart.form_data?.x_axis;
 
   const groupByColumns: string[] = [];
-  let orderByConfig: string[] | undefined;
   let heatmapColumnAdded = false;
 
   matchingCustomizations.forEach(item => {
@@ -372,12 +378,6 @@ function processGroupByCustomizations(
         }
       });
     }
-
-    const sortMetric = item.controlValues?.sortMetric;
-    const sortAscending = item.controlValues?.sortAscending;
-    if (sortMetric) {
-      orderByConfig = [JSON.stringify([sortMetric, !sortAscending])];
-    }
   });
 
   const groupByFormData = applyChartSpecificGroupBy(
@@ -386,10 +386,6 @@ function processGroupByCustomizations(
     existingGroupBy,
     xAxisColumn,
   );
-
-  if (orderByConfig) {
-    groupByFormData.order_by_cols = orderByConfig;
-  }
 
   return groupByFormData;
 }

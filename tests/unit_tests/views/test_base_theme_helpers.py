@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 from superset.themes.types import ThemeMode
 from superset.views.base import (
@@ -832,3 +832,86 @@ class TestBrandAppNameFallback:
 
         # Should handle gracefully and use default title
         assert result["default_title"] == "Superset"
+
+
+class TestGetDefaultSpinnerSvg:
+    """Test get_default_spinner_svg function"""
+
+    @patch("superset.views.base.logger")
+    @patch("builtins.open")
+    def test_get_default_spinner_svg_file_missing(self, mock_open, mock_logger):
+        """Test that missing spinner asset returns None and logs a warning"""
+        from superset.views.base import get_default_spinner_svg
+
+        mock_open.side_effect = FileNotFoundError()
+
+        result = get_default_spinner_svg()
+
+        assert result is None
+        # Verify that a warning was logged
+        mock_logger.warning.assert_called_once()
+        warning_msg = mock_logger.warning.call_args[0][0]
+        assert "Could not load default spinner SVG" in warning_msg
+
+    @patch("superset.views.base.logger")
+    @patch("builtins.open")
+    def test_get_default_spinner_svg_other_error(self, mock_open, mock_logger):
+        """Test that other unexpected errors during loading log a warning"""
+        from superset.views.base import get_default_spinner_svg
+
+        mock_open.side_effect = PermissionError("Permission denied")
+
+        result = get_default_spinner_svg()
+
+        assert result is None
+        # Verify that a warning was logged
+        mock_logger.warning.assert_called_once()
+        warning_msg = mock_logger.warning.call_args[0][0]
+        assert "Could not load default spinner SVG" in warning_msg
+
+    @patch("builtins.open", new_callable=mock_open, read_data="<svg>spinner</svg>")
+    def test_get_default_spinner_svg_success(self, mock_open):
+        """Test that successfully reading SVG returns the content"""
+        from superset.views.base import get_default_spinner_svg
+
+        result = get_default_spinner_svg()
+
+        assert result == "<svg>spinner</svg>"
+
+    def test_get_default_spinner_svg_real_file_exists(self):
+        """Test that the default spinner SVG file exists and is loadable"""
+        from superset.views.base import get_default_spinner_svg
+
+        result = get_default_spinner_svg()
+        assert result is not None
+        assert "<svg" in result
+        assert "morphPath" in result
+
+
+class TestThemeCacheInvalidation:
+    """Test theme cache invalidation event listeners"""
+
+    @patch("superset.extensions.cache_manager.cache.delete_memoized")
+    def test_clear_bootstrap_cache_event(self, mock_delete_memoized):
+        """Test that the event listener triggers delete_memoized"""
+        from superset.models.core import clear_bootstrap_cache
+        from superset.views.base import cached_common_bootstrap_data
+
+        # Call clear_bootstrap_cache with dummy mapper, connection, and Theme
+        clear_bootstrap_cache(MagicMock(), MagicMock(), MagicMock())
+
+        mock_delete_memoized.assert_called_once_with(cached_common_bootstrap_data)
+
+    @patch("superset.extensions.cache_manager.cache.delete_memoized")
+    @patch("superset.models.core.logger")
+    def test_clear_bootstrap_cache_event_error(self, mock_logger, mock_delete_memoized):
+        """Test that the event listener handles errors gracefully and logs them"""
+        from superset.models.core import clear_bootstrap_cache
+
+        mock_delete_memoized.side_effect = Exception("Cache error")
+        clear_bootstrap_cache(MagicMock(), MagicMock(), MagicMock())
+
+        mock_logger.warning.assert_called_once_with(
+            "Failed to clear theme bootstrap cache: %s",
+            mock_delete_memoized.side_effect,
+        )

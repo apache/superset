@@ -18,7 +18,6 @@
  */
 
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import path from 'path';
 import { DatasetListPage } from '../../pages/DatasetListPage';
 import { ExplorePage } from '../../pages/ExplorePage';
 import {
@@ -31,6 +30,7 @@ import {
 import { Toast } from '../../components/core';
 import {
   apiDeleteDataset,
+  apiExportDatasets,
   apiGetDataset,
   apiPostVirtualDataset,
   getDatasetByName,
@@ -43,6 +43,7 @@ import {
   waitForPut,
 } from '../../helpers/api/intercepts';
 import {
+  expectDeleted,
   expectStatusOneOf,
   expectValidExportZip,
 } from '../../helpers/api/assertions';
@@ -106,8 +107,11 @@ test('should delete a dataset with confirmation', async ({
   await datasetListPage.goto();
   await datasetListPage.waitForTableLoad();
 
-  // Verify dataset is visible in list
-  await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created dataset appears.
+  await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Click delete action button
   await datasetListPage.clickDeleteAction(datasetName);
@@ -125,27 +129,20 @@ test('should delete a dataset with confirmation', async ({
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears with correct message
+  // Verify success toast appears with correct message.
   const toast = new Toast(page);
-  const successToast = toast.getSuccess();
-  await expect(successToast).toBeVisible();
+  await expect(toast.getSuccess()).toBeVisible();
   await expect(toast.getMessage()).toContainText('Deleted');
 
-  // Verify dataset is removed from list
-  await expect(datasetListPage.getDatasetRow(datasetName)).not.toBeVisible();
+  // Verify dataset is removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
+  await expect(datasetListPage.getDatasetRow(datasetName)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Verify via API that dataset no longer exists (404)
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetDataset(page, datasetId, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Dataset ${datasetId} should return 404` },
-    )
-    .toBe(404);
+  await expectDeleted(page, ENDPOINTS.DATASET, datasetId, {
+    label: `Dataset ${datasetId}`,
+  });
 });
 
 test('should duplicate a dataset with new name', async ({
@@ -162,10 +159,13 @@ test('should duplicate a dataset with new name', async ({
   );
   const duplicateName = `duplicate_${Date.now()}_${test.info().parallelIndex}`;
 
-  // Navigate to list and verify original dataset is visible
+  // Navigate to list and verify original dataset is visible.
+  // The list query is asynchronous; allow extra time on slow CI.
   await datasetListPage.goto();
   await datasetListPage.waitForTableLoad();
-  await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
+  await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Set up response intercept to capture duplicate dataset ID
   const duplicateResponsePromise = waitForPost(
@@ -208,9 +208,14 @@ test('should duplicate a dataset with new name', async ({
   await datasetListPage.goto();
   await datasetListPage.waitForTableLoad();
 
-  // Verify both datasets exist in list
-  await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible();
-  await expect(datasetListPage.getDatasetRow(duplicateName)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // duplicate appears alongside the original.
+  await expect(datasetListPage.getDatasetRow(originalName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(datasetListPage.getDatasetRow(duplicateName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // API Verification: Fetch both datasets via detail API for consistent comparison
   // (list API may return undefined for fields that detail API returns as null)
@@ -263,6 +268,11 @@ test('should export multiple datasets via bulk select action', async ({
   datasetListPage,
   testAssets,
 }) => {
+  // Chains create×2 → refresh → bulk select → export. Matches the
+  // sibling bulk-delete test's budget so the export response wait below
+  // can exceed the 30s default without hitting the test timeout.
+  test.setTimeout(TIMEOUT.SLOW_TEST);
+
   // Create 2 throwaway datasets for bulk export
   const [dataset1, dataset2] = await Promise.all([
     createTestDataset(page, testAssets, test.info(), {
@@ -277,9 +287,14 @@ test('should export multiple datasets via bulk select action', async ({
   await datasetListPage.goto();
   await datasetListPage.waitForTableLoad();
 
-  // Verify both datasets are visible in list
-  await expect(datasetListPage.getDatasetRow(dataset1.name)).toBeVisible();
-  await expect(datasetListPage.getDatasetRow(dataset2.name)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created datasets appear.
+  await expect(datasetListPage.getDatasetRow(dataset1.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(datasetListPage.getDatasetRow(dataset2.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Enable bulk select mode
   await datasetListPage.clickBulkSelectButton();
@@ -288,11 +303,15 @@ test('should export multiple datasets via bulk select action', async ({
   await datasetListPage.selectDatasetCheckbox(dataset1.name);
   await datasetListPage.selectDatasetCheckbox(dataset2.name);
 
-  // Set up API response intercept for export endpoint
-  const exportResponsePromise = waitForGet(page, ENDPOINTS.DATASET_EXPORT);
+  // Set up API response intercept BEFORE the click that triggers it.
+  // Exports of multiple datasets can take longer than 30s under load,
+  // so use SLOW_TEST instead of the default test-timeout-bound budget.
+  const exportResponsePromise = waitForGet(page, ENDPOINTS.DATASET_EXPORT, {
+    timeout: TIMEOUT.SLOW_TEST,
+  });
 
   // Click bulk export action
-  await datasetListPage.clickBulkAction('Export');
+  await datasetListPage.clickBulkAction('export');
 
   // Wait for export API response and validate zip contains multiple datasets
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
@@ -319,8 +338,11 @@ test('should edit dataset name via modal', async ({
   await datasetListPage.goto();
   await datasetListPage.waitForTableLoad();
 
-  // Verify dataset is visible in list
-  await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created dataset appears.
+  await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Click edit action to open modal
   await datasetListPage.clickEditAction(datasetName);
@@ -355,9 +377,9 @@ test('should edit dataset name via modal', async ({
   // Modal should close
   await editModal.waitForHidden();
 
-  // Verify success toast appears
+  // Verify success toast appears.
   const toast = new Toast(page);
-  await expect(toast.getSuccess()).toBeVisible({ timeout: 10000 });
+  await expect(toast.getSuccess()).toBeVisible({ timeout: TIMEOUT.PAGE_LOAD });
 
   // Verify via API that name was saved
   const updatedDatasetRes = await apiGetDataset(page, datasetId);
@@ -370,6 +392,8 @@ test('should bulk delete multiple datasets', async ({
   datasetListPage,
   testAssets,
 }) => {
+  test.setTimeout(TIMEOUT.SLOW_TEST);
+
   // Create 2 throwaway datasets for bulk delete
   const [dataset1, dataset2] = await Promise.all([
     createTestDataset(page, testAssets, test.info(), {
@@ -384,9 +408,14 @@ test('should bulk delete multiple datasets', async ({
   await datasetListPage.goto();
   await datasetListPage.waitForTableLoad();
 
-  // Verify both datasets are visible in list
-  await expect(datasetListPage.getDatasetRow(dataset1.name)).toBeVisible();
-  await expect(datasetListPage.getDatasetRow(dataset2.name)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created datasets appear.
+  await expect(datasetListPage.getDatasetRow(dataset1.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(datasetListPage.getDatasetRow(dataset2.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Enable bulk select mode
   await datasetListPage.clickBulkSelectButton();
@@ -396,7 +425,7 @@ test('should bulk delete multiple datasets', async ({
   await datasetListPage.selectDatasetCheckbox(dataset2.name);
 
   // Click bulk delete action
-  await datasetListPage.clickBulkAction('Delete');
+  await datasetListPage.clickBulkAction('delete');
 
   // Delete confirmation modal should appear
   const deleteModal = new DeleteConfirmationModal(page);
@@ -411,67 +440,68 @@ test('should bulk delete multiple datasets', async ({
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears
+  // Verify success toast appears.
   const toast = new Toast(page);
   await expect(toast.getSuccess()).toBeVisible();
 
-  // Verify both datasets are removed from list
-  await expect(datasetListPage.getDatasetRow(dataset1.name)).not.toBeVisible();
-  await expect(datasetListPage.getDatasetRow(dataset2.name)).not.toBeVisible();
+  // Verify both datasets are removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
+  await expect(datasetListPage.getDatasetRow(dataset1.name)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(datasetListPage.getDatasetRow(dataset2.name)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Verify via API that datasets no longer exist (404)
-  // Use polling with explicit timeout since deletes may be async
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetDataset(page, dataset1.id, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Dataset ${dataset1.id} should return 404` },
-    )
-    .toBe(404);
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetDataset(page, dataset2.id, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Dataset ${dataset2.id} should return 404` },
-    )
-    .toBe(404);
+  await expectDeleted(page, ENDPOINTS.DATASET, dataset1.id, {
+    label: `Dataset ${dataset1.id}`,
+  });
+  await expectDeleted(page, ENDPOINTS.DATASET, dataset2.id, {
+    label: `Dataset ${dataset2.id}`,
+  });
 });
 
-// Import test uses a fixed dataset name from the zip fixture.
+// Import test uses export-then-reimport approach (no static fixture needed).
 // Uses test.describe only because Playwright's serial mode API requires it -
-// this prevents race conditions when parallel workers import the same fixture.
+// this prevents race conditions when parallel workers import the same dataset.
 // (Deviation from "avoid describe" guideline is necessary for functional reasons)
 test.describe('import dataset', () => {
-  test.describe.configure({ mode: 'serial' });
+  // `timeout` on describe.configure also bounds fixture setup, so the
+  // `datasetListPage` navigation gets the SLOW_TEST budget too —
+  // inline `test.setTimeout()` only applies once the test body runs.
+  test.describe.configure({ mode: 'serial', timeout: TIMEOUT.SLOW_TEST });
   test('should import a dataset from a zip file', async ({
     page,
     datasetListPage,
     testAssets,
   }) => {
-    // Dataset name from fixture (test_netflix_1768502050965)
-    // Note: Fixture contains a Google Sheets dataset backed by shillelagh[gsheetsapi],
-    // which is a base dependency — import failure fails the test hard (no skip).
-    const importedDatasetName = 'test_netflix_1768502050965';
-    const fixturePath = path.resolve(
-      __dirname,
-      '../../fixtures/dataset_export.zip',
+    // Create a dataset, export it via API, then delete it, then reimport via UI
+    const { id: datasetId, name: datasetName } = await createTestDataset(
+      page,
+      testAssets,
+      test.info(),
+      { prefix: 'test_import' },
     );
 
-    // Cleanup: Delete any existing dataset with the same name from previous runs
-    const existingDataset = await getDatasetByName(page, importedDatasetName);
-    if (existingDataset) {
-      await apiDeleteDataset(page, existingDataset.id, {
-        failOnStatusCode: false,
-      });
-    }
+    // Export the dataset via API to get a zip buffer
+    const exportResponse = await apiExportDatasets(page, [datasetId]);
+    expect(exportResponse.ok()).toBe(true);
+    const exportBuffer = await exportResponse.body();
+
+    // Delete the dataset so reimport creates it fresh
+    await apiDeleteDataset(page, datasetId);
+
+    // Verify it's gone
+    await expectDeleted(page, ENDPOINTS.DATASET, datasetId, {
+      label: `Dataset ${datasetId}`,
+    });
+
+    // Refresh to confirm dataset is no longer in the list (deleted rows are removed from the DOM, so assert count rather than visibility)
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
+    await expect(datasetListPage.getDatasetRow(datasetName)).toHaveCount(0, {
+      timeout: TIMEOUT.API_RESPONSE,
+    });
 
     // Click the import button
     await datasetListPage.clickImportButton();
@@ -480,11 +510,10 @@ test.describe('import dataset', () => {
     const importModal = new ImportDatasetModal(page);
     await importModal.waitForReady();
 
-    // Upload the fixture zip file
-    await importModal.uploadFile(fixturePath);
+    // Upload the exported zip via buffer (no temp file needed)
+    await importModal.uploadFileBuffer(exportBuffer);
 
     // Set up response intercept to catch the import POST
-    // Use pathMatch to avoid false matches if URL lacks trailing slash
     let importResponsePromise = waitForPost(page, ENDPOINTS.DATASET_IMPORT, {
       pathMatch: true,
     });
@@ -496,56 +525,53 @@ test.describe('import dataset', () => {
     let importResponse = await importResponsePromise;
 
     // Handle overwrite confirmation if dataset already exists
-    // First response may be 409/422 indicating overwrite is required - this is expected
+    // First response may be 409/422 indicating overwrite is required
     const overwriteInput = importModal.getOverwriteInput();
     await overwriteInput
-      .waitFor({ state: 'visible', timeout: 3000 })
+      .waitFor({ state: 'visible', timeout: TIMEOUT.CONFIRM_DIALOG })
       .catch(error => {
-        // Only ignore TimeoutError (input not visible); re-throw other errors
         if (!(error instanceof Error) || error.name !== 'TimeoutError') {
           throw error;
         }
       });
 
     if (await overwriteInput.isVisible()) {
-      // Set up new intercept for the actual import after overwrite confirmation
       importResponsePromise = waitForPost(page, ENDPOINTS.DATASET_IMPORT, {
         pathMatch: true,
       });
       await importModal.fillOverwriteConfirmation();
       await importModal.clickImport();
-      // Wait for the second (final) import response
       importResponse = await importResponsePromise;
     }
 
-    // Fail hard if dataset import fails.
-    // The fixture contains a gsheets dataset; shillelagh[gsheetsapi] is a base
-    // dependency (pyproject.toml), so the engine is always available in CI.
-    if (!importResponse.ok()) {
-      const errorBody = await importResponse.json().catch(() => ({}));
-      throw new Error(`Import failed: ${JSON.stringify(errorBody)}`);
-    }
+    // Verify import succeeded
+    expectStatusOneOf(importResponse, [200]);
 
     // Modal should close on success
     await importModal.waitForHidden({ timeout: TIMEOUT.FILE_IMPORT });
 
-    // Verify success toast appears
+    // Verify success toast appears.
     const toast = new Toast(page);
-    await expect(toast.getSuccess()).toBeVisible({ timeout: 10000 });
+    await expect(toast.getSuccess()).toBeVisible({
+      timeout: TIMEOUT.PAGE_LOAD,
+    });
 
-    // Refresh the page to see the imported dataset
+    // Refresh to see the imported dataset
     await datasetListPage.goto();
     await datasetListPage.waitForTableLoad();
 
-    // Verify dataset appears in list
-    await expect(
-      datasetListPage.getDatasetRow(importedDatasetName),
-    ).toBeVisible();
+    // The list query is asynchronous; allow extra time on slow CI before the
+    // freshly-imported dataset appears.
+    await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible({
+      timeout: TIMEOUT.API_RESPONSE,
+    });
 
-    // Get dataset ID for cleanup
-    const importedDataset = await getDatasetByName(page, importedDatasetName);
-    expect(importedDataset).not.toBeNull();
-    testAssets.trackDataset(importedDataset!.id);
+    // Track for cleanup: the dataset import API returns {"message": "OK"}
+    // with no ID, so look up the reimported dataset by name.
+    const reimported = await getDatasetByName(page, datasetName);
+    if (reimported) {
+      testAssets.trackDataset(reimported.id);
+    }
   });
 });
 

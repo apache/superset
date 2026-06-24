@@ -17,9 +17,10 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
+import { isThemeDark } from '@apache-superset/core/theme';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, queriesData } = chartProps;
+  const { width, height, formData, queriesData, theme } = chartProps;
   const {
     includeSeries,
     linearColorScheme,
@@ -33,15 +34,14 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data: queriesData[0].data,
+    defaultLineColor: theme.colorTextTertiary,
     includeSeries,
+    isDarkMode: isThemeDark(theme),
     linearColorScheme,
     metrics: metrics.map((m: { label?: string } | string) =>
       typeof m === 'string' ? m : m.label || m,
     ),
-    colorMetric:
-      secondaryMetric && secondaryMetric.label
-        ? secondaryMetric.label
-        : secondaryMetric,
+    colorMetric: secondaryMetric?.label || secondaryMetric,
     series,
     showDatatable,
   };

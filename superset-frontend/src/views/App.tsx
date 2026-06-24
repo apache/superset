@@ -21,6 +21,7 @@ import {
   BrowserRouter as Router,
   Switch,
   Route,
+  Redirect,
   useLocation,
 } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
@@ -48,6 +49,14 @@ setupCodeOverrides();
 setupAGGridModules();
 
 const bootstrapData = getBootstrapData();
+
+// WCAG 3.1.2: Set the HTML lang attribute based on the current locale
+// so screen readers announce the correct language for the page content.
+// Normalize to BCP-47 format by replacing underscores with hyphens
+// so region subtags like "pt_BR" become valid "pt-BR" rather than being dropped.
+const locale =
+  bootstrapData.common?.locale || window.navigator.language || 'en';
+document.documentElement.lang = String(locale).replace(/_/g, '-');
 
 let lastLocationPathname: string;
 
@@ -103,6 +112,7 @@ const App = () => (
               </Suspense>
             </Route>
           ))}
+          <Redirect from="/" to="/superset/welcome/" exact />
         </Switch>
       </ExtensionsStartup>
       <ToastContainer />

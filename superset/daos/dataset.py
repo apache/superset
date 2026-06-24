@@ -21,11 +21,16 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 import dateutil.parser
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query
 
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import (
+    SqlaTable,
+    sqlatable_user,
+    SqlMetric,
+    TableColumn,
+)
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import Database
@@ -79,14 +84,26 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 )
                 query = query.filter(SqlaTable.database_id.in_(subq))
             elif c.col == "owner":
-                from superset.connectors.sqla.models import sqlatable_user
-
                 operator_enum = ColumnOperatorEnum(c.opr)
                 subq = select(sqlatable_user.c.table_id).where(
                     operator_enum.apply(sqlatable_user.c.user_id, c.value)
                 )
                 query = query.filter(
                     SqlaTable.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
+            elif c.col == "created_by_fk_or_owner":
+                if c.opr != "eq":
+                    raise ValueError(
+                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                    )
+                owner_subq = select(sqlatable_user.c.table_id).where(
+                    sqlatable_user.c.user_id == c.value
+                )
+                query = query.filter(
+                    or_(
+                        SqlaTable.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
+                        SqlaTable.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                    )
                 )
             else:
                 remaining_operators.append(c)
@@ -404,6 +421,27 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         return (
             db.session.query(SqlaTable)
             .filter_by(database_id=database_id, table_name=table_name)
+            .one_or_none()
+        )
+
+    @staticmethod
+    def get_table_by_catalog_schema_and_name(
+        database_id: int,
+        schema: str | None,
+        table_name: str,
+        catalog: str | None = None,
+    ) -> SqlaTable | None:
+        # Filter by the full ``(database_id, catalog, schema, table_name)``
+        # uniqueness key so callers can disambiguate datasets that share a
+        # ``table_name`` across schemas or catalogs (#30377).
+        return (
+            db.session.query(SqlaTable)
+            .filter_by(
+                database_id=database_id,
+                catalog=catalog,
+                schema=schema,
+                table_name=table_name,
+            )
             .one_or_none()
         )
 
