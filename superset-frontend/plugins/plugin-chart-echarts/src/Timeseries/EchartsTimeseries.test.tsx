@@ -203,15 +203,15 @@ const defaultProps: TimeseriesChartTransformedProps = {
   onFocusedSeries: jest.fn(),
 };
 
-function getLatestHeight() {
-  return getLatestEchartProps().height;
-}
-
 function getLatestEchartProps() {
   const lastCall = mockEchart.mock.calls.at(-1);
   expect(lastCall).toBeDefined();
   const [props] = lastCall as [EchartsProps];
   return props;
+}
+
+function getLatestHeight() {
+  return getLatestEchartProps().height;
 }
 
 test('observes extra control height changes when ResizeObserver is available', async () => {
@@ -528,6 +528,10 @@ test('emits cross-filter on the category value for a horizontal categorical bar'
     ...defaultProps,
     emitCrossFilters: true,
     setDataMask: setDataMaskMock,
+    formData: {
+      ...defaultFormData,
+      orientation: OrientationType.Horizontal,
+    },
     groupby: [], // No dimensions
     xAxis: {
       label: 'category_column',
@@ -578,6 +582,10 @@ test('context menu cross-filter uses the category value for a horizontal categor
     ...defaultProps,
     emitCrossFilters: true,
     onContextMenu: onContextMenuMock,
+    formData: {
+      ...defaultFormData,
+      orientation: OrientationType.Horizontal,
+    },
     groupby: [], // No dimensions
     xAxis: {
       label: 'category_column',
