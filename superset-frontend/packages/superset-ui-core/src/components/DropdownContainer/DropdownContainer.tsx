@@ -81,6 +81,53 @@ export const DropdownContainer = forwardRef(
     // when nothing actually overflows.
     const [recalculating, setRecalculating] = useState(false);
 
+    // One-shot confirmation pass: when the layout effect settles on "nothing
+    // overflows" right after an item-set-change reset, the geometry may still
+    // be mid-reflow. These refs coordinate a single rAF follow-up measurement
+    // per item-set change so a transiently-bad "fits" verdict cannot latch.
+    //
+    // pendingConfirmForLengthRef: holds the items.length for which a
+    // confirmation is pending (-1 = none pending). Set in the reset (else)
+    // branch; cleared by the rAF callback after it settles.
+    const pendingConfirmForLengthRef = useRef(-1);
+    // confirmationScheduledRef: true once the rAF has been requested for the
+    // current pending length, preventing a second rAF on the setItemsWidth
+    // re-run that follows the first provisional measurement.
+    const confirmationScheduledRef = useRef(false);
+    // hadContentAtLastChangeRef: true when the trigger was showing at the
+    // moment the most recent item-set change was detected. Keeps the trigger
+    // mounted across the entire confirmation window (not just one render cycle)
+    // without letting it linger once the rAF callback has settled. Cleared by
+    // the rAF callback before calling setRecalculating(false).
+    const hadContentAtLastChangeRef = useRef(false);
+    // Guards rAF callbacks from firing after the component unmounts.
+    const mountedRef = useRef(true);
+    // Stores the pending confirmation rAF handle so it can be cancelled when a
+    // newer item-set change supersedes it, or on unmount.
+    const rafIdRef = useRef(0);
+    // Bumped on every item-set change. A scheduled rAF captures the version at
+    // schedule time and ignores itself if a newer change has superseded it, so
+    // a stale frame can never clobber a newer item set's state.
+    const confirmVersionRef = useRef(0);
+    // The items.length the layout effect last observed, used to detect a new
+    // item set (additions/removals) on any measurement path, not just the reset.
+    const prevItemsLengthRef = useRef(items.length);
+    useEffect(
+      () => () => {
+        mountedRef.current = false;
+        if (rafIdRef.current) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = 0;
+        }
+      },
+      [],
+    );
+    // Persists the inner container element for the rAF confirmation callback.
+    // Updated each time the layout effect finds a valid container so the rAF
+    // does not need to re-derive it through ref.current, which may be null by
+    // the time the callback fires in certain timing / test scenarios.
+    const containerRef = useRef<Element | null>(null);
+
     // callback to update item widths so that the useLayoutEffect runs whenever
     // width of any of the child changes
     const recalculateItemWidths = useCallback(() => {
@@ -163,14 +210,66 @@ export const DropdownContainer = forwardRef(
       };
     }, [items.length, current, recalculateItemWidths]);
 
+    const overflowingCount =
+      overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
+
+    const popoverContent = useMemo(
+      () =>
+        dropdownContent || overflowingCount ? (
+          <div
+            css={css`
+              display: flex;
+              flex-direction: column;
+              gap: ${theme.sizeUnit * 4}px;
+            `}
+            data-test="dropdown-content"
+            style={dropdownStyle}
+            ref={targetRef}
+          >
+            {dropdownContent
+              ? dropdownContent(overflowedItems)
+              : overflowedItems.map(item => item.element)}
+          </div>
+        ) : null,
+      [
+        dropdownContent,
+        overflowingCount,
+        theme.sizeUnit,
+        dropdownStyle,
+        overflowedItems,
+      ],
+    );
+
     useLayoutEffect(() => {
       if (popoverVisible) {
         return;
       }
       const container = current?.children.item(0);
       if (container) {
+        containerRef.current = container;
         const { children } = container;
         const childrenArray = Array.from(children);
+
+        // Detect a new item set (additions/removals shift the positional
+        // measurements the overflow split relies on). Arm a confirmation pass
+        // for it here so EVERY measurement path below — not just the reset
+        // branch — gets a follow-up; otherwise a fit->overflow transition (the
+        // bar was fitting, so the reset branch is skipped) could settle a
+        // transient "fits" verdict with no rescue. Also supersede any
+        // confirmation still pending for the previous item set: bump the version
+        // (so its stale rAF ignores itself) and cancel its frame.
+        if (prevItemsLengthRef.current !== items.length) {
+          prevItemsLengthRef.current = items.length;
+          pendingConfirmForLengthRef.current = items.length;
+          confirmationScheduledRef.current = false;
+          hadContentAtLastChangeRef.current = !!popoverContent;
+          confirmVersionRef.current += 1;
+          if (rafIdRef.current) {
+            cancelAnimationFrame(rafIdRef.current);
+            rafIdRef.current = 0;
+          }
+        }
+
         // If items length change, add all items to the container
         // and recalculate the widths
         if (itemsWidth.length !== items.length) {
@@ -211,6 +310,12 @@ export const DropdownContainer = forwardRef(
           // Checks if some elements in the dropdown fits in the remaining space
           let sum = 0;
           for (let i = childrenArray.length; i < items.length; i += 1) {
+            // Guard: itemsWidth may be stale when its length doesn't match the
+            // current item set (its updater bails on a length mismatch). An
+            // undefined entry would otherwise inject NaN into the sum.
+            if (itemsWidth[i] === undefined) {
+              break;
+            }
             sum += itemsWidth[i];
             if (sum <= remainingSpace) {
               newOverflowingIndex = i + 1;
@@ -220,6 +325,59 @@ export const DropdownContainer = forwardRef(
           }
         }
 
+        // A "nothing overflows" verdict on the pass that consumed an item-set-
+        // change reset may reflect a transient mid-reflow measurement. When that
+        // happens, do NOT settle immediately. Instead:
+        //   • If the rAF hasn't been scheduled yet: schedule it (one-shot) and
+        //     return without settling; recalculating stays true so the trigger
+        //     remains mounted throughout the confirmation window.
+        //   • If the rAF is already scheduled (a second layout effect run
+        //     triggered by the setItemsWidth call above): also return without
+        //     settling for the same reason.
+        // The rAF callback reads the DOM directly at a point where the browser
+        // has reflowed and calls the setters itself. It also resets the guard
+        // refs so subsequent effect runs (e.g. from a real resize) behave
+        // normally.
+        if (
+          newOverflowingIndex === -1 &&
+          pendingConfirmForLengthRef.current === items.length
+        ) {
+          if (!confirmationScheduledRef.current) {
+            confirmationScheduledRef.current = true;
+            const scheduledVersion = confirmVersionRef.current;
+            rafIdRef.current = requestAnimationFrame(() => {
+              rafIdRef.current = 0;
+              if (!mountedRef.current) return;
+              // A newer item-set change superseded this confirmation while the
+              // frame was queued; let the newer one's own confirmation settle.
+              if (confirmVersionRef.current !== scheduledVersion) return;
+              // Reset guard refs so future layout effect runs are unaffected.
+              pendingConfirmForLengthRef.current = -1;
+              confirmationScheduledRef.current = false;
+              hadContentAtLastChangeRef.current = false;
+              const el = containerRef.current;
+              if (!el) {
+                setOverflowingIndex(-1);
+                setRecalculating(false);
+                return;
+              }
+              const kids = Array.from(el.children);
+              const confirmIdx = kids.findIndex(
+                c =>
+                  c.getBoundingClientRect().right >
+                  el.getBoundingClientRect().right + 1,
+              );
+              setOverflowingIndex(confirmIdx);
+              setRecalculating(false);
+            });
+          }
+          // Either way (just scheduled or already pending): hold off settling so
+          // recalculating stays true and the button guard keeps the trigger mounted.
+          return;
+        }
+
+        pendingConfirmForLengthRef.current = -1;
+        confirmationScheduledRef.current = false;
         setOverflowingIndex(newOverflowingIndex);
         setRecalculating(false);
       }
@@ -242,44 +400,14 @@ export const DropdownContainer = forwardRef(
       }
     }, [notOverflowedIds, onOverflowingStateChange, overflowedIds]);
 
-    const overflowingCount =
-      overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
-
-    const popoverContent = useMemo(
-      () =>
-        dropdownContent || overflowingCount ? (
-          <div
-            css={css`
-              display: flex;
-              flex-direction: column;
-              gap: ${theme.sizeUnit * 4}px;
-            `}
-            data-test="dropdown-content"
-            style={dropdownStyle}
-            ref={targetRef}
-          >
-            {dropdownContent
-              ? dropdownContent(overflowedItems)
-              : overflowedItems.map(item => item.element)}
-          </div>
-        ) : null,
-      [
-        dropdownContent,
-        overflowingCount,
-        theme.sizeUnit,
-        dropdownStyle,
-        overflowedItems,
-      ],
-    );
-
-    // The trigger had content in the previous render if popoverContent was
-    // truthy then. During the brief mid-recalculation render where
-    // popoverContent flips to null, this still reflects the prior (non-empty)
-    // value, letting us keep the trigger mounted across the transient.
-    const hadPopoverContent = usePrevious(!!popoverContent, false);
-
+    // During the rAF confirmation window recalculating stays true (the layout
+    // effect returns early without settling). hadContentAtLastChangeRef tracks
+    // whether the trigger was showing when the item-set change was detected; it
+    // stays true across all renders until the rAF callback clears it. Together
+    // they keep the trigger mounted for the full confirmation window without
+    // letting it linger once the rAF has settled.
     const showDropdownButton =
-      !!popoverContent || (recalculating && hadPopoverContent);
+      !!popoverContent || (recalculating && hadContentAtLastChangeRef.current);
 
     useLayoutEffect(() => {
       if (popoverVisible) {
