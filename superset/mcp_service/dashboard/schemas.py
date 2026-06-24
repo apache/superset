@@ -430,8 +430,6 @@ class DashboardInfo(BaseModel):
     url: str | None = None
     created_on_humanized: str | None = None
     changed_on_humanized: str | None = None
-    created_by: str | None = None
-    changed_by: str | None = None
     chart_count: int = 0
     tags: List[TagInfo] = Field(default_factory=list)
     charts: List[DashboardChartSummary] = Field(default_factory=list)
@@ -1332,7 +1330,6 @@ def _safe_user_label(value: Any) -> str | None:
 
 
 def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
-
     include_data_model_metadata = user_can_view_data_model_metadata()
     base_url = get_superset_base_url()
     relative_url = dashboard.url  # e.g. "/superset/dashboard/{slug_or_id}/"
@@ -1358,8 +1355,6 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
             url=absolute_url,
             created_on_humanized=dashboard.created_on_humanized,
             changed_on_humanized=dashboard.changed_on_humanized,
-            created_by=_safe_user_label(getattr(dashboard, "created_by_name", None)),
-            changed_by=_safe_user_label(getattr(dashboard, "changed_by_name", None)),
             chart_count=len(dashboard.slices) if dashboard.slices else 0,
             native_filters=_extract_native_filters(
                 json_metadata_str,
