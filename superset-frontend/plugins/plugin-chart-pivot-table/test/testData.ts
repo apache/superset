@@ -91,6 +91,7 @@ const basicQueryResult: ChartDataResponseResult = {
   status: 'success',
   from_dttm: null,
   to_dttm: null,
+  queried_dttm: null,
 };
 
 // Shared test data
