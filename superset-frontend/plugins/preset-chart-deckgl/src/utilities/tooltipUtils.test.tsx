@@ -21,7 +21,7 @@ import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { render } from '@testing-library/react';
 import { createTooltipContent } from './tooltipUtils';
 
-test('does not append configured metric when tooltip_contents already has string metric', () => {
+test('buildFieldBasedTooltipItems does not append configured metric when tooltip_contents already has string metric', () => {
   const formData = {
     datasource: '1__table',
     viz_type: 'deck_polygon',
@@ -45,7 +45,7 @@ test('does not append configured metric when tooltip_contents already has string
   expect(metricRows).toBe(1);
 });
 
-test('appends configured metric when tooltip_contents does not include it', () => {
+test('buildFieldBasedTooltipItems appends configured metric when tooltip_contents does not include it', () => {
   const formData = {
     datasource: '1__table',
     viz_type: 'deck_polygon',
@@ -65,4 +65,26 @@ test('appends configured metric when tooltip_contents does not include it', () =
 
   expect(container.textContent).toContain('name: North');
   expect(container.textContent).toContain('sum__value: 10');
+});
+
+test('buildFieldBasedTooltipItems preserves zero configured metric fallback value', () => {
+  const formData = {
+    datasource: '1__table',
+    viz_type: 'deck_polygon',
+    tooltip_contents: ['name'],
+    metric: 'sum__value',
+  } as QueryFormData;
+
+  const hoverData = {
+    object: {
+      name: 'North',
+      metric: 0,
+    },
+  } as JsonObject;
+
+  const content = createTooltipContent(formData, () => <div>default</div>);
+  const { container } = render(content(hoverData));
+
+  expect(container.textContent).toContain('name: North');
+  expect(container.textContent).toContain('sum__value: 0');
 });

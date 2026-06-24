@@ -197,14 +197,14 @@ function buildFieldBasedTooltipItems(
   const foundMetricAlias = metricAliasCandidates[0] || '';
 
   const hasSelectedMetricItem = formData.tooltip_contents.some(
-    (item: any) =>
+    (item: string | { item_type?: string }) =>
       (item && typeof item === 'object' && item.item_type === 'metric') ||
       (typeof item === 'string' && metricAliasCandidates.includes(item)),
   );
 
   if (!hasSelectedMetricItem && foundMetricAlias) {
     const { value } = extractValue(o, foundMetricAlias, false);
-    const metricValue = value === '' ? o.object?.metric || '' : value;
+    const metricValue = value === '' ? (o.object?.metric ?? '') : value;
     if (metricValue !== '') {
       tooltipItems.push(
         <TooltipRow

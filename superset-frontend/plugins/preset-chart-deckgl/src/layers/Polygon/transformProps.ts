@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getMetricLabel } from '@superset-ui/core';
+import { ChartProps, getMetricLabel, QueryFormMetric } from '@superset-ui/core';
 import { addJsColumnsToExtraProps, DataRecord } from '../spatialUtils';
 import {
   createBaseTransformResult,
@@ -114,7 +114,9 @@ function processPolygonData(
   // Metric from GUI Config (Explore) can be an object (saved/adhoc), so normalize it to
   // the query-result label; this key is used to read the metric and expose it
   // in extraProps for tooltip resolution.
-  const metricLabel = metric ? getMetricLabel(metric as any) : undefined;
+  const metricLabel = metric
+    ? getMetricLabel(metric as QueryFormMetric)
+    : undefined;
 
   let elevationLabel: string | undefined;
   let fixedElevationValue: number | undefined;
