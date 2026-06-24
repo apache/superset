@@ -117,7 +117,7 @@ const mockedProps = {
   enableSorting: true,
   column: mockApi.mockColumn as any as Column,
   api: mockApi as any as GridApi,
-} as IHeaderParams;
+} as unknown as IHeaderParams;
 
 test('renders display name for the column', () => {
   const { queryByText } = render(<Header {...mockedProps} />);
