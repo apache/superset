@@ -511,6 +511,107 @@ def test_get_dashboard_urls_with_filters_and_tabs(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_with_filters_and_tabs_preserves_existing_url_params(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "dataMask": {"NATIVE_FILTER-1": {"filterState": {"value": ["Sales"]}}},
+            "activeTabs": ["TAB-1", "TAB-2"],
+            "urlParams": [("standalone", "true"), ("show_filters", "0")],
+            "nativeFilters": [  # type: ignore[typeddict-unknown-key]
+                {
+                    "nativeFilterId": "NATIVE_FILTER-1",
+                    "filterType": "filter_select",
+                    "columnName": "department",
+                    "filterValues": ["Sales"],
+                }
+            ],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
+    mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    class_instance.get_dashboard_urls()
+
+    for call in mock_permalink_cls.call_args_list:
+        state = call.kwargs["state"]
+        assert state["urlParams"] == [
+            ["standalone", "true"],
+            ["show_filters", "0"],
+            ["native_filters", native_filter_rison],
+        ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_with_filters_and_tabs_deduplicates_stale_native_filters(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(new:value))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "dataMask": {},
+            "activeTabs": ["TAB-1", "TAB-2"],
+            "urlParams": [
+                ("standalone", "true"),
+                ("native_filters", "(old:stale_value)"),
+            ],
+            "nativeFilters": [],  # type: ignore[typeddict-unknown-key]
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
+    mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    class_instance.get_dashboard_urls()
+
+    for call in mock_permalink_cls.call_args_list:
+        state = call.kwargs["state"]
+        assert state["urlParams"] == [
+            ["standalone", "true"],
+            ["native_filters", native_filter_rison],
+        ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
 def test_get_dashboard_urls_with_filters_no_tabs(
     mock_permalink_cls,
     mocker: MockerFixture,

@@ -704,7 +704,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             return (
                 not df_series.empty
                 and isinstance(df_series, pd.Series)
-                and isinstance(df_series[0], (list, dict))
+                and isinstance(df_series.iloc[0], (list, dict))
             )
 
         for col, coltype in df.dtypes.to_dict().items():

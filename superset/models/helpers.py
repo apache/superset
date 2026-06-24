@@ -27,7 +27,7 @@ import re
 import uuid
 from collections.abc import Hashable, Iterator
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
@@ -2765,7 +2765,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if tf:
             if tf in {"epoch_ms", "epoch_s"}:
-                seconds_since_epoch = int(dttm.timestamp())
+                # In general, Superset works with timezone-naive datetime objects
+                # internally. However, timestamp() applies local timezone to
+                # timezone-naive datetime objects. Therefore, we have to be explicit
+                # about UTC before calling timestamp().
+                dttm_tz_aware = dttm
+                if dttm_tz_aware.tzinfo is None:
+                    dttm_tz_aware = dttm_tz_aware.replace(tzinfo=timezone.utc)
+
+                seconds_since_epoch = int(dttm_tz_aware.timestamp())
                 if tf == "epoch_s":
                     return str(seconds_since_epoch)
                 return str(seconds_since_epoch * 1000)

@@ -16,12 +16,24 @@
 # under the License.
 
 
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Length, OneOf
 
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.dashboards.schemas import UserSchema
 from superset.utils.core import RowLevelSecurityFilterType
+
+
+def validate_non_blank_clause(value: str) -> None:
+    """Reject empty or whitespace-only RLS clauses.
+
+    An empty clause produces a non-restrictive predicate, which silently
+    disables the control when used as a base filter. Require a non-blank clause
+    on both the create and update paths.
+    """
+    if not value or not value.strip():
+        raise ValidationError("clause cannot be empty or whitespace-only.")
+
 
 id_description = "Unique if of rls filter"
 name_description = "Name of rls filter"
@@ -140,7 +152,10 @@ class RLSPostSchema(Schema):
         allow_none=True,
     )
     clause = fields.String(
-        metadata={"description": "clause_description"}, required=True, allow_none=False
+        metadata={"description": "clause_description"},
+        required=True,
+        allow_none=False,
+        validate=validate_non_blank_clause,
     )
 
 
@@ -182,5 +197,8 @@ class RLSPutSchema(Schema):
         allow_none=True,
     )
     clause = fields.String(
-        metadata={"description": "clause_description"}, required=False, allow_none=False
+        metadata={"description": "clause_description"},
+        required=False,
+        allow_none=False,
+        validate=validate_non_blank_clause,
     )
