@@ -20,6 +20,7 @@ import cx from 'classnames';
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useMemo,
   useState,
@@ -318,13 +319,9 @@ const Chart = (props: ChartProps) => {
     [dispatch, props.id, sliceVizType],
   );
 
-  useEffect(() => {
-    if (isExpanded) {
-      const descHeight =
-        isExpanded && descriptionRef.current
-          ? descriptionRef.current?.offsetHeight
-          : 0;
-      setDescriptionHeight(descHeight);
+  useLayoutEffect(() => {
+    if (isExpanded && descriptionRef.current) {
+      setDescriptionHeight(descriptionRef.current.offsetHeight);
     } else {
       setDescriptionHeight(0);
     }
