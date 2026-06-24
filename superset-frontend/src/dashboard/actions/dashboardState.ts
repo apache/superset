@@ -177,12 +177,11 @@ export function fetchFaveStar(id: number) {
           );
         }
       })
-      .catch(async error => {
-        const { status } = await getClientErrorObject(error);
-        // A 404 means the favorite status isn't available to this user
-        // (a non-owner viewing a draft dashboard, or a dashboard deleted
-        // after navigation) — swallow it silently instead of alarming them.
-        if (status === 404) {
+      .catch(error => {
+        // A 404 means the favorite status isn't available to this user (a
+        // non-owner viewing a draft dashboard, or a dashboard deleted after
+        // navigation) — swallow it silently instead of alarming them.
+        if (error instanceof Response && error.status === 404) {
           return;
         }
         // Only show the error if this is still the current dashboard (prevents
