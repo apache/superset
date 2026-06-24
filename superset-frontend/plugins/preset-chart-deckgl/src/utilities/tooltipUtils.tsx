@@ -176,33 +176,43 @@ function buildFieldBasedTooltipItems(
     }
   });
 
-  // In the geojson polygcon chart, where users can only pick columns as tooltip_contents,
-  // we still include the configured metric, so hover also shows the aggregation value.
+  // For example, in geojson polygon charts, users can only pick columns as tooltip_contents.
+  // We still include the configured metric, so hover also shows the aggregation value.
+  // formData.metric represents one configured metric; but depending on its type,
+  // it might be represented differently:
+  // 1. String metric (legacy/simple)
+  //    sum__value
+  // 2. Select option style object
+  //    { label: SUM(value), value: sum__value }
+  // 3. Adhoc metric style object
+  //    { label: ..., value: ... (optional), expressionType: ..., ... }
+  const metricAliasCandidates: string[] = [];
+  if (typeof formData.metric === 'string') {
+    metricAliasCandidates.push(formData.metric);
+  } else if (formData.metric) {
+    const metric = formData.metric as { label?: string; value?: string };
+    if (metric.label) metricAliasCandidates.push(metric.label);
+    if (metric.value) metricAliasCandidates.push(metric.value);
+  }
+  const foundMetricAlias = metricAliasCandidates[0] || '';
+
   const hasSelectedMetricItem = formData.tooltip_contents.some(
     (item: any) =>
-      item && typeof item === 'object' && item.item_type === 'metric',
+      (item && typeof item === 'object' && item.item_type === 'metric') ||
+      (typeof item === 'string' && metricAliasCandidates.includes(item)),
   );
-  if (!hasSelectedMetricItem && formData.metric) {
-    let metricFieldName = '';
-    if (typeof formData.metric === 'string') {
-      metricFieldName = formData.metric;
-    } else {
-      const metric = formData.metric as { label?: string; value?: string };
-      metricFieldName = metric.label || metric.value || '';
-    }
 
-    if (metricFieldName) {
-      const { value } = extractValue(o, metricFieldName, false);
-      const metricValue = value === '' ? o.object?.metric || '' : value;
-      if (metricValue !== '') {
-        tooltipItems.push(
-          <TooltipRow
-            key="tooltip-configured-metric"
-            label={`${metricFieldName}: `}
-            value={formatValue(metricValue)}
-          />,
-        );
-      }
+  if (!hasSelectedMetricItem && foundMetricAlias) {
+    const { value } = extractValue(o, foundMetricAlias, false);
+    const metricValue = value === '' ? o.object?.metric || '' : value;
+    if (metricValue !== '') {
+      tooltipItems.push(
+        <TooltipRow
+          key="tooltip-configured-metric"
+          label={`${foundMetricAlias}: `}
+          value={formatValue(metricValue)}
+        />,
+      );
     }
   }
 
