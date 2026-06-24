@@ -18,6 +18,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -126,10 +127,15 @@ export default function ExploreVersionHistory() {
     };
   }, [uuid, isPanelOpen, sliceId, addDangerToast]);
 
+  // Server-side search over the full history; debounce so each keystroke
+  // doesn't refetch (sc-107283 guide, 2026-06-12).
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounceValue(searchTerm);
   const activity = useVersionActivity(
     'chart',
     isPanelOpen ? uuid : undefined,
     include,
+    debouncedSearch,
   );
 
   const { requestRestore, openAsNew, restoreModal } = useVersionActions(
@@ -268,6 +274,8 @@ export default function ExploreVersionHistory() {
           activity={activity}
           include={include}
           onIncludeChange={handleIncludeChange}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
           previewedTransactionId={preview?.transactionId ?? null}
           onClose={handleClose}
           onPreview={handlePreview}

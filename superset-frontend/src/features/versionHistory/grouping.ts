@@ -18,7 +18,6 @@
  */
 import type {
   ActivityRecord,
-  DashboardGroupCategory,
   RelatedEntry,
   SaveGroup,
   TimelineEntry,
@@ -66,33 +65,6 @@ export function relatedEntryKey(record: ActivityRecord): string {
     record.entity_kind,
     record.entity_uuid ?? record.entity_name,
   ].join('|');
-}
-
-/**
- * Paths the server machine-writes on actions that are not meaningful
- * user edits (e.g. viewing a dashboard rewrites `shared_label_colors`).
- * Records under these paths are suppressed before grouping so they
- * never produce phantom save rows or inflate change counts. Extend the
- * list as more machine-written paths surface.
- */
-// TODO(version-history): backend workaround — remove when upstream stops
-// emitting machine-written paths (e.g. shared_label_colors, schema_perm)
-// as activity.
-const NOISE_PATHS: ReadonlyArray<readonly string[]> = [
-  ['json_metadata', 'shared_label_colors'],
-  // Permission strings rewritten whenever a datasource/schema changes;
-  // they cascade phantom "updated" records onto every affected chart.
-  ['schema_perm'],
-  ['catalog_perm'],
-];
-
-function isNoiseRecord(record: ActivityRecord): boolean {
-  const stringPath = record.path.filter(
-    (segment): segment is string => typeof segment === 'string',
-  );
-  return NOISE_PATHS.some(noisePath =>
-    noisePath.every((segment, index) => stringPath[index] === segment),
-  );
 }
 
 /** Identity of the entity a related record belongs to, ignoring the
@@ -187,15 +159,25 @@ function rollupSameTransactionRelated(
 }
 
 /**
+ * Dashboard layout containers — rows, columns, and the tab strip — are
+ * scaffolding Superset creates and destroys automatically as charts are
+ * dragged around (a single chart move can spawn a fresh ROW). They carry
+ * no user-meaningful name, so they're kept out of the descriptive change
+ * list; the chart add / move records tell the real story.
+ */
+const LAYOUT_SCAFFOLDING_KINDS = new Set(['row', 'column', 'tabs']);
+
+function isLayoutScaffolding(record: ActivityRecord): boolean {
+  return LAYOUT_SCAFFOLDING_KINDS.has(record.kind);
+}
+
+/**
  * Build the timeline from a flat newest-first activity stream:
  * `source='self'` records are grouped into one save container per
  * transaction, `source='related'` records collapse into a single entry
  * per (transaction, entity), adjacent related entries from one split
  * save merge into a single row, and multi-entity cascades roll up into
- * one row per (transaction, kind). Machine-written noise records are
- * dropped first, so saves consisting only of noise never appear and
- * change counts reflect real edits. The result is ordered newest
- * first.
+ * one row per (transaction, kind). The result is ordered newest first.
  */
 export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
   const groupsByTransaction = new Map<number, SaveGroup>();
@@ -203,9 +185,6 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
 
   records.forEach(record => {
-    if (isNoiseRecord(record)) {
-      return;
-    }
     if (record.source === 'self') {
       let group = groupsByTransaction.get(record.transaction_id);
       if (!group) {
@@ -221,7 +200,26 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
         groupsByTransaction.set(record.transaction_id, group);
         entries.push(group);
       }
-      group.records.push(record);
+      // The synthetic __meta__ headline (operation 'announce') is an
+      // annotation, not a user edit: keep it out of the change list. For a
+      // restore it carries the target version number for the headline.
+      if (record.kind === '__meta__' || record.operation === 'announce') {
+        const meta = record.to_value as { version_number?: number } | null;
+        if (meta && typeof meta.version_number === 'number') {
+          group.restoredToVersion = meta.version_number;
+        }
+      } else if (isLayoutScaffolding(record)) {
+        // Dropping a chart into empty space makes Superset spawn a new ROW;
+        // such container churn isn't a user action. Hide it — the chart's
+        // own add/move record carries the meaning — but remember it so a
+        // scaffolding-only save can still head with "Rearranged layout".
+        group.hasSuppressedLayout = true;
+      } else {
+        group.records.push(record);
+      }
+      if (record.first_tracked_save) {
+        group.firstTrackedSave = true;
+      }
       if (record.issued_at > group.issuedAt) {
         group.issuedAt = record.issued_at;
       }
@@ -269,30 +267,4 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
   });
 
   return rollupSameTransactionRelated(mergeAdjacentRelatedEntries(entries));
-}
-
-/**
- * Native-filter changes arrive as `kind="field"` records under
- * `json_metadata.native_filter_configuration` until the backend
- * promotes them to `kind="filter"` (deferred per spec); accept both
- * shapes.
- */
-function isFilterRecord(record: ActivityRecord): boolean {
-  return (
-    record.kind === 'filter' ||
-    (record.kind === 'field' &&
-      record.path[0] === 'json_metadata' &&
-      record.path[1] === 'native_filter_configuration')
-  );
-}
-
-/**
- * Dashboard saves render as compact containers: a save whose records
- * are all dashboard-level filter changes is a "Filters" save, anything
- * else is an "Edit mode" save.
- */
-export function classifySaveGroup(group: SaveGroup): DashboardGroupCategory {
-  return group.records.length > 0 && group.records.every(isFilterRecord)
-    ? 'filters'
-    : 'edit';
 }

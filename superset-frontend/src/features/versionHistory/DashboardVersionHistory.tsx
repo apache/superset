@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -90,10 +91,15 @@ export default function DashboardVersionHistory() {
     [dispatch],
   );
 
+  // Server-side search over the full history; debounce so each keystroke
+  // doesn't refetch (sc-107283 guide, 2026-06-12).
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounceValue(searchTerm);
   const activity = useVersionActivity(
     'dashboard',
     isPanelOpen ? uuid : undefined,
     include,
+    debouncedSearch,
   );
 
   useDashboardVersionPreview(uuid);
@@ -218,6 +224,8 @@ export default function DashboardVersionHistory() {
         activity={activity}
         include={include}
         onIncludeChange={handleIncludeChange}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
         previewedTransactionId={preview?.transactionId ?? null}
         onClose={handleClose}
         onPreview={handlePreview}
