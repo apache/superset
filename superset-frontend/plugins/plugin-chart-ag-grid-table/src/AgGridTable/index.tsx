@@ -520,7 +520,12 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           initialState={gridInitialState}
           maintainColumnOrder
           suppressAggFuncInHeader
-          enableCellTextSelection
+          // Clicking a cell should select (focus) the cell rather than select
+          // its text content (#106389). enableCellTextSelection forces browser
+          // text selection on click, which suppresses the cell-focus behavior.
+          // Full multi-cell range selection requires AG Grid Enterprise and is
+          // not available in the Community build used here.
+          enableCellTextSelection={false}
           quickFilterText={serverPagination ? '' : quickFilterText}
           suppressMovableColumns={!allowRearrangeColumns}
           pagination={pagination}
