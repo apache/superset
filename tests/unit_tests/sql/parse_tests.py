@@ -3240,6 +3240,29 @@ def test_sanitize_clause_preserves_aggregation_semantics(engine: str) -> None:
 
 @pytest.mark.parametrize(
     "engine",
+    ["postgresql", "redshift", "cockroachdb", "netezza", "hana", "base", "mysql"],
+)
+def test_sanitize_clause_preserves_aggregation_semantics_with_comment(
+    engine: str,
+) -> None:
+    """
+    Regression test for https://github.com/apache/superset/issues/36113.
+
+    A clause that contains a comment takes the re-rendering branch of
+    ``sanitize_clause``. That branch must normalize comments using the *base*
+    dialect rather than the engine dialect, so it must not re-apply the Postgres
+    ``ROUND(AVG(x), n)`` -> ``ROUND(CAST(AVG(x) AS DECIMAL), n)`` rewrite that
+    truncates results on engines where ``DECIMAL`` defaults to scale 0.
+    """
+    clause = "ROUND(AVG(col), 4) /* precise_count_distinct=true */"
+    sanitized = sanitize_clause(clause, engine)
+    assert "CAST" not in sanitized.upper(), (
+        f"sanitize_clause injected a cast for engine {engine!r}: {sanitized!r}"
+    )
+
+
+@pytest.mark.parametrize(
+    "engine",
     [
         "postgresql",
         "presto",
