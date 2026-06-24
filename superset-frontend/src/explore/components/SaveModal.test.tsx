@@ -444,7 +444,6 @@ test('renders tab selector when saving as', async () => {
   expect(tabSelector).toBeDisabled();
 });
 
-
 test('chart placement logic finds row with available space', () => {
   // Test case 1: Row has space (8 + 4 = 12 <= 12)
   const positionJson1 = {
