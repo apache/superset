@@ -154,6 +154,26 @@ export default class SupersetClientClass {
     }
   }
 
+  /**
+   * POST request that returns a blob for file downloads.
+   * Unlike postForm, this uses AJAX so errors can be caught and handled.
+   * @param endpoint - API endpoint
+   * @param payload - Request payload
+   * @returns Promise resolving to Response with blob
+   */
+  async postBlob(
+    endpoint: string,
+    payload: Record<string, any>,
+  ): Promise<Response> {
+    await this.ensureAuth();
+    return this.post({
+      endpoint,
+      postPayload: payload,
+      parseMethod: 'raw',
+      stringify: false,
+    });
+  }
+
   async reAuthenticate() {
     return this.init(true);
   }

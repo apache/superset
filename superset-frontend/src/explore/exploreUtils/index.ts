@@ -34,6 +34,7 @@ import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
+import { downloadBlob, getFilenameFromResponse } from 'src/utils/export';
 import { URL_PARAMS } from 'src/constants';
 import {
   DISABLE_INPUT_OPERATORS,
@@ -398,11 +399,54 @@ export const exportChart = async ({
       exportSource: 'chart',
     });
   } else {
-    // SupersetClient.postForm calls getUrl({ endpoint }) internally, which prepends
+    // Use AJAX blob download instead of form submission to enable error handling.
+    // SupersetClient.postBlob calls getUrl({ endpoint }) internally, which prepends
     // appRoot — so the URL must NOT be pre-prefixed here.
-    SupersetClient.postForm(url as string, {
-      form_data: safeStringify(payload),
-    });
+    try {
+      const response = await SupersetClient.postBlob(url as string, {
+        form_data: safeStringify(payload),
+      });
+
+      const extension = resultFormat === 'xlsx' ? 'xlsx' : resultFormat;
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .slice(0, -5);
+      const fallbackFilename = `chart_export_${timestamp}.${extension}`;
+      const filename = getFilenameFromResponse(response, fallbackFilename);
+
+      const blob = await response.blob();
+      downloadBlob(blob, filename);
+    } catch (error) {
+      if (error instanceof Response) {
+        const responseError = new Error(
+          `HTTP ${error.status} ${error.statusText}`,
+        ) as Error & {
+          status: number;
+          statusText: string;
+          response: Response;
+        };
+        responseError.status = error.status;
+        responseError.statusText = error.statusText;
+        responseError.response = error;
+        throw responseError;
+      }
+
+      const exportError = error as Error & {
+        status?: number;
+        originalError?: unknown;
+      };
+      if (!exportError.status) {
+        const enhancedError = new Error(
+          exportError.message || 'Export failed',
+        ) as Error & { status: number; originalError: unknown };
+        enhancedError.status = 500;
+        enhancedError.originalError = error;
+        throw enhancedError;
+      }
+
+      throw error;
+    }
   }
 };
 
