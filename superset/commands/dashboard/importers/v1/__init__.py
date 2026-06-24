@@ -25,8 +25,15 @@ from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import delete, select
 
 from superset import db
+from superset.annotation_layers.schemas import ImportV1AnnotationLayerSchema
 from superset.charts.schemas import ImportV1ChartSchema
-from superset.commands.chart.importers.v1.utils import import_chart
+from superset.commands.annotation_layer.importers.v1.utils import (
+    import_annotation_layer,
+)
+from superset.commands.chart.importers.v1.utils import (
+    import_chart,
+    topological_sort_charts,
+)
 from superset.commands.dashboard.exceptions import DashboardImportError
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
@@ -59,6 +66,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
     model_name = "dashboard"
     prefix = "dashboards/"
     schemas: dict[str, Schema] = {
+        "annotation_layers/": ImportV1AnnotationLayerSchema(),
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
@@ -132,9 +140,29 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     "datasource_name": dataset.table_name,
                 }
 
+        # import annotation layers before charts so UUID→ID maps are ready
+        annotation_layer_ids: dict[str, int] = {}
+        for file_name, config in configs.items():
+            if file_name.startswith("annotation_layers/"):
+                layer = import_annotation_layer(config, overwrite=False)
+                annotation_layer_ids[str(layer.uuid)] = layer.id
+
+        # discover referenced chart UUIDs from table/line annotations
+        referenced_chart_uuids: set[str] = set()
+        for file_name, config in configs.items():
+            if file_name.startswith("charts/") and config["uuid"] in chart_uuids:
+                for annotation in config.get("params", {}).get("annotation_layers", []):
+                    if annotation.get("sourceType") in (
+                        "table",
+                        "line",
+                    ) and isinstance(annotation.get("value"), str):
+                        referenced_chart_uuids.add(annotation["value"])
+
         # import charts with the correct parent ref
         charts = []
         chart_ids: dict[str, int] = {}
+        referenced_chart_configs: list[dict[str, Any]] = []
+        dependent_chart_configs: list[dict[str, Any]] = []
         for file_name, config in configs.items():
             if (
                 file_name.startswith("charts/")
@@ -144,17 +172,28 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 dataset_dict = dataset_info[config["dataset_uuid"]]
                 config = update_chart_config_dataset(config, dataset_dict)
 
-                chart = import_chart(config, overwrite=False)
-                charts.append(chart)
-                chart_ids[str(chart.uuid)] = chart.id
+                # pass annotation resolution maps via config
+                config["_annotation_layer_ids"] = annotation_layer_ids
 
-                # Handle tags using import_tag function
-                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                    if "tags" in config:
-                        target_tag_names = config["tags"]
-                        import_tag(
-                            target_tag_names, contents, chart.id, "chart", db.session
-                        )
+                if config.get("uuid") in referenced_chart_uuids:
+                    referenced_chart_configs.append(config)
+                else:
+                    dependent_chart_configs.append(config)
+
+        # topologically sort referenced charts for multi-level deps (A→B→C)
+        referenced_chart_configs = topological_sort_charts(referenced_chart_configs)
+
+        # import referenced charts first, then charts that depend on them
+        for config in referenced_chart_configs + dependent_chart_configs:
+            config["_chart_ids"] = chart_ids
+            chart = import_chart(config, overwrite=False)
+            charts.append(chart)
+            chart_ids[str(chart.uuid)] = chart.id
+
+            # Handle tags using import_tag function
+            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                if "tags" in config:
+                    import_tag(config["tags"], contents, chart.id, "chart", db.session)
 
         # store the existing relationship between dashboards and charts
         # (only used when overwrite=False to avoid inserting duplicates)

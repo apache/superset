@@ -22,17 +22,19 @@ from typing import Callable
 
 import yaml
 
+from superset.commands.annotation_layer.export import ExportAnnotationLayersCommand
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.daos.chart import ChartDAO
 from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.commands.export.models import ExportModelsCommand
 from superset.commands.tag.export import ExportTagsCommand
+from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.tags.models import TagType
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils import json
-from superset.extensions import feature_flag_manager
+from superset.extensions import db, feature_flag_manager
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +80,55 @@ class ExportChartsCommand(ExportModelsCommand):
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             tags = getattr(model, "tags", [])
             payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
+
+        # Replace annotation layer/chart integer IDs with UUIDs for portability
+        if isinstance(payload.get("params"), dict):
+            ExportChartsCommand._replace_annotation_layer_uuids(
+                payload["params"].get("annotation_layers", [])
+            )
+
+        # Also replace annotation IDs with UUIDs in query_context
+        if payload.get("query_context"):
+            try:
+                query_context = json.loads(payload["query_context"])
+                for query in query_context.get("queries", []):
+                    ExportChartsCommand._replace_annotation_layer_uuids(
+                        query.get("annotation_layers", [])
+                    )
+                form_data = query_context.get("form_data", {})
+                ExportChartsCommand._replace_annotation_layer_uuids(
+                    form_data.get("annotation_layers", [])
+                )
+                payload["query_context"] = json.dumps(query_context)
+            except json.JSONDecodeError:
+                logger.info(
+                    "Unable to decode `query_context` field: %s",
+                    payload["query_context"],
+                )
+
         file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
+
+    @staticmethod
+    def _replace_annotation_layer_uuids(
+        annotation_layers: list[dict],  # type: ignore[type-arg]
+    ) -> None:
+        """Replace integer IDs in annotation_layers with UUIDs for portability."""
+        for layer in annotation_layers:
+            source_type = layer.get("sourceType")
+            value = layer.get("value")
+            if not isinstance(value, int):
+                continue
+            if source_type == "NATIVE":
+                ann_layer = (
+                    db.session.query(AnnotationLayer).filter_by(id=value).first()
+                )
+                if ann_layer:
+                    layer["value"] = str(ann_layer.uuid)
+            elif source_type in ("table", "line"):
+                ref_charts = ChartDAO.find_by_ids([value])
+                if ref_charts:
+                    layer["value"] = str(ref_charts[0].uuid)
 
     _include_tags: bool = True  # Default to True
 
@@ -93,15 +142,60 @@ class ExportChartsCommand(ExportModelsCommand):
 
     @staticmethod
     def _export(
-        model: Slice, export_related: bool = True
+        model: Slice,
+        export_related: bool = True,
+        _seen: set[int] | None = None,
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        # Guard against circular annotation references (A→B→A).
+        # _seen is passed down the call stack so no class-level state is needed.
+        if _seen is None:
+            _seen = set()
+        if model.id in _seen:
+            return
+        _seen.add(model.id)
         yield (
             ExportChartsCommand._file_name(model),
             lambda: ExportChartsCommand._file_content(model),
         )
 
+        # Parse params once for deck_multi and annotation layer handling
+        try:
+            model_params = json.loads(model.params or "{}")
+        except json.JSONDecodeError:
+            model_params = {}
+
+        if (
+            model.viz_type == "deck_multi"
+            and export_related
+            and model_params.get("deck_slices")
+        ):
+            slice_ids = model_params.get("deck_slices")
+            yield from ExportChartsCommand(slice_ids).run()
+
         if model.table and export_related:
             yield from ExportDatasetsCommand([model.table.id]).run()
+
+        # Export charts referenced as annotation sources (table/line sourceType)
+        if export_related:
+            annotation_layers = model_params.get("annotation_layers", [])
+            chart_annotation_ids = [
+                layer["value"]
+                for layer in annotation_layers
+                if layer.get("sourceType") in ("table", "line")
+                and isinstance(layer.get("value"), int)
+            ]
+            if chart_annotation_ids:
+                yield from ExportChartsCommand(chart_annotation_ids).run()
+
+            # Native annotation layers (sourceType == "NATIVE", value = layer ID)
+            native_layer_ids = [
+                layer["value"]
+                for layer in annotation_layers
+                if layer.get("sourceType") == "NATIVE"
+                and isinstance(layer.get("value"), int)
+            ]
+            if native_layer_ids:
+                yield from ExportAnnotationLayersCommand(native_layer_ids).run()
 
         # Check if the calling class is ExportDashboardCommands
         if (
