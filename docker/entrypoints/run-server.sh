@@ -18,9 +18,12 @@
 # under the License.
 #
 HYPHEN_SYMBOL='-'
-STATSD_HOST="${SERVER_STATSD_HOST:-localhost}"
-STATSD_PORT="${SERVER_STATSD_PORT:-8125}"
-STATSD_ADDRESS="${STATSD_HOST}:${STATSD_PORT}"
+
+STATSD_ARGS=()
+if [ -n "${SERVER_STATSD_HOST}" ]; then
+    STATSD_PORT="${SERVER_STATSD_PORT:-8125}"
+    STATSD_ARGS=(--statsd-host "${SERVER_STATSD_HOST}:${STATSD_PORT}" --statsd-prefix "${SERVER_STATSD_PREFIX:-superset}")
+fi
 
 exec gunicorn \
     --bind "${SUPERSET_BIND_ADDRESS:-0.0.0.0}:${SUPERSET_PORT:-8088}" \
@@ -36,6 +39,5 @@ exec gunicorn \
     --max-requests-jitter ${WORKER_MAX_REQUESTS_JITTER:-0} \
     --limit-request-line ${SERVER_LIMIT_REQUEST_LINE:-0} \
     --limit-request-field_size ${SERVER_LIMIT_REQUEST_FIELD_SIZE:-0} \
-    --statsd-host "${STATSD_ADDRESS}" \
-    --statsd-prefix "${SERVER_STATSD_PREFIX:-superset}" \
+    "${STATSD_ARGS[@]}" \
     "${FLASK_APP}"
