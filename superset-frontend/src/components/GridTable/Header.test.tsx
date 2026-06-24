@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { Column, GridApi } from 'ag-grid-community';
+import type { Column, GridApi, IHeaderParams } from 'ag-grid-community';
 import { act, fireEvent, render } from 'spec/helpers/testing-library';
 import { Header } from './Header';
 import { PIVOT_COL_ID } from './constants';
@@ -117,7 +117,7 @@ const mockedProps = {
   enableSorting: true,
   column: mockApi.mockColumn as any as Column,
   api: mockApi as any as GridApi,
-};
+} as IHeaderParams;
 
 test('renders display name for the column', () => {
   const { queryByText } = render(<Header {...mockedProps} />);
