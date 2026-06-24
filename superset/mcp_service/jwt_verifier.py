@@ -35,12 +35,7 @@ from contextvars import ContextVar
 from typing import Any, cast
 
 import httpx
-from authlib.jose.errors import (
-    BadSignatureError,
-    DecodeError,
-    ExpiredTokenError,
-    JoseError,
-)
+from authlib.jose.errors import JoseError
 from fastmcp.server.auth.auth import AccessToken
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from mcp.server.auth.middleware.auth_context import AuthContextMiddleware
@@ -491,7 +486,7 @@ class DetailedJWTVerifier(MCPJWTVerifier):
             # Step 1: Decode header and check algorithm
             try:
                 header = self._decode_token_header(token)
-            except (ValueError, DecodeError) as e:
+            except ValueError as e:
                 reason = "Malformed token header"
                 _jwt_failure_reason.set(reason)
                 logger.debug("Malformed token header: %s", e)
@@ -566,18 +561,16 @@ class DetailedJWTVerifier(MCPJWTVerifier):
             # Step 3: Decode and verify signature
             try:
                 claims = self.jwt.decode(token, verification_key)
-            except BadSignatureError:
-                reason = "Signature verification failed"
-                _jwt_failure_reason.set(reason)
-                return None
-            except ExpiredTokenError:
-                reason = "Token has expired (detected during decode)"
-                _jwt_failure_reason.set(reason)
-                return None
             except JoseError as e:
-                reason = "Token decode failed"
+                error_code = getattr(e, "error", None)
+                if error_code == "bad_signature":
+                    reason = "Signature verification failed"
+                elif error_code == "expired_token":
+                    reason = "Token has expired (detected during decode)"
+                else:
+                    reason = "Token decode failed"
+                    logger.debug("Token decode failed: %s", e)
                 _jwt_failure_reason.set(reason)
-                logger.debug("Token decode failed: %s", e)
                 return None
 
             # Extract client ID for logging

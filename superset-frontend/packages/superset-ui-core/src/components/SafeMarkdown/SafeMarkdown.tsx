@@ -74,7 +74,10 @@ export function transformLinkUri(uri: string): string {
   // "java\tscript:" or "java\x01script:") are ignored by browsers, so strip
   // them before comparing against the blocklist.
   // eslint-disable-next-line no-control-regex
-  const scheme = url.slice(0, colon).replace(/[\u0000-\u0020]/g, '').toLowerCase();
+  const scheme = url
+    .slice(0, colon)
+    .replace(/[\u0000-\u0020]/g, '')
+    .toLowerCase();
   return DANGEROUS_LINK_PROTOCOLS.includes(scheme) ? '' : url;
 }
 

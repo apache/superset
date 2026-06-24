@@ -30,7 +30,7 @@ jobs:
       docker: ${{ steps.check.outputs.docker }}
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: Check for file changes
@@ -71,9 +71,27 @@ jobs:
 
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+
+      - name: Free up disk space
+        shell: bash
+        run: |
+          # Reclaim large preinstalled toolchains we don't use. The image
+          # build, and especially the docker-compose sanity check (which
+          # rebuilds from scratch whenever the registry cache image
+          # apache/superset-cache is unavailable), can otherwise exhaust the
+          # runner's root disk and fail with "no space left on device".
+          echo "Disk before cleanup:"; df -h /
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL \
+            /usr/local/share/boost || true
+          echo "Disk after cleanup:"; df -h /
 
       - name: Setup Docker Environment
         uses: ./.github/actions/setup-docker
@@ -159,9 +177,24 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+      - name: Free up disk space
+        shell: bash
+        run: |
+          # The sanity check rebuilds the image from scratch whenever the
+          # registry cache image apache/superset-cache is unavailable, which
+          # can exhaust the runner's root disk ("no space left on device").
+          echo "Disk before cleanup:"; df -h /
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL \
+            /usr/local/share/boost || true
+          echo "Disk after cleanup:"; df -h /
       - name: Setup Docker Environment
         uses: ./.github/actions/setup-docker
         with:
