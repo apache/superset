@@ -27,6 +27,7 @@ from uuid import UUID
 from flask import current_app as app, g, Response
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.exceptions import SupersetSecurityException
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 
@@ -227,7 +228,14 @@ def on_error(
             logger.exception(ex.exception)
 
         if reraise:
-            raise reraise(ex) from ex
+            # Only forward the source exception to the reraised exception for
+            # security exceptions, so that callers can surface validation errors
+            # (e.g. dataset SQL validation). For all other cases keep the default
+            # behavior of raising the reraise type with its own message, to avoid
+            # overriding callers' exception messages.
+            if isinstance(ex, SupersetSecurityException):
+                raise reraise(ex) from ex
+            raise reraise() from ex
     else:
         raise ex
 
