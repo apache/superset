@@ -117,7 +117,7 @@
     "@fontsource/inter": "^5.2.8",
     "@googleapis/sheets": "^13.0.2",
     "@great-expectations/jsonforms-antd-renderers": "^2.2.10",
-    "@jsonforms/core": "^3.7.0",
+    "@jsonforms/core": "^3.8.0",
     "@jsonforms/react": "^3.7.0",
     "@jsonforms/vanilla-renderers": "^3.7.0",
     "@luma.gl/constants": "~9.2.5",
