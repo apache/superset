@@ -100,7 +100,7 @@ const config: ControlPanelConfig = {
               label: t('Show Null Values'),
               default: true,
               renderTrigger: true,
-              description: t('Whether to display null values'),
+              description: t('Whether to display entries with null values in the hierarchy'),
             },
           },
         ],
