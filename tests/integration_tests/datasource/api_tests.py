@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from datetime import datetime
 from unittest.mock import ANY, patch
 
 import pytest
@@ -23,12 +24,21 @@ from sqlalchemy.sql.elements import TextClause
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.exceptions import DatasourceTypeNotSupportedError
+from superset.extensions import cache_manager
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 
 
 class TestDatasourceApi(SupersetTestCase):
+    def setUp(self):
+        # Clear the column-values cache before every test so that
+        # ``get_column_values`` always re-runs ``values_for_column`` rather
+        # than returning a payload populated by a previous test. Prevents
+        # order-dependent flakes now that the endpoint caches its result.
+        super().setUp()
+        cache_manager.data_cache.clear()
+
     def get_virtual_dataset(self):
         return (
             db.session.query(SqlaTable)
@@ -204,6 +214,123 @@ class TestDatasourceApi(SupersetTestCase):
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
             assert response["result"] == []
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_hit_skips_query(self, values_for_column_mock):
+        """Regression test for #39342.
+
+        Two identical requests for the same column on the same datasource
+        should hit ``values_for_column`` exactly once — the second request
+        returns the cached payload.
+        """
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["a", "b", "c"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        rv1 = self.client.get(url)
+        rv2 = self.client.get(url)
+
+        assert rv1.status_code == 200
+        assert rv2.status_code == 200
+        assert json.loads(rv2.data.decode("utf-8"))["result"] == ["a", "b", "c"]
+        assert values_for_column_mock.call_count == 1
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_force_bypasses_cache(self, values_for_column_mock):
+        """``?force=true`` should bypass the cache and re-query the source."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["a", "b"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        self.client.get(url)
+        self.client.get(f"{url}?force=true")
+
+        assert values_for_column_mock.call_count == 2
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_isolated_per_column(self, values_for_column_mock):
+        """Different columns on the same datasource must not share a cache
+        entry — otherwise filter values would be silently swapped."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["x"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col1/values/")
+        self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+
+        assert values_for_column_mock.call_count == 2
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_busts_on_changed_on(self, values_for_column_mock):
+        """Editing the underlying virtual dataset SQL bumps ``changed_on``,
+        which is part of the cache key — so the next request must miss the
+        cache and re-run the query."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["v"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        self.client.get(url)
+        # Simulate an edit to the dataset; ``changed_on`` is what the cache
+        # key reads, so any new value forces a miss.
+        table.changed_on = datetime(2030, 1, 1)
+        db.session.flush()
+        self.client.get(url)
+
+        assert values_for_column_mock.call_count == 2
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.datasource.api.security_manager.get_rls_cache_key")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_isolated_per_rls_context(
+        self, values_for_column_mock, get_rls_cache_key_mock
+    ):
+        """RLS safety for guest/embedded sessions. ``get_user_id()`` returns
+        ``None`` for guest users, so two embedded dashboards with different
+        guest-token RLS would otherwise collide on ``user=None``. Including
+        the RLS fingerprint in the cache key keeps them separate."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["v"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        get_rls_cache_key_mock.return_value = ["dept='A'"]
+        self.client.get(url)
+        get_rls_cache_key_mock.return_value = ["dept='B'"]
+        self.client.get(url)
+
+        assert values_for_column_mock.call_count == 2
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_response_advertises_cache_status(
+        self, values_for_column_mock
+    ):
+        """The ``X-Cache-Status`` response header should advertise MISS on
+        the populating request and HIT on the next identical request, so
+        operators can debug cache behavior from logs or browser devtools."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["v"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        rv_miss = self.client.get(url)
+        rv_hit = self.client.get(url)
+
+        assert rv_miss.headers.get("X-Cache-Status") == "MISS"
+        assert rv_hit.headers.get("X-Cache-Status") == "HIT"
 
     @patch("superset.datasource.api.security_manager.can_access")
     @patch("superset.datasource.api.GetCombinedDatasourceListCommand.run")

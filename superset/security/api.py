@@ -34,7 +34,11 @@ from superset.commands.dashboard.embedded.exceptions import (
 from superset.commands.exceptions import ForbiddenError
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
-from superset.security.guest_token import GuestTokenResourceType
+from superset.security.guest_token import (
+    build_guest_token_audit_payload,
+    GuestTokenResourceType,
+)
+from superset.utils.core import get_user_id
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
@@ -204,6 +208,15 @@ class SecurityRestApi(BaseSupersetApi):
                 body["rls"],
                 **({"datasets": body["datasets"]} if "datasets" in body else {}),
             )
+            logger.info(
+                "Guest token issued: %s",
+                build_guest_token_audit_payload(
+                    issuer_user_id=get_user_id(),
+                    source_ip=request.remote_addr,
+                    body=body,
+                    token=token,
+                ),
+            )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
             return self.response_400(message=error.message)
@@ -358,8 +371,12 @@ class RoleRestAPI(BaseSupersetApi):
             )
         except ForbiddenError as e:
             return self.response_403(message=str(e))
-        except Exception as e:
-            return self.response_500(message=str(e))
+        except Exception:
+            # Log the full error server-side for operator visibility, but return
+            # a generic message so internal details (ORM/driver error text, SQL
+            # fragments, schema names) are not echoed back to the caller.
+            logger.exception("Unexpected error in RoleRestAPI.get_list")
+            return self.response_500(message="An unexpected error occurred")
 
 
 class UserRegistrationsRestAPI(BaseSupersetModelRestApi):

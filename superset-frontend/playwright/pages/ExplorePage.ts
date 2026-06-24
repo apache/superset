@@ -29,10 +29,31 @@ export class ExplorePage {
   private static readonly SELECTORS = {
     DATASOURCE_CONTROL: '[data-test="datasource-control"]',
     VIZ_SWITCHER: '[data-test="fast-viz-switcher"]',
+    CHART_CONTAINER: '[data-test="chart-container"]',
   } as const;
 
   constructor(page: Page) {
     this.page = page;
+  }
+
+  /**
+   * Navigates to the Explore page for a given chart and waits for it to load.
+   *
+   * @param chartId - ID of the chart (slice) to open
+   * @param options - Optional wait options
+   */
+  async goto(chartId: number, options?: { timeout?: number }): Promise<void> {
+    await this.page.goto(`explore/?slice_id=${chartId}`);
+    await this.waitForPageLoad(options);
+  }
+
+  /**
+   * Gets the chart container locator (where the rendered viz appears).
+   *
+   * @returns Locator for the chart container
+   */
+  getChartContainer(): Locator {
+    return this.page.locator(ExplorePage.SELECTORS.CHART_CONTAINER);
   }
 
   /**

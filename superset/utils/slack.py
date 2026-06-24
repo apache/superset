@@ -48,7 +48,11 @@ def get_slack_client() -> WebClient:
     token: str = app.config["SLACK_API_TOKEN"]
     if callable(token):
         token = token()
-    client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
+    client = WebClient(
+        token=token,
+        proxy=app.config["SLACK_PROXY"],
+        timeout=app.config["SLACK_API_TIMEOUT"],
+    )
 
     max_retry_count = app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)
     rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=max_retry_count)
