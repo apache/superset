@@ -38,6 +38,12 @@ The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list re
 
 The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
 
+### Dashboard import can overwrite related charts, datasets, and databases
+
+Re-importing an existing dashboard previously overwrote only the dashboard itself; its related charts, datasets, and databases were never updated (the importer hardcoded `overwrite=False` for them). They can now be overwritten as part of the import.
+
+A new `overwrite_all` form field controls this. On the `/api/v1/dashboard/import/` endpoint, when `overwrite=true` and `overwrite_all` is omitted, `overwrite_all` defaults to `true`, so related charts, datasets, and databases are overwritten along with the dashboard. Callers that want to overwrite only the dashboard (the previous behavior) must explicitly pass `overwrite_all=false`. The import modal in the UI exposes this as an "also overwrite all assets" checkbox. Note that the CLI `superset import-dashboards` and the `ImportDashboardsCommand` default `overwrite_all` to `false`.
+
 ### Webhook alerts/reports block private/internal hosts by default
 
 Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.

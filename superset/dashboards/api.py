@@ -1899,6 +1899,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                     overwrite:
                       description: overwrite existing dashboards?
                       type: boolean
+                    overwrite_all:
+                      description: >-
+                        overwrite all existing assets within the dashboard?
+                      type: boolean
                     ssh_tunnel_passwords:
                       description: >-
                         JSON map of passwords for each ssh_tunnel associated to a
@@ -1961,6 +1965,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
+        overwrite_all = parse_boolean_string(
+            request.form.get("overwrite_all", "true" if overwrite else "false")
+        )
 
         ssh_tunnel_passwords = (
             json.loads(request.form["ssh_tunnel_passwords"])
@@ -1982,6 +1989,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             contents,
             passwords=passwords,
             overwrite=overwrite,
+            overwrite_all=overwrite_all,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
