@@ -308,8 +308,8 @@ def test_send_backoff_bounded_by_max_time(monkeypatch, mock_header_data) -> None
     """
     A persistently failing (500) target gives up on wall-time (``max_time``),
     not just ``max_tries``. ``freeze_time(auto_tick_seconds=30)`` advances the
-    clock on every time access (backoff reads elapsed via the frozen clock, and
-    ``monotonic`` is frozen too), so cumulative elapsed crosses ``max_time=120``
+    clock on every time access (backoff measures elapsed via ``datetime.now``,
+    which freezegun freezes and ticks), so cumulative elapsed crosses ``max_time=120``
     before ``max_tries=5`` is exhausted. We assert the discriminating *property*
     — gave up on wall-time strictly before exhausting ``max_tries`` — rather than
     a pinned count, because freezegun's per-call tick count is an opaque

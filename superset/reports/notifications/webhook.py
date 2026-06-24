@@ -136,9 +136,11 @@ class WebhookNotification(BaseNotification):
         # Bound total wall-clock retry time. Without this, a hanging or
         # persistently failing target can stall a worker for minutes per bad URL
         # (up to ~5 socket waits at timeout=60 plus ~150s of retry sleeps),
-        # starving sequential report dispatch. max_time is checked between
-        # attempts, so the final in-flight request can still run its full
-        # timeout; factor is intentionally kept at 10 so legitimately-transient
+        # starving sequential report dispatch. backoff evaluates max_time against
+        # the elapsed time sampled BEFORE each attempt, so the last request can
+        # start just under the bound and still run its full timeout: worst case
+        # ~210s (~150s elapsed at the final pre-attempt check + one 60s request),
+        # not 120s. factor is intentionally kept at 10 so legitimately-transient
         # 5xx targets are not abandoned early.
         max_time=120,
     )

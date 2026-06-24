@@ -166,8 +166,8 @@ class BaseReportState:
         """
         # Track each recipient mutated in this pass with its original (type,
         # config) so a partial failure can revert ALL of them — not just the
-        # loop variable. Restoring the values to their loaded state keeps the
-        # persisted rows unchanged regardless of any intervening commit.
+        # loop variable. Restoring the in-memory values to their loaded state
+        # keeps a later commit from persisting a half-migrated set.
         mutated: list[tuple[ReportRecipients, ReportRecipientType, str]] = []
         try:
             for recipient in self._report_schedule.recipients:
@@ -466,7 +466,7 @@ class BaseReportState:
         """
         start_time = datetime.utcnow()
 
-        user, username = resolve_executor_user(self._report_schedule)
+        user, _ = resolve_executor_user(self._report_schedule)
 
         max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
 

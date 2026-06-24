@@ -1173,7 +1173,7 @@ def test_resolve_executor_user_returns_user_and_username(
     """
     Happy path: when the executor user exists, the helper returns the
     ``(user, username)`` tuple unchanged — locking the no-behavior-change exit
-    criterion for the four call sites.
+    criterion for the three call sites.
     """
     from superset.commands.report.execute import resolve_executor_user
 
