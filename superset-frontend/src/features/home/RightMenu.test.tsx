@@ -402,24 +402,34 @@ test('Logs out and clears local storage item redux', async () => {
   expect(sessionStorage.getItem('login_attempted')).not.toBeNull();
 
   // Mock the Cache API so we can assert the namespaced store is purged.
+  const cacheGlobal = global as typeof global & { caches?: CacheStorage };
+  const priorCaches = cacheGlobal.caches;
   const deleteMock = jest.fn().mockResolvedValue(true);
-  (global as any).caches = { delete: deleteMock };
+  cacheGlobal.caches = { delete: deleteMock } as unknown as CacheStorage;
 
-  await userEvent.hover(await screen.findByText(/Settings/i));
+  try {
+    await userEvent.hover(await screen.findByText(/Settings/i));
 
-  // Simulate user clicking the logout button
-  const logoutButton = await screen.findByText('Logout');
-  await userEvent.click(logoutButton);
+    // Simulate user clicking the logout button
+    const logoutButton = await screen.findByText('Logout');
+    await userEvent.click(logoutButton);
 
-  // Wait for local and session storage to be cleared
-  await waitFor(() => {
-    expect(localStorage.getItem('redux')).toBeNull();
-    expect(sessionStorage.getItem('login_attempted')).toBeNull();
-  });
-  // The namespaced Cache API store is purged on logout.
-  expect(deleteMock).toHaveBeenCalledWith('@SUPERSET-UI/CONNECTION');
-
-  delete (global as any).caches;
+    // Wait for local and session storage to be cleared
+    await waitFor(() => {
+      expect(localStorage.getItem('redux')).toBeNull();
+      expect(sessionStorage.getItem('login_attempted')).toBeNull();
+    });
+    // The namespaced Cache API store is purged on logout.
+    expect(deleteMock).toHaveBeenCalledWith('@SUPERSET-UI/CONNECTION');
+  } finally {
+    // Restore the global so an early assertion failure cannot leak the mock
+    // into other tests.
+    if (priorCaches === undefined) {
+      delete cacheGlobal.caches;
+    } else {
+      cacheGlobal.caches = priorCaches;
+    }
+  }
 });
 
 test('shows logout button when not embedded', async () => {
