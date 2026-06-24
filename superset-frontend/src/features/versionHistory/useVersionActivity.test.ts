@@ -123,3 +123,34 @@ test('loadMore stops chaining after the per-click page cap', async () => {
   // still more raw pages on the server; the button stays available
   expect(result.current.hasMore).toBe(true);
 });
+
+test('changing the search term refetches from page 0 with q', async () => {
+  mockedFetchActivity.mockImplementation(async (_type, _uuid, options) => ({
+    count: 1,
+    result: options?.q ? [record(50, 0)] : [record(100, 0)],
+  }));
+
+  const { result, rerender } = renderHook(
+    ({ q }: { q: string }) => useVersionActivity('chart', 'uuid-1', 'all', q),
+    { initialProps: { q: '' } },
+  );
+
+  await waitFor(() => expect(result.current.timeline).toHaveLength(1));
+  expect(mockedFetchActivity).toHaveBeenLastCalledWith('chart', 'uuid-1', {
+    include: 'all',
+    page: 0,
+    pageSize: PAGE_SIZE,
+    q: '',
+  });
+
+  rerender({ q: 'revenue' });
+
+  await waitFor(() =>
+    expect(mockedFetchActivity).toHaveBeenLastCalledWith('chart', 'uuid-1', {
+      include: 'all',
+      page: 0,
+      pageSize: PAGE_SIZE,
+      q: 'revenue',
+    }),
+  );
+});

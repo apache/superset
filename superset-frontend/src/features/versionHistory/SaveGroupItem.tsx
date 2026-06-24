@@ -21,7 +21,6 @@ import { t, tn } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { Button, Dropdown, Icons, Tag } from '@superset-ui/core/components';
 import type { SaveGroup, VersionedEntityType } from './types';
-import { classifySaveGroup } from './grouping';
 import {
   formatAuthor,
   formatVersionDateTimeShort,
@@ -269,45 +268,6 @@ export default function SaveGroupItem({
 
   const currentTag = isCurrent ? <Tag>{t('Current')}</Tag> : null;
 
-  if (entityType === 'dashboard') {
-    const CategoryIcon =
-      classifySaveGroup(group) === 'filters'
-        ? Icons.FilterOutlined
-        : Icons.EditOutlined;
-    return (
-      <Container
-        isPreviewed={isPreviewed}
-        data-test="version-history-save-group"
-      >
-        <Header
-          role="button"
-          tabIndex={0}
-          onClick={previewIntent}
-          onKeyDown={activate(previewIntent)}
-          aria-label={headline}
-        >
-          <IconWrapper>
-            <CategoryIcon iconSize="l" />
-          </IconWrapper>
-          <HeaderText>
-            <HeadlineRow>
-              <Headline title={headline}>{headline}</Headline>
-              {currentTag}
-            </HeadlineRow>
-            <Meta>{meta}</Meta>
-          </HeaderText>
-          <GroupKebab
-            entityType={entityType}
-            group={group}
-            isCurrent={isCurrent}
-            onRestore={onRestore}
-            onOpenAsNew={onOpenAsNew}
-          />
-        </Header>
-      </Container>
-    );
-  }
-
   const hasRecords = group.records.length > 0;
   const toggleExpanded = () => {
     if (hasRecords) {
@@ -338,7 +298,15 @@ export default function SaveGroupItem({
             <Headline title={headline}>{headline}</Headline>
             {currentTag}
           </HeadlineRow>
+          <Meta>{meta}</Meta>
         </HeaderText>
+        <GroupKebab
+          entityType={entityType}
+          group={group}
+          isCurrent={isCurrent}
+          onRestore={onRestore}
+          onOpenAsNew={onOpenAsNew}
+        />
         {hasRecords && (
           <ChevronWrapper>
             {expanded ? (

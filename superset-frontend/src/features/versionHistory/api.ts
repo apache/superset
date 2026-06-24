@@ -45,18 +45,45 @@ export interface FetchActivityOptions {
   include?: ActivityInclude;
   page?: number;
   pageSize?: number;
+  /**
+   * Case-insensitive free-text search over the full history (not just the
+   * loaded pages) — the server filters before paginating, so `count`
+   * reflects matches. Debounced upstream (sc-107283 guide, 2026-06-12).
+   */
+  q?: string;
+  /** ISO-8601 lower bound on `issued_at` (inclusive). */
+  since?: string;
+  /** ISO-8601 upper bound on `issued_at` (exclusive). */
+  until?: string;
 }
 
 export async function fetchActivity(
   entityType: VersionedEntityType,
   uuid: string,
-  { include = 'all', page = 0, pageSize = 25 }: FetchActivityOptions = {},
+  {
+    include = 'all',
+    page = 0,
+    pageSize = 25,
+    q,
+    since,
+    until,
+  }: FetchActivityOptions = {},
 ): Promise<ActivityResponse> {
   const params = new URLSearchParams({
     include,
     page: String(page),
     page_size: String(pageSize),
   });
+  const trimmedQ = q?.trim();
+  if (trimmedQ) {
+    params.set('q', trimmedQ);
+  }
+  if (since) {
+    params.set('since', since);
+  }
+  if (until) {
+    params.set('until', until);
+  }
   const { json } = await SupersetClient.get({
     endpoint: `/api/v1/${API_RESOURCE[entityType]}/${encodeURIComponent(uuid)}/activity/?${params.toString()}`,
   });

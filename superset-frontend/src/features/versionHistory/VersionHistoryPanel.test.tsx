@@ -90,6 +90,8 @@ const defaultProps = (
   activity: activity(timeline),
   include: 'all',
   onIncludeChange: jest.fn(),
+  searchTerm: '',
+  onSearchChange: jest.fn(),
   previewedTransactionId: null,
   onClose: jest.fn(),
   onPreview: jest.fn(),
@@ -158,42 +160,34 @@ test('long groups cap visible rows behind a show-more expander', async () => {
   expect(screen.getAllByTestId('version-history-action-row')).toHaveLength(12);
 });
 
-test('search matches records hidden behind the row cap', async () => {
-  const records = Array.from({ length: 12 }, (_, i) =>
-    record({
-      kind: 'field',
-      operation: 'edit',
-      path: ['params', i === 11 ? 'hidden_needle' : `field_${i}`],
-    }),
-  );
-  const props = defaultProps([group({ records })]);
-  render(<VersionHistoryPanel {...props} />);
-
-  await userEvent.type(
-    screen.getByRole('textbox', { name: 'Search actions' }),
-    'hidden needle',
-  );
-
-  // The matching record is past the visible-row cap; the group must
-  // still be considered a match.
-  expect(screen.queryByText('No actions found')).not.toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'Dec 5, 2025, 12:18 PM' }),
-  ).toBeInTheDocument();
-});
-
-test('dashboard groups show the compact category headline', () => {
-  const filterRecord = record({
-    entity_kind: 'dashboard',
-    kind: 'filter',
-    path: ['json_metadata', 'native_filter_configuration', 'NATIVE_1'],
-  });
+// Dashboards share the chart container model (sc-107283 guide, 2026-06-12):
+// the save's date/time heads the group and expands to descriptive per-change
+// rows — no compact "Filters"/"Edit mode" category headline.
+test('dashboard groups head with the save date and expand to descriptive rows', async () => {
   const props = defaultProps(
-    [group({ records: [filterRecord, filterRecord] })],
+    [
+      group({
+        records: [
+          record({
+            entity_kind: 'dashboard',
+            kind: 'filter',
+            path: ['json_metadata', 'native_filter_configuration', 'NATIVE_1'],
+          }),
+        ],
+      }),
+    ],
     'dashboard',
   );
   render(<VersionHistoryPanel {...props} />);
-  expect(screen.getByText('Filters · 2 changes')).toBeInTheDocument();
+
+  const header = screen.getByRole('button', { name: 'Dec 5, 2025, 12:18 PM' });
+  expect(header).toBeInTheDocument();
+  expect(
+    screen.queryByText("Added filter on 'Revenue'"),
+  ).not.toBeInTheDocument();
+
+  await userEvent.click(header);
+  expect(screen.getByText("Added filter on 'Revenue'")).toBeInTheDocument();
 });
 
 test('the group kebab restores and forks the version', async () => {
@@ -213,15 +207,17 @@ test('the group kebab restores and forks the version', async () => {
   expect(props.onOpenAsNew).toHaveBeenCalledWith(older);
 });
 
-test('clicking a dashboard group header previews it', async () => {
+test('previewing a change row in an older dashboard group calls onPreview', async () => {
   const { newest, older } = dashboardPair();
   const props = defaultProps([newest, older], 'dashboard');
   render(<VersionHistoryPanel {...props} />);
 
-  // The newest save is the live one; previewing applies to older saves.
+  // Expand the older save (the newest is the live one), then click one of its
+  // change rows: the row, not the header, drives the preview.
   await userEvent.click(
-    screen.getAllByRole('button', { name: 'Edit mode · 1 change' })[1],
+    screen.getByRole('button', { name: 'Dec 5, 2025, 12:18 PM' }),
   );
+  await userEvent.click(screen.getByTestId('version-history-action-row'));
   expect(props.onPreview).toHaveBeenCalledWith(older);
 });
 
@@ -236,15 +232,18 @@ test('the newest save shows a Current tag and older saves do not', () => {
   expect(groups[1]).not.toHaveTextContent('Current');
 });
 
-test('selecting the current version exits an active preview instead of previewing', async () => {
+test('previewing a change row in the current version exits an active preview', async () => {
   const { newest, older } = dashboardPair();
   const props = defaultProps([newest, older], 'dashboard');
   props.previewedTransactionId = older.transactionId;
   render(<VersionHistoryPanel {...props} />);
 
+  // Expand the current (newest) save and click a change row: the live version
+  // has nothing to preview, so it exits the active preview instead.
   await userEvent.click(
-    screen.getAllByRole('button', { name: 'Edit mode · 1 change' })[0],
+    screen.getByRole('button', { name: 'Dec 8, 2025, 12:18 PM' }),
   );
+  await userEvent.click(screen.getByTestId('version-history-action-row'));
   expect(props.onPreview).not.toHaveBeenCalled();
   expect(props.onExitPreview).toHaveBeenCalled();
 });
@@ -261,46 +260,27 @@ test('the current version kebab omits restore but keeps open as new', async () =
   expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
 });
 
-test('searching filters the timeline and reports no matches', async () => {
+// Search is server-side: the panel forwards the term to the container, which
+// debounces it and refetches; the panel renders whatever matches come back
+// (sc-107283 guide, 2026-06-12).
+test('typing in the search box forwards the term to the container', async () => {
   const props = defaultProps([group()]);
   render(<VersionHistoryPanel {...props} />);
 
   await userEvent.type(
     screen.getByRole('textbox', { name: 'Search actions' }),
-    'zzz',
+    'z',
   );
-  expect(screen.getByText('No actions found')).toBeInTheDocument();
-  expect(screen.getByText('Try a different search term')).toBeInTheDocument();
+  expect(props.onSearchChange).toHaveBeenCalledWith('z');
 });
 
-test('search matches summaries of records collapsed into a related row', async () => {
-  const sharedFields = {
-    source: 'related' as const,
-    entity_kind: 'dataset' as const,
-    entity_name: 'Sales',
-    entity_uuid: 'ds-1',
-    transaction_id: 11,
-  };
-  const timeline = buildTimeline([
-    record({ ...sharedFields, summary: 'Dataset updated: Sales' }),
-    record({
-      ...sharedFields,
-      path: ['metrics', 'quarterly_revenue'],
-      summary: 'Dataset metric changed: quarterly_revenue',
-    }),
-  ]);
-  const props = defaultProps(timeline);
+test('an empty result while searching reports no matches', () => {
+  const props = defaultProps([]);
+  props.searchTerm = 'zzz';
   render(<VersionHistoryPanel {...props} />);
 
-  await userEvent.type(
-    screen.getByRole('textbox', { name: 'Search actions' }),
-    'quarterly_revenue',
-  );
-
-  // The term only appears in a record that was collapsed into the
-  // representative row; the row must still match.
-  expect(screen.queryByText('No actions found')).not.toBeInTheDocument();
-  expect(screen.getByText('Dataset updated: Sales')).toBeInTheDocument();
+  expect(screen.getByText('No actions found')).toBeInTheDocument();
+  expect(screen.getByText('Try a different search term')).toBeInTheDocument();
 });
 
 test('the include filter calls back with the selected scope', async () => {
@@ -375,14 +355,6 @@ test('same-transaction related cascades roll up into one pluralized row', async 
   // The rolled-up entity names are listed in a tooltip.
   await userEvent.hover(headline);
   expect(await screen.findByText('Chart 7')).toBeInTheDocument();
-
-  // Search still matches records collapsed into the rollup.
-  await userEvent.type(
-    screen.getByRole('textbox', { name: 'Search actions' }),
-    'Chart 3',
-  );
-  expect(screen.queryByText('No actions found')).not.toBeInTheDocument();
-  expect(screen.getByText('10 charts updated')).toBeInTheDocument();
 });
 
 test('load more requests the next page', async () => {

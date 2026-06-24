@@ -23,7 +23,7 @@ export type ActivityInclude = 'self' | 'related' | 'all';
 
 export type ActivityEntityKind = 'chart' | 'dashboard' | 'dataset';
 
-export type ActivityOperation = 'add' | 'remove' | 'move' | 'edit';
+export type ActivityOperation = 'add' | 'remove' | 'move' | 'edit' | 'announce';
 
 export type ActivityActionKind = 'restore' | 'import' | 'clone' | null;
 
@@ -52,6 +52,15 @@ export interface ActivityRecord {
   to_value: unknown;
   summary: string;
   impact: { charts: number } | null;
+  /**
+   * True only on records whose transaction is the entity's first tracked
+   * save (the first update after its retroactive baseline). Such saves can
+   * carry dozens of params-normalization records that aren't meaningful user
+   * edits, so the container is collapsed. Always false for hard-deleted
+   * entities. (sc-107283 guide, 2026-06-12.) Optional for resilience against
+   * older backend responses that predate the field.
+   */
+  first_tracked_save?: boolean;
 }
 
 export interface ActivityResponse {
@@ -119,6 +128,24 @@ export interface SaveGroup {
   changedBy: ActivityChangedBy | null;
   actionKind: ActivityActionKind;
   records: ActivityRecord[];
+  /**
+   * The entity's first tracked save (params-normalization flood) — render
+   * compact/collapsed. Set when any of the save's records carries
+   * `first_tracked_save`.
+   */
+  firstTrackedSave?: boolean;
+  /**
+   * For `actionKind === 'restore'`: the version number this save restored
+   * to, read from the synthetic `__meta__` headline record's `to_value`.
+   */
+  restoredToVersion?: number | null;
+  /**
+   * Set when the save touched dashboard layout containers (rows, columns,
+   * the tab strip) that were dropped from the change list as scaffolding.
+   * Lets a scaffolding-only save still head with "Rearranged layout"
+   * instead of appearing empty.
+   */
+  hasSuppressedLayout?: boolean;
 }
 
 /**
@@ -139,8 +166,6 @@ export interface RelatedEntry {
 }
 
 export type TimelineEntry = SaveGroup | RelatedEntry;
-
-export type DashboardGroupCategory = 'filters' | 'edit';
 
 /** State describing the version currently being previewed, if any. */
 export interface VersionPreviewState {
