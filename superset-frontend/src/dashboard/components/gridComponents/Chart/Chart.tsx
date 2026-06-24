@@ -484,7 +484,7 @@ const Chart = (props: ChartProps) => {
   (formData as JsonObject).dashboardId = dashboardInfo.id;
 
   const exportTable = useCallback(
-    (format: string, isFullCSV: boolean, isPivot = false) => {
+    async (format: string, isFullCSV: boolean, isPivot = false) => {
       const logAction =
         format === 'csv'
           ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
@@ -559,24 +559,48 @@ const Chart = (props: ChartProps) => {
           }
         : baseOwnState;
 
-      exportChart({
-        formData:
-          exportFormData as unknown as import('@superset-ui/core').QueryFormData,
-        resultType,
-        resultFormat: format,
-        force: true,
-        ownState: exportOwnState,
-        onStartStreamingExport: shouldUseStreaming
-          ? (exportParams: JsonObject) => {
-              setIsStreamingModalVisible(true);
-              startExport({
-                ...(exportParams as Record<string, unknown>),
-                filename,
-                expectedRows: actualRowCount,
-              } as Parameters<typeof startExport>[0]);
-            }
-          : null,
-      });
+      try {
+        await exportChart({
+          formData:
+            exportFormData as unknown as import('@superset-ui/core').QueryFormData,
+          resultType,
+          resultFormat: format,
+          force: true,
+          ownState: exportOwnState,
+          onStartStreamingExport: shouldUseStreaming
+            ? (exportParams: JsonObject) => {
+                setIsStreamingModalVisible(true);
+                startExport({
+                  ...(exportParams as Record<string, unknown>),
+                  filename,
+                  expectedRows: actualRowCount,
+                } as Parameters<typeof startExport>[0]);
+              }
+            : null,
+        });
+      } catch (error) {
+        const exportError = error as Error & {
+          status?: number;
+          statusText?: string;
+          response?: { status?: number };
+        };
+        const status = exportError.status || exportError.response?.status;
+        if (status === 413) {
+          boundActionCreators.addDangerToast(
+            t(
+              'The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns.',
+            ),
+          );
+        } else {
+          const errorMessage =
+            exportError.message ||
+            exportError.statusText ||
+            t(
+              'Failed to export chart data. Please try again or contact your administrator.',
+            );
+          boundActionCreators.addDangerToast(errorMessage);
+        }
+      }
     },
     [
       sliceSliceId,
@@ -588,6 +612,7 @@ const Chart = (props: ChartProps) => {
       chartState,
       props.id,
       boundActionCreators.logEvent,
+      boundActionCreators.addDangerToast,
       queriesResponse,
       startExport,
       resetExport,
