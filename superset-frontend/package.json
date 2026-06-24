@@ -242,7 +242,7 @@
     "yargs": "^18.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.29.7",
+    "@babel/cli": "^8.0.0",
     "@babel/compat-data": "^7.28.4",
     "@babel/core": "^7.29.7",
     "@babel/eslint-parser": "^7.29.7",
