@@ -1157,6 +1157,16 @@ def test_executor_not_found_error_message_without_username() -> None:
     assert "user  was" not in message
 
 
+def test_executor_not_found_error_status_is_server_error() -> None:
+    """
+    The executor-not-found error is a 5xx so ``get_logger_from_status`` marks the
+    Celery task ``FAILURE`` (a missing executor is a server-side misconfiguration
+    that ops task-state alerting must still see), not a 4xx that would log a
+    ``WARNING`` and leave the task non-``FAILURE``.
+    """
+    assert ReportScheduleExecutorNotFoundError().status == 500
+
+
 def test_resolve_executor_user_returns_user_and_username(
     app: SupersetApp, mocker: MockerFixture
 ) -> None:

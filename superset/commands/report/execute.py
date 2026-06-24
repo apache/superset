@@ -1214,8 +1214,8 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             # ReportScheduleExecutorNotFoundError guard lives at the content
             # sites (_get_screenshots / _get_csv_data / _get_embedded_data),
             # which raise inside that envelope. Guarding here instead would
-            # surface a 422 above the state machine, suppressing both the log
-            # row and the owner notification. The alert-query path
+            # surface the executor error above the state machine, suppressing
+            # both the log row and the owner notification. The alert-query path
             # (AlertCommand) is intentionally left on master behavior — a
             # missing executor there surfaces as a query error, not the
             # dedicated executor error; tightening it is out of scope here.
