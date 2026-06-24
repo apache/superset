@@ -128,11 +128,7 @@ export function DrillDownHost({
           // full chart. Unlike refreshChart (which reuses latestQueryFormData),
           // triggerQuery makes the chart re-run with its current dashboard
           // form_data, which reflects the now-cleared filters.
-          (
-            rendererProps.actions as {
-              triggerQuery?: (value: boolean, key: number) => void;
-            }
-          )?.triggerQuery?.(true, rendererProps.chartId);
+          rendererProps.actions.triggerQuery?.(true, rendererProps.chartId);
         } else {
           // Going to an intermediate level — rebuild accumulated filters
           // from all levels up to the target depth (mirroring effectiveFormData)

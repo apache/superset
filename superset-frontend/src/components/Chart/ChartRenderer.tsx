@@ -93,6 +93,7 @@ interface ChartActions {
     },
   ) => Dispatch;
   updateDataMask?: (chartId: number, dataMask: DataMask) => Dispatch;
+  triggerQuery?: (value: boolean, key: number | string) => void;
 }
 
 // Types for own state
