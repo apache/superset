@@ -16,12 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, FC } from 'react';
+import { useEffect, useMemo, useRef, useState, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
 import { useSelector, shallowEqual } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
-import { MenuDotsDropdown, Modal, Input } from '@superset-ui/core/components';
+import {
+  MenuDotsDropdown,
+  Modal,
+  Input,
+  InputRef,
+} from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
 import { QueryState } from '@superset-ui/core';
@@ -109,18 +114,33 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
 
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const renameInputRef = useRef<InputRef | null>(null);
+  const tabHeaderRef = useRef<HTMLDivElement>(null);
+  const trimmedTitle = newTitle.trim();
 
   function openRenameModal() {
     setNewTitle(qe.name);
     setIsRenameModalOpen(true);
   }
 
+  // antd's Modal moves focus to the dialog container on open, which overrides
+  // the Input's autoFocus, so focus and select the field via a ref once the
+  // modal is open (select lets the prefilled name be overtyped, like prompt()).
+  useEffect(() => {
+    if (isRenameModalOpen) {
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    }
+  }, [isRenameModalOpen]);
+
   function handleRenameTab() {
-    const trimmedTitle = newTitle.trim();
     if (trimmedTitle) {
       actions.queryEditorSetTitle(qe, trimmedTitle, qe.id);
     }
     setIsRenameModalOpen(false);
+    // Save closes via the show prop rather than the Modal's onHide, so return
+    // focus to the tab header here, matching what openerRef does on dismiss.
+    tabHeaderRef.current?.focus();
   }
   const getStatusColor = (state: QueryState, theme: SupersetTheme): string => {
     const statusColors: Record<QueryState, string> = {
@@ -138,7 +158,11 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
     return statusColors[state] || theme.colorIcon;
   };
   return (
-    <TabTitleWrapper>
+    <TabTitleWrapper
+      ref={tabHeaderRef}
+      tabIndex={-1}
+      data-test="sql-editor-tab-header"
+    >
       <MenuDotsDropdown
         trigger={['click']}
         overlay={
@@ -233,14 +257,29 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
         title={t('Rename tab')}
         onHandledPrimaryAction={handleRenameTab}
         primaryButtonName={t('Save')}
-        disablePrimaryButton={!newTitle.trim()}
+        disablePrimaryButton={!trimmedTitle}
+        openerRef={tabHeaderRef}
       >
         <Input
+          ref={renameInputRef}
           data-test="rename-tab-input"
           aria-label={t('Tab name')}
           value={newTitle}
           onChange={e => setNewTitle(e.target.value)}
-          onPressEnter={handleRenameTab}
+          onPressEnter={() => {
+            if (trimmedTitle) {
+              handleRenameTab();
+            }
+          }}
+          onKeyDown={e => {
+            // The modal portals over the editable-card tabs; without this, keys
+            // bubble to their handler and remove, navigate, or activate a tab
+            // (Space included). Escape and Tab are left to bubble so the Modal
+            // can close and trap focus.
+            if (e.key !== 'Escape' && e.key !== 'Tab') {
+              e.stopPropagation();
+            }
+          }}
         />
       </Modal>
     </TabTitleWrapper>
