@@ -125,8 +125,16 @@ const FilterValue: FC<FilterValueProps> = ({
   const transitiveParentIds = useTransitiveParentIds(id);
   const shouldRefresh = useShouldFilterRefresh();
 
-  const allFiltersConfig = useSelector(
-    (state: RootState) => state.nativeFilters?.filters,
+  // Derive only the defaultToFirstItem flag per filter to avoid re-renders
+  // when unrelated filter config fields change.
+  const parentDefaultToFirstItem = useSelector(
+    (state: RootState) =>
+      Object.fromEntries(
+        Object.entries(state.nativeFilters?.filters ?? {}).map(([fId, f]) => [
+          fId,
+          Boolean(f.controlValues?.defaultToFirstItem),
+        ]),
+      ),
     shallowEqual,
   );
 
@@ -213,10 +221,9 @@ const FilterValue: FC<FilterValueProps> = ({
       // auto-selects, leading to a stale first-value dispatch that never
       // gets corrected because subsequent re-selections are not first-initialization.
       const hasDefaultFirstParentPending = transitiveParentIds.some(pId => {
-        const parentFilter = allFiltersConfig?.[pId];
         const parentMask = dataMaskSelected?.[pId];
         return (
-          parentFilter?.controlValues?.defaultToFirstItem &&
+          parentDefaultToFirstItem[pId] &&
           parentMask?.filterState?.value === undefined
         );
       });
@@ -328,7 +335,7 @@ const FilterValue: FC<FilterValueProps> = ({
     dataMaskSelected,
     setHasDepsFilterValue,
     transitiveParentIds,
-    allFiltersConfig,
+    parentDefaultToFirstItem,
   ]);
 
   useEffect(() => {
