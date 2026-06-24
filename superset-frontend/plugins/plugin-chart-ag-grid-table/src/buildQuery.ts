@@ -652,13 +652,23 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         }
       }
 
+      // Preserve the percent-metric "contribution" post-processing so the
+      // summary row renames `metric` -> `%metric` the same way the data rows
+      // do. Without it the totals query returns `metric` while the grid reads
+      // `%metric`, leaving the summary row at 0.000% (#104600). The
+      // time-comparison operator is intentionally dropped from the aggregate
+      // totals query (orderby/order_desc are cleared below for the same reason).
+      const totalsPostProcessing = postProcessing.filter(
+        rule => rule?.operation === 'contribution',
+      );
+
       extraQueries.push({
         ...queryObject,
         columns: [],
         extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,
-        post_processing: [],
+        post_processing: totalsPostProcessing,
         order_desc: undefined, // we don't need orderby stuff here,
         orderby: undefined, // because this query will be used for get total aggregation.
       });
