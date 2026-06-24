@@ -321,16 +321,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       isNewOption: false,
     }));
     if (creatable !== false && filterState.value) {
-      const existing = new Set(allOptions);
       ensureIsArray(filterState.value)
-        .filter(v => v !== null && v !== undefined && !existing.has(v))
+        .filter(v => v != null && !hasOption(v, baseOptions, true))
         .forEach(v => {
-          baseOptions.push({
-            label: String(v),
-            value: String(v),
-            isNewOption: true,
-          });
-          existing.add(v);
+          baseOptions.push({ label: String(v), value: v, isNewOption: true });
         });
     }
     return baseOptions;
