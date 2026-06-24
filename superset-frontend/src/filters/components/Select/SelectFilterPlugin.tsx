@@ -17,7 +17,14 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   AppSection,
@@ -92,6 +99,26 @@ function reducer(draft: DataMask, action: DataMaskAction) {
       return draft;
   }
 }
+
+export const getSelectPopupContainer = (
+  appSection: AppSection,
+  showOverflow: boolean,
+  parentRef?: RefObject<any>,
+) => {
+  if (showOverflow) {
+    return () => (parentRef?.current as HTMLElement) || document.body;
+  }
+
+  if (
+    appSection === AppSection.Dashboard ||
+    appSection === AppSection.FilterBar
+  ) {
+    return () => document.body;
+  }
+
+  return (trigger: HTMLElement) =>
+    (trigger?.parentNode as HTMLElement) || document.body;
+};
 
 const StyledSpace = styled(Space)<{
   inverseSelection: boolean;
@@ -595,12 +622,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               allowSelectAll={!searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}
               disabled={isDisabled}
-              getPopupContainer={
-                showOverflow
-                  ? () => (parentRef?.current as HTMLElement) || document.body
-                  : (trigger: HTMLElement) =>
-                      (trigger?.parentNode as HTMLElement) || document.body
-              }
+              getPopupContainer={getSelectPopupContainer(
+                appSection,
+                showOverflow,
+                parentRef,
+              )}
               showSearch={showSearch}
               mode={multiSelect ? 'multiple' : 'single'}
               placeholder={placeholderText}
