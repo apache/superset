@@ -402,7 +402,7 @@ test('Logs out and clears local storage item redux', async () => {
   expect(sessionStorage.getItem('login_attempted')).not.toBeNull();
 
   // Mock the Cache API so we can assert the namespaced store is purged.
-  const cacheGlobal = global as typeof global & { caches?: CacheStorage };
+  const cacheGlobal = global as unknown as { caches?: CacheStorage };
   const priorCaches = cacheGlobal.caches;
   const deleteMock = jest.fn().mockResolvedValue(true);
   cacheGlobal.caches = { delete: deleteMock } as unknown as CacheStorage;
