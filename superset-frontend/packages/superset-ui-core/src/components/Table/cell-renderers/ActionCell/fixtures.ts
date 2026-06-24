@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { action } from 'storybook/actions';
+import { action } from '@storybook/addon-actions';
 import { ActionMenuItem } from './index';
 
 export const exampleMenuOptions: ActionMenuItem[] = [
