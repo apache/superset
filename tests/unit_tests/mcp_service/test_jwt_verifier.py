@@ -408,6 +408,58 @@ async def test_token_without_expiration_rejected(hs256_verifier):
 
 
 @pytest.mark.asyncio
+async def test_non_finite_expiration_rejected(hs256_verifier):
+    """An infinite exp must be rejected cleanly, not crash on int() overflow.
+
+    A JSON ``1e309`` decodes to ``float('inf')``, which passes the
+    ``exp < time.time()`` expiry check and would later raise ``OverflowError``
+    on ``int(exp)`` — surfacing as a 500 instead of a 401. The finite-number
+    guard rejects it with a precise reason before that can happen.
+    """
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": float("inf"),
+    }
+
+    with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+        result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Token has invalid expiration"
+
+
+@pytest.mark.asyncio
+async def test_non_numeric_expiration_rejected(hs256_verifier):
+    """A non-numeric exp must be rejected with the invalid-expiration reason.
+
+    Without the finite-number guard, ``exp < time.time()`` would raise
+    ``TypeError`` and degrade to the generic "Token validation failed" reason.
+    """
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": "2026-01-01",
+    }
+
+    with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+        result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Token has invalid expiration"
+
+
+@pytest.mark.asyncio
 async def test_decode_error(hs256_verifier):
     """Token that fails to decode should report decode failure."""
     token = _make_token(
