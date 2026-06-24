@@ -102,6 +102,26 @@ def _find_and_authorize_dashboard(
     return dashboard, None
 
 
+def _merge_json_metadata(dashboard: Any, overrides: dict[str, Any]) -> str:
+    """Shallow-merge ``overrides`` onto the dashboard's existing metadata.
+
+    Parses defensively: a row may carry malformed JSON or a non-object
+    payload (e.g. ``"[]"``) from an older migration or manual edit. Either
+    would raise out of the caller's ``SQLAlchemyError`` handler, so fall
+    back to an empty object and overlay the overrides on top.
+    """
+    existing: dict[str, Any] = {}
+    if dashboard.json_metadata:
+        try:
+            parsed = json.loads(dashboard.json_metadata)
+            if isinstance(parsed, dict):
+                existing = parsed
+        except (ValueError, TypeError):
+            pass
+    existing.update(overrides)
+    return json.dumps(existing)
+
+
 def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> list[str]:
     """Apply each explicitly-passed field to the dashboard.
 
@@ -133,13 +153,9 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
         changed.append("position_json")
 
     if request.json_metadata_overrides is not None:
-        existing = (
-            json.loads(dashboard.json_metadata or "{}")
-            if dashboard.json_metadata
-            else {}
+        dashboard.json_metadata = _merge_json_metadata(
+            dashboard, request.json_metadata_overrides
         )
-        existing.update(request.json_metadata_overrides)
-        dashboard.json_metadata = json.dumps(existing)
         changed.append("json_metadata")
 
     if request.css is not None:

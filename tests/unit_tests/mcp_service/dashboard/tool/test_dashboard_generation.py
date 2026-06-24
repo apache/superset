@@ -206,8 +206,10 @@ class TestGenerateDashboard:
                 == "Analytics Dashboard"
             )
             assert result.structured_content["dashboard"]["chart_count"] == 2
+            # URL prefers the slug over the id, matching update_dashboard.
             assert (
-                "/superset/dashboard/10/" in result.structured_content["dashboard_url"]
+                "/superset/dashboard/test-dashboard-10/"
+                in result.structured_content["dashboard_url"]
             )
 
     @patch("superset.models.dashboard.Dashboard")

@@ -422,8 +422,12 @@ def generate_dashboard(  # noqa: C901
         # re-fetch below either returns the same row or fails — in either
         # outcome the URL doesn't change. Bind it once so the three
         # downstream consumers (partial response, DashboardInfo.url,
-        # response.dashboard_url) share a single source.
-        dashboard_url = f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
+        # response.dashboard_url) share a single source. Prefer the slug
+        # over the id to match ``update_dashboard``'s canonical URL shape.
+        dashboard_url = (
+            f"{get_superset_base_url()}/superset/dashboard/"
+            f"{dashboard.slug or dashboard.id}/"
+        )
 
         # Re-fetch with eager-loaded relationships for serialization.
         # The preceding commit may invalidate the session in multi-tenant
