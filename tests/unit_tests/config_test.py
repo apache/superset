@@ -408,7 +408,7 @@ def test_send_mime_email_ssl_server_auth_passes_context(
     create_default_context.assert_called_once_with()
     assert not smtp.called
     smtp_ssl.assert_called_once_with(
-        "localhost", 25, context=create_default_context.return_value
+        "localhost", 25, context=create_default_context.return_value, timeout=30
     )
 
 
@@ -468,4 +468,4 @@ def test_send_mime_email_server_auth_disabled_skips_context(
     )
 
     assert not create_default_context.called
-    smtp_ssl.assert_called_once_with("localhost", 25, context=None)
+    smtp_ssl.assert_called_once_with("localhost", 25, context=None, timeout=30)
