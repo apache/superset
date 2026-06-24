@@ -24,6 +24,7 @@ from __future__ import annotations
 import builtins
 import logging
 import textwrap
+import threading
 from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
@@ -31,6 +32,7 @@ from datetime import datetime
 from functools import lru_cache
 from inspect import signature
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING
+from urllib.parse import quote
 
 import numpy
 import pandas as pd
@@ -56,7 +58,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapper, relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
@@ -93,6 +95,15 @@ from superset.utils.oauth2 import (
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
+
+# Per-process SQLAlchemy engine cache (#27897). Key is
+# (database_id, str(sqlalchemy_url), repr(sorted(engine_kwargs.items()))).
+# Lock-guarded against the gunicorn-threaded check-then-set race on first
+# access. Cache is per-process, per-(URL + final engine_kwargs), so a
+# password rotation, host change, or DB_CONNECTION_MUTATOR producing
+# different kwargs naturally falls through to a fresh engine.
+_ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
+_ENGINE_CACHE_LOCK = threading.Lock()
 
 if TYPE_CHECKING:
     from superset_core.queries.types import AsyncQueryHandle, QueryOptions, QueryResult
@@ -134,6 +145,24 @@ class Theme(AuditMixinNullable, ImportExportMixin, Model):
     is_system_dark = Column(Boolean, default=False, nullable=False)
 
     export_fields = ["theme_name", "json_data"]
+
+
+# Event listeners to clear the memoized bootstrap data cache when a theme is modified
+@sqla.event.listens_for(Theme, "after_insert")
+@sqla.event.listens_for(Theme, "after_update")
+@sqla.event.listens_for(Theme, "after_delete")
+def clear_bootstrap_cache(
+    _mapper: sqla.orm.Mapper,
+    _connection: sqla.engine.Connection,
+    _target: Theme,
+) -> None:
+    from superset.extensions import cache_manager
+    from superset.views.base import cached_common_bootstrap_data
+
+    try:
+        cache_manager.cache.delete_memoized(cached_common_bootstrap_data)
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.warning("Failed to clear theme bootstrap cache: %s", ex)
 
 
 class ConfigurationMethod(StrEnum):
@@ -495,7 +524,12 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                                 cursor.close()
 
                         sqla.event.listen(engine, "connect", run_prequeries)
-                    yield engine
+                        try:
+                            yield engine
+                        finally:
+                            sqla.event.remove(engine, "connect", run_prequeries)
+                    else:
+                        yield engine
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
@@ -565,10 +599,36 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 security_manager,
                 source,
             )
+        # Per-process engine cache (#27897). SQLAlchemy expects ``create_engine``
+        # to be called once per process per URL so its connection pool can do
+        # its job. Recreating the engine every call defeats the pool that
+        # operators configure via ``DB_CONNECTION_MUTATOR`` (e.g. duckdb with a
+        # size-1 queue). Cache regardless of ``nullpool``: even a NullPool
+        # engine has nontrivial construction cost (URL parsing, dialect
+        # resolution, connect_args setup, and re-running the mutator), and
+        # production callsites pass ``nullpool=True`` by default — gating the
+        # cache on ``not nullpool`` would leave it dormant everywhere it
+        # actually matters. Unsaved instances (``self.id is None``) are
+        # excluded so two distinct in-memory ``Database`` objects with the
+        # same URI can't collide on a shared cache entry.
+        cache_key: tuple[int, str, str] | None = None
+        if self.id is not None:
+            cache_key = (
+                self.id,
+                str(sqlalchemy_url),
+                repr(sorted(engine_kwargs.items())),
+            )
+            with _ENGINE_CACHE_LOCK:
+                if cached := _ENGINE_CACHE.get(cache_key):
+                    return cached
         try:
-            return create_engine(sqlalchemy_url, **engine_kwargs)
+            engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+        if cache_key is not None:
+            with _ENGINE_CACHE_LOCK:
+                _ENGINE_CACHE[cache_key] = engine
+        return engine
 
     def add_database_to_signature(
         self,
@@ -644,7 +704,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             return (
                 not df_series.empty
                 and isinstance(df_series, pd.Series)
-                and isinstance(df_series[0], (list, dict))
+                and isinstance(df_series.iloc[0], (list, dict))
             )
 
         for col, coltype in df.dtypes.to_dict().items():
@@ -720,8 +780,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             description = None
 
             for i, statement in enumerate(script.statements):
+                # For a single statement, execute the original SQL as-is. Re-rendering
+                # via statement.format() would round-trip through sqlglot
+                rendered = sql if len(script.statements) == 1 else statement.format()
                 sql_ = self.mutate_sql_based_on_config(
-                    statement.format(),
+                    rendered,
                     is_split=True,
                 )
                 _log_query(sql_)
@@ -1161,20 +1224,35 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def sqlalchemy_uri_decrypted(self) -> str:
+        """Return the decrypted SQLAlchemy URI with properly encoded password."""
         try:
             conn = make_url_safe(self.sqlalchemy_uri)
         except DatabaseInvalidError:
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
             return "dialect://invalid_uri"
+
+        # Determine plaintext password from config or model
         if has_app_context():
-            if custom_password_store := app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]:
-                conn = conn.set(password=custom_password_store(conn))
+            custom_password_store = app.config.get("SQLALCHEMY_CUSTOM_PASSWORD_STORE")
+            if custom_password_store and callable(custom_password_store):
+                raw_password = custom_password_store(conn)
             else:
-                conn = conn.set(password=self.password)
+                raw_password = self.password
         else:
-            conn = conn.set(password=self.password)
-        return str(conn)
+            raw_password = self.password
+
+        # Encode the password such that special characters
+        # are preserved when rendering to string and reparsing the URL.
+        if raw_password is not None:
+            encoded_password = quote(raw_password, safe="")
+            conn = conn.set(password=encoded_password)
+        else:
+            conn = conn.set(password=None)
+
+        # render_as_string preserves the URL encoding of special
+        # characters in passwords
+        return conn.render_as_string(hide_password=False)
 
     @property
     def sql_url(self) -> str:
@@ -1341,6 +1419,30 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)
 sqla.event.listen(Database, "after_update", security_manager.database_after_update)
 sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
+
+
+def _evict_engine_cache(
+    mapper: Mapper,
+    connection: Connection,
+    target: "Database",
+) -> None:
+    """Evict all cached engines for a database when it is updated or deleted.
+
+    URL/kwargs changes already produce a new cache key, so stale engines are
+    never served to callers.  This eviction step is purely to reclaim memory:
+    without it, old engines for a renamed host or rotated password would linger
+    in _ENGINE_CACHE until the process restarted.
+    """
+    if target.id is None:
+        return
+    with _ENGINE_CACHE_LOCK:
+        stale = [k for k in _ENGINE_CACHE if k[0] == target.id]
+        for k in stale:
+            _ENGINE_CACHE.pop(k, None)
+
+
+sqla.event.listen(Database, "after_update", _evict_engine_cache)
+sqla.event.listen(Database, "after_delete", _evict_engine_cache)
 
 
 class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):

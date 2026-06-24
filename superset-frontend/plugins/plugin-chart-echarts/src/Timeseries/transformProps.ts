@@ -889,6 +889,10 @@ export default function transformProps(
     name: xAxisTitle,
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
+    ...(xAxisType === AxisType.Category &&
+      groupBy.length === 0 && {
+        triggerEvent: true,
+      }),
     axisLabel: {
       // When rotation is applied on time axes, hideOverlap can
       // aggressively hide the last label. Rotated labels already
@@ -1016,8 +1020,12 @@ export default function transformProps(
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
         const [xIndex, yIndex] = isHorizontal ? [1, 0] : [0, 1];
+        // For axis tooltips, prefer axisValue/axisValueLabel which contains the full label
+        // even when the axis label is visually truncated
         const xValue: number = richTooltip
-          ? params[0].value[xIndex]
+          ? (params[0].axisValue ??
+            params[0].axisValueLabel ??
+            params[0].value[xIndex])
           : params.value[xIndex];
         const forecastValue: CallbackDataParams[] = richTooltip
           ? params

@@ -20,7 +20,7 @@ import { useMemo, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
 import { useSelector, shallowEqual } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { MenuDotsDropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';

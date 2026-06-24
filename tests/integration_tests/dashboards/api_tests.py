@@ -81,6 +81,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     dashboard_data = {
         "dashboard_title": "title1_changed",
         "slug": "slug1_changed",
+        "description": "desc_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
         "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": [], "map_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',  # noqa: E501
@@ -295,6 +296,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert actual_dataset_ids == expected_dataset_ids
         expected_values = [0, 1] if backend() == "presto" else [0, 1, 2]
         assert result[0]["column_types"] == expected_values
+        assert "sql" in result[0]
         logger_mock.warning.assert_not_called()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -314,6 +316,31 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         for dataset in result:
             for excluded_key in ["database", "owners"]:
                 assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.api.security_manager.can_access_datasource")
+    def test_get_dashboard_datasets_strips_definition_without_datasource_access(
+        self, can_access_datasource_mock
+    ):
+        can_access_datasource_mock.return_value = False
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        for dataset in data["result"]:
+            for excluded_key in [
+                "sql",
+                "select_star",
+                "fetch_values_predicate",
+                "template_params",
+                "params",
+            ]:
+                assert excluded_key not in dataset
+            for column in dataset.get("columns") or []:
+                assert "expression" not in column
+            for metric in dataset.get("metrics") or []:
+                assert "expression" not in metric
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
@@ -512,7 +539,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         admin = self.get_user("admin")
         dashboard = self.insert_dashboard(
-            "title", "slug1", [admin.id], created_by=admin
+            "title", "slug1", [admin.id], created_by=admin, desc="description"
         )
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard.id}"
@@ -552,6 +579,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 "thumbnail_url": dashboard.thumbnail_url,
                 "is_managed_externally": False,
                 "theme": None,
+                "description": "description",
             }
         data = json.loads(rv.data.decode("utf-8"))
         assert "changed_on" in data["result"]
@@ -1720,8 +1748,87 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Dashboard).get(data.get("id"))
+        # uuid should be returned in the response
+        assert "uuid" in data
+        assert str(model.uuid) == str(data["uuid"])
         db.session.delete(model)
         db.session.commit()
+
+    def test_create_dashboard_via_api_links_charts_from_positions(self):
+        """Regression for #32966: creating a dashboard through the REST API with a
+        ``position_json`` / ``json_metadata`` that references a chart should link
+        that chart to the dashboard (populate ``dashboard.slices``), exactly as
+        saving the dashboard through the UI does.
+
+        The create command stores ``position_json`` verbatim but never calls
+        ``DashboardDAO.set_dash_metadata`` (the update command does), so the
+        dashboard-to-slice relationship is left empty and the chart renders
+        "There is no chart definition associated with this component" until the
+        dashboard is edited and re-saved in the UI.
+
+        CI green => the create path now links the referenced charts and merging
+        closes #32966. CI red => the bug is still live; the fix belongs in
+        ``superset/commands/dashboard/create.py`` (mirror the
+        ``set_dash_metadata`` call from ``update.py``).
+        """
+        admin = self.get_user("admin")
+        self.login(ADMIN_USERNAME)
+        chart = self.insert_chart("issue_32966_chart", [admin.id], 1, params="{}")
+        chart_component_id = "CHART-issue32966"
+        positions = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"type": "ROOT", "id": "ROOT_ID", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "type": "GRID",
+                "id": "GRID_ID",
+                "children": ["ROW-issue32966"],
+                "parents": ["ROOT_ID"],
+            },
+            "ROW-issue32966": {
+                "type": "ROW",
+                "id": "ROW-issue32966",
+                "children": [chart_component_id],
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                "parents": ["ROOT_ID", "GRID_ID"],
+            },
+            chart_component_id: {
+                "type": "CHART",
+                "id": chart_component_id,
+                "children": [],
+                "meta": {
+                    "chartId": chart.id,
+                    "sliceName": chart.slice_name,
+                    "width": 4,
+                    "height": 50,
+                },
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-issue32966"],
+            },
+        }
+        dashboard_data = {
+            "dashboard_title": "issue 32966 dashboard",
+            "slug": "issue-32966",
+            "owners": [admin.id],
+            "position_json": json.dumps(positions),
+            "json_metadata": json.dumps({"positions": positions}),
+            "published": True,
+        }
+        dashboard = None
+        try:
+            uri = "api/v1/dashboard/"
+            rv = self.post_assert_metric(uri, dashboard_data, "post")
+            assert rv.status_code == 201
+            data = json.loads(rv.data.decode("utf-8"))
+            dashboard = db.session.query(Dashboard).get(data.get("id"))
+            slice_ids = [slc.id for slc in dashboard.slices]
+            assert chart.id in slice_ids, (
+                "Chart referenced in position_json was not linked to the "
+                f"dashboard (dashboard.slices={slice_ids}); see issue #32966."
+            )
+        finally:
+            if dashboard is not None:
+                db.session.delete(dashboard)
+            db.session.delete(chart)
+            db.session.commit()
 
     def test_create_simple_dashboard(self):
         """
@@ -2858,6 +2965,70 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert rv.status_code == 200
         assert "Content-Disposition" in rv.headers
         assert "_example.zip" in rv.headers["Content-Disposition"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_export_as_example_data_respects_row_level_filters(self) -> None:
+        """
+        Dashboard API: export_as_example with export_data must apply the
+        dataset's row-level filters, so a restricted user only receives the
+        rows they are entitled to (not the full underlying table).
+        """
+        import pandas as pd
+
+        from superset.connectors.sqla.models import RowLevelSecurityFilter
+
+        table = self.get_table(name="birth_names")
+        gamma = security_manager.find_role("Gamma")
+        # birth_names access so the row-level filter (not the access check) is
+        # what scopes the result, and permission to call the endpoint. Track
+        # what we grant so the shared test role is restored afterwards.
+        granted = []
+        for perm, view in (
+            ("datasource_access", table.perm),
+            ("can_export_as_example", "Dashboard"),
+            ("can_export", "Dashboard"),
+        ):
+            pvm = security_manager.find_permission_view_menu(perm, view)
+            if pvm and pvm not in gamma.permissions:
+                gamma.permissions.append(pvm)
+                granted.append(pvm)
+        rls = RowLevelSecurityFilter(
+            name="export_example_girls_only",
+            filter_type="Regular",
+            clause="gender = 'girl'",
+            group_key="gender",
+        )
+        rls.tables.append(table)
+        rls.roles.append(gamma)
+        db.session.add(rls)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            dashboard_id = get_dashboards_ids(["births"])[0]
+            uri = (
+                f"api/v1/dashboard/{dashboard_id}/export_as_example/"
+                "?export_data=true&sample_rows=500"
+            )
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+
+            with ZipFile(BytesIO(rv.data)) as zf:
+                parquet_files = [n for n in zf.namelist() if n.endswith(".parquet")]
+                assert parquet_files, f"expected a data file: {zf.namelist()}"
+                for name in parquet_files:
+                    df = pd.read_parquet(BytesIO(zf.read(name)))
+                    if "gender" in df.columns:
+                        unexpected = set(df["gender"].unique()) - {"girl"}
+                        assert not unexpected, (
+                            f"export returned rows outside the configured "
+                            f"row-level filter: {unexpected}"
+                        )
+        finally:
+            db.session.delete(rls)
+            for pvm in granted:
+                if pvm in gamma.permissions:
+                    gamma.permissions.remove(pvm)
+            db.session.commit()
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dashboard(self, mock_add_permissions):

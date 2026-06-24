@@ -638,3 +638,93 @@ class TestChartSerializationEagerLoading:
         # No tags/owners keys — those would require relationship access
         assert "tags" not in chart_data
         assert "owners" not in chart_data
+
+
+# ---------------------------------------------------------------------------
+# Custom SQL metrics (sql_expression) — Ticket #3, generate_chart side.
+# ---------------------------------------------------------------------------
+
+
+_SQL_EXPR = "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / NULLIF(COUNT(*),0)"
+
+
+class TestGenerateChartSqlMetric:
+    """generate_chart accepts a sql_expression on y[*] metrics."""
+
+    def test_generate_chart_request_accepts_sql_metric(self) -> None:
+        request = GenerateChartRequest(
+            dataset_id="1",
+            config=XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="ds"),
+                y=[ColumnRef(sql_expression=_SQL_EXPR, label="Win Rate")],
+                kind="line",
+            ),
+        )
+        # config.y[0] is the new SQL metric.
+        assert request.config.y[0].sql_expression == _SQL_EXPR
+        assert request.config.y[0].label == "Win Rate"
+        assert request.config.y[0].name is None
+        assert request.config.y[0].is_metric is True
+
+    def test_generate_chart_request_via_dict_accepts_sql_metric(self) -> None:
+        # The MCP tool receives a dict on the wire, so verify model_validate
+        # too — that's the path UnknownFieldCheckMixin guards.
+        request = GenerateChartRequest.model_validate(
+            {
+                "dataset_id": "1",
+                "config": {
+                    "chart_type": "xy",
+                    "x": {"name": "ds"},
+                    "y": [{"sql_expression": _SQL_EXPR, "label": "Win Rate"}],
+                    "kind": "line",
+                },
+            }
+        )
+        assert request.config.y[0].sql_expression == _SQL_EXPR
+
+    def test_generate_chart_request_rejects_sql_metric_without_label(self) -> None:
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="label"):
+            GenerateChartRequest.model_validate(
+                {
+                    "dataset_id": "1",
+                    "config": {
+                        "chart_type": "xy",
+                        "x": {"name": "ds"},
+                        "y": [{"sql_expression": _SQL_EXPR}],
+                        "kind": "line",
+                    },
+                }
+            )
+
+    def test_response_form_data_wraps_sql_metric_strings(self) -> None:
+        """Regression: previously the generate_chart response's top-level
+        ``form_data`` skipped the per-key SQL-metric wrap, shipping LLM-
+        controlled sqlExpression/label back unwrapped."""
+        from superset.mcp_service.chart.tool.generate_chart import (
+            _sanitize_generate_chart_form_data_for_llm_context,
+        )
+
+        wrapped = _sanitize_generate_chart_form_data_for_llm_context(
+            {
+                "viz_type": "echarts_timeseries_line",
+                "metrics": [
+                    {
+                        "expressionType": "SQL",
+                        "sqlExpression": _SQL_EXPR,
+                        "label": "Win Rate",
+                        "aggregate": None,
+                        "column": None,
+                        "optionName": "metric_sql_abcd1234",
+                        "hasCustomLabel": True,
+                        "datasourceWarning": False,
+                    }
+                ],
+            }
+        )
+        m = wrapped["metrics"][0]
+        assert "<UNTRUSTED-CONTENT>" in m["sqlExpression"]
+        assert "<UNTRUSTED-CONTENT>" in m["label"]
+        assert "<UNTRUSTED-CONTENT>" not in m["optionName"]

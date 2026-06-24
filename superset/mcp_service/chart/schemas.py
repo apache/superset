@@ -25,7 +25,6 @@ import difflib
 from datetime import datetime
 from typing import Annotated, Any, cast, Dict, List, Literal, Protocol
 
-import humanize
 from pydantic import (
     AliasChoices,
     AliasPath,
@@ -61,8 +60,10 @@ from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
 )
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.sanitization import (
     sanitize_filter_value,
+    sanitize_sql_expression,
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
@@ -248,6 +249,29 @@ class VersionedResponse(BaseModel):
     api_version: str = Field("v1", description="MCP API version")
 
 
+DEFAULT_GET_CHART_INFO_COLUMNS: List[str] = [
+    "id",
+    "slice_name",
+    "viz_type",
+    "datasource_name",
+    "datasource_type",
+    "url",
+    "description",
+    "cache_timeout",
+    "changed_on",
+    "changed_on_humanized",
+    "created_on",
+    "created_on_humanized",
+    "certified_by",
+    "certification_details",
+    "uuid",
+    "tags",
+    "filters",
+    "form_data_key",
+    "is_unsaved_state",
+]
+
+
 class GetChartInfoRequest(BaseModel):
     """Request schema for get_chart_info with support for ID, UUID, or form_data_key.
 
@@ -288,6 +312,17 @@ class GetChartInfoRequest(BaseModel):
             "and the caller to have dashboard access."
         ),
     )
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: list(DEFAULT_GET_CHART_INFO_COLUMNS),
+            description=(
+                "Top-level fields to include in the response. Defaults to a lean "
+                "set that excludes 'form_data' (the full chart config, can be 50KB+). "
+                "Add 'form_data' explicitly when you need the raw chart configuration."
+            ),
+        ),
+    ]
 
     @model_validator(mode="after")
     def validate_identifier_or_form_data_key(self) -> "GetChartInfoRequest":
@@ -297,12 +332,15 @@ class GetChartInfoRequest(BaseModel):
             )
         return self
 
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def _parse_select_columns(cls, value: Any) -> Any:
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    return humanize.naturaltime(datetime.now() - dt)
+        if value is None:
+            return list(DEFAULT_GET_CHART_INFO_COLUMNS)
+        parsed = parse_json_or_list(value, "select_columns")
+        return parsed if parsed else list(DEFAULT_GET_CHART_INFO_COLUMNS)
 
 
 def extract_filters_from_form_data(
@@ -409,7 +447,40 @@ CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = frozenset(
 )
 
 
-def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:
+def wrap_sql_adhoc_metrics(form_data: Any) -> None:
+    """Wrap LLM-controlled SQL adhoc metric strings in-place.
+
+    ``metric``/``metrics`` are in ``CHART_FORM_DATA_EXCLUDED_FIELD_NAMES`` so
+    SIMPLE-metric content (bounded scalars) doesn't get wrapped. SQL adhoc
+    dicts carry up to 2000 chars of LLM-controlled SQL plus a 500-char label
+    that still need ``<UNTRUSTED-CONTENT>`` delimiters when echoed back.
+    """
+    if not isinstance(form_data, dict):
+        return
+    metrics = form_data.get("metrics")
+    if isinstance(metrics, list):
+        for index, metric in enumerate(metrics):
+            if isinstance(metric, dict) and metric.get("expressionType") == "SQL":
+                for key in ("sqlExpression", "label"):
+                    if isinstance(metric.get(key), str):
+                        metric[key] = sanitize_for_llm_context(
+                            metric[key],
+                            field_path=("form_data", "metrics", str(index), key),
+                        )
+    metric_singular = form_data.get("metric")
+    if (
+        isinstance(metric_singular, dict)
+        and metric_singular.get("expressionType") == "SQL"
+    ):
+        for key in ("sqlExpression", "label"):
+            if isinstance(metric_singular.get(key), str):
+                metric_singular[key] = sanitize_for_llm_context(
+                    metric_singular[key],
+                    field_path=("form_data", "metric", key),
+                )
+
+
+def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:  # noqa: C901
     """Wrap chart read-path descriptive fields before LLM exposure."""
     payload = chart_info.model_dump(mode="python")
 
@@ -444,6 +515,7 @@ def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:
                 | frozenset({"cache_key", "database", "database_name", "schema"})
             ),
         )
+        wrap_sql_adhoc_metrics(payload["form_data"])
 
     payload["tags"] = [
         {
@@ -504,13 +576,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
             form_data=chart_form_data,
             filters=filters_info,
             changed_on=getattr(chart, "changed_on", None),
-            changed_on_humanized=_humanize_timestamp(
-                getattr(chart, "changed_on", None)
-            ),
+            changed_on_humanized=humanize_timestamp(getattr(chart, "changed_on", None)),
             created_on=getattr(chart, "created_on", None),
-            created_on_humanized=_humanize_timestamp(
-                getattr(chart, "created_on", None)
-            ),
+            created_on_humanized=humanize_timestamp(getattr(chart, "created_on", None)),
             uuid=str(getattr(chart, "uuid", ""))
             if getattr(chart, "uuid", None)
             else None,
@@ -670,8 +738,8 @@ class UnknownFieldCheckMixin(BaseModel):
 class ColumnRef(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    name: str = Field(
-        ...,
+    name: str | None = Field(
+        None,
         min_length=1,
         max_length=255,
         pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
@@ -700,11 +768,62 @@ class ColumnRef(BaseModel):
         "(use get_dataset_info to see available metrics). "
         "When set, 'aggregate' is ignored.",
     )
+    sql_expression: str | None = Field(
+        None,
+        max_length=2000,
+        description=(
+            "Custom SQL aggregate expression for an adhoc metric, e.g. "
+            "'COUNT(CASE WHEN closed_won THEN 1 END)::numeric / "
+            "NULLIF(COUNT(*),0)'. Metric-only — mutually exclusive with "
+            "'name', 'aggregate', and 'saved_metric'. Requires 'label'."
+        ),
+    )
 
     @property
     def is_metric(self) -> bool:
-        """Whether this ref acts as a metric (has aggregate or is a saved metric)."""
-        return bool(self.aggregate) or self.saved_metric
+        """Whether this ref acts as a metric (aggregate, saved, or SQL)."""
+        return bool(self.aggregate) or self.saved_metric or bool(self.sql_expression)
+
+    # Must run before ``clear_aggregate_for_saved_metric`` (Pydantic v2 runs
+    # ``mode="after"`` validators in source order) so the aggregate/saved
+    # conflict surfaces before the cleanup nulls ``aggregate`` out.
+    @model_validator(mode="after")
+    def validate_metric_shape(self) -> "ColumnRef":
+        """Require exactly one of ``name`` or ``sql_expression``; the SQL form
+        is mutually exclusive with ``aggregate`` / ``saved_metric`` and
+        requires a ``label``.
+        """
+        if self.sql_expression:
+            if self.name is not None:
+                raise ValueError(
+                    "ColumnRef cannot set both 'name' and 'sql_expression'. "
+                    "Use 'sql_expression' alone for a custom SQL metric, or "
+                    "'name' (plus optional 'aggregate' / 'saved_metric') for "
+                    "a column-based metric."
+                )
+            if self.aggregate is not None:
+                raise ValueError(
+                    "ColumnRef cannot combine 'sql_expression' with "
+                    "'aggregate' — the SQL expression already includes the "
+                    "aggregation."
+                )
+            if self.saved_metric:
+                raise ValueError(
+                    "ColumnRef cannot combine 'sql_expression' with "
+                    "'saved_metric=True' — use the saved metric's name "
+                    "directly instead."
+                )
+            if not self.label:
+                raise ValueError(
+                    "ColumnRef with 'sql_expression' requires a 'label' "
+                    "(used as the metric's display name)."
+                )
+        elif self.name is None:
+            raise ValueError(
+                "ColumnRef requires either 'name' (column / dimension / "
+                "saved metric) or 'sql_expression' (custom SQL metric)."
+            )
+        return self
 
     @model_validator(mode="after")
     def clear_aggregate_for_saved_metric(self) -> "ColumnRef":
@@ -715,19 +834,27 @@ class ColumnRef(BaseModel):
 
     @field_validator("name")
     @classmethod
-    def sanitize_name(cls, v: str) -> str:
+    def sanitize_name(cls, v: str | None) -> str | None:
         """Sanitize column name to prevent XSS and SQL injection."""
-        # sanitize_user_input raises ValueError when allow_empty=False (default)
-        # so the return value is guaranteed to be a non-None str
+        if v is None:
+            return None
         return sanitize_user_input(
             v, "Column name", max_length=255, check_sql_keywords=True
-        )  # type: ignore[return-value]
+        )
 
     @field_validator("label")
     @classmethod
     def sanitize_label(cls, v: str | None) -> str | None:
         """Sanitize display label to prevent XSS attacks."""
         return sanitize_user_input(v, "Label", max_length=500, allow_empty=True)
+
+    @field_validator("sql_expression")
+    @classmethod
+    def sanitize_sql(cls, v: str | None) -> str | None:
+        """Sanitize a custom SQL aggregate expression (XSS, DDL/DML, etc.)."""
+        return sanitize_sql_expression(
+            v, "SQL expression", max_length=2000, allow_empty=True
+        )
 
 
 class AxisConfig(BaseModel):
@@ -918,6 +1045,12 @@ class PieChartConfig(UnknownFieldCheckMixin):
         30, description="Donut inner radius % (1-100)", ge=1, le=100
     )
 
+    @model_validator(mode="after")
+    def reject_sql_expression_on_dimensions(self) -> "PieChartConfig":
+        """sql_expression is metric-only; reject it on the dimension."""
+        _reject_sql_expression_on_dimension(self.dimension, "dimension")
+        return self
+
 
 class PivotTableChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -971,6 +1104,16 @@ class PivotTableChartConfig(UnknownFieldCheckMixin):
         None,
         description="Currency symbol applied to numeric metric values",
     )
+
+    @model_validator(mode="after")
+    def reject_sql_expression_on_dimensions(self) -> "PivotTableChartConfig":
+        """sql_expression is metric-only; reject it on rows and columns."""
+        for i, col in enumerate(self.rows):
+            _reject_sql_expression_on_dimension(col, f"rows[{i}]")
+        if self.columns:
+            for i, col in enumerate(self.columns):
+                _reject_sql_expression_on_dimension(col, f"columns[{i}]")
+        return self
 
 
 class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
@@ -1052,6 +1195,19 @@ class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
     def wrap_single_group_by(cls, v: Any) -> Any:
         return _normalize_group_by_input(v)
 
+    @model_validator(mode="after")
+    def reject_sql_expression_on_dimensions(self) -> "MixedTimeseriesChartConfig":
+        """sql_expression is metric-only; reject it on x and group_by lists."""
+        _reject_sql_expression_on_dimension(self.x, "x")
+        for field_name, group in (
+            ("group_by", self.group_by),
+            ("group_by_secondary", self.group_by_secondary),
+        ):
+            if group:
+                for i, col in enumerate(group):
+                    _reject_sql_expression_on_dimension(col, f"{field_name}[{i}]")
+        return self
+
 
 class HandlebarsChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore")
@@ -1121,6 +1277,17 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
     )
 
     @model_validator(mode="after")
+    def reject_sql_expression_on_dimensions(self) -> "HandlebarsChartConfig":
+        """sql_expression is metric-only; reject it on raw columns and groupby."""
+        if self.columns:
+            for i, col in enumerate(self.columns):
+                _reject_sql_expression_on_dimension(col, f"columns[{i}]")
+        if self.groupby:
+            for i, col in enumerate(self.groupby):
+                _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+        return self
+
+    @model_validator(mode="after")
     def validate_query_fields(self) -> "HandlebarsChartConfig":
         """Validate that the right fields are provided for the query mode."""
         if self.query_mode == "raw":
@@ -1145,7 +1312,9 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
                     "Handlebars chart in 'aggregate' query mode requires 'metrics' "
                     "field. Specify at least one metric with an aggregate function."
                 )
-            missing_agg = [m.name for m in self.metrics if not m.is_metric]
+            # SQL metrics are filtered out by ``is_metric``, so every entry in
+            # ``missing_agg`` is a name-bearing column ref.
+            missing_agg = [m.name or "" for m in self.metrics if not m.is_metric]
             if missing_agg:
                 raise ValueError(
                     f"Handlebars chart in 'aggregate' query mode requires an "
@@ -1248,6 +1417,32 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         ),
         ge=1,
     )
+    aggregation: (
+        Literal["LAST_VALUE", "sum", "mean", "min", "max", "median", "raw"] | None
+    ) = Field(
+        None,
+        description=(
+            "How the single big-number value is computed from the trendline "
+            "data points. Only applies when show_trendline=True. "
+            "Options: "
+            "'sum' = Total (Sum) — add all data points; use for all-time totals. "
+            "'LAST_VALUE' = most recent data point "
+            "(frontend default when this field is absent). "
+            "'mean' = Average (Mean). "
+            "'min' = Minimum. "
+            "'max' = Maximum. "
+            "'median' = Median. "
+            "'raw' = Overall value — single aggregate across the full period; best for "
+            "non-additive metrics like ratios, averages, or distinct counts. "
+            "DIAGNOSIS: if a Big Number with Trendline shows an unexpectedly low value "
+            "(e.g. yesterday's revenue instead of all-time total), "
+            "inspect form_data['aggregation'] "
+            "— when absent or 'LAST_VALUE' the chart shows only the last data point. "
+            "Fix by setting aggregation='sum'. "
+            "IMPORTANT: when updating aggregation, always include "
+            "show_trendline=True and temporal_column to preserve the trendline."
+        ),
+    )
     filters: list[FilterConfig] | None = Field(
         None,
         description="Filters to apply",
@@ -1268,17 +1463,25 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
                 "Period comparison is only available for "
                 "trendline charts."
             )
+        if self.aggregation and not self.show_trendline:
+            raise ValueError(
+                "aggregation requires show_trendline=True. "
+                "The aggregation field only applies to Big Number with "
+                "Trendline charts. Set show_trendline=True and provide "
+                "a temporal_column, or omit aggregation."
+            )
         return self
 
     @model_validator(mode="after")
     def validate_metric_aggregate(self) -> Self:
-        """Ensure metric is a valid metric reference (aggregate or saved)."""
+        """Ensure metric resolves to a metric expression (aggregate, saved,
+        or sql_expression)."""
         if not self.metric.is_metric:
             raise ValueError(
-                "Big Number metric must be either a saved dataset metric "
-                "or include an aggregate function (e.g., SUM, COUNT, AVG). "
-                "Set 'saved_metric': true to use a saved metric, or add "
-                "'aggregate' to the metric specification."
+                "Big Number metric must include an aggregate function, "
+                "reference a saved metric, or carry a sql_expression. "
+                "Set 'aggregate' (e.g., SUM, COUNT, AVG), 'saved_metric': true, "
+                "or 'sql_expression' (with a 'label')."
             )
         return self
 
@@ -1331,6 +1534,20 @@ class TableChartConfig(UnknownFieldCheckMixin):
     )
 
     @model_validator(mode="after")
+    def reject_sql_expression_in_raw_mode(self) -> "TableChartConfig":
+        """In raw mode every column is a plain selection, so a SQL metric
+        there would yield ``None`` in ``form_data['all_columns']``."""
+        if self.query_mode == "raw":
+            for i, col in enumerate(self.columns):
+                if col.sql_expression:
+                    raise ValueError(
+                        f"sql_expression is not allowed on columns[{i}] when "
+                        f"query_mode='raw'. Switch to query_mode='aggregate' "
+                        f"(or omit query_mode) to use a SQL metric."
+                    )
+        return self
+
+    @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "TableChartConfig":
         """Ensure all column labels are unique."""
         labels_seen = set()
@@ -1338,7 +1555,10 @@ class TableChartConfig(UnknownFieldCheckMixin):
 
         for i, col in enumerate(self.columns):
             # Generate the label that will be used (same logic as create_metric_object)
-            if col.saved_metric:
+            if col.sql_expression:
+                # SQL metrics carry a required label; use it verbatim.
+                label = col.label
+            elif col.saved_metric:
                 label = col.label or col.name
             elif col.aggregate:
                 label = col.label or f"{col.aggregate}({col.name})"
@@ -1360,13 +1580,25 @@ class TableChartConfig(UnknownFieldCheckMixin):
         return self
 
 
+def _reject_sql_expression_on_dimension(col: ColumnRef | None, position: str) -> None:
+    """Raise if a dimension-position ColumnRef carries ``sql_expression``;
+    SQL adhoc metrics belong on metric positions only."""
+    if col is not None and col.sql_expression:
+        raise ValueError(
+            f"sql_expression is only supported on metrics, not on '{position}' "
+            f"(which is a dimension). Use 'name' for dimension columns."
+        )
+
+
 def _metric_display_label(col: ColumnRef) -> str:
     """Return the display label for a metric column reference."""
+    if col.sql_expression:
+        return col.label or ""
     if col.saved_metric:
-        return col.label or col.name
+        return col.label or col.name or ""
     if col.aggregate:
         return col.label or f"{col.aggregate}({col.name})"
-    return col.label or col.name
+    return col.label or col.name or ""
 
 
 class XYChartConfig(UnknownFieldCheckMixin):
@@ -1455,14 +1687,24 @@ class XYChartConfig(UnknownFieldCheckMixin):
         return _normalize_group_by_input(v)
 
     @model_validator(mode="after")
+    def reject_sql_expression_on_dimensions(self) -> "XYChartConfig":
+        """sql_expression is metric-only; reject it on x and group_by."""
+        _reject_sql_expression_on_dimension(self.x, "x")
+        if self.group_by:
+            for i, col in enumerate(self.group_by):
+                _reject_sql_expression_on_dimension(col, f"group_by[{i}]")
+        return self
+
+    @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "XYChartConfig":
         """Ensure all column labels are unique across x, y, and group_by."""
         labels_seen: dict[str, str] = {}
         duplicates: list[str] = []
 
-        # Add x-axis label if present (x may be None, resolved later)
+        # Add x-axis label if present (x may be None, resolved later).
+        # The dimension validator rejects sql_expression on x, so name is set.
         if self.x is not None:
-            x_label = self.x.label or self.x.name
+            x_label = self.x.label or self.x.name or ""
             labels_seen[x_label] = "x"
 
         # Check Y-axis labels
@@ -1483,7 +1725,8 @@ class XYChartConfig(UnknownFieldCheckMixin):
                     # to prevent Superset "duplicate label" errors, so
                     # we allow them through validation.
                     continue
-                group_label = col.label or col.name
+                # group_by rejects sql_expression, so name is set.
+                group_label = col.label or col.name or ""
                 if group_label in labels_seen:
                     duplicates.append(
                         f"group_by[{i}]: '{group_label}' "
@@ -1745,6 +1988,15 @@ class UpdateChartRequest(QueryCacheControl):
         description="Auto-generates if omitted",
         max_length=255,
         validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
+    )
+    dataset_id: int | None = Field(
+        None,
+        description=(
+            "Target dataset ID to rebind the chart to a different dataset. "
+            "When omitted, the chart retains its existing dataset. "
+            "Can be combined with config to simultaneously change the dataset "
+            "and visualization, or used alone to rebind without altering the config."
+        ),
     )
     generate_preview: bool = Field(
         default=True,

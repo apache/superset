@@ -310,3 +310,36 @@ def test_build_prompt_includes_plural_note_when_plural_is_not_first() -> None:
     ]
     prompt = backfill_po.build_prompt("fr", batch, index={})
     assert "provide ALL plural forms" in prompt
+
+
+# ---------------------------------------------------------------------------
+# _ensure_license_header
+# ---------------------------------------------------------------------------
+
+
+def test_ensure_license_header_prepends_when_missing(tmp_path: Path) -> None:
+    """Header is written when the file lacks the ASF copyright notice."""
+    po = tmp_path / "messages.po"
+    po.write_text('msgid ""\nmsgstr ""\n', encoding="utf-8")
+    backfill_po._ensure_license_header(po)
+    content = po.read_text(encoding="utf-8")
+    assert "Licensed to the Apache Software Foundation" in content
+    assert content.startswith("#")
+
+
+def test_ensure_license_header_skips_when_present(tmp_path: Path) -> None:
+    """Header is not duplicated when already present."""
+    po = tmp_path / "messages.po"
+    original = '# Licensed to the Apache Software Foundation\nmsgid ""\n'
+    po.write_text(original, encoding="utf-8")
+    backfill_po._ensure_license_header(po)
+    assert po.read_text(encoding="utf-8") == original
+
+
+def test_ensure_license_header_dry_run_does_not_write(tmp_path: Path) -> None:
+    """Passing dry_run=True prints a notice but leaves the file unchanged."""
+    po = tmp_path / "messages.po"
+    original = 'msgid ""\nmsgstr ""\n'
+    po.write_text(original, encoding="utf-8")
+    backfill_po._ensure_license_header(po, dry_run=True)
+    assert po.read_text(encoding="utf-8") == original

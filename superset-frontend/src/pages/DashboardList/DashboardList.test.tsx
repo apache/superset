@@ -20,7 +20,7 @@ import fetchMock from 'fetch-mock';
 import { isFeatureEnabled } from '@superset-ui/core';
 import {
   screen,
-  selectOption,
+  selectPillOption,
   waitFor,
   fireEvent,
 } from 'spec/helpers/testing-library';
@@ -88,7 +88,7 @@ test('fetches data', async () => {
 
   const calls = fetchMock.callHistory.calls(/dashboard\/\?q/);
   expect(calls[0].url).toMatchInlineSnapshot(
-    `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25,select_columns:!(id,dashboard_title,published,url,slug,changed_by,changed_by.id,changed_by.first_name,changed_by.last_name,changed_on_delta_humanized,owners,owners.id,owners.first_name,owners.last_name,tags.id,tags.name,tags.type,status,certified_by,certification_details,changed_on))"`,
+    `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25,select_columns:!(id,dashboard_title,published,url,slug,description,changed_by,changed_by.id,changed_by.first_name,changed_by.last_name,changed_on_delta_humanized,owners,owners.id,owners.first_name,owners.last_name,tags.id,tags.name,tags.type,status,certified_by,certification_details,changed_on))"`,
   );
 });
 
@@ -200,7 +200,7 @@ test('selecting Status filter encodes published=true in API call', async () => {
     ).toBeInTheDocument();
   });
 
-  await selectOption('Published', 'Status');
+  await selectPillOption('Published', 'Status');
 
   await waitFor(() => {
     const latest = getLatestDashboardApiCall();
@@ -242,7 +242,7 @@ test('selecting Owner filter encodes rel_m_m owner in API call', async () => {
     ).toBeInTheDocument();
   });
 
-  await selectOption('Admin User', 'Owner');
+  await selectPillOption('Admin User', 'Owner');
 
   await waitFor(() => {
     const latest = getLatestDashboardApiCall();
@@ -287,7 +287,7 @@ test('selecting Modified by filter encodes rel_o_m changed_by in API call', asyn
     ).toBeInTheDocument();
   });
 
-  await selectOption('Admin User', 'Modified by');
+  await selectPillOption('Admin User', 'Modified by');
 
   await waitFor(() => {
     const latest = getLatestDashboardApiCall();
