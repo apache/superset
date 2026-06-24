@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ComponentType } from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { useExploreAdditionalActionsMenu } from './index';
@@ -29,10 +29,12 @@ jest.mock('src/explore/exploreUtils', () => ({
   getChartKey: jest.fn(() => 'test_chart_key'),
 }));
 
+const mockExportChart = exploreUtils.exportChart as jest.Mock;
+
 const mockAddDangerToast = jest.fn();
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
-  default: component => component,
+  default: (component: ComponentType) => component,
   useToasts: () => ({
     addDangerToast: mockAddDangerToast,
     addSuccessToast: jest.fn(),
@@ -65,15 +67,18 @@ const defaultProps = {
   setCurrentReportDeleting: jest.fn(),
 };
 
-const TestComponent = props => {
+type TestComponentProps = typeof defaultProps;
+type HookParams = Parameters<typeof useExploreAdditionalActionsMenu>;
+
+const TestComponent = (props: TestComponentProps) => {
   const [menu] = useExploreAdditionalActionsMenu(
-    props.latestQueryFormData,
+    props.latestQueryFormData as HookParams[0],
     props.canDownloadCSV,
-    props.slice,
+    props.slice as HookParams[2],
     props.onOpenInEditor,
     props.onOpenPropertiesModal,
-    props.ownState,
-    props.dashboards,
+    props.ownState as HookParams[5],
+    props.dashboards as HookParams[6],
     props.showReportModal,
     props.setCurrentReportDeleting,
   );
@@ -83,11 +88,11 @@ const TestComponent = props => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  exploreUtils.exportChart.mockResolvedValue(undefined);
+  mockExportChart.mockResolvedValue(undefined);
 });
 
 test('shows 413 error toast when exportCSV fails with 413', async () => {
-  exploreUtils.exportChart.mockRejectedValue({ status: 413 });
+  mockExportChart.mockRejectedValue({ status: 413 });
 
   render(<TestComponent {...defaultProps} />, { useRedux: true });
 
@@ -103,7 +108,7 @@ test('shows 413 error toast when exportCSV fails with 413', async () => {
 });
 
 test('shows 413 error toast when exportCSVPivoted fails with 413', async () => {
-  exploreUtils.exportChart.mockRejectedValue({ status: 413 });
+  mockExportChart.mockRejectedValue({ status: 413 });
 
   render(<TestComponent {...defaultProps} />, { useRedux: true });
 
@@ -119,7 +124,7 @@ test('shows 413 error toast when exportCSVPivoted fails with 413', async () => {
 });
 
 test('shows 413 error toast when Export Current View CSV server path fails with 413', async () => {
-  exploreUtils.exportChart.mockRejectedValue({ status: 413 });
+  mockExportChart.mockRejectedValue({ status: 413 });
 
   render(
     <TestComponent
