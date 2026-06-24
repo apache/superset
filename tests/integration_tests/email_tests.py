@@ -193,7 +193,9 @@ class TestEmailSmtp(SupersetTestCase):
         msg = MIMEMultipart()
         utils.send_mime_email("from", "to", msg, current_app.config, dryrun=False)
         mock_smtp.assert_called_with(
-            current_app.config["SMTP_HOST"], current_app.config["SMTP_PORT"]
+            current_app.config["SMTP_HOST"],
+            current_app.config["SMTP_PORT"],
+            timeout=current_app.config["SMTP_TIMEOUT"],
         )
         assert mock_smtp.return_value.starttls.called
         mock_smtp.return_value.login.assert_called_with(
@@ -218,6 +220,7 @@ class TestEmailSmtp(SupersetTestCase):
             current_app.config["SMTP_HOST"],
             current_app.config["SMTP_PORT"],
             context=None,
+            timeout=current_app.config["SMTP_TIMEOUT"],
         )
 
     @mock.patch("smtplib.SMTP_SSL")
@@ -235,6 +238,7 @@ class TestEmailSmtp(SupersetTestCase):
             current_app.config["SMTP_HOST"],
             current_app.config["SMTP_PORT"],
             context=mock.ANY,
+            timeout=current_app.config["SMTP_TIMEOUT"],
         )
         called_context = mock_smtp_ssl.call_args.kwargs["context"]
         assert called_context.verify_mode == ssl.CERT_REQUIRED
@@ -266,7 +270,9 @@ class TestEmailSmtp(SupersetTestCase):
         )
         assert not mock_smtp_ssl.called
         mock_smtp.assert_called_with(
-            current_app.config["SMTP_HOST"], current_app.config["SMTP_PORT"]
+            current_app.config["SMTP_HOST"],
+            current_app.config["SMTP_PORT"],
+            timeout=current_app.config["SMTP_TIMEOUT"],
         )
         assert not mock_smtp.login.called
         current_app.config["SMTP_USER"] = smtp_user
@@ -280,6 +286,36 @@ class TestEmailSmtp(SupersetTestCase):
         )
         assert not mock_smtp.called
         assert not mock_smtp_ssl.called
+
+    @mock.patch("smtplib.SMTP_SSL")
+    @mock.patch("smtplib.SMTP")
+    def test_send_mime_respects_custom_timeout(
+        self, mock_smtp: mock.Mock, mock_smtp_ssl: mock.Mock
+    ) -> None:
+        """A configured SMTP_TIMEOUT must reach the smtplib client.
+
+        A missing timeout would block the worker forever when the SMTP server
+        is unreachable, wedging the report schedule in WORKING (issue #40047).
+        """
+        config = {**current_app.config, "SMTP_TIMEOUT": 7, "SMTP_SSL": False}
+        mock_smtp.return_value = mock.Mock()
+        utils.send_mime_email("from", ["to"], MIMEMultipart(), config, dryrun=False)
+        assert mock_smtp.call_args.kwargs["timeout"] == 7
+
+    @mock.patch("smtplib.SMTP_SSL")
+    @mock.patch("smtplib.SMTP")
+    def test_send_mime_timeout_defaults_when_unset(
+        self, mock_smtp: mock.Mock, mock_smtp_ssl: mock.Mock
+    ) -> None:
+        """An absent SMTP_TIMEOUT key falls back to the 30s default.
+
+        Custom configs predating SMTP_TIMEOUT must still get a finite timeout.
+        """
+        config = {k: v for k, v in current_app.config.items() if k != "SMTP_TIMEOUT"}
+        config["SMTP_SSL"] = False
+        mock_smtp.return_value = mock.Mock()
+        utils.send_mime_email("from", ["to"], MIMEMultipart(), config, dryrun=False)
+        assert mock_smtp.call_args.kwargs["timeout"] == 30
 
 
 if __name__ == "__main__":

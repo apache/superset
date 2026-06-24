@@ -402,7 +402,6 @@ class BaseReportState:
         merged_params = self._merge_native_filters_into_url_params(
             base_state.get("urlParams"), native_filter_params
         )
-
         return [
             self._get_tab_url(
                 {
@@ -466,8 +465,12 @@ class BaseReportState:
         try:
             imges = []
             for screenshot in screenshots:
-                if imge := screenshot.get_screenshot(user=user):
-                    imges.append(imge)
+                imge = screenshot.get_screenshot(user=user)
+                if imge is None:
+                    raise ReportScheduleScreenshotFailedError(
+                        "Screenshot failed; aborting to avoid sending a partial report"
+                    )
+                imges.append(imge)
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "Screenshot capture took %.2fs - execution_id: %s",
@@ -521,7 +524,11 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+            csv_data = get_chart_csv_data(
+                chart_url=url,
+                auth_cookies=auth_cookies,
+                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+            )
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "CSV data generation from %s as user %s took %.2fs - execution_id: %s",
@@ -571,7 +578,11 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            dataframe = get_chart_dataframe(url, auth_cookies)
+            dataframe = get_chart_dataframe(
+                url,
+                auth_cookies,
+                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+            )
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "DataFrame generation from %s as user %s took %.2fs - execution_id: %s",
