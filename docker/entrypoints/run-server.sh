@@ -20,9 +20,11 @@
 HYPHEN_SYMBOL='-'
 
 STATSD_ARGS=()
-if [ -n "${SERVER_STATSD_HOST}" ]; then
-    STATSD_PORT="${SERVER_STATSD_PORT:-8125}"
-    STATSD_ARGS=(--statsd-host "${SERVER_STATSD_HOST}:${STATSD_PORT}" --statsd-prefix "${SERVER_STATSD_PREFIX:-superset}")
+STATSD_HOST="${SERVER_STATSD_HOST//[[:space:]]/}"
+if [ -n "${STATSD_HOST}" ]; then
+    STATSD_PORT="${SERVER_STATSD_PORT//[[:space:]]/}"
+    STATSD_PORT="${STATSD_PORT:-8125}"
+    STATSD_ARGS=(--statsd-host "${STATSD_HOST}:${STATSD_PORT}" --statsd-prefix "${SERVER_STATSD_PREFIX:-superset}")
 fi
 
 exec gunicorn \
