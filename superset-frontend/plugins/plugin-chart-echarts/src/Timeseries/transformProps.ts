@@ -889,6 +889,10 @@ export default function transformProps(
     name: xAxisTitle,
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
+    ...(xAxisType === AxisType.Category &&
+      groupBy.length === 0 && {
+        triggerEvent: true,
+      }),
     axisLabel: {
       // When rotation is applied on time axes, hideOverlap can
       // aggressively hide the last label. Rotated labels already
