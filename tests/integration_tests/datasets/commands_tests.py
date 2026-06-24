@@ -20,6 +20,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
@@ -78,11 +79,13 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
         assert list(contents.keys()) == [
             "metadata.yaml",
-            "datasets/examples/energy_usage.yaml",
+            f"datasets/examples/energy_usage_{example_dataset.id}.yaml",
             "databases/examples.yaml",
         ]
 
-        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
+        metadata = yaml.safe_load(
+            contents[f"datasets/examples/energy_usage_{example_dataset.id}.yaml"]()
+        )
 
         # sort columns for deterministic comparison
         metadata["columns"] = sorted(metadata["columns"], key=itemgetter("column_name"))
@@ -96,9 +99,11 @@ class TestExportDatasetsCommand(SupersetTestCase):
         assert metadata == {
             "cache_timeout": None,
             "catalog": None,
+            "currency_code_column": None,
             "columns": [
                 {
                     "column_name": "source",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -113,6 +118,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                 },
                 {
                     "column_name": "target",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -127,6 +133,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                 },
                 {
                     "column_name": "value",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -171,6 +178,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "warning_text": None,
                 },
             ],
+            "folders": None,
             "normalize_columns": False,
             "always_filter_main_dttm": False,
             "offset": 0,
@@ -217,10 +225,13 @@ class TestExportDatasetsCommand(SupersetTestCase):
         command = ExportDatasetsCommand([example_dataset.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
+        metadata = yaml.safe_load(
+            contents[f"datasets/examples/energy_usage_{example_dataset.id}.yaml"]()
+        )
         assert list(metadata.keys()) == [
             "table_name",
             "main_dttm_col",
+            "currency_code_column",
             "description",
             "default_endpoint",
             "offset",
@@ -235,6 +246,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "extra",
             "normalize_columns",
             "always_filter_main_dttm",
+            "folders",
             "uuid",
             "metrics",
             "columns",
@@ -259,8 +271,44 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
         assert list(contents.keys()) == [
             "metadata.yaml",
-            "datasets/examples/energy_usage.yaml",
+            f"datasets/examples/energy_usage_{example_dataset.id}.yaml",
         ]
+
+    @patch("superset.security.manager.g")
+    def test_export_dataset_command_unicode_chars(self, mock_g) -> None:
+        mock_g.user = security_manager.find_user("admin")
+        examples_db = get_example_database()
+        with examples_db.get_sqla_engine() as engine:
+            engine.execute("DROP TABLE IF EXISTS 中文")
+            engine.execute("CREATE TABLE 中文 AS SELECT 2 as col")
+        # scope cleanup to the example database so datasets with the same name
+        # on other databases are left untouched
+        stale = db.session.query(SqlaTable).filter_by(
+            table_name="中文", database_id=examples_db.id
+        )
+        if stale.count():
+            stale.delete()
+        with override_user(security_manager.find_user("admin")):
+            example_dataset = CreateDatasetCommand(
+                {
+                    "table_name": "中文",
+                    "database": examples_db.id,
+                }
+            ).run()
+
+        command = ExportDatasetsCommand([example_dataset.id], export_related=False)
+        contents = dict(command.run())
+
+        path = f"datasets/examples/{example_dataset.id}.yaml"
+        assert path in set(contents.keys())
+        yaml_content = contents[path]()
+        assert "table_name: 中文" in yaml_content
+
+        db.session.delete(example_dataset)
+        db.session.commit()
+        with examples_db.get_sqla_engine() as engine:
+            engine.execute("DROP TABLE 中文")
+        db.session.commit()
 
 
 class TestImportDatasetsCommand(SupersetTestCase):
@@ -361,6 +409,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
         assert dataset.table_name == "imported_dataset"
         assert dataset.main_dttm_col is None
+        assert dataset.currency_code_column == "currency"
         assert dataset.description == "This is a dataset that was exported"
         assert dataset.default_endpoint == ""
         assert dataset.offset == 66
@@ -484,7 +533,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dataset"
+        assert str(excinfo.value).startswith("Error importing dataset")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to SqlaTable."]}
         }
@@ -497,7 +546,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         command = v1.ImportDatasetsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dataset"
+        assert str(excinfo.value).startswith("Error importing dataset")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],
@@ -557,22 +606,21 @@ class TestCreateDatasetCommand(SupersetTestCase):
         with self.assertRaises(DatasetInvalidError):  # noqa: PT027
             CreateDatasetCommand({"table_name": "table", "database": 9999}).run()
 
-    @patch("superset.commands.utils.g")
     @patch("superset.models.core.Database.get_table")
-    def test_get_table_from_database_error(self, get_table_mock, mock_g):
+    def test_get_table_from_database_error(self, get_table_mock):
         get_table_mock.side_effect = SQLAlchemyError
-        mock_g.user = security_manager.find_user("admin")
-        with self.assertRaises(DatasetInvalidError):  # noqa: PT027
-            CreateDatasetCommand(
-                {"table_name": "table", "database": get_example_database().id}
-            ).run()
+        with override_user(security_manager.find_user("admin")):
+            with self.assertRaises(DatasetInvalidError):  # noqa: PT027
+                CreateDatasetCommand(
+                    {"table_name": "table", "database": get_example_database().id}
+                ).run()
 
     def test_create_dataset_command(self):
         examples_db = get_example_database()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE IF EXISTS test_create_dataset_command")
+            engine.execute(text("DROP TABLE IF EXISTS test_create_dataset_command"))
             engine.execute(
-                "CREATE TABLE test_create_dataset_command AS SELECT 2 as col"
+                text("CREATE TABLE test_create_dataset_command AS SELECT 2 as col")
             )
 
         with override_user(security_manager.find_user("admin")):
@@ -591,8 +639,9 @@ class TestCreateDatasetCommand(SupersetTestCase):
             assert [owner.username for owner in table.owners] == ["admin"]
 
         db.session.delete(table)
+        db.session.commit()
         with examples_db.get_sqla_engine() as engine:
-            engine.execute("DROP TABLE test_create_dataset_command")
+            engine.execute(text("DROP TABLE test_create_dataset_command"))
         db.session.commit()
 
     def test_create_dataset_command_not_allowed(self):
@@ -623,9 +672,10 @@ class TestDatasetWarmUpCacheCommand(SupersetTestCase):
             )
             .all()
         )
-        results = DatasetWarmUpCacheCommand(
-            get_example_database().database_name, "birth_names", None, None
-        ).run()
+        with override_user(security_manager.find_user("admin")):
+            results = DatasetWarmUpCacheCommand(
+                get_example_database().database_name, "birth_names", None, None
+            ).run()
         assert len(results) == len(birth_charts)
         for chart_result in results:
             assert "chart_id" in chart_result

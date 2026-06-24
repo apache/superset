@@ -17,12 +17,10 @@
 import logging
 from functools import partial
 
-from requests_cache import Optional
-
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.chart.exceptions import (
-    ChartForbiddenError,
+    ChartAccessDeniedError,
     ChartNotFoundError,
     ChartUnfaveError,
 )
@@ -37,21 +35,20 @@ logger = logging.getLogger(__name__)
 class DelFavoriteChartCommand(BaseCommand):
     def __init__(self, chart_id: int) -> None:
         self._chart_id = chart_id
-        self._chart: Optional[Slice] = None
+        self._chart: Slice | None = None
 
     @transaction(on_error=partial(on_error, reraise=ChartUnfaveError))
     def run(self) -> None:
         self.validate()
-        return ChartDAO.remove_favorite(self._chart)
+        if self._chart:
+            return ChartDAO.remove_favorite(self._chart)
 
     def validate(self) -> None:
         chart = ChartDAO.find_by_id(self._chart_id)
         if not chart:
             raise ChartNotFoundError()
-
         try:
-            security_manager.raise_for_ownership(chart)
+            security_manager.raise_for_access(chart=chart)
         except SupersetSecurityException as ex:
-            raise ChartForbiddenError() from ex
-
+            raise ChartAccessDeniedError() from ex
         self._chart = chart

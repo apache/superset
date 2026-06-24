@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { PureComponent, ReactNode } from 'react';
 import { OptionSortType } from 'src/explore/types';
 import AdhocFilterEditPopover from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -37,6 +37,7 @@ interface AdhocFilterPopoverTriggerProps {
   togglePopover?: (visible: boolean) => void;
   closePopover?: () => void;
   requireSave?: boolean;
+  children?: ReactNode;
 }
 
 interface AdhocFilterPopoverTriggerState {
@@ -93,7 +94,7 @@ class AdhocFilterPopoverTrigger extends PureComponent<
           datasource={this.props.datasource}
           partitionColumn={this.props.partitionColumn}
           onResize={this.onPopoverResize}
-          onClose={closePopover}
+          onClose={closePopover ?? (() => {})}
           sections={this.props.sections}
           operators={this.props.operators}
           onChange={this.props.onFilterEdit}
@@ -106,12 +107,14 @@ class AdhocFilterPopoverTrigger extends PureComponent<
       <ControlPopover
         trigger="click"
         content={overlayContent}
-        defaultVisible={visible}
-        visible={visible}
-        onVisibleChange={togglePopover}
-        destroyTooltipOnHide
+        defaultOpen={visible}
+        open={visible}
+        onOpenChange={togglePopover}
+        destroyOnHidden
       >
-        {this.props.children}
+        {/* Wrap in span so the Popover can attach a ref without relying
+            on findDOMNode (deprecated in React 18+). */}
+        <span>{this.props.children}</span>
       </ControlPopover>
     );
   }

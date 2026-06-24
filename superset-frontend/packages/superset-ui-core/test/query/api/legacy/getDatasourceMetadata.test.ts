@@ -21,12 +21,15 @@ import { getDatasourceMetadata } from '../../../../src/query/api/legacy';
 
 import setupClientForTest from '../setupClientForTest';
 
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+
 describe('getFormData()', () => {
   beforeAll(() => setupClientForTest());
 
-  afterEach(() => fetchMock.restore());
+  afterEach(() => fetchMock.clearHistory().removeRoutes());
 
-  it('returns datasource metadata for given datasource key', () => {
+  test('returns datasource metadata for given datasource key', () => {
     const mockData = {
       field1: 'abc',
       field2: 'def',

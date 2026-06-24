@@ -25,7 +25,6 @@ import {
   QueryFormMetric,
 } from '@superset-ui/core';
 import {
-  ControlStateMapping,
   getStandardizedControls,
   isStandardizedFormData,
   StandardizedControls,
@@ -81,6 +80,8 @@ export const publicControls = [
   // advanced analytics - resample
   'resample_rule', // via sections.advancedAnalytics
   'resample_method', // via sections.advancedAnalytics
+  // dashboard context
+  'dashboardId', // preserve dashboard context when changing viz type
 ];
 
 export class StandardizedFormData {
@@ -155,6 +156,41 @@ export class StandardizedFormData {
     return controls;
   }
 
+  // Time shifts only meaningful for viz types whose "Time shift" control offers
+  // them (Big Number / Table period-over-period). Other viz types reuse the same
+  // `time_compare` key without these choices.
+  private static specialTimeShifts = ['inherit', 'custom'];
+
+  // Drop `time_compare` markers the target viz can't honor so they don't carry
+  // over as un-removable tags when switching chart types.
+  static dropUnsupportedTimeShifts(
+    controlsState: Record<string, unknown>,
+  ): void {
+    const control = controlsState?.time_compare as
+      | { value?: unknown; choices?: unknown }
+      | undefined;
+    if (!control || !Array.isArray(control.value)) {
+      return;
+    }
+    const supportedChoices = new Set(
+      ensureIsArray(control.choices)
+        .filter(
+          (choice): choice is [string, string] =>
+            Array.isArray(choice) && typeof choice[0] === 'string',
+        )
+        .map(choice => choice[0]),
+    );
+    const filtered = control.value.filter(
+      (shift: unknown) =>
+        typeof shift !== 'string' ||
+        !StandardizedFormData.specialTimeShifts.includes(shift) ||
+        supportedChoices.has(shift),
+    );
+    if (filtered.length !== control.value.length) {
+      control.value = filtered.length ? filtered : null;
+    }
+  }
+
   private getLatestFormData(vizType: string): QueryFormData {
     if (this.has(vizType)) {
       return this.get(vizType);
@@ -187,11 +223,10 @@ export class StandardizedFormData {
 
   transform(
     targetVizType: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     exploreState: Record<string, any>,
-  ): {
-    formData: QueryFormData;
-    controlsState: ControlStateMapping;
-  } {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): any {
     /*
      * Transform form_data between different viz. Return new form_data and controlsState.
      * 1. get memorized form_data by viz type or get previous form_data
@@ -209,13 +244,20 @@ export class StandardizedFormData {
         publicFormData[key] = exploreState.form_data[key];
       }
     });
-    const targetControlsState = getControlsState(exploreState, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const targetControlsState = getControlsState(exploreState as any, {
       ...latestFormData,
       ...publicFormData,
       viz_type: targetVizType,
     });
+    StandardizedFormData.dropUnsupportedTimeShifts(targetControlsState);
     const targetFormData = {
-      ...getFormDataFromControls(targetControlsState),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...getFormDataFromControls(targetControlsState as any),
+      // Preserve dashboard context when switching viz types.
+      ...(publicFormData.dashboardId && {
+        dashboardId: publicFormData.dashboardId,
+      }),
       standardizedFormData: this.serialize(),
     };
 
@@ -237,14 +279,18 @@ export class StandardizedFormData {
       getStandardizedControls().clear();
       rv = {
         formData: transformed,
-        controlsState: getControlsState(exploreState, transformed),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        controlsState: getControlsState(exploreState as any, transformed),
       };
     }
 
     // refresh validator message
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rv.controlsState = getControlsState(
-      { ...exploreState, controls: rv.controlsState },
-      rv.formData,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { ...exploreState, controls: rv.controlsState } as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rv.formData as any,
     );
     return rv;
   }

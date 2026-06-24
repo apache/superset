@@ -16,12 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, SupersetTheme, t } from '@superset-ui/core';
-import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
-import FormLabel from 'src/components/Form/FormLabel';
-import Icons from 'src/components/Icons';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
+import {
+  FormLabel,
+  LabeledErrorBoundInput as ValidatedInput,
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
-import { CatalogObject, FieldPropTypes } from '../../types';
+import { CatalogObject, Engines, FieldPropTypes } from '../../types';
 
 export const TableCatalog = ({
   required,
@@ -29,18 +33,20 @@ export const TableCatalog = ({
   getValidation,
   validationErrors,
   db,
+  isPublic = true,
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
   const catalogError = validationErrors || {};
+  const showCredentialsHelper = db?.engine !== Engines.GSheet || !isPublic;
   return (
     <StyledCatalogTable>
-      <h4 className="gsheet-title">
+      <Typography.Title level={4} className="gsheet-title">
         {t('Connect Google Sheets as tables to this database')}
-      </h4>
+      </Typography.Title>
       <div>
         {tableCatalog?.map((sheet: CatalogObject, idx: number) => (
           <>
-            <FormLabel className="catalog-label" required>
+            <FormLabel className="catalog-label">
               {t('Google Sheet Name and URL')}
             </FormLabel>
             <div className="catalog-name">
@@ -65,7 +71,7 @@ export const TableCatalog = ({
                 <Icons.CloseOutlined
                   css={(theme: SupersetTheme) => css`
                     align-self: center;
-                    background: ${theme.colors.grayscale.light4};
+                    background: ${theme.colorFillSecondary};
                     margin: 5px 5px 8px 5px;
 
                     &.anticon > * {
@@ -105,6 +111,15 @@ export const TableCatalog = ({
           + {t('Add sheet')}
         </StyledFooterButton>
       </div>
+      {showCredentialsHelper && (
+        <div className="helper">
+          <div>
+            {t(
+              'In order to connect to non-public sheets you need to either provide a service account or configure an OAuth2 client.',
+            )}
+          </div>
+        </div>
+      )}
     </StyledCatalogTable>
   );
 };

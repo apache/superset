@@ -1,0 +1,71 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Netlify configuration for Superset documentation
+# This enables automatic deploy previews for PRs that modify docs
+
+[build]
+  # Base directory is the docs folder
+  base = "docs"
+  # Build command for Docusaurus
+  command = "yarn install && yarn build"
+  # Output directory (relative to base)
+  publish = "build"
+  # Skip builds when no docs changes (exit 0 = skip, non-zero = build).
+  # Checks for changes in docs/ and README.md (which gets pulled into docs).
+  #
+  # $CACHED_COMMIT_REF is the last *deployed* commit; it is set on incremental
+  # builds (notably the master production deploy) and empty on a context's
+  # first build (every deploy preview). The production path diffs against it
+  # and skips correctly.
+  #
+  # Deploy previews need different handling: Netlify checks out a *merge*
+  # commit, so $COMMIT_REF (the PR head SHA) is frequently not resolvable in
+  # the clone, and on a shallow clone `git merge-base` can fail too -- so the
+  # previous logic fell through to a build on every PR, even non-docs ones.
+  # Instead, always diff the checked-out HEAD against its merge-base with
+  # master, deepening the shallow clone until that merge-base resolves. If it
+  # genuinely can't be determined, exit non-zero to build (fail safe).
+  ignore = 'if [ -n "$CACHED_COMMIT_REF" ]; then git diff --quiet "$CACHED_COMMIT_REF" HEAD -- . ../README.md; else git fetch --no-tags origin master >/dev/null 2>&1 || true; i=0; while [ "$i" -lt 10 ] && ! git merge-base origin/master HEAD >/dev/null 2>&1; do git fetch --deepen=200 origin master >/dev/null 2>&1 || break; i=$((i+1)); done; BASE="$(git merge-base origin/master HEAD 2>/dev/null || true)"; if [ -z "$BASE" ]; then exit 1; fi; git diff --quiet "$BASE" HEAD -- . ../README.md; fi'
+
+[build.environment]
+  # Node version matching docs/.nvmrc
+  NODE_VERSION = "20"
+  # Yarn version
+  YARN_VERSION = "1.22.22"
+  # Increase heap size for webpack bundling of Superset UI components
+  NODE_OPTIONS = "--max-old-space-size=8192"
+
+# Deploy preview settings
+[context.deploy-preview]
+  command = "yarn install && yarn build"
+
+# Branch deploy settings (for feature branches)
+[context.branch-deploy]
+  command = "yarn install && yarn build"
+
+# Redirect /docs to the main docs page
+[[redirects]]
+  from = "/docs"
+  to = "/docs/intro"
+  status = 301
+
+# Handle SPA routing for Docusaurus
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

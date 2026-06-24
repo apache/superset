@@ -26,32 +26,40 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
+import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
-  css,
+  DatasourceType,
   ensureIsArray,
-  GenericDataType,
   JsonObject,
   QueryFormData,
-  t,
-  useTheme,
+  SupersetClient,
 } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { useResizeDetector } from 'react-resize-detector';
-import Loading from 'src/components/Loading';
-import BooleanCell from 'src/components/Table/cell-renderers/BooleanCell';
-import NullCell from 'src/components/Table/cell-renderers/NullCell';
-import TimeCell from 'src/components/Table/cell-renderers/TimeCell';
-import { EmptyState } from 'src/components/EmptyState';
+import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/BooleanCell';
+import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
+import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
+import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
-import Table, { ColumnsType, TableSize } from 'src/components/Table';
-import HeaderWithRadioGroup from 'src/components/Table/header-renderers/HeaderWithRadioGroup';
-import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import Table, {
+  ColumnsType,
+  TableSize,
+} from '@superset-ui/core/components/Table';
+import { RootState } from 'src/dashboard/types';
+import { usePermissions } from 'src/hooks/usePermissions';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { safeStringify } from 'src/utils/safeStringify';
+import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
+import { Dataset } from '../types';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
-const PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 50;
 
 interface DataType {
   [key: string]: any;
@@ -77,12 +85,15 @@ enum TimeFormatting {
 export default function DrillDetailPane({
   formData,
   initialFilters,
+  dataset,
 }: {
   formData: QueryFormData;
   initialFilters: BinaryQueryObjectFilterClause[];
+  dataset?: Dataset;
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const lastPageIndex = useRef(pageIndex);
   const [filters, setFilters] = useState(initialFilters);
   const [isLoading, setIsLoading] = useState(false);
@@ -94,10 +105,21 @@ export default function DrillDetailPane({
     Record<string, TimeFormatting>
   >({});
 
+  const dashboardId = useSelector<RootState, number>(
+    ({ dashboardInfo }) => dashboardInfo.id,
+  );
+
   const SAMPLES_ROW_LIMIT = useSelector(
     (state: { common: { conf: JsonObject } }) =>
       state.common.conf.SAMPLES_ROW_LIMIT,
   );
+
+  const ROW_LIMIT = useSelector(
+    (state: { common: { conf: JsonObject } }) => state.common.conf.ROW_LIMIT,
+  );
+
+  const { canDownload } = usePermissions();
+  const { addDangerToast } = useToasts();
 
   // Extract datasource ID/type from string ID
   const [datasourceId, datasourceType] = useMemo(
@@ -105,9 +127,10 @@ export default function DrillDetailPane({
     [formData.datasource],
   );
 
-  const { metadataBar, status: metadataBarStatus } = useDatasetMetadataBar({
-    datasetId: datasourceId,
+  const { metadataBar: metadataBarComponent } = useDatasetMetadataBar({
+    dataset,
   });
+
   // Get page of results
   const resultsPage = useMemo(() => {
     const nextResultsPage = resultsPages.get(pageIndex);
@@ -127,7 +150,7 @@ export default function DrillDetailPane({
         title:
           resultsPage?.colTypes[index] === GenericDataType.Temporal ? (
             <HeaderWithRadioGroup
-              headerTitle={column}
+              headerTitle={dataset?.verbose_map?.[column] || column}
               groupTitle={t('Formatting')}
               groupOptions={[
                 { label: t('Original value'), value: TimeFormatting.Original },
@@ -149,7 +172,7 @@ export default function DrillDetailPane({
               }
             />
           ) : (
-            column
+            dataset?.verbose_map?.[column] || column
           ),
         render: value => {
           if (value === true || value === false) {
@@ -169,7 +192,12 @@ export default function DrillDetailPane({
         },
         width: 150,
       })) || [],
-    [resultsPage?.colNames, resultsPage?.colTypes, timeFormatting],
+    [
+      resultsPage?.colNames,
+      resultsPage?.colTypes,
+      timeFormatting,
+      dataset?.verbose_map,
+    ],
   );
 
   const data: DataType[] = useMemo(
@@ -191,6 +219,64 @@ export default function DrillDetailPane({
     setResultsPages(new Map());
     setPageIndex(0);
   }, []);
+
+  const handleDownload = useCallback(
+    (exportType: 'csv' | 'xlsx') => {
+      const drillPayload = getDrillPayload(formData, filters);
+      if (!drillPayload) {
+        addDangerToast(t('Unable to generate download payload'));
+        return;
+      }
+      const payload: JsonObject = {
+        datasource: {
+          id: parseInt(datasourceId, 10),
+          type: datasourceType,
+        },
+        queries: [
+          {
+            ...drillPayload,
+            columns: [],
+            metrics: [],
+            orderby: [],
+            row_limit: ROW_LIMIT,
+            row_offset: 0,
+          },
+        ],
+        result_type: 'drill_detail',
+        result_format: exportType,
+        force: false,
+      };
+      if (dashboardId) {
+        payload.form_data = { dashboardId };
+      }
+      SupersetClient.postForm('/api/v1/chart/data', {
+        form_data: safeStringify(payload),
+      }).catch(error => {
+        addDangerToast(
+          t('Failed to generate download: %s', error.message || error),
+        );
+      });
+    },
+    [
+      formData,
+      filters,
+      datasourceId,
+      datasourceType,
+      ROW_LIMIT,
+      dashboardId,
+      addDangerToast,
+    ],
+  );
+
+  const handleDownloadCSV = useCallback(
+    () => handleDownload('csv'),
+    [handleDownload],
+  );
+
+  const handleDownloadXLSX = useCallback(
+    () => handleDownload('xlsx'),
+    [handleDownload],
+  );
 
   // Clear cache and reset page index if filters change
   useEffect(() => {
@@ -221,14 +307,15 @@ export default function DrillDetailPane({
     if (!responseError && !isLoading && !resultsPages.has(pageIndex)) {
       setIsLoading(true);
       const jsonPayload = getDrillPayload(formData, filters) ?? {};
-      const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / PAGE_SIZE);
+      const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / pageSize);
       getDatasourceSamples(
-        datasourceType,
-        datasourceId,
+        datasourceType as DatasourceType,
+        Number(datasourceId),
         false,
         jsonPayload,
-        PAGE_SIZE,
+        pageSize,
         pageIndex + 1,
+        dashboardId,
       )
         .then(response => {
           setResultsPages(
@@ -262,13 +349,12 @@ export default function DrillDetailPane({
     formData,
     isLoading,
     pageIndex,
+    pageSize,
     responseError,
     resultsPages,
   ]);
 
-  const bootstrapping =
-    (!responseError && !resultsPages.size) ||
-    metadataBarStatus === ResourceStatus.Loading;
+  const bootstrapping = !responseError && !resultsPages.size;
 
   const allowHTML = formData.allow_render_html ?? true;
 
@@ -278,7 +364,7 @@ export default function DrillDetailPane({
     tableContent = (
       <pre
         css={css`
-          margin-top: ${theme.gridUnit * 4}px;
+          margin-top: ${theme.sizeUnit * 4}px;
         `}
       >
         {responseError}
@@ -289,7 +375,7 @@ export default function DrillDetailPane({
     tableContent = <Loading />;
   } else if (resultsPage?.total === 0) {
     // Render empty state if no results are returned for page
-    const title = t('No rows were returned for this dataset');
+    const title = t('No rows were returned for this %s', datasetLabelLower());
     tableContent = <EmptyState image="document.svg" title={title} />;
   } else {
     // Render table if at least one page has successfully loaded
@@ -299,13 +385,20 @@ export default function DrillDetailPane({
           data={data}
           columns={mappedColumns}
           size={TableSize.Small}
-          defaultPageSize={PAGE_SIZE}
+          defaultPageSize={DEFAULT_PAGE_SIZE}
           recordCount={resultsPage?.total}
           usePagination
           loading={isLoading}
-          onChange={pagination =>
-            setPageIndex(pagination.current ? pagination.current - 1 : 0)
-          }
+          onChange={pagination => {
+            const newPageSize = pagination.pageSize ?? pageSize;
+            if (newPageSize !== pageSize) {
+              setPageSize(newPageSize);
+              setResultsPages(new Map());
+              setPageIndex(0);
+            } else {
+              setPageIndex(pagination.current ? pagination.current - 1 : 0);
+            }
+          }}
           resizable
           virtualize
           allowHTML={allowHTML}
@@ -316,7 +409,7 @@ export default function DrillDetailPane({
 
   return (
     <>
-      {!bootstrapping && metadataBar}
+      {!bootstrapping && metadataBarComponent}
       {!bootstrapping && (
         <TableControls
           filters={filters}
@@ -324,6 +417,11 @@ export default function DrillDetailPane({
           totalCount={resultsPage?.total}
           loading={isLoading}
           onReload={handleReload}
+          canDownload={canDownload}
+          onDownloadCSV={handleDownloadCSV}
+          onDownloadXLSX={handleDownloadXLSX}
+          data={data}
+          columnNames={resultsPage?.colNames}
         />
       )}
       {tableContent}

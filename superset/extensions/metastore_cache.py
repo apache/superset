@@ -54,7 +54,7 @@ class SupersetMetastoreCache(BaseCache):
         cls, app: Flask, config: dict[str, Any], args: list[Any], kwargs: dict[str, Any]
     ) -> BaseCache:
         seed = config.get("CACHE_KEY_PREFIX", "")
-        kwargs["namespace"] = get_uuid_namespace(seed)
+        kwargs["namespace"] = get_uuid_namespace(seed, app)
         codec = config.get("CODEC") or PickleKeyValueCodec()
         if (
             has_app_context()

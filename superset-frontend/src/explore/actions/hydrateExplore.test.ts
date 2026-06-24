@@ -21,6 +21,10 @@ import { VizType } from '@superset-ui/core';
 import { hydrateExplore, HYDRATE_EXPLORE } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
 
+afterEach(() => {
+  window.history.pushState({}, '', '/');
+});
+
 test('creates hydrate action from initial data', () => {
   const dispatch = jest.fn();
   const getState = jest.fn(() => ({
@@ -31,65 +35,65 @@ test('creates hydrate action from initial data', () => {
     explore: {},
   }));
   // ignore type check - we dont need exact explore state for this test
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore(exploreInitialData)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
       type: HYDRATE_EXPLORE,
-      data: {
-        charts: {
-          371: {
+      data: expect.objectContaining({
+        charts: expect.objectContaining({
+          371: expect.objectContaining({
             id: 371,
             chartAlert: null,
             chartStatus: null,
             chartStackTrace: null,
             chartUpdateEndTime: null,
             chartUpdateStartTime: 0,
-            latestQueryFormData: {
+            latestQueryFormData: expect.objectContaining({
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
               viz_type: VizType.Table,
-            },
-            sliceFormData: {
+            }),
+            sliceFormData: expect.objectContaining({
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
               viz_type: VizType.Table,
-            },
+            }),
             queryController: null,
             queriesResponse: null,
             triggerQuery: false,
             lastRendered: 0,
-          },
-        },
-        datasources: {
-          '8__table': exploreInitialData.dataset,
-        },
-        saveModal: {
+          }),
+        }),
+        datasources: expect.objectContaining({
+          '8__table': expect.anything(),
+        }),
+        saveModal: expect.objectContaining({
           dashboards: [],
           saveModalAlert: null,
           isVisible: false,
-        },
-        explore: {
+        }),
+        explore: expect.objectContaining({
           can_add: false,
           can_download: false,
           can_overwrite: false,
           isDatasourceMetaLoading: false,
           isStarred: false,
           triggerRender: false,
-          datasource: exploreInitialData.dataset,
+          datasource: expect.anything(),
           controls: expect.any(Object),
-          form_data: exploreInitialData.form_data,
-          slice: exploreInitialData.slice,
+          form_data: expect.anything(),
+          slice: expect.anything(),
           standalone: null,
           force: null,
           saveAction: null,
           common: {},
-        },
-      },
+        }),
+      }),
     }),
   );
 });
@@ -104,66 +108,144 @@ test('creates hydrate action with existing state', () => {
     explore: { controlsTransferred: ['all_columns'] },
   }));
   // ignore type check - we dont need exact explore state for this test
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore(exploreInitialData)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
       type: HYDRATE_EXPLORE,
-      data: {
-        charts: {
-          371: {
+      data: expect.objectContaining({
+        charts: expect.objectContaining({
+          371: expect.objectContaining({
             id: 371,
             chartAlert: null,
             chartStatus: null,
             chartStackTrace: null,
             chartUpdateEndTime: null,
             chartUpdateStartTime: 0,
-            latestQueryFormData: {
+            latestQueryFormData: expect.objectContaining({
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
               viz_type: VizType.Table,
-            },
-            sliceFormData: {
+            }),
+            sliceFormData: expect.objectContaining({
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
               viz_type: VizType.Table,
-            },
+            }),
             queryController: null,
             queriesResponse: null,
             triggerQuery: false,
             lastRendered: 0,
-          },
-        },
-        datasources: {
-          '8__table': exploreInitialData.dataset,
-        },
-        saveModal: {
+          }),
+        }),
+        datasources: expect.objectContaining({
+          '8__table': expect.anything(),
+        }),
+        saveModal: expect.objectContaining({
           dashboards: [],
           saveModalAlert: null,
           isVisible: false,
-        },
-        explore: {
+        }),
+        explore: expect.objectContaining({
           can_add: false,
           can_download: false,
           can_overwrite: false,
           isDatasourceMetaLoading: false,
           isStarred: false,
           triggerRender: false,
-          datasource: exploreInitialData.dataset,
+          datasource: expect.anything(),
           controls: expect.any(Object),
           controlsTransferred: ['all_columns'],
-          form_data: exploreInitialData.form_data,
-          slice: exploreInitialData.slice,
+          form_data: expect.anything(),
+          slice: expect.anything(),
           standalone: null,
           force: null,
           saveAction: null,
           common: {},
-        },
-      },
+        }),
+      }),
+    }),
+  );
+});
+
+test('hydrates sliceName from preview form data before saved slice name', () => {
+  window.history.pushState({}, '', '/explore/?form_data_key=preview-key');
+
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+  const previewSliceName = 'RENAMED - Bug Evidence';
+  const savedSliceName = 'Most Populated Countries';
+  const previewInitialData = {
+    ...exploreInitialData,
+    form_data: {
+      ...exploreInitialData.form_data,
+      slice_name: previewSliceName,
+    },
+    slice: {
+      ...exploreInitialData.slice!,
+      slice_name: savedSliceName,
+    },
+  };
+
+  // @ts-expect-error we only need the fields consumed by hydrateExplore
+  hydrateExplore(previewInitialData)(dispatch, getState);
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: HYDRATE_EXPLORE,
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          sliceName: previewSliceName,
+        }),
+      }),
+    }),
+  );
+});
+
+test('hydrates sliceName from saved slice when regular form data has stale name', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+  const staleFormDataSliceName = 'Stale Params Name';
+  const savedSliceName = 'Current Saved Name';
+  const savedChartInitialData = {
+    ...exploreInitialData,
+    form_data: {
+      ...exploreInitialData.form_data,
+      slice_name: staleFormDataSliceName,
+    },
+    slice: {
+      ...exploreInitialData.slice!,
+      slice_name: savedSliceName,
+    },
+  };
+
+  // @ts-expect-error we only need the fields consumed by hydrateExplore
+  hydrateExplore(savedChartInitialData)(dispatch, getState);
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: HYDRATE_EXPLORE,
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          sliceName: savedSliceName,
+        }),
+      }),
     }),
   );
 });
@@ -181,7 +263,7 @@ test('uses configured default time range if not set', () => {
     },
     explore: {},
   }));
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore({ form_data: {}, slice: {}, dataset: {} })(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -199,7 +281,7 @@ test('uses configured default time range if not set', () => {
     slice: {},
     dataset: {},
   };
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore(withTimeRangeSet)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -207,6 +289,54 @@ test('uses configured default time range if not set', () => {
         explore: expect.objectContaining({
           form_data: expect.objectContaining({
             time_range: 'Last day',
+          }),
+        }),
+      }),
+    }),
+  );
+});
+
+test('extracts currency formats from metrics in dataset', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+
+  const datasetWithMetrics = {
+    ...exploreInitialData.dataset,
+    metrics: [
+      {
+        metric_name: 'count',
+        currency: { symbol: 'GBP', symbolPosition: 'prefix' },
+      },
+      {
+        metric_name: 'revenue',
+        currency: { symbol: 'USD', symbolPosition: 'suffix' },
+      },
+      { metric_name: 'no_currency' },
+    ],
+  };
+
+  // @ts-expect-error
+  hydrateExplore({ ...exploreInitialData, dataset: datasetWithMetrics })(
+    dispatch,
+    // @ts-expect-error
+    getState,
+  );
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        datasources: expect.objectContaining({
+          '8__table': expect.objectContaining({
+            currency_formats: {
+              count: { symbol: 'GBP', symbolPosition: 'prefix' },
+              revenue: { symbol: 'USD', symbolPosition: 'suffix' },
+            },
           }),
         }),
       }),

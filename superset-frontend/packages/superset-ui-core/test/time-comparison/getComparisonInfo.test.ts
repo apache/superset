@@ -63,6 +63,11 @@ const form_data = {
   header_font_size: 60,
   subheader_font_size: 26,
   comparison_color_enabled: true,
+  column_config: {
+    name: {
+      visible: true,
+    },
+  },
   extra_form_data: {},
   force: false,
   result_format: 'json',
@@ -74,7 +79,7 @@ const mockExtraFormData = {
 };
 
 describe('getComparisonInfo', () => {
-  it('Keeps the original adhoc_filters since no extra data was passed', () => {
+  test('Keeps the original adhoc_filters since no extra data was passed', () => {
     const resultFormData = getComparisonInfo(
       form_data,
       ComparisonTimeRangeType.Year,
@@ -83,7 +88,7 @@ describe('getComparisonInfo', () => {
     expect(resultFormData).toEqual(form_data);
   });
 
-  it('Updates the time_range of the adhoc_filters when extra form data is passed', () => {
+  test('Updates the time_range of the adhoc_filters when extra form data is passed', () => {
     const resultFormData = getComparisonInfo(
       form_data,
       ComparisonTimeRangeType.Month,
@@ -109,7 +114,7 @@ describe('getComparisonInfo', () => {
     expect(resultFormData.adhoc_filters).toEqual(expectedFilters);
   });
 
-  it('handles no time range filters', () => {
+  test('handles no time range filters', () => {
     const resultFormData = getComparisonInfo(
       {
         ...form_data,
@@ -142,7 +147,7 @@ describe('getComparisonInfo', () => {
     expect(resultFormData.adhoc_filters?.[0]).toEqual(expectedFilters[0]);
   });
 
-  it('If adhoc_filter is undefrined the code wont break', () => {
+  test('If adhoc_filter is undefined the code wont break', () => {
     const resultFormData = getComparisonInfo(
       {
         ...form_data,
@@ -156,7 +161,7 @@ describe('getComparisonInfo', () => {
     expect(resultFormData.adhoc_filters).toEqual([]);
   });
 
-  it('Handles the custom time filters and return the correct time shift text', () => {
+  test('Handles the custom time filters and return the correct time shift text', () => {
     const resultFormData = getComparisonInfo(
       form_data,
       ComparisonTimeRangeType.Custom,
@@ -174,5 +179,22 @@ describe('getComparisonInfo', () => {
     ];
     expect(resultFormData.adhoc_filters?.length).toEqual(1);
     expect(resultFormData.adhoc_filters).toEqual(expectedFilters);
+  });
+
+  test('Updates comparison display values when toggled', () => {
+    const resultFormData = getComparisonInfo(
+      {
+        ...form_data,
+        column_config: {
+          name: {
+            visible: false,
+          },
+        },
+      },
+      ComparisonTimeRangeType.Year,
+      {},
+    );
+
+    expect(resultFormData.column_config.name.visible).toEqual(false);
   });
 });

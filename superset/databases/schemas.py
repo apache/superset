@@ -34,7 +34,7 @@ from marshmallow import (
     validates,
     validates_schema,
 )
-from marshmallow.validate import Length, OneOf, Range, ValidationError
+from marshmallow.validate import Length, OneOf, Range, Regexp, ValidationError
 from sqlalchemy import MetaData
 from werkzeug.datastructures import FileStorage
 
@@ -59,11 +59,13 @@ from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import json
 from superset.utils.core import markdown, parse_ssl_cert
+from superset.utils.json import get_masked_fields
 
 database_schemas_query_schema = {
     "type": "object",
     "properties": {
         "force": {"type": "boolean"},
+        "upload_allowed": {"type": "boolean"},
         "catalog": {"type": "string"},
     },
 }
@@ -106,9 +108,7 @@ allow_file_upload_description = (
 allow_ctas_description = "Allow CREATE TABLE AS option in SQL Lab"
 allow_cvas_description = "Allow CREATE VIEW AS option in SQL Lab"
 allow_dml_description = (
-    "Allow users to run non-SELECT statements "
-    "(UPDATE, DELETE, CREATE, ...) "
-    "in SQL Lab"
+    "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab"
 )
 configuration_method_description = (
     "Configuration_method is used on the frontend to "
@@ -229,7 +229,7 @@ def server_cert_validator(value: str) -> str:
     return value
 
 
-def encrypted_extra_validator(value: str) -> str:
+def encrypted_extra_validator(value: str | None) -> None:
     """
     Validate that encrypted extra is a valid JSON string
     """
@@ -240,7 +240,15 @@ def encrypted_extra_validator(value: str) -> str:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
-    return value
+
+
+def masked_encrypted_extra_validator(value: str) -> None:
+    """
+    Validate that `masked_encrypted_extra` is a valid non-empty JSON string
+    """
+    if value == "{}":
+        raise ValidationError([_("Field cannot be empty.")])
+    encrypted_extra_validator(value)
 
 
 def extra_validator(value: str) -> str:
@@ -441,16 +449,67 @@ class DatabaseSSHTunnel(Schema):
     id = fields.Integer(
         allow_none=True, metadata={"description": "SSH Tunnel ID (for updates)"}
     )
-    server_address = fields.String()
+    # Restrict the SSH tunnel host to a plausible hostname / IP literal. This
+    # rejects values carrying URL structure, whitespace, or path separators —
+    # defense in depth against using the tunnel host as an SSRF vector.
+    server_address = fields.String(
+        validate=[
+            Length(min=1, max=256),
+            Regexp(
+                r"^[A-Za-z0-9._:\-\[\]]+$",
+                error=(
+                    "server_address must be a valid hostname or IP address "
+                    "(letters, digits, and '.', '_', '-', ':', '[', ']' only)"
+                ),
+            ),
+        ]
+    )
     server_port = fields.Integer()
     username = fields.String()
 
     # Basic Authentication
-    password = fields.String(required=False)
+    # Credential fields are load-only: accepted on input but never serialized
+    # back in responses. Response paths that surface a masked placeholder do so
+    # explicitly (see SSHTunnel.data and mask_password_info).
+    password = fields.String(required=False, load_only=True)
 
     # password protected private key authentication
-    private_key = fields.String(required=False)
-    private_key_password = fields.String(required=False)
+    private_key = fields.String(required=False, load_only=True)
+    private_key_password = fields.String(required=False, load_only=True)
+
+    # Optional expected SSH server host key in authorized-key form
+    # (e.g. "ssh-rsa AAAA...", "ssh-ed25519 AAAA..."). When set, the SSH server's
+    # presented host key is verified against it before the tunnel is opened. This is
+    # a public key, so it is not sensitive and is not masked.
+    server_host_key = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Expected SSH server host key in authorized-key form "
+                "(e.g. 'ssh-ed25519 AAAA...'). When set, the server's host key is "
+                "verified against it before the tunnel is opened."
+            )
+        },
+    )
+
+    @validates_schema
+    def validate_authentication(self, data: dict[str, Any], **kwargs: Any) -> None:
+        errors: dict[str, str] = {}
+
+        private_key: str | None = data.get("private_key")
+        password: str | None = data.get("password")
+        private_key_password: str | None = data.get("private_key_password")
+
+        if not private_key and not password:
+            errors["password"] = "Either password or private_key is required"  # noqa: S105
+        if private_key_password and private_key is None:
+            errors["private_key"] = (
+                "private_key is required when private_key_password is provided"
+            )
+
+        if errors:
+            raise ValidationError(errors)
 
 
 class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
@@ -833,7 +892,9 @@ class ImportV1DatabaseExtraSchema(Schema):
     disable_data_preview = fields.Boolean(required=False)
     disable_drill_to_detail = fields.Boolean(required=False)
     allow_multi_catalog = fields.Boolean(required=False)
+    per_user_caching = fields.Boolean(required=False)
     version = fields.String(required=False, allow_none=True)
+    schema_options = fields.Dict(keys=fields.Str(), values=fields.Raw())
 
 
 class ImportV1DatabaseSchema(Schema):
@@ -855,6 +916,10 @@ class ImportV1DatabaseSchema(Schema):
     database_name = fields.String(required=True)
     sqlalchemy_uri = fields.String(required=True)
     password = fields.String(allow_none=True)
+    encrypted_extra = fields.String(allow_none=True, validate=encrypted_extra_validator)
+    masked_encrypted_extra = fields.String(
+        allow_none=False, validate=masked_encrypted_extra_validator
+    )
     cache_timeout = fields.Integer(allow_none=True)
     expose_in_sqllab = fields.Boolean()
     allow_run_async = fields.Boolean()
@@ -869,6 +934,13 @@ class ImportV1DatabaseSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
+    configuration_method = fields.Enum(
+        ConfigurationMethod,
+        by_value=True,
+        required=False,
+        allow_none=True,
+        load_default=ConfigurationMethod.SQLALCHEMY_FORM,
+    )
 
     @validates_schema
     def validate_password(self, data: dict[str, Any], **kwargs: Any) -> None:
@@ -945,6 +1017,55 @@ class ImportV1DatabaseSchema(Schema):
                     raise ValidationError(exception_messages)
         return
 
+    @validates_schema
+    def validate_masked_encrypted_extra(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        if "masked_encrypted_extra" not in data:
+            return
+
+        if "encrypted_extra" in data:
+            raise ValidationError(
+                "File contains both `encrypted_extra` and `masked_encrypted_extra`"
+            )
+
+        if db.session.query(Database).filter_by(uuid=data["uuid"]).first():
+            # Existing DB: sensitive values will be revealed from existing
+            # encrypted_extra in import_database()
+            return
+
+        masked_encrypted_extra = json.loads(data["masked_encrypted_extra"])
+
+        # Determine engine spec from sqlalchemy_uri to get sensitive fields
+        sqlalchemy_uri = data["sqlalchemy_uri"]
+        url = make_url_safe(sqlalchemy_uri)
+        backend = url.get_backend_name()
+        driver = url.get_driver_name()
+        db_engine_spec = get_engine_spec(backend, driver=driver)
+
+        # Check if any sensitive field is still masked
+        masked_fields = get_masked_fields(
+            masked_encrypted_extra,
+            db_engine_spec.encrypted_extra_sensitive_field_paths(),
+        )
+
+        if masked_fields:
+            encrypted_extra_fields = db_engine_spec.encrypted_extra_sensitive_fields
+            labels = (
+                encrypted_extra_fields
+                if isinstance(encrypted_extra_fields, dict)
+                else {}
+            )
+            raise ValidationError(
+                {
+                    "_schema": [
+                        f"Must provide value for masked_encrypted_extra field: {field}"
+                        + (f" ({labels[field]})" if field in labels else "")
+                        for field in masked_fields
+                    ]
+                }
+            )
+
 
 def encrypted_field_properties(self, field: Any, **_) -> dict[str, Any]:  # type: ignore
     ret = {}
@@ -978,6 +1099,9 @@ class EngineInformationSchema(Schema):
     )
     supports_oauth2 = fields.Boolean(
         metadata={"description": "The database supports OAuth2"}
+    )
+    supports_schemas = fields.Boolean(
+        metadata={"description": "The database uses schemas to organize tables"}
     )
 
 
@@ -1084,10 +1208,13 @@ class DelimitedListField(fields.List):
 
 class BaseUploadFilePostSchemaMixin(Schema):
     @validates("file")
-    def validate_file_extension(self, file: FileStorage) -> None:
+    def validate_file_extension(self, file: FileStorage, **kwargs: Any) -> None:
         allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"]
         file_suffix = Path(file.filename).suffix
-        if not file_suffix or file_suffix[1:] not in allowed_extensions:
+        if not file_suffix:
+            raise ValidationError([_("File extension is not allowed.")])
+        # Make case-insensitive comparison
+        if file_suffix[1:].lower() not in [ext.lower() for ext in allowed_extensions]:
             raise ValidationError([_("File extension is not allowed.")])
 
 

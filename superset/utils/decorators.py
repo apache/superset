@@ -24,7 +24,7 @@ from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING
 from uuid import UUID
 
-from flask import current_app, g, Response
+from flask import current_app as app, g, Response
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.utils import core as utils
@@ -46,19 +46,15 @@ def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
             metric_prefix_ = metric_prefix or f.__name__
             try:
                 result = f(*args, **kwargs)
-                current_app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.ok", 1)
+                app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.ok", 1)
                 return result
             except Exception as ex:
                 if (
                     hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
                 ):
-                    current_app.config["STATS_LOGGER"].gauge(
-                        f"{metric_prefix_}.warning", 1
-                    )
+                    app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.warning", 1)
                 else:
-                    current_app.config["STATS_LOGGER"].gauge(
-                        f"{metric_prefix_}.error", 1
-                    )
+                    app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.error", 1)
                 raise
 
         return wrapped
@@ -255,6 +251,11 @@ def transaction(  # pylint: disable=redefined-outer-name
         def wrapped(*args: Any, **kwargs: Any) -> Any:
             from superset import db  # pylint: disable=import-outside-toplevel
 
+            if getattr(g, "in_transaction", False):
+                # If already in a transaction, call the function directly
+                return func(*args, **kwargs)
+
+            g.in_transaction = True
             try:
                 result = func(*args, **kwargs)
                 db.session.commit()  # pylint: disable=consider-using-transaction
@@ -266,6 +267,8 @@ def transaction(  # pylint: disable=redefined-outer-name
                     return on_error(ex)
 
                 raise
+            finally:
+                g.in_transaction = False
 
         return wrapped
 

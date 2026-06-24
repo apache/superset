@@ -22,10 +22,10 @@ import logging
 import re
 from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, cast, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
-from flask import current_app
+from flask import current_app as app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import gettext as __
@@ -44,11 +44,21 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.engine.url import URL
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
+from superset_core.queries.models import (
+    Query as CoreQuery,
+    SavedQuery as CoreSavedQuery,
+)
 
 from superset import security_manager
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import (
+    SupersetException,
+    SupersetParseError,
+    SupersetSecurityException,
+)
+from superset.explorables.base import TimeGrainDict
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -56,10 +66,16 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
-from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
+from superset.sql.parse import (
+    CTASMethod,
+    process_jinja_sql,
+    Table,
+)
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.superset_typing import DatasetColumnData, ExplorableData, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
+    GenericDataType,
     get_column_name,
     LongText,
     MediumText,
@@ -80,20 +96,28 @@ class SqlTablesMixin:  # pylint: disable=too-few-public-methods
     def sql_tables(self) -> list[Table]:
         try:
             return list(
-                extract_tables_from_jinja_sql(
+                process_jinja_sql(
                     self.sql,  # type: ignore
                     self.database,  # type: ignore
-                )
+                ).tables
             )
-        except (SupersetSecurityException, TemplateError):
+        except (SupersetSecurityException, SupersetParseError, TemplateError):
+            return []
+        except SupersetException as ex:
+            # Jinja macros such as ``{{ dataset(id) }}`` or ``{{ metric(...) }}``
+            # may reference resources that no longer exist (e.g. a deleted
+            # dataset). Surfacing the failure here would break list endpoints
+            # that include ``sql_tables`` in their payload, hiding every saved
+            # query from the user. Treat it as a parse failure instead.
+            logger.warning("Unable to extract tables from SQL via Jinja: %s", ex)
             return []
 
 
 class Query(
+    CoreQuery,
     SqlTablesMixin,
     ExtraJSONMixin,
     ExploreMixin,
-    Model,
 ):  # pylint: disable=abstract-method,too-many-public-methods
     """ORM model for SQL query
 
@@ -128,7 +152,7 @@ class Query(
     )
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
-    ctas_method = Column(String(16), default=CtasMethod.TABLE)
+    ctas_method = Column(String(16), default=CTASMethod.TABLE.name)
 
     progress = Column(Integer, default=0)  # 1..100
     # # of rows in the result set or rows modified.
@@ -148,6 +172,20 @@ class Query(
     changed_on = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
     )
+
+    @hybrid_property
+    def duration(self) -> Optional[float]:
+        start = self.start_running_time or self.start_time
+        if self.end_time is not None and start is not None:
+            return float(self.end_time - start)
+        return None
+
+    @duration.expression  # type: ignore[no-redef]
+    def duration(cls) -> ColumnElement:  # noqa: N805
+        return sqla.func.coalesce(
+            cls.end_time - sqla.func.coalesce(cls.start_running_time, cls.start_time),
+            0,
+        )
 
     database = relationship(
         "Database",
@@ -233,7 +271,8 @@ class Query(
         return None
 
     @property
-    def data(self) -> dict[str, Any]:
+    def data(self) -> ExplorableData:
+        """Returns query data for the frontend"""
         order_by_choices = []
         for col in self.columns:
             column_name = str(col.column_name or "")
@@ -250,7 +289,7 @@ class Query(
             ],
             "filter_select": True,
             "name": self.tab_name,
-            "columns": [o.data for o in self.columns],
+            "columns": [cast(DatasetColumnData, o.data) for o in self.columns],
             "metrics": [],
             "id": self.id,
             "type": self.type,
@@ -267,10 +306,18 @@ class Query(
         """
         Raise an exception if the user cannot access the resource.
 
+        Re-validation of a SQL Lab query uses the same strict scoping as the
+        initial execute path (``force_dataset_match=True``) so that fetching
+        results, exporting CSV, and streaming-exporting all enforce the same
+        per-table dataset-match requirement. ``raise_for_access`` parses
+        ``executed_sql`` (the Jinja-rendered query that actually ran) when
+        set, keeping the table set aligned with execution even though the
+        original ``template_params`` are not persisted on the query record.
+
         :raises SupersetSecurityException: If the user cannot access the resource
         """
 
-        security_manager.raise_for_access(query=self)
+        security_manager.raise_for_access(query=self, force_dataset_match=True)
 
     @property
     def db_engine_spec(
@@ -325,8 +372,34 @@ class Query(
     def default_endpoint(self) -> str:
         return ""
 
-    def get_extra_cache_keys(self, query_obj: dict[str, Any]) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         return []
+
+    def get_time_grains(self) -> list[TimeGrainDict]:
+        """
+        Get available time granularities from the database.
+
+        Delegates to the database's time grain definitions.
+        """
+        return [
+            {
+                "name": grain.name,
+                "function": grain.function,
+                "duration": grain.duration,
+            }
+            for grain in (self.database.grains() or [])
+        ]
+
+    def has_drill_by_columns(self, column_names: list[str]) -> bool:
+        """
+        Check if the specified columns support drill-by operations.
+
+        For Query objects, all columns are considered drillable since they
+        come from ad-hoc SQL queries without predefined metadata.
+        """
+        if not column_names:
+            return False
+        return set(column_names).issubset(set(self.column_names))
 
     @property
     def tracking_url(self) -> Optional[str]:
@@ -334,7 +407,7 @@ class Query(
         Transform tracking url at run time because the exact URL may depend
         on query properties such as execution and finish time.
         """
-        transform = current_app.config.get("TRACKING_URL_TRANSFORMER")
+        transform = app.config.get("TRACKING_URL_TRANSFORMER")
         url = self.tracking_url_raw
         if url and transform:
             sig = inspect.signature(transform)
@@ -362,13 +435,15 @@ class Query(
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> ColumnElement:
+    ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         """
         Turn an adhoc column into a sqlalchemy column.
         :param col: Adhoc column definition
         :param template_processor: template_processor instance
-        :returns: The metric defined as a sqlalchemy column
-        :rtype: sqlalchemy.sql.column
+        :returns: A tuple of (SQLAlchemy column, generic column type). The
+            generic type is resolved from query result column metadata when
+            the adhoc label matches a known column; otherwise ``None``.
+        :rtype: tuple[sqlalchemy.sql.ColumnElement, Optional[GenericDataType]]
         """
         label = get_column_name(col)
         expression = self._process_sql_expression(
@@ -379,15 +454,17 @@ class Query(
             template_processor=template_processor,
         )
         sqla_column = literal_column(expression)
-        return self.make_sqla_column_compatible(sqla_column, label)
+        col_meta = next((c for c in self.columns if c.column_name == label), None)
+        generic_type = col_meta.type_generic if col_meta else None
+        return self.make_sqla_column_compatible(sqla_column, label), generic_type
 
 
 class SavedQuery(
+    CoreSavedQuery,
     SqlTablesMixin,
     AuditMixinNullable,
     ExtraJSONMixin,
     ImportExportMixin,
-    Model,
 ):
     """ORM model for SQL query"""
 
@@ -503,7 +580,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
 
     # latest query that was run
     latest_query_id = Column(
-        Integer, ForeignKey("query.client_id", ondelete="SET NULL")
+        String(11), ForeignKey("query.client_id", ondelete="SET NULL")
     )
     latest_query = relationship("Query")
 
@@ -519,6 +596,21 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     saved_query = relationship("SavedQuery", foreign_keys=[saved_query_id])
 
     def to_dict(self) -> dict[str, Any]:
+        latest_query = None
+        try:
+            if self.latest_query:
+                latest_query = self.latest_query.to_dict()
+        except Exception:
+            query = self.__dict__.get("latest_query")
+            logger.warning(
+                "Failed to load/serialize latest_query for tab state %s "
+                "(latest_query_id=%s, query_status=%s)",
+                self.id,
+                self.latest_query_id,
+                getattr(query, "status", "N/A"),
+                exc_info=True,
+            )
+
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -530,7 +622,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
             "table_schemas": [ts.to_dict() for ts in self.table_schemas],
             "sql": self.sql,
             "query_limit": self.query_limit,
-            "latest_query": self.latest_query.to_dict() if self.latest_query else None,
+            "latest_query": latest_query,
             "autorun": self.autorun,
             "template_params": self.template_params,
             "hide_left_bar": self.hide_left_bar,

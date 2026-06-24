@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from flask.testing import FlaskClient
 
 
+# DEPRECATED: Creating global app instance - use app fixture from conftest.py instead
 superset_config_module = environ.get(
     "SUPERSET_CONFIG", "tests.integration_tests.superset_test_config"
 )

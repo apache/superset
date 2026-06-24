@@ -14,17 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Unit tests for Superset"""
 
+import uuid
 from io import BytesIO
 from unittest import mock
 from unittest.mock import patch
-from zipfile import is_zipfile, ZipFile
+from zipfile import is_zipfile
 
-import prison
 import pytest
-import yaml
-from flask import g
+import rison
 from flask_babel import lazy_gettext as _
 from parameterized import parameterized
 from sqlalchemy import and_
@@ -58,12 +56,9 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 )
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
-    chart_metadata_config,
     database_config,
     dataset_config,
-    dataset_metadata_config,
 )
-from tests.integration_tests.fixtures.query_context import get_query_context
 from tests.integration_tests.fixtures.tags import (
     create_custom_tags,  # noqa: F401
     get_filter_params,
@@ -80,7 +75,6 @@ from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from tests.integration_tests.test_app import app
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 
-CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
 
 
@@ -303,7 +297,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/chart/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/chart/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -313,22 +307,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "can_export",
             "can_warm_up_cache",
         }
-
-    def create_chart_import(self):
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("chart_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_metadata_config).encode())
-            with bundle.open(
-                "chart_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_config).encode())
-        buf.seek(0)
-        return buf
 
     def test_delete_chart(self):
         """
@@ -356,7 +334,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             )
         self.login(ADMIN_USERNAME)
         argument = chart_ids
-        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/?q={rison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -373,7 +351,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart_ids = [1, "a"]
         self.login(ADMIN_USERNAME)
         argument = chart_ids
-        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/?q={rison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 400
 
@@ -414,7 +392,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         max_id = db.session.query(func.max(Slice.id)).scalar()
         chart_ids = [max_id + 1, max_id + 2]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/?q={prison.dumps(chart_ids)}"
+        uri = f"api/v1/chart/?q={rison.dumps(chart_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404
 
@@ -434,7 +412,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart_ids = [chart.id for chart in charts]
         chart_ids.append(chart_with_report.id)
 
-        uri = f"api/v1/chart/?q={prison.dumps(chart_ids)}"
+        uri = f"api/v1/chart/?q={rison.dumps(chart_ids)}"
         rv = self.client.delete(uri)
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
@@ -471,7 +449,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         argument = chart_ids
-        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/?q={rison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -526,7 +504,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         # verify we can't delete not owned charts
         arguments = [chart.id for chart in charts]
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 403
         response = json.loads(rv.data.decode("utf-8"))
@@ -535,7 +513,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         # # nothing is deleted in bulk with a list of owned and not owned charts
         arguments = [chart.id for chart in charts] + [owned_chart.id]
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 403
         response = json.loads(rv.data.decode("utf-8"))
@@ -578,6 +556,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(Slice).get(data.get("id"))
+        # uuid should be returned in the response
+        assert "uuid" in data
+        assert str(model.uuid) == str(data["uuid"])
         db.session.delete(model)
         db.session.commit()
 
@@ -648,7 +629,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == {
             "message": {
                 "datasource_type": [
-                    "Must be one of: table, dataset, query, saved_query, view."
+                    "Must be one of: table, dataset, query, saved_query, view, "
+                    "semantic_view."
                 ]
             }
         }
@@ -1003,7 +985,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == {
             "message": {
                 "datasource_type": [
-                    "Must be one of: table, dataset, query, saved_query, view."
+                    "Must be one of: table, dataset, query, saved_query, view, "
+                    "semantic_view."
                 ]
             }
         }
@@ -1057,6 +1040,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                     "id": 1,
                     "first_name": "admin",
                     "last_name": "user",
+                    "email": "admin@fab.org",
                 }
             ],
             "params": None,
@@ -1078,6 +1062,12 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 "id",
                 "thumbnail_url",
                 "url",
+                "uuid",
+                "datasource_id",
+                "datasource_name_text",
+                "datasource_type",
+                "datasource_url",
+                "datasource_uuid",
             ):
                 assert value == expected_result[key]
         db.session.delete(chart)
@@ -1092,6 +1082,43 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart_id}"
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 404
+
+    @parameterized.expand(
+        [
+            ("by_id", lambda chart: str(chart.id), "id"),
+            (
+                "by_uuid",
+                lambda chart: str(chart.uuid) if chart.uuid else pytest.skip("No UUID"),
+                "uuid",
+            ),
+        ]
+    )
+    def test_slice_get_existing(self, test_name, get_identifier, field_type):
+        """Test Slice.get() successfully retrieves existing charts."""
+        admin = self.get_user("admin")
+        chart = self.insert_chart(f"test_slice_get_{field_type}", [admin.id], 1)
+
+        identifier = get_identifier(chart)
+        result = Slice.get(identifier)
+
+        assert result is not None
+        assert result.id == chart.id
+        if field_type == "uuid" and chart.uuid:
+            assert result.uuid == chart.uuid
+
+        db.session.delete(chart)
+        db.session.commit()
+
+    @parameterized.expand(
+        [
+            ("nonexistent_id", "999999"),
+            ("nonexistent_uuid", str(uuid.uuid4())),
+        ]
+    )
+    def test_slice_get_not_found(self, test_name, identifier):
+        """Test Slice.get() returns None for non-existent identifiers."""
+        result = Slice.get(identifier)
+        assert result is None
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_chart_no_data_access(self):
@@ -1136,7 +1163,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 {"col": "slice_name", "opr": "eq", "value": self.chart.slice_name}
             ]
         }
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1162,7 +1189,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 }
             ]
         }
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1213,6 +1240,76 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 chart["id"] for chart in data_by_name["result"]
             ), set(chart.id for chart in expected_charts)  # noqa: C401
 
+    def test_get_charts_changed_on_delta_humanized_sort_monotonic(self):
+        """Regression for #27500: sorting the chart list by
+        `changed_on_delta_humanized` desc must yield results whose underlying
+        `changed_on` timestamps are monotonically non-increasing. The original
+        report shows the humanized column visually out of order, suggesting
+        the sort key didn't actually reflect the timestamp."""
+        from datetime import datetime, timedelta
+
+        admin = self.get_user("admin")
+        # Insert two charts with distinct changed_on timestamps. Use raw UPDATE
+        # to force the values since assignment alone can be overridden by the
+        # before-update hook.
+        chart_older = self.insert_chart(
+            "regression_27500_older", [admin.id], 1, description="z"
+        )
+        chart_newer = self.insert_chart(
+            "regression_27500_newer", [admin.id], 1, description="z"
+        )
+        # Use timestamps whose humanized strings sort DIFFERENTLY from their
+        # real timestamps under a naive lexical sort. "3 hours ago" vs
+        # "5 hours ago": lexical-desc puts "5..." first (older), but
+        # timestamp-desc must put "3..." first (newer). If the API ever
+        # accidentally sorts by the humanized text instead of the column,
+        # this test fails. (Pairs like "now"/"2 days ago" don't discriminate
+        # because 'n' > '2' lexically agrees with newest-first.)
+        now = datetime.utcnow()
+        chart_older.changed_on = now - timedelta(hours=5)
+        chart_newer.changed_on = now - timedelta(hours=3)
+        db.session.commit()
+
+        try:
+            self.login(ADMIN_USERNAME)
+            arguments = {
+                "order_column": "changed_on_delta_humanized",
+                "order_direction": "desc",
+                "filters": [
+                    {
+                        "col": "slice_name",
+                        "opr": "sw",
+                        "value": "regression_27500_",
+                    }
+                ],
+            }
+            uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
+            rv = self.get_assert_metric(uri, "get_list")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+
+            results = data["result"]
+            assert len(results) >= 2, f"expected at least 2 results, got {results}"
+
+            # The two inserted charts should appear in newest-first order.
+            indices = {
+                row["slice_name"]: i
+                for i, row in enumerate(results)
+                if row["slice_name"].startswith("regression_27500_")
+            }
+            ordering = [
+                row["slice_name"]
+                for row in results
+                if row["slice_name"].startswith("regression_27500_")
+            ]
+            assert (
+                indices["regression_27500_newer"] < indices["regression_27500_older"]
+            ), f"changed_on_delta_humanized desc sort is wrong: {ordering}; see #27500"
+        finally:
+            db.session.delete(chart_older)
+            db.session.delete(chart_newer)
+            db.session.commit()
+
     def test_get_charts_changed_on(self):
         """
         Dashboard API: Test get charts changed on
@@ -1226,7 +1323,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "order_column": "changed_on_delta_humanized",
             "order_direction": "desc",
         }
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
 
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
@@ -1250,7 +1347,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         arguments = {"filters": [{"col": "slice_name", "opr": "sw", "value": "G"}]}
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1307,7 +1404,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "columns": ["slice_name", "description", "viz_type"],
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1340,7 +1437,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         data = rv.json
         assert rv.status_code == 200
@@ -1372,7 +1469,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1393,7 +1490,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1415,7 +1512,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
 
         self.login(GAMMA_USERNAME)
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1472,7 +1569,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "columns": ["slice_name"],
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1489,7 +1586,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             .all()
         )
         arguments["filters"][0]["value"] = False
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1514,7 +1611,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "columns": ["slice_name"],
         }
         self.login(gamma_user.username)
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1543,7 +1640,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert users_favorite_ids
         arguments = [s.id for s in db.session.query(Slice.id).all()]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/favorite_status/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/favorite_status/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1566,7 +1663,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.commit()
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        uri = f"api/v1/chart/favorite_status/?q={rison.dumps([chart.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -1575,7 +1672,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart.id}/favorites/"
         self.client.post(uri)
 
-        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        uri = f"api/v1/chart/favorite_status/?q={rison.dumps([chart.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -1602,7 +1699,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart.id}/favorites/"
         self.client.post(uri)
 
-        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        uri = f"api/v1/chart/favorite_status/?q={rison.dumps([chart.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -1611,7 +1708,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart.id}/favorites/"
         self.client.delete(uri)
 
-        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        uri = f"api/v1/chart/favorite_status/?q={rison.dumps([chart.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -1626,7 +1723,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         humanize_time_range = "100 years ago : now"
-        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
+        uri = f"api/v1/time_range/?q={rison.dumps(humanize_time_range)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1638,7 +1735,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             {"timeRange": "2021-01-01 : 2022-02-01"},
             {"timeRange": "2022-01-01 : 2023-02-01"},
         ]
-        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
+        uri = f"api/v1/time_range/?q={rison.dumps(humanize_time_range)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1651,7 +1748,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             {"timeRange": "2021-01-01 : 2022-02-01", "shift": "1 year ago"},
             {"timeRange": "2022-01-01 : 2023-02-01", "shift": "2 year ago"},
         ]
-        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
+        uri = f"api/v1/time_range/?q={rison.dumps(humanize_time_range)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1671,9 +1768,55 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert rv.content_type == "application/json"
+        assert rv.content_type == "application/json; charset=utf-8"
         if slice:
             assert data["slice_id"] == slice.id
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_query_form_data_no_data_access(self):
+        """
+        Chart API: query_form_data must refuse callers without
+        datasource_access on the chart's underlying dataset. Mirrors
+        the existing test_get_chart_no_data_access guard on
+        ChartRestApi (which also returns 404 to avoid leaking chart
+        existence to unauthorised callers).
+        """
+        self.login(GAMMA_USERNAME)
+        chart_no_access = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        assert chart_no_access is not None, (
+            "fixture load_birth_names_dashboard_with_slices did not "
+            "create the 'Girl Name Cloud' slice"
+        )
+        uri = f"api/v1/form_data/?slice_id={chart_no_access.id}"
+        rv = self.client.get(uri)
+        # Match ChartRestApi.get: 404 for both missing AND forbidden so
+        # the endpoint cannot be used to enumerate chart IDs.
+        assert rv.status_code == 404, (
+            f"Gamma user without datasource_access should get 404 "
+            f"(status={rv.status_code}, body={rv.data[:200]!r})"
+        )
+        # Defence in depth: even if a future regression returns a non-
+        # 200 status with a partially-filled error envelope, ensure the
+        # caller cannot recover form_data fields.
+        assert b"datasource" not in rv.data
+        assert b"adhoc_filters" not in rv.data
+        assert b"viz_type" not in rv.data
+
+    def test_query_form_data_missing_slice(self):
+        """
+        Chart API: a non-existent slice_id must return the same 404 as a
+        forbidden one, so the status code cannot be used to enumerate
+        which slice IDs exist.
+        """
+        self.login(ADMIN_USERNAME)
+        max_id = db.session.query(func.max(Slice.id)).scalar() or 0
+        uri = f"api/v1/form_data/?slice_id={max_id + 10_000}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_slice",
@@ -1688,14 +1831,14 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         # Assuming we have 33 sample charts
         self.login(ADMIN_USERNAME)
         arguments = {"page_size": 10, "page": 0}
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert len(data["result"]) == 10
 
         arguments = {"page_size": 10, "page": 3}
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1718,7 +1861,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         example_chart = db.session.query(Slice).all()[0]
         argument = [example_chart.id]
-        uri = f"api/v1/chart/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/export/?q={rison.dumps(argument)}"
 
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
@@ -1734,7 +1877,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         # Just one does not exist and we get 404
         argument = [-1, 1]
-        uri = f"api/v1/chart/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/export/?q={rison.dumps(argument)}"
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
 
@@ -1746,7 +1889,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         example_chart = db.session.query(Slice).all()[0]
         argument = [example_chart.id]
-        uri = f"api/v1/chart/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/export/?q={rison.dumps(argument)}"
 
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
@@ -1761,7 +1904,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/chart/import/"
 
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -1799,7 +1942,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/chart/import/"
 
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -1810,7 +1953,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == {"message": "OK"}
 
         # import again without overwrite flag
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -1818,27 +1961,19 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert response == {
-            "errors": [
-                {
-                    "message": "Error importing chart",
-                    "error_type": "GENERIC_COMMAND_ERROR",
-                    "level": "warning",
-                    "extra": {
-                        "charts/imported_chart.yaml": "Chart already exists and `overwrite=true` was not passed",  # noqa: E501
-                        "issue_codes": [
-                            {
-                                "code": 1010,
-                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
-                            }
-                        ],
-                    },
-                }
-            ]
-        }
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing chart")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert "charts/chart.yaml" in str(error["extra"])
+        assert "Chart already exists and `overwrite=true` was not passed" in str(
+            error["extra"]
+        )
+        assert error["extra"]["issue_codes"][0]["code"] == 1010
 
         # import with overwrite flag
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
             "overwrite": "true",
@@ -1871,20 +2006,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/chart/import/"
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("chart_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open(
-                "chart_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file("dataset", charts=[chart_config])
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -1892,27 +2014,14 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert response == {
-            "errors": [
-                {
-                    "message": "Error importing chart",
-                    "error_type": "GENERIC_COMMAND_ERROR",
-                    "level": "warning",
-                    "extra": {
-                        "metadata.yaml": {"type": ["Must be equal to Slice."]},
-                        "issue_codes": [
-                            {
-                                "code": 1010,
-                                "message": (
-                                    "Issue 1010 - Superset encountered an "
-                                    "error while running a command."
-                                ),
-                            }
-                        ],
-                    },
-                }
-            ]
-        }
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing chart")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert "metadata.yaml" in error["extra"]
+        assert error["extra"]["metadata.yaml"] == {"type": ["Must be equal to Slice."]}
+        assert error["extra"]["issue_codes"][0]["code"] == 1010
 
     def test_gets_created_by_user_charts_filter(self):
         arguments = {
@@ -1922,7 +2031,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1936,7 +2045,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1961,7 +2070,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "page": 0,
             "page_size": 25,
         }
-        rv = self.client.get(f"api/v1/chart/?q={prison.dumps(arguments)}")
+        rv = self.client.get(f"api/v1/chart/?q={rison.dumps(arguments)}")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
 
@@ -2136,9 +2245,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
-        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
-        new_tags.append(new_tag.id)
-        update_payload = {"tags": new_tags}
+        new_tags = {tag.id for tag in chart.tags if tag.type == TagType.custom}
+        new_tags.add(new_tag.id)
+        update_payload = {"tags": list(new_tags)}
 
         uri = f"api/v1/chart/{chart.id}"
         rv = self.put_assert_metric(uri, update_payload, "put")
@@ -2146,7 +2255,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         model = db.session.query(Slice).get(chart.id)
 
         # Clean up system tags
-        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        tag_list = {tag.id for tag in model.tags if tag.type == TagType.custom}
         assert tag_list == new_tags
 
     @pytest.mark.usefixtures("create_chart_with_tag")
@@ -2195,9 +2304,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
-        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
-        new_tags.append(new_tag.id)
-        update_payload = {"tags": new_tags}
+        new_tags = {tag.id for tag in chart.tags if tag.type == TagType.custom}
+        new_tags.add(new_tag.id)
+        update_payload = {"tags": list(new_tags)}
 
         uri = f"api/v1/chart/{chart.id}"
         rv = self.put_assert_metric(uri, update_payload, "put")
@@ -2205,7 +2314,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         model = db.session.query(Slice).get(chart.id)
 
         # Clean up system tags
-        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        tag_list = {tag.id for tag in model.tags if tag.type == TagType.custom}
         assert tag_list == new_tags
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
@@ -2331,56 +2440,10 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         security_manager.add_permission_role(alpha_role, write_tags_perm)
         security_manager.add_permission_role(alpha_role, tag_charts_perm)
 
-    @patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
-    @patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_get_chart_data_as_guest_user(
-        self, is_guest_user, has_guest_access
-    ):  # get_guest_rls_filters
+    def test_related_owners_allowed_for_write_user(self):
         """
-        Chart API: Test create simple chart
+        Chart API: GET /api/v1/chart/related/owners returns 200 for Admin.
         """
         self.login(ADMIN_USERNAME)
-        g.user.rls = []
-        is_guest_user.return_value = True
-        has_guest_access.return_value = True
-
-        with mock.patch.object(Slice, "get_query_context") as mock_get_query_context:
-            mock_get_query_context.return_value = get_query_context("birth_names")
-            rv = self.client.post(
-                "api/v1/chart/data",  # noqa: F541
-                json={
-                    "datasource": {"id": 2, "type": "table"},
-                    "queries": [
-                        {
-                            "extras": {"where": "", "time_grain_sqla": "P1D"},
-                            "columns": ["name"],
-                            "metrics": [{"label": "sum__num"}],
-                            "orderby": [("sum__num", False)],
-                            "row_limit": 100,
-                            "granularity": "ds",
-                            "time_range": "100 years ago : now",
-                            "timeseries_limit": 0,
-                            "timeseries_limit_metric": None,
-                            "order_desc": True,
-                            "filters": [
-                                {"col": "gender", "op": "==", "val": "boy"},
-                                {"col": "num", "op": "IS NOT NULL"},
-                                {
-                                    "col": "name",
-                                    "op": "NOT IN",
-                                    "val": ["<NULL>", '"abc"'],
-                                },
-                            ],
-                            "having": "",
-                            "where": "",
-                        }
-                    ],
-                    "result_format": "json",
-                    "result_type": "full",
-                },
-            )
-            data = json.loads(rv.data.decode("utf-8"))
-            result = data["result"]
-            excluded_key = "query"
-            assert all([excluded_key not in query for query in result])  # noqa: C419
+        rv = self.client.get("api/v1/chart/related/owners")
+        assert rv.status_code == 200

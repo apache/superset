@@ -20,6 +20,7 @@ from functools import partial
 from typing import Any, Optional, TypedDict
 
 import pandas as pd
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from werkzeug.datastructures import FileStorage
 
@@ -29,13 +30,14 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseSchemaUploadNotAllowed,
     DatabaseUploadFailed,
+    DatabaseUploadFileTooLarge,
     DatabaseUploadNotSupported,
     DatabaseUploadSaveMetadataFailed,
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.database import DatabaseDAO
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.backports import StrEnum
 from superset.utils.core import get_user
 from superset.utils.decorators import on_error, transaction
@@ -133,7 +135,8 @@ class BaseDataReader:
                 )
             ) from ex
         except Exception as ex:
-            raise DatabaseUploadFailed(exception=ex) from ex
+            message = ex.message if hasattr(ex, "message") and ex.message else str(ex)
+            raise DatabaseUploadFailed(message=message, exception=ex) from ex
 
 
 class UploadCommand(BaseCommand):
@@ -158,6 +161,12 @@ class UploadCommand(BaseCommand):
         if not self._model:
             return
 
+        self._table_name, self._schema = (
+            self._model.db_engine_spec.normalize_table_name_for_upload(
+                self._table_name, self._schema
+            )
+        )
+
         self._reader.read(self._file, self._model, self._table_name, self._schema)
 
         sqla_table = (
@@ -181,6 +190,43 @@ class UploadCommand(BaseCommand):
 
         sqla_table.fetch_metadata()
 
+    @staticmethod
+    def _file_size_bytes(file: Any) -> Optional[int]:
+        """
+        Return the size of an uploaded file without consuming its stream.
+
+        Returns ``None`` when the stream is not seekable, in which case the
+        size cannot be determined cheaply and the size check is skipped in
+        favour of downstream guards.
+        """
+        stream = getattr(file, "stream", file)
+        try:
+            position = stream.tell()
+            stream.seek(0, 2)  # seek to end
+            size = stream.tell()
+            stream.seek(position)  # restore the original position
+        except (AttributeError, OSError):
+            return None
+        return size
+
+    @classmethod
+    def validate_file_size(cls, file: Any) -> None:
+        """
+        Reject a file whose size exceeds ``UPLOAD_MAX_FILE_SIZE_BYTES``.
+
+        Shared by the upload command and the metadata endpoint so oversized
+        files are rejected before their contents are read into memory,
+        regardless of which path is used.
+
+        :raises DatabaseUploadFileTooLarge: if the file is larger than the limit
+        """
+        max_file_size = current_app.config.get("UPLOAD_MAX_FILE_SIZE_BYTES")
+        if max_file_size is None or file is None:
+            return
+        size = cls._file_size_bytes(file)
+        if size is not None and size > max_file_size:
+            raise DatabaseUploadFileTooLarge()
+
     def validate(self) -> None:
         self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:
@@ -189,3 +235,5 @@ class UploadCommand(BaseCommand):
             raise DatabaseSchemaUploadNotAllowed()
         if not self._model.db_engine_spec.supports_file_upload:
             raise DatabaseUploadNotSupported()
+
+        self.validate_file_size(self._file)

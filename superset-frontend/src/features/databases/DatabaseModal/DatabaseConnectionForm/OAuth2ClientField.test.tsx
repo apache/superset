@@ -17,18 +17,15 @@
  * under the License.
  */
 
-import { render, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { render, fireEvent } from 'spec/helpers/testing-library';
 import { DatabaseObject } from 'src/features/databases/types';
 import { OAuth2ClientField } from './OAuth2ClientField';
 
-const renderWithTheme = (component: JSX.Element) =>
-  render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
-
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('OAuth2ClientField', () => {
   const mockChangeMethods = {
     onEncryptedExtraInputChange: jest.fn(),
+    onClearEncryptedExtraKey: jest.fn(),
     onParametersChange: jest.fn(),
     onChange: jest.fn(),
     onQueryChange: jest.fn(),
@@ -48,6 +45,7 @@ describe('OAuth2ClientField', () => {
     getValidation: jest.fn(),
     clearValidationErrors: jest.fn(),
     field: 'test',
+    isValidating: false,
     db: {
       configuration_method: 'dynamic_form',
       database_name: 'test',
@@ -74,8 +72,8 @@ describe('OAuth2ClientField', () => {
     jest.clearAllMocks();
   });
 
-  it('does not show input fields until the collapse trigger is clicked', () => {
-    const { getByText, getByTestId, queryByTestId } = renderWithTheme(
+  test('does not show input fields until the collapse trigger is clicked', () => {
+    const { getByText, getByTestId, queryByTestId } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
 
@@ -97,8 +95,8 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-scope')).toBeInTheDocument();
   });
 
-  it('renders the OAuth2ClientField component with initial values', () => {
-    const { getByTestId, getByText } = renderWithTheme(
+  test('renders the OAuth2ClientField component with initial values', () => {
+    const { getByTestId, getByText } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
 
@@ -116,8 +114,8 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-scope')).toHaveValue('test-scope');
   });
 
-  it('handles input changes and triggers onEncryptedExtraInputChange', () => {
-    const { getByTestId, getByText } = renderWithTheme(
+  test('handles input changes and triggers onEncryptedExtraInputChange', () => {
+    const { getByTestId, getByText } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
 
@@ -127,17 +125,24 @@ describe('OAuth2ClientField', () => {
     const clientIdInput = getByTestId('client-id');
     fireEvent.change(clientIdInput, { target: { value: 'new-id' } });
 
-    expect(mockChangeMethods.onEncryptedExtraInputChange).toHaveBeenCalledWith(
+    expect(mockChangeMethods.onParametersChange).toHaveBeenCalledWith(
       expect.objectContaining({
         target: {
           name: 'oauth2_client_info',
-          value: expect.objectContaining({ id: 'new-id' }),
+          type: 'object',
+          value: {
+            authorization_request_uri: 'https://auth-uri',
+            id: 'new-id',
+            scope: 'test-scope',
+            secret: 'test-secret',
+            token_request_uri: 'https://token-uri',
+          },
         },
       }),
     );
   });
 
-  it('does not render when supports_oauth2 is false', () => {
+  test('does not render when supports_oauth2 is false', () => {
     const props = {
       ...defaultProps,
       db: {
@@ -148,12 +153,12 @@ describe('OAuth2ClientField', () => {
       },
     };
 
-    const { queryByTestId } = renderWithTheme(<OAuth2ClientField {...props} />);
+    const { queryByTestId } = render(<OAuth2ClientField {...props} />);
 
     expect(queryByTestId('client-id')).not.toBeInTheDocument();
   });
 
-  it('renders empty fields when masked_encrypted_extra is empty', () => {
+  test('renders empty fields when masked_encrypted_extra is empty', () => {
     const props = {
       ...defaultProps,
       db: {
@@ -165,9 +170,7 @@ describe('OAuth2ClientField', () => {
       },
     };
 
-    const { getByTestId, getByText } = renderWithTheme(
-      <OAuth2ClientField {...props} />,
-    );
+    const { getByTestId, getByText } = render(<OAuth2ClientField {...props} />);
 
     const collapseTrigger = getByText('OAuth2 client information');
     fireEvent.click(collapseTrigger);
@@ -177,5 +180,86 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-authorization-request-uri')).toHaveValue('');
     expect(getByTestId('client-token-request-uri')).toHaveValue('');
     expect(getByTestId('client-scope')).toHaveValue('');
+  });
+
+  test('renders nothing when engine is gsheets and isPublic is true', () => {
+    const props = {
+      ...defaultProps,
+      isPublic: true,
+      db: {
+        ...defaultProps.db,
+        engine: 'gsheets',
+      },
+    };
+
+    const { queryByText } = render(<OAuth2ClientField {...props} />);
+
+    expect(queryByText('OAuth2 client information')).not.toBeInTheDocument();
+  });
+
+  test('renders normally when engine is gsheets but isPublic is false', () => {
+    const props = {
+      ...defaultProps,
+      isPublic: false,
+      db: {
+        ...defaultProps.db,
+        engine: 'gsheets',
+      },
+    };
+
+    const { getByText } = render(<OAuth2ClientField {...props} />);
+
+    expect(getByText('OAuth2 client information')).toBeInTheDocument();
+  });
+
+  test('re-syncs local state when masked_encrypted_extra is cleared', () => {
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        engine: 'gsheets',
+      },
+      isPublic: false,
+    };
+
+    const { getByTestId, getByText, rerender } = render(
+      <OAuth2ClientField {...props} />,
+    );
+
+    fireEvent.click(getByText('OAuth2 client information'));
+    expect(getByTestId('client-id')).toHaveValue('test-id');
+
+    // Simulate the gsheets dropdown toggling to "public" — the parent
+    // dispatches an EncryptedExtraInputChange that drops the
+    // oauth2_client_info key from masked_encrypted_extra.
+    rerender(
+      <OAuth2ClientField
+        {...props}
+        db={{
+          ...props.db,
+          masked_encrypted_extra: '{}',
+        }}
+      />,
+    );
+
+    expect(getByTestId('client-id')).toHaveValue('');
+    expect(getByTestId('client-secret')).toHaveValue('');
+  });
+
+  test.each([
+    ['the literal string "null"', 'null'],
+    ['malformed JSON', 'not json'],
+    ['a JSON primitive', '42'],
+    ['a JSON array', '[1, 2, 3]'],
+  ])('mounts safely when masked_encrypted_extra is %s', (_label, value) => {
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        masked_encrypted_extra: value,
+      },
+    };
+
+    expect(() => render(<OAuth2ClientField {...props} />)).not.toThrow();
   });
 });

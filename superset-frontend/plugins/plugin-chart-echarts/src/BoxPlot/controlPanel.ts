@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isAdhocColumn,
   isPhysicalColumn,
-  t,
   validateNonEmpty,
 } from '@superset-ui/core';
 import {
@@ -35,6 +35,7 @@ import {
   ControlPanelState,
   getTemporalColumns,
   sharedControls,
+  DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -78,6 +79,7 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         ['series_limit'],
         ['series_limit_metric'],
+        ['row_limit'],
         [
           {
             name: 'whiskerOptions',
@@ -94,7 +96,9 @@ const config: ControlPanelConfig = {
                 ['Tukey', t('Tukey')],
                 ['Min/max (no outliers)', t('Min/max (no outliers)')],
                 ['2/98 percentiles', t('2/98 percentiles')],
+                ['5/95 percentiles', t('5/95 percentiles')],
                 ['9/91 percentiles', t('9/91 percentiles')],
+                ['10/90 percentiles', t('10/90 percentiles')],
               ],
             },
           },
@@ -150,8 +154,23 @@ const config: ControlPanelConfig = {
               label: t('Date format'),
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
-              default: 'smart_date',
+              default: DEFAULT_TIME_FORMAT,
               description: D3_FORMAT_DOCS,
+            },
+          },
+        ],
+        ['zoomable'],
+        [
+          {
+            name: 'y_axis_slider',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Y-axis range slider'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Show a draggable slider to control the visible range of the Y-axis.',
+              ),
             },
           },
         ],

@@ -73,6 +73,8 @@ export default function transformProps(
     yAxisTitleMargin,
     yAxisTitlePosition,
     sliceId,
+    zoomable,
+    yAxisSlider,
   } = formData as BoxPlotQueryFormData;
   const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -201,7 +203,7 @@ export default function transformProps(
       tooltip: {
         ...getDefaultTooltip(refs),
         formatter: (param: CallbackDataParams) => {
-          // @ts-ignore
+          // @ts-expect-error
           const {
             value,
             name,
@@ -238,11 +240,13 @@ export default function transformProps(
         },
       },
     },
-    // @ts-ignore
+    // @ts-expect-error
     ...outlierData,
   ];
-  const addYAxisTitleOffset = !!yAxisTitle;
-  const addXAxisTitleOffset = !!xAxisTitle;
+  const addYAxisTitleOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisTitleOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
   const chartPadding = getPadding(
     true,
     legendOrientation,
@@ -254,6 +258,28 @@ export default function transformProps(
     convertInteger(yAxisTitleMargin),
     convertInteger(xAxisTitleMargin),
   );
+  const dataZoom = [
+    ...(zoomable
+      ? [
+          {
+            type: 'inside',
+            zoomOnMouseWheel: false,
+            moveOnMouseWheel: true,
+          },
+        ]
+      : []),
+    ...(yAxisSlider
+      ? [
+          {
+            type: 'slider',
+            show: true,
+            yAxisIndex: [0],
+            // Adjust the axis window without dropping data points outside the range.
+            filterMode: 'none',
+          },
+        ]
+      : []),
+  ];
   const echartOptions: EChartsCoreOption = {
     grid: {
       ...defaultGrid,
@@ -284,6 +310,18 @@ export default function transformProps(
       },
     },
     series,
+    toolbox: {
+      show: zoomable,
+      feature: {
+        dataZoom: {
+          title: {
+            zoom: 'zoom area',
+            back: 'restore zoom',
+          },
+        },
+      },
+    },
+    dataZoom,
   };
 
   return {

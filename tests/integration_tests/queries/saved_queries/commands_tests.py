@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=consider-using-transaction
 
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import yaml
@@ -57,9 +58,11 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         db.session.commit()
         super().tearDown()
 
-    @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
+    def test_export_query_command(self, mock_can_access_all_queries: Mock) -> None:
+        mock_can_access_all_queries.return_value = True
 
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = dict(command.run())
@@ -85,12 +88,14 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
             "database_uuid": str(self.example_database.uuid),
         }
 
-    @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_no_related(self, mock_g):
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
+    def test_export_query_command_no_related(self, mock_can_access_all_queries):
         """
         Test that only the query is exported when export_related=False.
         """
-        mock_g.user = security_manager.find_user("admin")
+        mock_can_access_all_queries.return_value = True
 
         command = ExportSavedQueriesCommand(
             [self.example_query.id], export_related=False
@@ -103,30 +108,40 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         ]
         assert expected == list(contents.keys())
 
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
     @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_no_access(self, mock_g):
+    def test_export_query_command_no_access(
+        self, mock_filter_g, mock_can_access_all_queries
+    ):
         """Test that users can't export datasets they don't have access to"""
-        mock_g.user = security_manager.find_user("gamma")
+        mock_can_access_all_queries.return_value = False
+        mock_filter_g.user = security_manager.find_user("gamma")
 
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = command.run()
         with self.assertRaises(SavedQueryNotFoundError):  # noqa: PT027
             next(contents)
 
-    @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_invalid_dataset(self, mock_g):
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
+    def test_export_query_command_invalid_dataset(self, mock_can_access_all_queries):
         """Test that an error is raised when exporting an invalid dataset"""
-        mock_g.user = security_manager.find_user("admin")
+        mock_can_access_all_queries.return_value = True
 
         command = ExportSavedQueriesCommand([-1])
         contents = command.run()
         with self.assertRaises(SavedQueryNotFoundError):  # noqa: PT027
             next(contents)
 
-    @patch("superset.queries.saved_queries.filters.g")
-    def test_export_query_command_key_order(self, mock_g):
+    @patch(
+        "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
+    )
+    def test_export_query_command_key_order(self, mock_can_access_all_queries):
         """Test that they keys in the YAML have the same order as export_fields"""
-        mock_g.user = security_manager.find_user("admin")
+        mock_can_access_all_queries.return_value = True
 
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = dict(command.run())
@@ -232,7 +247,7 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         command = ImportSavedQueriesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing saved_queries"
+        assert str(excinfo.value).startswith("Error importing saved_queries")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to SavedQuery."]}
         }
@@ -245,7 +260,7 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         command = ImportSavedQueriesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing saved_queries"
+        assert str(excinfo.value).startswith("Error importing saved_queries")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],

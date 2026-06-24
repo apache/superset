@@ -187,7 +187,7 @@ def test_extract_errors() -> None:
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
-                "engine_name": "Databricks",
+                "engine_name": "Databricks (legacy)",
                 "issue_codes": [
                     {
                         "code": 1002,
@@ -214,7 +214,7 @@ def test_extract_errors_with_context() -> None:
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             level=ErrorLevel.ERROR,
             extra={
-                "engine_name": "Databricks",
+                "engine_name": "Databricks (legacy)",
                 "issue_codes": [
                     {
                         "code": 1002,
@@ -281,6 +281,13 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     assert DatabricksNativeEngineSpec.get_prequeries(
         database, catalog="`escaped-hyphen`", schema="`hyphen-escaped`"
     ) == [
-        "USE CATALOG `escaped-hyphen`",
-        "USE SCHEMA `hyphen-escaped`",
+        "USE CATALOG ```escaped-hyphen```",
+        "USE SCHEMA ```hyphen-escaped```",
+    ]
+
+    assert DatabricksNativeEngineSpec.get_prequeries(
+        database, catalog="evil` USE CATALOG bad", schema="evil` USE SCHEMA bad"
+    ) == [
+        "USE CATALOG `evil`` USE CATALOG bad`",
+        "USE SCHEMA `evil`` USE SCHEMA bad`",
     ]

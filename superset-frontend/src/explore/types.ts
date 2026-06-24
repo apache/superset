@@ -22,6 +22,7 @@ import {
   AnnotationData,
   AdhocMetric,
   JsonObject,
+  LatestQueryFormData,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -33,6 +34,11 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Slice } from 'src/types/Chart';
 
 export type SaveActionType = 'overwrite' | 'saveas';
+
+export enum ChartStatusType {
+  overwrite = 'overwrite',
+  saveas = 'saveas',
+}
 
 export type ChartStatus =
   | 'loading'
@@ -52,7 +58,7 @@ export interface ChartState {
   chartUpdateEndTime: number | null;
   chartUpdateStartTime: number;
   lastRendered: number;
-  latestQueryFormData: Partial<QueryFormData>;
+  latestQueryFormData: LatestQueryFormData;
   sliceFormData: QueryFormData | null;
   queryController: AbortController | null;
   queriesResponse: QueryData[] | null;
@@ -65,11 +71,13 @@ export type OptionSortType = Partial<
 
 export type Datasource = Dataset & {
   database?: DatabaseObject;
+  /** The parent resource that owns this datasource (database or semantic layer). */
+  parent?: { name: string };
   datasource?: string;
   catalog?: string | null;
   schema?: string;
   is_sqllab_view?: boolean;
-  extra?: string;
+  extra?: string | object;
 };
 
 export interface ExplorePageInitialData {
@@ -80,8 +88,10 @@ export interface ExplorePageInitialData {
     created_on_humanized: string;
     changed_on_humanized: string;
     owners: string[];
+    extra_owners?: { id: number; first_name: string; last_name: string }[];
     created_by?: string;
     changed_by?: string;
+    color_namespace?: string;
     dashboards?: {
       id: number;
       dashboard_title: string;
@@ -91,13 +101,15 @@ export interface ExplorePageInitialData {
 }
 
 export interface ExploreResponsePayload {
-  result: ExplorePageInitialData & { message: string };
+  result: ExplorePageInitialData & {
+    message: string;
+    chartState?: JsonObject;
+  };
 }
 
 export interface ExplorePageState {
   user: UserWithPermissionsAndRoles;
   common: {
-    flash_messages: string[];
     conf: JsonObject;
     locale: string;
   };
@@ -106,6 +118,8 @@ export interface ExplorePageState {
   explore: {
     can_add: boolean;
     can_download: boolean;
+    can_export_image: boolean;
+    can_copy_clipboard: boolean;
     can_overwrite: boolean;
     isDatasourceMetaLoading: boolean;
     isStarred: boolean;
@@ -120,6 +134,23 @@ export interface ExplorePageState {
     standalone: boolean;
     force: boolean;
     common: JsonObject;
+    compatibleMetrics?: string[] | null;
+    compatibleDimensions?: string[] | null;
+    compatibilityLoading?: boolean;
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
+}
+
+export interface TabNode {
+  value: string;
+  title: string;
+  parents: string[];
+  children?: TabNode[];
+}
+
+export interface TabTreeNode {
+  value: string;
+  title: string;
+  key: string;
+  children?: TabTreeNode[];
 }

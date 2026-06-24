@@ -2,6 +2,11 @@ name: "Pull Request Labeler"
 on:
 - pull_request_target
 
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   labeler:
     permissions:
@@ -9,7 +14,7 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/labeler@v5
+    - uses: actions/labeler@f27b608878404679385c85cfa523b85ccb86e213 # v6.1.0
       with:
         sync-labels: true
 

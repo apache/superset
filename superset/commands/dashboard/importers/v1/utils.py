@@ -42,6 +42,11 @@ def find_native_filter_datasets(metadata: dict[str, Any]) -> set[str]:
             dataset_uuid = target.get("datasetUuid")
             if dataset_uuid:
                 uuids.add(dataset_uuid)
+    for customization in metadata.get("chart_customization_config") or []:
+        for target in customization.get("targets") or []:
+            dataset_uuid = target.get("datasetUuid")
+            if dataset_uuid:
+                uuids.add(dataset_uuid)
     return uuids
 
 
@@ -65,11 +70,12 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     """Update dashboard metadata to use new IDs"""
     fixed = config.copy()
 
-    # build map old_id => new_id
+    # build map old_id => new_id and uuid => new_id
     old_ids = build_uuid_to_id_map(fixed["position"])
     id_map = {
         old_id: chart_ids[uuid] for uuid, old_id in old_ids.items() if uuid in chart_ids
     }
+    uuid_to_new_id = {uuid: chart_ids[uuid] for uuid in old_ids if uuid in chart_ids}
 
     # fix metadata
     metadata = fixed.get("metadata", {})
@@ -140,6 +146,128 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
                 id_map[old_id] for old_id in scope_excluded if old_id in id_map
             ]
 
+        charts_in_scope = native_filter.get("chartsInScope", [])
+        if charts_in_scope:
+            native_filter["chartsInScope"] = _remap_chart_ids(
+                charts_in_scope, id_map, uuid_to_new_id
+            )
+
+    # fix display control dataset references
+    for customization in (
+        fixed.get("metadata", {}).get("chart_customization_config") or []
+    ):
+        for target in customization.get("targets") or []:
+            dataset_uuid = target.pop("datasetUuid", None)
+            if dataset_uuid:
+                info = dataset_info.get(dataset_uuid)
+                if info:
+                    target["datasetId"] = info["datasource_id"]
+                else:
+                    # UUID present but unresolvable — remove stale integer ID
+                    # so the control fails visibly rather than binding to
+                    # whatever dataset happens to own that ID in this environment
+                    target.pop("datasetId", None)
+                    logger.warning(
+                        "Display control target references unknown dataset UUID %s; "
+                        "datasetId will not be restored",
+                        dataset_uuid,
+                    )
+
+    fixed = update_cross_filter_scoping(fixed, id_map, uuid_to_new_id)
+    return fixed
+
+
+def _remap_chart_ids(
+    id_list: list[Any],
+    id_map: dict[int, int],
+    uuid_to_new_id: dict[str, int] | None = None,
+) -> list[int]:
+    """Remap old chart IDs (int or UUID string) to new integer IDs.
+
+    Handles both the standard import format (integer IDs) and the example-export
+    format (UUID strings produced by export_example.remap_chart_configuration).
+    """
+    result = []
+    for item in id_list:
+        if isinstance(item, int):
+            if item in id_map:
+                result.append(id_map[item])
+        elif isinstance(item, str) and uuid_to_new_id:
+            new_id = uuid_to_new_id.get(item)
+            if new_id is not None:
+                result.append(new_id)
+    return result
+
+
+def _update_cross_filter_scope(
+    cross_filter_config: Any,
+    id_map: dict[int, int],
+    uuid_to_new_id: dict[str, int] | None = None,
+) -> None:
+    """Update scope.excluded and chartsInScope in a cross-filter configuration.
+
+    Imported dashboard metadata is loosely validated, so malformed payloads may
+    supply ``null`` or non-dict values where a cross-filter config is expected.
+    Skip anything that isn't a dict rather than raising ``AttributeError``.
+    """
+    if not isinstance(cross_filter_config, dict):
+        return
+
+    scope = cross_filter_config.get("scope", {})
+    if isinstance(scope, dict):
+        if excluded := scope.get("excluded", []):
+            scope["excluded"] = _remap_chart_ids(excluded, id_map, uuid_to_new_id)
+
+    if charts_in_scope := cross_filter_config.get("chartsInScope", []):
+        cross_filter_config["chartsInScope"] = _remap_chart_ids(
+            charts_in_scope, id_map, uuid_to_new_id
+        )
+
+
+def update_cross_filter_scoping(
+    config: dict[str, Any],
+    id_map: dict[int, int],
+    uuid_to_new_id: dict[str, int] | None = None,
+) -> dict[str, Any]:
+    """Fix cross filter references by remapping chart IDs.
+
+    Handles both the standard import format (integer-keyed chart_configuration)
+    and the example-export format (UUID-keyed, produced by export_example).
+    """
+    fixed = config.copy()
+    metadata = fixed.get("metadata", {})
+
+    # Update global_chart_configuration
+    global_config = metadata.get("global_chart_configuration", {})
+    _update_cross_filter_scope(global_config, id_map, uuid_to_new_id)
+
+    # Update chart_configuration entries
+    if "chart_configuration" not in metadata:
+        return fixed
+
+    new_chart_configuration: dict[str, Any] = {}
+    for old_id_str, chart_config in metadata["chart_configuration"].items():
+        try:
+            old_id_int = int(old_id_str)
+            new_id = id_map.get(old_id_int)
+            if new_id is None:
+                continue
+        except (TypeError, ValueError):
+            # UUID-keyed entry (e.g. from export_example): resolve via chart UUIDs
+            new_id = uuid_to_new_id.get(old_id_str) if uuid_to_new_id else None
+            if new_id is None:
+                # Unknown key — preserve unchanged rather than silently drop
+                new_chart_configuration[old_id_str] = chart_config
+                continue
+
+        if isinstance(chart_config, dict):
+            chart_config["id"] = new_id
+            if cross_filters := chart_config.get("crossFilters", {}):
+                _update_cross_filter_scope(cross_filters, id_map, uuid_to_new_id)
+
+        new_chart_configuration[str(new_id)] = chart_config
+
+    metadata["chart_configuration"] = new_chart_configuration
     return fixed
 
 
@@ -153,9 +281,12 @@ def import_dashboard(  # noqa: C901
         "Dashboard",
     )
     existing = db.session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
+    user = get_user()
     if existing:
-        if overwrite and can_write and get_user():
-            if not security_manager.can_access_dashboard(existing):
+        if overwrite and can_write and user:
+            if not security_manager.can_access_dashboard(existing) or (
+                user not in existing.owners and not security_manager.is_admin()
+            ):
                 raise ImportFailedError(
                     "A dashboard already exists and user doesn't "
                     "have permissions to overwrite it"
@@ -176,6 +307,13 @@ def import_dashboard(  # noqa: C901
     if "metadata" in config and "show_native_filters" in config["metadata"]:
         del config["metadata"]["show_native_filters"]
 
+    # Note: theme_id handling moved to higher level import logic
+
+    # Pop roles before handing config to import_from_dict — it's a
+    # relationship, not a column, and the standard SQLAlchemy import path
+    # doesn't resolve role *names* into role objects. We re-attach below.
+    role_names = config.pop("roles", None)
+
     for key, new_name in JSON_KEYS.items():
         if config.get(key) is not None:
             value = config.pop(key)
@@ -188,7 +326,28 @@ def import_dashboard(  # noqa: C901
     if dashboard.id is None:
         db.session.flush()
 
-    if (user := get_user()) and user not in dashboard.owners:
+    if not existing and user and user not in dashboard.owners:
         dashboard.owners.append(user)
+
+    # Re-attach DASHBOARD_RBAC role assignments by name. Role IDs are
+    # environment-local; names are how exports cross environments. Roles
+    # that don't exist in the destination are skipped with a warning
+    # rather than failing the import — admins may need to create them
+    # before the access restriction takes effect.
+    if isinstance(role_names, list) and role_names:
+        resolved_roles = []
+        for name in role_names:
+            role = security_manager.find_role(name)
+            if role is not None:
+                resolved_roles.append(role)
+            else:
+                logger.warning(
+                    "Dashboard '%s': role %r referenced in export does not "
+                    "exist in this environment; access restriction will not "
+                    "be applied for that role",
+                    dashboard.dashboard_title,
+                    name,
+                )
+        dashboard.roles = resolved_roles
 
     return dashboard

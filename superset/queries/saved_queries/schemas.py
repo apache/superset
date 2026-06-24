@@ -39,6 +39,7 @@ get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 
 class ImportV1SavedQuerySchema(Schema):
+    catalog = fields.String(allow_none=True, validate=Length(0, 128))
     schema = fields.String(allow_none=True, validate=Length(0, 128))
     label = fields.String(allow_none=True, validate=Length(0, 256))
     description = fields.String(allow_none=True)

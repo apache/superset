@@ -21,10 +21,12 @@ from unittest import mock
 import pytest
 import pytz
 from pyhive.sqlalchemy_presto import PrestoDialect
+from pytest_mock import MockerFixture
 from sqlalchemy import column, sql, text, types
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -40,17 +42,17 @@ from tests.unit_tests.db_engine_specs.utils import (
         (
             "TIMESTAMP",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000, tzinfo=pytz.UTC),
-            "TIMESTAMP '2022-01-01 01:23:45.600000+00:00'",
+            "TIMESTAMP '2022-01-01 01:23:45.600+00:00'",
         ),
     ],
 )
@@ -303,3 +305,108 @@ def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
         spec.get_timestamp_expr(col=column("col"), pdf=None, time_grain=time_grain)
     )
     assert actual == expected_result
+
+
+def test_select_star(mocker: MockerFixture) -> None:
+    """
+    Test the ``select_star`` method.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec as spec  # noqa: N813
+
+    database = mocker.MagicMock()
+    dialect = mocker.MagicMock()
+
+    def quote_table(table: Table, dialect: Dialect) -> str:
+        return ".".join(
+            part for part in (table.catalog, table.schema, table.table) if part
+        )
+
+    mocker.patch.object(spec, "quote_table", quote_table)
+
+    spec.select_star(
+        database=database,
+        table=Table("my_table", "my_schema", "my_catalog"),
+        dialect=dialect,
+        limit=100,
+        show_cols=False,
+        indent=True,
+        latest_partition=False,
+        cols=None,
+    )
+
+    query = database.compile_sqla_query.mock_calls[0][1][0]
+    assert (
+        str(query)
+        == """
+SELECT * \nFROM my_catalog.my_schema.my_table
+ LIMIT :param_1
+    """.strip()
+    )
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that Presto uses equality operators for boolean filters instead of IS,
+    since `col IS TRUE` can fail on computed boolean expressions like
+    `(expiration = 1) AS expiration`.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = PrestoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    result_false = PrestoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+    # Regression: the original bug was on computed boolean columns like
+    # `(expiration = 1) AS expiration`. Verify the equality operator also
+    # compiles correctly when the "column" is a computed expression.
+    from sqlalchemy import literal_column
+
+    computed_col = literal_column("(expiration = 1)")
+    result_computed = PrestoEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_computed.compile(compile_kwargs={"literal_binds": True}))
+        == "(expiration = 1) = true"
+    )
+
+
+def test_extract_errors_maps_401_to_access_denied() -> None:
+    """
+    Regression for #33554: Presto 401 errors must surface as
+    CONNECTION_ACCESS_DENIED_ERROR rather than a raw GENERIC_DB_ENGINE_ERROR.
+
+    pyhive raises "presto error: Unexpected status code 401 b'Unauthorized'"
+    when the Presto server rejects the connection with HTTP 401. SQL Lab
+    users see a cryptic raw error instead of an actionable "check your
+    credentials" message.
+
+    The custom_errors map has a pattern for "Access Denied: Invalid
+    credentials" (PyHive LDAP auth path), but not for the HTTP 401
+    status-code message that pyhive raises when the server rejects the
+    initial request. Adding the pattern surfaces a user-readable error.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.errors import SupersetErrorType
+
+    msg = "presto error: Unexpected status code 401 b'Unauthorized'"
+    result = PrestoEngineSpec.extract_errors(Exception(msg))
+    assert len(result) == 1
+    assert result[0].error_type == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR

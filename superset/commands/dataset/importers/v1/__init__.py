@@ -15,14 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any
+from typing import Any, Optional
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
 
 from superset.commands.database.importers.v1.utils import import_database
-from superset.commands.dataset.exceptions import DatasetImportError
+from superset.commands.dataset.exceptions import (
+    DatasetImportError,
+    MultiCatalogDisabledValidationError,
+)
 from superset.commands.dataset.importers.v1.utils import import_dataset
+from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.daos.dataset import DatasetDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
@@ -42,7 +46,13 @@ class ImportDatasetsCommand(ImportModelsCommand):
     import_error = DatasetImportError
 
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    def _import(
+        configs: dict[str, Any],
+        overwrite: bool = False,
+        contents: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if contents is None:
+            contents = {}
         # discover databases associated with datasets
         database_uuids: set[str] = set()
         for file_name, config in configs.items():
@@ -63,4 +73,11 @@ class ImportDatasetsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                import_dataset(config, overwrite=overwrite)
+                try:
+                    import_dataset(config, overwrite=overwrite)
+                except MultiCatalogDisabledValidationError as ex:
+                    # surface as a 422 validation error instead of a generic 500
+                    raise CommandInvalidError(
+                        "; ".join(str(message) for message in ex.messages),
+                        [ex],
+                    ) from ex

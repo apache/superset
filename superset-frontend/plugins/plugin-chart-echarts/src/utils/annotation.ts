@@ -29,9 +29,7 @@ import {
   DataRecord,
   evalExpression,
   FormulaAnnotationLayer,
-  isRecordAnnotationResult,
   isTableAnnotationLayer,
-  isTimeseriesAnnotationResult,
 } from '@superset-ui/core';
 import { EchartsTimeseriesChartProps } from '../types';
 import { EchartsMixedTimeseriesProps } from '../MixedTimeseries/types';
@@ -79,27 +77,24 @@ export function extractRecordAnnotations(
 ): Annotation[] {
   const { name } = annotationLayer;
   const result = annotationData[name];
-  if (isRecordAnnotationResult(result)) {
-    const { records } = result;
-    const {
-      descriptionColumns = [],
-      intervalEndColumn = '',
-      timeColumn = '',
-      titleColumn = '',
-    } = isTableAnnotationLayer(annotationLayer)
-      ? annotationLayer
-      : NATIVE_COLUMN_NAMES;
+  const records = result?.records || [];
+  const {
+    descriptionColumns = [],
+    intervalEndColumn = '',
+    timeColumn = '',
+    titleColumn = '',
+  } = isTableAnnotationLayer(annotationLayer)
+    ? annotationLayer
+    : NATIVE_COLUMN_NAMES;
 
-    return records.map(record => ({
-      descriptions: descriptionColumns.map(
-        column => (record[column] || '') as string,
-      ) as string[],
-      intervalEnd: (record[intervalEndColumn] || '') as string,
-      time: (record[timeColumn] || '') as string,
-      title: (record[titleColumn] || '') as string,
-    }));
-  }
-  throw new Error('Please rerun the query.');
+  return records.map(record => ({
+    descriptions: descriptionColumns.map(
+      column => (record[column] || '') as string,
+    ) as string[],
+    intervalEnd: (record[intervalEndColumn] || '') as string,
+    time: (record[timeColumn] || '') as string,
+    title: (record[titleColumn] || '') as string,
+  }));
 }
 
 export function formatAnnotationLabel(
@@ -120,23 +115,16 @@ export function formatAnnotationLabel(
   return labels.join('\n\n');
 }
 
-export function extractAnnotationLabels(
-  layers: AnnotationLayer[],
-  data: AnnotationData,
-): string[] {
+export function extractAnnotationLabels(layers: AnnotationLayer[]): string[] {
   const formulaAnnotationLabels = layers
     .filter(anno => anno.annotationType === AnnotationType.Formula && anno.show)
     .map(anno => anno.name);
+
   const timeseriesAnnotationLabels = layers
     .filter(
       anno => anno.annotationType === AnnotationType.Timeseries && anno.show,
     )
-    .flatMap(anno => {
-      const result = data[anno.name];
-      return isTimeseriesAnnotationResult(result)
-        ? result.map(annoSeries => annoSeries.key)
-        : [];
-    });
+    .map(anno => anno.name);
 
   return formulaAnnotationLabels.concat(timeseriesAnnotationLabels);
 }

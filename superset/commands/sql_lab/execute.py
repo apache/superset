@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from sqlalchemy.exc import SQLAlchemyError
@@ -92,7 +92,7 @@ class ExecuteSqlCommand(BaseCommand):
         pass
 
     @transaction()
-    def run(  # pylint: disable=too-many-statements,useless-suppression
+    def run(
         self,
     ) -> CommandResult:
         """Runs arbitrary sql and returns data as json"""
@@ -148,7 +148,7 @@ class ExecuteSqlCommand(BaseCommand):
 
             # Necessary to check access before rendering the Jinjafied query as the
             # some Jinja macros execute statements upon rendering.
-            self._validate_access(query)
+            self._validate_access(query, self._execution_context.template_params)
             self._execution_context.set_query(query)
             rendered_query = self._sql_query_render.render(self._execution_context)
             self._set_query_limit_if_required(rendered_query)
@@ -204,9 +204,11 @@ class ExecuteSqlCommand(BaseCommand):
 
         db.session.commit()  # pylint: disable=consider-using-transaction
 
-    def _validate_access(self, query: Query) -> None:
+    def _validate_access(
+        self, query: Query, template_params: Optional[dict[str, Any]] = None
+    ) -> None:
         try:
-            self._access_validator.validate(query)
+            self._access_validator.validate(query, template_params)
         except Exception as ex:
             raise QueryIsForbiddenToAccessException(self._execution_context, ex) from ex
 
@@ -242,7 +244,9 @@ class ExecuteSqlCommand(BaseCommand):
 
 
 class CanAccessQueryValidator:
-    def validate(self, query: Query) -> None:
+    def validate(
+        self, query: Query, template_params: Optional[dict[str, Any]] = None
+    ) -> None:
         raise NotImplementedError()
 
 

@@ -6,6 +6,9 @@ on:
       - "superset-embedded-sdk/**"
     types: [synchronize, opened, reopened, ready_for_review]
 
+permissions:
+  contents: read
+
 # cancel previous workflow jobs for PRs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -18,11 +21,13 @@ jobs:
       run:
         working-directory: superset-embedded-sdk
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          node-version: "20"
-          registry-url: 'https://registry.npmjs.org'
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: "./superset-embedded-sdk/.nvmrc"
+          registry-url: "https://registry.npmjs.org"
       - run: npm ci
       - run: npm test
       - run: npm run build

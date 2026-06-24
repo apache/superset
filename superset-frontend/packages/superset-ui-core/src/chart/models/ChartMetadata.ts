@@ -26,6 +26,7 @@ interface LookupTable {
 
 export interface ExampleImage {
   url: string;
+  urlDark?: string;
   caption?: string;
 }
 
@@ -38,6 +39,7 @@ export interface ChartMetadataConfig {
   enableNoResults?: boolean;
   supportedAnnotationTypes?: string[];
   thumbnail: string;
+  thumbnailDark?: string;
   useLegacyApi?: boolean;
   behaviors?: Behavior[];
   exampleGallery?: ExampleImage[];
@@ -49,6 +51,7 @@ export interface ChartMetadataConfig {
   label?: ChartLabel | null;
   labelExplanation?: string | null;
   queryObjectCount?: number;
+  dynamicQueryObjectCount?: boolean;
   parseMethod?: ParseMethod;
   // suppressContextMenu: true hides the default context menu for the chart.
   // This is useful for viz plugins that define their own context menu.
@@ -69,6 +72,8 @@ export default class ChartMetadata {
   supportedAnnotationTypes: string[];
 
   thumbnail: string;
+
+  thumbnailDark?: string;
 
   useLegacyApi: boolean;
 
@@ -92,6 +97,8 @@ export default class ChartMetadata {
 
   queryObjectCount: number;
 
+  dynamicQueryObjectCount: boolean;
+
   parseMethod: ParseMethod;
 
   suppressContextMenu?: boolean;
@@ -104,6 +111,7 @@ export default class ChartMetadata {
       description = '',
       supportedAnnotationTypes = [],
       thumbnail,
+      thumbnailDark,
       useLegacyApi = false,
       behaviors = [],
       datasourceCount = 1,
@@ -115,6 +123,7 @@ export default class ChartMetadata {
       label = null,
       labelExplanation = null,
       queryObjectCount = 1,
+      dynamicQueryObjectCount = false,
       parseMethod = 'json-bigint',
       suppressContextMenu = false,
     } = config;
@@ -134,6 +143,7 @@ export default class ChartMetadata {
     );
     this.supportedAnnotationTypes = supportedAnnotationTypes;
     this.thumbnail = thumbnail;
+    this.thumbnailDark = thumbnailDark;
     this.useLegacyApi = useLegacyApi;
     this.behaviors = behaviors;
     this.datasourceCount = datasourceCount;
@@ -145,6 +155,7 @@ export default class ChartMetadata {
     this.label = label;
     this.labelExplanation = labelExplanation;
     this.queryObjectCount = queryObjectCount;
+    this.dynamicQueryObjectCount = dynamicQueryObjectCount;
     this.parseMethod = parseMethod;
     this.suppressContextMenu = suppressContextMenu;
   }

@@ -19,14 +19,15 @@
 import { Component, ChangeEvent } from 'react';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import { debounce } from 'lodash';
-import { FAST_DEBOUNCE } from 'src/constants';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { Input } from 'src/components/Input';
+import { Constants, Input } from '@superset-ui/core/components';
 
 type InputValueType = string | number;
 
 export interface TextControlProps<T extends InputValueType = InputValueType> {
+  name?: string;
   label?: string;
+  description?: string;
   disabled?: boolean;
   isFloat?: boolean;
   isInt?: boolean;
@@ -36,6 +37,9 @@ export interface TextControlProps<T extends InputValueType = InputValueType> {
   value?: T | null;
   controlId?: string;
   renderTrigger?: boolean;
+  validationErrors?: string[];
+  hovered?: boolean;
+  showHeader?: boolean;
 }
 
 export interface TextControlState {
@@ -85,7 +89,7 @@ export default class TextControl<
 
   debouncedOnChange = debounce((inputValue: string) => {
     this.onChange(inputValue);
-  }, FAST_DEBOUNCE);
+  }, Constants.FAST_DEBOUNCE);
 
   onChangeWrapper = (event: ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;

@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector, useDispatch } from 'react-redux';
-import { t, JsonObject, VizType } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import { t } from '@apache-superset/core/translation';
+import { VizType } from '@superset-ui/core';
 import {
   createCtasDatasource,
   addInfoToast,
   addDangerToast,
 } from 'src/SqlLab/actions/sqlLab';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import Button from 'src/components/Button';
+import { Button, IconTooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { exploreChart } from 'src/explore/exploreUtils';
 import { SqlLabRootState } from 'src/SqlLab/types';
 
@@ -44,7 +46,7 @@ const ExploreCtasResultsButton = ({
   const errorMessage = useSelector(
     (state: SqlLabRootState) => state.sqlLab.errorMessage,
   );
-  const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
+  const dispatch = useAppDispatch();
 
   const buildVizOptions = {
     table_name: table,
@@ -55,7 +57,7 @@ const ExploreCtasResultsButton = ({
 
   const visualize = () => {
     dispatch(createCtasDatasource(buildVizOptions))
-      .then((data: { table_id: number }) => {
+      .then(data => {
         const formData = {
           datasource: `${data.table_id}__table`,
           metrics: ['count'],
@@ -82,11 +84,8 @@ const ExploreCtasResultsButton = ({
       onClick={visualize}
       tooltip={t('Explore the result set in the data exploration view')}
     >
-      <InfoTooltipWithTrigger
-        icon="line-chart"
-        placement="top"
-        label={t('explore')}
-      />{' '}
+      <IconTooltip placement="top" tooltip={t('Explore')} />
+      <Icons.LineChartOutlined iconSize="m" />
       {t('Explore')}
     </Button>
   );

@@ -28,6 +28,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 
 import pytest
+from sqlalchemy import text
 
 import flask  # noqa: F401
 from flask import current_app, has_app_context  # noqa: F401
@@ -39,7 +40,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
-from superset.sql_parse import ParsedQuery, CtasMethod
+from superset.sql.parse import CTASMethod
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
@@ -76,13 +77,19 @@ def setup_sqllab():
         db.session.query(Query).delete()
         db.session.commit()
         for tbl in TMP_TABLES:
-            drop_table_if_exists(f"{tbl}_{CtasMethod.TABLE.lower()}", CtasMethod.TABLE)
-            drop_table_if_exists(f"{tbl}_{CtasMethod.VIEW.lower()}", CtasMethod.VIEW)
             drop_table_if_exists(
-                f"{CTAS_SCHEMA_NAME}.{tbl}_{CtasMethod.TABLE.lower()}", CtasMethod.TABLE
+                f"{tbl}_{CTASMethod.TABLE.name.lower()}", CTASMethod.TABLE
             )
             drop_table_if_exists(
-                f"{CTAS_SCHEMA_NAME}.{tbl}_{CtasMethod.VIEW.lower()}", CtasMethod.VIEW
+                f"{tbl}_{CTASMethod.VIEW.name.lower()}", CTASMethod.VIEW
+            )
+            drop_table_if_exists(
+                f"{CTAS_SCHEMA_NAME}.{tbl}_{CTASMethod.TABLE.name.lower()}",
+                CTASMethod.TABLE,
+            )
+            drop_table_if_exists(
+                f"{CTAS_SCHEMA_NAME}.{tbl}_{CTASMethod.VIEW.name.lower()}",
+                CTASMethod.VIEW,
             )
 
 
@@ -90,7 +97,7 @@ def run_sql(
     test_client,
     sql,
     cta=False,
-    ctas_method=CtasMethod.TABLE,
+    ctas_method=CTASMethod.TABLE,
     tmp_table="tmp",
     async_=False,
 ):
@@ -104,17 +111,17 @@ def run_sql(
             select_as_cta=cta,
             tmp_table_name=tmp_table,
             client_id="".join(random.choice(string.ascii_lowercase) for i in range(5)),  # noqa: S311
-            ctas_method=ctas_method,
+            ctas_method=ctas_method.name,
         ),
     ).json
 
 
-def drop_table_if_exists(table_name: str, table_type: CtasMethod) -> None:
+def drop_table_if_exists(table_name: str, table_type: CTASMethod) -> None:
     """Drop table if it exists, works on any DB"""
-    sql = f"DROP {table_type} IF EXISTS {table_name}"
+    sql = f"DROP {table_type.name} IF EXISTS {table_name}"
     database = get_example_database()
     with database.get_sqla_engine() as engine:
-        engine.execute(sql)
+        engine.execute(text(sql))
 
 
 def quote_f(value: Optional[str]):
@@ -124,10 +131,22 @@ def quote_f(value: Optional[str]):
         return inspector.engine.dialect.identifier_preparer.quote_identifier(value)
 
 
-def cta_result(ctas_method: CtasMethod):
+def expected_cta_sql(
+    ctas_method: CTASMethod, table: str, schema: Optional[str] = None
+) -> str:
+    target = quote_f(table)
+    if schema:
+        target = f"{quote_f(schema)}.{target}"
+    return (
+        f"CREATE {ctas_method.name} {target} AS\n"
+        "SELECT\n  name\nFROM birth_names\nLIMIT 1"
+    )
+
+
+def cta_result(ctas_method: CTASMethod):
     if backend() != "presto":
         return [], []
-    if ctas_method == CtasMethod.TABLE:
+    if ctas_method == CTASMethod.TABLE:
         return [{"rows": 1}], [{"name": "rows", "type": "BIGINT", "is_dttm": False}]
     return [{"result": True}], [{"name": "result", "type": "BOOLEAN", "is_dttm": False}]
 
@@ -143,13 +162,13 @@ def get_select_star(table: str, limit: int, schema: Optional[str] = None):
 
 
 @pytest.mark.usefixtures("login_as_admin")
-@pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
+@pytest.mark.parametrize("ctas_method", [CTASMethod.TABLE, CTASMethod.VIEW])
 def test_run_sync_query_dont_exist(test_client, ctas_method):
     examples_db = get_example_database()
     engine_name = examples_db.db_engine_spec.engine_name
     sql_dont_exist = "SELECT name FROM table_dont_exist"
     result = run_sql(test_client, sql_dont_exist, cta=True, ctas_method=ctas_method)
-    if backend() == "sqlite" and ctas_method == CtasMethod.VIEW:
+    if backend() == "sqlite" and ctas_method == CTASMethod.VIEW:
         assert QueryStatus.SUCCESS == result["status"], result
     elif backend() == "presto":
         assert (
@@ -188,9 +207,9 @@ def test_run_sync_query_dont_exist(test_client, ctas_method):
 
 
 @pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
-@pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-def test_run_sync_query_cta(test_client, ctas_method):
-    tmp_table_name = f"{TEST_SYNC}_{ctas_method.lower()}"
+@pytest.mark.parametrize("ctas_method", [CTASMethod.TABLE, CTASMethod.VIEW])
+def test_run_sync_query_cta(test_client, ctas_method: CTASMethod) -> None:
+    tmp_table_name = f"{TEST_SYNC}_{ctas_method.name.lower()}"
     result = run_sql(
         test_client, QUERY, tmp_table=tmp_table_name, cta=True, ctas_method=ctas_method
     )
@@ -211,23 +230,29 @@ def test_run_sync_query_cta_no_data(test_client):
     sql_empty_result = "SELECT * FROM birth_names WHERE name='random'"
     result = run_sql(test_client, sql_empty_result)
     assert QueryStatus.SUCCESS == result["query"]["state"]
-    assert ([], []) == (result["data"], result["columns"])
+    assert [] == result["data"]
+    assert len(result["columns"]) > 0
 
     query = get_query_by_id(result["query"]["serverId"])
     assert QueryStatus.SUCCESS == query.status
 
 
 @pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
-@pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
+@pytest.mark.parametrize("ctas_method", [CTASMethod.TABLE, CTASMethod.VIEW])
 @mock.patch(  # noqa: PT008
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
-def test_run_sync_query_cta_config(test_client, ctas_method):
-    if backend() == "sqlite":
+def test_run_sync_query_cta_config(
+    test_client,
+    ctas_method: CTASMethod,
+) -> None:
+    db_backend = backend()
+    if db_backend == "sqlite":
         # sqlite doesn't support schemas
         return
-    tmp_table_name = f"{TEST_SYNC_CTA}_{ctas_method.lower()}"
+    tmp_table_name = f"{TEST_SYNC_CTA}_{ctas_method.name.lower()}"
+    expected = expected_cta_sql(ctas_method, tmp_table_name, CTAS_SCHEMA_NAME)
     result = run_sql(
         test_client, QUERY, cta=True, ctas_method=ctas_method, tmp_table=tmp_table_name
     )
@@ -235,10 +260,7 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
     assert cta_result(ctas_method) == (result["data"], result["columns"])
 
     query = get_query_by_id(result["query"]["serverId"])
-    assert (
-        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == query.executed_sql
-    )
+    assert query.executed_sql == expected
     assert query.select_sql == get_select_star(
         tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME
     )
@@ -249,16 +271,21 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
 
 
 @pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
-@pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
+@pytest.mark.parametrize("ctas_method", [CTASMethod.TABLE, CTASMethod.VIEW])
 @mock.patch(  # noqa: PT008
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
-def test_run_async_query_cta_config(test_client, ctas_method):
-    if backend() == "sqlite":
+def test_run_async_query_cta_config(
+    test_client,
+    ctas_method: CTASMethod,
+) -> None:
+    db_backend = backend()
+    if db_backend == "sqlite":
         # sqlite doesn't support schemas
         return
-    tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.lower()}"
+    tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.name.lower()}"
+    expected = expected_cta_sql(ctas_method, tmp_table_name, CTAS_SCHEMA_NAME)
     result = run_sql(
         test_client,
         QUERY,
@@ -275,18 +302,20 @@ def test_run_async_query_cta_config(test_client, ctas_method):
         get_select_star(tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME)
         == query.select_sql
     )
-    assert (
-        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == query.executed_sql
-    )
+    assert query.executed_sql == expected
 
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
 
 
 @pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
-@pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-def test_run_async_cta_query(test_client, ctas_method):
-    table_name = f"{TEST_ASYNC_CTA}_{ctas_method.lower()}"
+@pytest.mark.parametrize("ctas_method", [CTASMethod.TABLE, CTASMethod.VIEW])
+def test_run_async_cta_query(
+    test_client,
+    ctas_method: CTASMethod,
+) -> None:
+    db_backend = backend()
+    table_name = f"{TEST_ASYNC_CTA}_{ctas_method.name.lower()}"
+    expected = expected_cta_sql(ctas_method, table_name)
     result = run_sql(
         test_client,
         QUERY,
@@ -301,9 +330,9 @@ def test_run_async_cta_query(test_client, ctas_method):
     assert QueryStatus.SUCCESS == query.status
     assert get_select_star(table_name, query.limit) in query.select_sql
 
-    assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == query.executed_sql
+    assert query.executed_sql == expected
     assert QUERY == query.sql
-    assert query.rows == (1 if backend() == "presto" else 0)
+    assert query.rows == (1 if db_backend == "presto" else 0)
     assert query.select_as_cta
     assert query.select_as_cta_used
 
@@ -311,9 +340,14 @@ def test_run_async_cta_query(test_client, ctas_method):
 
 
 @pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
-@pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
-    tmp_table = f"{TEST_ASYNC_LOWER_LIMIT}_{ctas_method.lower()}"
+@pytest.mark.parametrize("ctas_method", [CTASMethod.TABLE, CTASMethod.VIEW])
+def test_run_async_cta_query_with_lower_limit(
+    test_client,
+    ctas_method: CTASMethod,
+) -> None:
+    db_backend = backend()
+    tmp_table = f"{TEST_ASYNC_LOWER_LIMIT}_{ctas_method.name.lower()}"
+    expected = expected_cta_sql(ctas_method, tmp_table)
     result = run_sql(
         test_client,
         QUERY,
@@ -328,14 +362,14 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
     sqlite_select_sql = f"SELECT\n  *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
     assert query.select_sql == (
         sqlite_select_sql
-        if backend() == "sqlite"
+        if db_backend == "sqlite"
         else get_select_star(tmp_table, query.limit)
     )
 
-    assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == query.executed_sql
+    assert query.executed_sql == expected
     assert QUERY == query.sql
 
-    assert query.rows == (1 if backend() == "presto" else 0)
+    assert query.rows == (1 if db_backend == "presto" else 0)
     assert query.limit == 50000
     assert query.select_as_cta
     assert query.select_as_cta_used
@@ -442,28 +476,6 @@ def test_msgpack_payload_serialization():
     assert isinstance(serialized, bytes)
 
 
-def test_create_table_as():
-    q = ParsedQuery("SELECT * FROM outer_space;")
-
-    assert "CREATE TABLE tmp AS \nSELECT * FROM outer_space" == q.as_create_table("tmp")
-    assert (
-        "DROP TABLE IF EXISTS tmp;\nCREATE TABLE tmp AS \nSELECT * FROM outer_space"
-        == q.as_create_table("tmp", overwrite=True)
-    )
-
-    # now without a semicolon
-    q = ParsedQuery("SELECT * FROM outer_space")
-    assert "CREATE TABLE tmp AS \nSELECT * FROM outer_space" == q.as_create_table("tmp")
-
-    # now a multi-line query
-    multi_line_query = "SELECT * FROM planets WHERE\n" "Luke_Father = 'Darth Vader'"
-    q = ParsedQuery(multi_line_query)
-    assert (
-        "CREATE TABLE tmp AS \nSELECT * FROM planets WHERE\nLuke_Father = 'Darth Vader'"
-        == q.as_create_table("tmp")
-    )
-
-
 def test_in_app_context():
     @celery_app.task(bind=True)
     def my_task(self):
@@ -473,19 +485,54 @@ def test_in_app_context():
     # Expect True within an app context
     with app.app_context():
         result = my_task.apply().get()
-        assert (
-            result is True
-        ), "Task should have access to current_app within app context"
+        assert result is True, (
+            "Task should have access to current_app within app context"
+        )
 
     # Expect True outside of an app context
     result = my_task.apply().get()
-    assert (
-        result is True
-    ), "Task should have access to current_app outside of app context"
+    assert result is True, (
+        "Task should have access to current_app outside of app context"
+    )
 
 
-def delete_tmp_view_or_table(name: str, db_object_type: str):
-    db.get_engine().execute(f"DROP {db_object_type} IF EXISTS {name}")
+def test_teardown_without_app_context():
+    """Test teardown skips db.session.remove() outside app context.
+
+    Regression test for https://github.com/apache/superset/issues/36892
+    The task_postrun signal can fire after the app context is torn down,
+    so teardown() must check has_app_context() before calling db.session.remove().
+    """
+    # Guard: if superset.tasks.celery_app hasn't been imported yet, its module-level
+    # `flask_app = create_app()` would spin up a second Flask app and corrupt the
+    # Flask-AppBuilder view-registry singleton used by the rest of the test suite.
+    # Patching create_app to return the already-created test app prevents that.
+    with mock.patch("superset.create_app", return_value=app):
+        from superset.tasks.celery_app import teardown
+
+    with (
+        mock.patch("superset.tasks.celery_app.has_app_context", return_value=False),
+        mock.patch("superset.tasks.celery_app.db.session.remove") as mock_remove,
+    ):
+        teardown(retval="success")
+        mock_remove.assert_not_called()
+
+
+def test_teardown_with_app_context():
+    """Test teardown calls db.session.remove() inside app context."""
+    with mock.patch("superset.create_app", return_value=app):
+        from superset.tasks.celery_app import teardown
+
+    with (
+        mock.patch("superset.tasks.celery_app.has_app_context", return_value=True),
+        mock.patch("superset.tasks.celery_app.db.session.remove") as mock_remove,
+    ):
+        teardown(retval="success")
+        mock_remove.assert_called_once()
+
+
+def delete_tmp_view_or_table(name: str, ctas_method: CTASMethod):
+    db.get_engine().execute(text(f"DROP {ctas_method.name} IF EXISTS {name}"))
 
 
 def wait_for_success(result):

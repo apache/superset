@@ -19,24 +19,29 @@
 import { Behavior } from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
+import {
+  nativeFilterGate,
+  findTabsWithChartsInScope,
+  getFormData,
+} from './utils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('nativeFilterGate', () => {
-  it('should return true for regular chart', () => {
+  test('should return true for regular chart', () => {
     expect(nativeFilterGate([])).toEqual(true);
   });
 
-  it('should return true for cross filter chart', () => {
+  test('should return true for cross filter chart', () => {
     expect(nativeFilterGate([Behavior.InteractiveChart])).toEqual(true);
   });
 
-  it('should return true for native filter chart with cross filter support', () => {
+  test('should return true for native filter chart with cross filter support', () => {
     expect(
       nativeFilterGate([Behavior.NativeFilter, Behavior.InteractiveChart]),
     ).toEqual(true);
   });
 
-  it('should return false for native filter behavior', () => {
+  test('should return false for native filter behavior', () => {
     expect(nativeFilterGate([Behavior.NativeFilter])).toEqual(false);
   });
 });
@@ -79,4 +84,19 @@ test('findTabsWithChartsInScope should handle a recursive layout structure', () 
   expect(Array.from(findTabsWithChartsInScope(chartLayoutItems, []))).toEqual(
     [],
   );
+});
+
+test('getFormData should include persisted time_grains for time grain filters', () => {
+  const formData = getFormData({
+    dashboardId: 10,
+    id: 'NATIVE_FILTER-1',
+    filterType: 'filter_timegrain',
+    type: 'NATIVE_FILTER' as any,
+    controlValues: {},
+    defaultDataMask: {},
+    datasetId: 11,
+    time_grains: ['PT1H', 'P1D', 'P1W'],
+  });
+
+  expect((formData as any).time_grains).toEqual(['PT1H', 'P1D', 'P1W']);
 });

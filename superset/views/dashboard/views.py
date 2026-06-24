@@ -17,7 +17,7 @@
 import builtins
 from typing import Callable, Union
 
-from flask import g, redirect, Response
+from flask import g, redirect, Response, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -29,7 +29,6 @@ from superset import db, event_logger, is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.dashboard import Dashboard as DashboardModel
 from superset.superset_typing import FlaskResponse
-from superset.utils import json
 from superset.views.base import (
     BaseSupersetView,
     common_bootstrap_payload,
@@ -66,8 +65,7 @@ class DashboardModelView(DashboardMixin, SupersetModelView, DeleteMixin):  # pyl
     ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]
-        ids = "".join(f"&id={d.id}" for d in items)
-        return redirect(f"/dashboard/export_dashboards_form?{ids[1:]}")
+        return redirect(url_for("DashboardModelView.download_dashboards", id=items))
 
 
 class Dashboard(BaseSupersetView):
@@ -86,7 +84,11 @@ class Dashboard(BaseSupersetView):
         )
         db.session.add(new_dashboard)
         db.session.commit()  # pylint: disable=consider-using-transaction
-        return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
+        return redirect(
+            url_for(
+                "Superset.dashboard", dashboard_id_or_slug=new_dashboard.id, edit="true"
+            )
+        )
 
     @expose("/<dashboard_id_or_slug>/embedded")
     @event_logger.log_this_with_extra_payload
@@ -119,10 +121,6 @@ class Dashboard(BaseSupersetView):
             "embedded": {"dashboard_id": dashboard_id_or_slug},
         }
 
-        return self.render_template(
-            "superset/spa.html",
-            entry="embedded",
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
-            ),
+        return self.render_app_template(
+            extra_bootstrap_data=bootstrap_data, entry="embedded"
         )

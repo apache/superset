@@ -18,8 +18,9 @@
  */
 import { ReactNode } from 'react';
 import { ClassNames } from '@emotion/react';
-import { styled, useTheme, t } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
+import { Flex, Tooltip } from '@superset-ui/core/components';
 
 const StyledTooltip = (props: any) => {
   const theme = useTheme();
@@ -28,8 +29,8 @@ const StyledTooltip = (props: any) => {
       {({ css }) => (
         <Tooltip
           overlayClassName={css`
-            .antd5-tooltip-inner {
-              max-width: ${theme.gridUnit * 125}px;
+            .ant-tooltip-inner {
+              max-width: ${theme.sizeUnit * 125}px;
               word-wrap: break-word;
               text-align: center;
 
@@ -37,8 +38,8 @@ const StyledTooltip = (props: any) => {
                 background: transparent;
                 border: none;
                 text-align: left;
-                color: ${theme.colors.grayscale.light5};
-                font-size: ${theme.typography.sizes.xs}px;
+                color: ${theme.colorBgLayout};
+                font-size: ${theme.fontSizeXS}px;
               }
             }
           `}
@@ -50,7 +51,7 @@ const StyledTooltip = (props: any) => {
 };
 
 const Hr = styled.hr`
-  margin-top: ${({ theme }) => theme.gridUnit * 1.5}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 1.5}px;
 `;
 
 const iconMap = {
@@ -73,13 +74,16 @@ interface ColumnElementProps {
     keys?: { type: ColumnKeyTypeType }[];
     type: string;
   };
+  actions?: ReactNode;
 }
 
-const NowrapDiv = styled.div`
+const ColumnType = styled.div`
   white-space: nowrap;
+  color: ${({ theme }) => theme.colorTextDescription};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
-const ColumnElement = ({ column }: ColumnElementProps) => {
+const ColumnElement = ({ column, actions }: ColumnElementProps) => {
   let columnName: ReactNode = column.name;
   let icons;
   if (column.keys && column.keys.length > 0) {
@@ -98,21 +102,21 @@ const ColumnElement = ({ column }: ColumnElementProps) => {
             </>
           }
         >
-          <i className={`fa text-muted m-l-2 ${iconMap[key.type]}`} />
+          {' '}
+          <i className={`fa text-muted ${iconMap[key.type]}`} />
         </StyledTooltip>
       </span>
     ));
   }
   return (
-    <div className="clearfix table-column">
-      <div className="pull-left m-l-10 col-name">
+    <Flex align="center" justify="space-between">
+      <div data-test="col-name">
         {columnName}
         {icons}
+        {actions}
       </div>
-      <NowrapDiv className="pull-right text-muted">
-        <small> {column.type}</small>
-      </NowrapDiv>
-    </div>
+      <ColumnType>{column.type}</ColumnType>
+    </Flex>
   );
 };
 

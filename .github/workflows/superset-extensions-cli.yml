@@ -1,0 +1,71 @@
+name: Superset Extensions CLI Package Tests
+
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test-superset-extensions-cli-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        # Full version spread on push (master/release) + nightly; current only
+        # on PRs to cut runner cost (cross-version breaks are caught at merge).
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["previous", "current", "next"]') }}
+    defaults:
+      run:
+        working-directory: superset-extensions-cli
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        if: steps.check.outputs.superset-extensions-cli
+        uses: ./.github/actions/setup-backend/
+        with:
+          python-version: ${{ matrix.python-version }}
+          requirements-type: dev
+
+      - name: Run pytest with coverage
+        if: steps.check.outputs.superset-extensions-cli
+        run: |
+          pytest --cov=superset_extensions_cli --cov-report=xml --cov-report=term-missing --cov-report=html -v --tb=short
+
+      - name: Upload coverage reports to Codecov
+        if: steps.check.outputs.superset-extensions-cli
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          file: ./coverage.xml
+          flags: superset-extensions-cli
+          name: superset-extensions-cli-coverage
+          fail_ci_if_error: false
+
+      - name: Upload HTML coverage report
+        if: steps.check.outputs.superset-extensions-cli
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: superset-extensions-cli-coverage-html
+          path: htmlcov/

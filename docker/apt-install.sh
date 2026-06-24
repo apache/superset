@@ -18,7 +18,7 @@
 set -euo pipefail
 
 # Ensure this script is run as root
-if [[ $EUID -ne 0 ]]; then
+if [[ ${EUID} -ne 0 ]]; then
   echo "This script must be run as root" >&2
   exit 1
 fi
@@ -42,7 +42,7 @@ echo -e "${GREEN}Installing packages: $@${RESET}"
 apt-get install -yqq --no-install-recommends "$@"
 
 echo -e "${GREEN}Autoremoving unnecessary packages...${RESET}"
-apt-get autoremove -y
+apt-get autoremove -yqq --purge
 
 echo -e "${GREEN}Cleaning up package cache and metadata...${RESET}"
 apt-get clean

@@ -22,7 +22,7 @@ from typing import Optional
 from unittest.mock import ANY
 
 from flask_appbuilder.security.sqla.models import User
-import prison
+import rison
 from unittest.mock import patch
 
 from superset import db
@@ -80,7 +80,7 @@ class TestLogApi(SupersetTestCase):
             self.insert_log("some_action", admin_user)
             self.login(ADMIN_USERNAME)
             arguments = {"filters": [{"col": "action", "opr": "sw", "value": "some_"}]}
-            uri = f"api/v1/log/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/log/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 404
 
@@ -92,13 +92,13 @@ class TestLogApi(SupersetTestCase):
         log = self.insert_log("some_action", admin_user)
         self.login(ADMIN_USERNAME)
         arguments = {"filters": [{"col": "action", "opr": "sw", "value": "some_"}]}
-        uri = f"api/v1/log/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert list(response["result"][0].keys()) == EXPECTED_COLUMNS
         assert response["result"][0]["action"] == "some_action"
-        assert response["result"][0]["user"] == {"username": "admin"}
+        assert response["result"][0]["user"]["username"] == "admin"
         db.session.delete(log)
         db.session.commit()
 
@@ -132,7 +132,7 @@ class TestLogApi(SupersetTestCase):
 
         assert list(response["result"].keys()) == EXPECTED_COLUMNS
         assert response["result"]["action"] == "some_action"
-        assert response["result"]["user"] == {"username": "admin"}
+        assert response["result"]["user"]["username"] == "admin"
         db.session.delete(log)
         db.session.commit()
 
@@ -171,8 +171,18 @@ class TestLogApi(SupersetTestCase):
         admin_user = self.get_user("admin")
         self.login(ADMIN_USERNAME)
         dash = create_dashboard("dash_slug", "dash_title", "{}", [])
-        log1 = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
-        log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
+        log1 = self.insert_log(
+            "log",
+            admin_user,
+            dashboard_id=dash.id,
+            json='{"event_name": "mount_dashboard"}',
+        )
+        log2 = self.insert_log(
+            "log",
+            admin_user,
+            dashboard_id=dash.id,
+            json='{"event_name": "mount_dashboard"}',
+        )
 
         uri = f"api/v1/log/recent_activity/"  # noqa: F541
         rv = self.client.get(uri)
@@ -187,7 +197,7 @@ class TestLogApi(SupersetTestCase):
         assert response == {
             "result": [
                 {
-                    "action": "dashboard",
+                    "action": "log",
                     "item_type": "dashboard",
                     "item_url": "/superset/dashboard/dash_slug/",
                     "item_title": "dash_title",
@@ -204,11 +214,21 @@ class TestLogApi(SupersetTestCase):
         admin_user = self.get_user("admin")
         self.login(ADMIN_USERNAME)
         dash = create_dashboard("dash_slug", "dash_title", "{}", [])
-        log = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
-        log2 = self.insert_log("explore", admin_user, dashboard_id=dash.id)
+        log = self.insert_log(
+            "log",
+            admin_user,
+            dashboard_id=dash.id,
+            json='{"event_name": "mount_dashboard"}',
+        )
+        log2 = self.insert_log(
+            "log",
+            admin_user,
+            dashboard_id=dash.id,
+            json='{"event_name": "mount_explorer"}',
+        )
 
-        arguments = {"actions": ["dashboard"]}
-        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
+        arguments = {"actions": ["mount_dashboard"]}
+        uri = f"api/v1/log/recent_activity/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         db.session.delete(log)
@@ -229,11 +249,21 @@ class TestLogApi(SupersetTestCase):
         admin_user = self.get_user("admin")
         self.login(ADMIN_USERNAME)
         dash = create_dashboard("dash_slug", "dash_title", "{}", [])
-        log = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
-        log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
+        log = self.insert_log(
+            "log",
+            admin_user,
+            dashboard_id=dash.id,
+            json='{"event_name": "mount_dashboard"}',
+        )
+        log2 = self.insert_log(
+            "log",
+            admin_user,
+            dashboard_id=dash.id,
+            json='{"event_name": "mount_dashboard"}',
+        )
 
         arguments = {"distinct": False}
-        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/recent_activity/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         db.session.delete(log)
@@ -253,9 +283,24 @@ class TestLogApi(SupersetTestCase):
         dash = create_dashboard("dash_slug", "dash_title", "{}", [])
         dash2 = create_dashboard("dash2_slug", "dash2_title", "{}", [])
         dash3 = create_dashboard("dash3_slug", "dash3_title", "{}", [])
-        log = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
-        log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash2.id)
-        log3 = self.insert_log("dashboard", admin_user, dashboard_id=dash3.id)
+        log = self.insert_log(
+            "log",
+            admin_user,
+            dashboard_id=dash.id,
+            json='{"event_name": "mount_dashboard"}',
+        )
+        log2 = self.insert_log(
+            "log",
+            admin_user,
+            dashboard_id=dash2.id,
+            json='{"event_name": "mount_dashboard"}',
+        )
+        log3 = self.insert_log(
+            "log",
+            admin_user,
+            dashboard_id=dash3.id,
+            json='{"event_name": "mount_dashboard"}',
+        )
 
         now = datetime.now()
         log3.dttm = now
@@ -263,7 +308,7 @@ class TestLogApi(SupersetTestCase):
         log.dttm = now - timedelta(days=2)
 
         arguments = {"page": 0, "page_size": 2}
-        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/recent_activity/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         assert rv.status_code == 200
@@ -271,7 +316,7 @@ class TestLogApi(SupersetTestCase):
         assert response == {
             "result": [
                 {
-                    "action": "dashboard",
+                    "action": "log",
                     "item_type": "dashboard",
                     "item_url": "/superset/dashboard/dash3_slug/",
                     "item_title": "dash3_title",
@@ -279,7 +324,7 @@ class TestLogApi(SupersetTestCase):
                     "time_delta_humanized": ANY,
                 },
                 {
-                    "action": "dashboard",
+                    "action": "log",
                     "item_type": "dashboard",
                     "item_url": "/superset/dashboard/dash2_slug/",
                     "item_title": "dash2_title",
@@ -290,7 +335,7 @@ class TestLogApi(SupersetTestCase):
         }
 
         arguments = {"page": 1, "page_size": 2}
-        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/recent_activity/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         db.session.delete(log)
@@ -306,7 +351,7 @@ class TestLogApi(SupersetTestCase):
         assert response == {
             "result": [
                 {
-                    "action": "dashboard",
+                    "action": "log",
                     "item_type": "dashboard",
                     "item_url": "/superset/dashboard/dash_slug/",
                     "item_title": "dash_title",

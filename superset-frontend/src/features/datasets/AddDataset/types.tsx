@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatabaseObject } from 'src/components/DatabaseSelector';
+import type { DatabaseObject } from 'src/components';
 
 export enum DatasetActionType {
   SelectDatabase,

@@ -16,24 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { styled, css, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
-import { css, GenericDataType, styled } from '@superset-ui/core';
+import { Select, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   CopyToClipboardButton,
   FilterInput,
 } from 'src/explore/components/DataTableControl';
 import { applyFormattingToTabularData } from 'src/utils/common';
 import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
-import RowCountLabel from 'src/explore/components/RowCountLabel';
+import RowCountLabel from 'src/components/RowCountLabel';
+import { usePermissions } from 'src/hooks/usePermissions';
+import DownloadDropdown from 'src/components/Chart/DrillDetail/DownloadDropdown';
 import { TableControlsProps } from '../types';
+
+export const ROW_LIMIT_OPTIONS = [
+  { value: 100, label: '100 rows' },
+  { value: 500, label: '500 rows' },
+  { value: 1000, label: '1k rows' },
+  { value: 5000, label: '5k rows' },
+  { value: 10000, label: '10k rows' },
+];
 
 export const TableControlsWrapper = styled.div`
   ${({ theme }) => `
     display: flex;
     align-items: center;
+    padding-top: ${theme.sizeUnit * 2}px;
+    padding-bottom: ${theme.sizeUnit * 2}px;
     justify-content: space-between;
-    margin-bottom: ${theme.gridUnit * 2}px;
 
     span {
       flex-shrink: 0;
@@ -50,7 +65,14 @@ export const TableControls = ({
   rowcount,
   isLoading,
   canDownload,
+  rowLimit,
+  rowLimitOptions,
+  onRowLimitChange,
+  onDownloadCSV,
+  onDownloadXLSX,
+  onReload,
 }: TableControlsProps) => {
+  const theme = useTheme();
   const originalTimeColumns = getTimeColumns(datasourceId);
   const formattedTimeColumns = zip<string, GenericDataType>(
     columnNames,
@@ -62,11 +84,13 @@ export const TableControls = ({
         name &&
         !originalTimeColumns.includes(name),
     )
-    .map(([colname]) => colname);
+    .map(([colname]) => colname)
+    .filter((x): x is string => x !== undefined);
   const formattedData = useMemo(
     () => applyFormattingToTabularData(data, formattedTimeColumns),
     [data, formattedTimeColumns],
   );
+  const { canCopyClipboard: copyEnabled } = usePermissions();
   return (
     <TableControlsWrapper>
       <FilterInput onChangeHandler={onInputChange} shouldFocus />
@@ -74,11 +98,51 @@ export const TableControls = ({
         css={css`
           display: flex;
           align-items: center;
+          gap: 8px;
         `}
       >
-        <RowCountLabel rowcount={rowcount} loading={isLoading} />
-        {canDownload && (
+        {onRowLimitChange && (
+          <Select
+            value={rowLimit}
+            onChange={onRowLimitChange}
+            options={rowLimitOptions ?? []}
+            css={css`
+              min-width: 110px;
+            `}
+          />
+        )}
+        {(!onRowLimitChange || rowcount < (rowLimit ?? Infinity)) && (
+          <RowCountLabel rowcount={rowcount} loading={isLoading} />
+        )}
+        {canDownload && onDownloadCSV && onDownloadXLSX && (
+          <DownloadDropdown
+            onDownloadCSV={onDownloadCSV}
+            onDownloadXLSX={onDownloadXLSX}
+          />
+        )}
+        {copyEnabled ? (
           <CopyToClipboardButton data={formattedData} columns={columnNames} />
+        ) : (
+          <Tooltip title={t("You don't have permission to copy to clipboard")}>
+            <span>
+              <CopyToClipboardButton
+                data={formattedData}
+                columns={columnNames}
+                disabled
+              />
+            </span>
+          </Tooltip>
+        )}
+        {onReload && (
+          <Tooltip title={t('Reload')}>
+            <Icons.ReloadOutlined
+              iconColor={theme.colorIcon}
+              iconSize="l"
+              aria-label={t('Reload')}
+              role="button"
+              onClick={onReload}
+            />
+          </Tooltip>
         )}
       </div>
     </TableControlsWrapper>

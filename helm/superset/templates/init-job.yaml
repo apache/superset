@@ -28,9 +28,9 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-  {{- if .Values.extraLabels }}
-    {{- toYaml .Values.extraLabels | nindent 4 }}
-  {{- end }}
+    {{- if .Values.extraLabels }}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
   {{- if .Values.init.jobAnnotations }}
   annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
   {{- end }}
@@ -44,10 +44,10 @@ spec:
       {{- if or .Values.extraLabels .Values.init.podLabels }}
       labels:
         {{- if .Values.extraLabels }}
-        {{- toYaml .Values.extraLabels | nindent 8 }}
+          {{- toYaml .Values.extraLabels | nindent 8 }}
         {{- end }}
         {{- if .Values.init.podLabels }}
-        {{- toYaml .Values.init.podLabels | nindent 8 }}
+          {{- toYaml .Values.init.podLabels | nindent 8 }}
         {{- end }}
       {{- end }}
     spec:
@@ -61,6 +61,9 @@ spec:
         {{- end }}
       {{- if .Values.init.initContainers }}
       initContainers: {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- with .Values.hostAliases }}
+      hostAliases: {{- toYaml . | nindent 6 }}
       {{- end }}
       containers:
       - name: {{ template "superset.name" . }}-init-db
@@ -101,7 +104,7 @@ spec:
         command: {{  tpl (toJson .Values.init.command) . }}
         resources: {{- toYaml .Values.init.resources | nindent 10 }}
       {{- if .Values.init.extraContainers }}
-          {{- toYaml .Values.init.extraContainers | nindent 6 }}
+          {{- tpl (toYaml .Values.init.extraContainers) . | nindent 6 }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}

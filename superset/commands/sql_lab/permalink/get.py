@@ -42,7 +42,7 @@ class GetSqlLabPermalinkCommand(BaseSqlLabPermalinkCommand):
     def run(self) -> Optional[SqlLabPermalinkValue]:
         self.validate()
         if self.key.startswith("kv:"):
-            id = int(self.key[3])
+            id = int(self.key[3:])
             try:
                 kv = db.session.query(models.KeyValue).filter_by(id=id).scalar()
                 if not kv:

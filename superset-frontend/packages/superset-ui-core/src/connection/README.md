@@ -93,7 +93,6 @@ Per-request aborting is implemented through the `AbortController` API:
 
 ```javascript
 import { SupersetClient } from '@superset-ui/core';
-import AbortController from 'abortcontroller-polyfill';
 
 const controller = new AbortController();
 const { signal } = controller;

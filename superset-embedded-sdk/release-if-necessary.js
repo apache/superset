@@ -18,7 +18,6 @@
  */
 
 const { execSync } = require('child_process');
-const axios = require('axios');
 const { name, version } = require('./package.json');
 
 function log(...args) {
@@ -36,9 +35,7 @@ function logError(...args) {
   // npm commands output a bunch of garbage in the edge cases,
   // and require sending semi-validated strings to the command line,
   // so let's just use good old http.
-  const { status } = await axios.get(packageUrl, {
-    validateStatus: (status) => true // we literally just want the status so any status is valid
-  });
+  const { status } = await fetch(packageUrl);
 
   if (status === 200) {
     log('version already exists on npm, exiting');
@@ -50,7 +47,11 @@ function logError(...args) {
       execSync('npm publish --access public', { stdio: 'pipe' });
       log(`published ${version} to npm`);
     } catch (err) {
-      console.error(String(err.stdout));
+      // npm writes failure details to stderr (auth/permission/registry
+      // errors in particular), so surface both streams to avoid masking
+      // the real cause in CI logs.
+      if (err.stdout) console.error(String(err.stdout));
+      if (err.stderr) console.error(String(err.stderr));
       logError('Encountered an error, details should be above');
       process.exitCode = 1;
     }

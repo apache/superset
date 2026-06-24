@@ -22,17 +22,19 @@ from email.utils import make_msgid, parseaddr
 from typing import Any, Optional
 
 import nh3
+from flask import current_app
 from flask_babel import gettext as __
 from pytz import timezone
 
-from superset import app, is_feature_enabled
+from superset import is_feature_enabled
 from superset.exceptions import SupersetErrorsException
-from superset.reports.models import ReportRecipientType
-from superset.reports.notifications.base import BaseNotification
+from superset.reports.models import ReportRecipients, ReportRecipientType
+from superset.reports.notifications.base import BaseNotification, NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils import json
 from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
+from superset.utils.link_redirect import process_html_links
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +59,7 @@ ALLOWED_TAGS = {
     "ul",
 }.union(TABLE_TAGS)
 
-ALLOWED_TABLE_ATTRIBUTES = {tag: TABLE_ATTRIBUTES for tag in TABLE_TAGS}
+ALLOWED_TABLE_ATTRIBUTES = dict.fromkeys(TABLE_TAGS, TABLE_ATTRIBUTES)
 ALLOWED_ATTRIBUTES = {
     "a": {"href", "title"},
     "abbr": {"title"},
@@ -81,7 +83,17 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     """
 
     type = ReportRecipientType.EMAIL
-    now = datetime.now(timezone("UTC"))
+
+    def __init__(
+        self, recipient: ReportRecipients, content: NotificationContent
+    ) -> None:
+        super().__init__(recipient, content)
+        # Stamp each notification with its own timestamp at construction, which
+        # happens per recipient immediately before the email is dispatched. The
+        # date rendered into the subject (when DATE_FORMAT_IN_EMAIL_SUBJECT is
+        # enabled) therefore tracks the dispatch time. A module- or class-level
+        # value would instead freeze on the first import in a long-running worker.
+        self.now = datetime.now(timezone("UTC"))
 
     @property
     def _name(self) -> str:
@@ -94,17 +106,23 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     @staticmethod
     def _get_smtp_domain() -> str:
-        return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
+        return parseaddr(current_app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
     def _error_template(self, text: str) -> str:
         call_to_action = self._get_call_to_action()
+        # The error text is derived from exception messages that can embed
+        # data-controlled content (e.g. crafted table/column names in a DB
+        # error). Strip all HTML before interpolating it into the email body,
+        # matching the sanitization applied to the normal content path.
+        # pylint: disable=no-member
+        safe_text = nh3.clean(text, tags=set(), attributes={})
         return __(
             """
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
             <p>Please check your dashboard/chart for errors.</p>
             <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
             """,  # noqa: E501
-            text=text,
+            text=safe_text,
             url=self._content.url,
             call_to_action=call_to_action,
         )
@@ -132,6 +150,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             attributes=ALLOWED_ATTRIBUTES,
         )
 
+        # Rewrite external links to go through the redirect warning page
+        description = process_html_links(description)
+
         # Strip malicious HTML from embedded data, allowing only table elements
         if self._content.embedded_data is not None:
             df = self._content.embedded_data
@@ -143,6 +164,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 tags=TABLE_TAGS,
                 attributes=ALLOWED_TABLE_ATTRIBUTES,
             )
+            html_table = process_html_links(html_table)
         else:
             html_table = ""
 
@@ -202,7 +224,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_subject(self) -> str:
         return __(
             "%(prefix)s %(title)s",
-            prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
+            prefix=current_app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
             title=self._name,
         )
 
@@ -214,17 +236,17 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return self.now.strftime(name)
 
     def _get_call_to_action(self) -> str:
-        return __(app.config["EMAIL_REPORTS_CTA"])
+        return __(current_app.config["EMAIL_REPORTS_CTA"])
 
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
 
     def _get_cc(self) -> str:
-        # To accomadate backward compatability
+        # To accommodate backward compatibility
         return json.loads(self._recipient.recipient_config_json).get("ccTarget", "")
 
     def _get_bcc(self) -> str:
-        # To accomadate backward compatability
+        # To accommodate backward compatibility
         return json.loads(self._recipient.recipient_config_json).get("bccTarget", "")
 
     @statsd_gauge("reports.email.send")
@@ -240,7 +262,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 to,
                 subject,
                 content.body,
-                app.config,
+                current_app.config,
                 files=[],
                 data=content.data,
                 pdf=content.pdf,
@@ -252,7 +274,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 header_data=content.header_data,
             )
             logger.info(
-                "Report sent to email, notification content is %s", content.header_data
+                "Report sent to email, task_id: %s, notification content is %s",
+                content.header_data.get("execution_id")
+                if content.header_data
+                else None,
+                content.header_data,
             )
         except SupersetErrorsException as ex:
             raise NotificationError(

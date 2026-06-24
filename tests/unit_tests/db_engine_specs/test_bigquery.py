@@ -18,7 +18,8 @@
 # pylint: disable=line-too-long, import-outside-toplevel, protected-access, invalid-name
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
+from unittest import mock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -27,7 +28,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
 
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
@@ -79,7 +80,7 @@ def test_get_fields() -> None:
     ]
     fields = BigQueryEngineSpec._get_fields(columns)
 
-    query = select(fields)
+    query = select(*fields)
     assert str(query.compile(dialect=BigQueryDialect())) == (
         "SELECT `limit` AS `limit`, `name` AS `name`, "
         "`project`.`name` AS `project__name`"
@@ -153,13 +154,12 @@ def test_select_star(mocker: MockerFixture) -> None:
         query.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
     )
 
-    engine = mocker.MagicMock()
-    engine.dialect = BigQueryDialect()
+    dialect = BigQueryDialect()
 
     sql = BigQueryEngineSpec.select_star(
         database=database,
         table=Table("my_table"),
-        engine=engine,
+        dialect=dialect,
         limit=100,
         show_cols=True,
         indent=True,
@@ -448,46 +448,298 @@ def test_adjust_engine_params_catalog_as_host() -> None:
         {},
         catalog="other-project",
     )[0]
-    assert str(uri) == "bigquery://other-project/"
+    assert uri.host == "other-project"
+    assert not uri.database  # no dataset when only catalog is overridden
 
 
-def test_adjust_engine_params_catalog_as_database() -> None:
+def test_adjust_engine_params_schema_as_dataset() -> None:
     """
-    Test passing a custom catalog.
+    Test that passing a schema sets it as the BigQuery default dataset.
 
-    In this test, the original URI has the catalog as the database.
+    BigQuery requires table names to be fully qualified (project.dataset.table)
+    unless a default dataset is set via the URL database component. When schema
+    is provided, the URL database should be updated so unqualified table names
+    resolve to schema.table_name.
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    url = make_url("bigquery:///project")
+    url = make_url("bigquery://project")
 
+    # Without schema, URL is unchanged
     uri = BigQueryEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "bigquery:///project"
+    assert str(uri) == "bigquery://project"
 
+    # With schema, database component is set to enable default dataset
+    uri = BigQueryEngineSpec.adjust_engine_params(
+        url,
+        {},
+        schema="my_dataset",
+    )[0]
+    assert uri.database == "my_dataset"
+
+    # catalog + schema: catalog goes to host, schema goes to database
     uri = BigQueryEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="other-project",
+        schema="my_dataset",
     )[0]
-    assert str(uri) == "bigquery://other-project/"
+    assert uri.host == "other-project"
+    assert uri.database == "my_dataset"
+
+    # Triple-slash form (bigquery:///project): project must not be overwritten
+    triple_slash_url = make_url("bigquery:///my_project")
+    uri = BigQueryEngineSpec.adjust_engine_params(
+        triple_slash_url,
+        {},
+        schema="my_dataset",
+    )[0]
+    assert uri.host == "my_project"
+    assert uri.database == "my_dataset"
 
 
-def test_adjust_engine_params_no_catalog() -> None:
+def test_get_schema_from_engine_params() -> None:
     """
-    Test passing a custom catalog.
-
-    In this test, the original URI has no catalog.
+    Test that get_schema_from_engine_params returns the dataset from
+    bigquery://project/dataset URIs and None for all other URL forms.
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    url = make_url("bigquery://")
+    # Standard form: project in host, dataset in database
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(
+            make_url("bigquery://project/my_dataset"), {}
+        )
+        == "my_dataset"
+    )
 
-    uri = BigQueryEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "bigquery://"
+    # Project-only URI — no default dataset configured
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(
+            make_url("bigquery://project"), {}
+        )
+        is None
+    )
 
-    uri = BigQueryEngineSpec.adjust_engine_params(
-        url,
-        {},
-        catalog="other-project",
-    )[0]
-    assert str(uri) == "bigquery://other-project/"
+    # Triple-slash form — database component is the project, not a dataset
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(
+            make_url("bigquery:///my_project"), {}
+        )
+        is None
+    )
+
+    # Bare URI — no project, no dataset
+    assert (
+        BigQueryEngineSpec.get_schema_from_engine_params(make_url("bigquery://"), {})
+        is None
+    )
+
+
+def test_get_materialized_view_names() -> None:
+    """
+    Test get_materialized_view_names method.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    database = mock.Mock()
+    database.get_default_catalog.return_value = "my_project"
+
+    inspector = mock.Mock()
+
+    # Mock the raw connection and cursor
+    cursor_mock = mock.Mock()
+    cursor_mock.fetchall.return_value = [
+        ("materialized_view_1",),
+        ("materialized_view_2",),
+    ]
+
+    connection_mock = mock.Mock()
+    connection_mock.cursor.return_value = cursor_mock
+    connection_mock.__enter__ = mock.Mock(return_value=connection_mock)
+    connection_mock.__exit__ = mock.Mock(return_value=None)
+
+    database.get_raw_connection.return_value = connection_mock
+
+    result = BigQueryEngineSpec.get_materialized_view_names(
+        database=database, inspector=inspector, schema="my_dataset"
+    )
+
+    assert result == {"materialized_view_1", "materialized_view_2"}
+
+    # Verify the SQL query was correct
+    cursor_mock.execute.assert_called_once()
+    executed_query = cursor_mock.execute.call_args[0][0]
+    assert "INFORMATION_SCHEMA.TABLES" in executed_query
+    assert "table_type = 'MATERIALIZED VIEW'" in executed_query
+
+
+def test_get_view_names_excludes_materialized_views() -> None:
+    """
+    Test get_view_names excludes materialized views.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    database = mock.Mock()
+    database.get_default_catalog.return_value = "my_project"
+
+    inspector = mock.Mock()
+
+    # Mock the raw connection and cursor
+    cursor_mock = mock.Mock()
+    # Return only regular views, not materialized views
+    cursor_mock.fetchall.return_value = [
+        ("regular_view_1",),
+        ("regular_view_2",),
+    ]
+
+    connection_mock = mock.Mock()
+    connection_mock.cursor.return_value = cursor_mock
+    connection_mock.__enter__ = mock.Mock(return_value=connection_mock)
+    connection_mock.__exit__ = mock.Mock(return_value=None)
+
+    database.get_raw_connection.return_value = connection_mock
+
+    result = BigQueryEngineSpec.get_view_names(
+        database=database, inspector=inspector, schema="my_dataset"
+    )
+
+    assert result == {"regular_view_1", "regular_view_2"}
+
+    # Verify the SQL query only gets regular views
+    cursor_mock.execute.assert_called_once()
+    executed_query = cursor_mock.execute.call_args[0][0]
+    assert "INFORMATION_SCHEMA.TABLES" in executed_query
+    assert "table_type = 'VIEW'" in executed_query
+    # Ensure it's not querying for materialized views
+    assert "MATERIALIZED VIEW" not in executed_query
+
+
+def _patch_bq_fetch_deps(
+    mocker: MockerFixture, max_mb: int = 200
+) -> tuple[mock.MagicMock, mock.MagicMock]:
+    """Helper to patch Flask g and current_app for BigQuery fetch_data tests."""
+    flask_g = mocker.patch("superset.db_engine_specs.bigquery.g")
+    app = mocker.patch("superset.db_engine_specs.bigquery.current_app")
+    # Make current_app truthy and .config.get() return a plain int
+    app.__bool__ = mock.Mock(return_value=True)
+    app.config = mock.MagicMock()
+    app.config.get = mock.Mock(return_value=max_mb)
+    return flask_g, app
+
+
+def test_fetch_data_within_memory_limit(mocker: MockerFixture) -> None:
+    """
+    Test that fetch_data returns all rows when the result fits within the
+    configured memory limit.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    rows = [(1, "a"), (2, "b"), (3, "c")]
+
+    cursor = mock.MagicMock()
+    # First fetchmany returns all rows; the result set is smaller than limit
+    cursor.fetchmany.return_value = rows
+
+    flask_g, _ = _patch_bq_fetch_deps(mocker, max_mb=200)
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=100)
+
+    assert result == rows
+    assert flask_g.bq_memory_limited is False
+    assert flask_g.bq_memory_limited_row_count == 3
+
+
+def test_fetch_data_truncated_by_memory_limit(mocker: MockerFixture) -> None:
+    """
+    Test that fetch_data truncates results and sets the memory_limited flag
+    when the memory budget is exceeded.
+
+    We use a very small budget (1 MB) so that after the first batch the
+    method computes ``remaining_rows <= 0``, hitting the truncation path.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    # 1000 rows of ~10KB each --> first batch ~10 MB >> 1 MB budget
+    first_batch = [(i, "x" * 10_000) for i in range(1000)]
+
+    cursor = mock.MagicMock()
+    cursor.fetchmany.return_value = first_batch
+
+    # 1 MB budget: first batch exceeds it, so remaining_rows <= 0
+    flask_g, _ = _patch_bq_fetch_deps(mocker, max_mb=1)
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=None)
+
+    assert result == first_batch
+    assert flask_g.bq_memory_limited is True
+    assert flask_g.bq_memory_limited_row_count == len(first_batch)
+
+
+def test_fetch_data_empty_result(mocker: MockerFixture) -> None:
+    """
+    Test that fetch_data handles an empty result set gracefully.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    cursor = mock.MagicMock()
+    cursor.fetchmany.return_value = []
+
+    flask_g, _ = _patch_bq_fetch_deps(mocker, max_mb=200)
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=100)
+
+    assert result == []
+    assert flask_g.bq_memory_limited is False
+    assert flask_g.bq_memory_limited_row_count == 0
+
+
+def test_fetch_data_fallback_on_exception(mocker: MockerFixture) -> None:
+    """
+    Test that fetch_data falls back to the parent implementation when the
+    progressive fetch raises an exception.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    cursor = mock.MagicMock()
+    cursor.fetchmany.side_effect = RuntimeError("cursor error")
+    cursor.fetchall.return_value = [(1, "a"), (2, "b")]
+    cursor.description = [("col1", None), ("col2", None)]
+
+    flask_g, _ = _patch_bq_fetch_deps(mocker, max_mb=200)
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=None)
+
+    assert result == [(1, "a"), (2, "b")]
+    assert flask_g.bq_memory_limited is False
+    assert flask_g.bq_memory_limited_row_count == 2
+
+
+def test_fetch_data_converts_bigquery_row_objects(mocker: MockerFixture) -> None:
+    """
+    Test that BigQuery Row objects are converted to plain values.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    class FakeRow:
+        """Mimics google.cloud.bigquery.table.Row"""
+
+        def __init__(self, vals: tuple[Any, ...]) -> None:
+            self._vals = vals
+
+        def values(self) -> tuple[Any, ...]:
+            return self._vals
+
+    FakeRow.__name__ = "Row"
+
+    rows = [FakeRow((1, "a")), FakeRow((2, "b"))]
+
+    cursor = mock.MagicMock()
+    cursor.fetchmany.return_value = rows
+
+    flask_g, _ = _patch_bq_fetch_deps(mocker, max_mb=200)
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=100)
+
+    assert result == [(1, "a"), (2, "b")]
+    assert flask_g.bq_memory_limited is False

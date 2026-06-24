@@ -33,15 +33,16 @@ import logging
 import pkgutil
 from collections import defaultdict
 from importlib import import_module
+from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any, Optional
 
 import sqlalchemy.dialects
-from importlib_metadata import entry_points
+from flask import current_app as app
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.exc import NoSuchModuleError
 
-from superset import app, feature_flag_manager
+from superset import feature_flag_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,14 @@ def load_engine_specs() -> list[type[BaseEngineSpec]]:
             engine_spec = ep.load()
         except Exception:  # pylint: disable=broad-except
             logger.warning("Unable to load Superset DB engine spec: %s", ep.name)
+            continue
+        # Validate that the engine spec is a proper subclass of BaseEngineSpec
+        if not is_engine_spec(engine_spec):
+            logger.warning(
+                "Skipping invalid DB engine spec %s: "
+                "not a valid BaseEngineSpec subclass",
+                ep.name,
+            )
             continue
         engine_specs.append(engine_spec)
 
@@ -154,7 +163,7 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
         try:
             dialect = ep.load()
         except Exception as ex:  # pylint: disable=broad-except
-            logger.warning("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
+            logger.debug("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
         else:
             backend = dialect.name
             if isinstance(backend, bytes):

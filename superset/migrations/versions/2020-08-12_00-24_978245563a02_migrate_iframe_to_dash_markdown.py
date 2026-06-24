@@ -188,7 +188,7 @@ def upgrade():
         )
 
     except Exception as ex:
-        logging.exception(f"dashboard {dashboard.id} has error: {ex}")
+        logging.exception("dashboard %s has error: %s", dashboard.id, ex)
 
     session.commit()
     session.close()

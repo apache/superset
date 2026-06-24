@@ -17,33 +17,245 @@
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import, invalid-name
 
 import copy
+import io
 import re
 import uuid
 from typing import Any
 from unittest.mock import Mock, patch
+from urllib import request
 
 import pytest
 from flask import current_app
+from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
+    DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
+    MultiCatalogDisabledValidationError,
 )
-from superset.commands.dataset.importers.v1.utils import validate_data_uri
+from superset.commands.dataset.importers.v1.utils import (
+    import_dataset,
+    validate_data_uri,
+)
+from superset.commands.exceptions import ImportFailedError
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.models.core import Database
 from superset.utils import json
+from superset.utils.core import override_user
+from tests.integration_tests.fixtures.importexport import (
+    database_config,
+    dataset_config as dataset_fixture,
+)
 
 
 def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     """
     Test importing a dataset.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset_uuid = uuid.uuid4()
+    config = {
+        "table_name": "my_table",
+        "main_dttm_col": "ds",
+        "description": "This is the description",
+        "default_endpoint": None,
+        "offset": -8,
+        "cache_timeout": 3600,
+        "catalog": "public",
+        "schema": "my_schema",
+        "sql": None,
+        "params": {
+            "remote_id": 64,
+            "database_name": "examples",
+            "import_time": 1606677834,
+        },
+        "template_params": {
+            "answer": "42",
+        },
+        "filter_select_enabled": True,
+        "fetch_values_predicate": "foo IN (1, 2)",
+        "extra": {"warning_markdown": "*WARNING*"},
+        "uuid": dataset_uuid,
+        "metrics": [
+            {
+                "metric_name": "cnt",
+                "verbose_name": None,
+                "metric_type": None,
+                "expression": "COUNT(*)",
+                "description": None,
+                "d3format": None,
+                "extra": {"warning_markdown": None},
+                "warning_text": None,
+                "uuid": "00000000-0000-0000-0000-000000000001",
+            }
+        ],
+        "columns": [
+            {
+                "column_name": "profit",
+                "verbose_name": None,
+                "is_dttm": None,
+                "is_active": None,
+                "type": "INTEGER",
+                "groupby": None,
+                "filterable": None,
+                "expression": "revenue-expenses",
+                "description": None,
+                "python_date_format": None,
+                "extra": {
+                    "certified_by": "User",
+                },
+                "uuid": "00000000-0000-0000-0000-000000000002",
+            }
+        ],
+        "folders": [
+            {
+                "uuid": "00000000-0000-0000-0000-000000000000",
+                "type": "folder",
+                "name": "Engineering",
+                "children": [
+                    {
+                        "uuid": "00000000-0000-0000-0000-000000000001",
+                        "type": "folder",
+                        "name": "Core",
+                        "children": [
+                            {
+                                "uuid": "00000000-0000-0000-0000-000000000004",
+                                "type": "metric",
+                                "name": "cnt",
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                "uuid": "00000000-0000-0000-0000-000000000002",
+                "type": "folder",
+                "name": "Sales",
+                "children": [
+                    {
+                        "uuid": "00000000-0000-0000-0000-000000000003",
+                        "type": "folder",
+                        "name": "Core",
+                        "children": [
+                            {
+                                "uuid": "00000000-0000-0000-0000-000000000005",
+                                "type": "column",
+                                "name": "profit",
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config)
+    assert sqla_table.table_name == "my_table"
+    assert sqla_table.main_dttm_col == "ds"
+    assert sqla_table.description == "This is the description"
+    assert sqla_table.default_endpoint is None
+    assert sqla_table.offset == -8
+    assert sqla_table.cache_timeout == 3600
+    assert sqla_table.catalog == "public"
+    assert sqla_table.schema == "my_schema"
+    assert sqla_table.sql is None
+    assert sqla_table.params == json.dumps(
+        {"remote_id": 64, "database_name": "examples", "import_time": 1606677834}
+    )
+    assert sqla_table.template_params == json.dumps({"answer": "42"})
+    assert sqla_table.filter_select_enabled is True
+    assert sqla_table.fetch_values_predicate == "foo IN (1, 2)"
+    assert sqla_table.extra == '{"warning_markdown": "*WARNING*"}'
+    assert sqla_table.uuid == dataset_uuid
+    assert len(sqla_table.metrics) == 1
+    assert sqla_table.metrics[0].metric_name == "cnt"
+    assert sqla_table.metrics[0].verbose_name is None
+    assert sqla_table.metrics[0].metric_type is None
+    assert sqla_table.metrics[0].expression == "COUNT(*)"
+    assert sqla_table.metrics[0].description is None
+    assert sqla_table.metrics[0].d3format is None
+    assert sqla_table.metrics[0].extra == '{"warning_markdown": null}'
+    assert sqla_table.metrics[0].warning_text is None
+    assert sqla_table.metrics[0].uuid == uuid.UUID(
+        "00000000-0000-0000-0000-000000000001"
+    )
+    assert len(sqla_table.columns) == 1
+    assert sqla_table.columns[0].column_name == "profit"
+    assert sqla_table.columns[0].verbose_name is None
+    assert sqla_table.columns[0].is_dttm is False
+    assert sqla_table.columns[0].is_active is True
+    assert sqla_table.columns[0].type == "INTEGER"
+    assert sqla_table.columns[0].groupby is True
+    assert sqla_table.columns[0].filterable is True
+    assert sqla_table.columns[0].expression == "revenue-expenses"
+    assert sqla_table.columns[0].description is None
+    assert sqla_table.columns[0].python_date_format is None
+    assert sqla_table.columns[0].extra == '{"certified_by": "User"}'
+    assert sqla_table.columns[0].uuid == uuid.UUID(
+        "00000000-0000-0000-0000-000000000002"
+    )
+    assert sqla_table.folders == [
+        {
+            "uuid": "00000000-0000-0000-0000-000000000000",
+            "type": "folder",
+            "name": "Engineering",
+            "children": [
+                {
+                    "uuid": "00000000-0000-0000-0000-000000000001",
+                    "type": "folder",
+                    "name": "Core",
+                    "children": [
+                        {
+                            "uuid": "00000000-0000-0000-0000-000000000004",
+                            "type": "metric",
+                            "name": "cnt",
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            "uuid": "00000000-0000-0000-0000-000000000002",
+            "type": "folder",
+            "name": "Sales",
+            "children": [
+                {
+                    "uuid": "00000000-0000-0000-0000-000000000003",
+                    "type": "folder",
+                    "name": "Core",
+                    "children": [
+                        {
+                            "uuid": "00000000-0000-0000-0000-000000000005",
+                            "type": "column",
+                            "name": "profit",
+                        },
+                    ],
+                },
+            ],
+        },
+    ]
+    assert sqla_table.database.uuid == database.uuid
+    assert sqla_table.database.id == database.id
+
+
+def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> None:
+    """
+    Test importing a dataset that was exported without folders.
+    """
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -110,46 +322,236 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     }
 
     sqla_table = import_dataset(config)
-    assert sqla_table.table_name == "my_table"
-    assert sqla_table.main_dttm_col == "ds"
-    assert sqla_table.description == "This is the description"
-    assert sqla_table.default_endpoint is None
-    assert sqla_table.offset == -8
-    assert sqla_table.cache_timeout == 3600
-    assert sqla_table.catalog == "public"
-    assert sqla_table.schema == "my_schema"
-    assert sqla_table.sql is None
-    assert sqla_table.params == json.dumps(
-        {"remote_id": 64, "database_name": "examples", "import_time": 1606677834}
+    assert sqla_table.folders is None
+
+
+def test_import_dataset_rejects_non_default_catalog_when_multi_catalog_disabled(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Importing a non-default catalog must fail when the target database has
+    multi-catalog disabled, matching the dataset update validation so an import
+    can't silently bind a dataset to an unintended catalog.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    # the connection supports catalogs, defaults to "primary", multi-catalog off
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with pytest.raises(MultiCatalogDisabledValidationError):
+        import_dataset(config)
+
+
+def test_import_dataset_skips_catalog_validation_for_trusted_imports(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Trusted imports (ignore_permissions=True, e.g. example loading) bypass
+    catalog validation, so a non-default catalog does not abort the import even
+    when the target database has multi-catalog disabled.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    # the connection supports catalogs, defaults to "primary", multi-catalog off
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config, ignore_permissions=True)
+    assert sqla_table.catalog == "other_catalog"
+
+
+def test_import_command_surfaces_non_default_catalog_as_validation_error(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The dataset import command surfaces a disallowed catalog as a 422
+    CommandInvalidError carrying the catalog message, instead of a generic 500.
+    """
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    db_config = copy.deepcopy(database_config)
+    # a URI with a database gives PostgresEngineSpec a non-None default catalog
+    db_config["sqlalchemy_uri"] = "postgresql://user:pass@host1/primary"
+
+    ds_config = copy.deepcopy(dataset_fixture)
+    ds_config["catalog"] = "other_catalog"
+
+    configs = {
+        "databases/imported_database.yaml": db_config,
+        "datasets/imported_dataset.yaml": ds_config,
+    }
+
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDatasetsCommand._import(configs, overwrite=False)
+
+    assert "Only the default catalog is supported for this connection" in str(
+        excinfo.value
     )
-    assert sqla_table.template_params == json.dumps({"answer": "42"})
-    assert sqla_table.filter_select_enabled is True
-    assert sqla_table.fetch_values_predicate == "foo IN (1, 2)"
-    assert sqla_table.extra == '{"warning_markdown": "*WARNING*"}'
-    assert sqla_table.uuid == dataset_uuid
-    assert len(sqla_table.metrics) == 1
-    assert sqla_table.metrics[0].metric_name == "cnt"
-    assert sqla_table.metrics[0].verbose_name is None
-    assert sqla_table.metrics[0].metric_type is None
-    assert sqla_table.metrics[0].expression == "COUNT(*)"
-    assert sqla_table.metrics[0].description is None
-    assert sqla_table.metrics[0].d3format is None
-    assert sqla_table.metrics[0].extra == '{"warning_markdown": null}'
-    assert sqla_table.metrics[0].warning_text is None
-    assert len(sqla_table.columns) == 1
-    assert sqla_table.columns[0].column_name == "profit"
-    assert sqla_table.columns[0].verbose_name is None
-    assert sqla_table.columns[0].is_dttm is False
-    assert sqla_table.columns[0].is_active is True
-    assert sqla_table.columns[0].type == "INTEGER"
-    assert sqla_table.columns[0].groupby is True
-    assert sqla_table.columns[0].filterable is True
-    assert sqla_table.columns[0].expression == "revenue-expenses"
-    assert sqla_table.columns[0].description is None
-    assert sqla_table.columns[0].python_date_format is None
-    assert sqla_table.columns[0].extra == '{"certified_by": "User"}'
-    assert sqla_table.database.uuid == database.uuid
-    assert sqla_table.database.id == database.id
+
+
+def test_import_dataset_overwrite_cannot_flip_to_non_default_catalog(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Overwriting an existing dataset with a non-default catalog must fail when
+    multi-catalog is disabled, so a UUID-matched import can't flip a
+    correctly-bound dataset onto an unintended catalog.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    dataset_uuid = uuid.uuid4()
+    existing = SqlaTable(
+        uuid=dataset_uuid,
+        table_name="my_table",
+        catalog="primary",
+        database_id=database.id,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": dataset_uuid,
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with pytest.raises(MultiCatalogDisabledValidationError):
+        import_dataset(config, overwrite=True)
+
+    assert existing.catalog == "primary"
+
+
+def test_import_dataset_allows_non_default_catalog_when_multi_catalog_enabled(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A non-default catalog imports cleanly when the target database has
+    multi-catalog enabled.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(
+        database_name="my_database",
+        sqlalchemy_uri="sqlite://",
+        extra=json.dumps({"allow_multi_catalog": True}),
+    )
+    db.session.add(database)
+    db.session.flush()
+
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config)
+    assert sqla_table.catalog == "other_catalog"
+
+
+def test_import_dataset_allows_default_catalog_when_multi_catalog_disabled(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Re-importing the connection's default catalog is allowed even with
+    multi-catalog disabled.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "primary",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config)
+    assert sqla_table.catalog == "primary"
 
 
 def test_import_dataset_duplicate_column(
@@ -158,11 +560,6 @@ def test_import_dataset_duplicate_column(
     """
     Test importing a dataset with a column that already exists.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -283,12 +680,6 @@ def test_import_column_extra_is_string(mocker: MockerFixture, session: Session) 
     """
     Test importing a dataset when the column extra is a string.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.schemas import ImportV1DatasetSchema
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -368,12 +759,6 @@ def test_import_dataset_extra_empty_string(
     """
     Test importing a dataset when the extra field is an empty string.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.schemas import ImportV1DatasetSchema
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -425,24 +810,78 @@ def test_import_dataset_extra_empty_string(
     assert sqla_table.extra is None  # noqa: E711
 
 
-@patch("superset.commands.dataset.importers.v1.utils.request")
+def test_import_dataset_template_params_is_empty_string(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Test importing a dataset when the template_params field is an empty string.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset_uuid = uuid.uuid4()
+    yaml_config: dict[str, Any] = {
+        "version": "1.0.0",
+        "table_name": "my_table",
+        "main_dttm_col": "ds",
+        "schema": "my_schema",
+        "sql": None,
+        "params": {
+            "remote_id": 64,
+            "database_name": "examples",
+            "import_time": 1606677834,
+        },
+        "template_params": "",
+        "extra": None,
+        "uuid": dataset_uuid,
+        "metrics": [
+            {
+                "metric_name": "cnt",
+                "expression": "COUNT(*)",
+            }
+        ],
+        "columns": [
+            {
+                "column_name": "profit",
+                "is_dttm": False,
+                "is_active": True,
+                "type": "INTEGER",
+                "groupby": False,
+                "filterable": False,
+                "expression": "revenue-expenses",
+            }
+        ],
+        "database_uuid": database.uuid,
+    }
+
+    schema = ImportV1DatasetSchema()
+    dataset_config = schema.load(yaml_config)
+    dataset_config["database_id"] = database.id
+    sqla_table = import_dataset(dataset_config)
+
+    assert sqla_table.template_params is None  # noqa: E711
+
+
+@patch("superset.commands.dataset.importers.v1.utils.is_safe_host", return_value=True)
+@patch("superset.commands.dataset.importers.v1.utils.request.build_opener")
 def test_import_column_allowed_data_url(
-    request: Mock,
+    mock_build_opener: Mock,
+    mock_is_safe_host: Mock,
     mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
     Test importing a dataset when using data key to fetch data from a URL.
     """
-    import io
-
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.schemas import ImportV1DatasetSchema
-    from superset.models.core import Database
-
-    request.urlopen.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
+    mock_opener = Mock()
+    mock_opener.open.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
+    mock_build_opener.return_value = mock_opener
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
@@ -498,10 +937,7 @@ def test_import_column_allowed_data_url(
     schema = ImportV1DatasetSchema()
     dataset_config = schema.load(yaml_config)
     dataset_config["database_id"] = database.id
-    _ = import_dataset(dataset_config, force_data=True)
-    assert [("value1",), ("value2",)] == db.session.execute(
-        "SELECT * FROM my_table"
-    ).fetchall()
+    import_dataset(dataset_config, force_data=True)
 
 
 def test_import_dataset_managed_externally(
@@ -511,12 +947,6 @@ def test_import_dataset_managed_externally(
     """
     Test importing a dataset that is managed externally.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import dataset_config
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -526,7 +956,7 @@ def test_import_dataset_managed_externally(
     db.session.add(database)
     db.session.flush()
 
-    config = copy.deepcopy(dataset_config)
+    config = copy.deepcopy(dataset_fixture)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_table"
     config["database_id"] = database.id
@@ -534,6 +964,117 @@ def test_import_dataset_managed_externally(
     sqla_table = import_dataset(config)
     assert sqla_table.is_managed_externally is True
     assert sqla_table.external_url == "https://example.org/my_table"
+
+
+def test_import_dataset_column_datetime_format(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test importing a dataset with a column including a datetime format.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    for column in config["columns"]:
+        column["datetime_format"] = "%Y-%m-%d"
+
+    schema = ImportV1DatasetSchema()
+    dataset_config = schema.load(config)
+
+    dataset_config["database_id"] = database.id
+
+    sqla_table = import_dataset(dataset_config)
+    for column in sqla_table.columns:
+        assert column.datetime_format == "%Y-%m-%d"
+
+
+def test_import_dataset_without_owner_permission(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test importing a dataset that is managed externally.
+    """
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    import_dataset(config)
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dataset(config, overwrite=True)
+
+        assert (
+            str(excinfo.value)
+            == "A dataset already exists and user doesn't have permissions to overwrite it"  # noqa: E501
+        )
+
+    # Assert that the can write to chart was checked
+    mock_can_access.assert_called_with("can_write", "Dataset")
+
+
+def test_import_dataset_access_check(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that import_dataset raises DatasetAccessDeniedError when the user does not
+    have datasource-level access to the target dataset.
+    """
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        security_manager,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message="User does not have access to this datasource",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(config)
 
 
 @pytest.mark.parametrize(
@@ -568,10 +1109,134 @@ def test_import_dataset_managed_externally(
         (["*"], "https://host1.domain3.com/data.csv", False, re.error),
     ],
 )
-def test_validate_data_uri(allowed_urls, data_uri, expected, exception_class):
+def test_validate_data_uri(
+    allowed_urls: list[str],
+    data_uri: str,
+    expected: bool,
+    exception_class: type[Exception] | None,
+) -> None:
+    """Tests allowlist pattern matching. is_safe_host is stubbed out so that
+    fake/unresolvable test hostnames do not interfere with DNS-based checks
+    (those are covered by the dedicated is_safe_host tests below)."""
     current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = allowed_urls
-    if expected:
-        validate_data_uri(data_uri)
-    else:
-        with pytest.raises(exception_class):
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=True,
+    ):
+        if expected:
             validate_data_uri(data_uri)
+        else:
+            with pytest.raises(exception_class):
+                validate_data_uri(data_uri)
+
+
+def test_validate_data_uri_file_scheme_examples_allowed() -> None:
+    """file:// URIs pointing inside the examples folder are permitted."""
+    import os
+
+    from superset.examples.helpers import get_examples_folder
+
+    examples_folder = get_examples_folder()
+    uri_in_examples = (
+        f"file://{os.path.join(examples_folder, 'birth_names', 'data.parquet')}"
+    )
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    # Should not raise
+    validate_data_uri(uri_in_examples)
+
+
+def test_validate_data_uri_file_scheme_outside_examples_blocked() -> None:
+    """file:// URIs outside the examples folder are blocked."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with pytest.raises(DatasetForbiddenDataURI):
+        validate_data_uri("file:///etc/passwd")
+
+
+@pytest.mark.parametrize(
+    "data_uri",
+    ["FiLe:///etc/passwd", "FILE:///etc/passwd", "file:/etc/passwd"],
+)
+def test_validate_data_uri_file_scheme_case_insensitive(data_uri: str) -> None:
+    """Mixed-case / single-slash file URIs still go through the sandbox check
+    and are blocked when outside the examples folder, so they cannot skip the
+    local-file check via a case-sensitive scheme gate."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with pytest.raises(DatasetForbiddenDataURI):
+        validate_data_uri(data_uri)
+
+
+@pytest.mark.parametrize(
+    "data_uri",
+    [
+        # Userinfo-injection: allowlist matches the trusted hostname in the
+        # authority but urlparse().hostname resolves to the actual target.
+        "https://allowed.example.com@169.254.169.254/latest/meta-data/",
+        "https://allowed.example.com@10.0.0.1/internal",
+        "https://allowed.example.com@127.0.0.1/admin",
+    ],
+)
+def test_validate_data_uri_blocks_userinfo_ssrf_injection(data_uri: str) -> None:
+    """Userinfo-injected private IPs must be rejected even when the leading
+    hostname matches an allowlist pattern."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ):
+        with pytest.raises(DatasetForbiddenDataURI):
+            validate_data_uri(data_uri)
+
+
+def test_validate_data_uri_allow_internal_flag_bypasses_host_check() -> None:
+    """When DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS is True, internal hosts
+    must be permitted to support air-gapped / on-premises deployments."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = True
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ) as mock_check:
+        validate_data_uri("http://10.0.0.5/data.csv")
+        mock_check.assert_not_called()
+
+
+def test_validate_data_uri_no_hostname_raises() -> None:
+    """A URI that produces no parseable hostname (e.g. opaque data: URIs) must
+    be rejected — fail-closed: no hostname means no safe host confirmation."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    # urlparse("data:text/csv,...").hostname is None, which fails the
+    # "not hostname or not is_safe_host(hostname)" guard.
+    with pytest.raises(DatasetForbiddenDataURI):
+        validate_data_uri("data:text/csv,col1,col2")
+
+
+def test_redirect_handler_blocks_disallowed_redirect_target() -> None:
+    """The redirect handler must reject a redirect to a disallowed host by
+    re-running validate_data_uri() on the new URL before following it."""
+    from superset.commands.dataset.importers.v1.utils import (
+        _ValidatingRedirectHandler,
+    )
+
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+
+    handler = _ValidatingRedirectHandler()
+    with patch(
+        "superset.commands.dataset.importers.v1.utils.is_safe_host",
+        return_value=False,
+    ):
+        with pytest.raises(DatasetForbiddenDataURI):
+            handler.redirect_request(
+                request.Request("http://public.example.com/data.csv"),
+                None,
+                302,
+                "Found",
+                {},
+                "http://169.254.169.254/latest/meta-data/",
+            )

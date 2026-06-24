@@ -22,12 +22,16 @@ from enum import Enum
 
 from superset.utils.backports import StrEnum
 
-USER_AGENT = "Apache Superset"
+DEFAULT_USER_AGENT = "Apache Superset"
 
 NULL_STRING = "<NULL>"
 EMPTY_STRING = "<empty string>"
 
 CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"  # noqa: S105
+CHANGE_ME_GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
+CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"  # noqa: S105
+
+SKIP_VISIBILITY_FILTER_CLASSES = "_skip_visibility_filter_classes"
 
 # UUID for the examples database
 EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
@@ -173,6 +177,8 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "slack_channels": "write",
     "put_filters": "write",
     "put_colors": "write",
+    "sync_permissions": "write",
+    "restore": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
@@ -242,3 +248,7 @@ class CacheRegion(StrEnum):
     DEFAULT = "default"
     DATA = "data"
     THUMBNAIL = "thumbnail"
+
+
+# Cache timeout constants
+CACHE_DISABLED_TIMEOUT = -1  # Special value indicating no caching should occur

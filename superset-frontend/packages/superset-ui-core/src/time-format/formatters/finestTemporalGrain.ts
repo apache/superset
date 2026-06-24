@@ -48,7 +48,11 @@ export default function finestTemporalGrain(
   } = useLocalTime ? localTimeUtils : utcUtils;
 
   let formatFunc = formatYear;
+
   values.forEach((value: any) => {
+    if (typeof value === 'bigint') {
+      return;
+    }
     if (formatFunc === formatYear && isNotFirstMonth(value)) {
       formatFunc = formatMonth;
     }

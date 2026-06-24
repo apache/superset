@@ -19,7 +19,7 @@
 import { ensureIsArray } from '@superset-ui/core';
 
 describe('ensureIsArray', () => {
-  it('handle inputs correctly', () => {
+  test('handle inputs correctly', () => {
     expect(ensureIsArray(undefined)).toEqual([]);
     expect(ensureIsArray(null)).toEqual([]);
     expect(ensureIsArray([])).toEqual([]);

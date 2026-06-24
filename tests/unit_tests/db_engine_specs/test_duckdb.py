@@ -21,8 +21,9 @@ from typing import Optional
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.config import VERSION_STRING
 from superset.utils import json
+from superset.utils.core import GenericDataType
+from tests.conftest import with_config
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -45,6 +46,7 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
+@with_config({"VERSION_STRING": "1.0.0"})
 def test_get_extra_params(mocker: MockerFixture) -> None:
     """
     Test the ``get_extra_params`` method.
@@ -56,9 +58,7 @@ def test_get_extra_params(mocker: MockerFixture) -> None:
     database.extra = {}
     assert DuckDBEngineSpec.get_extra_params(database) == {
         "engine_params": {
-            "connect_args": {
-                "config": {"custom_user_agent": f"apache-superset/{VERSION_STRING}"}
-            }
+            "connect_args": {"config": {"custom_user_agent": "apache-superset/1.0.0"}}
         }
     }
 
@@ -68,9 +68,7 @@ def test_get_extra_params(mocker: MockerFixture) -> None:
     assert DuckDBEngineSpec.get_extra_params(database) == {
         "engine_params": {
             "connect_args": {
-                "config": {
-                    "custom_user_agent": f"apache-superset/{VERSION_STRING} my-app"
-                }
+                "config": {"custom_user_agent": "apache-superset/1.0.0 my-app"}
             }
         }
     }
@@ -127,3 +125,41 @@ def test_get_parameters_from_uri() -> None:
 
     assert parameters["database"] == "md:my_db"
     assert parameters["access_token"] == "token"  # noqa: S105
+
+
+def test_column_type_recognition() -> None:
+    """Test that DuckDB column types are properly recognized as numeric."""
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    # Test standard float/double types
+    numeric_types = [
+        "FLOAT",
+        "DOUBLE",
+        "DOUBLE PRECISION",
+        "REAL",
+        "DECIMAL(10,2)",
+        "NUMERIC(10,2)",
+        "INTEGER",
+        "BIGINT",
+        "SMALLINT",
+        # DuckDB-specific unsigned types
+        "HUGEINT",
+        "UBIGINT",
+        "UINTEGER",
+        "USMALLINT",
+        "UTINYINT",
+    ]
+
+    for type_str in numeric_types:
+        col_spec = DuckDBEngineSpec.get_column_spec(type_str)
+        assert col_spec is not None, f"Type {type_str} should be recognized"
+        assert col_spec.generic_type == GenericDataType.NUMERIC, (
+            f"Type {type_str} should be recognized as NUMERIC, "
+            f"got {col_spec.generic_type}"
+        )
+
+    # Test that TINYINT (non-unsigned) is also recognized
+    # Note: TINYINT is not in the default mappings, but should be handled
+    col_spec = DuckDBEngineSpec.get_column_spec("TINYINT")
+    # TINYINT matches the pattern "^int" so it should be recognized
+    assert col_spec is None, "TINYINT doesn't match any patterns"

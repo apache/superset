@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useLocation } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
+import type { Location, Action } from 'history';
+import { t } from '@apache-superset/core/translation';
 import {
   getLabelsColorMap,
   isDefined,
   JsonObject,
   makeApi,
   LabelsColorMapSource,
-  t,
   getClientErrorObject,
 } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
@@ -41,6 +42,7 @@ import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
+import type Chart from 'src/types/Chart';
 
 const isValidResult = (rv: JsonObject): boolean =>
   rv?.result?.form_data && rv?.result?.dataset;
@@ -48,42 +50,36 @@ const isValidResult = (rv: JsonObject): boolean =>
 const hasDatasetId = (rv: JsonObject): boolean =>
   isDefined(rv?.result?.dataset?.id);
 
-const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
-  try {
-    const rv = await makeApi<{}, ExploreResponsePayload>({
-      method: 'GET',
-      endpoint: 'api/v1/explore/',
-    })(exploreUrlParams);
-    if (isValidResult(rv)) {
-      if (hasDatasetId(rv)) {
-        return rv;
-      }
-      // Since there's no dataset id but the API responded with a valid payload,
-      // we assume the dataset was deleted, so we preserve some values from previous
-      // state so if the user decide to swap the datasource, the chart config remains
-      fallbackExploreInitialData.form_data = {
-        ...rv.result.form_data,
-        ...fallbackExploreInitialData.form_data,
-      };
-      if (rv.result?.slice) {
-        fallbackExploreInitialData.slice = rv.result.slice;
-      }
+const fetchExploreData = async (
+  exploreUrlParams: URLSearchParams,
+  signal?: AbortSignal,
+) => {
+  const rv = await makeApi<{}, ExploreResponsePayload>({
+    method: 'GET',
+    endpoint: 'api/v1/explore/',
+    signal,
+  })(exploreUrlParams);
+  if (isValidResult(rv)) {
+    if (hasDatasetId(rv)) {
+      return rv;
     }
-    let message = t('Failed to load chart data');
-    const responseError = rv?.result?.message;
-    if (responseError) {
-      message = `${message}:\n${responseError}`;
+    // Since there's no dataset id but the API responded with a valid payload,
+    // we assume the dataset was deleted, so we preserve some values from previous
+    // state so if the user decide to swap the datasource, the chart config remains
+    fallbackExploreInitialData.form_data = {
+      ...rv.result.form_data,
+      ...fallbackExploreInitialData.form_data,
+    };
+    if (rv.result?.slice) {
+      fallbackExploreInitialData.slice = rv.result.slice;
     }
-    throw new Error(message);
-  } catch (err) {
-    // todo: encapsulate the error handler
-    const clientError = await getClientErrorObject(err);
-    throw new Error(
-      clientError.message ||
-        clientError.error ||
-        t('Failed to load chart data.'),
-    );
   }
+  let message = t('Failed to load chart data');
+  const responseError = rv?.result?.message;
+  if (responseError) {
+    message = `${message}:\n${responseError}`;
+  }
+  throw new Error(message);
 };
 
 const getDashboardPageContext = (pageId?: string | null) => {
@@ -93,11 +89,11 @@ const getDashboardPageContext = (pageId?: string | null) => {
   return getItem(LocalStorageKeys.DashboardExploreContext, {})[pageId] || null;
 };
 
-const getDashboardContextFormData = () => {
-  const dashboardPageId = getUrlParam(URL_PARAMS.dashboardPageId);
+const getDashboardContextFormData = (search: string) => {
+  const dashboardPageId = getUrlParam(URL_PARAMS.dashboardPageId, search);
   const dashboardContext = getDashboardPageContext(dashboardPageId);
   if (dashboardContext) {
-    const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
+    const sliceId = getUrlParam(URL_PARAMS.sliceId, search) || 0;
     const {
       colorScheme,
       labelsColor,
@@ -108,12 +104,15 @@ const getDashboardContextFormData = () => {
       filterBoxFilters,
       dataMask,
       dashboardId,
+      activeFilters,
     } = dashboardContext;
+
     const dashboardContextWithFilters = getFormDataWithExtraFilters({
       chart: { id: sliceId },
       filters: getAppliedFilterValues(sliceId, filterBoxFilters),
       nativeFilters,
       chartConfiguration,
+      chartCustomizationItems: [],
       dataMask,
       colorScheme,
       labelsColor,
@@ -122,6 +121,7 @@ const getDashboardContextFormData = () => {
       sliceId,
       allSliceIds: [sliceId],
       extraControls: {},
+      ...(activeFilters && { activeFilters }),
     });
     Object.assign(dashboardContextWithFilters, {
       dashboardId,
@@ -133,45 +133,187 @@ const getDashboardContextFormData = () => {
 
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
-  const isExploreInitialized = useRef(false);
+  const fetchGeneration = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const dispatch = useDispatch();
-  const location = useLocation();
+  const history = useHistory();
 
-  useEffect(() => {
-    const exploreUrlParams = getParsedExploreURLParams(location);
-    const saveAction = getUrlParam(
-      URL_PARAMS.saveAction,
-    ) as SaveActionType | null;
-    const dashboardContextFormData = getDashboardContextFormData();
-    if (!isExploreInitialized.current || !!saveAction) {
-      fetchExploreData(exploreUrlParams)
+  const loadExploreData = useCallback(
+    (
+      loc: { search: string; pathname: string },
+      saveAction?: SaveActionType | null,
+    ) => {
+      // Abort any in-flight request before starting a new one
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      fetchGeneration.current += 1;
+      const generation = fetchGeneration.current;
+      const exploreUrlParams = getParsedExploreURLParams(loc);
+      const dashboardContextFormData = getDashboardContextFormData(loc.search);
+
+      const isStale = () => generation !== fetchGeneration.current;
+
+      fetchExploreData(exploreUrlParams, controller.signal)
         .then(({ result }) => {
-          const formData =
-            !isExploreInitialized.current && dashboardContextFormData
-              ? getFormDataWithDashboardContext(
-                  result.form_data,
-                  dashboardContextFormData,
-                )
-              : result.form_data;
+          if (isStale()) {
+            return;
+          }
+
+          const formData = dashboardContextFormData
+            ? getFormDataWithDashboardContext(
+                result.form_data,
+                dashboardContextFormData,
+                saveAction,
+              )
+            : result.form_data;
+
+          let chartStates: Record<number, JsonObject> | undefined;
+          if (result.chartState) {
+            const sliceId =
+              getUrlParam(URL_PARAMS.sliceId) ||
+              (formData as JsonObject).slice_id ||
+              0;
+            chartStates = {
+              [sliceId]: {
+                chartId: sliceId,
+                state: result.chartState,
+                lastModified: Date.now(),
+              },
+            };
+          }
+
           dispatch(
             hydrateExplore({
               ...result,
               form_data: formData,
               saveAction,
+              chartStates,
             }),
           );
         })
         .catch(err => {
+          // Silently ignore aborted requests - AbortError may be wrapped in SupersetApiError by makeApi
+          // or come through with statusText === 'abort' from SupersetClient
+          if (
+            err.name === 'AbortError' ||
+            err.statusText === 'abort' ||
+            err.originalError?.name === 'AbortError' ||
+            err.originalError?.statusText === 'abort'
+          ) {
+            return;
+          }
+          return Promise.all([getClientErrorObject(err), err]);
+        })
+        .then(resolved => {
+          if (isStale()) {
+            return;
+          }
+
+          const [clientError, err] = resolved || [];
+          if (!err) {
+            return Promise.resolve();
+          }
+          const errorMesage =
+            clientError?.message ||
+            clientError?.error ||
+            t('Failed to load chart data.');
+          dispatch(addDangerToast(errorMesage));
+
+          if (err.extra?.datasource) {
+            const exploreData = {
+              ...fallbackExploreInitialData,
+              dataset: {
+                ...fallbackExploreInitialData.dataset,
+                id: err.extra?.datasource,
+                name: err.extra?.datasource_name,
+                extra: {
+                  error: err,
+                },
+              },
+            };
+            const chartId = exploreUrlParams.get('slice_id');
+            return (
+              chartId
+                ? makeApi<void, { result: Chart }>({
+                    method: 'GET',
+                    endpoint: `api/v1/chart/${chartId}`,
+                  })()
+                : Promise.reject()
+            )
+              .then(
+                ({ result: { id, url, owners, form_data: _, ...data } }) => {
+                  if (isStale()) {
+                    return;
+                  }
+                  const slice = {
+                    ...data,
+                    datasource: err.extra?.datasource_name,
+                    slice_id: id,
+                    slice_url: url,
+                    owners: owners?.map(({ id }) => id),
+                  };
+                  dispatch(
+                    hydrateExplore({
+                      ...exploreData,
+                      slice,
+                    }),
+                  );
+                },
+              )
+              .catch(() => {
+                if (isStale()) {
+                  return;
+                }
+                dispatch(hydrateExplore(exploreData));
+              });
+          }
           dispatch(hydrateExplore(fallbackExploreInitialData));
-          dispatch(addDangerToast(err.message));
+          return Promise.resolve();
         })
         .finally(() => {
-          setIsLoaded(true);
-          isExploreInitialized.current = true;
+          if (!isStale() && !controller.signal.aborted) {
+            setIsLoaded(true);
+          }
         });
-    }
+    },
+    [dispatch],
+  );
+
+  // Cleanup: abort in-flight requests on unmount
+  useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+    },
+    [],
+  );
+
+  // Initial fetch on mount
+  useEffect(() => {
+    loadExploreData(history.location);
     getLabelsColorMap().source = LabelsColorMapSource.Explore;
-  }, [dispatch, location]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-fetch on navigation or post-save.
+  // PUSH/POP: full reload (unmount + re-fetch).
+  // REPLACE with saveAction state: re-fetch without unmount (keeps chart visible).
+  // Other REPLACE: ignored (URL sync from updateHistory).
+  useEffect(() => {
+    const unlisten = history.listen((loc: Location, action: Action) => {
+      const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
+        | SaveActionType
+        | undefined;
+      if (action === 'PUSH' || action === 'POP') {
+        setIsLoaded(false);
+        loadExploreData(loc, saveAction);
+      } else if (saveAction) {
+        loadExploreData(loc, saveAction);
+      }
+    });
+    return unlisten;
+  }, [history, loadExploreData]);
 
   if (!isLoaded) {
     return <Loading />;

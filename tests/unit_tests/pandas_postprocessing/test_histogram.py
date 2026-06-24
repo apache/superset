@@ -35,7 +35,13 @@ def test_histogram_no_groupby():
     )
     result = histogram(data_with_no_groupings, "a", [], bins)
     assert result.shape == (1, bins)
-    assert result.columns.tolist() == ["1 - 2", "2 - 4", "4 - 6", "6 - 8", "8 - 10"]
+    assert result.columns.tolist() == [
+        "1.0 - 2.8",
+        "2.8 - 4.6",
+        "4.6 - 6.4",
+        "6.4 - 8.2",
+        "8.2 - 10.0",
+    ]
     assert result.values.tolist() == [[2, 2, 2, 2, 2]]
 
 
@@ -44,11 +50,11 @@ def test_histogram_with_groupby():
     assert result.shape == (2, bins + 1)
     assert result.columns.tolist() == [
         "group",
-        "1 - 2",
-        "2 - 4",
-        "4 - 6",
-        "6 - 8",
-        "8 - 10",
+        "1.0 - 2.8",
+        "2.8 - 4.6",
+        "4.6 - 6.4",
+        "6.4 - 8.2",
+        "8.2 - 10.0",
     ]
     assert result.values.tolist() == [["A", 2, 0, 2, 0, 2], ["B", 0, 2, 0, 2, 0]]
 
@@ -58,11 +64,11 @@ def test_histogram_with_groupby_and_normalize():
     assert result.shape == (2, bins + 1)
     assert result.columns.tolist() == [
         "group",
-        "1 - 2",
-        "2 - 4",
-        "4 - 6",
-        "6 - 8",
-        "8 - 10",
+        "1.0 - 2.8",
+        "2.8 - 4.6",
+        "4.6 - 6.4",
+        "6.4 - 8.2",
+        "8.2 - 10.0",
     ]
     assert result.values.tolist() == [
         ["A", 0.2, 0.0, 0.2, 0.0, 0.2],
@@ -75,11 +81,11 @@ def test_histogram_with_groupby_and_cumulative():
     assert result.shape == (2, bins + 1)
     assert result.columns.tolist() == [
         "group",
-        "1 - 2",
-        "2 - 4",
-        "4 - 6",
-        "6 - 8",
-        "8 - 10",
+        "1.0 - 2.8",
+        "2.8 - 4.6",
+        "4.6 - 6.4",
+        "6.4 - 8.2",
+        "8.2 - 10.0",
     ]
     assert result.values.tolist() == [["A", 2, 2, 4, 4, 6], ["B", 0, 2, 2, 4, 4]]
 
@@ -89,11 +95,11 @@ def test_histogram_with_groupby_and_cumulative_and_normalize():
     assert result.shape == (2, bins + 1)
     assert result.columns.tolist() == [
         "group",
-        "1 - 2",
-        "2 - 4",
-        "4 - 6",
-        "6 - 8",
-        "8 - 10",
+        "1.0 - 2.8",
+        "2.8 - 4.6",
+        "4.6 - 6.4",
+        "6.4 - 8.2",
+        "8.2 - 10.0",
     ]
     assert result.values.tolist() == [
         [
@@ -134,3 +140,70 @@ def test_histogram_with_some_non_numeric_values():
         histogram(data_with_non_numeric, "a", ["group"], bins)
     except ValueError as e:
         assert str(e) == "Column 'group' contains non-numeric values"  # noqa: PT017
+
+
+def test_histogram_with_groupby_and_some_null_values():
+    data_with_groupby_and_some_nulls = DataFrame(
+        {
+            "group": ["A", "A", "B", "B", "A", "A", "B", "B", "A", "A"],
+            "a": [1, 2, 3, 4, 5, None, 7, 8, 9, 10],
+            "b": [1, 2, 3, 4, 5, None, 7, 8, 9, 10],
+        }
+    )
+
+    result = histogram(data_with_groupby_and_some_nulls, "a", ["group"], bins)
+    assert result.shape == (2, bins + 1)
+    assert result.columns.tolist() == [
+        "group",
+        "1.0 - 2.8",
+        "2.8 - 4.6",
+        "4.6 - 6.4",
+        "6.4 - 8.2",
+        "8.2 - 10.0",
+    ]
+    assert result.values.tolist() == [["A", 2, 0, 1, 0, 2], ["B", 0, 2, 0, 2, 0]]
+
+
+def test_histogram_with_no_groupby_and_some_null_values():
+    data_with_no_groupby_and_some_nulls = DataFrame(
+        {
+            "a": [1, 2, 3, 4, 5, None, 7, 8, 9, 10],
+            "b": [1, 2, 3, 4, 5, None, 7, 8, 9, 10],
+        }
+    )
+
+    result = histogram(data_with_no_groupby_and_some_nulls, "a", [], bins)
+    assert result.shape == (1, bins)
+    assert result.columns.tolist() == [
+        "1.0 - 2.8",
+        "2.8 - 4.6",
+        "4.6 - 6.4",
+        "6.4 - 8.2",
+        "8.2 - 10.0",
+    ]
+    assert result.values.tolist() == [[2, 2, 1, 2, 2]]
+
+
+def test_histogram_with_groupby_and_all_null_values():
+    data_with_groupby_and_all_nulls = DataFrame(
+        {
+            "group": ["A", "A", "B", "B", "A", "A", "B", "B", "A", "A"],
+            "a": [None, None, None, None, None, None, None, None, None, None],
+            "b": [None, None, None, None, None, None, None, None, None, None],
+        }
+    )
+
+    result = histogram(data_with_groupby_and_all_nulls, "a", ["group"], bins)
+    assert result.empty
+
+
+def test_histogram_with_no_groupby_and_all_null_values():
+    data_with_no_groupby_and_all_nulls = DataFrame(
+        {
+            "a": [None, None, None, None, None, None, None, None, None, None],
+            "b": [None, None, None, None, None, None, None, None, None, None],
+        }
+    )
+
+    result = histogram(data_with_no_groupby_and_all_nulls, "a", [], bins)
+    assert result.empty

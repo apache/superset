@@ -35,8 +35,9 @@ logger = logging.getLogger(__name__)
 class GetFormDataCommand(BaseCommand, ABC):
     def __init__(self, cmd_params: CommandParameters) -> None:
         self._cmd_params = cmd_params
-        config = app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"]
-        self._refresh_timeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
+        self._refresh_timeout = app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"].get(
+            "REFRESH_TIMEOUT_ON_RETRIEVAL"
+        )
 
     def run(self) -> Optional[str]:
         try:

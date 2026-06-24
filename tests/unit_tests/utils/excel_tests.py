@@ -15,13 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import io
 from datetime import datetime, timezone
 
 import pandas as pd
+from openpyxl import load_workbook
 from pandas.api.types import is_numeric_dtype
 
 from superset.utils.core import GenericDataType
-from superset.utils.excel import apply_column_types, df_to_excel
+from superset.utils.excel import (
+    apply_column_types,
+    df_to_excel,
+    NEUTRAL_TIMESTAMP,
+)
 
 
 def test_timezone_conversion() -> None:
@@ -45,6 +51,35 @@ def test_quote_formulas() -> None:
         "normal",
         "'@SUM(A1:A2)",
     ]
+
+
+def test_document_properties_are_neutral() -> None:
+    """
+    Test that exported workbooks do not carry identifying document properties.
+    """
+    df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    contents = df_to_excel(df, index=False)
+
+    workbook = load_workbook(io.BytesIO(contents))
+    properties = workbook.properties
+
+    # Authoring/descriptive fields are cleared.
+    for field in (
+        "creator",
+        "lastModifiedBy",
+        "title",
+        "subject",
+        "description",
+        "keywords",
+        "category",
+    ):
+        value = getattr(properties, field)
+        assert value in (None, ""), f"{field} should be empty, got {value!r}"
+
+    # Timestamps are pinned to a fixed, neutral value rather than the
+    # actual generation time.
+    assert properties.created == NEUTRAL_TIMESTAMP
+    assert properties.modified == NEUTRAL_TIMESTAMP
 
 
 def test_column_data_types_with_one_numeric_column():
@@ -105,3 +140,27 @@ def test_column_data_types_with_failing_conversion():
     assert not is_numeric_dtype(df["col1"])
     assert not is_numeric_dtype(df["col2"])
     assert not is_numeric_dtype(df["col3"])
+
+
+def test_column_data_types_with_large_numeric_values():
+    df = pd.DataFrame(
+        {
+            "big_number": [
+                10**14,
+                999999999999999,
+                10**15 + 1,
+                10**16,
+                1100108628127863,
+                2**54,
+            ],
+        }
+    )
+    apply_column_types(df, [GenericDataType.NUMERIC])
+    assert df["big_number"].tolist() == [
+        100000000000000,
+        999999999999999,
+        "1000000000000001",
+        "10000000000000000",
+        "1100108628127863",
+        "18014398509481984",
+    ]

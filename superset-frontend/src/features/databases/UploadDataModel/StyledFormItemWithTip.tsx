@@ -18,7 +18,7 @@
  */
 
 import { FC, ReactNode } from 'react';
-import InfoTooltip from 'src/components/InfoTooltip';
+import { InfoTooltip } from '@superset-ui/core/components';
 import { StyledFormItem } from './styles';
 
 interface StyledFormItemWithTipProps {

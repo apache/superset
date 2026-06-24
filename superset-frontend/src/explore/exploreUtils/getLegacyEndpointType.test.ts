@@ -32,3 +32,9 @@ test('Should return resultFormat when resultFormat:csv', () => {
     getLegacyEndpointType({ ...createParams(), resultFormat: 'csv' }),
   ).toBe('csv');
 });
+
+test('Should return resultFormat when resultFormat:xlsx', () => {
+  expect(
+    getLegacyEndpointType({ ...createParams(), resultFormat: 'xlsx' }),
+  ).toBe('xlsx');
+});

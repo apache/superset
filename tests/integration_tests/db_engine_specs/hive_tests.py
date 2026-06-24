@@ -17,7 +17,6 @@
 # isort:skip_file
 from unittest import mock
 import unittest
-from .base_tests import SupersetTestCase
 
 import pytest
 import pandas as pd
@@ -25,7 +24,9 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
-from superset.sql_parse import Table
+from superset.sql.parse import Table
+from tests.common.assert_utils import assert_any_call_with_text
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
 
 
@@ -198,7 +199,10 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
             {"if_exists": "replace", "header": 1, "na_values": "mock", "sep": "mock"},
         )
 
-    mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {table_name}")
+    assert_any_call_with_text(
+        mock_execute,
+        f"DROP TABLE IF EXISTS {table_name}",
+    )
     app.config = config
 
 
@@ -226,7 +230,9 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
             {"if_exists": "replace", "header": 1, "na_values": "mock", "sep": "mock"},
         )
 
-    mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {schema}.{table_name}")
+    assert_any_call_with_text(
+        mock_execute, f"DROP TABLE IF EXISTS {schema}.{table_name}"
+    )
     app.config = config
 
 

@@ -18,12 +18,12 @@
  */
 import rison from 'rison';
 import { Dispatch } from 'redux';
+import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
   type QueryFormData,
   SimpleAdhocFilter,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
@@ -83,13 +83,13 @@ const hasTemporalRangeFilter = (formData: Partial<QueryFormData>): boolean =>
     (filter: SimpleAdhocFilter) => filter.operator === Operators.TemporalRange,
   );
 
-export const getSlicePayload = (
+export const getSlicePayload = async (
   sliceName: string,
   formDataWithNativeFilters: QueryFormData = {} as QueryFormData,
   dashboards: number[],
   owners: [],
   formDataFromSlice: QueryFormData = {} as QueryFormData,
-): Partial<PayloadSlice> => {
+): Promise<Partial<PayloadSlice>> => {
   const adhocFilters: Partial<QueryFormData> = extractAdhocFiltersFromFormData(
     formDataWithNativeFilters,
   );
@@ -132,6 +132,7 @@ export const getSlicePayload = (
             adhocFilters[filtersKey].push({
               ...filter,
               comparator: 'No filter',
+              isExtra: false,
             });
           }
         },
@@ -150,13 +151,19 @@ export const getSlicePayload = (
     const [id, typeString] = formData.datasource.split('__');
     datasourceId = parseInt(id, 10);
 
-    const formattedTypeString =
-      typeString.charAt(0).toUpperCase() + typeString.slice(1);
-    if (formattedTypeString in DatasourceType) {
-      datasourceType =
-        DatasourceType[formattedTypeString as keyof typeof DatasourceType];
+    if (Object.values(DatasourceType).includes(typeString as DatasourceType)) {
+      datasourceType = typeString as DatasourceType;
     }
   }
+
+  const queryContext = await buildV1ChartDataPayload({
+    formData,
+    force: false,
+    resultFormat: 'json',
+    resultType: 'full',
+    setDataMask: undefined,
+    ownState: undefined,
+  });
 
   const payload: Partial<PayloadSlice> = {
     params: JSON.stringify(formData),
@@ -166,16 +173,7 @@ export const getSlicePayload = (
     datasource_type: datasourceType,
     dashboards,
     owners,
-    query_context: JSON.stringify(
-      buildV1ChartDataPayload({
-        formData,
-        force: false,
-        resultFormat: 'json',
-        resultType: 'full',
-        setDataMask: null,
-        ownState: null,
-      }),
-    ),
+    query_context: JSON.stringify(queryContext),
   };
 
   return payload;
@@ -241,7 +239,7 @@ export const updateSlice =
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
-        jsonPayload: getSlicePayload(
+        jsonPayload: await getSlicePayload(
           sliceName,
           formData,
           dashboards,
@@ -273,7 +271,7 @@ export const createSlice =
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
-        jsonPayload: getSlicePayload(
+        jsonPayload: await getSlicePayload(
           sliceName,
           formData,
           dashboards,
@@ -311,7 +309,7 @@ export const getSliceDashboards =
     try {
       const response = await SupersetClient.get({
         endpoint: `/api/v1/chart/${slice.slice_id}?q=${rison.encode({
-          columns: ['dashboards.id'],
+          select_columns: ['dashboards.id'],
         })}`,
       });
 

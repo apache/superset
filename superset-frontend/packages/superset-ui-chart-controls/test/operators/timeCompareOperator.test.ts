@@ -54,7 +54,7 @@ const queryObject: QueryObject = {
       },
     },
     {
-      operation: 'aggregation',
+      operation: 'aggregate',
       options: {
         groupby: ['col1'],
         aggregates: {},

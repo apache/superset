@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 export interface SortColumn {
   id: string;
@@ -24,8 +24,13 @@ export interface SortColumn {
 }
 
 export interface SelectOption {
-  label: string;
+  label: ReactNode;
   value: any;
+  // Plain-text representation of the option. Callers should set this when
+  // `label` is a ReactNode so that the option can be serialized (e.g. into
+  // URL filter state) without losing the human-readable name.
+  title?: string;
+  [key: string]: unknown;
 }
 
 export interface CardSortSelectOption {
@@ -35,20 +40,21 @@ export interface CardSortSelectOption {
   value: any;
 }
 
-export interface Filter {
+export interface ListViewFilter {
   Header: ReactNode;
   key: string;
   id: string;
   toolTipDescription?: string;
   urlDisplay?: string;
-  operator?: FilterOperator;
+  operator?: ListViewFilterOperator;
   input?:
     | 'text'
     | 'textarea'
     | 'select'
     | 'checkbox'
     | 'search'
-    | 'datetime_range';
+    | 'datetime_range'
+    | 'numerical_range';
   unfilteredLabel?: string;
   selects?: SelectOption[];
   onFilterOpen?: () => void;
@@ -58,10 +64,18 @@ export interface Filter {
     page: number,
     pageSize: number,
   ) => Promise<{ data: SelectOption[]; totalCount: number }>;
+  optionFilterProps?: string[];
   paginate?: boolean;
+  loading?: boolean;
+  dateFilterValueType?: 'unix' | 'iso';
+  min?: number;
+  max?: number;
+  popupStyle?: React.CSSProperties;
+  autoComplete?: string;
+  inputName?: string;
 }
 
-export type Filters = Filter[];
+export type ListViewFilters = ListViewFilter[];
 
 export type ViewModeType = 'card' | 'table';
 
@@ -73,27 +87,28 @@ export type InnerFilterValue =
   | undefined
   | string[]
   | number[]
-  | { label: string; value: string | number };
+  | { label: ReactNode; value: string | number }
+  | [number | null, number | null];
 
-export interface FilterValue {
+export interface ListViewFilterValue {
   id: string;
   urlDisplay?: string;
   operator?: string;
   value: InnerFilterValue;
 }
 
-export interface FetchDataConfig {
+export interface ListViewFetchDataConfig {
   pageIndex: number;
   pageSize: number;
   sortBy: SortColumn[];
-  filters: FilterValue[];
+  filters: ListViewFilterValue[];
 }
 
-export interface InternalFilter extends FilterValue {
+export interface InternalFilter extends ListViewFilterValue {
   Header?: string;
 }
 
-export enum FilterOperator {
+export enum ListViewFilterOperator {
   StartsWith = 'sw',
   EndsWith = 'ew',
   Contains = 'ct',

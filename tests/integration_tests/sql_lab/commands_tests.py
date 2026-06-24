@@ -19,9 +19,10 @@ from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
+from flask import current_app
 from flask_babel import gettext as __
 
-from superset import app, db, sql_lab
+from superset import db, sql_lab
 from superset.commands.sql_lab import estimate, export, results
 from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -36,6 +37,7 @@ from superset.models.sql_lab import Query
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.schemas import EstimateQueryCostSchema
 from superset.utils import core as utils
+from superset.utils.core import override_user
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 
@@ -86,13 +88,10 @@ class TestQueryEstimationCommand(SupersetTestCase):
             assert (
                 ex_info.value.error.error_type == SupersetErrorType.SQLLAB_TIMEOUT_ERROR
             )
-            assert (
-                ex_info.value.error.message
-                == __(
-                    "The query estimation was killed after %(sqllab_timeout)s seconds. It might "  # noqa: E501
-                    "be too complex, or the database might be under heavy load.",
-                    sqllab_timeout=app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"],
-                )
+            assert ex_info.value.error.message == __(
+                "The query estimation was killed after %(sqllab_timeout)s seconds. It might "  # noqa: E501
+                "be too complex, or the database might be under heavy load.",
+                sqllab_timeout=current_app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"],
             )
 
     def test_run_success(self) -> None:
@@ -112,6 +111,35 @@ class TestQueryEstimationCommand(SupersetTestCase):
             mock_superset_db.session.query().get.return_value = db_mock
             result = command.run()
             assert result == payload
+
+    @patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=True)
+    def test_apply_sql_security_rls_does_not_pollute_session(
+        self, mock_is_feature_enabled: Mock
+    ) -> None:
+        """Regression test for the RLS schema-resolution probe Query.
+
+        ``_apply_sql_security`` builds a transient ``Query`` so the engine spec
+        can resolve the effective per-query schema. Because the ``database``
+        backref cascades ``all, delete-orphan``, that transient joins the
+        session; if it isn't expunged, the very next ``apply_rls`` call issues
+        its own ``db.session`` query, autoflush fires, and the probe — whose
+        ``client_id`` column is ``nullable=False`` — raises ``IntegrityError``.
+        A mocked session (as in the unit tests) hides this entirely, so exercise
+        the real session and real ``apply_rls`` here with ``RLS_IN_SQLLAB`` on.
+        """
+        database = get_example_database()
+        params = {"database_id": database.id, "sql": "SELECT * FROM some_table"}
+        schema = EstimateQueryCostSchema()
+        data: EstimateQueryCostSchema = schema.dump(params)
+        command = estimate.QueryEstimationCommand(data)
+        command._database = database
+
+        with override_user(self.get_user("admin")):
+            # Must not raise IntegrityError from an autoflushed probe Query.
+            command._apply_sql_security("SELECT * FROM some_table")
+
+        # And no transient probe Query may be left pending in the session.
+        assert not any(isinstance(obj, Query) for obj in db.session.new)
 
 
 class TestSqlResultExportCommand(SupersetTestCase):
@@ -180,7 +208,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
 
-        assert result["data"] == "foo\n1\n2\n3\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n2\n3\n"
         assert result["count"] == 3
         assert result["query"].client_id == "test"
 
@@ -198,7 +226,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
 
-        assert result["data"] == "foo\n1\n2\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n2\n"
         assert result["count"] == 2
         assert result["query"].client_id == "test"
 
@@ -220,7 +248,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         result = command.run()
 
-        assert result["data"] == "foo\n1\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n"
         assert result["count"] == 1
         assert result["query"].client_id == "test"
 
@@ -243,7 +271,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         result = command.run()
 
-        assert result["data"] == "foo\n0\n1\n2\n3\n4\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n0\n1\n2\n3\n4\n"
         assert result["count"] == 5
         assert result["query"].client_id == "test"
 
@@ -253,6 +281,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
     def create_database_and_query(self):
         with self.create_app().app_context():
             database = get_example_database()
+            admin = self.get_user("admin")
             query_obj = Query(
                 client_id="test",
                 database=database,
@@ -266,6 +295,7 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
                 rows=104,
                 error_message="none",
                 results_key="abc_query",
+                user_id=admin.id,
             )
 
             db.session.add(query_obj)
@@ -348,6 +378,29 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
+    def test_validation_unauthorized_access(self) -> None:
+        command = results.SqlExecutionResultsCommand("abc_query", 1000)
+
+        with mock.patch(
+            "superset.models.sql_lab.Query.raise_for_access",
+            side_effect=SupersetSecurityException(
+                SupersetError(
+                    "dummy",
+                    SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    ErrorLevel.ERROR,
+                )
+            ),
+        ):
+            with pytest.raises(SupersetErrorException) as ex_info:
+                command.run()
+            assert (
+                ex_info.value.error.error_type
+                == SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR
+            )
+            assert ex_info.value.status == 403
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_run_succeeds(self) -> None:
         data = [{"col_0": i} for i in range(104)]
         payload = {
@@ -361,8 +414,11 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
         results.results_backend = mock.Mock()
         results.results_backend.get.return_value = compressed
 
-        command = results.SqlExecutionResultsCommand("abc_query", 1000)
-        result = command.run()
+        admin = self.get_user("admin")
+        with current_app.test_request_context():
+            with override_user(admin):
+                command = results.SqlExecutionResultsCommand("abc_query", 1000)
+                result = command.run()
 
         assert result.get("status") == "success"
         assert result["query"].get("rows") == 104

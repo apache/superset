@@ -18,23 +18,25 @@
  */
 import {
   AdhocColumn,
+  BuildQuery,
+  PostProcessingRule,
+  QueryFormOrderBy,
+  QueryMode,
+  QueryObject,
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
   isPhysicalColumn,
-  QueryMode,
-  QueryObject,
   removeDuplicates,
 } from '@superset-ui/core';
-import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
-import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
+
 import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import { TableChartFormData } from './types';
-import { updateExternalFormData } from './DataTable/utils/externalAPIs';
+import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 
 /**
  * Infer query mode from form data. If `all_columns` is set, then raw records mode,
@@ -52,7 +54,7 @@ export function getQueryMode(formData: TableChartFormData) {
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
-const buildQuery: BuildQuery<TableChartFormData> = (
+export const buildQuery: BuildQuery<TableChartFormData> = (
   formData: TableChartFormData,
   options,
 ) => {
@@ -83,7 +85,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
   return buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
-    let postProcessing: PostProcessingRule[] = [];
+    const postProcessing: PostProcessingRule[] = [];
     const nonCustomNorInheritShifts = ensureIsArray(
       formData.time_compare,
     ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
@@ -114,6 +116,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
     }
 
+    if (
+      extra_form_data?.time_compare &&
+      !timeOffsets.includes(extra_form_data.time_compare)
+    ) {
+      timeOffsets = [extra_form_data.time_compare];
+    }
+
     let temporalColumnAdded = false;
     let temporalColumn = null;
 
@@ -128,6 +137,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         orderby = [[metrics[0], false]];
       }
       // add postprocessing for percent metrics only when in aggregation mode
+      type PercentMetricCalculationMode = 'row_limit' | 'all_records';
+
+      const calculationMode: PercentMetricCalculationMode =
+        (formData.percent_metric_calculation as PercentMetricCalculationMode) ||
+        'row_limit';
+
       if (percentMetrics && percentMetrics.length > 0) {
         const percentMetricsLabelsWithTimeComparison = isTimeComparison(
           formData,
@@ -138,6 +153,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
               timeOffsets,
             )
           : percentMetrics.map(getMetricLabel);
+
         const percentMetricLabels = removeDuplicates(
           percentMetricsLabelsWithTimeComparison,
         );
@@ -145,16 +161,26 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           metrics.concat(percentMetrics),
           getMetricLabel,
         );
-        postProcessing = [
-          {
+
+        if (calculationMode === 'all_records') {
+          postProcessing.push({
             operation: 'contribution',
             options: {
               columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(x => `%${x}`),
+              rename_columns: percentMetricLabels.map(m => `%${m}`),
             },
-          },
-        ];
+          });
+        } else {
+          postProcessing.push({
+            operation: 'contribution',
+            options: {
+              columns: percentMetricLabels,
+              rename_columns: percentMetricLabels.map(m => `%${m}`),
+            },
+          });
+        }
       }
+
       // Add the operator for the time comparison if some is selected
       if (!isEmpty(timeOffsets)) {
         postProcessing.push(timeCompareOperator(formData, baseQueryObject));
@@ -191,23 +217,64 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
-    if (formDataCopy.server_pagination) {
-      moreProps.row_limit =
-        ownState.pageSize ?? formDataCopy.server_page_length;
-      moreProps.row_offset =
-        (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
+    // Server pagination sizing, shared between the per-page request below and
+    // the filter-change reset further down.
+    const pageSize =
+      Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0;
+    const configuredRowLimit = Number(formDataCopy.row_limit) || 0;
+    // row_limit for the first page, capped by the configured row limit. Used
+    // when a filter change resets pagination back to page 0.
+    const firstPageRowLimit =
+      configuredRowLimit > 0
+        ? Math.min(pageSize, configuredRowLimit)
+        : pageSize;
+    // Build Query flag to check if its for either download as csv, excel or json
+    const isDownloadQuery =
+      ['csv', 'xlsx'].includes(formData?.result_format || '') ||
+      (formData?.result_format === 'json' &&
+        formData?.result_type === 'results');
+
+    if (isDownloadQuery) {
+      moreProps.row_limit = Number(formDataCopy.row_limit) || 0;
+      moreProps.row_offset = 0;
     }
 
-    if (!temporalColumn) {
-      // This query is not using temporal column, so it doesn't need time grain
-      extras.time_grain_sqla = undefined;
+    if (!isDownloadQuery && formDataCopy.server_pagination) {
+      // Never page past the configured row limit. Clamping the page to the last
+      // one that still falls within the limit keeps the request inside the cap
+      // and avoids emitting row_limit: 0, which the backend treats as
+      // "no limit" rather than "no rows" (see helpers.py get_sqla_query).
+      const lastPage =
+        configuredRowLimit > 0 && pageSize > 0
+          ? Math.max(Math.ceil(configuredRowLimit / pageSize) - 1, 0)
+          : Number(ownState.currentPage) || 0;
+      const currentPage = Math.min(Number(ownState.currentPage) || 0, lastPage);
+      const rowOffset = currentPage * pageSize;
+      const remainingRows =
+        configuredRowLimit > 0
+          ? Math.max(configuredRowLimit - rowOffset, 0)
+          : pageSize;
+
+      moreProps.row_limit =
+        configuredRowLimit > 0 ? Math.min(pageSize, remainingRows) : pageSize;
+      moreProps.row_offset = rowOffset;
+    }
+
+    // getting sort by in case of server pagination from own state
+    let sortByFromOwnState: QueryFormOrderBy[] | undefined;
+    if (Array.isArray(ownState?.sortBy) && ownState?.sortBy.length > 0) {
+      const sortByItem = ownState?.sortBy[0];
+      sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
     }
 
     let queryObject = {
       ...baseQueryObject,
       columns,
       extras,
-      orderby,
+      orderby:
+        formData.server_pagination && sortByFromOwnState
+          ? sortByFromOwnState
+          : orderby,
       metrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,
@@ -220,19 +287,66 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
         JSON.stringify(queryObject.filters)
     ) {
-      queryObject = { ...queryObject, row_offset: 0 };
-      updateExternalFormData(
-        options?.hooks?.setDataMask,
-        0,
-        queryObject.row_limit ?? 0,
-      );
+      // Reset to the first page: restore the full first-page row_limit rather
+      // than carrying over the last page's capped value.
+      queryObject = {
+        ...queryObject,
+        row_offset: 0,
+        row_limit: firstPageRowLimit,
+      };
+      const modifiedOwnState = {
+        ...options?.ownState,
+        currentPage: 0,
+        // Persist the user-selected page size, not the per-request row_limit,
+        // which may be capped to the remaining rows on the last page.
+        pageSize,
+      };
+      updateTableOwnState(options?.hooks?.setDataMask, modifiedOwnState);
     }
+
+    if (formData.server_pagination) {
+      // Add search filter if search text exists
+      if (ownState.searchText && ownState?.searchColumn) {
+        queryObject = {
+          ...queryObject,
+          filters: [
+            ...(queryObject.filters || []),
+            {
+              col: ownState?.searchColumn,
+              op: 'ILIKE',
+              val: `${ownState.searchText}%`,
+            },
+          ],
+        };
+      }
+    }
+
     // Because we use same buildQuery for all table on the page we need split them by id
     options?.hooks?.setCachedChanges({
       [formData.slice_id]: queryObject.filters,
     });
 
     const extraQueries: QueryObject[] = [];
+
+    const calculationMode = formData.percent_metric_calculation || 'row_limit';
+
+    if (
+      calculationMode === 'all_records' &&
+      percentMetrics &&
+      percentMetrics.length > 0
+    ) {
+      extraQueries.push({
+        ...queryObject,
+        columns: [],
+        metrics: percentMetrics,
+        post_processing: [],
+        row_limit: 0,
+        row_offset: 0,
+        orderby: [],
+        is_timeseries: false,
+      });
+    }
+
     if (
       metrics?.length &&
       formData.show_totals &&
@@ -244,8 +358,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
-        order_desc: undefined, // we don't need orderby stuff here,
-        orderby: undefined, // because this query will be used for get total aggregation.
+        order_desc: undefined,
+        orderby: undefined,
       });
     }
 
@@ -256,13 +370,16 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ];
     }
 
-    if (formData.server_pagination) {
+    // Now since row limit control is always visible even
+    // in case of server pagination
+    // we must use row limit from form data
+    if (formData.server_pagination && !isDownloadQuery) {
       return [
         { ...queryObject },
         {
           ...queryObject,
           time_offsets: [],
-          row_limit: 0,
+          row_limit: Number(formData?.row_limit ?? 0),
           row_offset: 0,
           post_processing: [],
           is_rowcount: true,

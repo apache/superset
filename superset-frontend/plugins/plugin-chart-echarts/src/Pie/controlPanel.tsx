@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsInt, t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsInt, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -27,6 +28,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
   sharedControls,
+  DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { legendSection } from '../controls';
@@ -80,6 +82,23 @@ const config: ControlPanelConfig = {
               default: 5,
               description: t(
                 'Minimum threshold in percentage points for showing labels.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'threshold_for_other',
+            config: {
+              type: 'NumberControl',
+              label: t('Threshold for Other'),
+              min: 0,
+              step: 0.5,
+              max: 100,
+              default: 0,
+              renderTrigger: true,
+              description: t(
+                'Values less than this percentage will be grouped into the Other category.',
               ),
             },
           },
@@ -170,7 +189,7 @@ const config: ControlPanelConfig = {
               label: t('Date format'),
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
-              default: 'smart_date',
+              default: DEFAULT_TIME_FORMAT,
               description: D3_FORMAT_DOCS,
             },
           },

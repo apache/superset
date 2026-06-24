@@ -22,35 +22,37 @@ Create Date: 2022-04-01 14:38:09.499483
 
 """
 
+import os
+from datetime import datetime
+from typing import Optional, Union
+from uuid import uuid4
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy import select, text
+from sqlalchemy.exc import NoSuchModuleError
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.orm import backref, relationship, Session
+from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.sql import functions as func
+from sqlalchemy.sql.expression import and_, or_
+from sqlalchemy_utils import UUIDType
+
+from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES_LOWER
+from superset.connectors.sqla.utils import (
+    get_identifier_quoter,
+)
+from superset.databases.utils import make_url_safe
+from superset.db_engine_specs import BaseEngineSpec, get_engine_spec
+from superset.extensions import encrypted_field_factory
+from superset.migrations.shared.utils import assign_uuids
+from superset.sql.parse import SQLScript, Table
+from superset.utils import json
+from superset.utils.core import MediumText
+
 # revision identifiers, used by Alembic.
 revision = "a9422eeaae74"
 down_revision = "ad07e4fdbaba"
-
-import os  # noqa: E402
-from datetime import datetime  # noqa: E402
-from typing import Optional, Union  # noqa: E402
-from uuid import uuid4  # noqa: E402
-
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
-from sqlalchemy import select  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base, declared_attr  # noqa: E402
-from sqlalchemy.orm import backref, relationship, Session  # noqa: E402
-from sqlalchemy.schema import UniqueConstraint  # noqa: E402
-from sqlalchemy.sql import functions as func  # noqa: E402
-from sqlalchemy.sql.expression import and_, or_  # noqa: E402
-from sqlalchemy_utils import UUIDType  # noqa: E402
-
-from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES_LOWER  # noqa: E402
-from superset.connectors.sqla.utils import (  # noqa: E402
-    get_dialect_name,
-    get_identifier_quoter,
-)
-from superset.extensions import encrypted_field_factory  # noqa: E402
-from superset.migrations.shared.utils import assign_uuids  # noqa: E402
-from superset.sql_parse import extract_table_references, Table  # noqa: E402
-from superset.utils import json  # noqa: E402
-from superset.utils.core import MediumText  # noqa: E402
 
 Base = declarative_base()
 SHOW_PROGRESS = os.environ.get("SHOW_PROGRESS") == "1"
@@ -60,6 +62,20 @@ UNKNOWN_TYPE = "UNKNOWN"
 user_table = sa.Table(
     "ab_user", Base.metadata, sa.Column("id", sa.Integer(), primary_key=True)
 )
+
+
+def get_db_engine_spec(sqlalchemy_uri: str) -> type[BaseEngineSpec]:
+    """
+    Return the DB engine spec associated with a given SQLAlchemy URL.
+    """
+    url = make_url_safe(sqlalchemy_uri)
+    backend = url.get_backend_name()
+    try:
+        driver = url.get_driver_name()
+    except NoSuchModuleError:
+        driver = None
+
+    return get_engine_spec(backend, driver)
 
 
 class UUIDMixin:
@@ -320,23 +336,21 @@ def copy_tables(session: Session) -> None:
     insert_from_select(
         NewTable,
         select(
-            [
-                # Tables need different uuid than datasets, since they are different
-                # entities. When INSERT FROM SELECT, we must provide a value for `uuid`,
-                # otherwise it'd use the default generated on Python side, which
-                # will cause duplicate values. They will be replaced by `assign_uuids` later.  # noqa: E501
-                SqlaTable.uuid,
-                SqlaTable.id.label("sqlatable_id"),
-                SqlaTable.created_on,
-                SqlaTable.changed_on,
-                SqlaTable.created_by_fk,
-                SqlaTable.changed_by_fk,
-                SqlaTable.table_name.label("name"),
-                SqlaTable.schema,
-                SqlaTable.database_id,
-                SqlaTable.is_managed_externally,
-                SqlaTable.external_url,
-            ]
+            # Tables need different uuid than datasets, since they are different
+            # entities. When INSERT FROM SELECT, we must provide a value for `uuid`,
+            # otherwise it'd use the default generated on Python side, which
+            # will cause duplicate values. They will be replaced by `assign_uuids` later.  # noqa: E501
+            SqlaTable.uuid,
+            SqlaTable.id.label("sqlatable_id"),
+            SqlaTable.created_on,
+            SqlaTable.changed_on,
+            SqlaTable.created_by_fk,
+            SqlaTable.changed_by_fk,
+            SqlaTable.table_name.label("name"),
+            SqlaTable.schema,
+            SqlaTable.database_id,
+            SqlaTable.is_managed_externally,
+            SqlaTable.external_url,
         )
         # use an inner join to filter out only tables with valid database ids
         .select_from(sa.join(SqlaTable, Database, SqlaTable.database_id == Database.id))
@@ -353,20 +367,18 @@ def copy_datasets(session: Session) -> None:
     insert_from_select(
         NewDataset,
         select(
-            [
-                SqlaTable.uuid,
-                SqlaTable.created_on,
-                SqlaTable.changed_on,
-                SqlaTable.created_by_fk,
-                SqlaTable.changed_by_fk,
-                SqlaTable.database_id,
-                SqlaTable.table_name.label("name"),
-                func.coalesce(SqlaTable.sql, SqlaTable.table_name).label("expression"),
-                is_physical_table.label("is_physical"),
-                SqlaTable.is_managed_externally,
-                SqlaTable.external_url,
-                SqlaTable.extra.label("extra_json"),
-            ]
+            SqlaTable.uuid,
+            SqlaTable.created_on,
+            SqlaTable.changed_on,
+            SqlaTable.created_by_fk,
+            SqlaTable.changed_by_fk,
+            SqlaTable.database_id,
+            SqlaTable.table_name.label("name"),
+            func.coalesce(SqlaTable.sql, SqlaTable.table_name).label("expression"),
+            is_physical_table.label("is_physical"),
+            SqlaTable.is_managed_externally,
+            SqlaTable.external_url,
+            SqlaTable.extra.label("extra_json"),
         ),
     )
 
@@ -374,7 +386,7 @@ def copy_datasets(session: Session) -> None:
     insert_from_select(
         dataset_user_association_table,
         select(
-            [NewDataset.id.label("dataset_id"), sqlatable_user_table.c.user_id]
+            NewDataset.id.label("dataset_id"), sqlatable_user_table.c.user_id
         ).select_from(
             sqlatable_user_table.join(
                 SqlaTable, SqlaTable.id == sqlatable_user_table.c.table_id
@@ -386,10 +398,8 @@ def copy_datasets(session: Session) -> None:
     insert_from_select(
         dataset_table_association_table,
         select(
-            [
-                NewDataset.id.label("dataset_id"),
-                NewTable.id.label("table_id"),
-            ]
+            NewDataset.id.label("dataset_id"),
+            NewTable.id.label("table_id"),
         ).select_from(
             sa.join(SqlaTable, NewTable, NewTable.sqlatable_id == SqlaTable.id).join(
                 NewDataset, NewDataset.uuid == SqlaTable.uuid
@@ -407,25 +417,23 @@ def copy_columns(session: Session) -> None:
     insert_from_select(
         NewColumn,
         select(
-            [
-                TableColumn.uuid,
-                TableColumn.created_on,
-                TableColumn.changed_on,
-                TableColumn.created_by_fk,
-                TableColumn.changed_by_fk,
-                TableColumn.groupby.label("is_dimensional"),
-                TableColumn.filterable.label("is_filterable"),
-                TableColumn.column_name.label("name"),
-                TableColumn.description,
-                func.coalesce(TableColumn.expression, TableColumn.column_name).label(
-                    "expression"
-                ),
-                sa.literal(False).label("is_aggregation"),
-                is_physical_column.label("is_physical"),
-                func.coalesce(TableColumn.is_dttm, False).label("is_temporal"),
-                func.coalesce(TableColumn.type, UNKNOWN_TYPE).label("type"),
-                TableColumn.extra.label("extra_json"),
-            ]
+            TableColumn.uuid,
+            TableColumn.created_on,
+            TableColumn.changed_on,
+            TableColumn.created_by_fk,
+            TableColumn.changed_by_fk,
+            TableColumn.groupby.label("is_dimensional"),
+            TableColumn.filterable.label("is_filterable"),
+            TableColumn.column_name.label("name"),
+            TableColumn.description,
+            func.coalesce(TableColumn.expression, TableColumn.column_name).label(
+                "expression"
+            ),
+            sa.literal(False).label("is_aggregation"),
+            is_physical_column.label("is_physical"),
+            func.coalesce(TableColumn.is_dttm, False).label("is_temporal"),
+            func.coalesce(TableColumn.type, UNKNOWN_TYPE).label("type"),
+            TableColumn.extra.label("extra_json"),
         ).select_from(active_table_columns),
     )
 
@@ -436,10 +444,8 @@ def copy_columns(session: Session) -> None:
     insert_from_select(
         dataset_column_association_table,
         select(
-            [
-                NewDataset.id.label("dataset_id"),
-                NewColumn.id.label("column_id"),
-            ],
+            NewDataset.id.label("dataset_id"),
+            NewColumn.id.label("column_id"),
         ).select_from(
             joined_columns_table.join(NewDataset, NewDataset.uuid == SqlaTable.uuid)
         ),
@@ -456,33 +462,31 @@ def copy_metrics(session: Session) -> None:
     insert_from_select(
         NewColumn,
         select(
-            [
-                SqlMetric.uuid,
-                SqlMetric.created_on,
-                SqlMetric.changed_on,
-                SqlMetric.created_by_fk,
-                SqlMetric.changed_by_fk,
-                SqlMetric.metric_name.label("name"),
-                SqlMetric.expression,
-                SqlMetric.description,
-                sa.literal(UNKNOWN_TYPE).label("type"),
-                (
-                    func.coalesce(
-                        sa.func.lower(SqlMetric.metric_type).in_(
-                            ADDITIVE_METRIC_TYPES_LOWER
-                        ),
-                        sa.literal(False),
-                    ).label("is_additive")
-                ),
-                sa.literal(True).label("is_aggregation"),
-                # metrics are by default not filterable
-                sa.literal(False).label("is_filterable"),
-                sa.literal(False).label("is_dimensional"),
-                sa.literal(False).label("is_physical"),
-                sa.literal(False).label("is_temporal"),
-                SqlMetric.extra.label("extra_json"),
-                SqlMetric.warning_text,
-            ]
+            SqlMetric.uuid,
+            SqlMetric.created_on,
+            SqlMetric.changed_on,
+            SqlMetric.created_by_fk,
+            SqlMetric.changed_by_fk,
+            SqlMetric.metric_name.label("name"),
+            SqlMetric.expression,
+            SqlMetric.description,
+            sa.literal(UNKNOWN_TYPE).label("type"),
+            (
+                func.coalesce(
+                    sa.func.lower(SqlMetric.metric_type).in_(
+                        ADDITIVE_METRIC_TYPES_LOWER
+                    ),
+                    sa.literal(False),
+                ).label("is_additive")
+            ),
+            sa.literal(True).label("is_aggregation"),
+            # metrics are by default not filterable
+            sa.literal(False).label("is_filterable"),
+            sa.literal(False).label("is_dimensional"),
+            sa.literal(False).label("is_physical"),
+            sa.literal(False).label("is_temporal"),
+            SqlMetric.extra.label("extra_json"),
+            SqlMetric.warning_text,
         ).select_from(active_metrics),
     )
 
@@ -490,10 +494,8 @@ def copy_metrics(session: Session) -> None:
     insert_from_select(
         dataset_column_association_table,
         select(
-            [
-                NewDataset.id.label("dataset_id"),
-                NewColumn.id.label("column_id"),
-            ],
+            NewDataset.id.label("dataset_id"),
+            NewColumn.id.label("column_id"),
         ).select_from(
             active_metrics.join(NewDataset, NewDataset.uuid == SqlaTable.uuid).join(
                 NewColumn, NewColumn.uuid == SqlMetric.uuid
@@ -552,15 +554,13 @@ def postprocess_datasets(session: Session) -> None:  # noqa: C901
             sqlalchemy_uri,
         ) in session.execute(
             select(
-                [
-                    NewDataset.database_id,
-                    NewDataset.id.label("dataset_id"),
-                    NewDataset.expression,
-                    SqlaTable.extra,
-                    NewDataset.is_physical,
-                    SqlaTable.schema,
-                    Database.sqlalchemy_uri,
-                ]
+                NewDataset.database_id,
+                NewDataset.id.label("dataset_id"),
+                NewDataset.expression,
+                SqlaTable.extra,
+                NewDataset.is_physical,
+                SqlaTable.schema,
+                Database.sqlalchemy_uri,
             )
             .select_from(joined_tables)
             .offset(offset)
@@ -593,11 +593,18 @@ def postprocess_datasets(session: Session) -> None:  # noqa: C901
                 updated = True
 
             if not is_physical and drivername and expression:
-                table_refrences = extract_table_references(
-                    expression, get_dialect_name(drivername), show_warning=False
-                )
+                db_engine_spec = get_db_engine_spec(sqlalchemy_uri)
+                parsed_script = SQLScript(expression, db_engine_spec.engine)
+                table_references = {
+                    table
+                    for statement in parsed_script.statements
+                    for table in statement.tables
+                }
                 found_tables = find_tables(
-                    session, database_id, schema, table_refrences
+                    session,
+                    database_id,
+                    schema,
+                    table_references,
                 )
                 if found_tables:
                     op.bulk_insert(
@@ -702,29 +709,27 @@ def postprocess_columns(session: Session) -> None:  # noqa: C901
         query = (
             select(
                 # sorted alphabetically
-                [
-                    NewColumn.id.label("column_id"),
-                    TableColumn.column_name,
-                    NewColumn.changed_by_fk,
-                    NewColumn.changed_on,
-                    NewColumn.created_on,
-                    NewColumn.description,
-                    SqlMetric.d3format,
-                    NewDataset.external_url,
-                    NewColumn.extra_json,
-                    NewColumn.is_dimensional,
-                    NewColumn.is_filterable,
-                    NewDataset.is_managed_externally,
-                    NewColumn.is_physical,
-                    SqlMetric.metric_type,
-                    TableColumn.python_date_format,
-                    Database.sqlalchemy_uri,
-                    dataset_table_association_table.c.table_id,
-                    func.coalesce(
-                        TableColumn.verbose_name, SqlMetric.verbose_name
-                    ).label("verbose_name"),
-                    NewColumn.warning_text,
-                ]
+                NewColumn.id.label("column_id"),
+                TableColumn.column_name,
+                NewColumn.changed_by_fk,
+                NewColumn.changed_on,
+                NewColumn.created_on,
+                NewColumn.description,
+                SqlMetric.d3format,
+                NewDataset.external_url,
+                NewColumn.extra_json,
+                NewColumn.is_dimensional,
+                NewColumn.is_filterable,
+                NewDataset.is_managed_externally,
+                NewColumn.is_physical,
+                SqlMetric.metric_type,
+                TableColumn.python_date_format,
+                Database.sqlalchemy_uri,
+                dataset_table_association_table.c.table_id,
+                func.coalesce(TableColumn.verbose_name, SqlMetric.verbose_name).label(
+                    "verbose_name"
+                ),
+                NewColumn.warning_text,
             )
             .select_from(get_joined_tables(offset, limit))
             .where(
@@ -849,7 +854,7 @@ def postprocess_columns(session: Session) -> None:  # noqa: C901
     print("   Assign table column relations...")
     insert_from_select(
         table_column_association_table,
-        select([NewColumn.table_id, NewColumn.id.label("column_id")])
+        select(NewColumn.table_id, NewColumn.id.label("column_id"))
         .select_from(NewColumn)
         .where(and_(NewColumn.is_physical, NewColumn.table_id.isnot(None))),
     )
@@ -867,15 +872,17 @@ new_tables: sa.Table = [
 
 
 def reset_postgres_id_sequence(table: str) -> None:
+    """Reset PostgreSQL sequence ID for a table's id column."""
     op.execute(
-        f"""
+        text("""
         SELECT setval(
-            pg_get_serial_sequence('{table}', 'id'),
+            pg_get_serial_sequence(:table, 'id'),
             COALESCE(max(id) + 1, 1),
             false
         )
-        FROM {table};
-    """
+        FROM :table;
+        """),
+        {"table": table},
     )
 
 

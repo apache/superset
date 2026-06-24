@@ -21,12 +21,12 @@ from sqlalchemy.dialects.mysql import DATE, NVARCHAR, TEXT, VARCHAR
 
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.base_tests import SupersetTestCase
 
 
-class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
+class TestMySQLEngineSpecsDbEngineSpec(SupersetTestCase):
     @unittest.skipUnless(
-        TestDbEngineSpec.is_module_installed("MySQLdb"), "mysqlclient not installed"
+        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
     )
     def test_get_datatype_mysql(self):
         """Tests related to datatype mapping for MySQL"""

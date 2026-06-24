@@ -17,19 +17,34 @@
 # pylint: disable=invalid-name, redefined-outer-name, too-many-lines
 
 
-import pytest
-from sqlglot import Dialects
+import logging
 
-from superset.exceptions import SupersetParseError
+import pytest
+from pytest_mock import MockerFixture
+from sqlglot import Dialects, exp, parse_one
+
+from superset.exceptions import QueryClauseValidationException, SupersetParseError
+from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
+    CTASMethod,
     extract_tables_from_statement,
+    JinjaSQLResult,
+    KQLTokenType,
     KustoKQLStatement,
+    LimitMethod,
+    Partition,
+    process_jinja_sql,
+    remove_quotes,
+    RLSMethod,
+    sanitize_clause,
     split_kql,
     SQLGLOT_DIALECTS,
     SQLScript,
     SQLStatement,
     Table,
+    tokenize_kql,
 )
+from tests.integration_tests.conftest import with_feature_flags
 
 
 def test_table() -> None:
@@ -48,6 +63,116 @@ def test_table() -> None:
         str(Table("table.name", "schema/name", "catalog\nname"))
         == "catalog%0Aname.schema%2Fname.table%2Ename"
     )
+
+
+def test_table_qualify() -> None:
+    """
+    Test the `Table.qualify` method.
+
+    The qualify method should add schema and/or catalog if not already set,
+    but should not override existing values.
+    """
+    # Table with no schema or catalog
+    table = Table("tbname")
+
+    # Add schema only
+    qualified = table.qualify(schema="schemaname")
+    assert qualified.table == "tbname"
+    assert qualified.schema == "schemaname"
+    assert qualified.catalog is None
+    assert str(qualified) == "schemaname.tbname"
+
+    # Add catalog only
+    qualified = table.qualify(catalog="catalogname")
+    assert qualified.table == "tbname"
+    assert qualified.schema is None
+    assert qualified.catalog == "catalogname"
+    assert str(qualified) == "catalogname.tbname"
+
+    # Add both schema and catalog
+    qualified = table.qualify(schema="schemaname", catalog="catalogname")
+    assert qualified.table == "tbname"
+    assert qualified.schema == "schemaname"
+    assert qualified.catalog == "catalogname"
+    assert str(qualified) == "catalogname.schemaname.tbname"
+
+    # Table with existing schema - should not override
+    table_with_schema = Table("tbname", "existingschema")
+    qualified = table_with_schema.qualify(schema="newschema")
+    assert qualified.schema == "existingschema"
+    assert str(qualified) == "existingschema.tbname"
+
+    # Table with existing catalog - should not override
+    table_with_catalog = Table("tbname", catalog="existingcatalog")
+    qualified = table_with_catalog.qualify(catalog="newcatalog")
+    assert qualified.catalog == "existingcatalog"
+    assert str(qualified) == "existingcatalog.tbname"
+
+    # Table with existing schema and catalog - should not override
+    fully_qualified = Table("tbname", "existingschema", "existingcatalog")
+    qualified = fully_qualified.qualify(schema="newschema", catalog="newcatalog")
+    assert qualified.schema == "existingschema"
+    assert qualified.catalog == "existingcatalog"
+    assert str(qualified) == "existingcatalog.existingschema.tbname"
+
+    # Table with schema but no catalog - should add catalog only
+    table_with_schema_only = Table("tbname", "existingschema")
+    qualified = table_with_schema_only.qualify(
+        schema="newschema", catalog="catalogname"
+    )
+    assert qualified.schema == "existingschema"
+    assert qualified.catalog == "catalogname"
+    assert str(qualified) == "catalogname.existingschema.tbname"
+
+    # Table with catalog but no schema - should add schema only
+    table_with_catalog_only = Table("tbname", catalog="existingcatalog")
+    qualified = table_with_catalog_only.qualify(
+        schema="schemaname", catalog="newcatalog"
+    )
+    assert qualified.schema == "schemaname"
+    assert qualified.catalog == "existingcatalog"
+    assert str(qualified) == "existingcatalog.schemaname.tbname"
+
+    # Calling qualify with no arguments should return equivalent table
+    qualified = table.qualify()
+    assert qualified.table == table.table
+    assert qualified.schema == table.schema
+    assert qualified.catalog == table.catalog
+
+
+def test_partition() -> None:
+    """
+    Test the `Partition` class and its string conversion.
+    """
+    # Test partitioned table with partition columns
+    partition = Partition(is_partitioned_table=True, partition_column=("col1", "col2"))
+    assert partition.is_partitioned_table is True
+    assert partition.partition_column == ("col1", "col2")
+    assert (
+        str(partition)
+        == "Partition(is_partitioned_table=True, partition_column=[col1, col2])"
+    )
+
+    # Test non-partitioned table
+    partition_none = Partition(is_partitioned_table=False, partition_column=None)
+    assert partition_none.is_partitioned_table is False
+    assert partition_none.partition_column is None
+    assert (
+        str(partition_none)
+        == "Partition(is_partitioned_table=False, partition_column=[None])"
+    )
+
+    # Test equality
+    partition1 = Partition(is_partitioned_table=True, partition_column=("col1",))
+    partition2 = Partition(is_partitioned_table=True, partition_column=("col1",))
+    partition3 = Partition(is_partitioned_table=True, partition_column=("col2",))
+    assert partition1 == partition2
+    assert partition1 != partition3
+
+    # A frozen dataclass with a tuple field must be hashable (a list field would
+    # raise TypeError: unhashable type at hash time).
+    assert hash(partition1) == hash(partition2)
+    assert len({partition1, partition2, partition3}) == 2
 
 
 def extract_tables_from_sql(sql: str, engine: str = "postgresql") -> set[Table]:
@@ -287,8 +412,6 @@ def test_extract_tables_show_tables_from() -> None:
 def test_format_show_tables() -> None:
     """
     Test format when `ast.sql()` raises an exception.
-
-    In that case sqlparse should be used instead.
     """
     assert (
         SQLScript("SHOW TABLES FROM s1 like '%order%'", "mysql").format()
@@ -302,7 +425,13 @@ def test_format_no_dialect() -> None:
     """
     assert (
         SQLScript("SELECT col FROM t WHERE col NOT IN (1, 2)", "dremio").format()
-        == "SELECT col\nFROM t\nWHERE col NOT IN (1,\n                  2)"
+        == """
+SELECT
+  col
+FROM t
+WHERE
+  NOT col IN (1, 2)
+        """.strip()
     )
 
 
@@ -313,9 +442,9 @@ def test_split_no_dialect() -> None:
     sql = "SELECT col FROM t WHERE col NOT IN (1, 2); SELECT * FROM t; SELECT foo"
     statements = SQLScript(sql, "dremio").statements
     assert len(statements) == 3
-    assert statements[0]._sql == "SELECT col FROM t WHERE col NOT IN (1, 2)"
-    assert statements[1]._sql == "SELECT * FROM t"
-    assert statements[2]._sql == "SELECT foo"
+    assert statements[0].format() == "SELECT\n  col\nFROM t\nWHERE\n  NOT col IN (1, 2)"
+    assert statements[1].format() == "SELECT\n  *\nFROM t"
+    assert statements[2].format() == "SELECT\n  foo"
 
 
 def test_extract_tables_show_columns_from() -> None:
@@ -643,7 +772,6 @@ FROM (
     UNION ALL SELECT lets_go_deeper
     FROM f
     WHERE 1=1
-    WHERE 2=2
     GROUP BY last_col
     LIMIT 50000
 )
@@ -742,6 +870,53 @@ Events | take 100""",
     assert query.get_settings() == {"querytrace": True}
 
 
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        (
+            " SELECT foo FROM tbl ; ",
+            "postgresql",
+            ["SELECT\n  foo\nFROM tbl"],
+        ),
+        (
+            "SELECT foo FROM tbl1; SELECT bar FROM tbl2;",
+            "postgresql",
+            ["SELECT\n  foo\nFROM tbl1", "SELECT\n  bar\nFROM tbl2"],
+        ),
+        (
+            "let foo = 1; tbl | where bar == foo",
+            "kustokql",
+            ["let foo = 1", "tbl | where bar == foo"],
+        ),
+        (
+            "SELECT 1; -- extraneous comment",
+            "postgresql",
+            ["SELECT\n  1 /* extraneous comment */"],
+        ),
+        (
+            "SHOW TABLES FROM s1 like '%order%';",
+            "mysql",
+            ["SHOW TABLES FROM s1 LIKE '%order%'"],
+        ),
+        (
+            "SELECT 1; SELECT 2; SELECT 3;",
+            "unknown-engine",
+            [
+                "SELECT\n  1",
+                "SELECT\n  2",
+                "SELECT\n  3",
+            ],
+        ),
+    ],
+)
+def test_sqlscript_split(sql: str, engine: str, expected: list[str]) -> None:
+    """
+    Test the `SQLScript` class with a script that has a single statement.
+    """
+    script = SQLScript(sql, engine)
+    assert [statement.format() for statement in script.statements] == expected
+
+
 def test_sqlstatement() -> None:
     """
     Test the `SQLStatement` class.
@@ -751,17 +926,58 @@ def test_sqlstatement() -> None:
         "sqlite",
     )
 
-    assert statement.tables == {
-        Table(table="table1", schema=None, catalog=None),
-        Table(table="table2", schema=None, catalog=None),
-    }
     assert (
         statement.format()
         == "SELECT\n  *\nFROM table1\nUNION ALL\nSELECT\n  *\nFROM table2"
     )
+    assert str(statement) == statement.format()
+
+    assert statement.tables == {
+        Table(table="table1", schema=None, catalog=None),
+        Table(table="table2", schema=None, catalog=None),
+    }
+
+    assert statement.parse_predicate("a > 1") == exp.GT(
+        this=exp.Column(this=exp.Identifier(this="a", quoted=False)),
+        expression=exp.Literal(this="1", is_string=False),
+    )
 
     statement = SQLStatement("SET a=1", "sqlite")
     assert statement.get_settings() == {"a": "1"}
+
+    with pytest.raises(
+        ValueError,
+        match="Either statement or ast must be provided",
+    ):
+        SQLStatement()
+
+
+def test_kustokqlstatement() -> None:
+    """
+    Test the `KustoKQLStatement` class.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+
+    assert statement.format() == "foo | take 100"
+    assert str(statement) == statement.format()
+
+    # doesn't support table extraction
+    assert statement.tables == set()
+
+    # optimize is a no-op
+    assert statement.optimize().format() == "foo | take 100"
+
+    # predicate parsing is also no-op
+    assert statement.parse_predicate("a > 1") == "a > 1"
+
+    with pytest.raises(SupersetParseError, match="Invalid engine: invalid-engine"):
+        KustoKQLStatement("foo | take 100", "invalid-engine")
+
+    with pytest.raises(
+        SupersetParseError,
+        match="KustoKQLStatement should have exactly one statement",
+    ):
+        KustoKQLStatement("foo | take 1; bar | take 2", "kustokql")
 
 
 def test_kustokqlstatement_split_script() -> None:
@@ -843,11 +1059,13 @@ def test_kustokql_statement_split_special(kql: str, statements: int) -> None:
     assert len(KustoKQLStatement.split_script(kql, "kustokql")) == statements
 
 
-def test_split_kql() -> None:
-    """
-    Test the `split_kql` function.
-    """
-    kql = """
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        (";Table | take 5", ["Table | take 5"]),
+        (";Table | take 5;", ["Table | take 5"]),
+        (
+            """
 let totalPagesPerDay = PageViews
 | summarize by Page, Day = startofday(Timestamp)
 | summarize count() by Day;
@@ -868,18 +1086,18 @@ on Page
     totalPagesPerDay
 on $left.Day1 == $right.Day
 | project Day1, Day2, Percentage = count_*100.0/count_1
-    """
-    assert split_kql(kql) == [
-        """
+            """,
+            [
+                """
 let totalPagesPerDay = PageViews
 | summarize by Page, Day = startofday(Timestamp)
 | summarize count() by Day""",
-        """
+                """
 let materializedScope = PageViews
 | summarize by Page, Day = startofday(Timestamp)""",
-        """
+                """
 let cachedResult = materialize(materializedScope)""",
-        """
+                """
 cachedResult
 | project Page, Day1 = Day
 | join kind = inner
@@ -894,8 +1112,16 @@ on Page
     totalPagesPerDay
 on $left.Day1 == $right.Day
 | project Day1, Day2, Percentage = count_*100.0/count_1
-    """,
-    ]
+            """,
+            ],
+        ),
+    ],
+)
+def test_split_kql(kql: str, expected: list[str]) -> None:
+    """
+    Test the `split_kql` function.
+    """
+    assert split_kql(kql) == expected
 
 
 @pytest.mark.parametrize(
@@ -917,7 +1143,14 @@ on $left.Day1 == $right.Day
         ("postgresql", "DROP TABLE foo", True),
         ("postgresql", "EXPLAIN ANALYZE SELECT * FROM foo", False),
         ("postgresql", "EXPLAIN ANALYZE DELETE FROM foo", True),
+        # SHOW reads server configuration; it mutates nothing, so it is NOT
+        # classified as mutating (that would be wrong for the commit/limit/
+        # "only SELECT" consumers of has_mutation()). Gating disclosure reads
+        # belongs in DISALLOWED_SQL_FUNCTIONS, not the mutation check.
         ("postgresql", "SHOW search_path", False),
+        # SET search_path parses as exp.Set (a structured node), not
+        # exp.Command, so the SET-in-mutating-commands rule does NOT
+        # catch it. Pure GUC reads/writes stay non-mutating.
         ("postgresql", "SET search_path TO public", False),
         (
             "postgres",
@@ -974,6 +1207,101 @@ def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
     Test the `has_mutation` method.
     """
     assert SQLScript(sql, engine).has_mutation() == expected
+
+
+@pytest.mark.parametrize(
+    "engine, sql, expected",
+    [
+        # Plain SELECT parses to a proper AST node.
+        ("postgresql", "SELECT * FROM foo", False),
+        # CALL parses to ``exp.Command`` on Postgres.
+        ("postgresql", "CALL my_proc(1);", True),
+        # A script that mixes a parseable statement with an unparseable one
+        # is still flagged so strict scoping can refuse the whole script.
+        ("postgresql", "SELECT 1; CALL my_proc();", True),
+        # Non-sqlglot engines (e.g. Kusto KQL) do not produce a parseable
+        # AST and cannot have their tables enumerated, so they must be
+        # flagged as unparseable to fail closed under strict scoping.
+        ("kustokql", "print 1", True),
+    ],
+)
+def test_has_unparseable_statement(engine: str, sql: str, expected: bool) -> None:
+    """
+    Test the `has_unparseable_statement` property used by strict scoping to
+    refuse statements that sqlglot couldn't fully model.
+    """
+    assert SQLScript(sql, engine).has_unparseable_statement is expected
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT last(my_value_column, my_time_column) FROM my_table",
+        "SELECT first(my_value_column, my_time_column) FROM my_table",
+        "SELECT time_bucket('1 hour', my_time_column) AS bucket FROM my_table",
+    ],
+)
+def test_postgres_parses_timescaledb_hyperfunctions(sql: str) -> None:
+    """
+    Regression for #32028: TimescaleDB extends Postgres with hyperfunctions
+    (``last``, ``first``, ``time_bucket``, etc.) that take more arguments
+    than vanilla Postgres equivalents. SQL Lab tolerates them (it routes
+    raw SQL straight to the engine), but the dashboard chart path runs the
+    SQL through ``SQLScript`` for inspection. A strict per-function arity
+    check in sqlglot was rejecting these queries with ``The number of
+    provided arguments (2) is greater than the maximum number of supported
+    arguments (1)``, which broke dashboards built on TimescaleDB datasets.
+
+    These tests pin that the parse path tolerates Postgres-dialect SQL
+    using TimescaleDB hyperfunction signatures. If a future sqlglot
+    upgrade reintroduces the strict arity check, this fails immediately.
+    """
+    SQLScript(sql, "postgresql")  # Must not raise.
+
+
+@pytest.mark.parametrize(
+    "engine",
+    ["oracle", "postgresql", "trino", "presto", "hive", "base"],
+)
+def test_with_clause_containing_union_is_not_mutating(engine: str) -> None:
+    """
+    Regression for #25659: a SELECT with a WITH clause whose CTEs contain
+    UNION (or UNION ALL) must not be classified as mutating, on any dialect.
+
+    The original bug surfaced on Oracle, where saving a virtual dataset built
+    from such a query failed with "Only `SELECT` statements are allowed". The
+    parser was misclassifying the WITH+UNION construct as DML.
+
+    Multiple dialects are exercised because the bug arose from sqlglot's
+    per-dialect AST shape — Oracle's representation of the same query may
+    differ from Postgres/Trino, and a fix that only touches one dialect
+    leaves the others exposed to the same regression.
+    """
+    sql = """
+    WITH set1 AS (SELECT 1 AS n UNION SELECT 2),
+         set2 AS (SELECT * FROM set1)
+    SELECT * FROM set2
+    """
+    assert not SQLScript(sql, engine).has_mutation(), (
+        f"WITH+UNION misclassified as mutating on {engine!r}; "
+        "this would block the query from being saved as a virtual dataset."
+    )
+
+
+def test_with_clause_containing_union_all_is_not_mutating_oracle() -> None:
+    """
+    Companion to test_with_clause_containing_union_is_not_mutating: the
+    original bug report (#25659) used the exact Oracle-flavored shape below
+    (``SYSDATE FROM DUAL`` is the Oracle no-op for "now"). Pinning the
+    verbatim repro guards against a future dialect-specific regression that
+    a generic ``SELECT 1`` test might miss.
+    """
+    sql = """
+    WITH SET1 AS (SELECT SYSDATE FROM DUAL UNION ALL SELECT SYSDATE FROM DUAL),
+         SET2 AS (SELECT * FROM SET1)
+    SELECT * FROM SET2
+    """
+    assert not SQLScript(sql, "oracle").has_mutation()
 
 
 def test_get_settings() -> None:
@@ -1050,7 +1378,6 @@ def test_custom_dialect(app: None) -> None:
         "pydoris",
         "redshift",
         "risingwave",
-        "rockset",
         "shillelagh",
         "snowflake",
         "solr",
@@ -1062,14 +1389,355 @@ def test_custom_dialect(app: None) -> None:
         "vertica",
     ],
 )
-def test_is_mutating(engine: str) -> None:
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1", False),
+        ("with source as ( select 1 as one ) select * from source", False),
+        ("ALTER TABLE foo ADD COLUMN bar INT", True),
+        # COMMENT ON parses as a typed exp.Comment node across dialects; it
+        # writes to the catalog (pg_description on Postgres) so it is gated.
+        ("COMMENT ON TABLE t IS 'note'", True),
+    ],
+)
+def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
     """
     Global tests for `is_mutating`, covering all supported engines.
     """
-    assert not SQLStatement(
-        "with source as ( select 1 as one ) select * from source",
-        engine=engine,
-    ).is_mutating()
+    assert SQLStatement(sql, engine).is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        (
+            """
+DO $$
+BEGIN
+  INSERT INTO public.users (name, real_name)
+    VALUES ('SQLLab bypass DML', 'SQLLab bypass DML');
+END;
+$$;
+            """,
+            True,
+        ),
+        (
+            """
+DO $$
+BEGIN
+    IF (SELECT COUNT(*) FROM orders WHERE status = 'pending') > 100 THEN
+        RAISE NOTICE 'High pending order volume detected';
+    END IF;
+END;
+$$;
+            """,
+            True,
+        ),
+    ],
+)
+def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
+    """
+    Test for `is_mutating` with a Postgres anonymous block.
+
+    Since we can't parse the PL/pgSQL inside the block we always assume it is mutating.
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        # PostgreSQL large-object writers: each mutates server state. The bare
+        # SELECT wrapper is irrelevant because the function call itself is the
+        # side effect.
+        ("SELECT lo_from_bytea(0, decode('deadbeef', 'hex'))", True),
+        ("SELECT lo_export(12345, '/tmp/payload.bin')", True),
+        ("SELECT lo_import('/etc/passwd')", True),
+        ("SELECT lo_put(12345, 0, decode('00', 'hex'))", True),
+        ("SELECT lo_create(0)", True),
+        ("SELECT lowrite(12345, decode('00', 'hex'))", True),
+        # lo_unlink deletes a large object outright.
+        ("SELECT lo_unlink(12345)", True),
+        # PostgreSQL sequence mutators. setval()/nextval() look like reads but
+        # advance sequence state for every subsequent caller.
+        ("SELECT setval('public.my_seq', 1000)", True),
+        ("SELECT SETVAL('public.my_seq', 1)", True),
+        ("SELECT nextval('public.my_seq')", True),
+        # currval() only reads the session's last value, so it is not mutating.
+        ("SELECT currval('public.my_seq')", False),
+        # Read-side large-object functions are intentionally NOT classified
+        # as mutating here. They are still blocked via the function denylist
+        # (see DISALLOWED_SQL_FUNCTIONS) but they do not write state.
+        ("SELECT lo_get(12345)", False),
+        ("SELECT loread(12345, 1024)", False),
+        # Case-insensitive matching: the AST stores the raw casing for
+        # anonymous functions, the check uppercases both sides.
+        ("SELECT LO_EXPORT(12345, '/tmp/x')", True),
+        # `SELECT INTO new_table FROM existing` creates a new relation; treat
+        # as mutating even though sqlglot parses it as exp.Select.
+        ("SELECT * INTO new_table FROM existing_table", True),
+        ("SELECT col INTO TEMP new_table FROM existing_table", True),
+        # A built-in function whose first string argument happens to match a
+        # mutating name must NOT be flagged. sqlglot parses these into dedicated
+        # nodes (e.g. exp.Upper) whose `.name` is the argument text, not the
+        # function name, so the walk is restricted to exp.Anonymous to avoid a
+        # false positive on this read-only query.
+        ("SELECT upper('lo_export')", False),
+        ("SELECT length('setval')", False),
+        # Plain SELECT must remain non-mutating.
+        ("SELECT 1", False),
+        ("SELECT * FROM users WHERE id = 1", False),
+    ],
+)
+def test_is_mutating_postgres_function_and_select_into(
+    sql: str, expected: bool
+) -> None:
+    """
+    `is_mutating` must catch mutating function calls (PostgreSQL large-object
+    writers) and `SELECT ... INTO new_table` even though the wrapping AST
+    node is a plain `exp.Select`.
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # `SELECT ... INTO new_table` is CTAS only in Postgres/Redshift/T-SQL.
+        # In Oracle PL/SQL and MySQL the same syntax assigns into a variable
+        # and is a read, so it must NOT be classified as mutating.
+        ("oracle", "SELECT col INTO v FROM existing_table"),
+        ("mysql", "SELECT col INTO @v FROM existing_table"),
+    ],
+)
+def test_is_mutating_select_into_variable_is_read(engine: str, sql: str) -> None:
+    """
+    `SELECT ... INTO target` is only CTAS (mutating) for dialects where the
+    syntax creates a table. On Oracle/MySQL it assigns into a variable and is
+    a read, so `is_mutating` must return False there.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is False
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # `SELECT ... INTO new_table` is CTAS on Redshift and T-SQL just as it
+        # is on Postgres, so each dialect in _SELECT_INTO_CTAS_DIALECTS must
+        # classify the statement as mutating.
+        ("redshift", "SELECT * INTO new_table FROM existing_table"),
+        ("redshift", "SELECT col INTO new_table FROM existing_table"),
+        ("mssql", "SELECT * INTO new_table FROM existing_table"),
+        ("mssql", "SELECT col INTO new_table FROM existing_table"),
+    ],
+)
+def test_is_mutating_select_into_ctas_dialects(engine: str, sql: str) -> None:
+    """
+    `SELECT ... INTO new_table` creates a table on the CTAS dialects beyond
+    Postgres (Redshift, T-SQL), so `is_mutating` must return True there.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is True
+
+
+@pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # The mutating-function names are PostgreSQL built-ins. On other engines
+        # a same-named read-only function or UDF must NOT be flagged as
+        # mutating, otherwise read-only queries get wrongly blocked.
+        ("mysql", "SELECT setval(my_col)"),
+        ("mysql", "SELECT lo_export(id, path) FROM t"),
+        ("base", "SELECT setval(my_col)"),
+        ("trino", "SELECT lowrite(x)"),
+    ],
+)
+def test_is_mutating_function_names_scoped_to_postgres(engine: str, sql: str) -> None:
+    """
+    `_MUTATING_FUNCTION_NAMES` is PostgreSQL-specific, so the function-name walk
+    only runs for the Postgres dialect; same-named functions on other engines
+    must stay non-mutating.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is False
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        # PostgreSQL constructs that sqlglot parses as opaque exp.Command.
+        # Each can wrap a DML body or change effective server state.
+        ("PREPARE u AS UPDATE t SET x = 1", True),
+        ("PREPARE i AS INSERT INTO t VALUES (1)", True),
+        ("EXECUTE my_plan", True),
+        ("CALL my_writing_procedure()", True),
+        ("COPY t FROM '/tmp/data.csv'", True),
+        ("GRANT SELECT ON t TO public", True),
+        ("REVOKE SELECT ON t FROM public", True),
+        ("SET ROLE other_role", True),
+        ("REFRESH MATERIALIZED VIEW mv", True),
+        ("REINDEX TABLE t", True),
+        ("VACUUM t", True),
+        # SHOW commands are reads (they mutate nothing), so they are NOT
+        # classified as mutating. Gating information-disclosure reads such as
+        # SHOW server_version belongs in DISALLOWED_SQL_FUNCTIONS (which already
+        # blocks pg_read_file, version(), etc.), not in the mutation check.
+        ("SHOW search_path", False),
+        ("SHOW all", False),
+        ("SHOW server_version", False),
+        # RESET reverts a prior SET (e.g. RESET ROLE backs out SET ROLE).
+        ("RESET ROLE", True),
+        # DDL head-tokens that sqlglot falls back to exp.Command for when the
+        # body uses syntax it does not model. One representative per
+        # head-token branch (CREATE/ALTER/DROP); they all hit the same
+        # set-lookup so additional CREATE PUBLICATION/SUBSCRIPTION/etc.
+        # cases would not add coverage.
+        (
+            "CREATE FUNCTION x() RETURNS int AS '/tmp/x.so', 'i' LANGUAGE C",
+            True,
+        ),
+        ("CREATE EXTENSION pg_trgm", True),  # non-FUNCTION DDL via Command
+        ("ALTER SYSTEM SET wal_level = 'logical'", True),
+        ("DROP EXTENSION pg_trgm", True),
+        # LOAD dlopens a shared library on the PG host. Same RCE primitive
+        # as `CREATE FUNCTION ... LANGUAGE C` if the library path is
+        # attacker-controlled (e.g. via a prior COPY-to-program foothold).
+        ("LOAD '/tmp/x.so'", True),
+        # Case-insensitive: sqlglot preserves source case on Command.name,
+        # so the set lookup must normalise. Regression for the original
+        # bug where a lowercase head-token bypassed the gate.
+        ("create extension pg_trgm", True),
+        ("load '/tmp/x.so'", True),
+        # Pre-existing positive controls
+        ("DO $$ BEGIN UPDATE t SET x = 1; END $$", True),
+        ("EXPLAIN ANALYZE UPDATE t SET x = 1", True),
+    ],
+)
+def test_is_mutating_postgres_command_constructs(sql: str, expected: bool) -> None:
+    """
+    Several PostgreSQL constructs are represented by sqlglot as opaque
+    `exp.Command` nodes (no structured AST). `is_mutating` recognises them
+    by command name so they cannot slip past the read-only gate.
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, functions, expected",
+    [
+        # MySQL `@@<name>` syntax parses as exp.SessionParameter, which is
+        # not a subclass of exp.Func. The walker must include it so the
+        # denylist entry for `version` still catches `SELECT @@version`.
+        ("SELECT @@version", "mysql", {"version"}, True),
+        ("SELECT @@global.version", "mysql", {"version"}, True),
+        ("SELECT @@hostname", "mysql", {"hostname"}, True),
+        ("SELECT @@datadir", "mysql", {"datadir"}, True),
+        # Negative control: a session parameter not in the denylist must
+        # not match.
+        ("SELECT @@autocommit", "mysql", {"version", "hostname"}, False),
+        # A plain SELECT does not introduce session-parameter names.
+        ("SELECT 1", "mysql", {"version"}, False),
+        # The pre-existing exp.Func walk still works for normal calls.
+        ("SELECT version()", "mysql", {"version"}, True),
+        # PostgreSQL large-object functions are exp.Anonymous calls. The
+        # walk includes them; the denylist entry catches them.
+        ("SELECT lo_export(12345, '/tmp/x')", "postgresql", {"lo_export"}, True),
+        (
+            "SELECT lo_from_bytea(0, decode('00','hex'))",
+            "postgresql",
+            {"lo_from_bytea"},
+            True,
+        ),
+        ("SELECT loread(12345, 1024)", "postgresql", {"loread"}, True),
+    ],
+)
+def test_check_functions_present_session_parameter(
+    sql: str, engine: str, functions: set[str], expected: bool
+) -> None:
+    """
+    `check_functions_present` must visit `exp.SessionParameter` so that
+    denylist entries for names like `version` or `hostname` also match
+    `SELECT @@version` / `SELECT @@hostname` in MySQL.
+    """
+    assert SQLScript(sql, engine).check_functions_present(functions) == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1", False),
+        ("INSERT INTO t VALUES (1)", False),
+        ("UPDATE t SET x = 1", False),
+        ("DELETE FROM t", False),
+        ("MERGE INTO t USING s ON t.id = s.id WHEN MATCHED THEN DELETE", False),
+        ("CREATE TABLE t (id INT)", False),
+        ("DROP TABLE t", True),
+        ("DROP TABLE IF EXISTS t", True),
+        ("DROP VIEW v", True),
+        ("TRUNCATE TABLE t", True),
+        ("ALTER TABLE t ADD COLUMN x INT", True),
+        ("ALTER TABLE t DROP COLUMN x", True),
+    ],
+)
+def test_is_destructive(sql: str, expected: bool) -> None:
+    """
+    Test that ``is_destructive`` detects DROP, TRUNCATE, and ALTER
+    but not SELECT, INSERT, UPDATE, DELETE, MERGE, or CREATE.
+    """
+    assert SQLStatement(sql, "postgresql").is_destructive() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1; INSERT INTO t VALUES (1)", False),
+        ("SELECT 1; DROP TABLE t", True),
+        ("SELECT 1; TRUNCATE TABLE t", True),
+        ("CREATE TABLE t (id INT); ALTER TABLE t ADD COLUMN x INT", True),
+    ],
+)
+def test_has_destructive(sql: str, expected: bool) -> None:
+    """
+    Test that ``has_destructive`` on SQLScript detects destructive DDL
+    across multiple statements.
+    """
+    assert SQLScript(sql, "postgresql").has_destructive() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1 UNION SELECT 2", True),
+        ("SELECT 1 UNION ALL SELECT 2", True),
+        ("SELECT 1 INTERSECT SELECT 2", True),
+        ("SELECT 1 EXCEPT SELECT 2", True),
+        ("SELECT 1", False),
+        ("WITH cte AS (SELECT 1) SELECT * FROM cte", False),
+        ("SELECT * FROM (SELECT 1 UNION SELECT 2) AS sub", False),
+    ],
+)
+def test_is_set_operation(sql: str, expected: bool) -> None:
+    """
+    Test that ``is_set_operation`` detects top-level UNION/INTERSECT/EXCEPT
+    but not nested set operations inside a sub-query.
+    """
+    assert SQLStatement(sql, "postgresql").is_set_operation() == expected
+
+
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        (".drop table T", True),
+        (".alter table T (col:string)", True),
+        (".show tables", False),
+        ("T | count", False),
+    ],
+)
+def test_kusto_is_destructive(kql: str, expected: bool) -> None:
+    """
+    Test ``is_destructive`` on KustoKQLStatement.
+    """
+    from superset.sql.parse import KustoKQLStatement
+
+    assert KustoKQLStatement(kql, "kustokql").is_destructive() == expected
 
 
 def test_optimize() -> None:
@@ -1085,7 +1753,8 @@ FROM some_table) AS anon_1
 WHERE anon_1.a > 1 AND anon_1.b = 2
     """
 
-    optimized = """SELECT
+    optimized = """
+SELECT
   anon_1.a,
   anon_1.b
 FROM (
@@ -1098,21 +1767,29 @@ FROM (
     some_table.a > 1 AND some_table.b = 2
 ) AS anon_1
 WHERE
-  TRUE AND TRUE"""
+  TRUE AND TRUE
+    """.strip()
 
     not_optimized = """
-SELECT anon_1.a,
-       anon_1.b
-FROM
-  (SELECT some_table.a AS a,
-          some_table.b AS b,
-          some_table.c AS c
-   FROM some_table) AS anon_1
-WHERE anon_1.a > 1
-  AND anon_1.b = 2"""
+SELECT
+  anon_1.a,
+  anon_1.b
+FROM (
+  SELECT
+    some_table.a AS a,
+    some_table.b AS b,
+    some_table.c AS c
+  FROM some_table
+) AS anon_1
+WHERE
+  anon_1.a > 1 AND anon_1.b = 2
+    """.strip()
 
     assert SQLStatement(sql, "sqlite").optimize().format() == optimized
-    assert SQLStatement(sql, "dremio").optimize().format() == not_optimized
+    assert SQLStatement(sql, "crate").optimize().format() == not_optimized
+
+    # also works for scripts
+    assert SQLScript(sql, "sqlite").optimize().format() == optimized
 
 
 def test_firebolt() -> None:
@@ -1160,7 +1837,1880 @@ def test_firebolt_old() -> None:
     sql = "SELECT * FROM t1 UNNEST(col1 AS foo)"
     assert (
         SQLStatement(sql, "firebolt").format()
-        == """SELECT
+        == """
+SELECT
   *
-FROM t1 UNNEST(col1 AS foo)"""
+FROM t1 UNNEST(col1 AS foo)
+        """.strip()
+    )
+
+
+def test_firebolt_old_escape_string() -> None:
+    """
+    Test the dialect for the old Firebolt syntax.
+    """
+    from superset.sql.dialects import FireboltOld
+    from superset.sql.parse import SQLGLOT_DIALECTS
+
+    SQLGLOT_DIALECTS["firebolt"] = FireboltOld
+
+    # both '' and \' are valid escape sequences
+    sql = r"SELECT 'foo''bar', 'foo\'bar'"
+
+    # but they normalize to ''
+    assert (
+        SQLStatement(sql, "firebolt").format()
+        == """
+SELECT
+  'foo''bar',
+  'foo''bar'
+        """.strip()
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM users LIMIT 10", "postgresql", 10),
+        (
+            """
+WITH cte_example AS (
+  SELECT * FROM my_table
+  LIMIT 100
+)
+SELECT * FROM cte_example
+LIMIT 10;
+        """,
+            "postgresql",
+            10,
+        ),
+        ("SELECT * FROM users ORDER BY id DESC LIMIT 25", "postgresql", 25),
+        ("SELECT * FROM users", "postgresql", None),
+        ("SELECT TOP 5 name FROM employees", "teradatasql", 5),
+        ("SELECT TOP (42) * FROM table_name", "teradatasql", 42),
+        ("select * from table", "postgresql", None),
+        ("select * from mytable limit 10", "postgresql", 10),
+        (
+            "select * from (select * from my_subquery limit 10) where col=1 limit 20",
+            "postgresql",
+            20,
+        ),
+        ("select * from (select * from my_subquery limit 10);", "postgresql", None),
+        (
+            "select * from (select * from my_subquery limit 10) where col=1 limit 20;",
+            "postgresql",
+            20,
+        ),
+        ("select * from mytable limit 20, 10", "postgresql", 10),
+        ("select * from mytable limit 10 offset 20", "postgresql", 10),
+        (
+            """
+SELECT id, value, i
+FROM (SELECT * FROM my_table LIMIT 10),
+LATERAL generate_series(1, value) AS i;
+        """,
+            "postgresql",
+            None,
+        ),
+        # not really valid SQL, but let's roll with it
+        ("SELECT * FROM my_table LIMIT invalid", "postgresql", None),
+    ],
+)
+def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
+    assert SQLStatement(sql, engine).get_limit_value() == expected
+
+
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        ("StormEvents | take 10", 10),
+        ("StormEvents | limit 20", 20),
+        ("StormEvents | where State == 'FL' | summarize count()", None),
+        ("StormEvents | where name has 'limit 10'", None),
+        ("AnotherTable | take 5", 5),
+        ("datatable(x:int) [1, 2, 3] | take 100", 100),
+        (
+            """
+    Table1 | where msg contains 'abc;xyz'
+           | limit 5
+    """,
+            5,
+        ),
+        ("table | take five", None),
+    ],
+)
+def test_get_kql_limit_value(kql: str, expected: str) -> None:
+    assert KustoKQLStatement(kql, "kustokql").get_limit_value() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, limit, method, expected",
+    [
+        (
+            "SELECT * FROM t",
+            "postgresql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nLIMIT 10",
+        ),
+        (
+            "SELECT * FROM t LIMIT 1000",
+            "postgresql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nLIMIT 10",
+        ),
+        (
+            "SELECT * FROM t",
+            "mssql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10\n  *\nFROM t",
+        ),
+        (
+            "SELECT * FROM t",
+            "teradatasql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10\n  *\nFROM t",
+        ),
+        (
+            "SELECT * FROM t",
+            "oracle",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nFETCH FIRST 10 ROWS ONLY",
+        ),
+        (
+            "SELECT * FROM t",
+            "db2",
+            10,
+            LimitMethod.WRAP_SQL,
+            "SELECT\n  *\nFROM (\n  SELECT\n    *\n  FROM t\n)\nLIMIT 10",
+        ),
+        (
+            "SEL TOP 1000 * FROM My_table",
+            "teradatasql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 100\n  *\nFROM My_table",
+        ),
+        (
+            "SEL TOP 1000 * FROM My_table;",
+            "teradatasql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 100\n  *\nFROM My_table",
+        ),
+        (
+            "SEL TOP 1000 * FROM My_table;",
+            "teradatasql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 1000\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table;",
+            "teradatasql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 100\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table;",
+            "teradatasql",
+            10000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10000\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table",
+            "mssql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 100\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table;",
+            "mssql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 100\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table;",
+            "mssql",
+            10000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10000\n  *\nFROM My_table",
+        ),
+        (
+            "SELECT TOP 1000 * FROM My_table;",
+            "mssql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 1000\n  *\nFROM My_table",
+        ),
+        (
+            """
+with abc as (select * from test union select * from test1)
+select TOP 100 * from currency
+            """,
+            "mssql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            """
+WITH abc AS (
+  SELECT
+    *
+  FROM test
+  UNION
+  SELECT
+    *
+  FROM test1
+)
+SELECT
+TOP 1000
+  *
+FROM currency
+            """.strip(),
+        ),
+        (
+            "SELECT DISTINCT x from tbl",
+            "mssql",
+            100,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT DISTINCT\nTOP 100\n  x\nFROM tbl",
+        ),
+        (
+            "SELECT 1 as cnt",
+            "mssql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10\n  1 AS cnt",
+        ),
+        (
+            "select TOP 1000 * from abc where id=1",
+            "mssql",
+            10,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\nTOP 10\n  *\nFROM abc\nWHERE\n  id = 1",
+        ),
+        (
+            "SELECT * FROM birth_names -- SOME COMMENT",
+            "postgresql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM birth_names /* SOME COMMENT */\nLIMIT 1000",
+        ),
+        (
+            "SELECT * FROM birth_names -- SOME COMMENT WITH LIMIT 555",
+            "postgresql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM birth_names /* SOME COMMENT WITH LIMIT 555 */
+LIMIT 1000
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM birth_names LIMIT 555",
+            "postgresql",
+            1000,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM birth_names\nLIMIT 1000",
+        ),
+        (
+            "SELECT * FROM birth_names LIMIT 555",
+            "postgresql",
+            1000,
+            LimitMethod.FETCH_MANY,
+            "SELECT\n  *\nFROM birth_names\nLIMIT 555",
+        ),
+    ],
+)
+def test_set_limit_value(
+    sql: str,
+    engine: str,
+    limit: int,
+    method: LimitMethod,
+    expected: str,
+) -> None:
+    statement = SQLStatement(sql, engine)
+    statement.set_limit_value(limit, method)
+    assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "kql, limit, expected",
+    [
+        ("StormEvents | take 10", 100, "StormEvents | take 100"),
+        ("StormEvents | limit 20", 10, "StormEvents | limit 10"),
+        (
+            "StormEvents | where State == 'FL' | summarize count()",
+            10,
+            "StormEvents | where State == 'FL' | summarize count() | take 10",
+        ),
+        (
+            "StormEvents | where name has 'limit 10'",
+            10,
+            "StormEvents | where name has 'limit 10' | take 10",
+        ),
+        ("AnotherTable | take 5", 50, "AnotherTable | take 50"),
+        (
+            "datatable(x:int) [1, 2, 3] | take 100",
+            10,
+            "datatable(x:int) [1, 2, 3] | take 10",
+        ),
+        (
+            """
+    Table1 | where msg contains 'abc;xyz'
+           | limit 5
+    """,
+            10,
+            """Table1 | where msg contains 'abc;xyz'
+           | limit 10""",
+        ),
+    ],
+)
+def test_set_kql_limit_value(kql: str, limit: int, expected: str) -> None:
+    """
+    Test the `set_limit_value` method for KustoKQLStatement.
+    """
+    statement = KustoKQLStatement(kql, "kustokql")
+    statement.set_limit_value(limit)
+    assert statement.format() == expected
+
+
+@pytest.mark.parametrize("method", [LimitMethod.WRAP_SQL, LimitMethod.FETCH_MANY])
+def test_set_kql_limit_value_invalid_method(method: LimitMethod) -> None:
+    """
+    Test that setting a limit value with an invalid method raises an error.
+    """
+    statement = KustoKQLStatement("foo", "kustokql")
+
+    with pytest.raises(
+        SupersetParseError,
+        match="Kusto KQL only supports the FORCE_LIMIT method.",
+    ):
+        statement.set_limit_value(10, method)
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT 1", "postgresql", False),
+        ("SELECT 1 AS cnt", "postgresql", False),
+        (
+            """
+SELECT 'INR' AS cur
+UNION
+SELECT 'USD' AS cur
+UNION
+SELECT 'EUR' AS cur
+            """,
+            "postgresql",
+            False,
+        ),
+        ("WITH cte AS (SELECT 1) SELECT * FROM cte", "postgresql", True),
+        (
+            """
+WITH
+    x AS (SELECT a FROM t1),
+    y AS (SELECT a AS b FROM t2),
+    z AS (SELECT b AS c FROM t3)
+SELECT c FROM z
+            """,
+            "postgresql",
+            True,
+        ),
+        (
+            """
+WITH
+    x AS (SELECT a FROM t1),
+    y AS (SELECT a AS b FROM x),
+    z AS (SELECT b AS c FROM y)
+SELECT c FROM z
+            """,
+            "postgresql",
+            True,
+        ),
+        (
+            """
+WITH CTE__test (SalesPersonID, SalesOrderID, SalesYear)
+AS (
+    SELECT SalesPersonID, SalesOrderID, YEAR(OrderDate) AS SalesYear
+    FROM SalesOrderHeader
+    WHERE SalesPersonID IS NOT NULL
+)
+SELECT SalesPersonID, COUNT(SalesOrderID) AS TotalSales, SalesYear
+FROM CTE__test
+GROUP BY SalesYear, SalesPersonID
+ORDER BY SalesPersonID, SalesYear;
+            """,
+            "postgresql",
+            True,
+        ),
+    ],
+)
+def test_has_cte(sql: str, engine: str, expected: bool) -> None:
+    """
+    Test that the parser detects CTEs correctly.
+    """
+    assert SQLStatement(sql, engine).has_cte() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        (
+            "SELECT 1",
+            "postgresql",
+            "WITH __cte AS (\n  SELECT\n    1\n)",
+        ),
+        (
+            """
+WITH currency AS (SELECT 'INR' AS cur),
+     currency_2 AS (SELECT 'USD' AS cur)
+SELECT * FROM currency
+UNION ALL
+SELECT * FROM currency_2
+            """,
+            "postgresql",
+            """
+WITH currency AS (
+  SELECT
+    'INR' AS cur
+), currency_2 AS (
+  SELECT
+    'USD' AS cur
+), __cte AS (
+  SELECT
+    *
+  FROM currency
+  UNION ALL
+  SELECT
+    *
+  FROM currency_2
+)
+            """.strip(),
+        ),
+    ],
+)
+def test_as_cte(sql: str, engine: str, expected: str) -> None:
+    """
+    Test that we can covert select to CTE.
+    """
+    assert SQLStatement(sql, engine).as_cte().format() == expected
+
+
+def test_as_cte_called_twice() -> None:
+    """
+    Test that calling as_cte() multiple times on the same instance works.
+
+    Regression test for a bug where as_cte() sets self._parsed.args["with_"] = None
+    after extracting CTEs, but has_cte() only checked if the key existed, not if
+    the value was truthy. This caused an AttributeError on subsequent as_cte() calls.
+    """
+    sql = "WITH cte AS (SELECT 1) SELECT * FROM cte"
+    stmt = SQLStatement(sql, "postgresql")
+
+    assert stmt.has_cte() is True
+    stmt.as_cte()
+    assert stmt.has_cte() is False
+    stmt.as_cte()
+
+
+@pytest.mark.parametrize(
+    "sql, rules, expected",
+    [
+        (
+            "SELECT t.foo FROM some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM (
+  SELECT
+    *
+  FROM some_table
+  WHERE
+    id = 42
+) AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM some_table AS t",
+            {},
+            """
+SELECT
+  t.foo
+FROM some_table AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM some_table AS t WHERE bar = 'baz'",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM (
+  SELECT
+    *
+  FROM some_table
+  WHERE
+    id = 42
+) AS t
+WHERE
+  bar = 'baz'
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM schema1.some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM (
+  SELECT
+    *
+  FROM schema1.some_table
+  WHERE
+    id = 42
+) AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM schema1.some_table AS t",
+            {Table("some_table", "schema2"): "id = 42"},
+            "SELECT\n  t.foo\nFROM schema1.some_table AS t",
+        ),
+        (
+            "SELECT t.foo FROM catalog1.schema1.some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM (
+  SELECT
+    *
+  FROM catalog1.schema1.some_table
+  WHERE
+    id = 42
+) AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM catalog1.schema1.some_table AS t",
+            {Table("some_table", "schema1", "catalog2"): "id = 42"},
+            "SELECT\n  t.foo\nFROM catalog1.schema1.some_table AS t",
+        ),
+        (
+            "SELECT * FROM some_table WHERE 1=1",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM some_table
+  WHERE
+    id = 42
+) AS "some_table"
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM table
+  WHERE
+    id = 42
+) AS "table"
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            'SELECT * FROM "table" WHERE 1=1',
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM "table"
+  WHERE
+    id = 42
+) AS "table"
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM other_table WHERE 1=1",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM other_table
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table JOIN other_table ON table.id = other_table.id",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+JOIN (
+  SELECT
+    *
+  FROM other_table
+  WHERE
+    id = 42
+) AS "other_table"
+  ON table.id = other_table.id
+            """.strip(),
+        ),
+        (
+            'SELECT * FROM "table" JOIN other_table ON "table".id = other_table.id',
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM "table"
+  WHERE
+    id = 42
+) AS "table"
+JOIN other_table
+  ON "table".id = other_table.id
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM (SELECT * FROM some_table)",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM (
+    SELECT
+      *
+    FROM some_table
+    WHERE
+      id = 42
+  ) AS "some_table"
+)
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table UNION ALL SELECT * FROM other_table",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM table
+  WHERE
+    id = 42
+) AS "table"
+UNION ALL
+SELECT
+  *
+FROM other_table
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table UNION ALL SELECT * FROM other_table",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+UNION ALL
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM other_table
+  WHERE
+    id = 42
+) AS "other_table"
+            """.strip(),
+        ),
+        (
+            "SELECT a.*, b.* FROM tbl_a AS a INNER JOIN tbl_b AS b ON a.col = b.col",
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  a.*,
+  b.*
+FROM (
+  SELECT
+    *
+  FROM tbl_a
+  WHERE
+    id = 42
+) AS a
+INNER JOIN tbl_b AS b
+  ON a.col = b.col
+            """.strip(),
+        ),
+        (
+            "SELECT a.*, b.* FROM tbl_a a INNER JOIN tbl_b b ON a.col = b.col",
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  a.*,
+  b.*
+FROM (
+  SELECT
+    *
+  FROM tbl_a
+  WHERE
+    id = 42
+) AS a
+INNER JOIN tbl_b AS b
+  ON a.col = b.col
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM public.flights LIMIT 100",
+            {Table("flights", "public", "catalog1"): "\"AIRLINE\" like 'A%'"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM public.flights
+  WHERE
+    "AIRLINE" LIKE 'A%'
+) AS "flights"
+LIMIT 100
+        """.strip(),
+        ),
+    ],
+)
+def test_rls_subquery_transformer(
+    sql: str,
+    rules: dict[Table, str],
+    expected: str,
+) -> None:
+    """
+    Test `RLSAsSubqueryTransformer`.
+    """
+    statement = SQLStatement(sql)
+    statement.apply_rls(
+        "catalog1",
+        "schema1",
+        {k: [parse_one(v)] for k, v in rules.items()},
+        RLSMethod.AS_SUBQUERY,
+    )
+    assert statement.format() == expected
+
+
+def test_rls_invalid_method(mocker: MockerFixture) -> None:
+    """
+    Test that an invalid RLS method raises an error.
+    """
+    statement = SQLStatement("SELECT 1", "postgresql")
+    predicates = mocker.MagicMock()
+
+    with pytest.raises(ValueError, match="Invalid RLS method: invalid"):
+        statement.apply_rls("catalog1", "schema1", predicates, "invalid")  # type: ignore
+
+
+@pytest.mark.parametrize(
+    "sql, rules, expected",
+    [
+        (
+            "SELECT t.foo FROM some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM some_table AS t
+WHERE
+  t.id = 42
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM schema2.some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM schema2.some_table AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM catalog2.schema1.some_table AS t",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM catalog2.schema1.some_table AS t
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM some_table AS t WHERE bar = 'baz'",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM some_table AS t
+WHERE
+  t.id = 42 AND (
+    bar = 'baz'
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT t.foo FROM some_table AS t WHERE bar = 'baz' OR foo = 'qux'",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  t.foo
+FROM some_table AS t
+WHERE
+  t.id = 42 AND (
+    bar = 'baz' OR foo = 'qux'
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM some_table WHERE 1=1",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM some_table
+WHERE
+  some_table.id = 42 AND (
+    1 = 1
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM some_table WHERE TRUE OR FALSE",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM some_table
+WHERE
+  some_table.id = 42 AND (
+    TRUE OR FALSE
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42 AND (
+    1 = 1
+  )
+            """.strip(),
+        ),
+        (
+            'SELECT * FROM "table" WHERE 1=1',
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM "table"
+WHERE
+  "table".id = 42 AND (
+    1 = 1
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM other_table WHERE 1=1",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM other_table
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM some_table",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM some_table
+WHERE
+  some_table.id = 42
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table ORDER BY id",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42
+ORDER BY
+  id
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1 AND table.id=42",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42 AND (
+    1 = 1 AND table.id = 42
+  )
+            """.strip(),
+        ),
+        (
+            """
+SELECT * FROM table
+JOIN other_table
+ON table.id = other_table.id
+AND other_table.id=42
+            """,
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+JOIN other_table
+  ON other_table.id = 42 AND (
+    table.id = other_table.id AND other_table.id = 42
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table WHERE 1=1 AND id=42",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42 AND (
+    1 = 1 AND id = 42
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table JOIN other_table ON table.id = other_table.id",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+JOIN other_table
+  ON other_table.id = 42 AND (
+    table.id = other_table.id
+  )
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table JOIN other_table",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+JOIN other_table
+  ON other_table.id = 42
+            """.strip(),
+        ),
+        (
+            """
+SELECT *
+FROM table
+JOIN other_table
+ON table.id = other_table.id
+WHERE 1=1
+            """,
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+JOIN other_table
+  ON other_table.id = 42 AND (
+    table.id = other_table.id
+  )
+WHERE
+  1 = 1
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM (SELECT * FROM other_table)",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM other_table
+  WHERE
+    other_table.id = 42
+)
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table UNION ALL SELECT * FROM other_table",
+            {Table("table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+WHERE
+  table.id = 42
+UNION ALL
+SELECT
+  *
+FROM other_table
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM table UNION ALL SELECT * FROM other_table",
+            {Table("other_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM table
+UNION ALL
+SELECT
+  *
+FROM other_table
+WHERE
+  other_table.id = 42
+            """.strip(),
+        ),
+        (
+            "INSERT INTO some_table (col1, col2) VALUES (1, 2)",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+INSERT INTO some_table (
+  col1,
+  col2
+)
+VALUES
+  (1, 2)
+            """.strip(),
+        ),
+    ],
+)
+def test_rls_predicate_transformer(
+    sql: str,
+    rules: dict[Table, str],
+    expected: str,
+) -> None:
+    """
+    Test `RLSPredicateTransformer`.
+    """
+    statement = SQLStatement(sql)
+    statement.apply_rls(
+        "catalog1",
+        "schema1",
+        {k: [parse_one(v)] for k, v in rules.items()},
+        RLSMethod.AS_PREDICATE,
+    )
+    assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, table, expected",
+    [
+        (
+            "SELECT * FROM some_table",
+            Table("some_table"),
+            """
+CREATE TABLE "some_table" AS
+SELECT
+  *
+FROM some_table
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM some_table",
+            Table("some_table", "schema1", "catalog1"),
+            """
+CREATE TABLE "catalog1"."schema1"."some_table" AS
+SELECT
+  *
+FROM some_table
+            """.strip(),
+        ),
+    ],
+)
+def test_as_create_table(sql: str, table: Table, expected: str) -> None:
+    """
+    Test the `as_create_table` method.
+    """
+    statement = SQLStatement(sql)
+    create_table = statement.as_create_table(table, CTASMethod.TABLE)
+    assert create_table.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM table", "postgresql", True),
+        (
+            """
+-- comment
+SELECT * FROM table
+-- comment 2
+            """,
+            "mysql",
+            True,
+        ),
+        (
+            """
+-- comment
+SET @value = 42;
+SELECT @value as foo;
+-- comment 2
+            """,
+            "mysql",
+            True,
+        ),
+        (
+            """
+-- comment
+EXPLAIN SELECT * FROM table
+-- comment 2
+            """,
+            "mysql",
+            False,
+        ),
+        (
+            """
+SELECT * FROM table;
+INSERT INTO TABLE (foo) VALUES (42);
+            """,
+            "mysql",
+            False,
+        ),
+    ],
+)
+def test_is_valid_ctas(sql: str, engine: str, expected: bool) -> None:
+    """
+    Test the `is_valid_ctas` method.
+    """
+    assert SQLScript(sql, engine).is_valid_ctas() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM table", "postgresql", True),
+        (
+            """
+-- comment
+SELECT * FROM table
+-- comment 2
+            """,
+            "mysql",
+            True,
+        ),
+        (
+            """
+-- comment
+SET @value = 42;
+SELECT @value as foo;
+-- comment 2
+            """,
+            "mysql",
+            False,
+        ),
+        (
+            """
+-- comment
+SELECT value as foo;
+-- comment 2
+            """,
+            "mysql",
+            True,
+        ),
+        (
+            """
+SELECT * FROM table;
+INSERT INTO TABLE (foo) VALUES (42);
+            """,
+            "mysql",
+            False,
+        ),
+    ],
+)
+def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
+    """
+    Test the `is_valid_cvas` method.
+    """
+    assert SQLScript(sql, engine).is_valid_cvas() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected, engine",
+    [
+        ("col = 1", "col = 1", "base"),
+        ("1=\t\n1", "1 = 1", "base"),
+        ("(col = 1)", "(col = 1)", "base"),  # Compact format without newlines
+        (
+            "(col1 = 1) AND (col2 = 2)",
+            "(col1 = 1) AND (col2 = 2)",
+            "base",
+        ),  # Compact format
+        (
+            "col = 'abc' -- comment",
+            "col = 'abc' /* comment */",
+            "base",
+        ),  # Line comments converted to block comments
+        (
+            "TRUE /* precise_count_distinct=true */",
+            "TRUE /* precise_count_distinct=true */",
+            "base",
+        ),  # Block comments preserved
+        (
+            "col > 1 /* hint=value */",
+            "col > 1 /* hint=value */",
+            "base",
+        ),  # Block comments preserved
+        ("col = 'col1 = 1) AND (col2 = 2'", "col = 'col1 = 1) AND (col2 = 2'", "base"),
+        ("col = 'select 1; select 2'", "col = 'select 1; select 2'", "base"),
+        ("col = 'abc -- comment'", "col = 'abc -- comment'", "base"),
+        ("col1 = 1) AND (col2 = 2)", QueryClauseValidationException, "base"),
+        ("(col1 = 1) AND (col2 = 2", QueryClauseValidationException, "base"),
+        ("col1 = 1) AND (col2 = 2", QueryClauseValidationException, "base"),
+        ("(col1 = 1)) AND ((col2 = 2)", QueryClauseValidationException, "base"),
+        ("TRUE; SELECT 1", QueryClauseValidationException, "base"),
+        # Regression test for https://github.com/apache/superset/issues/39223:
+        # dialects with `MULTI_ARG_DISTINCT=False` (Postgres, Presto, Trino,
+        # DuckDB) must not rewrite user-defined multi-argument DISTINCT
+        # aggregates into row-expression null guards. Dremio is included
+        # below as a defensive regression guard even though its generator
+        # does not currently set `MULTI_ARG_DISTINCT=False`.
+        (
+            "DISTINCT_AVG(DISTINCT report_id, time_to_accept / 86400)",
+            "DISTINCT_AVG(DISTINCT report_id, time_to_accept / 86400)",
+            "postgresql",
+        ),
+        (
+            "DISTINCT_SUM(DISTINCT report_id, total_bounty_reward_amount)",
+            "DISTINCT_SUM(DISTINCT report_id, total_bounty_reward_amount)",
+            "postgresql",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "presto",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "trino",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "duckdb",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "dremio",
+        ),
+        # Single-argument DISTINCT must still round-trip cleanly.
+        (
+            "COUNT(DISTINCT x)",
+            "COUNT(DISTINCT x)",
+            "postgresql",
+        ),
+    ],
+)
+def test_sanitize_clause(sql: str, expected: str | Exception, engine: str) -> None:
+    """
+    Test the `sanitize_clause` function.
+    """
+    if isinstance(expected, str):
+        assert sanitize_clause(sql, engine) == expected
+    else:
+        with pytest.raises(expected):
+            sanitize_clause(sql, engine)
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "postgresql",
+        "presto",
+        "trino",
+        "duckdb",
+        "dremio",
+    ],
+)
+def test_sqlstatement_format_preserves_multi_arg_distinct(engine: str) -> None:
+    """
+    Regression guard for https://github.com/apache/superset/issues/39223:
+    ``SQLStatement.format()`` must not rewrite user-defined multi-argument
+    DISTINCT aggregates into row-expression null guards. This is the SQL Lab /
+    executor path; the metric-expression path is covered by
+    ``test_sanitize_clause``.
+    """
+    sql = "SELECT DISTINCT_AVG(DISTINCT a, b) FROM t"
+    formatted = SQLScript(sql, engine).format()
+    assert "DISTINCT_AVG(DISTINCT a, b)" in formatted
+    assert "CASE WHEN" not in formatted
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "hive",
+        "presto",
+        "trino",
+    ],
+)
+@pytest.mark.parametrize(
+    "macro, expected",
+    [
+        (
+            "latest_partition('foo.bar')",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition(' foo.bar ')",  # Non-atypical user error which works
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format('bar'))",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_sub_partition('foo.bar', baz='qux')",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "latest_partition('foo.%s'|format(str('bar')))",
+            set(),
+        ),
+        (
+            "latest_partition('foo.{}'.format('bar'))",
+            set(),
+        ),
+    ],
+)
+def test_extract_tables_from_jinja_sql(
+    mocker: MockerFixture,
+    engine: str,
+    macro: str,
+    expected: set[Table],
+) -> None:
+    assert (
+        process_jinja_sql(
+            sql=f"'{{{{ {engine}.{macro} }}}}'",
+            database=mocker.MagicMock(backend=engine),
+        ).tables
+        == expected
+    )
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=False)
+def test_extract_tables_from_jinja_sql_disabled(mocker: MockerFixture) -> None:
+    """
+    Test the function when the feature flag is disabled.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "mssql"
+
+    assert process_jinja_sql(
+        sql="SELECT 1 FROM t",
+        database=database,
+    ).tables == {Table("t")}
+
+
+def test_extract_tables_from_jinja_sql_invalid_function(mocker: MockerFixture) -> None:
+    """
+    Test the function with an invalid function.
+    """
+    database = mocker.MagicMock(backend="postgresql")
+
+    processor = JinjaTemplateProcessor(database)
+    processor.env.globals["my_table"] = lambda: "t"
+    mocker.patch(
+        "superset.jinja_context.get_template_processor",
+        return_value=processor,
+    )
+
+    assert process_jinja_sql(
+        sql="SELECT * FROM {{ my_table() }}",
+        database=database,
+    ).tables == {Table("t")}
+
+
+def test_process_jinja_sql_result_object_structure(mocker: MockerFixture) -> None:
+    """
+    Test that process_jinja_sql returns a proper JinjaSQLResult object
+    with correct script and tables properties.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "postgresql"
+
+    result = process_jinja_sql(
+        sql="SELECT id FROM users WHERE active = true",
+        database=database,
+    )
+
+    # Test that result is the correct type
+    assert isinstance(result, JinjaSQLResult)
+
+    # Test that script property returns a SQLScript
+    assert hasattr(result, "script")
+    assert isinstance(result.script, SQLScript)
+
+    # Test that tables property returns a set of Tables
+    assert hasattr(result, "tables")
+    assert isinstance(result.tables, set)
+    assert result.tables == {Table("users")}
+
+    # Test that the script contains the expected SQL
+    formatted_sql = result.script.format()
+    assert "users" in formatted_sql
+    assert "active = TRUE" in formatted_sql
+
+
+def test_process_jinja_sql_template_params_parameter(mocker: MockerFixture) -> None:
+    """
+    Test that the template_params parameter is properly handled.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "postgresql"
+
+    processor = JinjaTemplateProcessor(database)
+    mocker.patch(
+        "superset.jinja_context.get_template_processor",
+        return_value=processor,
+    )
+
+    # Test that template_params parameter is accepted and passed through
+    result = process_jinja_sql(
+        sql="SELECT * FROM table_name",
+        database=database,
+        template_params={"param1": "value1"},
+    )
+
+    # Verify the function accepts the parameter without error
+    assert isinstance(result, JinjaSQLResult)
+    assert result.tables == {Table("table_name")}
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM users", "postgresql", True),
+        ("WITH cte AS (SELECT * FROM users) SELECT * FROM cte", "postgresql", True),
+        ("CREATE TABLE users AS SELECT * FROM users", "postgresql", False),
+        ("ALTER TABLE users ADD COLUMN age INT", "postgresql", False),
+        ("SET @value = 42", "postgresql", False),
+    ],
+)
+def test_sqlstatement_is_select(sql: str, engine: str, expected: bool) -> None:
+    """
+    Test the `SQLStatement.is_select()` method.
+    """
+    assert SQLStatement(sql, engine).is_select() == expected
+
+
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        ("StormEvents | take 10", True),
+        ("StormEvents | limit 20", True),
+        ("StormEvents | where State == 'FL' | summarize count()", True),
+        ("StormEvents | where name has 'limit 10'", True),
+        ("AnotherTable | take 5", True),
+        ("datatable(x:int) [1, 2, 3] | take 100", True),
+        (".create table StormEvents (x:int)", False),
+        (".ingest inline into table StormEvents <| StormEvents | take 10", False),
+    ],
+)
+def test_kqlstatement_is_select(kql: str, expected: bool) -> None:
+    """
+    Test the `KustoKQLStatement.is_select()` method.
+    """
+    assert KustoKQLStatement(kql, "kustokql").is_select() == expected
+
+
+def test_singlestore_engine_mapping():
+    """
+    Test the `singlestoredb` dialect is properly used.
+    """
+    sql = "SELECT COUNT(*) AS `COUNT(*)`"
+    statement = SQLStatement(sql, engine="singlestoredb")
+    assert statement.is_select()
+
+    # Should parse without errors
+    formatted = statement.format()
+    assert "COUNT(*)" in formatted
+
+
+def test_awsathena_engine_mapping():
+    """
+    Test the `awsathena` dialect is properly mapped to ATHENA instead of PRESTO.
+    """
+    sql = (
+        "USING EXTERNAL FUNCTION my_func(x INT) RETURNS INT LAMBDA 'lambda_name' "
+        "SELECT my_func(id) FROM my_table"
+    )
+    statement = SQLStatement(sql, engine="awsathena")
+
+    # Should parse without errors using Athena dialect
+    statement.format()
+
+
+def test_remove_quotes() -> None:
+    """
+    Test the `remove_quotes` helper function.
+    """
+    assert remove_quotes(None) is None
+    assert remove_quotes('"foo"') == "foo"
+    assert remove_quotes("'foo'") == "foo"
+    assert remove_quotes("`foo`") == "foo"
+    assert remove_quotes("'foo`") == "'foo`"
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM table", "postgresql", False),
+        ("SELECT VERSION()", "postgresql", True),
+        ("SELECT query_to_xml()", "postgresql", True),
+        ("WITH cte AS (SELECT * FROM table) SELECT * FROM cte", "postgresql", False),
+        (
+            """
+SELECT *
+FROM query_to_xml('SELECT * from some_table WHERE id = 42')
+            """,
+            "postgresql",
+            True,
+        ),
+        ("Table | limit 10", "kustokql", False),
+    ],
+)
+def test_check_functions_present(sql: str, engine: str, expected: bool) -> None:
+    """
+    Check the `check_functions_present` method.
+    """
+    functions = {"version", "query_to_xml"}
+    assert SQLScript(sql, engine).check_functions_present(functions) == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM my_table", "postgresql", False),
+        ("SELECT * FROM pg_stat_activity", "postgresql", True),
+        ("SELECT * FROM PG_STAT_ACTIVITY", "postgresql", True),
+        ("SELECT * FROM pg_roles", "postgresql", True),
+        (
+            "WITH cte AS (SELECT 1) SELECT * FROM cte",
+            "postgresql",
+            False,
+        ),
+        (
+            "SELECT * FROM my_table; SELECT * FROM pg_settings",
+            "postgresql",
+            True,
+        ),
+        (
+            "SELECT * FROM schema.pg_stat_activity",
+            "postgresql",
+            True,
+        ),
+        ("Table | limit 10", "kustokql", False),
+    ],
+)
+def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
+    """
+    Check the `check_tables_present` method.
+    """
+    tables = {"pg_stat_activity", "pg_roles", "pg_settings"}
+    assert SQLScript(sql, engine).check_tables_present(tables) == expected
+
+
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        (
+            "StormEvents | take 10",
+            [
+                (KQLTokenType.WORD, "StormEvents"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "take"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.NUMBER, "10"),
+            ],
+        ),
+        ("'test'", [(KQLTokenType.STRING, "'test'")]),
+        ("```test```", [(KQLTokenType.STRING, "```test```")]),
+    ],
+)
+def test_tokenize_kql(kql: str, expected: list[tuple[KQLTokenType, str]]) -> None:
+    """
+    Test the `tokenize_kql` function.
+    """
+    assert tokenize_kql(kql) == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("a = 1", "postgresql", False),
+        ("(SELECT * FROM table)", "postgresql", True),
+        ("SELECT * FROM table", "postgresql", False),
+        ("SELECT * FROM (SELECT 1)", "postgresql", True),
+        ("SELECT * FROM (SELECT 1) AS subquery", "postgresql", True),
+        ("WITH cte AS (SELECT 1) SELECT * FROM cte", "postgresql", True),
+        ("SELECT * FROM table WHERE EXISTS (SELECT 1)", "postgresql", True),
+        ("SELECT * FROM table WHERE NOT EXISTS (SELECT 1)", "postgresql", True),
+        (
+            "SELECT * FROM table WHERE id IN (SELECT id FROM other_table)",
+            "postgresql",
+            True,
+        ),
+        # Set operations: a top-level UNION/INTERSECT/EXCEPT is not an
+        # exp.Subquery, so it must be detected explicitly. A predicate fragment
+        # that introduces one (e.g. supplied through a chart filter) must be
+        # flagged.
+        ("true UNION SELECT name FROM other_table", "postgresql", True),
+        ("1 = 1 UNION ALL SELECT password FROM users", "postgresql", True),
+        ("SELECT 1 INTERSECT SELECT 2", "postgresql", True),
+        ("SELECT 1 EXCEPT SELECT 2", "postgresql", True),
+        # Nested SELECT under non-Select top-level nodes (e.g. extra
+        # parentheses) must still be detected.
+        ("name IN (((SELECT secret FROM s)))", "postgresql", True),
+    ],
+)
+def test_has_subquery(sql: str, engine: str, expected: bool) -> None:
+    """
+    Test the `has_subquery` method.
+    """
+    assert SQLStatement(sql, engine).has_subquery() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        # Double-quoted identifiers (#32684 — postgres dataset)
+        ('"Adresse E-mail"', "postgresql"),
+        ('"Nom de structure"', "postgresql"),
+        # Backtick-quoted identifiers (#32541 — mysql view)
+        ("`Answer Created Time`", "mysql"),
+        ("`Correction Time`", "mysql"),
+        # Diacritics, slash, and dot — listed as "working" in #32684 but
+        # easily broken by overzealous parser changes; pin them too.
+        ('"Appartement / étage"', "postgresql"),
+        ('"Bâtiment / Résidence"', "postgresql"),
+        ('"C.Postal"', "postgresql"),
+    ],
+)
+def test_quoted_column_name_with_spaces_is_not_subquery(sql: str, engine: str) -> None:
+    r"""
+    Regression for #32541 and #32684: a quoted identifier that happens to
+    contain spaces (or a slash, accents, dots) must not be misclassified
+    as a subquery.
+
+    The original symptom was an opaque ``Custom SQL fields cannot contain
+    sub-queries.`` error when the user added a column like ``"Adresse
+    E-mail"`` (Postgres) or a backtick-quoted equivalent (MySQL) to a
+    chart. Snake-case aliases worked; multi-word display names did not.
+    The check that raises that error is
+    ``parsed_statement.has_subquery()`` in
+    ``superset/models/helpers.py:206``.
+    """
+    assert not SQLStatement(sql, engine).has_subquery(), (
+        f"Quoted identifier {sql!r} on {engine!r} was misclassified as a "
+        "subquery — would block the column from being used in any chart."
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected_tables",
+    [
+        # Issue #31853: Backtick-quoted table names with "Other" database type
+        (
+            "SELECT * FROM database.`6`",
+            "base",
+            {Table(table="6", schema="database")},
+        ),
+        (
+            "SELECT * FROM database.`6` LIMIT 100",
+            "base",
+            {Table(table="6", schema="database")},
+        ),
+        # Backtick-quoted table name without schema
+        (
+            "SELECT * FROM `my_table`",
+            "base",
+            {Table(table="my_table")},
+        ),
+        # Backtick-quoted schema and table
+        (
+            "SELECT * FROM `my_schema`.`my_table`",
+            "base",
+            {Table(table="my_table", schema="my_schema")},
+        ),
+        # Complex query with multiple backtick-quoted identifiers
+        (
+            "SELECT `col1`, `col2` FROM `schema`.`table` WHERE `id` = 1",
+            "base",
+            {Table(table="table", schema="schema")},
+        ),
+        # Unknown engine should also fall back
+        (
+            "SELECT * FROM `table_name`",
+            "unknown-engine",
+            {Table(table="table_name")},
+        ),
+        # Multiple tables with backticks
+        (
+            "SELECT * FROM `t1` JOIN `t2` ON `t1`.id = `t2`.id",
+            "base",
+            {Table(table="t1"), Table(table="t2")},
+        ),
+        # Backticks in subquery
+        (
+            "SELECT * FROM (SELECT * FROM `inner_table`) AS sub",
+            "base",
+            {Table(table="inner_table")},
+        ),
+    ],
+)
+def test_backtick_quoted_identifiers_base_dialect(
+    sql: str, engine: str, expected_tables: set[Table]
+) -> None:
+    """
+    Test that backtick-quoted identifiers work with base dialect.
+
+    This is a regression test for issue #31853 where SQL parsing fails
+    with "Other" database type when using backtick-quoted table names.
+    The fix adds a fallback to MySQL dialect when parsing fails with
+    base dialect and backticks are present in the SQL.
+    """
+    script = SQLScript(sql, engine)
+    assert len(script.statements) == 1
+    assert script.statements[0].tables == expected_tables
+
+
+def test_backtick_normal_sql_still_works() -> None:
+    """
+    Test that normal SQL without backticks still works with base dialect.
+
+    This ensures the backtick fallback doesn't break normal parsing.
+    """
+    sql = "SELECT col1, col2 FROM my_schema.my_table WHERE id = 1"
+    script = SQLScript(sql, "base")
+    assert len(script.statements) == 1
+    assert script.statements[0].tables == {Table(table="my_table", schema="my_schema")}
+
+
+def test_backtick_invalid_sql_still_fails() -> None:
+    """
+    Test that invalid SQL with backticks still raises an error.
+
+    The fallback should only succeed when the MySQL dialect can parse
+    the SQL successfully.
+    """
+    # Invalid SQL that should fail even with MySQL dialect
+    sql = "SELECT * FROM `table` WHERE"
+    with pytest.raises(SupersetParseError):
+        SQLScript(sql, "base")
+
+
+def test_backtick_fallback_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """
+    Test that the MySQL dialect fallback emits a warning log.
+
+    When the base dialect fails to parse SQL containing backticks and the
+    parser falls back to the MySQL dialect, the fallback should be observable
+    via a warning log.
+    """
+    sql = "SELECT * FROM `my_table`"
+    with caplog.at_level(logging.WARNING, logger="superset.sql.parse"):
+        SQLScript(sql, "base")
+
+    assert any(
+        record.levelname == "WARNING" and "MySQL dialect" in record.getMessage()
+        for record in caplog.records
     )

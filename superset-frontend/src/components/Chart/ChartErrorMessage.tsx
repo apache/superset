@@ -17,20 +17,23 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import { ClientErrorObject, SupersetError } from '@superset-ui/core';
 import { FC } from 'react';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import { ErrorMessageWithStackTrace } from 'src/components';
 import { ChartSource } from 'src/types/ChartSource';
 
 export type Props = {
-  chartId: string;
+  chartId: number;
   error?: SupersetError;
   subtitle: React.ReactNode;
   link?: string;
   source: ChartSource;
   stackTrace?: string;
 } & Omit<ClientErrorObject, 'error'>;
+
+const DEFAULT_CHART_ERROR = t('Data error');
 
 export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
   // fetches the chart owners and adds them to the extra data of the error message
@@ -42,5 +45,12 @@ export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
     extra: { ...error.extra, owners },
   };
 
-  return <ErrorMessageWithStackTrace {...props} error={ownedError} />;
+  return (
+    <ErrorMessageWithStackTrace
+      {...props}
+      error={ownedError}
+      title={DEFAULT_CHART_ERROR}
+      closable={false}
+    />
+  );
 };
