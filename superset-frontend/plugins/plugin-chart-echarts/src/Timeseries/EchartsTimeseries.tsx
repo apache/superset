@@ -257,7 +257,7 @@ export default function EchartsTimeseries({
           // Cross-filter by dimension (original behavior)
           const { seriesName: name } = props;
           handleChange(name);
-        } else if (canCrossFilterByXAxis) {
+        } else if (canCrossFilterByXAxis && props.componentType === 'series') {
           // Cross-filter by X-axis value when no dimensions (issue #25334)
           const categoryAxisValue = getCategoryAxisValue(
             props.data,
@@ -347,7 +347,10 @@ export default function EchartsTimeseries({
         let crossFilter;
         if (hasDimensions) {
           crossFilter = getCrossFilterDataMask(seriesName);
-        } else if (canCrossFilterByXAxis) {
+        } else if (
+          canCrossFilterByXAxis &&
+          eventParams.componentType === 'series'
+        ) {
           const categoryAxisValue = getCategoryAxisValue(
             data,
             eventParams.name,

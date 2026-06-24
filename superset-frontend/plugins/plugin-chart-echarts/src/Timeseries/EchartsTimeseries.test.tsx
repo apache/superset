@@ -340,6 +340,7 @@ test('emits cross-filter on X-axis value when no dimensions and categorical X-ax
   const clickHandler = props.eventHandlers?.click;
   if (clickHandler) {
     clickHandler({
+      componentType: 'series',
       seriesName: 'Sales', // This is the metric name
       data: ['Product A', 100], // X-axis value is 'Product A'
       name: 'Product A',
@@ -388,6 +389,7 @@ test('emits cross-filter on category value for horizontal bar clicks', async () 
   const clickHandler = getLatestEchartProps().eventHandlers?.click;
   expect(clickHandler).toBeDefined();
   clickHandler?.({
+    componentType: 'series',
     seriesName: 'Sales',
     data: [100, 'Product A'],
     name: 'Product A',
@@ -482,6 +484,32 @@ test('emits cross-filter from horizontal categorical axis label clicks', () => {
   ]);
 });
 
+test('does not emit duplicate cross-filter for generic axis label clicks', async () => {
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const clickHandler = getLatestEchartProps().eventHandlers?.click;
+  expect(clickHandler).toBeDefined();
+  clickHandler?.({
+    componentType: 'xAxis',
+    name: 'Product A',
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 400));
+  expect(setDataMaskMock).not.toHaveBeenCalled();
+});
+
 test('does not emit cross-filter when no dimensions and time-based X-axis', async () => {
   const setDataMaskMock = jest.fn();
 
@@ -506,6 +534,7 @@ test('does not emit cross-filter when no dimensions and time-based X-axis', asyn
   const clickHandler = props.eventHandlers?.click;
   if (clickHandler) {
     clickHandler({
+      componentType: 'series',
       seriesName: 'Sales',
       data: [1609459200000, 100], // Timestamp
       name: '2021-01-01',
@@ -548,6 +577,7 @@ test('emits cross-filter on the category value for a horizontal categorical bar'
   const clickHandler = props.eventHandlers?.click;
   if (clickHandler) {
     clickHandler({
+      componentType: 'series',
       seriesName: 'Sales', // This is the metric name
       data: [100, 'Product A'], // Horizontal: value first, category second
       name: 'Product A',
@@ -603,6 +633,7 @@ test('context menu cross-filter uses the category value for a horizontal categor
   expect(contextMenuHandler).toBeDefined();
   if (contextMenuHandler) {
     await contextMenuHandler({
+      componentType: 'series',
       seriesName: 'Sales', // This is the metric name
       data: [100, 'Product A'], // Horizontal: value first, category second
       name: 'Product A',
