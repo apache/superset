@@ -79,6 +79,17 @@ test('should return relevant data mask for ownState property', () => {
   });
 });
 
+test('should omit visibleColumns from ownState', () => {
+  const dataMask: DataMaskStateWithId = {
+    filter1: {
+      id: 'filter1',
+      ownState: { currentValue: 'USA', visibleColumns: ['col1'] },
+    },
+  };
+  const result = getRelevantDataMask(dataMask, 'ownState');
+  expect(result).toEqual({ filter1: { currentValue: 'USA' } });
+});
+
 test('should return empty object when no items have the specified property', () => {
   const mockDataMaskWithoutProperty: DataMaskStateWithId = {
     filter1: {
