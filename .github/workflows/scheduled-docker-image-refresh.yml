@@ -147,3 +147,31 @@ jobs:
             $FORCE_LATEST_FLAG \
             --platform "linux/arm64" \
             --platform "linux/amd64"
+
+  # The whole point of this cron is catching base-image CVEs, so a silent
+  # failure is the expensive case — a red X in the Actions tab nobody is
+  # watching on a Monday. File a tracked issue when any rebuild leg fails so
+  # a missed security refresh surfaces instead of sitting unnoticed.
+  notify-on-failure:
+    needs: [config, docker-rebuild]
+    if: failure() && needs.config.outputs.has-secrets == '1'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Open a tracking issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          LATEST_RELEASE: ${{ needs.config.outputs.latest-release }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create \
+            --repo "$REPOSITORY" \
+            --title "Scheduled Docker image refresh failed for ${LATEST_RELEASE}" \
+            --label "infra:container" \
+            --label "bug" \
+            --body "The weekly Docker base-image refresh failed for release \`${LATEST_RELEASE}\`. Published images may be missing upstream base-layer security patches until this is resolved.
+
+          Failed run: ${RUN_URL}"
