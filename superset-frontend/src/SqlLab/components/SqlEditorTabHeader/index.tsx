@@ -114,7 +114,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
 
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
-  const renameInputRef = useRef<InputRef | null>(null);
+  const renameInputRef = useRef<InputRef>(null);
   const tabHeaderRef = useRef<HTMLDivElement>(null);
   const trimmedTitle = newTitle.trim();
 
