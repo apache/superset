@@ -91,6 +91,15 @@ const Legend = ({
       return k;
     }
 
+    // Interval-notation labels, e.g. "[1, 81)" or "[81, 212]". Format each
+    // numeric bound while preserving the brackets and separator.
+    const intervalMatch = k.match(/^([[(])\s*(.+?)\s*,\s*(.+?)\s*([\])])$/);
+    if (intervalMatch) {
+      const [, openBracket, lower, upper, closeBracket] = intervalMatch;
+
+      return `${openBracket}${format(lower)}, ${format(upper)}${closeBracket}`;
+    }
+
     if (k.includes(categoryDelimiter)) {
       const values = k.split(categoryDelimiter);
 
