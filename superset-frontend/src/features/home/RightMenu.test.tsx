@@ -24,7 +24,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, CACHE_KEY } from '@superset-ui/core';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
@@ -420,7 +420,7 @@ test('Logs out and clears local storage item redux', async () => {
       expect(sessionStorage.getItem('login_attempted')).toBeNull();
     });
     // The namespaced Cache API store is purged on logout.
-    expect(deleteMock).toHaveBeenCalledWith('@SUPERSET-UI/CONNECTION');
+    expect(deleteMock).toHaveBeenCalledWith(CACHE_KEY);
   } finally {
     // Restore the global so an early assertion failure cannot leak the mock
     // into other tests.
