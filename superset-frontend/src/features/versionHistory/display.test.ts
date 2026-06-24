@@ -133,7 +133,7 @@ test('describeRecord labels dashboard layout changes', () => {
         from_value: null,
       }),
     ),
-  ).toBe("Moved chart 'CHART-1'");
+  ).toBe('Moved a chart');
   expect(
     describeRecord(
       record({
@@ -144,6 +144,63 @@ test('describeRecord labels dashboard layout changes', () => {
       }),
     ),
   ).toBe("Added tab 'Overview'");
+});
+
+test('describeRecord names a layout chart from its node payload', () => {
+  // Dashboard layout chart-add records carry the chart title as `name`;
+  // the path holds only the opaque node id.
+  expect(
+    describeRecord(
+      record({
+        kind: 'chart',
+        operation: 'add',
+        path: ['CHART-hyUmCvEiZE223-o-fCcQC'],
+        to_value: {
+          id: 'CHART-hyUmCvEiZE223-o-fCcQC',
+          type: 'CHART',
+          name: 'Deck.gl Grid',
+          chartId: 11,
+        },
+      }),
+    ),
+  ).toBe("Added chart 'Deck.gl Grid'");
+});
+
+test('describeRecord drops opaque node ids in favour of kind-only phrasing', () => {
+  // ROW / COLUMN nodes have no name; never surface the raw node id.
+  expect(
+    describeRecord(
+      record({
+        kind: 'row',
+        operation: 'add',
+        path: ['ROW-s61oGzKbowiZcjMnNPuAd'],
+        to_value: { id: 'ROW-s61oGzKbowiZcjMnNPuAd', type: 'ROW' },
+      }),
+    ),
+  ).toBe('Added a row');
+  expect(
+    describeRecord(
+      record({
+        kind: 'column',
+        operation: 'add',
+        path: ['COLUMN-OfJojKvt2OeeVc_IREkIK'],
+        to_value: { id: 'COLUMN-OfJojKvt2OeeVc_IREkIK', type: 'COLUMN' },
+      }),
+    ),
+  ).toBe('Added a column');
+});
+
+test('describeRecord drops a bare uuid value (M2M slice membership)', () => {
+  expect(
+    describeRecord(
+      record({
+        kind: 'chart',
+        operation: 'add',
+        path: ['slices', '33f0c99f-66fa-40f3-919b-1617f5ee60fa'],
+        to_value: '33f0c99f-66fa-40f3-919b-1617f5ee60fa',
+      }),
+    ),
+  ).toBe('Added a chart');
 });
 
 test('describeRecord falls back to a humanized field name', () => {
@@ -171,6 +228,44 @@ test('describeRecord falls back to a humanized field name', () => {
   ).toBe("Cleared 'description'");
 });
 
+test('describeRecord frames a name/title change as a rename', () => {
+  expect(
+    describeRecord(
+      record({
+        entity_kind: 'chart',
+        kind: 'field',
+        operation: 'edit',
+        path: ['slice_name'],
+        from_value: 'Old name',
+        to_value: 'Quarterly Revenue',
+      }),
+    ),
+  ).toBe("Chart renamed to 'Quarterly Revenue'");
+  expect(
+    describeRecord(
+      record({
+        entity_kind: 'dashboard',
+        kind: 'field',
+        operation: 'edit',
+        path: ['dashboard_title'],
+        to_value: 'Exec Overview',
+      }),
+    ),
+  ).toBe("Dashboard renamed to 'Exec Overview'");
+  // A name field nested deeper than the top level is a different field,
+  // not a rename of the entity itself.
+  expect(
+    describeRecord(
+      record({
+        kind: 'field',
+        operation: 'edit',
+        path: ['params', 'slice_name'],
+        to_value: 'x',
+      }),
+    ),
+  ).toBe("Changed 'slice name'");
+});
+
 test('describeRecord humanizes camelCase field names', () => {
   expect(
     describeRecord(
@@ -189,19 +284,26 @@ test('groupHeadline prefers the transaction action kind', () => {
   expect(groupHeadline('chart', group({ actionKind: 'restore' }))).toBe(
     'Restored version',
   );
+  expect(
+    groupHeadline(
+      'chart',
+      group({ actionKind: 'restore', restoredToVersion: 3 }),
+    ),
+  ).toBe('Restored to version 3');
   expect(groupHeadline('dashboard', group({ actionKind: 'import' }))).toBe(
-    'Imported version',
+    'Imported',
   );
-  expect(groupHeadline('chart', group({ actionKind: 'clone' }))).toBe(
-    'Cloned version',
-  );
+  expect(groupHeadline('chart', group({ actionKind: 'clone' }))).toBe('Cloned');
 });
 
 test('groupHeadline uses the save date for charts', () => {
   expect(groupHeadline('chart', group())).toBe('Dec 5, 2025, 12:18 PM');
 });
 
-test('groupHeadline classifies dashboard saves as filters or edit mode', () => {
+// Dashboards share the chart headline model (sc-107283 guide, 2026-06-12):
+// the save's date/time heads the group and descriptive per-change rows render
+// beneath it — no entity-specific "Filters"/"Edit mode" category headline.
+test('groupHeadline heads dashboard saves with the save date', () => {
   const filterRecord = record({
     entity_kind: 'dashboard',
     kind: 'filter',
@@ -212,7 +314,7 @@ test('groupHeadline classifies dashboard saves as filters or edit mode', () => {
       'dashboard',
       group({ records: [filterRecord, filterRecord] }),
     ),
-  ).toBe('Filters · 2 changes');
+  ).toBe('Dec 5, 2025, 12:18 PM');
   expect(
     groupHeadline(
       'dashboard',
@@ -223,10 +325,28 @@ test('groupHeadline classifies dashboard saves as filters or edit mode', () => {
         ],
       }),
     ),
-  ).toBe('Edit mode · 2 changes');
-  expect(groupHeadline('dashboard', group({ records: [filterRecord] }))).toBe(
-    'Filters · 1 change',
+  ).toBe('Dec 5, 2025, 12:18 PM');
+});
+
+test('groupHeadline labels the first tracked save', () => {
+  expect(groupHeadline('chart', group({ firstTrackedSave: true }))).toBe(
+    'First tracked save',
   );
+});
+
+test('groupHeadline falls back to a label when a save has no records', () => {
+  expect(groupHeadline('dashboard', group({ records: [] }))).toBe(
+    'Properties updated',
+  );
+});
+
+test('groupHeadline labels a scaffolding-only save as a layout rearrangement', () => {
+  expect(
+    groupHeadline(
+      'dashboard',
+      group({ records: [], hasSuppressedLayout: true }),
+    ),
+  ).toBe('Rearranged layout');
 });
 
 test('relatedHeadline prefers impact-aware phrasing for shared datasets', () => {

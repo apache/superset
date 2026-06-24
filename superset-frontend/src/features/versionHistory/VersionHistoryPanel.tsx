@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
@@ -33,19 +33,11 @@ import type {
   ActivityRecord,
   SaveGroup,
   SessionLogEntry,
-  TimelineEntry,
   VersionedEntityType,
 } from './types';
 import type { UseVersionActivityResult } from './useVersionActivity';
 import { relatedEntryKey } from './grouping';
-import {
-  describeRecord,
-  formatAuthor,
-  formatVersionDateTime,
-  groupHeadline,
-  relatedHeadline,
-  relatedRollupHeadline,
-} from './display';
+import { formatVersionDateTime } from './display';
 import SaveGroupItem from './SaveGroupItem';
 import RelatedUpdateRow from './RelatedUpdateRow';
 import CurrentVersionSection from './CurrentVersionSection';
@@ -132,46 +124,19 @@ const PaddedContent = styled.div`
   `}
 `;
 
-function matchesQuery(
-  entityType: VersionedEntityType,
-  entry: TimelineEntry,
-  query: string,
-): boolean {
-  if (entry.type === 'related') {
-    const { record, records, rollupEntityNames } = entry;
-    const headline =
-      rollupEntityNames && rollupEntityNames.length > 1
-        ? relatedRollupHeadline(record.entity_kind, rollupEntityNames.length)
-        : relatedHeadline(record);
-    return (
-      headline.toLowerCase().includes(query) ||
-      (rollupEntityNames ?? []).some(name =>
-        name.toLowerCase().includes(query),
-      ) ||
-      formatAuthor(record.changed_by).toLowerCase().includes(query) ||
-      // One related save collapses many records into one row; keep the
-      // non-representative records' summaries searchable too.
-      records.some(collapsed =>
-        (collapsed.summary || describeRecord(collapsed))
-          .toLowerCase()
-          .includes(query),
-      )
-    );
-  }
-  return (
-    groupHeadline(entityType, entry).toLowerCase().includes(query) ||
-    formatAuthor(entry.changedBy).toLowerCase().includes(query) ||
-    entry.records.some(record =>
-      describeRecord(record).toLowerCase().includes(query),
-    )
-  );
-}
-
 export interface VersionHistoryPanelProps {
   entityType: VersionedEntityType;
   activity: UseVersionActivityResult;
   include: ActivityInclude;
   onIncludeChange: (include: ActivityInclude) => void;
+  /**
+   * Free-text search is controlled by the container, which debounces it
+   * and feeds it to the activity hook so the server filters the full
+   * history (not just the loaded pages). The panel renders the matches
+   * verbatim. (sc-107283 guide, 2026-06-12.)
+   */
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
   previewedTransactionId: number | null;
   onClose: () => void;
   onPreview: (group: SaveGroup) => void;
@@ -188,6 +153,8 @@ export default function VersionHistoryPanel({
   activity,
   include,
   onIncludeChange,
+  searchTerm,
+  onSearchChange,
   previewedTransactionId,
   onClose,
   onPreview,
@@ -197,7 +164,6 @@ export default function VersionHistoryPanel({
   onOpenRelated,
   sessionEntries = [],
 }: VersionHistoryPanelProps) {
-  const [searchTerm, setSearchTerm] = useState('');
   const { timeline, isLoading, error, hasMore, loadMore } = activity;
 
   const includeOptions = useMemo(
@@ -215,14 +181,7 @@ export default function VersionHistoryPanel({
     [entityType],
   );
 
-  const query = searchTerm.trim().toLowerCase();
-  const visibleTimeline = useMemo(
-    () =>
-      query
-        ? timeline.filter(entry => matchesQuery(entityType, entry, query))
-        : timeline,
-    [entityType, timeline, query],
-  );
+  const hasSearch = searchTerm.trim().length > 0;
 
   // The newest self save IS the live state: it gets a "Current" tag,
   // no preview affordances, and no restore action. The newest save
@@ -261,7 +220,7 @@ export default function VersionHistoryPanel({
           placeholder={t('Search actions')}
           suffix={<Icons.SearchOutlined iconSize="l" />}
           value={searchTerm}
-          onChange={event => setSearchTerm(event.target.value)}
+          onChange={event => onSearchChange(event.target.value)}
           aria-label={t('Search actions')}
         />
         <Select
@@ -286,19 +245,19 @@ export default function VersionHistoryPanel({
             <Skeleton active />
           </PaddedContent>
         )}
-        {!isInitialLoading && !error && visibleTimeline.length === 0 && (
+        {!isInitialLoading && !error && timeline.length === 0 && (
           <EmptyState
             image="empty.svg"
             size="small"
-            title={query ? t('No actions found') : t('No history yet')}
+            title={hasSearch ? t('No actions found') : t('No history yet')}
             description={
-              query
+              hasSearch
                 ? t('Try a different search term')
                 : t('Saved changes will appear here')
             }
           />
         )}
-        {visibleTimeline.map(entry =>
+        {timeline.map(entry =>
           entry.type === 'group' ? (
             <SaveGroupItem
               key={`group-${entry.transactionId}`}

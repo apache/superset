@@ -49,6 +49,10 @@ export function useVersionActivity(
   entityType: VersionedEntityType,
   uuid: string | undefined,
   include: ActivityInclude,
+  // Free-text search runs server-side over the full history (not just the
+  // loaded pages). Pass the already-debounced term; an empty/whitespace
+  // value omits the filter. (sc-107283 guide, 2026-06-12.)
+  q = '',
 ): UseVersionActivityResult {
   const [records, setRecords] = useState<ActivityRecord[]>([]);
   const [count, setCount] = useState(0);
@@ -79,6 +83,7 @@ export function useVersionActivity(
           include,
           page: pageToLoad,
           pageSize: PAGE_SIZE,
+          q,
         });
         if (fetchId !== fetchIdRef.current) {
           return;
@@ -104,7 +109,7 @@ export function useVersionActivity(
         }
       }
     },
-    [entityType, uuid, include],
+    [entityType, uuid, include, q],
   );
 
   useEffect(() => {
@@ -136,6 +141,7 @@ export function useVersionActivity(
           include,
           page: nextPage,
           pageSize: PAGE_SIZE,
+          q,
         });
         if (fetchId !== fetchIdRef.current) {
           return;
@@ -164,7 +170,7 @@ export function useVersionActivity(
         setIsLoading(false);
       }
     }
-  }, [count, entityType, include, page, uuid]);
+  }, [count, entityType, include, page, q, uuid]);
 
   const refresh = useCallback(() => {
     fetchPage(0, true);

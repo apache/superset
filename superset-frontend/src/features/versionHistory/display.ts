@@ -25,7 +25,6 @@ import type {
   SaveGroup,
   VersionedEntityType,
 } from './types';
-import { classifySaveGroup } from './grouping';
 
 /** Activity timestamps are naive UTC; parse as UTC, render local. */
 export function parseIssuedAt(issuedAt: string) {
@@ -60,6 +59,34 @@ export function formatAuthor(changedBy: ActivityChangedBy | null): string {
   return name || t('Unknown user');
 }
 
+/**
+ * Synthetic identifiers that carry no meaning for a reader: dashboard
+ * layout node ids (`CHART-xyz`, `ROW-abc`, …) and bare UUIDs (e.g. an
+ * M2M slice-membership record whose value is just the chart's uuid).
+ * These must never surface as a record's subject.
+ */
+const OPAQUE_ID =
+  /^(CHART|ROW|COLUMN|TAB|TABS|HEADER|MARKDOWN|DIVIDER|GRID|ROOT)-|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isOpaqueId(value: string): boolean {
+  return OPAQUE_ID.test(value);
+}
+
+/** A human name nested in a layout node's `meta`, if any. */
+function metaLabel(meta: unknown): string | null {
+  if (!meta || typeof meta !== 'object') {
+    return null;
+  }
+  const candidate = meta as Record<string, unknown>;
+  for (const key of ['sliceName', 'text', 'code']) {
+    const value = candidate[key];
+    if (typeof value === 'string' && value) {
+      return value;
+    }
+  }
+  return null;
+}
+
 function valueLabel(value: unknown): string | null {
   if (typeof value === 'string' && value) {
     return value;
@@ -72,6 +99,10 @@ function valueLabel(value: unknown): string | null {
     if (typeof candidate.label === 'string' && candidate.label) {
       return candidate.label;
     }
+    // Dashboard layout chart nodes carry the chart title as `name`.
+    if (typeof candidate.name === 'string' && candidate.name) {
+      return candidate.name;
+    }
     if (
       typeof candidate.column_name === 'string' &&
       candidate.column_name !== ''
@@ -81,22 +112,26 @@ function valueLabel(value: unknown): string | null {
     if (typeof candidate.subject === 'string' && candidate.subject !== '') {
       return candidate.subject;
     }
+    return metaLabel(candidate.meta);
   }
   return null;
 }
 
 /**
  * The natural key of the changed item is the last path segment for
- * list-diff records (e.g. ['params', 'metrics', 'Revenue']).
+ * list-diff records (e.g. ['params', 'metrics', 'Revenue']). Opaque
+ * identifiers (layout node ids, bare UUIDs) are rejected so the caller
+ * falls back to the kind-only phrasing ("Added a chart") rather than
+ * rendering "Added chart 'CHART-hyUmCv…'".
  */
 function recordSubject(record: ActivityRecord): string | null {
   const fromValues =
     valueLabel(record.to_value) ?? valueLabel(record.from_value);
-  if (fromValues) {
+  if (fromValues && !isOpaqueId(fromValues)) {
     return fromValues;
   }
   const last = record.path[record.path.length - 1];
-  if (typeof last === 'string' && last !== '') {
+  if (typeof last === 'string' && last !== '' && !isOpaqueId(last)) {
     return last;
   }
   return null;
@@ -127,6 +162,8 @@ function layoutKindLabel(kind: string): string | null {
       return t('chart');
     case 'row':
       return t('row');
+    case 'column':
+      return t('column');
     case 'tab':
       return t('tab');
     case 'tabs':
@@ -147,9 +184,34 @@ function layoutKindLabel(kind: string): string | null {
  * backend leaves `summary` empty for self records, so the client
  * renders one from kind / operation / path / values.
  */
+/**
+ * A change to the entity's own name/title reads better as a rename than as
+ * a generic field edit ("Changed 'slice name'"). Returns the friendly
+ * headline, or null when the record isn't a top-level name change.
+ */
+function renameHeadline(record: ActivityRecord): string | null {
+  const field = record.path.length === 1 ? record.path[0] : null;
+  const to = valueLabel(record.to_value);
+  switch (field) {
+    case 'slice_name':
+      return to ? t("Chart renamed to '%s'", to) : t('Chart renamed');
+    case 'dashboard_title':
+      return to ? t("Dashboard renamed to '%s'", to) : t('Dashboard renamed');
+    case 'table_name':
+      return to ? t("Dataset renamed to '%s'", to) : t('Dataset renamed');
+    default:
+      return null;
+  }
+}
+
 export function describeRecord(record: ActivityRecord): string {
   const { kind, operation } = record;
   const subject = recordSubject(record);
+
+  const renamed = renameHeadline(record);
+  if (renamed) {
+    return renamed;
+  }
 
   if (kind === 'metric') {
     if (operation === 'add') {
@@ -240,33 +302,41 @@ export function describeRecord(record: ActivityRecord): string {
 }
 
 /**
- * Headline for a save container. Charts use the save date/time;
- * dashboards use the Filters / Edit-mode classification. A transaction
- * `action_kind` overrides both.
+ * Headline for a save container, identical across entity types (sc-107283
+ * guide, 2026-06-12). The transaction `action_kind` drives an action-specific
+ * headline; otherwise the save's date/time heads the group and the descriptive
+ * per-change rows render beneath it. `entityType` is retained for the shared
+ * signature but no longer changes the headline.
  */
 export function groupHeadline(
   entityType: VersionedEntityType,
   group: SaveGroup,
 ): string {
   if (group.actionKind === 'restore') {
-    return t('Restored version');
+    return group.restoredToVersion != null
+      ? t('Restored to version %s', group.restoredToVersion)
+      : t('Restored version');
   }
   if (group.actionKind === 'import') {
-    return t('Imported version');
+    return t('Imported');
   }
   if (group.actionKind === 'clone') {
-    return t('Cloned version');
+    return t('Cloned');
+  }
+  // The entity's first tracked save replays a params-normalization flood
+  // that isn't meaningful user edits — collapse it under one label.
+  if (group.firstTrackedSave) {
+    return t('First tracked save');
+  }
+  // A save whose only changes were layout-container scaffolding (dropped
+  // from the change list) reads as a layout rearrangement.
+  if (group.records.length === 0 && group.hasSuppressedLayout) {
+    return t('Rearranged layout');
   }
   // Defensive: a save that produced no renderable change records
   // (e.g. properties-only metadata edits) still deserves a label.
   if (group.records.length === 0) {
     return t('Properties updated');
-  }
-  if (entityType === 'dashboard') {
-    const changes = group.records.length;
-    return classifySaveGroup(group) === 'filters'
-      ? t('Filters · %s', tn('%s change', '%s changes', changes, changes))
-      : t('Edit mode · %s', tn('%s change', '%s changes', changes, changes));
   }
   return formatVersionDateTime(group.issuedAt);
 }

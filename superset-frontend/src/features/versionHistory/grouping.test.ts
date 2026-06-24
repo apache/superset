@@ -18,7 +18,6 @@
  */
 import {
   buildTimeline,
-  classifySaveGroup,
   mergeActivityPages,
   recordKey,
   relatedEntryKey,
@@ -125,68 +124,47 @@ test('buildTimeline propagates restore action_kind to the group', () => {
   expect((entries[0] as SaveGroup).actionKind).toBe('restore');
 });
 
-test('classifySaveGroup returns filters when every record is a filter change', () => {
+test('buildTimeline drops layout-container scaffolding but keeps chart changes', () => {
+  // Dragging a chart to a new spot spawns a new ROW: the backend emits a
+  // row add + the chart's own move. Only the chart change should surface.
   const [group] = buildTimeline([
     record({
+      transaction_id: 9,
       entity_kind: 'dashboard',
-      kind: 'filter',
-      path: ['json_metadata', 'native_filter_configuration', 'NATIVE_1'],
+      kind: 'row',
+      operation: 'add',
+      path: ['ROW-lwk_58lo6fSWnbv6CIKnV'],
+      to_value: { id: 'ROW-lwk_58lo6fSWnbv6CIKnV', type: 'ROW' },
     }),
     record({
+      transaction_id: 9,
       entity_kind: 'dashboard',
-      kind: 'filter',
-      path: ['json_metadata', 'native_filter_configuration', 'NATIVE_2'],
-      operation: 'remove',
+      kind: 'chart',
+      operation: 'move',
+      path: ['CHART-GPLeOv026-Vh0mve_tyh9'],
+      to_value: { id: 'CHART-GPLeOv026-Vh0mve_tyh9', name: 'Trend' },
     }),
   ]) as SaveGroup[];
 
-  expect(classifySaveGroup(group)).toBe('filters');
+  expect(group.records).toHaveLength(1);
+  expect(group.records[0].kind).toBe('chart');
+  expect(group.hasSuppressedLayout).toBe(true);
 });
 
-test('classifySaveGroup treats native-filter field records as filter changes', () => {
-  // The backend emits native-filter changes as kind="field" under
-  // json_metadata.native_filter_configuration until kind promotion lands.
+test('buildTimeline flags a scaffolding-only save without dropping it', () => {
   const [group] = buildTimeline([
     record({
+      transaction_id: 12,
       entity_kind: 'dashboard',
-      kind: 'field',
-      path: [
-        'json_metadata',
-        'native_filter_configuration',
-        'NATIVE_1',
-        'defaultDataMask',
-      ],
-    }),
-    record({
-      entity_kind: 'dashboard',
-      kind: 'field',
-      path: ['json_metadata', 'native_filter_configuration', 'NATIVE_2'],
-      operation: 'remove',
+      kind: 'column',
+      operation: 'add',
+      path: ['COLUMN-OfJojKvt2OeeVc_IREkIK'],
+      to_value: { id: 'COLUMN-OfJojKvt2OeeVc_IREkIK', type: 'COLUMN' },
     }),
   ]) as SaveGroup[];
 
-  expect(classifySaveGroup(group)).toBe('filters');
-});
-
-test('classifySaveGroup returns edit for non-filter json_metadata field records', () => {
-  const [group] = buildTimeline([
-    record({
-      entity_kind: 'dashboard',
-      kind: 'field',
-      path: ['json_metadata', 'color_scheme'],
-    }),
-  ]) as SaveGroup[];
-
-  expect(classifySaveGroup(group)).toBe('edit');
-});
-
-test('classifySaveGroup returns edit when any record is not a filter change', () => {
-  const [group] = buildTimeline([
-    record({ entity_kind: 'dashboard', kind: 'filter' }),
-    record({ entity_kind: 'dashboard', kind: 'chart', operation: 'move' }),
-  ]) as SaveGroup[];
-
-  expect(classifySaveGroup(group)).toBe('edit');
+  expect(group.records).toHaveLength(0);
+  expect(group.hasSuppressedLayout).toBe(true);
 });
 
 test('buildTimeline collapses one related save into a single entry', () => {
@@ -244,115 +222,6 @@ test('buildTimeline keeps distinct related entities apart within one transaction
   expect(entries).toHaveLength(2);
   const keys = entries.map(entry => relatedEntryKey(entry.record));
   expect(new Set(keys).size).toBe(2);
-});
-
-test('buildTimeline drops saves consisting only of machine-written noise', () => {
-  // Viewing a dashboard rewrites json_metadata.shared_label_colors,
-  // producing phantom "Edit mode · 1 change" saves.
-  const noise = (transactionId: number, issuedAt: string) =>
-    record({
-      entity_kind: 'dashboard',
-      kind: 'field',
-      transaction_id: transactionId,
-      issued_at: issuedAt,
-      path: ['json_metadata', 'shared_label_colors'],
-    });
-
-  const entries = buildTimeline([
-    noise(41, '2025-12-09T10:00:00'),
-    record({
-      entity_kind: 'dashboard',
-      kind: 'field',
-      transaction_id: 42,
-      issued_at: '2025-12-09T09:00:00',
-      path: ['dashboard_title'],
-    }),
-    noise(42, '2025-12-09T09:00:00'),
-    noise(40, '2025-12-08T10:00:00'),
-    record({ transaction_id: 10 }),
-  ]);
-
-  // Phantom-only transactions 41 and 40 disappear entirely; the rename
-  // save keeps only its real record; the chart save survives untouched.
-  expect(entries.map(entry => (entry as SaveGroup).transactionId)).toEqual([
-    42, 10,
-  ]);
-  expect((entries[0] as SaveGroup).records).toHaveLength(1);
-  expect((entries[0] as SaveGroup).records[0].path).toEqual([
-    'dashboard_title',
-  ]);
-});
-
-test('noise suppression tolerates non-string and trailing path segments', () => {
-  const entries = buildTimeline([
-    record({
-      transaction_id: 50,
-      path: ['json_metadata', 'shared_label_colors', 'Revenue', 0],
-    }),
-    record({
-      transaction_id: 51,
-      // a leading numeric segment must not break prefix matching
-      path: [0, 'json_metadata', 'shared_label_colors'],
-    }),
-    record({
-      transaction_id: 52,
-      path: ['json_metadata', 'color_scheme'],
-    }),
-  ]);
-
-  expect(entries.map(entry => (entry as SaveGroup).transactionId)).toEqual([
-    52,
-  ]);
-});
-
-test('noise suppression drops machine-managed permission rewrites', () => {
-  // A datasource/schema change rewrites schema_perm/catalog_perm on
-  // every chart it touches, fanning phantom "Chart updated" records
-  // across the feed.
-  const entries = buildTimeline([
-    record({
-      transaction_id: 53,
-      kind: 'field',
-      path: ['schema_perm'],
-    }),
-    record({
-      source: 'related',
-      entity_kind: 'chart',
-      entity_uuid: 'c-1',
-      entity_name: 'Trend',
-      transaction_id: 53,
-      kind: 'field',
-      path: ['schema_perm'],
-      summary: 'Chart updated: Trend',
-    }),
-    record({
-      source: 'related',
-      entity_kind: 'chart',
-      entity_uuid: 'c-1',
-      entity_name: 'Trend',
-      transaction_id: 53,
-      kind: 'field',
-      path: ['catalog_perm'],
-      summary: 'Chart updated: Trend',
-    }),
-  ]);
-
-  expect(entries).toHaveLength(0);
-});
-
-test('noise suppression also applies to related-source records', () => {
-  const entries = buildTimeline([
-    record({
-      source: 'related',
-      entity_kind: 'dashboard',
-      entity_uuid: 'd-1',
-      transaction_id: 60,
-      path: ['json_metadata', 'shared_label_colors'],
-      summary: 'Dashboard updated: Sales overview',
-    }),
-  ]);
-
-  expect(entries).toHaveLength(0);
 });
 
 test('buildTimeline merges adjacent related entries from one split save', () => {

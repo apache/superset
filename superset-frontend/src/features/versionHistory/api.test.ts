@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { createDashboardFromSnapshot } from './api';
+import { createDashboardFromSnapshot, fetchActivity } from './api';
 import type { DashboardVersionSnapshot, VersionMeta } from './types';
 
 const versionMeta: VersionMeta = {
@@ -58,6 +58,47 @@ const COPY_ENDPOINT = 'glob:*/api/v1/dashboard/42/copy/';
 afterEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
+});
+
+const ACTIVITY_ENDPOINT = 'glob:*/api/v1/chart/chart-uuid/activity/?*';
+
+test('fetchActivity sends the base pagination params and omits empty filters', async () => {
+  fetchMock.get(ACTIVITY_ENDPOINT, { result: [], count: 0 });
+
+  await fetchActivity('chart', 'chart-uuid', { include: 'self', page: 2 });
+
+  const url = new URL(fetchMock.callHistory.calls(ACTIVITY_ENDPOINT)[0].url);
+  expect(url.searchParams.get('include')).toBe('self');
+  expect(url.searchParams.get('page')).toBe('2');
+  expect(url.searchParams.get('page_size')).toBe('25');
+  // No search/window filters were supplied, so they must not be sent.
+  expect(url.searchParams.has('q')).toBe(false);
+  expect(url.searchParams.has('since')).toBe(false);
+  expect(url.searchParams.has('until')).toBe(false);
+});
+
+test('fetchActivity forwards trimmed q and since/until window filters', async () => {
+  fetchMock.get(ACTIVITY_ENDPOINT, { result: [], count: 0 });
+
+  await fetchActivity('chart', 'chart-uuid', {
+    q: '  revenue  ',
+    since: '2026-01-01T00:00:00',
+    until: '2026-02-01T00:00:00',
+  });
+
+  const url = new URL(fetchMock.callHistory.calls(ACTIVITY_ENDPOINT)[0].url);
+  expect(url.searchParams.get('q')).toBe('revenue');
+  expect(url.searchParams.get('since')).toBe('2026-01-01T00:00:00');
+  expect(url.searchParams.get('until')).toBe('2026-02-01T00:00:00');
+});
+
+test('fetchActivity omits q when it is whitespace only', async () => {
+  fetchMock.get(ACTIVITY_ENDPOINT, { result: [], count: 0 });
+
+  await fetchActivity('chart', 'chart-uuid', { q: '   ' });
+
+  const url = new URL(fetchMock.callHistory.calls(ACTIVITY_ENDPOINT)[0].url);
+  expect(url.searchParams.has('q')).toBe(false);
 });
 
 test('createDashboardFromSnapshot copies via the source dashboard with snapshot layout', async () => {
