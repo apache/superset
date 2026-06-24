@@ -247,7 +247,6 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       ? ownState.visibleColumns.map(String)
       : [];
 
-
     if (isDownloadQuery && visibleColumnKeys.length > 0) {
       postProcessing.push({
         operation: 'select',

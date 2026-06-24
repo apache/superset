@@ -93,6 +93,27 @@ describe('plugin-chart-table', () => {
       expect(query.post_processing).toEqual([]);
     });
 
+    test('should add select post-processing if isDownloadQuery and visibleColumns has elements', () => {
+      const query = buildQuery(
+        {
+          ...basicFormData,
+          result_format: 'csv',
+          query_mode: QueryMode.Aggregate,
+        },
+        {
+          ownState: { visibleColumns: ['col1', 'col2'] },
+        },
+      ).queries[0];
+      expect(query.post_processing).toEqual([
+        {
+          operation: 'select',
+          options: {
+            columns: ['col1', 'col2'],
+          },
+        },
+      ]);
+    });
+
     test('should not add post-processing in raw records mode', () => {
       const query = buildQuery({
         ...basicFormData,
