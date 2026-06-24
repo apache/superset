@@ -143,23 +143,27 @@ describe('Filter utils', () => {
   describe('getDataRecordFormatter', () => {
     test('default formatter returns expected values', () => {
       const formatter = getDataRecordFormatter();
-      expect(formatter(null, GenericDataType.String)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Numeric)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Temporal)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Boolean)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.String)).toEqual(NULL_STRING());
+      expect(formatter(null, GenericDataType.Numeric)).toEqual(NULL_STRING());
+      expect(formatter(null, GenericDataType.Temporal)).toEqual(NULL_STRING());
+      expect(formatter(null, GenericDataType.Boolean)).toEqual(NULL_STRING());
       expect(formatter('foo', GenericDataType.String)).toEqual('foo');
       expect(formatter('foo', GenericDataType.Numeric)).toEqual('foo');
       expect(formatter('foo', GenericDataType.Temporal)).toEqual('foo');
-      expect(formatter('foo', GenericDataType.Boolean)).toEqual(FALSE_STRING);
-      expect(formatter(true, GenericDataType.Boolean)).toEqual(TRUE_STRING);
-      expect(formatter(false, GenericDataType.Boolean)).toEqual(FALSE_STRING);
-      expect(formatter('true', GenericDataType.Boolean)).toEqual(TRUE_STRING);
-      expect(formatter('false', GenericDataType.Boolean)).toEqual(FALSE_STRING);
-      expect(formatter('TRUE', GenericDataType.Boolean)).toEqual(TRUE_STRING);
-      expect(formatter('FALSE', GenericDataType.Boolean)).toEqual(FALSE_STRING);
-      expect(formatter(0, GenericDataType.Boolean)).toEqual(FALSE_STRING);
-      expect(formatter(1, GenericDataType.Boolean)).toEqual(TRUE_STRING);
-      expect(formatter(2, GenericDataType.Boolean)).toEqual(TRUE_STRING);
+      expect(formatter('foo', GenericDataType.Boolean)).toEqual(FALSE_STRING());
+      expect(formatter(true, GenericDataType.Boolean)).toEqual(TRUE_STRING());
+      expect(formatter(false, GenericDataType.Boolean)).toEqual(FALSE_STRING());
+      expect(formatter('true', GenericDataType.Boolean)).toEqual(TRUE_STRING());
+      expect(formatter('false', GenericDataType.Boolean)).toEqual(
+        FALSE_STRING(),
+      );
+      expect(formatter('TRUE', GenericDataType.Boolean)).toEqual(TRUE_STRING());
+      expect(formatter('FALSE', GenericDataType.Boolean)).toEqual(
+        FALSE_STRING(),
+      );
+      expect(formatter(0, GenericDataType.Boolean)).toEqual(FALSE_STRING());
+      expect(formatter(1, GenericDataType.Boolean)).toEqual(TRUE_STRING());
+      expect(formatter(2, GenericDataType.Boolean)).toEqual(TRUE_STRING());
       expect(formatter(0, GenericDataType.String)).toEqual('0');
       expect(formatter(0, GenericDataType.Numeric)).toEqual('0');
       expect(formatter(0, GenericDataType.Temporal)).toEqual('0');
@@ -173,7 +177,7 @@ describe('Filter utils', () => {
         '1234567.89',
       );
       expect(formatter(1234567.89, GenericDataType.Boolean)).toEqual(
-        TRUE_STRING,
+        TRUE_STRING(),
       );
     });
 
@@ -182,20 +186,20 @@ describe('Filter utils', () => {
         timeFormatter: getTimeFormatter(TimeFormats.DATABASE_DATETIME),
         numberFormatter: getNumberFormatter(NumberFormats.SMART_NUMBER),
       });
-      expect(formatter(null, GenericDataType.String)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Numeric)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Temporal)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Boolean)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.String)).toEqual(NULL_STRING());
+      expect(formatter(null, GenericDataType.Numeric)).toEqual(NULL_STRING());
+      expect(formatter(null, GenericDataType.Temporal)).toEqual(NULL_STRING());
+      expect(formatter(null, GenericDataType.Boolean)).toEqual(NULL_STRING());
       expect(formatter('foo', GenericDataType.String)).toEqual('foo');
       expect(formatter('foo', GenericDataType.Numeric)).toEqual('foo');
       expect(formatter('foo', GenericDataType.Temporal)).toEqual('foo');
-      expect(formatter('foo', GenericDataType.Boolean)).toEqual(FALSE_STRING);
+      expect(formatter('foo', GenericDataType.Boolean)).toEqual(FALSE_STRING());
       expect(formatter(0, GenericDataType.String)).toEqual('0');
       expect(formatter(0, GenericDataType.Numeric)).toEqual('0');
       expect(formatter(0, GenericDataType.Temporal)).toEqual(
         '1970-01-01 00:00:00',
       );
-      expect(formatter(0, GenericDataType.Boolean)).toEqual(FALSE_STRING);
+      expect(formatter(0, GenericDataType.Boolean)).toEqual(FALSE_STRING());
       expect(formatter(1234567.89, GenericDataType.String)).toEqual(
         '1234567.89',
       );
@@ -204,7 +208,7 @@ describe('Filter utils', () => {
         '1970-01-01 00:20:34',
       );
       expect(formatter(1234567.89, GenericDataType.Boolean)).toEqual(
-        TRUE_STRING,
+        TRUE_STRING(),
       );
       expect(formatter('1970-01-01 00:00:00', GenericDataType.String)).toEqual(
         '1970-01-01 00:00:00',
@@ -213,7 +217,7 @@ describe('Filter utils', () => {
         '1970-01-01 00:00:00',
       );
       expect(formatter('1970-01-01 00:00:00', GenericDataType.Boolean)).toEqual(
-        FALSE_STRING,
+        FALSE_STRING(),
       );
       expect(
         formatter('1970-01-01 00:00:00', GenericDataType.Temporal),
