@@ -2802,6 +2802,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         )
 
+        # Honor the dataset "Hour Offset". Result timestamps are displayed shifted
+        # by +offset hours (see normalize_df / DateColumn in superset.utils.core),
+        # but the time filter compares the raw stored values. Shifting the filter
+        # bounds by -offset keeps the filter consistent with what is displayed;
+        # otherwise a date selection lands on the wrong calendar day (#104810).
+        offset_hours = getattr(self, "offset", 0) or 0
+        if offset_hours:
+            if start_dttm is not None:
+                start_dttm = start_dttm - timedelta(hours=offset_hours)
+            if end_dttm is not None:
+                end_dttm = end_dttm - timedelta(hours=offset_hours)
+
         l = []  # noqa: E741
         if start_dttm:
             l.append(
