@@ -3259,6 +3259,15 @@ def test_sanitize_clause_preserves_aggregation_semantics_with_comment(
     assert "CAST" not in sanitized.upper(), (
         f"sanitize_clause injected a cast for engine {engine!r}: {sanitized!r}"
     )
+    # The comment-handling branch must preserve the user-authored expression and
+    # comment payload, not just avoid the cast (otherwise dropping the comment or
+    # rewriting the clause entirely would still pass the assertion above).
+    assert "ROUND(AVG(col), 4)" in sanitized, (
+        f"sanitize_clause rewrote the clause for engine {engine!r}: {sanitized!r}"
+    )
+    assert "precise_count_distinct=true" in sanitized, (
+        f"sanitize_clause dropped the comment for engine {engine!r}: {sanitized!r}"
+    )
 
 
 @pytest.mark.parametrize(

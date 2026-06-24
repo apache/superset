@@ -21,7 +21,7 @@ import re
 from datetime import datetime
 from typing import Any, cast, Literal, NamedTuple, Optional, Union
 from re import Pattern
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 import numpy as np
@@ -138,8 +138,8 @@ class TestDatabaseModel(SupersetTestCase):
             assert col.is_temporal
 
     @patch("superset.jinja_context.get_username", return_value="abc")
-    def test_jinja_metrics_and_calc_columns(self, mock_username):
-        base_query_obj = {
+    def test_jinja_metrics_and_calc_columns(self, mock_username: MagicMock) -> None:
+        base_query_obj: dict[str, Any] = {
             "granularity": None,
             "from_dttm": None,
             "to_dttm": None,
