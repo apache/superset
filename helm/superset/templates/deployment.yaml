@@ -144,6 +144,9 @@ spec:
           {{- if .Values.supersetNode.livenessProbe }}
           livenessProbe: {{- .Values.supersetNode.livenessProbe | toYaml | nindent 12 }}
           {{- end }}
+          {{- if .Values.supersetNode.lifecycle }}
+          lifecycle: {{- .Values.supersetNode.lifecycle | toYaml | nindent 12 }}
+          {{- end }}
           resources:
             {{- if .Values.supersetNode.resources }}
               {{- toYaml .Values.supersetNode.resources | nindent 12 }}
@@ -151,7 +154,7 @@ spec:
               {{- toYaml .Values.resources | nindent 12 }}
             {{- end }}
         {{- if .Values.supersetNode.extraContainers }}
-          {{- toYaml .Values.supersetNode.extraContainers | nindent 8 }}
+          {{- tpl (toYaml .Values.supersetNode.extraContainers) . | nindent 8 }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
@@ -179,6 +182,9 @@ spec:
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.supersetNode.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.supersetNode.terminationGracePeriodSeconds }}
       {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}

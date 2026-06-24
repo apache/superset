@@ -93,6 +93,17 @@ class EditorProviders {
    */
   private unregisterEmitter = new EventEmitter<EditorUnregisteredEvent>();
 
+  private syncListeners: Set<() => void> = new Set();
+
+  /**
+   * Stable-reference subscribe function for useSyncExternalStore.
+   * Defined as an arrow property so the reference is bound to this instance at construction.
+   */
+  public subscribe = (listener: () => void): (() => void) => {
+    this.syncListeners.add(listener);
+    return () => this.syncListeners.delete(listener);
+  };
+
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
     // Private constructor for singleton pattern
@@ -145,6 +156,7 @@ class EditorProviders {
 
     // Fire registration event
     this.registerEmitter.fire({ editor });
+    this.syncListeners.forEach(l => l());
 
     // Return disposable for cleanup
     return new Disposable(() => {
@@ -176,6 +188,7 @@ class EditorProviders {
 
     // Fire unregistration event
     this.unregisterEmitter.fire({ editor });
+    this.syncListeners.forEach(l => l());
   }
 
   /**
@@ -234,6 +247,7 @@ class EditorProviders {
   public reset(): void {
     this.providers.clear();
     this.languageToProvider.clear();
+    this.syncListeners.clear();
   }
 }
 

@@ -1,0 +1,31 @@
+---
+title: Azure Data Explorer
+sidebar_label: Azure Data Explorer
+description: "Azure Data Explorer (Kusto) is a fast, fully managed data analytics service from Microsoft Azure. Query data using SQL or native KQL syntax."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"azure_data_explorer","engine_name":"Azure Data Explorer","module":"kusto","documentation":{"description":"Azure Data Explorer (Kusto) is a fast, fully managed data analytics service from Microsoft Azure. Query data using SQL or native KQL syntax.","logo":"kusto.png","homepage_url":"https://azure.microsoft.com/en-us/products/data-explorer/","categories":["CLOUD_AZURE","ANALYTICAL_DATABASES","PROPRIETARY"],"pypi_packages":["sqlalchemy-kusto"],"connection_string":"kustosql+https://{cluster}.kusto.windows.net/{database}?msi=False&azure_ad_client_id={client_id}&azure_ad_client_secret={client_secret}&azure_ad_tenant_id={tenant_id}","parameters":{"cluster":"Azure Data Explorer cluster name","database":"Database name","client_id":"Azure AD application (client) ID","client_secret":"Azure AD application secret","tenant_id":"Azure AD tenant ID"},"drivers":[{"name":"SQL Interface (Recommended)","pypi_package":"sqlalchemy-kusto","connection_string":"kustosql+https://{cluster}.kusto.windows.net/{database}?msi=False&azure_ad_client_id={client_id}&azure_ad_client_secret={client_secret}&azure_ad_tenant_id={tenant_id}","is_recommended":true,"notes":"Use familiar SQL syntax to query Azure Data Explorer."},{"name":"KQL (Kusto Query Language)","pypi_package":"sqlalchemy-kusto","connection_string":"kustokql+https://{cluster}.kusto.windows.net/{database}?msi=False&azure_ad_client_id={client_id}&azure_ad_client_secret={client_secret}&azure_ad_tenant_id={tenant_id}","is_recommended":false,"notes":"Use native Kusto Query Language for advanced analytics."}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":false,"THIRTY_SECONDS":false,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":false,"HALF_HOUR":true,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":true,"WEEK_STARTING_MONDAY":true,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":54,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":false,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":false,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Azure Data Explorer" database={databaseInfo} />

@@ -230,7 +230,10 @@ def generate_dashboard(  # noqa: C901
                 return GenerateDashboardResponse(
                     dashboard=None,
                     dashboard_url=None,
-                    error=f"Charts not found: {list(missing_chart_ids)}",
+                    error=(
+                        f"Charts not found: {sorted(missing_chart_ids)}."
+                        " Use list_charts to get valid chart IDs."
+                    ),
                 )
 
             # Validate dataset access for each chart.
@@ -332,6 +335,15 @@ def generate_dashboard(  # noqa: C901
 
                 db.session.add(dashboard)
                 db.session.commit()  # pylint: disable=consider-using-transaction
+                try:
+                    db.session.refresh(dashboard)
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Dashboard %s created but refresh failed; "
+                        "continuing with current values",
+                        dashboard.id,
+                        exc_info=True,
+                    )
             except SQLAlchemyError as db_err:
                 try:
                     db.session.rollback()  # pylint: disable=consider-using-transaction
@@ -405,6 +417,7 @@ def generate_dashboard(  # noqa: C901
             serialize_chart_summary,
             serialize_tag_object,
         )
+        from superset.mcp_service.utils.response_utils import humanize_timestamp
 
         include_data_model_metadata = user_can_view_data_model_metadata()
         dashboard_info = DashboardInfo(
@@ -415,6 +428,10 @@ def generate_dashboard(  # noqa: C901
             published=dashboard.published,
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
+            created_on_humanized=humanize_timestamp(dashboard.created_on),
+            changed_on_humanized=humanize_timestamp(dashboard.changed_on),
+            created_by=dashboard.created_by_name or None,
+            changed_by=dashboard.changed_by_name or None,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/",
             chart_count=len(request.chart_ids),

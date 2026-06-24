@@ -553,22 +553,26 @@ describe('SupersetClientClass', () => {
   });
 
   describe('when unauthorized', () => {
-    let originalLocation: any;
     let authSpy: jest.SpyInstance;
+    let locationSpy: jest.SpyInstance;
+    let mockHrefValue: string;
     const mockRequestUrl = 'https://host/get/url';
     const mockRequestPath = '/get/url';
     const mockRequestSearch = '?param=1&param=2';
     const mockHref = mockRequestUrl + mockRequestSearch;
 
     beforeEach(() => {
-      originalLocation = window.location;
-      // @ts-expect-error
-      delete window.location;
-      window.location = {
+      mockHrefValue = mockHref;
+      locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
         pathname: mockRequestPath,
         search: mockRequestSearch,
-        href: mockHref,
-      } as unknown as Location;
+        get href() {
+          return mockHrefValue;
+        },
+        set href(v: string) {
+          mockHrefValue = v;
+        },
+      } as unknown as Location);
       authSpy = jest
         .spyOn(SupersetClientClass.prototype, 'ensureAuth')
         .mockImplementation();
@@ -578,7 +582,7 @@ describe('SupersetClientClass', () => {
 
     afterEach(() => {
       authSpy.mockReset();
-      window.location = originalLocation;
+      locationSpy.mockRestore();
     });
 
     test('should redirect', async () => {
@@ -599,11 +603,17 @@ describe('SupersetClientClass', () => {
     test('should not redirect again if already on login page', async () => {
       const client = new SupersetClientClass({});
 
-      window.location = {
-        href: '/login?next=something',
+      mockHrefValue = '/login?next=something';
+      locationSpy.mockReturnValue({
+        get href() {
+          return mockHrefValue;
+        },
+        set href(v: string) {
+          mockHrefValue = v;
+        },
         pathname: '/login',
         search: '?next=something',
-      } as unknown as Location;
+      } as unknown as Location);
 
       let error;
       try {

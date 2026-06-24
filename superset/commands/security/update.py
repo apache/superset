@@ -22,6 +22,7 @@ from typing import Any, Optional
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.security.exceptions import RLSRuleNotFoundError
+from superset.commands.security.utils import raise_for_datasource_access
 from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.daos.security import RLSDAO
@@ -57,5 +58,6 @@ class UpdateRLSRuleCommand(BaseCommand):
         )
         if len(tables) != len(self._tables):
             raise DatasourceNotFoundValidationError()
+        raise_for_datasource_access(tables)
         self._properties["roles"] = roles
         self._properties["tables"] = tables

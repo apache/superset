@@ -75,6 +75,7 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "columns": [
                 {"name": "customer_name"},
                 {"name": "revenue", "aggregate": "SUM"},
+                {"sql_expression": "SUM(revenue) / COUNT(*)", "label": "Avg per Order"},
             ],
         },
     ],
@@ -114,6 +115,14 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
         {
             "chart_type": "big_number",
             "metric": {"name": "revenue", "aggregate": "SUM"},
+        },
+        {
+            "chart_type": "big_number",
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "temporal_column": "order_date",
+            "show_trendline": True,
+            "aggregation": "sum",
+            "time_grain": "P1D",
         },
     ],
 }

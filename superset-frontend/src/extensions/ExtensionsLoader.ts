@@ -34,6 +34,8 @@ class ExtensionsLoader {
 
   private extensionIndex: Map<string, Extension> = new Map();
 
+  private initializationPromise: Promise<void> | null = null;
+
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
     // Private constructor for singleton pattern
@@ -54,16 +56,27 @@ class ExtensionsLoader {
    * Initializes extensions by fetching the list from the API and loading each one.
    * @throws Error if initialization fails.
    */
-  public async initializeExtensions(): Promise<void> {
-    const response = await SupersetClient.get({
-      endpoint: '/api/v1/extensions/',
-    });
-    const extensions: Extension[] = response.json.result;
-    await Promise.all(
-      extensions.map(async extension => {
-        await this.initializeExtension(extension);
-      }),
-    );
+  public initializeExtensions(): Promise<void> {
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+    this.initializationPromise = (async () => {
+      try {
+        const response = await SupersetClient.get({
+          endpoint: '/api/v1/extensions/',
+        });
+        const extensions: Extension[] = response.json.result;
+        await Promise.all(
+          extensions.map(async extension => {
+            await this.initializeExtension(extension);
+          }),
+        );
+        logging.info('Extensions initialized successfully.');
+      } catch (error) {
+        logging.error('Error setting up extensions:', error);
+      }
+    })();
+    return this.initializationPromise;
   }
 
   /**

@@ -183,7 +183,10 @@ async def query_dataset(  # noqa: C901
         if dataset is None:
             await ctx.error("Dataset not found: identifier=%s" % (request.dataset_id,))
             return DatasetError.create(
-                error=f"No dataset found with identifier: {request.dataset_id}",
+                error=(
+                    f"No dataset found with identifier: {request.dataset_id}."
+                    " Use list_datasets to get valid dataset IDs."
+                ),
                 error_type="NotFound",
             )
 

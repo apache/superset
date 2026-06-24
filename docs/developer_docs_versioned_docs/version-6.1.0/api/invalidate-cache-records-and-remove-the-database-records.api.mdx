@@ -1,0 +1,66 @@
+---
+id: invalidate-cache-records-and-remove-the-database-records
+title: "Invalidate cache records and remove the database records"
+description: "Takes a list of datasources, finds and invalidates the associated cache records and removes the database records."
+sidebar_label: "Invalidate cache records and remove the database records"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFV1Fv2zYQ/ivEYUATTImTYQUKFX1wsxZtV7RB7WIDrCBhpHPEhiJVkrLjCfrvw5GSLNlOB2QPfbJF3h3vvvvueKwhQ5saUTqhFcQw5/doGWdSWMf0kmXccasrk6KN2FKozDKuMibUikuRcYeWuRwZt1angjvMWMrTHJnBVJtW2GChV60g2bvlthc4hQgMfq/Qutc620BcQ6qVQ+XoLy9LKVJOvk2+WXKwBpvmWHD6VxpdonECLX1tPb2uRBaWxqHlyCqRUVSdJxbdZKvHXC4sU7hmac6NY2shJassnrIpS3VRSnQ4AISJDJUTy9ZBphAzy27GftwwiEA4LLxDblMixGCdEeoOmqhb4MbwDX0P4N4PYNpnpfOftZ4Qyj2yihdoh6eOcUq541Lf7Zv/YxtZJxOBqqTktxIhdqbCaD+C7thrOvaHRr3AIxZawA7bmOcj2Eno9D8Mhb1DhminJ/Y4/V0+MWNajRIpshs6EVVVQLwA5xFpD0QHEXyv0GwgAstXmF13XyuBa7g64OmWw4+i1YrsKTehXoTBjFzZjXl7mr79hin55oSj/A2M7zOveVztgur5fVfvQqsvoVxnwcEmAnzgVBwHi3DROX61Q+5F3Vw1dO5jHB9Is8rXrfG8d1Up0XYSnvEd/QcEsTDEibjrgbOlVjbUwW9n5/sJCM1rzS2zVZqitctKys2g3WUU8O9nZ/+jURVoLb/DA/1gLwtjcHtFeM2pq/o0xKzNDSu54QU6NJaVRq9ERs7uIzzQJfvPf3Ys75VDo7hkFs0KDUNjtInZVLFK4UOJKV0qfpHpNK2MORzWW2pZQc4fbjGtjHAbYhp8WzuIF1cNVQe/87T0tP6C1k1LQeR8OEl1hjPvoKcnSK7uiBJfv3yECCS/Rbn9bAsphrQykp38zS4/z+Ysgdy5Mp5MpE65zLV18YuzFy8mvBST1fnEs+seN5MtnxJgSZIoxk7esQSmlcu1Ef948GP2GrlBw36ZXly8mc2u55//fPNprHAR0nYy35QYs93MbWUz9qxO4B43CcQsgRWXFSbQPIMm6gO93Lhcq0Go/UIfrChKbVxHH5uoRHU1xV71y6eltu6IzmVPQiQKqjnyDI19Ve/gEkJosUmA/cq4L9Vrp+9RNa02xf/qUMyJOk5UaYRyR53vpyR8dHw8ROMDX/GZ59cAkdHilgJaWQKlB4KvuXBsiS7NPQxPBqEOsRTocp1REMSyXYDiToztMogCv+lIVAeU5h6km2irMuRQgGqfR0G6w/ZWZ5uYfZh9/nQayl0sN0c1u8fNAGjWHJM04f0yUQEjP7N0+Oyg3wppiadS3x2R6PFLoJIN4UMMxCuIoOQuhxh+AB9lx3eTUMmVoeQdzAHs9pGPtM0yXKHUZYHKtX3JcyMYqkujnU61bOLJpCZTTVxTYTR71i4q63TRmYhgxY2g4aGby7yZcA0teSVd6+Zg1mg/6cf6S3Rk/918fsl6O00E5M3YXh/vnnOz0HBpj65MumDfX5IRimVs5CBUrb6XbhrKVNd0/WwQgvStt4Zbz8K32hSc7H34aw7tGEQVFHa3w44PuolI+drg0qDNn2qErNh+aKE3xpunjSvbwbmT2Rt+xxujmfbgVutoN052l2x/h141EQi11Ptzyqwq0YTRs5vTBktE/CC3Og/5tK7g/iJvvennOXz0vXbwubbLgcHg8FOejh2C+OAmpeRCUbi+Suu2TSyAl4IwOYcIulZBr6Nts7jqymYBdU0nfDWyaWg5DPLx4mpbuX6OiCD0Xs8LshePuqgvdFn5+Xp3mKI2EjSmaYr+Inlcdtj8qPVDBLftK7nQGekYvqZJl68hBohA+7z4wvNr4TqrwqQVbFJF8Mrlg5mtr5z2D0XVvQ/UZuBhXQeJcIlQuwuh+JsX/ED/L9EPq4I=
+sidebar_class_name: "post api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Invalidate cache records and remove the database records"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/cachekey/invalidate"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Takes a list of datasources, finds and invalidates the associated cache records and removes the database records.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./invalidate-cache-records-and-remove-the-database-records.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./invalidate-cache-records-and-remove-the-database-records.StatusCodes.json")}
+>
+
+</StatusCodes>
