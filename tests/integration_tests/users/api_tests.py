@@ -116,6 +116,7 @@ class TestCurrentUserApi(SupersetTestCase):
         assert rv.status_code == 400
 
     def test_update_me_rejects_password_when_auth_db(self) -> None:
+        """Reject password changes via PUT /me with a 400 when AUTH_TYPE is AUTH_DB."""
         self.login(ADMIN_USERNAME)
         rv = self.client.put(meUri, json={"password": "ignored"})
         assert rv.status_code == 400
@@ -123,6 +124,7 @@ class TestCurrentUserApi(SupersetTestCase):
         assert "AUTH_TYPE is AUTH_DB" in data["message"]
 
     def test_put_my_password_wrong_current(self) -> None:
+        """Reject the change with a 400 when current_password is incorrect."""
         self.login(ADMIN_USERNAME)
         rv = self.client.put(
             mePasswordUri,
@@ -137,6 +139,7 @@ class TestCurrentUserApi(SupersetTestCase):
         assert data["message"] == "Incorrect current password."
 
     def test_put_my_password_weak_new(self) -> None:
+        """Verify a new password failing policy is rejected with a 400."""
         self.login(ADMIN_USERNAME)
         rv = self.client.put(
             mePasswordUri,
@@ -151,6 +154,7 @@ class TestCurrentUserApi(SupersetTestCase):
         assert "new_password" in data["message"]
 
     def test_put_my_password_success(self) -> None:
+        """Cover the successful password change flow for the current user."""
         self.login(ADMIN_USERNAME)
         new_password = "AnotherStr0ng!Pass"  # noqa: S105
         try:
@@ -312,6 +316,7 @@ class TestCurrentUserApi(SupersetTestCase):
         assert "AUTH_TYPE is AUTH_DB" in data["message"]
 
     def test_put_my_password_confirmation_mismatch(self) -> None:
+        """Reject the request when new_password and confirm_password differ."""
         self.login(ADMIN_USERNAME)
         rv = self.client.put(
             mePasswordUri,

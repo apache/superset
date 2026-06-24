@@ -111,6 +111,15 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Fallback werkzeug-format hash used to balance timing on failed logins when
+# ``AUTH_DB_FAKE_PASSWORD_HASH_CHECK`` is not provided by the Flask-AppBuilder
+# config defaults. Mirrors FAB's pbkdf2 default so ``check_password_hash`` does
+# comparable work whether or not the target user exists.
+DEFAULT_AUTH_DB_FAKE_PASSWORD_HASH_CHECK = (
+    "pbkdf2:sha256:150000$Z3t6fmj2$22da622d94a1f8118"  # noqa: S105
+    "c0976a03d2f18f680bfff877c9a965db9eedc51bc0be87c"
+)
+
 
 def get_conf() -> Any:
     return current_app.config
@@ -4351,7 +4360,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if user is None or (not user.is_active):
             # Balance failure and success
             check_password_hash(
-                current_app.config["AUTH_DB_FAKE_PASSWORD_HASH_CHECK"],
+                current_app.config.get(
+                    "AUTH_DB_FAKE_PASSWORD_HASH_CHECK",
+                    DEFAULT_AUTH_DB_FAKE_PASSWORD_HASH_CHECK,
+                ),
                 "password",
             )
             logger.info(LOGMSG_WAR_SEC_LOGIN_FAILED, username)

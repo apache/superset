@@ -182,7 +182,15 @@ function UserInfoModal({
             <GeneratePasswordInputSuffix
               onGenerate={() => {
                 const pwd = generateAuthDbPassword(passwordPolicy);
-                form.setFieldsValue({ new_password: pwd, confirm_password: pwd });
+                form.setFieldsValue({
+                  new_password: pwd,
+                  confirm_password: pwd,
+                });
+                // setFieldsValue does not fire the form's change handlers, so
+                // validate the affected fields to recompute submit state.
+                form
+                  .validateFields(['new_password', 'confirm_password'])
+                  .catch(() => {});
               }}
             />
           }

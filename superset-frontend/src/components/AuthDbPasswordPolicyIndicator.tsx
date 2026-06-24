@@ -16,9 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@apache-superset/core/theme';
+import {
+  css,
+  styled,
+  useTheme,
+  type SupersetTheme,
+} from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { Icons, Popover, Progress, Typography } from '@superset-ui/core/components';
+import {
+  Icons,
+  Popover,
+  Progress,
+  Typography,
+} from '@superset-ui/core/components';
 import {
   AUTH_DB_DEFAULT_PASSWORD_POLICY,
   AuthDbPasswordPolicy,
@@ -76,26 +86,27 @@ const requirementText = {
   commonPassword: t('Is not a common password'),
 };
 
-function getStrengthState(percent: number) {
+function getStrengthState(percent: number, theme: SupersetTheme) {
   if (percent <= 33) {
-    return { color: '#cf1322', label: t('Very weak') };
+    return { color: theme.colorError, label: t('Very weak') };
   }
   if (percent <= 50) {
-    return { color: '#d46b08', label: t('Weak') };
+    return { color: theme.colorWarningText, label: t('Weak') };
   }
-  if (percent <= 66) {
-    return { color: '#d4b106', label: t('Medium') };
+  if (percent <= 67) {
+    return { color: theme.colorWarning, label: t('Medium') };
   }
   if (percent <= 83) {
-    return { color: '#389e0d', label: t('Strong') };
+    return { color: theme.colorSuccess, label: t('Strong') };
   }
-  return { color: '#08979c', label: t('Very strong') };
+  return { color: theme.colorSuccessTextActive, label: t('Very strong') };
 }
 
 export default function AuthDbPasswordPolicyIndicator({
   password,
   policy = AUTH_DB_DEFAULT_PASSWORD_POLICY,
 }: AuthDbPasswordPolicyIndicatorProps) {
+  const theme = useTheme();
   const checks = getAuthDbPasswordPolicyChecks(password, policy);
   const hasPassword = password.length > 0;
   const checklist = [
@@ -104,16 +115,31 @@ export default function AuthDbPasswordPolicyIndicator({
       passed: hasPassword && checks.minLength,
     },
     ...(policy.password_require_uppercase
-      ? [{ label: requirementText.uppercase, passed: hasPassword && checks.uppercase }]
+      ? [
+          {
+            label: requirementText.uppercase,
+            passed: hasPassword && checks.uppercase,
+          },
+        ]
       : []),
     ...(policy.password_require_lowercase
-      ? [{ label: requirementText.lowercase, passed: hasPassword && checks.lowercase }]
+      ? [
+          {
+            label: requirementText.lowercase,
+            passed: hasPassword && checks.lowercase,
+          },
+        ]
       : []),
     ...(policy.password_require_digit
       ? [{ label: requirementText.digit, passed: hasPassword && checks.digit }]
       : []),
     ...(policy.password_require_special
-      ? [{ label: requirementText.special, passed: hasPassword && checks.special }]
+      ? [
+          {
+            label: requirementText.special,
+            passed: hasPassword && checks.special,
+          },
+        ]
       : []),
     ...(policy.password_common_list_check
       ? [
@@ -126,7 +152,7 @@ export default function AuthDbPasswordPolicyIndicator({
   ];
   const passedChecks = checklist.filter(item => item.passed).length;
   const percent = Math.round((passedChecks / checklist.length) * 100);
-  const strength = getStrengthState(percent);
+  const strength = getStrengthState(percent, theme);
 
   return (
     <StrengthWrapper>

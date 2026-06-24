@@ -24,7 +24,7 @@ from uuid import uuid4
 
 from flask import Flask, has_request_context, session
 from flask_login import current_user, logout_user
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from superset.extensions import db
 from superset.utils.decorators import transaction
@@ -138,17 +138,27 @@ def validate_session_auth_stamp_for_request() -> None:
     except (TypeError, ValueError):
         return
 
-    row = db.session.get(UserSessionAuthStamp, user_id)
-    if row is None:
-        stamp = ensure_user_session_stamp_value(user_id)
-        session[SESSION_AUTH_STAMP_SESSION_KEY] = stamp
+    try:
+        row = db.session.get(UserSessionAuthStamp, user_id)
+        if row is None:
+            stamp = ensure_user_session_stamp_value(user_id)
+            session[SESSION_AUTH_STAMP_SESSION_KEY] = stamp
+            return
+    except SQLAlchemyError:
+        # Fail open: a database error (for example a missing table during a
+        # rolling deploy or migration mismatch) must not turn every
+        # authenticated request into a 500. Skip the check for this request.
+        logger.warning(
+            "Skipping session auth stamp check due to a database error",
+            exc_info=True,
+        )
+        db.session.rollback()  # pylint: disable=consider-using-transaction
         return
 
+    # A missing stamp means the session predates stamp tracking (or was never
+    # stamped). Once a DB stamp row exists, adopting it silently would let such
+    # a session survive a password change, so treat a missing stamp as invalid.
     sess_stamp = session.get(SESSION_AUTH_STAMP_SESSION_KEY)
-    if sess_stamp is None:
-        session[SESSION_AUTH_STAMP_SESSION_KEY] = row.stamp
-        return
-
-    if sess_stamp != row.stamp:
+    if sess_stamp is None or sess_stamp != row.stamp:
         logout_user()
         session.clear()

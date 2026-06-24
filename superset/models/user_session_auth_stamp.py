@@ -34,7 +34,9 @@ class UserSessionAuthStamp(Model):
 
     __tablename__ = "user_session_auth_stamp"
 
-    user_id = Column(Integer, ForeignKey("ab_user.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(
+        Integer, ForeignKey("ab_user.id", ondelete="CASCADE"), primary_key=True
+    )
     stamp = Column(String(36), nullable=False)
 
     user = relationship(

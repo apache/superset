@@ -47,6 +47,7 @@ from superset.utils.auth_session_stamp import (
     bump_user_session_auth_stamp,
     clear_flask_login_remember_cookie,
 )
+from superset.utils.decorators import transaction
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 from superset.views.users.schemas import (
@@ -69,6 +70,11 @@ def _get_client_ip() -> str | None:
 
 
 def _me_password_rate_limit_key() -> str:
+    """Return the rate-limit key for password changes.
+
+    Uses a per-user key (``me_password_uid:<id>``) when a user is in context,
+    otherwise falls back to the client IP (or ``"unknown"`` when unavailable).
+    """
     uid = getattr(getattr(g, "user", None), "id", None)
     if uid is not None:
         return f"me_password_uid:{uid}"
@@ -112,13 +118,19 @@ def _load_password_change_body(
     return body
 
 
+@transaction()
 def _commit_user_password_change(
     api: CurrentUserRestApi,
     user_id: int,
     old_hash: str,
     new_hash: str,
 ) -> User:
-    """Persist a password change and rotate the user's session auth stamp."""
+    """Persist a password change and rotate the user's session auth stamp.
+
+    The whole flow runs in a single transaction that commits once on success,
+    so any failure path (including a missing user) rolls back the password
+    write rather than reporting an error after it was already committed.
+    """
     api.pre_update(g.user, {})
     rows_updated = (
         db.session.query(User)
@@ -133,15 +145,13 @@ def _commit_user_password_change(
         )
     )
     if rows_updated != 1:
-        db.session.rollback()  # pylint: disable=consider-using-transaction
         raise PasswordChangeConflictError
 
     bump_user_session_auth_stamp(user_id)
-    db.session.commit()  # pylint: disable=consider-using-transaction
     user_after = db.session.get(User, user_id)
     if user_after is None:
-        logger.error("User missing after password commit for id=%s", user_id)
-        raise SQLAlchemyError("user missing after password commit")
+        logger.error("User missing after password update for id=%s", user_id)
+        raise SQLAlchemyError("user missing after password update")
     return user_after
 
 

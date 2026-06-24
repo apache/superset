@@ -41,8 +41,12 @@ export const AUTH_DB_DEFAULT_PASSWORD_POLICY: AuthDbPasswordPolicy = {
   password_common_list_check: true,
 };
 
-/** Lowercased entries; keep in sync with ``_COMMON_PASSWORDS`` in auth_db_password.py */
-const AUTH_DB_COMMON_PASSWORDS = new Set(
+/**
+ * Lowercased entries; keep in sync with ``_COMMON_PASSWORDS`` in
+ * ``superset/utils/auth_db_password.py``. The sync is enforced automatically by
+ * ``generateAuthDbPassword.test.ts``, which parses the Python source.
+ */
+export const AUTH_DB_COMMON_PASSWORDS = new Set(
   [
     'password',
     'password1',
@@ -123,12 +127,19 @@ function secureRandomInt(maxExclusive: number): number {
   if (maxExclusive <= 0) {
     throw new Error('secureRandomInt: maxExclusive must be positive');
   }
+  const cryptoObj = globalThis.crypto;
+  if (!cryptoObj?.getRandomValues) {
+    throw new Error(
+      'secureRandomInt: a Web Crypto implementation with getRandomValues ' +
+        'is required to generate passwords',
+    );
+  }
   const maxUint32 = 0xffffffff;
   const limit = maxUint32 - (maxUint32 % maxExclusive);
   const buf = new Uint32Array(1);
   let value: number;
   do {
-    crypto.getRandomValues(buf);
+    cryptoObj.getRandomValues(buf);
     value = buf[0]!;
   } while (value >= limit);
   return value % maxExclusive;
@@ -147,9 +158,7 @@ function shuffleInPlace(chars: string[]): void {
   }
 }
 
-function getRequiredCharacterPools(
-  policy: AuthDbPasswordPolicy,
-): string[] {
+function getRequiredCharacterPools(policy: AuthDbPasswordPolicy): string[] {
   const pools: string[] = [];
   if (policy.password_require_uppercase) {
     pools.push(UPPER);
@@ -183,19 +192,6 @@ function getGenerationPool(policy: AuthDbPasswordPolicy): string {
   return pool || ALPHANUM + SPECIAL;
 }
 
-function satisfiesAuthDbPasswordPolicy(
-  password: string,
-  policy: AuthDbPasswordPolicy,
-): boolean {
-  const checks = getAuthDbPasswordPolicyChecks(password, policy);
-  return Object.values(checks).every(Boolean);
-}
-
-/** True when the string satisfies default AUTH_DB rules (mirrors backend checks). */
-export function satisfiesDefaultAuthDbPasswordPolicy(password: string): boolean {
-  return satisfiesAuthDbPasswordPolicy(password, AUTH_DB_DEFAULT_PASSWORD_POLICY);
-}
-
 /** Returns rule-by-rule checks for default AUTH_DB password policy. */
 export function getAuthDbPasswordPolicyChecks(
   password: string,
@@ -206,14 +202,31 @@ export function getAuthDbPasswordPolicyChecks(
     minLength: getCodePointLength(password) >= minLength,
     uppercase: !policy.password_require_uppercase || /[A-Z]/.test(password),
     lowercase: !policy.password_require_lowercase || /[a-z]/.test(password),
-    digit: !policy.password_require_digit || /\d/.test(password),
+    digit: !policy.password_require_digit || /\p{Nd}/u.test(password),
     special:
-      !policy.password_require_special ||
-      /[^\p{L}\p{N}\s]/u.test(password),
+      !policy.password_require_special || /[^\p{L}\p{N}\s]/u.test(password),
     commonPassword:
       !policy.password_common_list_check ||
       !AUTH_DB_COMMON_PASSWORDS.has(password.toLowerCase().trim()),
   };
+}
+
+function satisfiesAuthDbPasswordPolicy(
+  password: string,
+  policy: AuthDbPasswordPolicy,
+): boolean {
+  const checks = getAuthDbPasswordPolicyChecks(password, policy);
+  return Object.values(checks).every(Boolean);
+}
+
+/** True when the string satisfies default AUTH_DB rules (mirrors backend checks). */
+export function satisfiesDefaultAuthDbPasswordPolicy(
+  password: string,
+): boolean {
+  return satisfiesAuthDbPasswordPolicy(
+    password,
+    AUTH_DB_DEFAULT_PASSWORD_POLICY,
+  );
 }
 
 /** Returns the first validation error for a password under the given policy. */

@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from typing import Any
 
 from flask import current_app as app
@@ -100,6 +101,14 @@ _COMMON_PASSWORDS = frozenset(
 def get_merged_auth_db_config() -> dict[str, Any]:
     """Return ``AUTH_DB_DEFAULTS`` merged with ``AUTH_DB_CONFIG`` from app config."""
     overrides = app.config.get("AUTH_DB_CONFIG") or {}
+    if not isinstance(overrides, Mapping):
+        raise ValidationError(
+            {
+                "AUTH_DB_CONFIG": [
+                    "Invalid AUTH_DB_CONFIG. Expected a mapping of policy options."
+                ]
+            }
+        )
     return {**AUTH_DB_DEFAULTS, **overrides}
 
 
@@ -116,7 +125,9 @@ def get_auth_db_login_rate_limit_string() -> str:
     )
 
 
-def get_public_auth_db_password_policy(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
+def get_public_auth_db_password_policy(
+    cfg: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
     Return non-secret AUTH_DB password policy options for frontend validation UI.
     """
@@ -157,6 +168,23 @@ def get_auth_db_password_hash_method(cfg: dict[str, Any] | None = None) -> str:
     return get_auth_db_password_hash_algorithm(cfg)
 
 
+def resolve_password_min_length(cfg: dict[str, Any]) -> int:
+    """
+    Coerce ``password_min_length`` to a non-negative int.
+
+    Falls back to the default for missing or malformed config values so an
+    invalid operator setting cannot raise at request time. Mirrors the frontend
+    ``resolveAuthDbPasswordMinLength``.
+    """
+    default = int(AUTH_DB_DEFAULTS["password_min_length"])
+    raw = cfg.get("password_min_length", default)
+    try:
+        min_len = int(raw)
+    except (TypeError, ValueError):
+        return default
+    return max(min_len, 0)
+
+
 def validate_auth_db_password(password: str, cfg: dict[str, Any] | None = None) -> None:
     """
     Enforce AUTH_DB password policy.
@@ -168,14 +196,18 @@ def validate_auth_db_password(password: str, cfg: dict[str, Any] | None = None) 
     cfg = cfg if cfg is not None else get_merged_auth_db_config()
     errors: list[str] = []
 
-    min_len = int(cfg.get("password_min_length", AUTH_DB_DEFAULTS["password_min_length"]))
+    min_len = resolve_password_min_length(cfg)
     if len(password) < min_len:
         errors.append(f"Password must be at least {min_len} characters long.")
 
-    if cfg.get("password_require_uppercase", True) and not re.search(r"[A-Z]", password):
+    if cfg.get("password_require_uppercase", True) and not re.search(
+        r"[A-Z]", password
+    ):
         errors.append("Password must contain at least one uppercase letter.")
 
-    if cfg.get("password_require_lowercase", True) and not re.search(r"[a-z]", password):
+    if cfg.get("password_require_lowercase", True) and not re.search(
+        r"[a-z]", password
+    ):
         errors.append("Password must contain at least one lowercase letter.")
 
     if cfg.get("password_require_digit", True) and not re.search(r"\d", password):

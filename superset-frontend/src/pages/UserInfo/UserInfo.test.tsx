@@ -172,7 +172,9 @@ describe('UserInfo', () => {
     });
     await renderPage();
 
-    expect(screen.queryByTestId('reset-password-button')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('reset-password-button'),
+    ).not.toBeInTheDocument();
     expect(await screen.findByTestId('edit-user-button')).toBeInTheDocument();
   });
 

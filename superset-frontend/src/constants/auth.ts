@@ -22,6 +22,7 @@ export enum AuthType {
   AuthOID = 0,
   AuthDB = 1,
   AuthLDAP = 2,
+  AuthRemoteUser = 3,
   AuthOauth = 4,
   AuthSAML = 5,
 }
