@@ -213,7 +213,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
       drillToDetail: drillToDetailFilters,
       crossFilter: getCrossFilterDataMask(feature),
-      drillBy: { filters: drillByFilters, groupbyFieldName: entity },
+      drillBy: { filters: drillByFilters, groupbyFieldName: 'entity' },
     });
   };
 
