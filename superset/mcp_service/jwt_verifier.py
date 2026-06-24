@@ -29,6 +29,7 @@ import asyncio
 import base64
 import html as html_module
 import logging
+import math
 import time
 from collections.abc import Callable
 from contextvars import ContextVar
@@ -592,6 +593,24 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                     _sanitize_for_log(client_id),
                 )
                 return None
+            # ``exp`` must be a finite real number. A non-numeric value would
+            # raise ``TypeError`` on the comparison below, and a non-finite
+            # float (e.g. ``inf`` parsed from a JSON ``1e309``) would overflow
+            # the ``int(exp)`` cast later, raising ``OverflowError``. Both are
+            # rejected here with a precise reason rather than escaping as a
+            # generic failure (or, for the overflow, an uncaught 500).
+            if (
+                not isinstance(exp, (int, float))
+                or isinstance(exp, bool)
+                or not math.isfinite(exp)
+            ):
+                reason = "Token has invalid expiration"
+                _jwt_failure_reason.set(reason)
+                logger.debug(
+                    "Token exp claim is not a finite number for client '%s'",
+                    _sanitize_for_log(client_id),
+                )
+                return None
             if exp < time.time():
                 reason = "Token expired"
                 _jwt_failure_reason.set(reason)
@@ -696,7 +715,14 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 claims=dict(claims),
             )
 
-        except (ValueError, JoseError, KeyError, AttributeError, TypeError) as e:
+        except (
+            ValueError,
+            JoseError,
+            KeyError,
+            AttributeError,
+            TypeError,
+            OverflowError,
+        ) as e:
             reason = "Token validation failed"
             _jwt_failure_reason.set(reason)
             logger.debug("Token validation failed: %s", e)
