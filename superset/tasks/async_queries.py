@@ -136,8 +136,8 @@ def load_chart_data_into_cache(
             )
             attempt = self.request.retries + 1
             logger.warning(
-                "Retrying load_chart_data_into_cache (attempt {%s}): {%s}", 
-                attempt, 
+                "Retrying load_chart_data_into_cache (attempt {%s}): {%s}",
+                attempt,
                 ex,
             )
             raise
@@ -225,8 +225,8 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
             )
             attempt = self.request.retries + 1
             logger.warning(
-                "Retrying load_explore_json_into_cache (attempt {%s}): {%s}", 
-                attempt, 
+                "Retrying load_explore_json_into_cache (attempt {%s}): {%s}",
+                attempt,
                 ex,
             )
             raise
