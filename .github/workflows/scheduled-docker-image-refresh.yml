@@ -44,6 +44,7 @@ jobs:
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
       latest-release: ${{ steps.latest.outputs.tag }}
+      force-latest: ${{ steps.latest.outputs.force-latest }}
     steps:
       - name: Check for Docker Hub secrets
         id: check
@@ -73,9 +74,24 @@ jobs:
           echo "Latest release: $TAG"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
+          # Only move `:latest` when the release flagged "latest" is also the
+          # highest semver release. This guards against a mis-click leaving an
+          # older maintenance release (e.g. a 5.x patch shipped after 6.0 GA)
+          # marked latest, which would otherwise roll `:latest` back a major
+          # version on the next cron run. If it isn't the newest, we still
+          # refresh that release's own version tag but leave `:latest` alone.
+          HIGHEST=$(gh api --paginate "repos/${REPOSITORY}/releases" \
+            --jq '.[] | select(.draft|not) | select(.prerelease|not) | .tag_name' \
+            | sed 's/^v//' | sort -V | tail -n1)
+          if [ "${TAG#v}" = "$HIGHEST" ]; then
+            echo "force-latest=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Latest-flagged release $TAG is not the highest semver ($HIGHEST); refreshing its version tag but leaving :latest untouched"
+          fi
+
   docker-rebuild:
     needs: config
-    if: needs.config.outputs.has-secrets
+    if: needs.config.outputs.has-secrets == '1'
     name: docker-rebuild
     runs-on: ubuntu-24.04
     strategy:
@@ -115,16 +131,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUILD_PRESET: ${{ matrix.build_preset }}
           LATEST_RELEASE: ${{ needs.config.outputs.latest-release }}
+          FORCE_LATEST_FLAG: ${{ needs.config.outputs.force-latest == '1' && '--force-latest' || '' }}
         run: |
           # Reuses the same supersetbot invocation as the release
           # publisher (`tag-release.yml`), so the resulting tags are
           # identical to what a manual release dispatch would produce —
           # just with a freshly-pulled base image layer underneath.
+          # `--force-latest` is only passed when the config job confirmed the
+          # fetched release is the newest one (see FORCE_LATEST_FLAG above).
           supersetbot docker \
             --push \
             --preset "$BUILD_PRESET" \
             --context release \
             --context-ref "$LATEST_RELEASE" \
-            --force-latest \
+            $FORCE_LATEST_FLAG \
             --platform "linux/arm64" \
             --platform "linux/amd64"
