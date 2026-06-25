@@ -61,8 +61,10 @@ bootstrapScript: |
 # Note: this secret must have the key superset_config.py in it and can include other files as well
 configFromSecret: '{{ template "superset.fullname" . }}-config'
 
-# -- Annotations to be added to the secret which contains configuration files
-secretConfigAnnotations: {}
+# -- Specify whether Helm should apply additional settings to a secret containing configuration files
+secretConfig:
+  # -- Annotations to be added to the secret which contains configuration files
+  annotations: {}
 
 # -- The name of the secret which we will use to populate env vars in deployed pods
 # This can be useful for secret keys, etc.
