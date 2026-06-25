@@ -1247,12 +1247,12 @@ msgstr "Eklendi"
 #, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "%s Sanal veri kümesine 1 yeni sütun eklendi"
+msgstr[0] "Sanal veri kümesine %s yeni sütun eklendi"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "%s 1 Gösterim Paneline eklendi"
+msgstr[0] "%s gösterim paneline eklendi"
 
 msgid "Additional Parameters"
 msgstr "Ek Parametreler"
@@ -8853,7 +8853,7 @@ msgstr "Son düzenleme %s"
 #, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "%s Sanal veri kümesindeki 1 sütunu Değiştirdi"
+msgstr[0] "Sanal veri kümesindeki %s sütun değiştirildi"
 
 msgid "Modified by"
 msgstr "Düzenleyen"
@@ -10711,7 +10711,7 @@ msgstr "Kaldır tablo Tanıtımı"
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "%s Sanal veri setinden 1 sütun kaldırıldı"
+msgstr[0] "Sanal veri setinden %s sütun kaldırıldı"
 
 msgid "Rename tab"
 msgstr "Rename sekmesi"
