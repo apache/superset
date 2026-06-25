@@ -168,6 +168,18 @@ export class DashboardPage {
   }
 
   /**
+   * Trigger a dashboard-level force refresh via the header actions menu.
+   * Re-runs every chart's query with `force=true`, bypassing the cache.
+   */
+  async forceRefresh(): Promise<void> {
+    await this.openHeaderActionsMenu();
+    await this.page
+      .locator(DashboardPage.SELECTORS.HEADER_ACTIONS_MENU)
+      .getByRole('menuitem', { name: 'Refresh dashboard' })
+      .click();
+  }
+
+  /**
    * Selects an option from the Download submenu.
    * Opens the header actions menu, navigates to Download submenu,
    * and clicks the specified option.
