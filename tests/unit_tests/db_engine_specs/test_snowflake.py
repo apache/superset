@@ -558,3 +558,102 @@ def test_impersonate_user(mocker: MockerFixture) -> None:
         ),
         {"connect_args": {"authenticator": "oauth"}},
     )
+
+    # Role in the URL should be stripped when OAuth is active so the token's role wins.
+    url_with_role = make_url(
+        "snowflake://user:pass@account/database_name/default?role=MY_ROLE&warehouse=MY_WH"
+    )
+    result_url, result_kwargs = SnowflakeEngineSpec.impersonate_user(
+        database=database,
+        username=None,
+        user_token=None,
+        url=url_with_role,
+        engine_kwargs={},
+    )
+    assert "role" not in result_url.query
+    assert result_url.query.get("warehouse") == "MY_WH"
+
+
+def test_restore_session_context(mocker: MockerFixture) -> None:
+    """
+    Test that _restore_session_context re-issues the correct USE statements.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    cursor = mocker.MagicMock()
+    database = Database(
+        sqlalchemy_uri="snowflake://user:pass@account/MY_DB/MY_SCHEMA?warehouse=MY_WH&role=MY_ROLE"
+    )
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=False)
+
+    SnowflakeEngineSpec._restore_session_context(cursor, database)
+
+    cursor.execute.assert_any_call('USE DATABASE "MY_DB"')
+    cursor.execute.assert_any_call('USE SCHEMA "MY_SCHEMA"')
+    cursor.execute.assert_any_call('USE WAREHOUSE "MY_WH"')
+    cursor.execute.assert_any_call('USE ROLE "MY_ROLE"')
+    assert cursor.execute.call_count == 4
+
+
+def test_restore_session_context_oauth_skips_role(mocker: MockerFixture) -> None:
+    """
+    Test that _restore_session_context skips USE ROLE when OAuth is enabled
+    so the token's role takes precedence.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    cursor = mocker.MagicMock()
+    database = Database(
+        sqlalchemy_uri="snowflake://user:pass@account/MY_DB/MY_SCHEMA?warehouse=MY_WH&role=MY_ROLE"
+    )
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=True)
+
+    SnowflakeEngineSpec._restore_session_context(cursor, database)
+
+    executed = [call.args[0] for call in cursor.execute.call_args_list]
+    assert not any("ROLE" in stmt for stmt in executed)
+    assert cursor.execute.call_count == 3
+
+
+def test_execute_retries_on_missing_db_context(mocker: MockerFixture) -> None:
+    """
+    Test that execute() restores session context and retries on Snowflake error 090105.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://user:pass@account/MY_DB")
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=False)
+    restore = mocker.patch.object(SnowflakeEngineSpec, "_restore_session_context")
+
+    cursor = mocker.MagicMock()
+    cursor.execute.side_effect = [Exception("090105: missing db context"), None]
+
+    SnowflakeEngineSpec.execute(cursor, "SELECT 1", database)
+
+    assert cursor.execute.call_count == 2
+    restore.assert_called_once_with(cursor, database)
+
+
+def test_execute_raises_friendly_error_when_retry_also_fails(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that execute() raises a user-friendly SupersetErrorException when the
+    retry after context restoration still hits error 090105.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.exceptions import SupersetErrorException
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://user:pass@account/MY_DB")
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=False)
+    mocker.patch.object(SnowflakeEngineSpec, "_restore_session_context")
+
+    cursor = mocker.MagicMock()
+    cursor.execute.side_effect = Exception("090105: still missing")
+
+    with pytest.raises(SupersetErrorException, match="missing a default database"):
+        SnowflakeEngineSpec.execute(cursor, "SELECT 1", database)

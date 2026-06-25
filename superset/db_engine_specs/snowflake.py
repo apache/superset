@@ -37,6 +37,7 @@ from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
 
 from superset import is_feature_enabled, security_manager
 from superset.constants import TimeGrain
+from superset.exceptions import SupersetErrorException
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
@@ -72,16 +73,21 @@ except ImportError:
 
 class CustomSnowflakeAuthErrorMeta(type):
     def __instancecheck__(cls, instance: object) -> bool:
-        return (
-            isinstance(instance, SqlalchemyDatabaseError)
-            and isinstance(cast(SqlalchemyDatabaseError, instance).orig, DatabaseError)
-            and "Invalid OAuth access token" in str(instance)
+        if not isinstance(instance, SqlalchemyDatabaseError):
+            return False
+        orig = cast(SqlalchemyDatabaseError, instance).orig
+        return isinstance(orig, DatabaseError) and (
+            "Invalid OAuth access token" in str(instance)
+            or "User is empty" in str(instance)
         )
 
 
 class CustomSnowflakeAuthError(DatabaseError, metaclass=CustomSnowflakeAuthErrorMeta):
     pass
 
+
+# Snowflake error code: "This session does not have a current database."
+_MISSING_DB_CONTEXT_CODE = "090105"
 
 # Regular expressions to catch custom errors
 OBJECT_DOES_NOT_EXIST_REGEX = re.compile(
@@ -277,6 +283,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         ):
             url = url.update_query_dict({"authenticator": "oauth"})
             connect_args["authenticator"] = "oauth"
+            # Let OAuth token determine the role rather than forcing hardcoded one.
+            url = url.difference_update_query(["role"])
 
         if user_token and cls.is_oauth2_enabled():
             if username is not None:
@@ -315,6 +323,74 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             "client_id": config["id"],
         }
         return parse.urljoin(uri, "?" + parse.urlencode(params))
+
+    @classmethod
+    def _restore_session_context(cls, cursor: Any, database: "Database") -> None:
+        """
+        Re-issue USE statements to restore session context lost after an OAuth
+        reconnect or connection-pool recycle (Snowflake error 090105).
+        """
+        url = database.url_object
+        db_name, _, schema_name = (url.database or "").partition("/")
+        query_params = url.query
+
+        def _val(key: str) -> str | None:
+            v = query_params.get(key)
+            if isinstance(v, (list, tuple)):
+                return v[-1] if v else None
+            return v
+
+        warehouse = _val("warehouse")
+        role = _val("role")
+
+        def _use(stmt: str, name: str) -> None:
+            name = name.replace('"', '""')
+            cursor.execute(f'{stmt} "{name}"')
+
+        if db_name:
+            _use("USE DATABASE", db_name)
+        if schema_name:
+            _use("USE SCHEMA", schema_name)
+        if warehouse:
+            _use("USE WAREHOUSE", warehouse)
+        # OAuth token determines the role; only restore for non-OAuth connections.
+        if role and not database.is_oauth2_enabled():
+            _use("USE ROLE", role)
+
+    @classmethod
+    def execute(
+        cls,
+        cursor: Any,
+        query: str,
+        database: "Database",
+        **kwargs: Any,
+    ) -> None:
+        try:
+            cursor.execute(query)
+        except Exception as ex:
+            if database.is_oauth2_enabled() and cls.needs_oauth2(ex):
+                cls.start_oauth2_dance(database)
+            if _MISSING_DB_CONTEXT_CODE in str(ex):
+                try:
+                    cls._restore_session_context(cursor, database)
+                    cursor.execute(query)
+                    return
+                except Exception as retry_ex:
+                    if _MISSING_DB_CONTEXT_CODE in str(retry_ex):
+                        raise SupersetErrorException(
+                            SupersetError(
+                                message=(
+                                    "Snowflake connection is missing a default "
+                                    "database. Ensure the database is specified "
+                                    "in the connection URI "
+                                    "(e.g. snowflake://user@account/MY_DATABASE)."
+                                ),
+                                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                                level=ErrorLevel.ERROR,
+                            )
+                        ) from retry_ex
+                    raise cls.get_dbapi_mapped_exception(retry_ex) from retry_ex
+            raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @staticmethod
     def get_extra_params(
