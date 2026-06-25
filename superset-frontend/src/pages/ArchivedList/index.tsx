@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
 import { escape } from 'lodash';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -64,6 +64,16 @@ const StyledActions = styled.div`
     }
   `}
 `;
+
+// Row actions are focusable icon "buttons" (spans with role=button); pair the
+// click handler with Enter/Space so they're keyboard-operable.
+const onActionKeyDown =
+  (action: () => void) => (event: KeyboardEvent<HTMLSpanElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      action();
+    }
+  };
 
 const TYPE_LABELS: Record<ArchivedType, string> = {
   chart: t('Chart'),
@@ -127,7 +137,7 @@ function ArchivedListBody({
         if (url) {
           const linkText = t('View %(type)s', { type: TYPE_LABELS[type] });
           addSuccessToast(
-            `${escape(message)} <a href="${escape(String(url))}">${escape(
+            `${escape(message)} <a href="${escape(url)}">${escape(
               linkText,
             )} →</a>`,
             { allowHtml: true },
@@ -248,6 +258,7 @@ function ArchivedListBody({
                   tabIndex={0}
                   className="action-button"
                   onClick={() => handleRestore(original)}
+                  onKeyDown={onActionKeyDown(() => handleRestore(original))}
                 >
                   <Icons.RollbackOutlined iconSize="l" />
                 </span>
@@ -272,6 +283,7 @@ function ArchivedListBody({
                       tabIndex={0}
                       className="action-button"
                       onClick={confirmDelete}
+                      onKeyDown={onActionKeyDown(() => confirmDelete())}
                     >
                       <Icons.DeleteOutlined iconSize="l" />
                     </span>

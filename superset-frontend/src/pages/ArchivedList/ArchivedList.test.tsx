@@ -169,6 +169,21 @@ test('restore failure surfaces an error and leaves the row in place', async () =
   expect(screen.getByText('Deleted Chart One')).toBeInTheDocument();
 });
 
+test('row actions are keyboard-operable (Enter restores)', async () => {
+  mockRoutes();
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  const restoreButtons = await screen.findAllByTestId('archived-row-restore');
+  fireEvent.keyDown(restoreButtons[0], { key: 'Enter' });
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(/chart\/uuid-1\/restore/)).toHaveLength(
+      1,
+    );
+  });
+});
+
 test('delete permanently confirms then posts to the purge endpoint and refetches', async () => {
   mockRoutes();
   renderArchivedList();

@@ -41,23 +41,28 @@ export function archiveConfirmDescription(
   typeLabel: string,
   plural = false,
 ): string {
+  // Each case is a single, complete translation unit (rather than two joined
+  // fragments) so translators control the whole sentence; only the noun and the
+  // day count are interpolated, matching Superset's existing `%(...)s` usage.
   const days = getSoftDeleteRetentionDays();
-  const moved = plural
-    ? t('These %(type)s will be moved to Recently Archived.', {
-        type: typeLabel,
-      })
-    : t('This %(type)s will be moved to Recently Archived.', {
-        type: typeLabel,
-      });
-  let recover: string;
   if (days) {
-    recover = plural
-      ? t('You can recover them there within %(days)s days.', { days })
-      : t('You can recover it there within %(days)s days.', { days });
-  } else {
-    recover = plural
-      ? t('You can recover them there.')
-      : t('You can recover it there.');
+    return plural
+      ? t(
+          'These %(type)s will be moved to Recently Archived. You can recover them there within %(days)s days.',
+          { type: typeLabel, days },
+        )
+      : t(
+          'This %(type)s will be moved to Recently Archived. You can recover it there within %(days)s days.',
+          { type: typeLabel, days },
+        );
   }
-  return `${moved} ${recover}`;
+  return plural
+    ? t(
+        'These %(type)s will be moved to Recently Archived. You can recover them there.',
+        { type: typeLabel },
+      )
+    : t(
+        'This %(type)s will be moved to Recently Archived. You can recover it there.',
+        { type: typeLabel },
+      );
 }
