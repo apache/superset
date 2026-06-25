@@ -694,7 +694,9 @@ test('open chart button opens explore with slice_id', async () => {
   });
   expect(openChartButton).toBeInTheDocument();
 
-  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  const navSpy = jest
+    .spyOn(navigationUtils, 'navigateTo')
+    .mockImplementation(() => null);
   try {
     await userEvent.click(openChartButton);
     expect(navSpy).toHaveBeenCalledWith(
@@ -721,7 +723,9 @@ test('open dashboard button opens dashboard url', async () => {
   });
   expect(openDashButton).toBeInTheDocument();
 
-  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  const navSpy = jest
+    .spyOn(navigationUtils, 'navigateTo')
+    .mockImplementation(() => null);
   try {
     await userEvent.click(openDashButton);
     expect(navSpy).toHaveBeenCalledWith(
@@ -752,6 +756,29 @@ test('does not show screenshot width when csv is selected', async () => {
     reportFormatSelector,
     'CSV',
     () => screen.getAllByText(/Send as CSV/i)[0],
+  );
+  expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
+});
+
+test('does not show screenshot width when Excel is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test chart/i);
+  const contentTypeSelector = screen.getByRole('combobox', {
+    name: /select content type/i,
+  });
+  await comboboxSelect(contentTypeSelector, 'Chart', () =>
+    screen.getByText(/select chart/i),
+  );
+  const reportFormatSelector = screen.getByRole('combobox', {
+    name: /select format/i,
+  });
+  await comboboxSelect(
+    reportFormatSelector,
+    'Excel',
+    () => screen.getAllByText(/Send as Excel/i)[0],
   );
   expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });

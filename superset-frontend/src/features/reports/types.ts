@@ -34,6 +34,7 @@ export enum NotificationFormats {
   Text = 'TEXT',
   PNG = 'PNG',
   CSV = 'CSV',
+  XLSX = 'XLSX',
 }
 export interface ReportObject {
   id?: number;
