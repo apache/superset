@@ -60,6 +60,7 @@ import {
   type ListViewFilters,
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
+import { archiveConfirmDescription } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -248,6 +249,9 @@ function DashboardList(props: DashboardListProps) {
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  // When soft-delete is on, deleting archives the dashboard (recoverable), so
+  // the confirmation drops the type-DELETE friction and explains the archive.
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const canExport = hasPerm('can_export');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -527,12 +531,23 @@ function DashboardList(props: DashboardListProps) {
               )}
               {canDelete && (
                 <ConfirmStatusChange
-                  title={t('Please confirm')}
+                  recoverable={softDelete}
+                  title={
+                    softDelete
+                      ? t('Delete %(name)s?', {
+                          name: original.dashboard_title,
+                        })
+                      : t('Please confirm')
+                  }
                   description={
-                    <>
-                      {t('Are you sure you want to delete')}{' '}
-                      <b>{original.dashboard_title}</b>?
-                    </>
+                    softDelete ? (
+                      archiveConfirmDescription(t('dashboard'))
+                    ) : (
+                      <>
+                        {t('Are you sure you want to delete')}{' '}
+                        <b>{original.dashboard_title}</b>?
+                      </>
+                    )
                   }
                   onConfirm={handleDelete}
                 >
@@ -822,10 +837,15 @@ function DashboardList(props: DashboardListProps) {
     <>
       <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
       <ConfirmStatusChange
-        title={t('Please confirm')}
-        description={t(
-          'Are you sure you want to delete the selected dashboards?',
-        )}
+        recoverable={softDelete}
+        title={
+          softDelete ? t('Delete selected dashboards?') : t('Please confirm')
+        }
+        description={
+          softDelete
+            ? archiveConfirmDescription(t('dashboards'), true)
+            : t('Are you sure you want to delete the selected dashboards?')
+        }
         onConfirm={handleBulkDashboardDelete}
       >
         {confirmDelete => {

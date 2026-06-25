@@ -115,6 +115,9 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
     "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
     "SUPERSET_CLIENT_RETRY_ATTEMPTS",
+    # Surfaced so the delete-confirmation modal can tell users how long a
+    # soft-deleted object stays recoverable in the archive (sc-111760).
+    "SUPERSET_SOFT_DELETE_RETENTION_DAYS",
     "SUPERSET_CLIENT_RETRY_DELAY",
     "SUPERSET_CLIENT_RETRY_BACKOFF_MULTIPLIER",
     "SUPERSET_CLIENT_RETRY_MAX_DELAY",
