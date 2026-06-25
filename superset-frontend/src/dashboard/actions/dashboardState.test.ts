@@ -525,6 +525,37 @@ describe('dashboardState actions', () => {
 
       expect(dispatch).not.toHaveBeenCalled();
     });
+
+    test('dispatches a danger toast on a non-404 error Response when the dashboard ID still matches', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      getStub.mockRestore();
+      getStub = jest
+        .spyOn(SupersetClient, 'get')
+        .mockRejectedValue(
+          new Response(JSON.stringify({ message: 'Server error' }), {
+            status: 500,
+          }),
+        );
+
+      await fetchFaveStar(id)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
+          }),
+        }),
+      );
+    });
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
