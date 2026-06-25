@@ -80,20 +80,11 @@ def _is_filter_in_scope_for_chart(
     """
     Determines whether a native filter applies to a given chart.
 
-    When chartsInScope is present on the filter config, uses that directly.
-    Otherwise falls back to scope.rootPath and scope.excluded with the
-    dashboard layout. Also considers charts that were added to the dashboard
-    but were not instantiated in the layout.
+    A chart is in scope when one of its layout ancestors is in ``rootPath`` and
+    it's not excluded. The persisted ``chartsInScope`` is intentionally NOT used
+    here (it's a denormalized cache that the frontend recomputes from ``scope``
+    on every load, so it can be stale).
     """
-    if (charts_in_scope := filter_config.get("chartsInScope")) is not None:
-        if chart_id in charts_in_scope:
-            return True
-
-        # If the chart is found in position_json and not in chartsInScope,
-        # it was explicitly excluded by the filter scope config.
-        if _find_chart_layout_item(chart_id, position_json) is not None:
-            return False
-
     scope = filter_config.get("scope", {})
     root_path: list[str] = scope.get("rootPath", [])
     excluded: list[int] = scope.get("excluded", [])
@@ -107,8 +98,7 @@ def _is_filter_in_scope_for_chart(
 
     # If the chart doesn't exist in the dashboard layout, treat it as a
     # root-level chart.
-    else:
-        return "ROOT_ID" in root_path
+    return "ROOT_ID" in root_path
 
 
 def _find_chart_layout_item(
@@ -351,7 +341,7 @@ def get_dashboard_filter_context(
     return context
 
 
-def apply_dashboard_filter_context(
+def apply_dashboard_filter_context(  # noqa: C901
     query_context: dict[str, Any],
     extra_form_data: dict[str, Any],
 ) -> None:
@@ -377,6 +367,17 @@ def apply_dashboard_filter_context(
         for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
             if key in extra_form_data:
                 extras[key] = extra_form_data[key]
+
+        # EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS is originally used with form_data objects,
+        # not query_context objects. form_data objects expect time_grain_sqla as a
+        # top-level key, but query_context objects expect it as an extra key.
+        if custom_time_grain := extra_form_data.get("time_grain_sqla"):
+            extras["time_grain_sqla"] = custom_time_grain
+            # get_time_grain() resolves grain from the first adhoc column (columns[0])
+            columns = query.get("columns") or []
+            if columns and isinstance(columns[0], dict):
+                columns[0]["timeGrain"] = custom_time_grain
+
         if extras:
             query["extras"] = extras
 

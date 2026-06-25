@@ -164,7 +164,8 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
     processedData = filteredData.map(d => ({
       ...d,
       radius: radiusScale(Math.sqrt(d.m2)),
-      fillColor: d.m1 != null ? colorFn(d.m1) ?? theme.colorBorder : theme.colorBorder,
+      fillColor:
+        d.m1 != null ? (colorFn(d.m1) ?? theme.colorBorder) : theme.colorBorder,
     }));
   }
 
