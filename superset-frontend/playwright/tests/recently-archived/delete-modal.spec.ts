@@ -32,6 +32,10 @@ test('chart delete confirmation reflects soft-delete (archive) semantics', async
   await page.locator('[data-test="chart-row-delete"]').first().waitFor();
   await page.locator('[data-test="chart-row-delete"]').first().click();
 
+  // The action reads as "Archive", not "Delete".
+  await expect(page.getByText(/^Archive .+\?$/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Archive' })).toBeVisible();
+
   // Recoverable copy instead of "Are you sure … permanently".
   await expect(page.getByText(/moved to Recently Archived/i)).toBeVisible();
   await expect(

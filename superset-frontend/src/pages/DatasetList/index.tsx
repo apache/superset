@@ -936,10 +936,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               )}
               {canDelete && (
                 <ActionButton
-                  label={t('Delete')}
+                  label={softDelete ? t('Archive') : t('Delete')}
                   tooltip={
                     allowEdit
-                      ? t('Delete')
+                      ? softDelete
+                        ? t('Archive')
+                        : t('Delete')
                       : t(
                           'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
                         )
@@ -1457,7 +1459,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           open
           title={
             softDelete
-              ? t('Delete %(name)s?', {
+              ? t('Archive %(name)s?', {
                   name: datasetCurrentlyDeleting.table_name,
                 })
               : t('Delete %s?', datasetLabel())
@@ -1507,7 +1509,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       <ConfirmStatusChange
         recoverable={softDelete}
         title={
-          softDelete ? t('Delete selected datasets?') : t('Please confirm')
+          softDelete ? t('Archive selected datasets?') : t('Please confirm')
         }
         description={
           softDelete
@@ -1524,7 +1526,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: t('Delete'),
+              name: softDelete ? t('Archive') : t('Delete'),
               onSelect: confirmDelete,
               type: 'danger',
             });

@@ -78,7 +78,7 @@ export function DeleteModal({
       disablePrimaryButton={recoverable ? false : disableChange}
       onHide={hide}
       onHandledPrimaryAction={confirm}
-      primaryButtonName={t('Delete')}
+      primaryButtonName={recoverable ? t('Archive') : t('Delete')}
       primaryButtonStyle={recoverable ? 'primary' : 'danger'}
       show={open}
       name={name}

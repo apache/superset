@@ -532,7 +532,7 @@ function DashboardList(props: DashboardListProps) {
                   recoverable={softDelete}
                   title={
                     softDelete
-                      ? t('Delete %(name)s?', {
+                      ? t('Archive %(name)s?', {
                           name: original.dashboard_title,
                         })
                       : t('Please confirm')
@@ -551,10 +551,12 @@ function DashboardList(props: DashboardListProps) {
                 >
                   {confirmDelete => (
                     <ActionButton
-                      label={t('Delete')}
+                      label={softDelete ? t('Archive') : t('Delete')}
                       tooltip={
                         allowEdit
-                          ? t('Delete')
+                          ? softDelete
+                            ? t('Archive')
+                            : t('Delete')
                           : t(
                               'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
                             )
@@ -839,7 +841,7 @@ function DashboardList(props: DashboardListProps) {
       <ConfirmStatusChange
         recoverable={softDelete}
         title={
-          softDelete ? t('Delete selected dashboards?') : t('Please confirm')
+          softDelete ? t('Archive selected dashboards?') : t('Please confirm')
         }
         description={
           softDelete
@@ -854,7 +856,7 @@ function DashboardList(props: DashboardListProps) {
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: t('Delete'),
+              name: softDelete ? t('Archive') : t('Delete'),
               type: 'danger',
               onSelect: confirmDelete,
             });
