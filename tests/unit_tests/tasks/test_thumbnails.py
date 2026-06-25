@@ -15,19 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Callable, Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 
 @pytest.fixture
-def mock_thumbnail_cache():
+def mock_thumbnail_cache() -> Iterator[None]:
     with patch("superset.tasks.thumbnails.thumbnail_cache", True):
         yield
 
 
 @pytest.fixture
-def mock_dashboard():
+def mock_dashboard() -> MagicMock:
     dashboard = MagicMock()
     dashboard.id = 1
     dashboard.digest = "test_digest"
@@ -35,6 +36,7 @@ def mock_dashboard():
 
 
 def _make_screenshot_mock(cache_key: str = "test_cache_key") -> MagicMock:
+    """Return a MagicMock screenshot whose get_cache_key returns cache_key."""
     screenshot = MagicMock()
     screenshot.get_cache_key.return_value = cache_key
     return screenshot
@@ -53,7 +55,7 @@ _COMMON_PATCHES = [
 ]
 
 
-def _apply_patches(fn):
+def _apply_patches(fn: Callable) -> Callable:
     """Stack the five common patches onto a test function."""
     for p in reversed(_COMMON_PATCHES):
         fn = patch(p)(fn)
@@ -66,7 +68,7 @@ def _apply_patches(fn):
 
 
 @patch("superset.tasks.thumbnails.thumbnail_cache", None)
-def test_cache_dashboard_thumbnail_skips_when_no_cache():
+def test_cache_dashboard_thumbnail_skips_when_no_cache() -> None:
     """Task exits early when no thumbnail cache is configured."""
     from superset.tasks.thumbnails import cache_dashboard_thumbnail
 
@@ -77,14 +79,14 @@ def test_cache_dashboard_thumbnail_skips_when_no_cache():
 
 @_apply_patches
 def test_cache_dashboard_thumbnail_always_delegates_to_compute_and_cache(
-    mock_screenshot_cls,
-    mock_get_url_path,
-    mock_override_user,
-    mock_security_manager,
-    mock_get_executor,
-    mock_dashboard,
-    mock_thumbnail_cache,
-):
+    mock_screenshot_cls: MagicMock,
+    mock_get_url_path: MagicMock,
+    mock_override_user: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_executor: MagicMock,
+    mock_dashboard: MagicMock,
+    mock_thumbnail_cache: None,
+) -> None:
     """Task always calls compute_and_cache; dedup lives inside compute_and_cache."""
     from superset.tasks.thumbnails import cache_dashboard_thumbnail
 
@@ -106,14 +108,14 @@ def test_cache_dashboard_thumbnail_always_delegates_to_compute_and_cache(
 
 @_apply_patches
 def test_cache_dashboard_thumbnail_resolves_cache_key_when_not_provided(
-    mock_screenshot_cls,
-    mock_get_url_path,
-    mock_override_user,
-    mock_security_manager,
-    mock_get_executor,
-    mock_dashboard,
-    mock_thumbnail_cache,
-):
+    mock_screenshot_cls: MagicMock,
+    mock_get_url_path: MagicMock,
+    mock_override_user: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_executor: MagicMock,
+    mock_dashboard: MagicMock,
+    mock_thumbnail_cache: None,
+) -> None:
     """Task resolves cache_key from the screenshot object when none is given."""
     from superset.tasks.thumbnails import cache_dashboard_thumbnail
 

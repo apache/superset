@@ -58,7 +58,7 @@ class MockCache:
 
 
 @pytest.fixture
-def mock_user():
+def mock_user() -> MagicMock:
     """Fixture to create a mock user."""
     user = MagicMock()
     user.id = 1
@@ -66,7 +66,7 @@ def mock_user():
 
 
 @pytest.fixture
-def screenshot_obj():
+def screenshot_obj() -> BaseScreenshot:
     """Fixture to create a BaseScreenshot object."""
     url = "http://example.com"
     digest = "sample_digest"
@@ -154,8 +154,8 @@ class TestCacheOnlyOnSuccess:
         assert cached_value["image"] is not None
 
     def test_computing_status_written_to_cache_early(
-        self, mocker: MockerFixture, screenshot_obj, mock_user
-    ):
+        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot, mock_user: MagicMock
+    ) -> None:
         """compute_and_cache writes COMPUTING to cache before taking the screenshot
         so concurrent tasks can detect it and avoid duplicate work."""
         mocker.patch(DISTRIBUTED_LOCK_PATH)
@@ -416,8 +416,8 @@ class TestIntegrationCacheBugFix:
         assert cached_value["image"] is not None
 
     def test_concurrent_task_skips_when_lock_already_held(
-        self, mocker: MockerFixture, screenshot_obj, mock_user
-    ):
+        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot, mock_user: MagicMock
+    ) -> None:
         """compute_and_cache exits without rendering when the distributed lock
         is already held by another worker — atomically preventing duplicate Selenium."""
         mock_lock = mocker.patch(DISTRIBUTED_LOCK_PATH)
@@ -432,8 +432,8 @@ class TestIntegrationCacheBugFix:
         get_screenshot.assert_not_called()
 
     def test_computing_preserves_previous_image(
-        self, mocker: MockerFixture, screenshot_obj, mock_user
-    ):
+        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot, mock_user: MagicMock
+    ) -> None:
         """computing() must not wipe the cached image so a stale thumbnail remains
         visible while a refresh is in progress."""
         old_image = b"old_thumbnail_bytes"
