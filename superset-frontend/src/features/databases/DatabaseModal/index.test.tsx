@@ -1658,6 +1658,22 @@ describe('DatabaseModal', () => {
   ])(
     'surfaces a $field validation error returned by validate_parameters',
     async ({ field, errorType, message }) => {
+      const createResource = jest.fn();
+      const useSingleViewResourceMock = jest
+        .spyOn(hooks, 'useSingleViewResource')
+        .mockReturnValue({
+          state: {
+            loading: false,
+            resource: null,
+            error: null,
+          },
+          fetchResource: jest.fn(),
+          createResource,
+          updateResource: jest.fn(),
+          clearError: jest.fn(),
+          setResource: jest.fn(),
+        });
+
       setup();
       await selectPostgres();
       fillDynamicForm();
@@ -1700,6 +1716,8 @@ describe('DatabaseModal', () => {
       // `extra.invalid` — i.e. that input lives in the same `.ant-form-item`.
       const formItem = errorText.closest('.ant-form-item') as HTMLElement;
       expect(formItem.querySelector(`input[name="${field}"]`)).not.toBeNull();
+      expect(createResource).not.toHaveBeenCalled();
+      useSingleViewResourceMock.mockRestore();
     },
   );
 });
