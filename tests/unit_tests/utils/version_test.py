@@ -22,6 +22,7 @@ from superset.utils.version import visible_version_metadata
 
 
 def _metadata() -> dict[str, Any]:
+    """Build a sample version-metadata dict for the redaction tests."""
     return {
         "version_string": "4.0.0",
         "version_sha": "abcdef12",
