@@ -889,7 +889,9 @@ class TestCore(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch("superset.security.SupersetSecurityManager.raise_for_access")
-    def test_explore_view_checks_datasource_access(self, mock_raise_for_access):
+    def test_explore_view_checks_datasource_access(
+        self, mock_raise_for_access: mock.Mock
+    ) -> None:
         """The explore view runs the per-datasource access check on the loaded
         datasource, consistent with the explore command, before rendering its
         metadata."""
