@@ -23,7 +23,9 @@ import { styled } from '@apache-superset/core/theme';
 import { Select, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
+  GenericLink,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
@@ -130,6 +132,24 @@ function DeletedListBody({
   const columns = useMemo<ListViewProps['columns']>(
     () => [
       {
+        // T024: chart/dashboard names link to a preview; dataset names are
+        // plain text with a tooltip explaining why no preview is offered.
+        Cell: ({ row: { original } }: { row: { original: DeletedItem } }) => {
+          const name = String(original[config.nameField] ?? '');
+          if (config.previewable && original.url) {
+            return <GenericLink to={String(original.url)}>{name}</GenericLink>;
+          }
+          if (!config.previewable) {
+            return (
+              <Tooltip
+                title={t('Preview is only available for charts and dashboards')}
+              >
+                <span>{name}</span>
+              </Tooltip>
+            );
+          }
+          return <span>{name}</span>;
+        },
         accessor: config.nameField,
         Header: t('Name'),
         id: config.nameField,
@@ -140,13 +160,31 @@ function DeletedListBody({
         id: 'type',
         disableSortBy: true,
       },
-      // Backing column for the Time-range filter + default sort. Hidden here;
-      // US3 (T022) turns it into a visible relative-time "Deleted" column.
       {
-        accessor: 'deleted_at',
+        // T022: relative deletion time. Sortable — `deleted_at` is in
+        // order_columns on all three list APIs (T014-T016).
+        Cell: ({ row: { original } }: { row: { original: DeletedItem } }) =>
+          original.deleted_at
+            ? extendedDayjs.utc(String(original.deleted_at)).fromNow()
+            : '',
         Header: t('Deleted'),
         id: 'deleted_at',
-        hidden: true,
+      },
+      {
+        // T023: deleting user, sourced from changed_by. Non-sortable — there is
+        // no backend deleted-by ordering (M1).
+        Cell: ({ row: { original } }: { row: { original: DeletedItem } }) => {
+          const by = [
+            original.changed_by?.first_name,
+            original.changed_by?.last_name,
+          ]
+            .filter(Boolean)
+            .join(' ');
+          return by || t('Unknown');
+        },
+        Header: t('Deleted by'),
+        id: 'deleted_by',
+        disableSortBy: true,
       },
       {
         Cell: ({ row: { original } }: { row: { original: DeletedItem } }) => (
@@ -174,7 +212,7 @@ function DeletedListBody({
         size: 'sm',
       },
     ],
-    [config.nameField, type, handleRestore],
+    [config.nameField, config.previewable, type, handleRestore],
   );
 
   // Default to most-recently-deleted first. `deleted_at` is now orderable on
