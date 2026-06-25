@@ -154,7 +154,9 @@ class TestValidateExpression:
 
     @patch("superset.models.helpers.is_feature_enabled", return_value=False)
     @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
-    def test_validate_expression_rejects_subquery(self, mock_execute, mock_ff):
+    def test_validate_expression_rejects_subquery(
+        self, mock_execute: MagicMock, mock_ff: MagicMock
+    ) -> None:
         """A sub-query expression is rejected by the same validate_adhoc_subquery
         gate used for stored adhoc expressions, before any validation query is
         built or run (with ALLOW_ADHOC_SUBQUERY off, the default). Locks in that
@@ -169,7 +171,9 @@ class TestValidateExpression:
 
     @patch("superset.models.helpers.is_feature_enabled", return_value=False)
     @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
-    def test_validate_expression_rejects_set_operation(self, mock_execute, mock_ff):
+    def test_validate_expression_rejects_set_operation(
+        self, mock_execute: MagicMock, mock_ff: MagicMock
+    ) -> None:
         """A set-operation expression is rejected before the validation query is
         built or run, matching the stored-adhoc-expression policy."""
         result = self.table.validate_expression(
