@@ -849,7 +849,7 @@ msgstr "Bu grafike uygulanan etiketlerin bir listesi."
 
 #, fuzzy
 msgid "A list of tags that have been applied to this dashboard."
-msgstr "Bu g?sterim paneline erişemezsiniz."
+msgstr "Bu gösterim paneline erişemezsiniz."
 
 msgid "A list of users who can alter the chart. Searchable by name or username."
 msgstr ""
@@ -1041,7 +1041,7 @@ msgid "Add CSS template"
 msgstr "CSS şablonu ekle"
 
 msgid "Add Dashboard"
-msgstr "G?sterim Paneli Ekle"
+msgstr "Gösterim Paneli Ekle"
 
 #, fuzzy
 msgid "Add Group"
@@ -1228,18 +1228,18 @@ msgid "Add the name of the chart"
 msgstr "Grafiğin adını ekleyin"
 
 msgid "Add the name of the dashboard"
-msgstr "G?sterim Paneliın adını ekleyin"
+msgstr "Gösterim Paneliın adını ekleyin"
 
 #, fuzzy
 msgid "Add theme"
 msgstr "Sayfa ekle"
 
 msgid "Add to dashboard"
-msgstr "G?sterim Paneline ekle"
+msgstr "Gösterim Paneline ekle"
 
 #, fuzzy
 msgid "Add to tabs"
-msgstr "G?sterim Paneline ekle"
+msgstr "Gösterim Paneline ekle"
 
 msgid "Added"
 msgstr "Eklendi"
@@ -1252,7 +1252,7 @@ msgstr[0] "%s Sanal veri kümesine 1 yeni sütun eklendi"
 #, fuzzy, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "%s 1 G?sterim Paneline eklendi"
+msgstr[0] "%s 1 Gösterim Paneline eklendi"
 
 msgid "Additional Parameters"
 msgstr "Ek Parametreler"
@@ -1328,7 +1328,7 @@ msgstr "Grafikleri seç"
 
 #, fuzzy
 msgid "Affected Dashboards"
-msgstr "G?sterim Paneli seç"
+msgstr "Gösterim Paneli seç"
 
 msgid "After"
 msgstr "Sonra"
@@ -2682,7 +2682,7 @@ msgstr "Dışa aktar"
 
 #, fuzzy
 msgid "CSV file downloaded successfully"
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 #, fuzzy
 msgid "CSV upload"
@@ -2951,7 +2951,7 @@ msgstr ""
 "değişecektir."
 
 msgid "Changing this Dashboard is forbidden"
-msgstr "Bu G?sterim Paneli'ı değiştirmek yasaktır"
+msgstr "Bu Gösterim Paneli'ı değiştirmek yasaktır"
 
 msgid "Changing this chart is forbidden"
 msgstr "Bu grafiği değiştirmek yasaktır"
@@ -3032,7 +3032,7 @@ msgstr "[%s] grafiği kaydedildi"
 
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
-msgstr "[%s] grafiği [%s] g?sterim paneliına eklendi"
+msgstr "[%s] grafiği [%s] gösterim paneliına eklendi"
 
 msgid "Chart cache timeout"
 msgstr "Grafik önbellek zamanaşımı"
@@ -3337,7 +3337,7 @@ msgid ""
 "Click on \"Add or edit filters and controls\" option in Settings to "
 "create new dashboard filters"
 msgstr ""
-"Yeni g?sterim paneli filtresi oluşturmak için Filtre Ekle/Düzenle "
+"Yeni gösterim paneli filtresi oluşturmak için Filtre Ekle/Düzenle "
 "butonuna basın"
 
 msgid ""
@@ -4327,7 +4327,7 @@ msgid "Dark mode"
 msgstr "Karanlık mod"
 
 msgid "Dashboard"
-msgstr "G?sterim Paneli"
+msgstr "Gösterim Paneli"
 
 #, python-format
 msgid "Dashboard %(dashboard_id)s not found"
@@ -4335,57 +4335,57 @@ msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
-msgstr "G?sterim Paneli başlığı"
+msgstr "Gösterim Paneli başlığı"
 
 #, fuzzy
 msgid "Dashboard Id"
-msgstr "g?sterim paneli"
+msgstr "gösterim paneli"
 
 #, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
-msgstr "G?sterim Paneli [  %s ] sadece yaratıldı ve grafiği [  %s ] eklendi."
+msgstr "Gösterim Paneli [  %s ] sadece yaratıldı ve grafiği [  %s ] eklendi."
 
 msgid "Dashboard cannot be copied due to invalid parameters."
-msgstr "G?sterim Paneli, geçersiz parametreler nedeniyle kopyalanamaz."
+msgstr "Gösterim Paneli, geçersiz parametreler nedeniyle kopyalanamaz."
 
 #, fuzzy
 msgid "Dashboard cannot be favorited."
-msgstr "G?sterim Paneli güncellenemedi."
+msgstr "Gösterim Paneli güncellenemedi."
 
 #, fuzzy
 msgid "Dashboard cannot be unfavorited."
-msgstr "G?sterim Paneli güncellenemedi."
+msgstr "Gösterim Paneli güncellenemedi."
 
 #, fuzzy
 msgid "Dashboard chart customizations could not be updated."
-msgstr "G?sterim Paneli güncellenemedi."
+msgstr "Gösterim Paneli güncellenemedi."
 
 #, fuzzy
 msgid "Dashboard color configuration could not be updated."
-msgstr "G?sterim Paneli güncellenemedi."
+msgstr "Gösterim Paneli güncellenemedi."
 
 msgid "Dashboard could not be deleted."
-msgstr "G?sterim Paneli silinemedi."
+msgstr "Gösterim Paneli silinemedi."
 
 msgid "Dashboard could not be updated."
-msgstr "G?sterim Paneli güncellenemedi."
+msgstr "Gösterim Paneli güncellenemedi."
 
 msgid "Dashboard does not exist"
-msgstr "G?sterim Paneli bulunmuyor"
+msgstr "Gösterim Paneli bulunmuyor"
 
 #, fuzzy
 msgid "Dashboard exported as example successfully"
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 #, fuzzy
 msgid "Dashboard exported successfully"
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 msgid "Dashboard imported"
-msgstr "G?sterim Paneli aktarıldı"
+msgstr "Gösterim Paneli aktarıldı"
 
 msgid "Dashboard name and URL configuration"
-msgstr "G?sterim Paneli adı ve URL yapılandırma"
+msgstr "Gösterim Paneli adı ve URL yapılandırma"
 
 #, fuzzy
 msgid "Dashboard name is required"
@@ -4393,19 +4393,19 @@ msgstr "İsim gereklidir"
 
 #, fuzzy
 msgid "Dashboard native filters could not be patched."
-msgstr "G?sterim Paneli güncellenemedi."
+msgstr "Gösterim Paneli güncellenemedi."
 
 msgid "Dashboard parameters are invalid."
-msgstr "G?sterim Paneli parametreleri geçersizdir."
+msgstr "Gösterim Paneli parametreleri geçersizdir."
 
 msgid "Dashboard properties"
-msgstr "G?sterim Paneli özellikleri"
+msgstr "Gösterim Paneli özellikleri"
 
 msgid "Dashboard properties updated"
-msgstr "G?sterim Paneli özellikleri güncellendi"
+msgstr "Gösterim Paneli özellikleri güncellendi"
 
 msgid "Dashboard scheme"
-msgstr "G?sterim Paneli şeması"
+msgstr "Gösterim Paneli şeması"
 
 msgid ""
 "Dashboard time range filters apply to temporal columns defined in\n"
@@ -4413,20 +4413,20 @@ msgid ""
 "chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
-"G?sterim Paneli zaman aralık filtreleri, tanımlanan zaman sütunlarına "
+"Gösterim Paneli zaman aralık filtreleri, tanımlanan zaman sütunlarına "
 "uygulanır\n"
 "Her grafiğin filtre bölümü. Grafik için zaman sütunları ekleyin\n"
 "Bu pano filtrelerinin bu grafiklere etkisi vardır."
 
 msgid "Dashboard title"
-msgstr "G?sterim Paneli başlığı"
+msgstr "Gösterim Paneli başlığı"
 
 #, python-format
 msgid "Dashboard updated %s"
 msgstr ""
 
 msgid "Dashboard usage"
-msgstr "G?sterim Paneli kullanımı"
+msgstr "Gösterim Paneli kullanımı"
 
 msgid "Dashboards"
 msgstr "Gösterim Panelleri"
@@ -5065,7 +5065,7 @@ msgstr[0] "Deleted   %(num)d css şablon"
 #, python-format
 msgid "Deleted %(num)d dashboard"
 msgid_plural "Deleted %(num)d dashboards"
-msgstr[0] "Deleted   %(num)d g?sterim paneli"
+msgstr[0] "Deleted   %(num)d gösterim paneli"
 
 #, python-format
 msgid "Deleted %(num)d dataset"
@@ -5376,7 +5376,7 @@ msgid "Display row level total"
 msgstr "Ekran satır seviyesi toplam"
 
 msgid "Display the last queried timestamp on charts in the dashboard view"
-msgstr "En son queried timestamp on charts in the g?sterim paneli view"
+msgstr "En son queried timestamp on charts in the gösterim paneli view"
 
 msgid "Display type icon"
 msgstr "Ekran türü simge"
@@ -5462,7 +5462,7 @@ msgid "Draft"
 msgstr "Taslak"
 
 msgid "Drag and drop components and charts to the dashboard"
-msgstr "Drag and drop components and grafikler to the g?sterim paneli"
+msgstr "Drag and drop components and grafikler to the gösterim paneli"
 
 msgid "Drag and drop components to this tab"
 msgstr "Drag ve bu sekmeye bileşenlerini bırakın"
@@ -5702,7 +5702,7 @@ msgid "Edit CSS template properties"
 msgstr "CSS şablonu özelliklerini düzenle"
 
 msgid "Edit Dashboard"
-msgstr "G?sterim Paneliı Düzenle"
+msgstr "Gösterim Paneliı Düzenle"
 
 msgid "Edit Dataset "
 msgstr "Verisetini Düzenle "
@@ -5751,7 +5751,7 @@ msgid "Edit chart properties"
 msgstr "Grafik özelliklerini düzenle"
 
 msgid "Edit dashboard"
-msgstr "G?sterim Paneliı düzenle"
+msgstr "Gösterim Paneliı düzenle"
 
 msgid "Edit database"
 msgstr "Veritabanını düzenle"
@@ -5788,7 +5788,7 @@ msgid "Edit template parameters"
 msgstr "Şablon parametrelerini düzenle"
 
 msgid "Edit the dashboard"
-msgstr "G?sterim Paneliı düzenle"
+msgstr "Gösterim Paneliı düzenle"
 
 #, fuzzy
 msgid "Edit theme properties"
@@ -5860,7 +5860,7 @@ msgstr "Gömme paneli"
 
 #, fuzzy
 msgid "Embedded dashboard could not be deleted."
-msgstr "G?sterim Paneli silinemedi."
+msgstr "Gösterim Paneli silinemedi."
 
 msgid "Embedding deactivated."
 msgstr "Gömme işlemi devre dışı bırakıldı"
@@ -9773,7 +9773,7 @@ msgstr "Overwrite & Discover"
 
 #, python-format
 msgid "Overwrite Dashboard [%s]"
-msgstr "Overwrite G?sterim Paneli [  %s ]"
+msgstr "Overwrite Gösterim Paneli [  %s ]"
 
 msgid "Overwrite existing"
 msgstr "Overwrite existing"
@@ -10599,7 +10599,7 @@ msgid "Refetch results"
 msgstr "Refetch sonuçları"
 
 msgid "Refresh dashboard"
-msgstr "G?sterim Paneliı yenile"
+msgstr "Gösterim Paneliı yenile"
 
 msgid "Refresh delayed"
 msgstr ""
@@ -11269,7 +11269,7 @@ msgid "Save & Explore"
 msgstr "Kaydet & İncele"
 
 msgid "Save & go to dashboard"
-msgstr "Kaydet & g?sterim paneline git"
+msgstr "Kaydet & gösterim paneline git"
 
 msgid "Save (Overwrite)"
 msgstr "Kaydet (Üstüne yaz)"
@@ -11302,7 +11302,7 @@ msgstr "Değişiklikleri kaydet"
 
 #, fuzzy
 msgid "Save changes to your dashboard?"
-msgstr "Kaydet & g?sterim paneline git"
+msgstr "Kaydet & gösterim paneline git"
 
 msgid "Save chart"
 msgstr "Grafiği kaydet"
@@ -11311,7 +11311,7 @@ msgid "Save color breakpoint values"
 msgstr "Renk uç noktası değerleri Kaydet"
 
 msgid "Save dashboard"
-msgstr "G?sterim Paneliı kaydet"
+msgstr "Gösterim Paneliı kaydet"
 
 msgid "Save dataset"
 msgstr "Verisetini kaydet"
@@ -11591,7 +11591,7 @@ msgid "Select a column"
 msgstr "Kolon seç"
 
 msgid "Select a dashboard"
-msgstr "G?sterim Paneli seç"
+msgstr "Gösterim Paneli seç"
 
 #, fuzzy
 msgid "Select a database"
@@ -11730,14 +11730,14 @@ msgstr "Geçerli sayfayı seç"
 
 #, fuzzy
 msgid "Select dashboard"
-msgstr "G?sterim Paneli seç"
+msgstr "Gösterim Paneli seç"
 
 #, fuzzy
 msgid "Select dashboard to use"
-msgstr "G?sterim Paneli seç"
+msgstr "Gösterim Paneli seç"
 
 msgid "Select dashboards"
-msgstr "G?sterim Paneli seç"
+msgstr "Gösterim Paneli seç"
 
 #, fuzzy
 msgid "Select database"
@@ -11769,7 +11769,7 @@ msgstr "Değer seçin / girin"
 
 #, fuzzy
 msgid "Select dimension for Top N"
-msgstr "G?sterim Paneli seç"
+msgstr "Gösterim Paneli seç"
 
 #, fuzzy
 msgid "Select dimension values"
@@ -12268,7 +12268,7 @@ msgid "Show CREATE VIEW statement"
 msgstr "Show CREATE İLGİLİ Açıklama"
 
 msgid "Show Dashboard"
-msgstr "Show G?sterim Paneli"
+msgstr "Show Gösterim Paneli"
 
 msgid "Show Labels"
 msgstr "Göster Etiketler"
@@ -13600,7 +13600,7 @@ msgstr ""
 
 #, fuzzy
 msgid "The display name of your dashboard"
-msgstr "G?sterim Paneliın adını ekleyin"
+msgstr "Gösterim Paneliın adını ekleyin"
 
 msgid "The distance between cells, in pixels"
 msgstr "Hücreler arasındaki mesafe, pikselde"
@@ -13670,11 +13670,11 @@ msgstr "Aggregating puanları gruplar halinde kullanmak için işlev"
 
 #, fuzzy
 msgid "The group has been created successfully."
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 #, fuzzy
 msgid "The group has been updated successfully."
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 msgid "The height of the current zoom level to compute all heights from"
 msgstr "Mevcut zoom seviyesinin yüksekliği, tüm yükseklikleri hesaplamak için"
@@ -13856,7 +13856,7 @@ msgstr "Bir veritabanına bağlandığında sağlanan şifre geçerli değildir.
 
 #, fuzzy
 msgid "The password reset was successful"
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
@@ -14036,15 +14036,15 @@ msgstr "Zengin araçtipi, bu noktadaki tüm serilerin listesini gösterir"
 
 #, fuzzy
 msgid "The role has been created successfully."
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 #, fuzzy
 msgid "The role has been duplicated successfully."
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 #, fuzzy
 msgid "The role has been updated successfully."
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 msgid ""
 "The row limit set for the chart was reached. The chart may show partial "
@@ -14215,14 +14215,14 @@ msgstr ""
 
 #, fuzzy
 msgid "The user has been updated successfully."
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 msgid "The user seems to have been deleted"
 msgstr "Kullanıcı silinmiş gibi görünüyor"
 
 #, fuzzy
 msgid "The user was updated successfully"
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
@@ -14672,16 +14672,16 @@ msgstr ""
 msgid ""
 "This dashboard is not published, it will not show up in the list of "
 "dashboards. Click here to publish this dashboard."
-msgstr "Bu g?sterim paneli paylaşılmadı, g?sterim paneliı paylaşmak için tıklayın."
+msgstr "Bu gösterim paneli paylaşılmadı, gösterim paneliı paylaşmak için tıklayın."
 
 msgid "This dashboard is now hidden"
-msgstr "G?sterim Paneli gizli"
+msgstr "Gösterim Paneli gizli"
 
 msgid "This dashboard is now published"
-msgstr "G?sterim Paneli paylaşıldı"
+msgstr "Gösterim Paneli paylaşıldı"
 
 msgid "This dashboard is published. Click to make it a draft."
-msgstr "Bu g?sterim paneli paylaşıldı. Taslağa almak için tıklayın."
+msgstr "Bu gösterim paneli paylaşıldı. Taslağa almak için tıklayın."
 
 msgid ""
 "This dashboard is ready to embed. In your application, pass the following"
@@ -14689,7 +14689,7 @@ msgid ""
 msgstr "Bu pano gömmeye hazır. Uygulamanızda, aşağıdaki id'ı SDK'ya geçin:"
 
 msgid "This dashboard was saved successfully."
-msgstr "G?sterim Paneli başarıyla kaydedildi."
+msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 msgid ""
 "This database does not allow for DDL/DML, but the query mutates data. "
@@ -15473,7 +15473,7 @@ msgstr "Seçilen masa için sütunları yükleyemez. Lütfen farklı bir masa se
 
 #, fuzzy
 msgid "Unable to load dashboard"
-msgstr "1 G?sterim Paneline eklendi"
+msgstr "1 Gösterim Paneline eklendi"
 
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
@@ -16876,7 +16876,7 @@ msgid "You do not have permission to edit this chart"
 msgstr "Bu grafiği değiştirmeye yetkiniz yok"
 
 msgid "You do not have permission to edit this dashboard"
-msgstr "Bu g?sterim paneliı değiştirmeye yetkiniz yok"
+msgstr "Bu gösterim paneliı değiştirmeye yetkiniz yok"
 
 msgid "You do not have permission to perform this operation"
 msgstr ""
@@ -16885,7 +16885,7 @@ msgid "You do not have permission to read tags"
 msgstr "Etiketler okumak için izniniz yok"
 
 msgid "You do not have permissions to edit this dashboard."
-msgstr "Bu g?sterim paneliı değiştirmeye yetkiniz yok."
+msgstr "Bu gösterim paneliı değiştirmeye yetkiniz yok."
 
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "grafiği düzenlemek için yeterli izniniz yok"
@@ -16894,13 +16894,13 @@ msgid "You don't have access to this chart."
 msgstr "Bu grafiğe erişemezsiniz."
 
 msgid "You don't have access to this dashboard."
-msgstr "Bu g?sterim paneline erişemezsiniz."
+msgstr "Bu gösterim paneline erişemezsiniz."
 
 msgid "You don't have access to this dataset."
 msgstr "Bu verisetine erişemezsiniz."
 
 msgid "You don't have access to this embedded dashboard config."
-msgstr "Bu gömülü G?sterim Paneli’un configine erişemezsiniz."
+msgstr "Bu gömülü Gösterim Paneli’un configine erişemezsiniz."
 
 msgid "You don't have access to this semantic view."
 msgstr ""
@@ -16925,7 +16925,7 @@ msgid "You don't have the rights to alter this chart"
 msgstr "Bu grafiği değiştirmeye yetkiniz yok"
 
 msgid "You don't have the rights to alter this dashboard"
-msgstr "Bu g?sterim paneliı değiştirmeye yetkiniz yok"
+msgstr "Bu gösterim paneliı değiştirmeye yetkiniz yok"
 
 msgid "You don't have the rights to alter this title."
 msgstr "Bu başlığı değiştirmeye yetkiniz yok."
@@ -16934,7 +16934,7 @@ msgid "You don't have the rights to create a chart"
 msgstr "Bu başlığı değiştirmeye yetkiniz yok."
 
 msgid "You don't have the rights to create a dashboard"
-msgstr "You don’t have the rights to create a g?sterim paneli"
+msgstr "You don’t have the rights to create a gösterim paneli"
 
 msgid "You don't have the rights to export data"
 msgstr ""
@@ -17023,7 +17023,7 @@ msgid "Your dashboard is near the size limit."
 msgstr "Paneliniz boyut sınırının yakınında."
 
 msgid "Your dashboard is too large. Please reduce its size before saving it."
-msgstr "G?sterim Paneli’unuz çok büyük. Lütfen kaydetmeden önce boyutunu küçültün."
+msgstr "Gösterim Paneli’unuz çok büyük. Lütfen kaydetmeden önce boyutunu küçültün."
 
 msgid "Your query could not be saved"
 msgstr "Sorgunuz kaydedilemedi"
@@ -17076,7 +17076,7 @@ msgid "Zoom level of the map"
 msgstr "Haritanın Zoom seviyesi"
 
 msgid "[ untitled dashboard ]"
-msgstr "[ başlıksız g?sterim paneli ]"
+msgstr "[ başlıksız gösterim paneli ]"
 
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr "[Uzunluk] ve [Latitude] sütunlar [Grup By] içinde mevcut olmalıdır."
@@ -17094,7 +17094,7 @@ msgid "[asc]"
 msgstr "[asc]"
 
 msgid "[dashboard name]"
-msgstr "[g?sterim paneli adı]"
+msgstr "[gösterim paneli adı]"
 
 msgid "[desc]"
 msgstr "[desc]"
@@ -17325,7 +17325,7 @@ msgid "cumsum"
 msgstr "cumsum"
 
 msgid "dashboard"
-msgstr "g?sterim paneli"
+msgstr "gösterim paneli"
 
 #, fuzzy
 msgid "dashboards"
