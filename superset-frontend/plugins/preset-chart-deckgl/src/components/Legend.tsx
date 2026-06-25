@@ -59,6 +59,33 @@ const StyledLegend = styled.div`
 
 const categoryDelimiter = ' - ';
 
+const OPENING_BRACKETS = '[(';
+const CLOSING_BRACKETS = '])';
+
+// Recognize half-open interval labels like "[1, 81)" or "[81, 212]" emitted by
+// getBuckets: brackets on the ends, two comma-separated bounds in between.
+// Returns the parsed pieces, or null when the label isn't interval notation.
+const parseInterval = (label: string) => {
+  const open = label[0];
+  const close = label[label.length - 1];
+  if (!OPENING_BRACKETS.includes(open) || !CLOSING_BRACKETS.includes(close)) {
+    return null;
+  }
+
+  const bounds = label.slice(1, -1).split(',');
+  if (bounds.length !== 2) {
+    return null;
+  }
+
+  const lower = bounds[0].trim();
+  const upper = bounds[1].trim();
+  if (!lower || !upper) {
+    return null;
+  }
+
+  return { open, lower, upper, close };
+};
+
 export type LegendProps = {
   format: string | null;
   forceCategorical?: boolean;
@@ -91,13 +118,13 @@ const Legend = ({
       return k;
     }
 
-    // Interval-notation labels, e.g. "[1, 81)" or "[81, 212]". Format each
-    // numeric bound while preserving the brackets and separator.
-    const intervalMatch = k.match(/^([[(])\s*(.+?)\s*,\s*(.+?)\s*([\])])$/);
-    if (intervalMatch) {
-      const [, openBracket, lower, upper, closeBracket] = intervalMatch;
+    // Format each numeric bound of an interval label while preserving the
+    // brackets and separator, e.g. "[1, 81)" -> "[1.00, 81.00)".
+    const interval = parseInterval(k);
+    if (interval) {
+      const { open, lower, upper, close } = interval;
 
-      return `${openBracket}${format(lower)}, ${format(upper)}${closeBracket}`;
+      return `${open}${format(lower)}, ${format(upper)}${close}`;
     }
 
     if (k.includes(categoryDelimiter)) {
