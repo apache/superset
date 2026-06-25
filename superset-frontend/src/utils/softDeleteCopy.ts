@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { escape } from 'lodash';
 import { t } from '@apache-superset/core/translation';
 import getBootstrapData from 'src/utils/getBootstrapData';
+
+export interface ToastContent {
+  text: string;
+  options?: { allowHtml?: boolean };
+}
 
 /**
  * The configured soft-delete retention window (days) surfaced in the client
@@ -65,4 +71,25 @@ export function archiveConfirmDescription(
         'This %(type)s will be moved to Recently Archived. You can recover it there.',
         { type: typeLabel },
       );
+}
+
+/**
+ * Success-toast content for a recovery. When the restored asset has a link
+ * (`url`), the toast carries a "View <type>" anchor (HTML is escaped before
+ * opting into `allowHtml`); otherwise it's a plain message.
+ */
+export function recoveredToast(
+  name: string,
+  typeLabel: string,
+  url?: string | null,
+): ToastContent {
+  const message = t('%(name)s restored successfully', { name });
+  if (!url) {
+    return { text: message };
+  }
+  const linkText = t('View %(type)s', { type: typeLabel });
+  return {
+    text: `${escape(message)} <a href="${escape(url)}">${escape(linkText)} →</a>`,
+    options: { allowHtml: true },
+  };
 }

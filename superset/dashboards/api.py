@@ -88,7 +88,7 @@ from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.commands.purge import PurgeArchivedCommand
+from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.dashboards.filters import (
@@ -190,6 +190,13 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
+
+_DASHBOARD_PURGE_BINDING = SoftDeleteBinding(
+    dao=DashboardDAO,
+    not_found=DashboardNotFoundError,
+    forbidden=DashboardForbiddenError,
+    delete_failed=DashboardDeleteFailedError,
+)
 
 
 def with_dashboard(
@@ -1493,13 +1500,7 @@ class DashboardRestApi(
               $ref: '#/components/responses/500'
         """
         try:
-            PurgeArchivedCommand(
-                uuid,
-                DashboardDAO,
-                DashboardNotFoundError,
-                DashboardForbiddenError,
-                DashboardDeleteFailedError,
-            ).run()
+            PurgeArchivedCommand(uuid, _DASHBOARD_PURGE_BINDING).run()
             return self.response(200, message="OK")
         except DashboardNotFoundError:
             return self.response_404()
