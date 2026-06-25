@@ -55,31 +55,34 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadChartData = useCallback((resultType: string) => {
-    setIsLoading(true);
-    getChartDataRequest({
-      formData: latestQueryFormData,
-      resultFormat: 'json',
-      resultType,
-      ownState: ownState || {},
-    })
-      .then(({ json }) => {
-        setResult(ensureIsArray(json.result) as Result[]);
-        setIsLoading(false);
-        setError(null);
+  const loadChartData = useCallback(
+    (resultType: string) => {
+      setIsLoading(true);
+      getChartDataRequest({
+        formData: latestQueryFormData,
+        resultFormat: 'json',
+        resultType,
+        ownState: ownState || {},
       })
-      .catch(response => {
-        getClientErrorObject(response).then(({ error, message }) => {
-          setError(
-            error ||
-              message ||
-              response.statusText ||
-              t('Sorry, An error occurred'),
-          );
+        .then(({ json }) => {
+          setResult(ensureIsArray(json.result) as Result[]);
           setIsLoading(false);
+          setError(null);
+        })
+        .catch(response => {
+          getClientErrorObject(response).then(({ error, message }) => {
+            setError(
+              error ||
+                message ||
+                response.statusText ||
+                t('Sorry, An error occurred'),
+            );
+            setIsLoading(false);
+          });
         });
-      });
-  }, [latestQueryFormData, ownState]);
+    },
+    [latestQueryFormData, ownState],
+  );
   useEffect(() => {
     loadChartData('query');
   }, [loadChartData]);

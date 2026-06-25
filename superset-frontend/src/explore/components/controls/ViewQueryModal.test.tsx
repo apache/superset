@@ -19,6 +19,7 @@
 
 import { screen, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import * as chartAction from 'src/components/Chart/chartAction';
 import ViewQueryModal from './ViewQueryModal';
 
 const mockFormData = {
@@ -29,6 +30,7 @@ const mockFormData = {
 const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
 
 afterEach(() => {
+  jest.restoreAllMocks();
   jest.resetAllMocks();
   fetchMock.clearHistory().removeRoutes();
 });
@@ -115,5 +117,60 @@ test('renders both Alert and SQL query when parsing error occurs', async () => {
       expect(screen.getByText('Open')).toBeInTheDocument();
     },
     { timeout: 5000 },
+  );
+});
+
+test('passes ownState through to getChartDataRequest', async () => {
+  /**
+   * Regression test for PR #35208 - the ViewQueryModal must forward the
+   * chart's ownState (e.g. table search text, order_by) to the data request
+   * so that the displayed SQL reflects the same filters applied to the chart.
+   */
+  const getChartDataRequestSpy = jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue({ json: { result: [] } });
+
+  const ownState = { searchText: 'foo', order_by: [['col', 'asc']] };
+
+  render(
+    <ViewQueryModal latestQueryFormData={mockFormData} ownState={ownState} />,
+    { useRedux: true },
+  );
+
+  await waitFor(() => {
+    expect(getChartDataRequestSpy).toHaveBeenCalledTimes(1);
+  });
+
+  expect(getChartDataRequestSpy).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: mockFormData,
+      ownState,
+    }),
+  );
+});
+
+test('falls back to empty ownState when prop is omitted', async () => {
+  /**
+   * Covers the `ownState || {}` fallback branch in ViewQueryModal - when no
+   * ownState is provided, the data request must still be called with an empty
+   * object rather than undefined, matching getChartDataRequest's contract.
+   */
+  const getChartDataRequestSpy = jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue({ json: { result: [] } });
+
+  render(<ViewQueryModal latestQueryFormData={mockFormData} />, {
+    useRedux: true,
+  });
+
+  await waitFor(() => {
+    expect(getChartDataRequestSpy).toHaveBeenCalledTimes(1);
+  });
+
+  expect(getChartDataRequestSpy).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: mockFormData,
+      ownState: {},
+    }),
   );
 });
