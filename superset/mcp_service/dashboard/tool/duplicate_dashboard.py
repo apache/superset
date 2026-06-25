@@ -252,6 +252,15 @@ async def duplicate_dashboard(
                 new_dashboard.id,
                 exc_info=True,
             )
+            from superset import db
+
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except SQLAlchemyError:
+                logger.warning(
+                    "Database rollback failed during dashboard re-fetch error handling",
+                    exc_info=True,
+                )
             dashboard_url = (
                 f"{get_superset_base_url()}/superset/dashboard/{new_dashboard.id}/"
             )

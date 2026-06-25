@@ -411,6 +411,47 @@ async def test_title_xss_is_sanitized(
     assert content["warnings"], "expected a sanitization warning"
 
 
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@patch("superset.commands.dashboard.copy.CopyDashboardCommand")
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_refetch_failure_rolls_back_and_returns_minimal_response(
+    mock_get_by_id_or_slug: Mock,
+    mock_copy_cmd_cls: Mock,
+    mock_find_by_id: Mock,
+    mcp_server: object,
+) -> None:
+    """A failed post-copy re-fetch rolls back before returning the fallback.
+
+    Leaving the failed transaction open would break any later ORM use in the
+    same request lifecycle, so the rollback mirrors the recovery pattern in
+    the sibling dashboard tools (generate_dashboard,
+    add_chart_to_existing_dashboard).
+    """
+    from sqlalchemy.exc import SQLAlchemyError
+
+    source = _mock_dashboard(id=1, slices=[_mock_chart(id=10)])
+    new_dashboard = _mock_dashboard(id=7, title="Copy", slices=[_mock_chart(id=10)])
+
+    mock_get_by_id_or_slug.return_value = source
+    mock_copy_cmd_cls.return_value.run.return_value = new_dashboard
+    mock_find_by_id.side_effect = SQLAlchemyError("connection dropped")
+
+    with patch("superset.db.session") as mock_session:
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "duplicate_dashboard",
+                {"request": {"dashboard_id": 1, "dashboard_title": "Copy"}},
+            )
+
+    mock_session.rollback.assert_called_once()
+    content = result.structured_content
+    assert content["error"] is None
+    assert content["dashboard"]["id"] == 7
+    assert content["dashboard"]["dashboard_title"] == _wrapped("Copy")
+    assert "/superset/dashboard/7/" in content["dashboard_url"]
+
+
 def test_title_xss_only_rejected_by_schema() -> None:
     """A title that sanitizes to nothing is rejected with a clear error."""
     from pydantic import ValidationError
