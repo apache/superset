@@ -909,3 +909,32 @@ test('colorLink is preserved in setConfig when explicitly set', () => {
   expect(theme.theme.colorPrimary).toBe('#f759ab');
   expect(theme.theme.colorLink).toBe('#ff0000');
 });
+
+test('setDirection persists across setConfig', () => {
+  const theme = Theme.fromConfig({
+    token: {
+      direction: 'ltr',
+    },
+  });
+
+  theme.setDirection('rtl');
+  expect(theme.theme.direction).toBe('rtl');
+
+  theme.setConfig({
+    token: {
+      colorPrimary: '#f759ab',
+      direction: 'ltr',
+    },
+  });
+
+  expect(theme.theme.direction).toBe('rtl');
+});
+
+test('setDirection persists across toggleDarkMode', () => {
+  const theme = Theme.fromConfig();
+
+  theme.setDirection('rtl');
+  theme.toggleDarkMode(true);
+
+  expect(theme.theme.direction).toBe('rtl');
+});

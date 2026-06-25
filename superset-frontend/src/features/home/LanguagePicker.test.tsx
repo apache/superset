@@ -158,3 +158,27 @@ test('should call setDirection with rtl for Hebrew locale', () => {
   );
   expect(setDirection).toHaveBeenCalledWith('rtl');
 });
+
+test.each(['sd', 'dv', 'ps', 'ug', 'ur', 'yi', 'iw'])(
+  'should call setDirection with rtl for %s locale',
+  languageCode => {
+    const setDirection = jest.fn();
+    const languages = {
+      ...mockedProps.languages,
+      [languageCode]: {
+        flag: 'xx',
+        name: languageCode,
+        url: `/lang/${languageCode}`,
+      },
+    };
+    render(
+      <TestLanguagePicker
+        locale={languageCode}
+        languages={languages}
+        setDirection={setDirection}
+      />,
+      { useRouter: true },
+    );
+    expect(setDirection).toHaveBeenCalledWith('rtl');
+  },
+);

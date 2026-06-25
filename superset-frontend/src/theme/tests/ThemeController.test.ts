@@ -47,6 +47,7 @@ const mockLocalStorage = {
 const mockMatchMedia = jest.fn();
 const mockThemeFromConfig = jest.fn();
 const mockSetConfig = jest.fn();
+const mockSetDirection = jest.fn();
 
 // Mock data constants
 const DEFAULT_THEME: AnyThemeConfig = {
@@ -99,6 +100,7 @@ const createMockBootstrapData = (
 
 const mockThemeObject = {
   setConfig: mockSetConfig,
+  setDirection: mockSetDirection,
   theme: DEFAULT_THEME,
 } as unknown as Theme;
 
@@ -2114,4 +2116,43 @@ test('fetchSystemDefaultTheme: second named-theme fallback fetch succeeds when f
     global.fetch = originalFetch;
     mockGet.mockRestore();
   }
+});
+
+test('ThemeController initializes direction from bootstrap locale', () => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      ...createMockBootstrapData().common,
+      menu_data: {
+        navbar_right: { locale: 'ar' },
+      },
+    } as unknown as CommonBootstrapData,
+  });
+
+  createController();
+
+  expect(mockSetDirection).toHaveBeenCalledWith('rtl');
+});
+
+test('ThemeController initializes direction from common locale when navbar locale is absent', () => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      ...createMockBootstrapData().common,
+      locale: 'fa',
+      menu_data: {},
+    } as unknown as CommonBootstrapData,
+  });
+
+  createController();
+
+  expect(mockSetDirection).toHaveBeenCalledWith('rtl');
+});
+
+test('ThemeController setDirection delegates to global theme', () => {
+  const controller = createController();
+
+  jest.clearAllMocks();
+
+  controller.setDirection('rtl');
+
+  expect(mockSetDirection).toHaveBeenCalledWith('rtl');
 });
