@@ -596,18 +596,22 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         """
         Exchange authorization code for refresh/access tokens with dynamic endpoint.
 
-        Note: For token exchange, we need the database context from the state.
-        This is a limitation of the current OAuth2 flow design.
+        The token request URI is resolved when the OAuth2 config is built (see
+        `get_oauth2_config`), so it already targets the correct cloud provider and
+        account. Only fall back to the AWS endpoint when no URI is configured.
         """
-        # For now, fall back to AWS endpoints for token exchange
-        # TODO: Improve OAuth2 flow to pass database context to token exchange
         from typing import cast
 
-        config = cast(
-            "OAuth2ClientConfig",
-            dict(config)
-            | {"token_request_uri": cls._oauth2_endpoints["aws"]["token_request_uri"]},
-        )
+        if not config.get("token_request_uri"):
+            config = cast(
+                "OAuth2ClientConfig",
+                dict(config)
+                | {
+                    "token_request_uri": cls._oauth2_endpoints["aws"][
+                        "token_request_uri"
+                    ]
+                },
+            )
 
         return super().get_oauth2_token(config, code, code_verifier)
 
@@ -873,18 +877,22 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         """
         Exchange authorization code for refresh/access tokens with dynamic endpoint.
 
-        Note: For token exchange, we need the database context from the state.
-        This is a limitation of the current OAuth2 flow design.
+        The token request URI is resolved when the OAuth2 config is built (see
+        `get_oauth2_config`), so it already targets the correct cloud provider and
+        account. Only fall back to the AWS endpoint when no URI is configured.
         """
-        # For now, fall back to AWS endpoints for token exchange
-        # TODO: Improve OAuth2 flow to pass database context to token exchange
         from typing import cast
 
-        config = cast(
-            "OAuth2ClientConfig",
-            dict(config)
-            | {"token_request_uri": cls._oauth2_endpoints["aws"]["token_request_uri"]},
-        )
+        if not config.get("token_request_uri"):
+            config = cast(
+                "OAuth2ClientConfig",
+                dict(config)
+                | {
+                    "token_request_uri": cls._oauth2_endpoints["aws"][
+                        "token_request_uri"
+                    ]
+                },
+            )
 
         return super().get_oauth2_token(config, code, code_verifier)
 
