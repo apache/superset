@@ -40,7 +40,13 @@ export function DeleteModal({
   title,
   name,
   recoverable = false,
+  requireConfirmationText = true,
 }: DeleteModalProps) {
+  // The "type DELETE to confirm" step is shown only for a permanent,
+  // friction-worthy delete. Recoverable (archive) deletes drop it; an explicit
+  // `requireConfirmationText={false}` drops it for a plain danger confirm
+  // (e.g. "delete forever" from the archive).
+  const showConfirmationInput = !recoverable && requireConfirmationText;
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
   const inputRef = useRef<InputRef>(null);
@@ -75,7 +81,7 @@ export function DeleteModal({
 
   return (
     <Modal
-      disablePrimaryButton={recoverable ? false : disableChange}
+      disablePrimaryButton={showConfirmationInput ? disableChange : false}
       onHide={hide}
       onHandledPrimaryAction={confirm}
       primaryButtonName={recoverable ? t('Archive') : t('Delete')}
@@ -86,9 +92,7 @@ export function DeleteModal({
       centered
     >
       {description}
-      {/* Recoverable (soft-delete) deletes skip the type-to-confirm friction —
-          the object can be restored from the archive. */}
-      {!recoverable && (
+      {showConfirmationInput && (
         <StyledDiv>
           <FormLabel htmlFor="delete">
             {t('Type "%s" to confirm', t('DELETE'))}

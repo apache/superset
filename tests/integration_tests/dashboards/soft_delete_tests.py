@@ -818,3 +818,39 @@ class TestDashboardArchiveListing(SupersetTestCase):
 
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
+
+    def test_purge_by_owner_permanently_deletes(self) -> None:
+        """POST /api/v1/dashboard/<uuid>/purge hard-deletes an archived dashboard."""
+        dashboard = self._make("arch_purge_dash")
+        dashboard_id = dashboard.id
+        dashboard_uuid = str(dashboard.uuid)
+        dashboard.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/purge")
+        assert rv.status_code == 200, rv.data
+
+        row = (
+            db.session.query(Dashboard)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+            .filter(Dashboard.id == dashboard_id)
+            .one_or_none()
+        )
+        assert row is None
+
+    def test_purge_blocked_for_non_owner(self) -> None:
+        """A non-owner (Gamma) cannot permanently delete another user's archived
+        dashboard (SC-003)."""
+        dashboard = self._make("arch_purge_dash_rbac")
+        dashboard_id = dashboard.id
+        dashboard_uuid = str(dashboard.uuid)
+        dashboard.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(GAMMA_USERNAME)
+        rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/purge")
+        assert rv.status_code in (403, 404), rv.data
+
+        # Cleanup
+        _hard_delete_dashboard(dashboard_id)
