@@ -1852,6 +1852,18 @@ describe('async actions', () => {
             sqlEditorId: oldQueryEditor.id,
             inLocalStorage: true,
           },
+          {
+            ...query,
+            id: 'runningQuery',
+            sqlEditorId: oldQueryEditor.id,
+            state: 'running',
+          },
+          {
+            ...query,
+            id: 'unrelatedQuery',
+            sqlEditorId: 'other-editor',
+            state: 'running',
+          },
         ];
         const store = mockStore({
           sqlLab: {
@@ -1893,6 +1905,11 @@ describe('async actions', () => {
             queryId: 'previewTwo',
             queryEditorId: '1',
           },
+          {
+            type: actions.MIGRATE_QUERY,
+            queryId: 'runningQuery',
+            queryEditorId: '1',
+          },
         ];
         return store
           .dispatch(actions.syncQueryEditor(oldQueryEditor))
@@ -1900,7 +1917,7 @@ describe('async actions', () => {
             expect(store.getActions()).toEqual(expectedActions);
             expect(
               fetchMock.callHistory.calls(updateTabStateEndpoint),
-            ).toHaveLength(3);
+            ).toHaveLength(4);
 
             // query editor has 2 tables loaded in the schema viewer
             expect(
