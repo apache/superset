@@ -706,13 +706,13 @@ export default function transformProps(
       },
       minorTick: { show: minorTicks },
       minInterval:
-        xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
-          ? TIMEGRAIN_TO_TIMESTAMP[
+        xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
+          ? (TIMEGRAIN_TO_TIMESTAMP[
               resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-            ]
+            ] ?? 0)
           : 0,
       maxInterval:
-        xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
+        xAxisType === AxisType.Time && resolvedTimeGrain && forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
               resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
             ]
