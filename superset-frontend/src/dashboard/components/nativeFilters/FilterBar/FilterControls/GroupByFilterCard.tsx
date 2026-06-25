@@ -590,6 +590,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
           >
             <Select
               allowClear
+              autoClearSearchValue
               placeholder={t('Search columns...')}
               value={currentValue}
               onChange={handleColumnChange}
@@ -619,6 +620,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         >
           <Select
             allowClear
+            autoClearSearchValue
             placeholder={t('Search columns...')}
             value={currentValue}
             onChange={handleColumnChange}
