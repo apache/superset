@@ -542,16 +542,19 @@ DATABASE_OAUTH2_CLIENTS = {
         "id": "your-databricks-client-id",
         "secret": "your-databricks-client-secret",
         "scope": "sql",
-        # OAuth2 endpoints are auto-detected based on hostname, but can be overridden:
+        # The authorization endpoint is auto-detected from the hostname; the
+        # token endpoint must be set explicitly (no DB context at exchange):
         # AWS: "authorization_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/{account_id}/v1/authorize",
         # Azure: "authorization_request_uri": "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/authorize",
         # GCP: "authorization_request_uri": "https://accounts.gcp.databricks.com/oidc/accounts/{account_id}/v1/authorize",
+        # "token_request_uri": "https://<provider-token-endpoint>",
     },
     "Databricks": {
         "id": "your-databricks-client-id",
         "secret": "your-databricks-client-secret",
         "scope": "sql",
-        # OAuth2 endpoints are auto-detected based on hostname
+        # Authorization endpoint auto-detected from hostname; set
+        # "token_request_uri" explicitly for the token exchange.
     },
 }
 
@@ -595,11 +598,14 @@ For AWS and GCP, supply `account_id` instead:
 }
 ```
 
-Valid cloud provider values are: `aws`, `azure`, `gcp`. When the OAuth2 endpoints
-are auto-detected, Superset substitutes this identifier into the provider's
-endpoint template. If you instead supply fully-resolved `authorization_request_uri`
-and `token_request_uri` values in `DATABASE_OAUTH2_CLIENTS`, those take precedence
-and no `account_id`/`tenant_id` is required.
+Valid cloud provider values are: `aws`, `azure`, `gcp`. The **authorization**
+endpoint is auto-detected: Superset substitutes this identifier into the
+provider's authorization template. The **token** endpoint is not auto-resolved
+(token exchange has no database context to detect the provider), so for the
+auto-detected flow you must still supply a fully-resolved `token_request_uri`
+in `DATABASE_OAUTH2_CLIENTS`. If you supply fully-resolved
+`authorization_request_uri` and `token_request_uri` values, those take
+precedence and no `account_id`/`tenant_id` is required.
 
 ###### Usage
 
