@@ -877,7 +877,9 @@ export default function transformProps(
   // "2005" appears twice with Year grain). Wrap the formatter to suppress
   // consecutive duplicate labels.
   const showMaxLabel =
-    xAxisType === AxisType.Time && xAxisLabelRotation === 0 && !!timeGrainSqla;
+    xAxisType === AxisType.Time &&
+    xAxisLabelRotation === 0 &&
+    !!resolvedTimeGrain;
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;
