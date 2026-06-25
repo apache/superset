@@ -43,8 +43,8 @@ export const AUTH_DB_DEFAULT_PASSWORD_POLICY: AuthDbPasswordPolicy = {
 
 /**
  * Lowercased entries; keep in sync with ``_COMMON_PASSWORDS`` in
- * ``superset/utils/auth_db_password.py``. The sync is enforced automatically by
- * ``generateAuthDbPassword.test.ts``, which parses the Python source.
+ * ``superset/utils/auth_db_password.py``. Sync is enforced by
+ * ``tests/unit_tests/utils/test_auth_db_password.py``.
  */
 export const AUTH_DB_COMMON_PASSWORDS = new Set(
   [
@@ -256,7 +256,7 @@ export function getAuthDbPasswordPolicyError(
     );
   }
   if (policy.password_common_list_check && !checks.commonPassword) {
-    return t('Password is too common.');
+    return t('This password is too common. Choose a stronger password.');
   }
   return null;
 }

@@ -15,11 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import re
+from pathlib import Path
+
 import pytest
 from marshmallow import ValidationError
 from werkzeug.security import generate_password_hash
 
 from superset.utils.auth_db_password import (
+    _COMMON_PASSWORDS,
     get_auth_db_password_hash_algorithm,
     get_auth_db_password_hash_method,
     validate_auth_db_password,
@@ -60,6 +64,25 @@ def test_validate_auth_db_password_rejects_weak_passwords(password: str) -> None
     """Passwords missing a required rule are rejected."""
     with pytest.raises(ValidationError):
         validate_auth_db_password(password, _POLICY)
+
+
+def test_common_passwords_stay_in_sync_with_frontend() -> None:
+    """Frontend blocklist must match ``_COMMON_PASSWORDS`` (no client/server drift)."""
+    ts_path = (
+        Path(__file__).resolve().parents[3]
+        / "superset-frontend/src/utils/generateAuthDbPassword.ts"
+    )
+    ts_source = ts_path.read_text(encoding="utf-8")
+    match = re.search(
+        r"export const AUTH_DB_COMMON_PASSWORDS = new Set\(\s*\[([\s\S]*?)\]\.map",
+        ts_source,
+    )
+    assert match is not None
+    frontend_passwords = {
+        token.lower() for token in re.findall(r"'([^']*)'", match.group(1))
+    }
+    assert frontend_passwords
+    assert frontend_passwords == set(_COMMON_PASSWORDS)
 
 
 def test_validate_auth_db_password_rejects_common_password() -> None:

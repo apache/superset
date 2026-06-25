@@ -263,9 +263,6 @@ export const ChangePasswordModal = (
   props: Omit<UserInfoModalProps, 'isEditMode' | 'user'>,
 ) => <UserInfoModal {...props} isEditMode={false} />;
 
-// Backward-compatible alias for existing imports.
-export const UserInfoResetPasswordModal = ChangePasswordModal;
-
 export const UserInfoEditModal = (
   props: Omit<UserInfoModalProps, 'isEditMode'> & { user: User },
 ) => <UserInfoModal {...props} isEditMode />;

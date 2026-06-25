@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { readFileSync } from 'fs';
-import path from 'path';
 import {
-  AUTH_DB_COMMON_PASSWORDS,
   AUTH_DB_DEFAULT_PASSWORD_POLICY,
   AUTH_DB_PASSWORD_MIN_LENGTH,
   generateAuthDbPassword,
@@ -91,27 +88,6 @@ test('getAuthDbPasswordPolicyChecks treats Unicode letters as alphanumeric', () 
 test('getAuthDbPasswordPolicyChecks still requires a true special character', () => {
   const withSpecial = 'Abcdefghijk!1';
   expect(getAuthDbPasswordPolicyChecks(withSpecial).special).toBe(true);
-});
-
-test('AUTH_DB_COMMON_PASSWORDS stays in sync with the Python blocklist', () => {
-  // Parse ``_COMMON_PASSWORDS`` from the backend module so the two lists cannot
-  // silently drift apart (the frontend must never allow a password the backend
-  // rejects as common).
-  const pythonSource = readFileSync(
-    path.resolve(__dirname, '../../../superset/utils/auth_db_password.py'),
-    'utf8',
-  );
-  const blockMatch = pythonSource.match(
-    /_COMMON_PASSWORDS\s*=\s*frozenset\([\s\S]*?for password in\s*{([\s\S]*?)}/,
-  );
-  expect(blockMatch).not.toBeNull();
-  const pythonPasswords = (blockMatch![1].match(/"([^"]*)"/g) ?? []).map(
-    token => token.slice(1, -1).toLowerCase(),
-  );
-  expect(pythonPasswords.length).toBeGreaterThan(0);
-
-  const backendSet = new Set(pythonPasswords);
-  expect([...AUTH_DB_COMMON_PASSWORDS].sort()).toEqual([...backendSet].sort());
 });
 
 test('getAuthDbPasswordPolicyChecks accepts any length when min length is zero', () => {
