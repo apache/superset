@@ -154,6 +154,34 @@ export class DashboardPage {
   }
 
   /**
+   * Read the `native_filters_key` query param from the current dashboard URL,
+   * or null if absent. This key references the server-side filter_state entry
+   * the native filter bar creates when it publishes its data mask.
+   */
+  getNativeFiltersKey(): string | null {
+    return new URL(this.page.url()).searchParams.get('native_filters_key');
+  }
+
+  /**
+   * Wait until the native filter bar has published its state to the backend and
+   * the resulting `native_filters_key` appears in the URL, then return it.
+   */
+  async waitForNativeFiltersKey(options?: { timeout?: number }): Promise<string> {
+    const timeout = options?.timeout ?? TIMEOUT.API_RESPONSE;
+    await this.page.waitForFunction(
+      () =>
+        new URLSearchParams(window.location.search).has('native_filters_key'),
+      undefined,
+      { timeout },
+    );
+    const key = this.getNativeFiltersKey();
+    if (!key) {
+      throw new Error('native_filters_key not found in URL after publish');
+    }
+    return key;
+  }
+
+  /**
    * Open the dashboard header actions menu (three-dot menu)
    */
   async openHeaderActionsMenu(): Promise<void> {
