@@ -444,6 +444,14 @@ class WebDriverPlaywright(WebDriverProxy):
                                 self._screenshot_load_wait,
                             )
                             raise
+                        # Wait for chart animations (e.g. ECharts) to finish
+                        # after the spinners clear. The earlier animation wait
+                        # runs before charts finish loading, but the draw
+                        # animation only starts once data arrives and the
+                        # spinner clears, so without this wait a slow-loading
+                        # chart is captured mid-render.
+                        if selenium_animation_wait > 0:
+                            page.wait_for_timeout(selenium_animation_wait * 1000)
                         img = WebDriverPlaywright._get_screenshot(
                             page, element, element_name
                         )
@@ -467,6 +475,13 @@ class WebDriverPlaywright(WebDriverProxy):
                             self._screenshot_load_wait,
                         )
                         raise
+                    # Wait for chart animations (e.g. ECharts) to finish after
+                    # the spinners clear. The earlier animation wait runs before
+                    # charts finish loading, but the draw animation only starts
+                    # once data arrives and the spinner clears, so without this
+                    # wait a slow-loading chart is captured mid-render.
+                    if selenium_animation_wait > 0:
+                        page.wait_for_timeout(selenium_animation_wait * 1000)
                     img = WebDriverPlaywright._get_screenshot(
                         page, element, element_name
                     )

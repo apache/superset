@@ -974,3 +974,72 @@ class TestWebDriverPlaywrightErrorHandling:
             "not falling back to avoid sending a blank PDF",
             "http://example.com",
         )
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.app")
+    def test_animation_wait_runs_after_spinners_clear(
+        self, mock_app, mock_browser_manager
+    ):
+        """
+        In the non-tiled path the animation wait must run *after* the spinner
+        check clears. ECharts only starts its draw animation once data arrives
+        and the spinner is gone, so waiting before that (the pre-existing wait)
+        leaves slow-loading charts captured mid-render. Regression test for the
+        mix-chart-not-rendering-fully-as-PNG report bug.
+        """
+        animation_wait = 3
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = {
+            "WEBDRIVER_OPTION_ARGS": [],
+            "WEBDRIVER_WINDOW": {"pixel_density": 1},
+            "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+            "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+            "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_SELENIUM_ANIMATION_WAIT": animation_wait,
+            "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+            "SCREENSHOT_TILED_ENABLED": False,
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 60,
+            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
+            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
+        }
+
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_element = MagicMock()
+
+        mock_browser_manager.get_browser.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+        mock_page.locator.return_value = mock_element
+        mock_element.screenshot.return_value = b"screenshot"
+
+        # Record the interleaved order of spinner check and timeouts.
+        manager = MagicMock()
+        manager.attach_mock(mock_page.wait_for_function, "wait_for_function")
+        manager.attach_mock(mock_page.wait_for_timeout, "wait_for_timeout")
+        manager.attach_mock(mock_element.screenshot, "screenshot")
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            driver = WebDriverPlaywright("chrome")
+            driver.get_screenshot("http://example.com", "test-element", mock_user)
+
+        call_names = [c[0] for c in manager.mock_calls]
+        spinner_idx = call_names.index("wait_for_function")
+        screenshot_idx = call_names.index("screenshot")
+        # An animation wait of `animation_wait * 1000` must occur between the
+        # spinner clearing and the screenshot being taken.
+        post_spinner_anim_wait = [
+            i
+            for i, c in enumerate(manager.mock_calls)
+            if c[0] == "wait_for_timeout"
+            and c.args == (animation_wait * 1000,)
+            and spinner_idx < i < screenshot_idx
+        ]
+        assert post_spinner_anim_wait, (
+            "Expected an animation wait_for_timeout between the spinner check "
+            "and the screenshot"
+        )
