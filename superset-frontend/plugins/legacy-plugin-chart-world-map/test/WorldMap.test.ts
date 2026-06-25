@@ -168,6 +168,18 @@ test('relies on Datamaps highlightOnHover without adding conflicting fill handle
   expect(hoverHandlers).toEqual([]);
 });
 
+test('disables Datamaps highlightOnHover while the context menu is open', () => {
+  // Companion to the regression guard above: when the context menu is open we
+  // pass highlightOnHover: false so hover highlighting is suppressed at init.
+  WorldMap(container, { ...baseProps, inContextMenu: true });
+
+  const geographyConfig = lastDatamapConfig?.geographyConfig as Record<
+    string,
+    unknown
+  >;
+  expect(geographyConfig?.highlightOnHover).toBe(false);
+});
+
 test('does not throw error when onContextMenu is undefined', () => {
   const propsWithoutContextMenu = {
     ...baseProps,
