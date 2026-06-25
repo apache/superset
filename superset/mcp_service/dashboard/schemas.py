@@ -177,6 +177,10 @@ def serialize_role_object(role: Any) -> RoleInfo | None:
 
 
 def _serialize_permission_name(permission: Any) -> str | None:
+    """Return direct permission names or FAB permission/view pairs.
+
+    Returns None when neither representation is available.
+    """
     if (name := getattr(permission, "name", None)) is not None:
         return str(name)
 

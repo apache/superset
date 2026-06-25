@@ -136,7 +136,7 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
         assert "slug" in data["columns_loaded"]
 
 
-def test_dashboard_role_serializer_serializes_permission_view_names():
+def test_dashboard_role_serializer_serializes_permission_view_names() -> None:
     permission_view = SimpleNamespace(
         permission=SimpleNamespace(name="can_read"),
         view_menu=SimpleNamespace(name="Dashboard"),
