@@ -558,3 +558,43 @@ class TestDatasetArchiveListing(SupersetTestCase):
 
         # Cleanup
         self._cleanup(dataset_id, database)
+
+    def test_purge_by_owner_permanently_deletes(self) -> None:
+        """POST /api/v1/dataset/<uuid>/purge hard-deletes an archived dataset."""
+        dataset, database = self._make("arch_purge_ds")
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/purge")
+        assert rv.status_code == 200, rv.data
+
+        row = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+        )
+        assert row is None
+
+        # The dataset is purged; clean up its database row.
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_purge_blocked_for_non_owner(self) -> None:
+        """A non-owner (Gamma) cannot permanently delete another user's archived
+        dataset (SC-003)."""
+        dataset, database = self._make("arch_purge_ds_rbac")
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(GAMMA_USERNAME)
+        rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/purge")
+        assert rv.status_code in (403, 404), rv.data
+
+        # Cleanup
+        self._cleanup(dataset_id, database)

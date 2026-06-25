@@ -638,3 +638,57 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
 
         # Cleanup
         _hard_delete_chart(chart_id)
+
+    def test_purge_by_owner_permanently_deletes(self) -> None:
+        """POST /api/v1/chart/<uuid>/purge hard-deletes an archived chart."""
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("arch_purge_chart", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
+        assert rv.status_code == 200, rv.data
+
+        # Permanently gone — not even visible with the visibility filter bypassed.
+        row = (
+            db.session.query(Slice)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+            .filter(Slice.id == chart_id)
+            .one_or_none()
+        )
+        assert row is None
+
+    def test_purge_blocked_for_non_owner(self) -> None:
+        """A non-owner (Gamma) cannot permanently delete another user's archived
+        chart — purge is owner/admin only, mirroring restore (SC-003)."""
+        admin_id = self.get_user(ADMIN_USERNAME).id
+        chart = self.insert_chart("arch_purge_rbac", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(GAMMA_USERNAME)
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
+        assert rv.status_code in (403, 404), rv.data
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
+    def test_purge_live_chart_returns_404(self) -> None:
+        """The purge endpoint only operates on soft-deleted rows; a live chart
+        returns 404 (use DELETE to archive first)."""
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("arch_purge_live", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+
+        self.login(ADMIN_USERNAME)
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
+        assert rv.status_code == 404
+
+        # Cleanup
+        _hard_delete_chart(chart_id)

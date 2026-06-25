@@ -37,6 +37,7 @@ const store = mockStore({});
 const infoEndpoint = 'glob:*/api/v1/chart/_info*';
 const listEndpoint = 'glob:*/api/v1/chart/?*';
 const restoreEndpoint = 'glob:*/api/v1/chart/*/restore';
+const purgeEndpoint = 'glob:*/api/v1/chart/*/purge';
 const dashboardInfoEndpoint = 'glob:*/api/v1/dashboard/_info*';
 const dashboardListEndpoint = 'glob:*/api/v1/dashboard/?*';
 const datasetInfoEndpoint = 'glob:*/api/v1/dataset/_info*';
@@ -75,6 +76,7 @@ const mockRoutes = (restoreStatus = 200) => {
   fetchMock.get(infoEndpoint, { permissions: ['can_read', 'can_write'] });
   fetchMock.get(listEndpoint, { result: mockCharts, count: mockCharts.length });
   fetchMock.post(restoreEndpoint, restoreStatus === 200 ? {} : restoreStatus);
+  fetchMock.post(purgeEndpoint, {});
   fetchMock.get(dashboardInfoEndpoint, {
     permissions: ['can_read', 'can_write'],
   });
@@ -165,6 +167,27 @@ test('restore failure surfaces an error and leaves the row in place', async () =
   // No refetch on failure — the row stays.
   expect(fetchMock.callHistory.calls(/chart\/\?q/)).toHaveLength(1);
   expect(screen.getByText('Deleted Chart One')).toBeInTheDocument();
+});
+
+test('delete permanently confirms then posts to the purge endpoint and refetches', async () => {
+  mockRoutes();
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  // Open the "delete forever" confirm for the first row...
+  fireEvent.click((await screen.findAllByTestId('archived-row-purge'))[0]);
+  // ...which is a plain danger confirm (no "type DELETE" input).
+  expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+  fireEvent.click(await screen.findByText('Delete'));
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(/chart\/uuid-1\/purge/)).toHaveLength(1);
+  });
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(/chart\/\?q/).length,
+    ).toBeGreaterThanOrEqual(2);
+  });
 });
 
 test('name search refetches with a contains filter on the name field', async () => {
