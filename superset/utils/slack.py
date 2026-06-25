@@ -41,8 +41,8 @@ _SLACK_V1_DEPRECATION_MESSAGE = (
     "deprecated and will be removed in the next major release. Slack retired "
     "the `files.upload` endpoint in 2025, so v1 file uploads no longer work; "
     "only text-only `chat_postMessage` sends still succeed. Grant your Slack "
-    "bot the `channels:read` (and `groups:read` if you use private channels) "
-    "scopes so existing v1 recipients can be auto-upgraded to SlackV2 on "
+    "bot the `channels:read` and `groups:read` scopes so existing v1 "
+    "recipients can be auto-upgraded to SlackV2 on "
     "their next send."
 )
 
@@ -67,6 +67,9 @@ def _emit_v1_scope_missing_deprecation() -> None:
 class SlackChannelTypes(StrEnum):
     PUBLIC = "public_channel"
     PRIVATE = "private_channel"
+
+
+_SLACK_CONVERSATION_TYPES = ",".join(SlackChannelTypes)
 
 
 class SlackClientError(Exception):
@@ -107,7 +110,7 @@ def get_channels() -> list[SlackChannelSchema]:
     client = get_slack_client()
     channel_schema = SlackChannelSchema()
     channels: list[SlackChannelSchema] = []
-    extra_params = {"types": ",".join(SlackChannelTypes)}
+    extra_params = {"types": _SLACK_CONVERSATION_TYPES}
     cursor = None
     page_count = 0
 
@@ -223,7 +226,11 @@ def should_use_v2_api() -> bool:
         return False
     try:
         client = get_slack_client()
-        client.conversations_list()
+        client.conversations_list(
+            limit=1,
+            exclude_archived=True,
+            types=_SLACK_CONVERSATION_TYPES,
+        )
         logger.info("Slack API v2 is available")
         return True
     except SlackApiError as ex:
@@ -246,8 +253,8 @@ def should_use_v2_api() -> bool:
             # log line fires every send so operators see it in their report logs.
             _emit_v1_scope_missing_deprecation()
             logger.warning(
-                "Slack bot is missing the `channels:read` (and `groups:read` "
-                "for private channels) scope; falling back to the deprecated "
+                "Slack bot is missing the `channels:read` and `groups:read` "
+                "scopes; falling back to the deprecated "
                 "v1 API. %s",
                 _SLACK_V1_DEPRECATION_MESSAGE,
             )

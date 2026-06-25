@@ -265,6 +265,11 @@ class TestShouldUseV2Api:
             warnings.simplefilter("always")
             assert should_use_v2_api() is True
             assert not any(issubclass(w.category, DeprecationWarning) for w in caught)
+        mock_client.conversations_list.assert_called_once_with(
+            limit=1,
+            exclude_archived=True,
+            types="public_channel,private_channel",
+        )
 
     def test_returns_false_when_flag_off_and_emits_deprecation_once(self, mocker):
         mocker.patch(

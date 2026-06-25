@@ -688,12 +688,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "ALERT_REPORTS": False,
     # Enables Slack V2 integration for Alerts and Reports.
     # Defaults to True; the legacy Slack v1 path is deprecated and will be removed
-    # in the next major release. Operators must grant the Slack bot the
-    # `channels:read` scope (and `groups:read` for private channels) so existing
-    # v1 recipients can be auto-upgraded on their next send. Without those
-    # scopes, file uploads fail (Slack retired the `files.upload` endpoint in
-    # 2025) and only text-only `chat_postMessage` sends will continue to work
-    # via the legacy path.
+    # in the next major release. Operators must grant the Slack bot both the
+    # `channels:read` and `groups:read` scopes so existing v1 recipients can be
+    # auto-upgraded on their next send. Without those scopes, file uploads fail
+    # (Slack retired the `files.upload` endpoint in 2025) and only text-only
+    # `chat_postMessage` sends will continue to work via the legacy path.
     # @lifecycle: testing
     "ALERT_REPORT_SLACK_V2": True,
     # Enables webhook integration for Alerts and Reports

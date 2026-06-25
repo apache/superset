@@ -794,6 +794,60 @@ def test_v2_send_retries_then_succeeds_on_transient_failure(
 
 @patch("superset.reports.notifications.slackv2.g")
 @patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_v2_send_retries_only_failed_channel(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data,
+) -> None:
+    flask_global_mock.logs_context = {}
+    failed_attempts = 0
+
+    def chat_side_effect(channel: str, text: str) -> dict[str, bool]:
+        nonlocal failed_attempts
+        if channel == "C67890" and failed_attempts < 2:
+            failed_attempts += 1
+            raise SlackApiError(
+                message="rate limited", response={"ok": False, "error": "ratelimited"}
+            )
+        return {"ok": True}
+
+    slack_client_mock.return_value.chat_postMessage.side_effect = chat_side_effect
+
+    content = _make_content(mock_header_data)
+    notification = _make_v2_notification(content, target="C12345,C67890")
+
+    notification.send()
+
+    assert [
+        slack_call.kwargs["channel"]
+        for slack_call in slack_client_mock.return_value.chat_postMessage.call_args_list
+    ] == ["C12345", "C67890", "C67890", "C67890"]
+
+
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_v2_send_does_not_retry_permanent_slack_api_error(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data,
+) -> None:
+    flask_global_mock.logs_context = {}
+    slack_client_mock.return_value.chat_postMessage.side_effect = SlackApiError(
+        message="channel not found",
+        response={"ok": False, "error": "channel_not_found"},
+    )
+
+    content = _make_content(mock_header_data)
+    notification = _make_v2_notification(content, target="C12345")
+
+    with pytest.raises(NotificationUnprocessableException):
+        notification.send()
+
+    assert slack_client_mock.return_value.chat_postMessage.call_count == 1
+
+
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
 def test_v2_send_does_not_retry_param_errors(
     slack_client_mock: MagicMock,
     flask_global_mock: MagicMock,
