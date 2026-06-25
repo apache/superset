@@ -281,11 +281,17 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(json.message);
+        addSuccessToast(
+          softDelete
+            ? t('Archived %s item(s)', chartsToDelete.length)
+            : json.message,
+        );
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting the selected charts: %s', errMsg),
+          softDelete
+            ? t('There was an issue archiving the selected charts: %s', errMsg)
+            : t('There was an issue deleting the selected charts: %s', errMsg),
         ),
       ),
     );
