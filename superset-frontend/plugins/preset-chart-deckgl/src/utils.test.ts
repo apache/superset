@@ -506,6 +506,8 @@ describe('getBuckets', () => {
     // (81, 212) appeared in two adjacent labels, reading as overlapping
     // ranges. Labels should instead form a clean, non-overlapping partition.
     const fd: QueryFormData & BucketsWithColorScale = {
+      datasource: '1__table',
+      viz_type: 'deck_polygon',
       break_points: ['1', '81', '212', '369'],
       num_buckets: '3',
       linear_color_scheme: ['#000000', '#ffffff'],
