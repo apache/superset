@@ -575,7 +575,7 @@ function ChartList(props: ChartListProps) {
                   recoverable={softDelete}
                   title={
                     softDelete
-                      ? t('Delete %(name)s?', { name: original.slice_name })
+                      ? t('Archive %(name)s?', { name: original.slice_name })
                       : t('Please confirm')
                   }
                   description={
@@ -593,7 +593,7 @@ function ChartList(props: ChartListProps) {
                   {confirmDelete => (
                     <Tooltip
                       id="delete-action-tooltip"
-                      title={t('Delete')}
+                      title={softDelete ? t('Archive') : t('Delete')}
                       placement="bottom"
                     >
                       <span
@@ -932,7 +932,7 @@ function ChartList(props: ChartListProps) {
       )}
       <ConfirmStatusChange
         recoverable={softDelete}
-        title={softDelete ? t('Delete selected charts?') : t('Please confirm')}
+        title={softDelete ? t('Archive selected charts?') : t('Please confirm')}
         description={
           softDelete
             ? archiveConfirmDescription(t('charts'), true)
@@ -946,7 +946,7 @@ function ChartList(props: ChartListProps) {
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: t('Delete'),
+              name: softDelete ? t('Archive') : t('Delete'),
               type: 'danger',
               onSelect: confirmDelete,
             });
