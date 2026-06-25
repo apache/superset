@@ -95,6 +95,8 @@ export interface BaseSelectProps extends AntdExposedProps {
    * loaded on the client (e.g. dashboard filters with "Dynamically search all
    * filter values"), where a pasted value can legitimately exist in the
    * dataset but fall outside the loaded page.
+   * Only applies to multi-select paste; single-select paste resolves through
+   * `allowNewOptions` and ignores this flag.
    * False by default.
    * */
   allowNewOptionsOnPaste?: boolean;
