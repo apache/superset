@@ -133,6 +133,26 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
     ],
     [
       {
+        name: 'time_compare_full_range',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Show full range for time shift'),
+          default: false,
+          description: t(
+            'Plot each time-shifted series across its full time range instead ' +
+              'of truncating it to the main series. Useful for comparing a ' +
+              'partial current period (e.g. today so far) against complete ' +
+              'prior periods (e.g. all of yesterday).',
+          ),
+          visibility: ({ controls }) =>
+            Boolean(controls?.time_compare?.value) &&
+            (!Array.isArray(controls?.time_compare?.value) ||
+              controls.time_compare.value.length > 0),
+        },
+      },
+    ],
+    [
+      {
         name: 'comparison_type',
         config: {
           type: 'SelectControl',

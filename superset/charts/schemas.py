@@ -1399,6 +1399,18 @@ class ChartDataQueryObjectSchema(Schema):
         fields.String(),
         allow_none=True,
     )
+    time_compare_full_range = fields.Boolean(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "When using a time comparison (time_offsets), plot each shifted "
+                "series across its full time range instead of truncating it to the "
+                "main series' range. Useful for comparing a partial current period "
+                "against complete prior periods."
+            )
+        },
+    )
 
 
 class ChartDataQueryContextSchema(Schema):

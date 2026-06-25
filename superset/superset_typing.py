@@ -181,6 +181,7 @@ class QueryObjectDict(TypedDict, total=False):
     group_others_when_limit_reached: bool
     to_dttm: datetime | None
     time_shift: str | None
+    time_compare_full_range: bool
     post_processing: list[dict[str, Any]]
 
     # Additional fields used throughout the codebase
