@@ -80,7 +80,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
             'Extensions initialized successfully.',
           ),
         )
-        .catch(error => {
+        .catch((error: unknown) => {
           supersetCore.utils.logging.error(
             'Error setting up extensions:',
             error,

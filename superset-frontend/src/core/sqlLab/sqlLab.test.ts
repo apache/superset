@@ -576,7 +576,8 @@ test('getTabs leaves backendId undefined when the editor has no tabViewId', () =
 
 test('getTabs surfaces the editor tabViewId as the tab backendId', () => {
   // Stamp a backend id onto the editor and confirm it flows through to the tab.
-  (mockStore.getState().sqlLab.queryEditors[0] as any).tabViewId = 'backend-42';
+  (mockStore.getState().sqlLab.queryEditors[0] as QueryEditor).tabViewId =
+    'backend-42';
 
   const tab = sqlLab.getCurrentTab();
   expect(tab).toBeDefined();
