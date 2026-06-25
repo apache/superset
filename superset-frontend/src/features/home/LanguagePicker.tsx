@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -60,6 +60,7 @@ export const useLanguageMenuItems = ({
   languages,
   setDirection,
 }: LanguagePickerProps): MenuItem => {
+
   useEffect(() => {
     const languageCode = locale.split('-')[0];
     const isRtl = rtlLanguages.includes(languageCode);

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Menu } from '@superset-ui/core/components/Menu';
+import type { DirectionType } from 'antd/es/config-provider';
 import { useLanguageMenuItems } from './LanguagePicker';
 import type { Languages } from './LanguagePicker';
 
@@ -24,11 +25,17 @@ import type { Languages } from './LanguagePicker';
 const LanguagePicker = ({
   locale,
   languages,
+  setDirection,
 }: {
   locale: string;
   languages: Languages;
+  setDirection: (newDirection: DirectionType) => void;
 }) => {
-  const languageMenuItem = useLanguageMenuItems({ locale, languages });
+  const languageMenuItem = useLanguageMenuItems({
+    locale,
+    languages,
+    setDirection,
+  });
 
   return (
     <Menu aria-label="Languages" items={[languageMenuItem]} mode="horizontal" />

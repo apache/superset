@@ -34,6 +34,10 @@ import type {
   BootstrapThemeDataConfig,
 } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import {
+  getBootstrapLocale,
+  getDirectionFromLocale,
+} from 'src/utils/localeUtils';
 
 const STORAGE_KEYS = {
   THEME_MODE: 'superset-theme-mode',
@@ -173,6 +177,7 @@ export class ThemeController {
       const safeTheme = this.defaultTheme || {};
       this.applyTheme(safeTheme);
     }
+    this.initializeDirectionFromLocale();
     this.persistMode();
   }
 
@@ -384,8 +389,6 @@ export class ThemeController {
    * @param direction - The new direction to apply
    */
   public setDirection(direction: DirectionType): void {
-    this.validateThemeUpdatePermission();
-
     this.globalTheme.setDirection(direction);
     this.notifyListeners();
   }
@@ -713,6 +716,15 @@ export class ThemeController {
       bootstrapDarkTheme: hasCustomDark ? darkTheme : null,
       hasCustomThemes: hasCustomDefault || hasCustomDark,
     };
+  }
+
+  /**
+   * Applies text direction from the bootstrap locale before the UI renders.
+   */
+  private initializeDirectionFromLocale(): void {
+    this.globalTheme.setDirection(
+      getDirectionFromLocale(getBootstrapLocale()),
+    );
   }
 
   /**

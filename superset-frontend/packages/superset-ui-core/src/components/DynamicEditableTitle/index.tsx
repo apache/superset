@@ -26,7 +26,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { InputRef } from 'antd';
 import { t } from '@apache-superset/core/translation';
 import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import { useResizeDetector } from 'react-resize-detector';
@@ -106,13 +105,10 @@ export const DynamicEditableTitle = memo(
       const inputElement = inputRef.current?.input;
       if (isEditing && inputElement) {
         // move cursor and scroll to the end
-        const inputElement = inputRef.current?.input;
-        if (inputElement) {
-          const { length } = inputElement.value;
-          inputElement.setSelectionRange(length, length);
-          if (theme.direction !== 'rtl') {
-            inputElement.scrollLeft = inputElement.scrollWidth;
-          }
+        const { length } = inputElement.value;
+        inputElement.setSelectionRange(length, length);
+        if (theme.direction !== 'rtl') {
+          inputElement.scrollLeft = inputElement.scrollWidth;
         }
       }
     }, [isEditing, theme.direction]);

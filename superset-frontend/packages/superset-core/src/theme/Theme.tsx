@@ -39,6 +39,23 @@ import {
 } from './types';
 import { normalizeThemeConfig, serializeThemeConfig } from './utils';
 
+type EmotionCaches = {
+  ltr: ReturnType<typeof createCache>;
+  rtl: ReturnType<typeof createCache>;
+};
+
+function createEmotionCaches(): EmotionCaches {
+  return {
+    ltr: createCache({
+      key: 'superset-ltr',
+    }),
+    rtl: createCache({
+      key: 'superset-rtl',
+      stylisPlugins: [stylisRTLPlugin],
+    }),
+  };
+}
+
 export class Theme {
   // Forward-compat: TS 6.0 enforces strictPropertyInitialization here;
   // both fields are assigned via setConfig() during construction, so we
@@ -51,6 +68,8 @@ export class Theme {
   theme!: SupersetTheme;
 
   private antdConfig!: AntdThemeConfig;
+
+  private readonly emotionCaches: EmotionCaches = createEmotionCaches();
 
   private constructor({ config }: { config?: AnyThemeConfig }) {
     this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);
@@ -111,18 +130,6 @@ export class Theme {
     return antdThemeImport.getDesignToken(antdConfig);
   }
 
-  createCache() {
-    return {
-      ltr: createCache({
-        key: 'superset-ltr',
-      }),
-      rtl: createCache({
-        key: 'superset-rtl',
-        stylisPlugins: [stylisRTLPlugin],
-      }),
-    };
-  }
-
   /**
    * Update the theme using any theme configuration
    * Automatically handles both AntdThemeConfig and SerializableThemeConfig
@@ -130,6 +137,7 @@ export class Theme {
    */
   setConfig(config: AnyThemeConfig): void {
     const antdConfig = normalizeThemeConfig(config);
+    const preservedDirection = this.theme?.direction;
 
     if (antdConfig.token?.colorPrimary && !antdConfig.token?.colorLink) {
       antdConfig.token.colorLink = antdConfig.token.colorPrimary;
@@ -157,10 +165,11 @@ export class Theme {
       ...(echartsOptionsOverridesByChartType && {
         echartsOptionsOverridesByChartType,
       }),
+      ...(preservedDirection && { direction: preservedDirection }),
     } as SupersetTheme;
 
     // Update the providers with the fully formed theme
-    this.updateProviders(this.theme, this.antdConfig, this.createCache());
+    this.updateProviders(this.theme, this.antdConfig, this.emotionCaches);
   }
 
   /**
@@ -201,11 +210,7 @@ export class Theme {
 
   setDirection(direction: DirectionType): void {
     this.theme = { ...this.theme, direction };
-    this.updateProviders(
-      this.theme,
-      this.antdConfig,
-      this.createCache(),
-    );
+    this.updateProviders(this.theme, this.antdConfig, this.emotionCaches);
   }
 
   json(): string {
@@ -230,13 +235,13 @@ export class Theme {
     const [themeState, setThemeState] = React.useState({
       theme: this.theme,
       antdConfig: this.antdConfig,
-      emotionCache: this.createCache(),
+      emotionCache: this.emotionCaches,
     });
     const { direction = 'ltr' } = themeState.theme;
 
     this.updateProviders = (theme, antdConfig, emotionCache) => {
       setThemeState({ theme, antdConfig, emotionCache });
-      const dir = (theme && (theme as any).direction) ?? 'ltr';
+      const dir = theme?.direction ?? 'ltr';
       // Ensure we update the document direction attribute on every change,
       // and safely guard for non-browser environments.
       if (typeof document !== 'undefined' && document.documentElement) {
