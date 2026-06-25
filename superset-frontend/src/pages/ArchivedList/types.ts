@@ -18,29 +18,32 @@
  */
 
 /**
- * Per-type configuration for the Recently-Deleted (Archive) view. Only the
+ * Per-type configuration for the Archive (Recently-Archived) view. Only the
  * three archiving-capable entity types are supported in this iteration
  * (sc-111760); the view shows one type at a time, sourced from that type's
- * existing list endpoint with the `<type>_deleted_state:only` filter.
+ * existing list endpoint with the soft-delete `<type>_deleted_state:only`
+ * filter. (The backend soft-delete contract — the `*_deleted_state` operators
+ * and the `deleted_at` column — keeps its original naming; only the
+ * user-facing terminology is "archived".)
  */
 
-export type DeletedType = 'chart' | 'dashboard' | 'dataset';
+export type ArchivedType = 'chart' | 'dashboard' | 'dataset';
 
-export interface DeletedTypeConfig {
+export interface ArchivedTypeConfig {
   /** REST resource segment: `/api/v1/<resource>/`. */
   resource: string;
   /** The row's name field per type. */
   nameField: 'slice_name' | 'dashboard_title' | 'table_name';
-  /** The rison filter operator that returns only soft-deleted rows. */
+  /** The rison filter operator that returns only soft-deleted (archived) rows. */
   deletedStateOperator: string;
   /** Whether the name links to a preview (charts/dashboards only). */
   previewable: boolean;
 }
 
 /** The supported types, in display order. */
-export const DELETED_TYPES: DeletedType[] = ['chart', 'dashboard', 'dataset'];
+export const ARCHIVED_TYPES: ArchivedType[] = ['chart', 'dashboard', 'dataset'];
 
-export const DELETED_TYPE_CONFIG: Record<DeletedType, DeletedTypeConfig> = {
+export const ARCHIVED_TYPE_CONFIG: Record<ArchivedType, ArchivedTypeConfig> = {
   chart: {
     resource: 'chart',
     nameField: 'slice_name',
@@ -61,8 +64,8 @@ export const DELETED_TYPE_CONFIG: Record<DeletedType, DeletedTypeConfig> = {
   },
 };
 
-/** A normalized row in the Recently-Deleted table (per-type projection). */
-export interface DeletedItem {
+/** A normalized row in the Archive table (per-type projection). */
+export interface ArchivedItem {
   id: number;
   uuid: string;
   changed_by?: { first_name?: string; last_name?: string; id?: number } | null;

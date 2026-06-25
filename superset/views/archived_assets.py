@@ -28,8 +28,8 @@ from superset.views.base import BaseSupersetView
 logger = logging.getLogger(__name__)
 
 
-class DeletedAssetsView(BaseSupersetView):
-    """Serves the SPA shell for the Recently-Deleted (Archive) view.
+class ArchivedAssetsView(BaseSupersetView):
+    """Serves the SPA shell for the Archive (Recently-Archived) view.
 
     The page itself is a thin shell; the per-type archive data is fetched
     through the chart/dashboard/dataset list APIs, which enforce their own
@@ -38,7 +38,7 @@ class DeletedAssetsView(BaseSupersetView):
     (``can_read`` on ``Chart`` via ``MODEL_VIEW_RW_METHOD_PERMISSION_MAP``).
     """
 
-    route_base = "/deleted"
+    route_base = "/archived"
     class_permission_name = "Chart"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 

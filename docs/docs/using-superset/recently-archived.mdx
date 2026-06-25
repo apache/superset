@@ -1,15 +1,15 @@
 ---
-title: Recently Deleted (Archive)
+title: Recently Archived
 hide_title: true
 sidebar_position: 7
 version: 1
 ---
 
-# Recently Deleted
+# Recently Archived
 
-When soft-delete is enabled, deleting a chart, dashboard, or dataset moves it to
-an archive instead of removing it permanently. The **Recently Deleted** view lets
-owners and admins find archived objects and restore them.
+When soft-delete is enabled, deleting a chart, dashboard, or dataset archives it
+instead of removing it permanently. The **Recently Archived** view lets owners
+and admins find archived objects and restore them.
 
 :::note
 
@@ -20,7 +20,7 @@ page and its menu entry are hidden, and deletes are permanent as before.
 
 ## Finding archived objects
 
-Open **Recently Deleted** and pick a type — **Chart**, **Dashboard**, or
+Open **Recently Archived** and pick a type — **Chart**, **Dashboard**, or
 **Dataset** — from the Type selector. The view shows one type at a time; each
 type is read from its own list endpoint, so the same row-level access rules that
 govern the normal lists apply here.
@@ -30,16 +30,16 @@ Each row shows:
 - **Name** — for charts and dashboards this links to a preview; datasets show
   plain text (preview is only available for charts and dashboards).
 - **Type** — the selected object type.
-- **Deleted** — how long ago the object was deleted (sortable).
-- **Deleted by** — the user who deleted it.
+- **Archived** — how long ago the object was archived (sortable).
+- **Archived by** — the user who archived it.
 
 ## Narrowing the list
 
 - **Name** search filters by a substring of the object's name.
-- **Deleted** time-range presets (Last 7 / 30 / 90 days, or All time) narrow the
-  list to objects deleted within the window.
+- **Archived** time-range presets (Last 7 / 30 / 90 days, or All time) narrow
+  the list to objects archived within the window.
 
-The list is sorted by deletion time, most recently deleted first.
+The list is sorted by archive time, most recently archived first.
 
 ## Restoring an object
 
