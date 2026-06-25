@@ -693,7 +693,14 @@ const Select = forwardRef(
         }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
-        const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const array = token
+          ? uniq(
+              pastedText
+                .split(token)
+                .map(item => item.trim())
+                .filter(Boolean),
+            )
+          : [pastedText.trim()];
 
         const newOptions: SelectOptionsType = [];
         // When `allowNewOptionsOnPaste` is set, accept pasted values that are

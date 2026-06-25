@@ -1187,6 +1187,39 @@ test('keeps pasted values outside loaded options when allowNewOptionsOnPaste is 
   );
 });
 
+test('trims whitespace around pasted comma-separated values', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions={false}
+      allowNewOptionsOnPaste
+      onChange={onChange}
+    />,
+  );
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      // Note the space after the comma — it must not leak into the value.
+      getData: () => 'Liam, OutsideValue',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    expect(values).toEqual(['Liam', 'OutsideValue']);
+  });
+  expect(onChange).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({ value: 'OutsideValue' }),
+    ]),
+    expect.anything(),
+  );
+});
+
 test('drops pasted values outside loaded options when allowNewOptionsOnPaste is false', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions={false} />);
   const input = getElementByClassName('.ant-select-selection-search-input');
