@@ -44,7 +44,6 @@ function createMockExtension(overrides: Partial<Extension> = {}): Extension {
     version: '1.0.0',
     dependencies: [],
     remoteEntry: '',
-    extensionDependencies: [],
     ...overrides,
   };
 }

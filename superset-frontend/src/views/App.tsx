@@ -25,8 +25,8 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
-import { css } from '@apache-superset/core/theme';
-import { Layout, Loading } from '@superset-ui/core/components';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { Flex, Layout, Loading } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
 import Menu from 'src/features/home/Menu';
@@ -39,7 +39,12 @@ import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { isUser } from 'src/types/bootstrapTypes';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
+import { Splitter } from 'src/components/Splitter';
+import { ChatFloatingHost, ChatPanelHost, useChat } from 'src/core/chat';
+import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
@@ -79,42 +84,139 @@ const LocationPathnameLogger = () => {
   return <></>;
 };
 
+const CHAT_PANEL_DEFAULT_WIDTH = 400;
+const CHAT_PANEL_MIN_WIDTH = 280;
+
+const RouteSwitch = () => {
+  const theme = useTheme();
+  return (
+    <Switch>
+      {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+        <Route path={path} key={path}>
+          <Suspense fallback={<Fallback />}>
+            <ErrorBoundary
+              css={css`
+                margin: ${theme.sizeUnit * 4}px;
+              `}
+            >
+              <Component user={bootstrapData.user} {...props} />
+            </ErrorBoundary>
+          </Suspense>
+        </Route>
+      ))}
+      <Redirect from="/" to="/welcome/" exact />
+    </Switch>
+  );
+};
+
+const layoutCss = css`
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+`;
+
+const contentCss = css`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+`;
+
+/**
+ * Renders the main content area. When the chat panel is open in panel mode,
+ * wraps <Layout> and <ChatPanelContent> in a Splitter so they sit side-by-side
+ * with a lazy drag bar (blue preview line, resize committed on mouseup).
+ * The full <Layout> tree lives inside the first panel so its internal flex
+ * context is preserved — SQL Lab, Explore, and other pages are unaffected.
+ */
+const AppContent = () => {
+  const isAuthenticated =
+    isUser(bootstrapData.user) && !bootstrapData.user.isAnonymous;
+  const chatExtensionsEnabled =
+    isFeatureEnabled(FeatureFlag.EnableExtensions) && isAuthenticated;
+  const { open: panelOpen, mode, chat } = useChat();
+  const hasChatExtension = chatExtensionsEnabled && !!chat;
+  const isPanelOpen = hasChatExtension && mode === 'panel' && panelOpen;
+
+  const [storedWidth, setStoredWidth] = useStoredSidebarWidth(
+    'chat:panel',
+    CHAT_PANEL_DEFAULT_WIDTH,
+  );
+
+  const layoutContent = (
+    <Layout css={layoutCss}>
+      <Layout.Content css={contentCss}>
+        <RouteSwitch />
+      </Layout.Content>
+    </Layout>
+  );
+
+  if (!isPanelOpen) {
+    return (
+      <>
+        {layoutContent}
+        {hasChatExtension && <ChatFloatingHost />}
+      </>
+    );
+  }
+
+  return (
+    <Splitter
+      lazy
+      onResizeEnd={sizes => {
+        const chatWidth = sizes[sizes.length - 1];
+        if (
+          typeof chatWidth === 'number' &&
+          chatWidth >= CHAT_PANEL_MIN_WIDTH
+        ) {
+          setStoredWidth(chatWidth);
+        }
+      }}
+      css={css`
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+
+        /*
+         * Splitter.Panel is not a flex container by default, so flex:1 on
+         * children (Layout, ChatPanelHost) has no height effect and
+         * panels collapse. Making them flex columns lets children fill them.
+         */
+        & > .ant-splitter-panel {
+          display: flex !important;
+          flex-direction: column;
+        }
+      `}
+    >
+      <Splitter.Panel>{layoutContent}</Splitter.Panel>
+      <Splitter.Panel size={storedWidth} min={CHAT_PANEL_MIN_WIDTH}>
+        <ChatPanelHost />
+      </Splitter.Panel>
+    </Splitter>
+  );
+};
+
 const App = () => (
   <Router basename={applicationRoot()}>
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
-      <Menu
-        data={bootstrapData.common.menu_data}
-        isFrontendRoute={isFrontendRoute}
-      />
-      <ExtensionsStartup>
-        <Switch>
-          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-            <Route path={path} key={path}>
-              <Suspense fallback={<Fallback />}>
-                <Layout>
-                  <Layout.Content
-                    css={css`
-                      display: flex;
-                      flex-direction: column;
-                    `}
-                  >
-                    <ErrorBoundary
-                      css={css`
-                        margin: 16px;
-                      `}
-                    >
-                      <Component user={bootstrapData.user} {...props} />
-                    </ErrorBoundary>
-                  </Layout.Content>
-                </Layout>
-              </Suspense>
-            </Route>
-          ))}
-          <Redirect from="/" to="/welcome/" exact />
-        </Switch>
-      </ExtensionsStartup>
+      <Flex
+        vertical
+        css={css`
+          height: 100vh;
+          overflow: hidden;
+        `}
+      >
+        <Menu
+          data={bootstrapData.common.menu_data}
+          isFrontendRoute={isFrontendRoute}
+        />
+        <ExtensionsStartup>
+          <AppContent />
+        </ExtensionsStartup>
+      </Flex>
       <ToastContainer />
     </RootContextProviders>
   </Router>
