@@ -35,6 +35,7 @@ Covers:
 """
 
 import logging
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -64,7 +65,7 @@ def mcp_server() -> object:
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Generator[Mock, None, None]:
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         mock_user = Mock()
@@ -127,6 +128,7 @@ def _mock_dashboard(
 
 
 def _chart_node(key: str, chart_id: int, parents: list[str]) -> dict[str, Any]:
+    """Build a minimal CHART layout node dict for use in test layouts."""
     return {
         "children": [],
         "id": key,
@@ -254,6 +256,7 @@ def _tabbed_layout() -> dict[str, Any]:
 async def _call_remove(
     mcp_server: object, dashboard_id: int = 1, chart_id: int = 10
 ) -> dict[str, Any]:
+    """Call remove_chart_from_dashboard via the MCP client and return structured content."""
     async with Client(mcp_server) as client:
         result = await client.call_tool(
             "remove_chart_from_dashboard",
