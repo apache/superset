@@ -82,7 +82,7 @@ class SupersetAPSWDialect(APSWDialect):
 
         >>> engine = create_engine('superset://')
         >>> conn = engine.connect()
-        >>> results = conn.execute('SELECT * FROM "examples.birth_names"')
+        >>> results = conn.execute(text('SELECT * FROM "examples.birth_names"'))
 
     Queries can also join data across different Superset databases.
 

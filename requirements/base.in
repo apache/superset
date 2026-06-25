@@ -44,11 +44,10 @@ async_timeout>=4.0.0,<5.0.0
 # a bit of attention to bump.
 apispec>=6.0.0,<6.7.0
 
-# 1.4.1 appears to use much more memory, where the python test suite runs out of memory
-# causing CI to fail. 1.4.0 is the last version that works.
-# https://marshmallow-sqlalchemy.readthedocs.io/en/latest/changelog.html#id3
-# Opened this issue https://github.com/marshmallow-code/marshmallow-sqlalchemy/issues/665
-marshmallow-sqlalchemy>=1.3.0,<1.4.1
+# 1.4.1 introduced a memory regression that exhausts memory in the test suite
+# (https://github.com/marshmallow-code/marshmallow-sqlalchemy/issues/665). 1.4.2
+# claimed a fix but did not address the root cause; only 1.5.0 actually fixes it.
+marshmallow-sqlalchemy>=1.5.0
 
 # needed for python 3.12 support
 openapi-schema-validator>=0.6.3
@@ -58,3 +57,9 @@ openapi-schema-validator>=0.6.3
 # Known affected packages: Preset's 'clients' package
 # See docs/docs/contributing/pkg-resources-migration.md for details
 setuptools<81
+
+# google-auth 2.53+ dropped its transitive dependency on cachetools, which is
+# imported directly by superset.db_engine_specs.aws_iam. We declare cachetools
+# explicitly in pyproject.toml and pin google-auth to the post-drop range so
+# the install path is internally consistent (#40962).
+google-auth>=2.53.0,<3.0.0
