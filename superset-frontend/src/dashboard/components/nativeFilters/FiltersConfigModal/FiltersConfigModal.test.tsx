@@ -176,6 +176,8 @@ const INVERSE_SELECTION_REGEX = /^inverse selection/i;
 const SEARCH_ALL_REGEX = /^dynamically search all filter values/i;
 const PRE_FILTER_REGEX = /^pre-filter available values/i;
 const SORT_REGEX = /^sort filter values$/i;
+const SINGLE_VALUE_REGEX = /^single value$/i;
+const MATCH_TYPE_REGEX = /^match type$/i;
 const SAVE_REGEX = /^save$/i;
 const NAME_REQUIRED_REGEX = /^name is required$/i;
 const COLUMN_REQUIRED_REGEX = /^column is required$/i;
@@ -1095,5 +1097,77 @@ test('toggles "Filter has default value" to show and hide the Default Value cont
   expect(defaultValueCheckbox).not.toBeChecked();
   await waitFor(() => {
     expect(screen.queryByText(/^default value$/i)).not.toBeInTheDocument();
+  });
+});
+
+test('toggles "Sort filter values" and changes sort direction', async () => {
+  defaultRender();
+
+  const sortCheckbox = getCheckbox(SORT_REGEX);
+  expect(sortCheckbox).not.toBeChecked();
+
+  await userEvent.click(sortCheckbox);
+
+  expect(sortCheckbox).toBeChecked();
+  const sortAscendingRadio = await screen.findByRole('radio', {
+    name: /^sort ascending$/i,
+  });
+  expect(sortAscendingRadio).toBeChecked();
+
+  await userEvent.click(
+    screen.getByRole('radio', { name: /^sort descending$/i }),
+  );
+
+  await waitFor(() => {
+    expect(
+      screen.getByRole('radio', { name: /^sort descending$/i }),
+    ).toBeChecked();
+  });
+});
+
+test('enables "Single Value" on a Numerical Range filter and switches single-value type', async () => {
+  defaultRender();
+
+  await userEvent.click(screen.getByText(VALUE_REGEX));
+  await userEvent.click(await screen.findByText(NUMERICAL_RANGE_REGEX));
+
+  const singleValueCheckbox = getCheckbox(SINGLE_VALUE_REGEX);
+  expect(singleValueCheckbox).not.toBeChecked();
+
+  await userEvent.click(singleValueCheckbox);
+
+  expect(singleValueCheckbox).toBeChecked();
+  const exactRadio = await screen.findByRole('radio', { name: /^exact$/i });
+  expect(exactRadio).toBeChecked();
+
+  await userEvent.click(screen.getByRole('radio', { name: /^minimum$/i }));
+
+  await waitFor(() => {
+    expect(screen.getByRole('radio', { name: /^minimum$/i })).toBeChecked();
+  });
+});
+
+test('changes the "Match type" selector for a Value filter', async () => {
+  defaultRender();
+
+  const matchTypeCombobox = screen.getByRole('combobox', {
+    name: MATCH_TYPE_REGEX,
+  });
+
+  expect(
+    document.querySelector('.ant-select-selection-item[title*="Exact match"]'),
+  ).toBeInTheDocument();
+
+  await userEvent.click(matchTypeCombobox);
+  await userEvent.click(
+    await screen.findByRole('option', { name: /contains text/i }),
+  );
+
+  await waitFor(() => {
+    expect(
+      document.querySelector(
+        '.ant-select-selection-item[title*="Contains text"]',
+      ),
+    ).toBeInTheDocument();
   });
 });
