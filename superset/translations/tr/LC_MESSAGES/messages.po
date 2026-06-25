@@ -6396,7 +6396,7 @@ msgid "Export to .JSON"
 msgstr "JSON’a Aktar"
 
 msgid "Export to CSV"
-msgstr ""
+msgstr "CSV’ye Aktar"
 
 msgid "Export to Excel"
 msgstr "Excel’e Aktar"
@@ -6660,7 +6660,7 @@ msgid "Field cannot be decoded by JSON. %(msg)s"
 msgstr "Alan JSON tarafından kodlanamaz.   %(msg)s "
 
 msgid "Field cannot be empty."
-msgstr ""
+msgstr "Alan boş bırakılamaz."
 
 msgid "Field is required"
 msgstr "Alan gereklidir"
@@ -8287,7 +8287,7 @@ msgid "Loaded from cache"
 msgstr "Cacheden yüklendi"
 
 msgid "Loading"
-msgstr ""
+msgstr "Yükleniyor…"
 
 msgid "Loading filter values"
 msgstr ""
@@ -15358,7 +15358,7 @@ msgid "Type a value here"
 msgstr "Buraya bir değer girin"
 
 msgid "Type a value..."
-msgstr ""
+msgstr "Bir değer girin"
 
 msgid "Type is required"
 msgstr "Tip gereklidir"
@@ -16734,7 +16734,7 @@ msgid "Yes"
 msgstr "Evet"
 
 msgid "Yes, Cancel"
-msgstr ""
+msgstr "Evet, iptal et"
 
 msgid "Yes, cancel"
 msgstr "Evet, iptal et"
@@ -17341,7 +17341,7 @@ msgid "database"
 msgstr "veritabanı"
 
 msgid "databases"
-msgstr ""
+msgstr "veritabanları"
 
 msgid "dataset"
 msgstr "veriseti"
@@ -17350,7 +17350,7 @@ msgid "dataset name"
 msgstr "veriseti ismi"
 
 msgid "datasets"
-msgstr ""
+msgstr "verisetleri"
 
 msgid "datasource"
 msgstr ""
