@@ -18,6 +18,7 @@
  */
 import { FC, Fragment, useCallback, useEffect, useState } from 'react';
 
+import { omit } from 'lodash';
 import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
@@ -58,11 +59,16 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
   const loadChartData = useCallback(
     (resultType: string) => {
       setIsLoading(true);
+      // Strip clientView (client-side row/column snapshot) from ownState before
+      // requesting the query, matching the chart query path in ExploreViewContainer
+      // and Dashboard's activeAllDashboardFilters. clientView is irrelevant to SQL
+      // generation and can bloat the payload (or trigger 413) on large tables.
+      const ownStateForQuery = omit(ownState, ['clientView']) || {};
       getChartDataRequest({
         formData: latestQueryFormData,
         resultFormat: 'json',
         resultType,
-        ownState: ownState || {},
+        ownState: ownStateForQuery,
       })
         .then(({ json }) => {
           setResult(ensureIsArray(json.result) as Result[]);

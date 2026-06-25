@@ -28,13 +28,14 @@ const mockFormData = {
   viz_type: 'table',
 };
 
-// Minimal, type-correct response that satisfies ChartDataRequestResponse
-// without constructing a full Response object - the assertions only inspect
-// the call arguments, never the resolved value's contents.
-const mockChartDataResponse = {
-  response: {},
+// Minimal, type-correct response that satisfies ChartDataRequestResponse.
+// A real Response instance avoids the 16 required Response fields that an
+// empty object ({}) fails to overlap. The assertions only inspect the call
+// arguments, never the resolved value's contents.
+const mockChartDataResponse: ChartDataRequestResponse = {
+  response: new Response(),
   json: { result: [] },
-} as ChartDataRequestResponse;
+};
 
 const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
 
@@ -155,6 +156,39 @@ test('passes ownState through to getChartDataRequest', async () => {
       formData: mockFormData,
       ownState,
     }),
+  );
+});
+
+test('strips clientView from ownState before the query request', async () => {
+  /**
+   * clientView holds the full client-side row/column snapshot (added by
+   * TableChart) and is irrelevant to SQL generation. It must be stripped
+   * before the request - matching ExploreViewContainer and Dashboard - to
+   * avoid bloating the payload (or triggering 413) on large tables.
+   */
+  const getChartDataRequestSpy = jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+
+  const ownState = {
+    searchText: 'foo',
+    // Simulate a large client-side snapshot that TableChart writes
+    clientView: { rows: [{ a: 1 }, { a: 2 }], columns: ['a'] },
+  };
+
+  render(
+    <ViewQueryModal latestQueryFormData={mockFormData} ownState={ownState} />,
+    { useRedux: true },
+  );
+
+  await waitFor(() => {
+    expect(getChartDataRequestSpy).toHaveBeenCalledTimes(1);
+  });
+
+  const calledOwnState = getChartDataRequestSpy.mock.calls[0][0].ownState;
+  expect(calledOwnState).not.toHaveProperty('clientView');
+  expect(calledOwnState).toEqual(
+    expect.objectContaining({ searchText: 'foo' }),
   );
 });
 
