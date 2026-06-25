@@ -469,7 +469,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
-        appbuilder.add_view_no_menu(ArchivedAssetsView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_view_no_menu(PwaManifestView)
@@ -514,6 +513,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
             category="Manage",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
+        )
+        appbuilder.add_view(
+            ArchivedAssetsView,
+            "Recently Archived",
+            label=_("Recently Archived"),
+            icon="fa-archive",
+            category_icon="",
+            category="Manage",
+            category_label=_("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("SOFT_DELETE"),
         )
         appbuilder.add_api(LogRestApi)
         appbuilder.add_api(UserRegistrationsRestAPI)
