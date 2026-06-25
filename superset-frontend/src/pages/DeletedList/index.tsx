@@ -243,7 +243,13 @@ function DeletedListBody({
         key: 'search',
         id: config.nameField,
         input: 'search',
-        operator: FilterOperator.Contains,
+        // Charts expose an all-text search on slice_name (chart_all_text)
+        // rather than a plain `ct`; dashboards/datasets accept `ct` on their
+        // name column (T019).
+        operator:
+          type === 'chart'
+            ? FilterOperator.ChartAllText
+            : FilterOperator.Contains,
       },
       {
         Header: t('Deleted'),
@@ -255,7 +261,7 @@ function DeletedListBody({
         selects: timeRangeOptions,
       },
     ],
-    [config.nameField, timeRangeOptions],
+    [config.nameField, type, timeRangeOptions],
   );
 
   return (
