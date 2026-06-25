@@ -83,7 +83,7 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.commands.purge import PurgeArchivedCommand
+from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
@@ -129,6 +129,13 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
+
+_CHART_PURGE_BINDING = SoftDeleteBinding(
+    dao=ChartDAO,
+    not_found=ChartNotFoundError,
+    forbidden=ChartForbiddenError,
+    delete_failed=ChartDeleteFailedError,
+)
 
 
 class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
@@ -827,13 +834,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            PurgeArchivedCommand(
-                uuid,
-                ChartDAO,
-                ChartNotFoundError,
-                ChartForbiddenError,
-                ChartDeleteFailedError,
-            ).run()
+            PurgeArchivedCommand(uuid, _CHART_PURGE_BINDING).run()
             return self.response(200, message="OK")
         except ChartNotFoundError:
             return self.response_404()
