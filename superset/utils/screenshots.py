@@ -26,7 +26,11 @@ from typing import cast, TYPE_CHECKING, TypedDict
 from flask import current_app as app
 
 from superset import feature_flag_manager, thumbnail_cache
-from superset.exceptions import ScreenshotImageNotAvailableException
+from superset.distributed_lock import DistributedLock
+from superset.exceptions import (
+    AcquireDistributedLockFailedException,
+    ScreenshotImageNotAvailableException,
+)
 from superset.extensions import event_logger
 from superset.utils.hashing import hash_from_dict
 from superset.utils.urls import modify_url_query
@@ -276,10 +280,6 @@ class BaseScreenshot:
         :param force: Will force the computation even if it's already cached
         :return: Image payload
         """
-        # pylint: disable=import-outside-toplevel
-        from superset.distributed_lock import DistributedLock
-        from superset.exceptions import AcquireDistributedLockFailedException
-
         cache_key = cache_key or self.get_cache_key(window_size, thumb_size)
         try:
             with DistributedLock(

@@ -131,4 +131,10 @@ def test_cache_dashboard_thumbnail_resolves_cache_key_when_not_provided(
         )
 
     mock_screenshot.get_cache_key.assert_called_once()
-    mock_screenshot.compute_and_cache.assert_called_once()
+    mock_screenshot.compute_and_cache.assert_called_once_with(
+        user=mock_security_manager.find_user.return_value,
+        window_size=None,
+        thumb_size=None,
+        force=False,
+        cache_key="resolved_cache_key",
+    )
