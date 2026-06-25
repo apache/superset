@@ -128,6 +128,11 @@ const Tags = lazy(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
 );
 
+const DynamicPlugins: LazyExoticComponent<any> = lazy(
+  () =>
+    import(/* webpackChunkName: "DynamicPlugins" */ 'src/pages/DynamicPlugins'),
+);
+
 const Extensions = lazy(
   () => import(/* webpackChunkName: "Tags" */ 'src/extensions/ExtensionsList'),
 );
@@ -325,6 +330,10 @@ export const routes: Routes = [
   {
     path: '/actionlog/list',
     Component: ActionLogList,
+  },
+  {
+    path: '/dynamic-plugins/list/',
+    Component: DynamicPlugins,
   },
   {
     path: '/registrations/',
