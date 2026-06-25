@@ -505,8 +505,7 @@ class Superset(BaseSupersetView):
                     datasource_id,
                 )
 
-        # Apply the same per-datasource access check the explore command performs,
-        # so this view is consistent with it before rendering datasource metadata.
+        # Enforce per-datasource access before rendering its metadata.
         if datasource:
             security_manager.raise_for_access(datasource=datasource)
 
