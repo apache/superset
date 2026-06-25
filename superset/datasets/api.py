@@ -57,7 +57,7 @@ from superset.commands.dataset.warm_up_cache import DatasetWarmUpCacheCommand
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.commands.purge import PurgeArchivedCommand
+from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
@@ -113,6 +113,13 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
+
+_DATASET_PURGE_BINDING = SoftDeleteBinding(
+    dao=DatasetDAO,
+    not_found=DatasetNotFoundError,
+    forbidden=DatasetForbiddenError,
+    delete_failed=DatasetDeleteFailedError,
+)
 
 
 class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
@@ -1174,13 +1181,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            PurgeArchivedCommand(
-                uuid,
-                DatasetDAO,
-                DatasetNotFoundError,
-                DatasetForbiddenError,
-                DatasetDeleteFailedError,
-            ).run()
+            PurgeArchivedCommand(uuid, _DATASET_PURGE_BINDING).run()
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()

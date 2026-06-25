@@ -24,6 +24,7 @@ audit, and the commit). Restricted to *soft-deleted* rows so it only operates on
 items the user already sees in the archive.
 """
 
+from dataclasses import dataclass
 from typing import Any
 
 from superset import security_manager
@@ -33,27 +34,24 @@ from superset.exceptions import SupersetSecurityException
 from superset.tasks.utils import get_current_user
 
 
+@dataclass(frozen=True)
+class SoftDeleteBinding:
+    """Entity-specific bindings for the soft-delete purge command, so one
+    command serves every soft-delete type without a subclass per entity. The
+    REST route supplies the binding for its entity (see each ``*RestApi``)."""
+
+    dao: Any
+    not_found: type[Exception]
+    forbidden: type[Exception]
+    delete_failed: type[Exception]
+
+
 class PurgeArchivedCommand(BaseCommand):
-    """Permanently delete a single soft-deleted entity, by UUID.
+    """Permanently delete a single soft-deleted entity, by UUID."""
 
-    The entity-specific bindings (DAO + exception types) are passed in by the
-    REST route, so one command serves all soft-delete types without a subclass
-    per entity.
-    """
-
-    def __init__(
-        self,
-        model_uuid: str,
-        dao: Any,
-        not_found_exc: type[Exception],
-        forbidden_exc: type[Exception],
-        purge_failed_exc: type[Exception],
-    ) -> None:
+    def __init__(self, model_uuid: str, binding: SoftDeleteBinding) -> None:
         self._model_uuid = model_uuid
-        self._dao = dao
-        self._not_found_exc = not_found_exc
-        self._forbidden_exc = forbidden_exc
-        self._purge_failed_exc = purge_failed_exc
+        self._binding = binding
 
     def run(self) -> None:
         self.validate()
@@ -63,25 +61,25 @@ class PurgeArchivedCommand(BaseCommand):
                 self._model_uuid, actor=get_current_user() or "user"
             ).run()
         except Exception as ex:
-            raise self._purge_failed_exc() from ex
+            raise self._binding.delete_failed() from ex
 
     def validate(self) -> Any:
         # Bypass only the visibility filter (RBAC base_filter still applies),
         # matching the restore path; ownership is then verified explicitly.
-        model = self._dao.find_by_id(
+        model = self._binding.dao.find_by_id(
             self._model_uuid,
             id_column="uuid",
             skip_visibility_filter=True,
         )
         if model is None:
-            raise self._not_found_exc(f"No row with uuid={self._model_uuid!r}")
+            raise self._binding.not_found(f"No row with uuid={self._model_uuid!r}")
         if model.deleted_at is None:
-            raise self._not_found_exc(
+            raise self._binding.not_found(
                 f"Row with uuid={self._model_uuid!r} is not soft-deleted; "
                 "nothing to purge"
             )
         try:
             security_manager.raise_for_ownership(model)
         except SupersetSecurityException as ex:
-            raise self._forbidden_exc() from ex
+            raise self._binding.forbidden() from ex
         return model

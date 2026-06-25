@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
-import { escape } from 'lodash';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -38,6 +37,7 @@ import {
 } from 'src/components';
 import SubMenu from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { recoveredToast } from 'src/utils/softDeleteCopy';
 import {
   ARCHIVED_TYPES,
   ARCHIVED_TYPE_CONFIG,
@@ -86,11 +86,72 @@ interface ToastProps {
   addSuccessToast: (msg: string, options?: { allowHtml?: boolean }) => void;
 }
 
+/** The per-row Recover + Delete-permanently actions. */
+function ArchivedRowActions({
+  item,
+  name,
+  onRestore,
+  onPurge,
+}: {
+  item: ArchivedItem;
+  name: string;
+  onRestore: (item: ArchivedItem) => void;
+  onPurge: (item: ArchivedItem) => void;
+}) {
+  return (
+    <StyledActions className="actions">
+      <Tooltip
+        id="restore-action-tooltip"
+        title={t('Recover this item')}
+        placement="bottom"
+      >
+        <span
+          data-test="archived-row-restore"
+          role="button"
+          tabIndex={0}
+          className="action-button"
+          onClick={() => onRestore(item)}
+          onKeyDown={onActionKeyDown(() => onRestore(item))}
+        >
+          <Icons.RollbackOutlined iconSize="l" />
+        </span>
+      </Tooltip>
+      <ConfirmStatusChange
+        title={t('Delete permanently %(name)s?', { name })}
+        description={t(
+          "If you delete this item, you won't be able to recover it.",
+        )}
+        onConfirm={() => onPurge(item)}
+        requireConfirmationText={false}
+      >
+        {confirmDelete => (
+          <Tooltip
+            id="purge-action-tooltip"
+            title={t('Delete permanently')}
+            placement="bottom"
+          >
+            <span
+              data-test="archived-row-purge"
+              role="button"
+              tabIndex={0}
+              className="action-button"
+              onClick={confirmDelete}
+              onKeyDown={onActionKeyDown(() => confirmDelete())}
+            >
+              <Icons.DeleteOutlined iconSize="l" />
+            </span>
+          </Tooltip>
+        )}
+      </ConfirmStatusChange>
+    </StyledActions>
+  );
+}
+
 /**
  * The per-type table body. Mounted with `key={type}` by the parent so the
  * `useListViewResource` state and derived columns reset cleanly on a type
- * switch (review H2). Sourced from the selected type's existing list endpoint
- * with the soft-delete `<type>_deleted_state:only` baseline filter.
+ * switch. Sourced from the selected type's existing list endpoint with the
+ * soft-delete `<type>_deleted_state:only` baseline filter.
  */
 function ArchivedListBody({
   type,
@@ -117,11 +178,10 @@ function ArchivedListBody({
     baseFilters,
   );
 
-  // T012/T013: restore is immediate (no confirm dialog). On success, refetch
-  // the full page so the server-side count/pagination stays consistent and the
-  // row drops out; on any error (403/404/422) surface a danger toast and leave
-  // the row in place. The list read is already owner-scoped, so every visible
-  // row is restorable — no client-side gating (H1).
+  // Restore is immediate (no confirm dialog). On success, refetch the full page
+  // so the server-side count/pagination stays consistent and the row drops out;
+  // on any error surface a danger toast and leave the row in place. The list
+  // read is already owner-scoped, so every visible row is restorable.
   const handleRestore = useCallback(
     async (item: ArchivedItem) => {
       const name = String(item[config.nameField] ?? '');
@@ -129,22 +189,12 @@ function ArchivedListBody({
         await SupersetClient.post({
           endpoint: `/api/v1/${config.resource}/${item.uuid}/restore`,
         });
-        // Recovery toast: "<name> restored successfully" + a link to the
-        // restored asset where one exists (charts/dashboards/datasets expose a
-        // url/explore_url). HTML is escaped before opting into allowHtml.
-        const url = item.url ?? item.explore_url;
-        const message = t('%(name)s restored successfully', { name });
-        if (url) {
-          const linkText = t('View %(type)s', { type: TYPE_LABELS[type] });
-          addSuccessToast(
-            `${escape(message)} <a href="${escape(url)}">${escape(
-              linkText,
-            )} →</a>`,
-            { allowHtml: true },
-          );
-        } else {
-          addSuccessToast(message);
-        }
+        const { text, options } = recoveredToast(
+          name,
+          TYPE_LABELS[type],
+          item.url ?? item.explore_url,
+        );
+        addSuccessToast(text, options);
         refreshData();
       } catch (error) {
         addDangerToast(t('Failed to restore %(name)s', { name }));
@@ -188,8 +238,8 @@ function ArchivedListBody({
   const columns = useMemo<ListViewProps['columns']>(
     () => [
       {
-        // T024: chart/dashboard names link to a preview; dataset names are
-        // plain text with a tooltip explaining why no preview is offered.
+        // Chart/dashboard names link to a preview; dataset names are plain
+        // text with a tooltip explaining why no preview is offered.
         Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => {
           const name = String(original[config.nameField] ?? '');
           if (config.previewable && original.url) {
@@ -217,8 +267,8 @@ function ArchivedListBody({
         disableSortBy: true,
       },
       {
-        // T022: relative archive (deletion) time. Sortable — `deleted_at` is in
-        // order_columns on all three list APIs (T014-T016).
+        // Relative archive time. Sortable — `deleted_at` is in order_columns
+        // on all three list APIs.
         Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) =>
           original.deleted_at
             ? extendedDayjs.utc(String(original.deleted_at)).fromNow()
@@ -227,8 +277,8 @@ function ArchivedListBody({
         id: 'deleted_at',
       },
       {
-        // T023: archiving user, sourced from changed_by. Non-sortable — there is
-        // no backend deleted-by ordering (M1).
+        // Archiving user, from changed_by. Non-sortable — there is no backend
+        // deleted-by ordering.
         Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => {
           const by = [
             original.changed_by?.first_name,
@@ -243,56 +293,14 @@ function ArchivedListBody({
         disableSortBy: true,
       },
       {
-        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => {
-          const name = String(original[config.nameField] ?? '');
-          return (
-            <StyledActions className="actions">
-              <Tooltip
-                id="restore-action-tooltip"
-                title={t('Recover this item')}
-                placement="bottom"
-              >
-                <span
-                  data-test="archived-row-restore"
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={() => handleRestore(original)}
-                  onKeyDown={onActionKeyDown(() => handleRestore(original))}
-                >
-                  <Icons.RollbackOutlined iconSize="l" />
-                </span>
-              </Tooltip>
-              <ConfirmStatusChange
-                title={t('Delete permanently %(name)s?', { name })}
-                description={t(
-                  "If you delete this item, you won't be able to recover it.",
-                )}
-                onConfirm={() => handlePurge(original)}
-                requireConfirmationText={false}
-              >
-                {confirmDelete => (
-                  <Tooltip
-                    id="purge-action-tooltip"
-                    title={t('Delete permanently')}
-                    placement="bottom"
-                  >
-                    <span
-                      data-test="archived-row-purge"
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      onClick={confirmDelete}
-                      onKeyDown={onActionKeyDown(() => confirmDelete())}
-                    >
-                      <Icons.DeleteOutlined iconSize="l" />
-                    </span>
-                  </Tooltip>
-                )}
-              </ConfirmStatusChange>
-            </StyledActions>
-          );
-        },
+        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => (
+          <ArchivedRowActions
+            item={original}
+            name={String(original[config.nameField] ?? '')}
+            onRestore={handleRestore}
+            onPurge={handlePurge}
+          />
+        ),
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
@@ -302,9 +310,8 @@ function ArchivedListBody({
     [config.nameField, config.previewable, type, handleRestore, handlePurge],
   );
 
-  // Default to most-recently-archived first. `deleted_at` is now orderable on
-  // all three list endpoints (T014-T016), so it replaces the US1 `changed_on`
-  // fallback (C1).
+  // Default to most-recently-archived first. `deleted_at` is orderable on all
+  // three list endpoints, so it's the natural sort.
   const initialSort = useMemo(() => [{ id: 'deleted_at', desc: true }], []);
 
   // Time-range presets map to a `deleted_at` greater-than cutoff. FAB exposes
@@ -332,7 +339,7 @@ function ArchivedListBody({
         input: 'search',
         // Charts expose an all-text search on slice_name (chart_all_text)
         // rather than a plain `ct`; dashboards/datasets accept `ct` on their
-        // name column (T019).
+        // name column.
         operator:
           type === 'chart'
             ? FilterOperator.ChartAllText
