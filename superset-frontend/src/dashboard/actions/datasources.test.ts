@@ -74,7 +74,7 @@ test('fetchDatasourceMetadata fetches and caches an uncached datasource', async 
   );
 });
 
-test('fetchDatasourceMetadata deduplicates concurrent in-flight requests for the same key', async () => {
+test('fetchDatasourceMetadata shares one in-flight promise across concurrent callers', async () => {
   let resolveGet: (value: ClientResponse) => void = () => {};
   const getSpy = jest.spyOn(SupersetClient, 'get').mockReturnValue(
     new Promise<ClientResponse>(resolve => {
@@ -86,13 +86,36 @@ test('fetchDatasourceMetadata deduplicates concurrent in-flight requests for the
 
   // Two filters using the same dataset mount and dispatch before the first
   // request resolves and populates the cache.
-  fetchDatasourceMetadata(KEY)(dispatch, getState);
-  fetchDatasourceMetadata(KEY)(dispatch, getState);
+  const first = fetchDatasourceMetadata(KEY)(dispatch, getState);
+  const second = fetchDatasourceMetadata(KEY)(dispatch, getState);
 
+  // Only one network request fires, and both callers receive the same promise
+  // so each observes the same completion/rejection.
   expect(getSpy).toHaveBeenCalledTimes(1);
+  expect(second).toBe(first);
 
   resolveGet(jsonResponse({ uid: KEY, main_dttm_col: 'ds' }));
-  await Promise.resolve();
+  await Promise.all([first, second]);
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: DatasourcesAction.SetDatasource,
+      key: KEY,
+    }),
+  );
+});
+
+test('fetchDatasourceMetadata propagates a rejection to all concurrent callers', async () => {
+  jest.spyOn(SupersetClient, 'get').mockRejectedValue(new Error('boom'));
+  const dispatch = jest.fn();
+  const getState = buildGetState();
+
+  const first = fetchDatasourceMetadata(KEY)(dispatch, getState);
+  const second = fetchDatasourceMetadata(KEY)(dispatch, getState);
+
+  expect(second).toBe(first);
+  await expect(first).rejects.toThrow('boom');
+  await expect(second).rejects.toThrow('boom');
 });
 
 test('fetchDatasourceMetadata clears the in-flight key after a failed request so it can retry', async () => {
