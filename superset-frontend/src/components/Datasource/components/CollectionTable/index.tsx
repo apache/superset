@@ -66,7 +66,7 @@ function createKeyedCollection(arr: Array<object>) {
     (o: Record<string, unknown>) =>
       ({
         ...o,
-        id: o.id || nanoid(),
+        id: o.id != null ? o.id : nanoid(),
       }) as CollectionItem,
   );
 

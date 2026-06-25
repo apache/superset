@@ -85,6 +85,12 @@ import {
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { makeUrl } from 'src/utils/pathUtils';
+import {
+  OwnerSelectLabel,
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+  OWNER_OPTION_FILTER_PROPS,
+} from 'src/features/owners/OwnerSelectLabel';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import CollectionTable from '../CollectionTable';
@@ -113,9 +119,11 @@ const extensionsRegistry = getExtensionsRegistry();
 interface Owner {
   id?: number;
   value?: number;
-  label?: string;
+  label?: ReactNode;
   first_name?: string;
   last_name?: string;
+  email?: string;
+  [key: string]: unknown;
 }
 
 interface Currency {
@@ -310,6 +318,11 @@ interface OwnersSelectorProps {
 }
 
 const DatasourceContainer = styled.div`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
   .change-warning {
     margin: 16px 10px 0;
     color: ${({ theme }) => theme.colorWarning};
@@ -338,9 +351,24 @@ const FlexRowContainer = styled.div`
 `;
 
 const StyledTableTabs = styled(Tabs)`
-  overflow: visible;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
   .ant-tabs-content-holder {
-    overflow: visible;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding-top: ${({ theme }) => theme.paddingMD}px;
+  }
+
+  .ant-tabs-content {
+    height: 100%;
+  }
+
+  .ant-tabs-tabpane-active {
+    height: 100%;
   }
 `;
 
@@ -768,7 +796,12 @@ function OwnersSelector({
           .filter(item => item.extra.active)
           .map(item => ({
             value: item.value as number,
-            label: item.text as string,
+            label: OwnerSelectLabel({
+              name: item.text as string,
+              email: item.extra?.email as string | undefined,
+            }),
+            [OWNER_TEXT_LABEL_PROP]: item.text as string,
+            [OWNER_EMAIL_PROP]: (item.extra?.email as string) ?? '',
           })),
         totalCount: response.json.count,
       }));
@@ -786,6 +819,7 @@ function OwnersSelector({
       onChange={value => onChange(value as Owner[])}
       header={<FormLabel>{t('Owners')}</FormLabel>}
       allowClear
+      optionFilterProps={OWNER_OPTION_FILTER_PROPS}
     />
   );
 }
@@ -863,10 +897,18 @@ function DatasourceEditor({
   // Initialize datasource state with transformed owners and metrics
   const [datasource, setDatasource] = useState<DatasourceObject>(() => ({
     ...propsDatasource,
-    owners: propsDatasource.owners.map(owner => ({
-      value: owner.value || owner.id,
-      label: owner.label || `${owner.first_name} ${owner.last_name}`,
-    })),
+    owners: propsDatasource.owners.map(owner => {
+      const ownerName = owner.label || `${owner.first_name} ${owner.last_name}`;
+      return {
+        value: owner.value || owner.id,
+        label: OwnerSelectLabel({
+          name: typeof ownerName === 'string' ? ownerName : '',
+          email: owner.email,
+        }),
+        [OWNER_TEXT_LABEL_PROP]: typeof ownerName === 'string' ? ownerName : '',
+        [OWNER_EMAIL_PROP]: owner.email ?? '',
+      };
+    }),
     metrics: propsDatasource.metrics?.map(metric => {
       const {
         certified_by: certifiedByMetric,

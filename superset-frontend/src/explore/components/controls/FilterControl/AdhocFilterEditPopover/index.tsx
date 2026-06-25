@@ -213,10 +213,17 @@ function AdhocFilterEditPopover({
     document.removeEventListener('mousemove', onMouseMove);
   }, [onMouseMove]);
 
+  // Listener lifecycle: re-bind only when the handler identities change.
   useEffect(() => {
     document.addEventListener('mouseup', onMouseUp);
+    return () => {
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('mousemove', onMouseMove);
+    };
+  }, [onMouseMove, onMouseUp]);
 
-    // Load layer options if deck_slices exist
+  // One-time layer-options load, mirroring the class componentDidMount.
+  useEffect(() => {
     const deckSlices = propsAdhocFilter?.deck_slices as number[] | undefined;
     if (deckSlices && deckSlices.length > 0) {
       loadLayerOptions(0, 100).then(result => {
@@ -232,12 +239,8 @@ function AdhocFilterEditPopover({
         }
       });
     }
-
-    return () => {
-      document.removeEventListener('mouseup', onMouseUp);
-      document.removeEventListener('mousemove', onMouseMove);
-    };
-  }, [loadLayerOptions, onMouseMove, onMouseUp, propsAdhocFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot: mirrors componentDidMount, initial load only
+  }, []);
 
   const onAdhocFilterChange = useCallback((filter: AdhocFilter) => {
     setAdhocFilter(filter);
