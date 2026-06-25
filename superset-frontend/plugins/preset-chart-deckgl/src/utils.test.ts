@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { JsonObject, QueryFormData } from '@superset-ui/core';
 import {
   getColorBreakpointsBuckets,
   getBreakPoints,
   getBuckets,
+  BucketsWithColorScale,
 } from './utils';
 import { ColorBreakpointType } from './types';
 
@@ -494,7 +496,7 @@ describe('getBreakPoints', () => {
 });
 
 describe('getBuckets', () => {
-  const accessor = (d: any) => d.value;
+  const accessor = (d: JsonObject) => d.value;
 
   const buildFeatures = (values: number[]) => values.map(value => ({ value }));
 
@@ -503,7 +505,7 @@ describe('getBuckets', () => {
     // "1 - 81", "81 - 212", "212 - 369" where each interior breakpoint
     // (81, 212) appeared in two adjacent labels, reading as overlapping
     // ranges. Labels should instead form a clean, non-overlapping partition.
-    const fd: any = {
+    const fd: QueryFormData & BucketsWithColorScale = {
       break_points: ['1', '81', '212', '369'],
       num_buckets: '3',
       linear_color_scheme: ['#000000', '#ffffff'],
