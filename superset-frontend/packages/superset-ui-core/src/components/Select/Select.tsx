@@ -93,7 +93,7 @@ const Select = forwardRef(
       allowNewOptions = false,
       allowSelectAll = true,
       ariaLabel,
-      autoClearSearchValue = false,
+      autoClearSearchValue = true,
       filterOption = true,
       header = null,
       headerPosition = 'top',

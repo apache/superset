@@ -399,7 +399,6 @@ function PropertiesModal({
                   <AsyncSelect
                     ariaLabel={ownersLabel}
                     mode="multiple"
-                    autoClearSearchValue
                     name="owners"
                     value={selectedOwners || []}
                     onChange={setSelectedOwners}
@@ -420,7 +419,6 @@ function PropertiesModal({
                     <AsyncSelect
                       ariaLabel="Tags"
                       mode="multiple"
-                      autoClearSearchValue
                       value={tagsAsSelectValues}
                       options={loadTags}
                       onChange={handleChangeTags}

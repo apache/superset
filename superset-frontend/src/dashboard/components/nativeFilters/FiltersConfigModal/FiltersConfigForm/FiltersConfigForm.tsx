@@ -1341,7 +1341,6 @@ const FiltersConfigForm = (
                                         >
                                           <Select
                                             mode="multiple"
-                                            autoClearSearchValue
                                             ariaLabel={t('Time grain options')}
                                             options={getTimeGrainOptions(
                                               datasetDetails.time_grain_sqla,

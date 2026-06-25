@@ -183,7 +183,6 @@ export default function DeckglLayerVisibilityCustomizationPlugin(
             <Select
               data-test="deckgl-layer-visibility-select"
               mode="multiple"
-              autoClearSearchValue
               oneLine
               value={hiddenLayers}
               onChange={handleLayerChange}

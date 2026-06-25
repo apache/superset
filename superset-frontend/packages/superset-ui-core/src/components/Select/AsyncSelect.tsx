@@ -113,7 +113,7 @@ const AsyncSelect = forwardRef(
       allowClear,
       allowNewOptions = false,
       ariaLabel,
-      autoClearSearchValue = false,
+      autoClearSearchValue = true,
       fetchOnlyOnSearch,
       filterOption = true,
       header = null,

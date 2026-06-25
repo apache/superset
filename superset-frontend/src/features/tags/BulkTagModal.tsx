@@ -137,7 +137,6 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
           getPopupContainer={() => document.body}
           placeholder={t('Select Tags')}
           mode="multiple"
-          autoClearSearchValue
         />
       </BulkTagModalContainer>
     </Modal>

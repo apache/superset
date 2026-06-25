@@ -397,7 +397,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
               <AsyncSelect
                 ariaLabel={t('Tables')}
                 mode="multiple"
-                autoClearSearchValue
                 onChange={onTablesChange}
                 value={(currentRule?.tables as SelectValue[]) || []}
                 options={loadTableOptions}
@@ -420,7 +419,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
               <AsyncSelect
                 ariaLabel={t('Roles')}
                 mode="multiple"
-                autoClearSearchValue
                 onChange={onRolesChange}
                 value={(currentRule?.roles as SelectValue[]) || []}
                 options={loadRoleOptions}

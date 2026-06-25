@@ -325,7 +325,6 @@ const TagModal: FC<TagModalProps> = ({
           className="tag-input"
           ariaLabel={t('Select dashboards')}
           mode="multiple"
-          autoClearSearchValue
           name="dashboards"
           // @ts-expect-error
           value={dashboardsToTag}
@@ -341,7 +340,6 @@ const TagModal: FC<TagModalProps> = ({
           className="tag-input"
           ariaLabel={t('Select charts')}
           mode="multiple"
-          autoClearSearchValue
           name="charts"
           // @ts-expect-error
           value={chartsToTag}
@@ -355,7 +353,6 @@ const TagModal: FC<TagModalProps> = ({
           className="tag-input"
           ariaLabel={t('Select saved queries')}
           mode="multiple"
-          autoClearSearchValue
           name="savedQueries"
           // @ts-expect-error
           value={savedQueriesToTag}

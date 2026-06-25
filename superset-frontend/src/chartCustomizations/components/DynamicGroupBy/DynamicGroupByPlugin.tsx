@@ -140,7 +140,6 @@ export default function PluginFilterDynamicGroupBy(
             name={formData.nativeFilterId}
             allowClear
             mode="multiple"
-            autoClearSearchValue
             value={value}
             placeholder={placeholderText}
             onChange={handleChange}

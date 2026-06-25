@@ -135,7 +135,6 @@ function GroupListModal({
         <Select
           name="roles"
           mode="multiple"
-          autoClearSearchValue
           placeholder={t('Select roles')}
           options={roles.map(role => ({
             value: role.id,
@@ -148,7 +147,6 @@ function GroupListModal({
         <AsyncSelect
           name="users"
           mode="multiple"
-          autoClearSearchValue
           placeholder={t('Select users')}
           options={(filterValue, page, pageSize) =>
             fetchUserOptions(filterValue, page, pageSize, addDangerToast)

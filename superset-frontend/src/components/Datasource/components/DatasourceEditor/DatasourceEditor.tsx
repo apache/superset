@@ -827,7 +827,6 @@ function OwnersSelector({
     <AsyncSelect
       ariaLabel={t('Select owners')}
       mode="multiple"
-      autoClearSearchValue
       name="owners"
       value={datasource.owners as { value: number; label: string }[]}
       options={loadOptions}

@@ -550,7 +550,6 @@ export default function AddSemanticViewModal({
               ariaLabel={t('Semantic views')}
               placeholder={t('Select semantic views')}
               mode="multiple"
-              autoClearSearchValue
               loading={loadingViews}
               disabled={viewsDisabled}
               value={selectedViewNames}

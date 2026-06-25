@@ -827,7 +827,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                               'Choose columns to be parsed as dates',
                             )}
                             mode="multiple"
-                            autoClearSearchValue
                             options={columnsToOptions()}
                             allowClear
                             allowNewOptions
@@ -864,7 +863,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                         >
                           <Select
                             mode="multiple"
-                            autoClearSearchValue
                             options={nullValuesOptions}
                             allowClear
                             allowNewOptions
@@ -930,7 +928,6 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                         <Select
                           ariaLabel={t('Choose columns to read')}
                           mode="multiple"
-                          autoClearSearchValue
                           options={columnsToOptions()}
                           allowClear
                           allowNewOptions

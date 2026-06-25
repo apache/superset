@@ -360,7 +360,6 @@ export function MultiEnumControl(props: ControlProps) {
     <Form.Item label={props.label} tooltip={tooltip}>
       <Select
         mode="multiple"
-        autoClearSearchValue
         value={value as (string | number)[]}
         onChange={next => props.handleChange(props.path, next)}
         options={options}

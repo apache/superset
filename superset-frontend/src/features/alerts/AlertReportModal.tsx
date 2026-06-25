@@ -2188,7 +2188,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       allowClear
                       name="owners"
                       mode="multiple"
-                      autoClearSearchValue
                       placeholder={t('Select owners')}
                       value={
                         (currentAlert?.owners as {
