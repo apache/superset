@@ -185,6 +185,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "changed_by.first_name",
         "changed_on_delta_humanized",
         "database.database_name",
+        # Exposed so the Recently-Deleted view can sort archived datasets by
+        # deletion time (sc-111760).
+        "deleted_at",
     ]
     show_select_columns = [
         "id",
@@ -346,6 +349,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "table_name",
         "created_by",
         "changed_by",
+        # Exposed so the Recently-Deleted view can filter archived datasets by a
+        # deletion-time cutoff (e.g. ``deleted_at`` ``gt`` cutoff) — sc-111760.
+        "deleted_at",
         "uuid",
     ]
     allowed_rel_fields = {"database", "created_by", "changed_by", "editors"}

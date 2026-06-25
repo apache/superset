@@ -24,6 +24,7 @@ import {
   screen,
   fireEvent,
   waitFor,
+  selectOption,
 } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
@@ -36,6 +37,12 @@ const store = mockStore({});
 const infoEndpoint = 'glob:*/api/v1/chart/_info*';
 const listEndpoint = 'glob:*/api/v1/chart/?*';
 const restoreEndpoint = 'glob:*/api/v1/chart/*/restore';
+const dashboardInfoEndpoint = 'glob:*/api/v1/dashboard/_info*';
+const dashboardListEndpoint = 'glob:*/api/v1/dashboard/?*';
+
+const mockDashboards = [
+  { id: 10, uuid: 'dash-uuid-1', dashboard_title: 'Deleted Dashboard One' },
+];
 
 const mockCharts = [
   {
@@ -61,6 +68,13 @@ const mockRoutes = (restoreStatus = 200) => {
   fetchMock.get(infoEndpoint, { permissions: ['can_read', 'can_write'] });
   fetchMock.get(listEndpoint, { result: mockCharts, count: mockCharts.length });
   fetchMock.post(restoreEndpoint, restoreStatus === 200 ? {} : restoreStatus);
+  fetchMock.get(dashboardInfoEndpoint, {
+    permissions: ['can_read', 'can_write'],
+  });
+  fetchMock.get(dashboardListEndpoint, {
+    result: mockDashboards,
+    count: mockDashboards.length,
+  });
 };
 
 const renderDeletedList = () =>
@@ -137,4 +151,55 @@ test('restore failure surfaces an error and leaves the row in place', async () =
   // No refetch on failure — the row stays.
   expect(fetchMock.callHistory.calls(/chart\/\?q/)).toHaveLength(1);
   expect(screen.getByText('Deleted Chart One')).toBeInTheDocument();
+});
+
+test('name search refetches with a contains filter on the name field', async () => {
+  mockRoutes();
+  renderDeletedList();
+  await screen.findByTestId('deleted-list-view');
+
+  const searchInput = screen.getByPlaceholderText(/type a value/i);
+  fireEvent.change(searchInput, { target: { value: 'invoice' } });
+  fireEvent.keyDown(searchInput, { key: 'Enter', keyCode: 13 });
+
+  await waitFor(() => {
+    const hit = fetchMock.callHistory
+      .calls(/chart\/\?q/)
+      .find(call => call.url.includes('(col:slice_name,opr:ct,value:invoice)'));
+    expect(hit).toBeTruthy();
+  });
+});
+
+test('switching Type fetches the newly selected resource with its deleted-state filter', async () => {
+  mockRoutes();
+  renderDeletedList();
+  await screen.findByTestId('deleted-list-view');
+
+  await selectOption('Dashboard', 'Type');
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls(/dashboard\/\?q/);
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    expect(calls[calls.length - 1].url).toContain(
+      'col:id,opr:dashboard_deleted_state,value:only',
+    );
+  });
+});
+
+test('time-range preset refetches with a deleted_at greater-than filter', async () => {
+  mockRoutes();
+  renderDeletedList();
+  await screen.findByTestId('deleted-list-view');
+
+  // The Time-range preset renders as a compact filter pill; selecting an
+  // option applies immediately (no Apply button).
+  fireEvent.click(screen.getByTestId('compact-filter-pill'));
+  fireEvent.click(await screen.findByText('Last 30 days'));
+
+  await waitFor(() => {
+    const hit = fetchMock.callHistory
+      .calls(/chart\/\?q/)
+      .find(call => call.url.includes('col:deleted_at,opr:gt'));
+    expect(hit).toBeTruthy();
+  });
 });
