@@ -338,11 +338,23 @@ function DashboardList(props: DashboardListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(json.message);
+        addSuccessToast(
+          softDelete
+            ? t('Archived %s item(s)', dashboardsToDelete.length)
+            : json.message,
+        );
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting the selected dashboards: ', errMsg),
+          softDelete
+            ? t(
+                'There was an issue archiving the selected dashboards: ',
+                errMsg,
+              )
+            : t(
+                'There was an issue deleting the selected dashboards: ',
+                errMsg,
+              ),
         ),
       ),
     );

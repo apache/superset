@@ -1293,11 +1293,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       () => {
         refreshData();
         setDatasetCurrentlyDeleting(null);
-        addSuccessToast(t('Deleted: %s', tableName));
+        addSuccessToast(
+          softDelete
+            ? t('Archived: %s', tableName)
+            : t('Deleted: %s', tableName),
+        );
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting %s: %s', tableName, errMsg),
+          softDelete
+            ? t('There was an issue archiving %s: %s', tableName, errMsg)
+            : t('There was an issue deleting %s: %s', tableName, errMsg),
         ),
       ),
     );
@@ -1338,13 +1344,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       // Always refresh so the list reflects whatever actually got deleted.
       refreshData();
       if (failures.length === 0) {
-        addSuccessToast(t('Deleted %s item(s)', datasetsToDelete.length));
+        addSuccessToast(
+          softDelete
+            ? t('Archived %s item(s)', datasetsToDelete.length)
+            : t('Deleted %s item(s)', datasetsToDelete.length),
+        );
       } else {
         addDangerToast(
-          t(
-            'There was an issue deleting the selected %s',
-            datasetsLabelLower(),
-          ),
+          softDelete
+            ? t(
+                'There was an issue archiving the selected %s',
+                datasetsLabelLower(),
+              )
+            : t(
+                'There was an issue deleting the selected %s',
+                datasetsLabelLower(),
+              ),
         );
       }
     });
