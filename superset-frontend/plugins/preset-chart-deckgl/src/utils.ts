@@ -31,6 +31,7 @@ import { ColorBreakpointType } from './types';
 
 export const TRANSPARENT_COLOR_ARRAY = [0, 0, 0, 0] as Color;
 export const HIGHLIGHT_COLOR_ARRAY = [255, 0, 0, 255] as Color;
+export const NULL_CATEGORY_KEY = '__NULL__';
 
 const DEFAULT_NUM_BUCKETS = 10;
 
