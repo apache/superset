@@ -103,11 +103,15 @@ from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
 )
-from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.mcp_service.utils.response_utils import (
+    humanize_timestamp,
+    OmittedFieldsBuilder,
+)
 from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.json import loads as json_loads
 
 
@@ -129,8 +133,6 @@ class DashboardError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DashboardError":
         """Create a standardized DashboardError with timestamp."""
-        from datetime import datetime
-
         return cls(error=error, error_type=error_type, timestamp=datetime.now())
 
 
@@ -618,6 +620,48 @@ class GenerateDashboardRequest(BaseModel):
     published: bool = Field(
         default=False, description="Whether to publish the dashboard"
     )
+    slug: str | None = Field(
+        None,
+        max_length=255,
+        description=(
+            "Optional URL slug for the dashboard. When set, the dashboard "
+            "is reachable at /superset/dashboard/<slug>/ instead of "
+            "/superset/dashboard/<id>/. Must be unique across the instance."
+        ),
+    )
+    position_json: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Optional explicit dashboard layout (Superset's position_json "
+            "dict). When set, replaces the auto-generated layout entirely. "
+            "Pass this when you need custom row composition, MARKDOWN "
+            "blocks, HEADER components, or specific chart widths/heights. "
+            "Omit to let the tool auto-generate a packed grid from chart_ids."
+        ),
+    )
+    json_metadata_overrides: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Optional overrides applied on top of the default "
+            "json_metadata. Common fields: label_colors (per-series brand "
+            "palette, e.g. {'Electronics': '#4C78A8'}), color_scheme "
+            "(named Superset palette), cross_filters_enabled (bool, "
+            "default False — set True for interactive dashboards), "
+            "shared_label_colors (list of label names for cross-chart "
+            "color consistency). Merged shallowly into the defaults; pass "
+            "only the keys you want to override."
+        ),
+    )
+    css: str | None = Field(
+        None,
+        max_length=50000,
+        description=(
+            "Optional dashboard-level CSS. Useful for hiding chart chrome "
+            "(kebab menus, cross-filter chips) on print-ready dashboards, "
+            "or tweaking padding/typography. Applied as-is to the "
+            "dashboard's css field."
+        ),
+    )
     sanitization_warnings: List[str] = Field(
         default_factory=list,
         description=(
@@ -683,6 +727,168 @@ class GenerateDashboardRequest(BaseModel):
         return sanitize_user_input(
             v, "Dashboard title", max_length=500, allow_empty=True
         )
+
+
+class UpdateDashboardRequest(BaseModel):
+    """Request schema for updating an existing dashboard's layout/theme/style.
+
+    All fields are optional; only the fields explicitly passed are applied.
+    Use to retroactively set a custom layout, brand palette, or CSS on a
+    dashboard that was created via ``generate_dashboard`` (or earlier via
+    the REST API) without a full re-create.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dashboard ID (integer), UUID, or slug. Same identifier shape "
+            "accepted by ``get_dashboard_info``."
+        ),
+    )
+    dashboard_title: str | None = Field(
+        None,
+        max_length=500,
+        description="Optional new dashboard title.",
+        validation_alias=AliasChoices("dashboard_title", "title", "name"),
+    )
+    description: str | None = Field(
+        None,
+        description="Optional new dashboard description.",
+    )
+    slug: str | None = Field(
+        None,
+        max_length=255,
+        description=("Optional new URL slug. Pass empty string to clear a slug."),
+    )
+    published: bool | None = Field(
+        None,
+        description="Optional published flag.",
+    )
+    position_json: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Optional replacement layout (Superset's position_json dict). "
+            "When set, fully replaces the existing layout. Get the current "
+            "layout via ``get_dashboard_info`` first if you want to make "
+            "incremental changes."
+        ),
+    )
+    json_metadata_overrides: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Optional overrides applied on top of the existing "
+            "json_metadata. Merged shallowly — pass only the keys you "
+            "want to change (e.g. label_colors, color_scheme, "
+            "cross_filters_enabled)."
+        ),
+    )
+    css: str | None = Field(
+        None,
+        max_length=50000,
+        description=(
+            "Optional new dashboard CSS. Pass empty string to clear existing CSS."
+        ),
+    )
+    sanitization_warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Internal: warnings emitted when user input was altered by "
+            "sanitization. Populated by the ``mode='before'`` validator "
+            "before dashboard_title is rewritten."
+        ),
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _detect_dashboard_title_sanitization(cls, data: Any) -> Any:
+        """Reject empty-after-sanitization titles and warn on partial strip.
+
+        Mirrors the same guard ``GenerateDashboardRequest`` applies so a
+        prompt-injected LLM cannot push XSS payloads through the update
+        path that the create path already rejects. Server-only
+        ``sanitization_warnings`` is reset here so a caller cannot inject
+        warning text.
+        """
+        if not isinstance(data, dict):
+            return data
+        data["sanitization_warnings"] = []
+        # Must match every AliasChoice on ``dashboard_title`` — otherwise
+        # an XSS payload supplied via a different key (e.g. ``name``)
+        # would bypass this ``mode='before'`` guard and slip through to
+        # Pydantic's alias resolution unsanitized.
+        for key in ("dashboard_title", "title", "name"):
+            if key in data:
+                raw = data[key]
+                break
+        else:
+            raw = None
+        if not isinstance(raw, str) or not raw.strip():
+            return data
+        sanitized, was_modified = sanitize_user_input_with_changes(
+            raw, "Dashboard title", max_length=500, allow_empty=True
+        )
+        if was_modified and not sanitized:
+            raise ValueError(
+                "dashboard_title contained only disallowed content "
+                "(HTML/script/URL schemes) and was removed entirely by "
+                "sanitization. Provide a dashboard_title with plain text."
+            )
+        if was_modified:
+            data["sanitization_warnings"].append(
+                "dashboard_title was modified during sanitization to "
+                "remove potentially unsafe content; the stored title "
+                "differs from the input."
+            )
+        return data
+
+    @field_validator("dashboard_title")
+    @classmethod
+    def sanitize_dashboard_title(cls, v: str | None) -> str | None:
+        """Sanitize dashboard title to prevent XSS."""
+        if v is None or v == "":
+            return v
+        return sanitize_user_input(
+            v, "Dashboard title", max_length=500, allow_empty=True
+        )
+
+
+class UpdateDashboardResponse(BaseModel):
+    """Response schema for ``update_dashboard``.
+
+    Distinct from ``GenerateDashboardResponse`` because the semantics
+    differ: this response reports which fields actually changed on an
+    existing dashboard, rather than describing a newly created one.
+    """
+
+    dashboard: DashboardInfo | None = Field(
+        None, description="The updated dashboard info, if successful"
+    )
+    dashboard_url: str | None = Field(None, description="URL to view the dashboard")
+    error: str | None = Field(None, description="Error message, if update failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the user lacks edit rights on the target "
+            "dashboard. When True, ``error`` carries the human-readable "
+            "explanation and the response is otherwise empty."
+        ),
+    )
+    changed_fields: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Names of fields that were actually applied. Empty when the "
+            "request was a no-op or failed before any field was applied."
+        ),
+    )
+    warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Non-fatal advisory messages — for example, that the supplied "
+            "title was altered by sanitization."
+        ),
+    )
 
 
 class GenerateDashboardResponse(BaseModel):
@@ -967,7 +1173,6 @@ def _build_omitted_fields(
     Uses the shared OmittedFieldsBuilder utility so the pattern is consistent
     across all MCP tool serializers.
     """
-    from superset.mcp_service.utils.response_utils import OmittedFieldsBuilder
 
     return (
         OmittedFieldsBuilder()
@@ -1000,7 +1205,6 @@ def serialize_chart_summary(
     """Serialize a chart to a lightweight summary for dashboard context."""
     if not chart:
         return None
-    from superset.mcp_service.utils.url_utils import get_superset_base_url
 
     chart_id = getattr(chart, "id", None)
     chart_url = None
@@ -1107,9 +1311,20 @@ def _sanitize_dashboard_info_for_llm_context(
     return DashboardInfo.model_validate(payload)
 
 
-def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
-    from superset.mcp_service.utils.url_utils import get_superset_base_url
+def _safe_user_label(value: Any) -> str | None:
+    """Coerce a `*_by_name` model attribute to a display string or None.
 
+    The Dashboard model exposes ``created_by_name`` / ``changed_by_name``
+    as plain strings, but some serializer call sites pass through
+    objects (User instances, Mocks in tests) — defensive coercion keeps
+    the response a valid string and avoids leaking ``repr(user)``.
+    """
+    if isinstance(value, str) and value:
+        return value
+    return None
+
+
+def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     include_data_model_metadata = user_can_view_data_model_metadata()
     base_url = get_superset_base_url()
     relative_url = dashboard.url  # e.g. "/superset/dashboard/{slug_or_id}/"
@@ -1170,7 +1385,6 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
 
 def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     """Simple dashboard serializer that safely handles object attributes."""
-    from superset.mcp_service.utils.url_utils import get_superset_base_url
 
     # Construct URL from id/slug (the model's @property isn't available on
     # column-only query tuples returned by DAO.list with select_columns)
