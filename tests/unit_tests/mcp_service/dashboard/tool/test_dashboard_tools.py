@@ -180,6 +180,66 @@ def test_dashboard_role_serializer_skips_bad_permission_items() -> None:
     assert role_info.permissions == ["can_read on Dashboard", "can_write"]
 
 
+def test_dashboard_role_serializer_handles_detached_permissions() -> None:
+    class DetachedRole:
+        id = 1
+        name = "Gamma"
+
+        @property
+        def permissions(self) -> list[object]:
+            raise DetachedInstanceError("detached permissions")
+
+    role_info = serialize_role_object(DetachedRole())
+
+    assert role_info is not None
+    assert role_info.permissions is None
+
+
+def test_dashboard_role_serializer_handles_non_iterable_permissions() -> None:
+    role = SimpleNamespace(id=1, name="Gamma", permissions=object())
+
+    role_info = serialize_role_object(role)
+
+    assert role_info is not None
+    assert role_info.permissions == []
+
+
+def test_dashboard_role_serializer_stops_on_detached_permission_iterator() -> None:
+    class DetachedPermissionIterator:
+        def __iter__(self) -> "DetachedPermissionIterator":
+            return self
+
+        def __next__(self) -> object:
+            raise DetachedInstanceError("detached permission iterator")
+
+    role = SimpleNamespace(
+        id=1,
+        name="Gamma",
+        permissions=DetachedPermissionIterator(),
+    )
+
+    role_info = serialize_role_object(role)
+
+    assert role_info is not None
+    assert role_info.permissions == []
+
+
+def test_dashboard_role_serializer_skips_unnamed_permission_items() -> None:
+    role = SimpleNamespace(
+        id=1,
+        name="Gamma",
+        permissions=[
+            SimpleNamespace(permission=SimpleNamespace(name="can_read")),
+            SimpleNamespace(view_menu=SimpleNamespace(name="Dashboard")),
+        ],
+    )
+
+    role_info = serialize_role_object(role)
+
+    assert role_info is not None
+    assert role_info.permissions == []
+
+
 @patch("superset.daos.dashboard.DashboardDAO.list")
 @pytest.mark.asyncio
 async def test_list_dashboards_with_filters(mock_list, mcp_server):
