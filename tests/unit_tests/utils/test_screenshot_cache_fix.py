@@ -35,7 +35,7 @@ from superset.utils.screenshots import (
 )
 
 BASE_SCREENSHOT_PATH = "superset.utils.screenshots.BaseScreenshot"
-DISTRIBUTED_LOCK_PATH = "superset.distributed_lock.DistributedLock"
+DISTRIBUTED_LOCK_PATH = "superset.utils.screenshots.DistributedLock"
 
 
 class MockCache:

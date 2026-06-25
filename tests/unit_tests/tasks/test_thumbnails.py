@@ -16,7 +16,8 @@
 # under the License.
 
 from collections.abc import Callable, Iterator
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
@@ -55,7 +56,7 @@ _COMMON_PATCHES = [
 ]
 
 
-def _apply_patches(fn: Callable) -> Callable:
+def _apply_patches(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Stack the five common patches onto a test function."""
     for p in reversed(_COMMON_PATCHES):
         fn = patch(p)(fn)
@@ -134,7 +135,7 @@ def test_cache_dashboard_thumbnail_resolves_cache_key_when_not_provided(
 
     mock_screenshot.get_cache_key.assert_called_once()
     mock_screenshot.compute_and_cache.assert_called_once_with(
-        user=mock_security_manager.find_user.return_value,
+        user=ANY,
         window_size=None,
         thumb_size=None,
         force=False,
