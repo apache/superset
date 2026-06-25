@@ -505,6 +505,11 @@ class Superset(BaseSupersetView):
                     datasource_id,
                 )
 
+        # Apply the same per-datasource access check the explore command performs,
+        # so this view is consistent with it before rendering datasource metadata.
+        if datasource:
+            security_manager.raise_for_access(datasource=datasource)
+
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
