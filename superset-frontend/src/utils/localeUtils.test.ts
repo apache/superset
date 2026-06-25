@@ -17,7 +17,7 @@
  * under the License.
  */
 import getBootstrapData from './getBootstrapData';
-import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
+import { DEFAULT_BOOTSTRAP_DATA, rtlLanguages } from 'src/constants';
 import {
   getBootstrapLocale,
   getDirectionFromLocale,
@@ -39,7 +39,7 @@ test('getDirectionFromLocale returns ltr for LTR locales', () => {
   expect(getDirectionFromLocale('it')).toBe('ltr');
 });
 
-test.each(['ar', 'fa', 'he', 'iw', 'sd', 'dv', 'ps', 'ug', 'ur', 'yi'])(
+test.each(rtlLanguages)(
   'getDirectionFromLocale returns rtl for %s',
   languageCode => {
     expect(getDirectionFromLocale(languageCode)).toBe('rtl');
