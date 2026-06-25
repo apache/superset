@@ -24,7 +24,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, CACHE_KEY } from '@superset-ui/core';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
@@ -105,7 +105,7 @@ const dropdownItems = [
   },
   {
     label: 'Dashboard',
-    url: '/dashboard/new',
+    url: '/dashboard/new/',
     icon: 'fa-fw fa-dashboard',
     perm: 'can_write',
     view: 'Dashboard',
@@ -377,11 +377,12 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
   await userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
   await userEvent.hover(dataMenu);
-  const csvMenu = await screen.findByRole('menuitem', {
-    name: 'Upload CSV to database',
-  });
+  const csvMenu = await screen.findByText('Upload CSV to database');
   expect(csvMenu).toBeInTheDocument();
-  expect(csvMenu).toHaveAttribute('aria-disabled', 'true');
+  expect(csvMenu.closest('li[role="menuitem"]')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
 });
 
 test('Logs out and clears local storage item redux', async () => {
@@ -400,17 +401,35 @@ test('Logs out and clears local storage item redux', async () => {
   expect(localStorage.getItem('redux')).not.toBeNull();
   expect(sessionStorage.getItem('login_attempted')).not.toBeNull();
 
-  await userEvent.hover(await screen.findByText(/Settings/i));
+  // Mock the Cache API so we can assert the namespaced store is purged.
+  const cacheGlobal = global as unknown as { caches?: CacheStorage };
+  const priorCaches = cacheGlobal.caches;
+  const deleteMock = jest.fn().mockResolvedValue(true);
+  cacheGlobal.caches = { delete: deleteMock } as unknown as CacheStorage;
 
-  // Simulate user clicking the logout button
-  const logoutButton = await screen.findByText('Logout');
-  await userEvent.click(logoutButton);
+  try {
+    await userEvent.hover(await screen.findByText(/Settings/i));
 
-  // Wait for local and session storage to be cleared
-  await waitFor(() => {
-    expect(localStorage.getItem('redux')).toBeNull();
-    expect(sessionStorage.getItem('login_attempted')).toBeNull();
-  });
+    // Simulate user clicking the logout button
+    const logoutButton = await screen.findByText('Logout');
+    await userEvent.click(logoutButton);
+
+    // Wait for local and session storage to be cleared
+    await waitFor(() => {
+      expect(localStorage.getItem('redux')).toBeNull();
+      expect(sessionStorage.getItem('login_attempted')).toBeNull();
+    });
+    // The namespaced Cache API store is purged on logout.
+    expect(deleteMock).toHaveBeenCalledWith(CACHE_KEY);
+  } finally {
+    // Restore the global so an early assertion failure cannot leak the mock
+    // into other tests.
+    if (priorCaches === undefined) {
+      delete cacheGlobal.caches;
+    } else {
+      cacheGlobal.caches = priorCaches;
+    }
+  }
 });
 
 test('shows logout button when not embedded', async () => {

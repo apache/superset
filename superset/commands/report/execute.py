@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 from uuid import UUID
@@ -76,6 +77,7 @@ from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
+from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.slack import get_channels_with_search, SlackChannelTypes
@@ -99,6 +101,7 @@ class BaseReportState:
         self._scheduled_dttm = scheduled_dttm
         self._start_dttm = datetime.utcnow()
         self._execution_id = execution_id
+        self._filter_warnings: list[str] = []
 
     def update_report_schedule_and_log(
         self,
@@ -195,7 +198,7 @@ class BaseReportState:
             db.session.commit()  # pylint: disable=consider-using-transaction
         except StaleDataError as ex:
             # Report schedule was modified or deleted by another process
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning(
                 "Report schedule (execution %s) was modified or deleted "
                 "during execution. This can occur when a report is deleted "
@@ -265,12 +268,21 @@ class BaseReportState:
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
-            native_filter_params = self._report_schedule.get_native_filters_params()
+            native_filter_params, filter_warnings = (
+                self._report_schedule.get_native_filters_params()
+            )
+            if filter_warnings:
+                self._filter_warnings.extend(filter_warnings)
             if anchor := dashboard_state.get("anchor"):
                 try:
-                    anchor_list: list[str] = json.loads(anchor)
+                    anchor_list = json.loads(anchor)
+                    if not isinstance(anchor_list, list):
+                        raise json.JSONDecodeError(
+                            "Anchor value is not a list", anchor, 0
+                        )
                     urls = self._get_tabs_urls(
                         anchor_list,
+                        dashboard_state=dashboard_state,
                         native_filter_params=native_filter_params,
                         user_friendly=user_friendly,
                     )
@@ -278,13 +290,45 @@ class BaseReportState:
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
 
+            # Skip the permalink when there is nothing meaningful to encode —
+            # an empty dashboard_state falls through to the plain URL below.
+            # A non-empty anchor means a single tab was selected (it failed
+            # JSON list parsing above) and still needs a permalink. Non-filter
+            # state such as urlParams (e.g. standalone=true) must also be
+            # preserved via a permalink.
+            if (
+                anchor
+                or dashboard_state.get("urlParams")
+                or (native_filter_params and native_filter_params != "()")
+            ):
+                state: DashboardPermalinkState = {**dashboard_state}
+                state["urlParams"] = self._merge_native_filters_into_url_params(
+                    state.get("urlParams"), native_filter_params
+                )
+                return [
+                    self._get_tab_url(
+                        state,
+                        user_friendly=user_friendly,
+                    )
+                ]
+
+        native_filter_params, filter_warnings = (
+            self._report_schedule.get_native_filters_params()
+        )
+        if filter_warnings:
+            self._filter_warnings.extend(filter_warnings)
+        if native_filter_params and native_filter_params != "()":
+            # Preserve any urlParams from extra.dashboard (e.g. standalone=true)
+            # set via API even when ALERT_REPORT_TABS is off — same merge
+            # semantics as the protected branch above.
+            fallback_state = self._report_schedule.extra.get("dashboard") or {}
             return [
                 self._get_tab_url(
                     {
-                        "urlParams": [
-                            ["native_filters", native_filter_params]  # type: ignore
-                        ],
-                        **dashboard_state,
+                        "urlParams": self._merge_native_filters_into_url_params(
+                            fallback_state.get("urlParams"),
+                            native_filter_params,
+                        )
                     },
                     user_friendly=user_friendly,
                 )
@@ -322,24 +366,50 @@ class BaseReportState:
             user_friendly=user_friendly,
         )
 
+    @staticmethod
+    def _merge_native_filters_into_url_params(
+        existing: Optional[Sequence[Sequence[str]]],
+        native_filter_params: Optional[str],
+    ) -> list[Sequence[str]]:
+        """
+        Merge the report's ``native_filters`` into a permalink's existing
+        ``urlParams``, deduping any prior ``native_filters`` entry so the
+        report's value wins. All other params (e.g. ``standalone=true``)
+        survive in their original order.
+        """
+        merged: list[Sequence[str]] = [
+            list(p) for p in (existing or []) if p[0] != "native_filters"
+        ]
+        merged.append(["native_filters", native_filter_params or ""])
+        return merged
+
     def _get_tabs_urls(
         self,
         tab_anchors: list[str],
+        dashboard_state: Optional[DashboardPermalinkState] = None,
         native_filter_params: Optional[str] = None,
         user_friendly: bool = False,
     ) -> list[str]:
         """
-        Get multple tabs urls
+        Get multiple tabs urls.
+
+        Each per-tab permalink merges the report's ``native_filters`` into
+        the original ``dashboard_state.urlParams`` (deduping any prior
+        ``native_filters`` entry), so params like ``standalone=true`` are
+        preserved — matching the precedence rules of the single-tab branch
+        in :meth:`get_dashboard_urls`.
         """
+        base_state: DashboardPermalinkState = dashboard_state or {}
+        merged_params = self._merge_native_filters_into_url_params(
+            base_state.get("urlParams"), native_filter_params
+        )
         return [
             self._get_tab_url(
                 {
                     "anchor": tab_anchor,
                     "dataMask": None,
                     "activeTabs": None,
-                    "urlParams": [
-                        ["native_filters", native_filter_params]  # type: ignore
-                    ],
+                    "urlParams": merged_params,
                 },
                 user_friendly=user_friendly,
             )
@@ -396,8 +466,12 @@ class BaseReportState:
         try:
             imges = []
             for screenshot in screenshots:
-                if imge := screenshot.get_screenshot(user=user):
-                    imges.append(imge)
+                imge = screenshot.get_screenshot(user=user)
+                if imge is None:
+                    raise ReportScheduleScreenshotFailedError(
+                        "Screenshot failed; aborting to avoid sending a partial report"
+                    )
+                imges.append(imge)
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "Screenshot capture took %.2fs - execution_id: %s",
@@ -451,7 +525,11 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+            csv_data = get_chart_csv_data(
+                chart_url=url,
+                auth_cookies=auth_cookies,
+                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+            )
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "CSV data generation from %s as user %s took %.2fs - execution_id: %s",
@@ -470,7 +548,7 @@ class BaseReportState:
             raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
-            logger.error(
+            logger.exception(
                 "CSV generation failed after %.2fs - execution_id: %s",
                 elapsed_seconds,
                 self._execution_id,
@@ -501,7 +579,11 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            dataframe = get_chart_dataframe(url, auth_cookies)
+            dataframe = get_chart_dataframe(
+                url,
+                auth_cookies,
+                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+            )
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "DataFrame generation from %s as user %s took %.2fs - execution_id: %s",
@@ -620,7 +702,7 @@ class BaseReportState:
                     error_text = "Unexpected missing csv file"
             if error_text:
                 return NotificationContent(
-                    name=self._report_schedule.name,
+                    name=sanitize_title(self._report_schedule.name),
                     text=error_text,
                     header_data=header_data,
                     url=url,
@@ -633,15 +715,15 @@ class BaseReportState:
             embedded_data = self._get_embedded_data()
 
         if self._report_schedule.email_subject:
-            name = self._report_schedule.email_subject
+            name = sanitize_title(self._report_schedule.email_subject)
         else:
             if self._report_schedule.chart:
-                name = (
+                name = sanitize_title(
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.chart.slice_name}"
                 )
             else:
-                name = (
+                name = sanitize_title(
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.dashboard.dashboard_title}"
                 )
@@ -740,7 +822,7 @@ class BaseReportState:
             self._execution_id,
         )
         notification_content = NotificationContent(
-            name=name, text=message, header_data=header_data, url=url
+            name=sanitize_title(name), text=message, header_data=header_data, url=url
         )
 
         # filter recipients to recipients who are also owners
@@ -831,7 +913,13 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     )
                     return
             self.send()
-            self.update_report_schedule_and_log(ReportState.SUCCESS)
+            # Include filter warnings in the log if any were collected
+            warning_message = (
+                ";".join(self._filter_warnings) if self._filter_warnings else None
+            )
+            self.update_report_schedule_and_log(
+                ReportState.SUCCESS, error_message=warning_message
+            )
         except (SupersetErrorsException, Exception) as first_ex:
             error_message = str(first_ex)
             if isinstance(first_ex, SupersetErrorsException):
@@ -963,20 +1051,59 @@ class ReportSuccessState(BaseReportState):
                     )
                     return
             except Exception as ex:
-                self.send_error(
-                    f"Error occurred for {self._report_schedule.type}:"
-                    f" {self._report_schedule.name}",
-                    str(ex),
-                )
-                self.update_report_schedule_and_log(
-                    ReportState.ERROR,
-                    error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
-                )
+                # Ensure the schedule always transitions out of WORKING to
+                # ERROR, even if sending the error notification itself fails —
+                # otherwise the schedule is stuck in WORKING until the working
+                # timeout. Mirrors ReportNotTriggeredErrorState.next().
+                # Only record the marker when the notification was actually
+                # delivered; otherwise record the send failure so the grace-
+                # period check doesn't incorrectly suppress future notifications.
+                error_message = REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+                try:
+                    self.send_error(
+                        f"Error occurred for {self._report_schedule.type}:"
+                        f" {self._report_schedule.name}",
+                        str(ex),
+                    )
+                except Exception as send_ex:  # noqa: BLE001  # pylint: disable=broad-except
+                    error_message = str(send_ex) or str(ex)
+                    logger.warning(
+                        "Failed to send error notification for report schedule "
+                        "(execution %s)",
+                        self._execution_id,
+                        exc_info=True,
+                    )
+                finally:
+                    try:
+                        self.update_report_schedule_and_log(
+                            ReportState.ERROR,
+                            error_message=error_message,
+                        )
+                    except ReportScheduleUnexpectedError:
+                        logger.warning(
+                            "Failed to log ERROR state for report schedule "
+                            "(execution %s) due to database issue",
+                            self._execution_id,
+                            exc_info=True,
+                        )
                 raise
+
+        # For REPORT types the ALERT branch above is skipped, so WORKING has not
+        # been set yet. Set it before the (potentially slow) send() so a
+        # concurrent scheduler tick is blocked by ReportWorkingState, preventing
+        # duplicate notifications. ALERT types already set WORKING above.
+        if self._report_schedule.type != ReportScheduleType.ALERT:
+            self.update_report_schedule_and_log(ReportState.WORKING)
 
         try:
             self.send()
-            self.update_report_schedule_and_log(ReportState.SUCCESS)
+            # Include filter warnings in the log if any were collected
+            warning_message = (
+                ";".join(self._filter_warnings) if self._filter_warnings else None
+            )
+            self.update_report_schedule_and_log(
+                ReportState.SUCCESS, error_message=warning_message
+            )
         except Exception as ex:  # pylint: disable=broad-except
             try:
                 self.update_report_schedule_and_log(

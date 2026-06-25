@@ -57,7 +57,7 @@ export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
 // Delay before refreshing charts to ensure they are fully mounted
 const CHART_MOUNT_DELAY = 100;
 
-interface TabProps {
+export interface TabProps {
   dashboardId: number;
   id: string;
   parentId: string;
@@ -446,7 +446,7 @@ const Tab = (props: TabProps): ReactElement => {
             title={component.meta.text}
             defaultTitle={component.meta.defaultText}
             placeholder={component.meta.placeholder}
-            canEdit={editMode && isFocused}
+            canEdit={editMode}
             onSaveTitle={handleChangeText}
             showTooltip={false}
             editing={editMode && isFocused}

@@ -183,7 +183,7 @@ export const tableColumnDefinition: ColumnsType<ITableColumn> = [
     dataIndex: 'type',
     key: 'type',
     width: '100px',
-    sorter: (a: ITableColumn, b: ITableColumn) => a.name.localeCompare(b.name),
+    sorter: (a: ITableColumn, b: ITableColumn) => a.type.localeCompare(b.type),
   },
 ];
 

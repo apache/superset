@@ -94,11 +94,20 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   /**
    * Increment the color range with analogous colors
+   *
+   * @param forceMinimumExpansion When true, expand at least once even if the
+   * ordinal domain is still shorter than the palette. Shared dashboard labels
+   * can resolve from the global map without entering the scale domain, so
+   * domain-based sizing alone would skip expansion while collision resolution
+   * still needs analogous colors.
    */
-  incrementColorRange() {
-    const multiple = Math.floor(
+  incrementColorRange(forceMinimumExpansion = false) {
+    const domainBasedMultiple = Math.floor(
       this.domain().length / this.originColors.length,
     );
+    const multiple = forceMinimumExpansion
+      ? Math.max(domainBasedMultiple, 1)
+      : domainBasedMultiple;
     // the domain has grown larger than the original range
     // increments the range with analogous colors
     if (multiple > this.multiple) {
@@ -144,6 +153,7 @@ class CategoricalColorScale extends ExtensibleFunction {
       if (isFeatureEnabled(FeatureFlag.UseAnalogousColors)) {
         this.incrementColorRange();
       }
+
       if (
         // feature flag to be deprecated (will become standard behaviour)
         isFeatureEnabled(FeatureFlag.AvoidColorsCollision) &&
@@ -151,6 +161,39 @@ class CategoricalColorScale extends ExtensibleFunction {
       ) {
         // fallback to least used color
         color = this.getNextAvailableColor(cleanedValue, color);
+      }
+    }
+
+    if (
+      isFeatureEnabled(FeatureFlag.AvoidColorsCollision) &&
+      source === LabelsColorMapSource.Dashboard &&
+      (forcedColor || isExistingLabel)
+    ) {
+      const colliding = [...this.chartLabelsColorMap.entries()].filter(
+        ([labelKey, c]) => c === color && labelKey !== cleanedValue,
+      );
+      if (
+        colliding.length > 0 &&
+        isFeatureEnabled(FeatureFlag.UseAnalogousColors)
+      ) {
+        this.incrementColorRange(true);
+      }
+      for (const [otherLabel] of colliding) {
+        if (
+          Object.prototype.hasOwnProperty.call(this.forcedColors, otherLabel)
+        ) {
+          continue;
+        }
+        const newColor = this.getNextAvailableColor(otherLabel, color);
+        this.chartLabelsColorMap.set(otherLabel, newColor);
+        if (sliceId) {
+          this.labelsColorMapInstance.addSlice(
+            otherLabel,
+            newColor,
+            sliceId,
+            appliedColorScheme,
+          );
+        }
       }
     }
 

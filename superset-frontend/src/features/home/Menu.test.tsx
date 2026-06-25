@@ -30,6 +30,14 @@ jest.mock('@apache-superset/core/theme', () => ({
   useTheme: jest.fn(),
 }));
 
+jest.mock('antd', () => ({
+  ...jest.requireActual('antd'),
+  Grid: {
+    ...jest.requireActual('antd').Grid,
+    useBreakpoint: () => ({ md: true }),
+  },
+}));
+
 const dropdownItems = [
   {
     label: 'Data',
@@ -81,7 +89,7 @@ const dropdownItems = [
   },
   {
     label: 'Dashboard',
-    url: '/dashboard/new',
+    url: '/dashboard/new/',
     icon: 'fa-fw fa-dashboard',
     perm: 'can_write',
     view: 'Dashboard',

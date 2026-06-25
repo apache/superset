@@ -31,6 +31,7 @@ import {
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
+import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import {
@@ -41,7 +42,9 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
+import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import {
   getFilterValue,
   getPermalinkValue,
@@ -64,6 +67,18 @@ import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
+import { Filter, PartialFilters } from '@superset-ui/core';
+import {
+  parseRisonFilters,
+  risonFiltersToExtraFormDataFilters,
+  getRisonFilterParam,
+  prettifyRisonFilterUrl,
+  injectRisonFiltersIntelligently,
+  updateUrlWithUnmatchedFilters,
+  RISON_UNMATCHED_DATAMASK_ID,
+} from '../util/risonFilters';
+
+type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
 export const DashboardPageIdContext = createContext('');
 
@@ -120,7 +135,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,
   );
-  const dashboardTheme = useSelector(
+  const reduxTheme = useSelector(
     (state: RootState) => state.dashboardInfo.theme,
   );
   const { addDangerToast } = useToasts();
@@ -138,6 +153,23 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, id = 0 } = dashboard || {};
+
+  // The live title is edited in Redux and persisted via an in-SPA save with no
+  // full reload, so the useDashboard() API result can be stale. Track the live
+  // title so the browser tab stays in sync after a rename.
+  const liveDashboardTitle = useSelector<RootState, string | undefined>(
+    state => state.dashboardLayout?.present?.[DASHBOARD_HEADER_ID]?.meta?.text,
+  );
+  // Only trust the live layout title once the layout belongs to the dashboard
+  // being shown. During SPA dashboard-to-dashboard navigation the previous
+  // dashboard's layout lingers until the new one hydrates, so fall back to the
+  // freshly fetched API title until the hydrated dashboard matches.
+  const hydratedDashboardId = useSelector<RootState, number | undefined>(
+    state => state.dashboardInfo?.id,
+  );
+  const pageTitle =
+    (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
+    dashboard_title;
 
   // Get CSS from dashboardInfo (unified properties location)
   const css =
@@ -192,7 +224,79 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
       }
       if (isOldRison) {
-        dataMask = isOldRison;
+        // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
+        // per-filter selections under `currentState`; modern dataMask uses
+        // `filterState`. Without this copy the filter panel shows no active
+        // selections even though extraFormData still applies the query filter.
+        if (typeof isOldRison === 'object' && isOldRison !== null) {
+          dataMask = Object.fromEntries(
+            Object.entries(
+              isOldRison as Record<string, Record<string, unknown>>,
+            ).map(([filterId, entry]) => [
+              filterId,
+              entry?.currentState && !entry?.filterState
+                ? { ...entry, filterState: entry.currentState }
+                : entry,
+            ]),
+          );
+        }
+      }
+
+      // Parse Rison URL filters with intelligent native filter injection
+      const risonFilterParam = getRisonFilterParam();
+      if (risonFilterParam) {
+        const risonFilters = parseRisonFilters(risonFilterParam);
+        if (risonFilters.length > 0) {
+          // Convert native filter config array to keyed object for lookup
+          const filterConfigArray = (dashboard?.metadata
+            ?.native_filter_configuration ?? []) as NativeFilterConfigEntry[];
+          const nativeFilters: PartialFilters = {};
+          filterConfigArray.forEach(filter => {
+            nativeFilters[filter.id] = filter;
+          });
+          const injectionResult = injectRisonFiltersIntelligently(
+            risonFilters,
+            nativeFilters,
+            dataMask,
+          );
+
+          dataMask = injectionResult.updatedDataMask;
+
+          // Unmatched filters apply via a synthetic dataMask entry: because no
+          // entry in `nativeFilters` claims this id, `getAllActiveFilters`
+          // falls through to `allSliceIds` and the filters scope to every chart.
+          if (injectionResult.unmatchedFilters.length > 0) {
+            const extraFormDataFilters = risonFiltersToExtraFormDataFilters(
+              injectionResult.unmatchedFilters,
+            );
+
+            dataMask = {
+              ...dataMask,
+              [RISON_UNMATCHED_DATAMASK_ID]: {
+                id: RISON_UNMATCHED_DATAMASK_ID,
+                extraFormData: { filters: extraFormDataFilters },
+                filterState: {},
+                ownState: {},
+              },
+            };
+          }
+
+          // Rewrite the URL to drop matched filters in a single step, keeping
+          // only unmatched ones (and prettifying their encoding). Going
+          // through react-router's history keeps `history.location.search` in
+          // sync so `publishDataMask` doesn't re-emit the original `f=`.
+          const matchedCount =
+            risonFilters.length - injectionResult.unmatchedFilters.length;
+          if (matchedCount > 0) {
+            updateUrlWithUnmatchedFilters(
+              injectionResult.unmatchedFilters,
+              history,
+            );
+          }
+          if (injectionResult.unmatchedFilters.length > 0) {
+            prettifyRisonFilterUrl();
+          }
+        }
       }
 
       if (readyToRender) {
@@ -209,6 +313,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             chartStates: chartStates ?? null,
           } as unknown as Parameters<typeof hydrateDashboard>[0]),
         );
+        dispatch(clearDashboardHistory());
 
         // Scroll to anchor element if specified in permalink state
         if (anchor) {
@@ -232,10 +337,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   // Update document title when dashboard title changes
   useEffect(() => {
-    if (dashboard_title) {
-      document.title = dashboard_title;
+    if (pageTitle) {
+      document.title = sanitizeDocumentTitle(pageTitle);
     }
-  }, [dashboard_title]);
+  }, [pageTitle]);
 
   // Restore original title on unmount
   useEffect(
@@ -295,11 +400,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
             <CrudThemeProvider
-              themeId={
-                dashboardTheme !== undefined
-                  ? dashboardTheme?.id
-                  : dashboard?.theme?.id
-              }
+              theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
             >
               <AutoRefreshProvider>
                 <DashboardContainer

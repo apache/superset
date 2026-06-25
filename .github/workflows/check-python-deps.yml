@@ -8,6 +8,10 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 # cancel previous workflow jobs for PRs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -18,7 +22,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           submodules: recursive
@@ -33,6 +37,19 @@ jobs:
       - name: Setup Python
         if: steps.check.outputs.python
         uses: ./.github/actions/setup-backend/
+
+      # Authenticate the Docker daemon so the python:slim pull in
+      # uv-pip-compile.sh uses our (much higher) authenticated rate limit
+      # instead of the shared-runner anonymous one. Best-effort: on fork PRs the
+      # secrets are unavailable, so this no-ops and the pull falls back to
+      # anonymous (covered by the retry loop in the script).
+      - name: Login to Docker Hub
+        if: steps.check.outputs.python
+        continue-on-error: true
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Run uv
         if: steps.check.outputs.python

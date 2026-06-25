@@ -43,6 +43,9 @@ class CopyToClip extends Component<CopyToClipboardProps> {
   }
 
   onClick() {
+    if (this.props.disabled) {
+      return;
+    }
     if (this.props.getText) {
       this.props.getText((d: string) => {
         this.copyToClipboard(Promise.resolve(d));
@@ -53,9 +56,16 @@ class CopyToClip extends Component<CopyToClipboardProps> {
   }
 
   getDecoratedCopyNode() {
-    return cloneElement(this.props.copyNode as ReactElement, {
-      style: { cursor: 'pointer' },
-      onClick: this.onClick,
+    const copyNode = this.props.copyNode as ReactElement;
+    const { disabled } = this.props;
+    return cloneElement(copyNode, {
+      style: {
+        ...copyNode.props.style,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      },
+      onClick: disabled ? undefined : this.onClick,
+      'aria-disabled': disabled || undefined,
+      tabIndex: disabled ? -1 : copyNode.props.tabIndex,
     });
   }
 
@@ -88,7 +98,10 @@ class CopyToClip extends Component<CopyToClipboardProps> {
             trigger={['hover']}
             arrow={{ pointAtCenter: true }}
           >
-            {this.getDecoratedCopyNode()}
+            {/* Wrap in a span so antd Tooltip has a real DOM ref target;
+                avoids findDOMNode fallback when copyNode is a function
+                component without forwardRef. */}
+            <span>{this.getDecoratedCopyNode()}</span>
           </Tooltip>
         ) : (
           this.getDecoratedCopyNode()
@@ -98,7 +111,7 @@ class CopyToClip extends Component<CopyToClipboardProps> {
   }
 
   renderNotWrapped() {
-    return this.renderTooltip('pointer');
+    return this.renderTooltip(this.props.disabled ? 'not-allowed' : 'pointer');
   }
 
   renderLink() {
@@ -114,7 +127,7 @@ class CopyToClip extends Component<CopyToClipboardProps> {
             {this.props.text}
           </span>
         )}
-        {this.renderTooltip('pointer')}
+        {this.renderTooltip(this.props.disabled ? 'not-allowed' : 'pointer')}
       </span>
     );
   }

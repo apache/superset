@@ -27,7 +27,8 @@ import tests.integration_tests.test_app  # noqa: F401
 import superset.viz as viz
 from flask import current_app
 from superset.exceptions import QueryObjectValidationError, SpatialException
-from superset.utils.core import DTTM_ALIAS
+from superset.utils.core import DTTM_ALIAS, ExtraFiltersReasonType
+from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.conftest import with_config
 
 from .base_tests import SupersetTestCase
@@ -625,6 +626,44 @@ class TestTimeSeriesTableViz(SupersetTestCase):
             t2.strftime(time_format): {"a1": 30, "a2": 35, "a3": 40},
         }
         assert expected == data["records"]
+
+    def test_get_data_multiple_group_by(self):
+        sep = FLAT_COLUMN_SEPARATOR
+        form_data = {"metrics": ["sum__A"], "groupby": ["groupby1", "groupby2"]}
+        datasource = self.get_datasource_mock()
+        raw = {}
+        t1 = pd.Timestamp("2000")
+        t2 = pd.Timestamp("2002")
+        raw[DTTM_ALIAS] = [t1, t1, t1, t1, t2, t2, t2, t2]
+        raw["sum__A"] = [15, 20, 25, 30, 35, 40, 45, 50]
+        raw["groupby1"] = ["a1", "a2", "a1", "a2", "a1", "a2", "a1", "a2"]
+        raw["groupby2"] = ["b1", "b1", "b2", "b2", "b1", "b1", "b2", "b2"]
+        df = pd.DataFrame(raw)
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        # Columns should be flattened strings, not tuples
+        a1_b1 = f"a1{sep}b1"
+        a1_b2 = f"a1{sep}b2"
+        a2_b1 = f"a2{sep}b1"
+        a2_b2 = f"a2{sep}b2"
+        assert {a1_b1, a1_b2, a2_b1, a2_b2} == set(data["columns"])
+        time_format = "%Y-%m-%d %H:%M:%S"
+        expected = {
+            t1.strftime(time_format): {
+                a1_b1: 15,
+                a1_b2: 25,
+                a2_b1: 20,
+                a2_b2: 30,
+            },
+            t2.strftime(time_format): {
+                a1_b1: 35,
+                a1_b2: 45,
+                a2_b1: 40,
+                a2_b2: 50,
+            },
+        }
+        assert expected == data["records"]
+        assert data["is_group_by"] is True
 
     @patch("superset.viz.BaseViz.query_obj")
     def test_query_obj_throws_metrics_and_groupby(self, super_query_obj):
@@ -1809,6 +1848,79 @@ class TestDeckGLMultiLayer(SupersetTestCase):
         assert isinstance(result, dict)
         assert len(result["slices"]) == 1
         assert result["slices"][0] == slice_1.data
+
+    @with_config({"MAPBOX_API_KEY": "test_key"})
+    @patch("superset.viz.viz_types")
+    @patch("superset.db.session")
+    def test_get_payload_includes_subslice_filter_metadata(
+        self,
+        mock_db_session,
+        mock_viz_types,
+    ):
+        """Test deck.gl multi-layer payload includes child filter metadata."""
+        datasource = self.get_datasource_mock()
+
+        slice_1 = Mock()
+        slice_1.form_data = {"viz_type": "deck_scatter"}
+        slice_1.data = {"features": [{"type": "Feature"}]}
+        slice_1.datasource = datasource
+
+        slice_2 = Mock()
+        slice_2.form_data = {"viz_type": "deck_path"}
+        slice_2.data = {"features": [{"type": "Feature"}]}
+        slice_2.datasource = datasource
+
+        mock_db_session.query.return_value.filter.return_value.all.return_value = [
+            slice_1,
+            slice_2,
+        ]
+
+        mock_scatter_viz_class = Mock()
+        mock_scatter_viz_instance = Mock()
+        mock_scatter_viz_instance.get_payload.return_value = {
+            "data": {"features": [{"id": 1}]},
+            "applied_filters": [{"column": "Latitude"}],
+            "rejected_filters": [],
+        }
+        mock_scatter_viz_class.return_value = mock_scatter_viz_instance
+
+        mock_path_viz_class = Mock()
+        mock_path_viz_instance = Mock()
+        mock_path_viz_instance.get_payload.return_value = {
+            "data": {"features": [{"id": 2}]},
+            "applied_filters": [
+                {"column": "Latitude"},
+                {"column": "Longitude"},
+            ],
+            "rejected_filters": [
+                {
+                    "column": "Country",
+                    "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,
+                },
+            ],
+        }
+        mock_path_viz_class.return_value = mock_path_viz_instance
+
+        mock_viz_types.get.side_effect = lambda viz_type: {
+            "deck_scatter": mock_scatter_viz_class,
+            "deck_path": mock_path_viz_class,
+        }.get(viz_type)
+
+        test_viz = viz.DeckGLMultiLayer(datasource, {"deck_slices": [1, 2]})
+        test_viz.get_df_payload = Mock(return_value={"df": pd.DataFrame()})
+
+        result = test_viz.get_payload()
+
+        assert result["applied_filters"] == [
+            {"column": "Latitude"},
+            {"column": "Longitude"},
+        ]
+        assert result["rejected_filters"] == [
+            {
+                "column": "Country",
+                "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,
+            },
+        ]
 
     @with_config({"MAPBOX_API_KEY": "test_key"})
     def test_get_data_empty_deck_slices(self):

@@ -273,6 +273,36 @@ class TestWebDriverSelenium:
         # Should create driver without errors
         mock_driver_class.assert_called_once()
 
+    @patch("superset.utils.webdriver.app")
+    def test_driver_sets_page_load_timeout(self, mock_app_patch: MagicMock) -> None:
+        """driver.get() must be bounded so it can't block forever (#40047)."""
+        mock_app_patch.config = {
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 10,
+            "SCREENSHOT_PAGE_LOAD_WAIT": 120,
+        }
+        mock_driver = MagicMock()
+        driver = WebDriverSelenium(driver_type="chrome", window=(800, 600))
+        with patch.object(driver, "_create", return_value=mock_driver):
+            assert driver.driver is mock_driver
+        mock_driver.set_page_load_timeout.assert_called_once_with(120)
+
+    @patch("superset.utils.webdriver.app")
+    def test_driver_skips_page_load_timeout_when_none(
+        self, mock_app_patch: MagicMock
+    ) -> None:
+        """Setting SCREENSHOT_PAGE_LOAD_WAIT to None disables the bound."""
+        mock_app_patch.config = {
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 10,
+            "SCREENSHOT_PAGE_LOAD_WAIT": None,
+        }
+        mock_driver = MagicMock()
+        driver = WebDriverSelenium(driver_type="chrome", window=(800, 600))
+        with patch.object(driver, "_create", return_value=mock_driver):
+            assert driver.driver is mock_driver
+        mock_driver.set_page_load_timeout.assert_not_called()
+
 
 class TestPlaywrightAvailabilityCheck:
     """Test comprehensive Playwright availability checking."""
@@ -444,9 +474,9 @@ class TestWebDriverPlaywrightFallback:
         assert mock_logger.info.call_args[0][1] == PLAYWRIGHT_INSTALL_MESSAGE
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
-    @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.app")
-    def test_get_screenshot_works_when_available(self, mock_app, mock_sync_playwright):
+    def test_get_screenshot_works_when_available(self, mock_app, mock_browser_manager):
         """Test WebDriverPlaywright.get_screenshot works when Playwright available."""
         # Setup mocks
         mock_user = MagicMock()
@@ -468,16 +498,12 @@ class TestWebDriverPlaywrightFallback:
         }
 
         # Setup playwright mocks
-        mock_playwright_instance = MagicMock()
         mock_browser = MagicMock()
         mock_context = MagicMock()
         mock_page = MagicMock()
         mock_element = MagicMock()
 
-        mock_sync_playwright.return_value.__enter__.return_value = (
-            mock_playwright_instance
-        )
-        mock_playwright_instance.chromium.launch.return_value = mock_browser
+        mock_browser_manager.get_browser.return_value = mock_browser
         mock_browser.new_context.return_value = mock_context
         mock_context.new_page.return_value = mock_page
         mock_page.locator.return_value = mock_element
@@ -498,10 +524,10 @@ class TestWebDriverPlaywrightFallback:
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
-    @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.logger")
     def test_get_screenshot_handles_playwright_timeout(
-        self, mock_logger, mock_sync_playwright
+        self, mock_logger, mock_browser_manager
     ):
         """Test WebDriverPlaywright handles PlaywrightTimeout gracefully."""
         from superset.utils.webdriver import PlaywrightTimeout
@@ -510,15 +536,11 @@ class TestWebDriverPlaywrightFallback:
         mock_user.username = "test_user"
 
         # Setup playwright mocks to raise timeout
-        mock_playwright_instance = MagicMock()
         mock_browser = MagicMock()
         mock_context = MagicMock()
         mock_page = MagicMock()
 
-        mock_sync_playwright.return_value.__enter__.return_value = (
-            mock_playwright_instance
-        )
-        mock_playwright_instance.chromium.launch.return_value = mock_browser
+        mock_browser_manager.get_browser.return_value = mock_browser
         mock_browser.new_context.return_value = mock_context
         mock_context.new_page.return_value = mock_page
         mock_page.goto.side_effect = PlaywrightTimeout()
@@ -530,6 +552,7 @@ class TestWebDriverPlaywrightFallback:
                 "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
                 "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
                 "SCREENSHOT_SELENIUM_HEADSTART": 5,
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
                 "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
                 "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
@@ -546,8 +569,10 @@ class TestWebDriverPlaywrightFallback:
                     "http://example.com", "test-element", mock_user
                 )
 
-        # Should handle timeout gracefully and return None
-        assert result is None
+        # page.goto() timeout is caught and logged without aborting; execution
+        # continues to the element waits, which succeed here, so a screenshot
+        # is taken and returned (not None).
+        assert result is not None
         mock_logger.exception.assert_called()
         exception_call = mock_logger.exception.call_args[0][0]
         assert "Web event %s not detected" in exception_call
@@ -638,34 +663,132 @@ class TestWebDriverPlaywrightErrorHandling:
         mock_close_button.click.assert_called_once()
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
-    @patch("superset.utils.webdriver.sync_playwright")
-    @patch("superset.utils.webdriver.logger")
-    def test_get_screenshot_logs_multiple_timeouts(
-        self, mock_logger, mock_sync_playwright
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.app")
+    def test_uses_wait_for_function_to_detect_spinners(
+        self, mock_app, mock_browser_manager
     ):
-        """Test that multiple timeout scenarios are logged appropriately."""
+        """wait_for_function polls for spinner absence rather than snapshotting."""
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = {
+            "WEBDRIVER_OPTION_ARGS": [],
+            "WEBDRIVER_WINDOW": {"pixel_density": 1},
+            "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+            "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+            "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+            "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+            "SCREENSHOT_TILED_ENABLED": False,
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 60,
+            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
+            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
+        }
+
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_element = MagicMock()
+
+        mock_browser_manager.get_browser.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+        mock_page.locator.return_value = mock_element
+        mock_element.screenshot.return_value = b"screenshot"
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            driver = WebDriverPlaywright("chrome")
+            driver.get_screenshot("http://example.com", "test-element", mock_user)
+
+        mock_page.wait_for_function.assert_called_once_with(
+            "() => document.querySelectorAll('.loading').length === 0",
+            timeout=60 * 1000,
+        )
+        # Guard against reintroducing the old snapshot-based approach
+        loading_locator_calls = [
+            c for c in mock_page.locator.call_args_list if c.args == (".loading",)
+        ]
+        assert loading_locator_calls == []
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.logger")
+    @patch("superset.utils.webdriver.app")
+    def test_spinner_timeout_logs_warning_and_raises(
+        self, mock_app, mock_logger, mock_browser_manager
+    ):
+        """Spinner timeout is logged as a warning and re-raised."""
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = {
+            "WEBDRIVER_OPTION_ARGS": [],
+            "WEBDRIVER_WINDOW": {"pixel_density": 1},
+            "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+            "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+            "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+            "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+            "SCREENSHOT_TILED_ENABLED": False,
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 60,
+            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
+            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
+        }
+
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_element = MagicMock()
+
+        mock_browser_manager.get_browser.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+        mock_page.locator.return_value = mock_element
+
+        timeout = PlaywrightTimeout()
+        mock_page.wait_for_function.side_effect = timeout
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            driver = WebDriverPlaywright("chrome")
+            with pytest.raises(PlaywrightTimeout) as exc_info:
+                driver.get_screenshot("http://example.com", "test-element", mock_user)
+
+        assert exc_info.value is timeout
+        mock_logger.warning.assert_any_call(
+            "Timed out waiting for charts to load at url %s (SCREENSHOT_LOAD_WAIT=%ss)",
+            "http://example.com",
+            60,
+        )
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.logger")
+    def test_get_screenshot_raises_on_element_wait_timeout(
+        self, mock_logger, mock_browser_manager
+    ):
+        """Test that PlaywrightTimeout propagates when waiting for page elements."""
         from superset.utils.webdriver import PlaywrightTimeout
 
         mock_user = MagicMock()
         mock_user.username = "test_user"
 
         # Setup mocks
-        mock_playwright_instance = MagicMock()
         mock_browser = MagicMock()
         mock_context = MagicMock()
         mock_page = MagicMock()
         mock_element = MagicMock()
 
-        mock_sync_playwright.return_value.__enter__.return_value = (
-            mock_playwright_instance
-        )
-        mock_playwright_instance.chromium.launch.return_value = mock_browser
+        mock_browser_manager.get_browser.return_value = mock_browser
         mock_browser.new_context.return_value = mock_context
         mock_context.new_page.return_value = mock_page
 
-        # Mock locator to raise timeout on element wait
+        # Keep a reference to the exact instance so we can verify identity below.
+        timeout = PlaywrightTimeout()
         mock_page.locator.return_value = mock_element
-        mock_element.wait_for.side_effect = PlaywrightTimeout()
+        mock_element.wait_for.side_effect = timeout
 
         with patch("superset.utils.webdriver.app") as mock_app:
             mock_app.config = {
@@ -674,6 +797,7 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
                 "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
                 "SCREENSHOT_SELENIUM_HEADSTART": 5,
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
                 "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
                 "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
@@ -686,10 +810,167 @@ class TestWebDriverPlaywrightErrorHandling:
                 mock_auth.return_value = mock_context
 
                 driver = WebDriverPlaywright("chrome")
+                with pytest.raises(PlaywrightTimeout) as exc_info:
+                    driver.get_screenshot(
+                        "http://example.com", "test-element", mock_user
+                    )
+
+        # The exact injected instance must propagate — guards against the
+        # fallback alias (PlaywrightTimeout = Exception when playwright is
+        # not installed) accepting unrelated exceptions.
+        assert exc_info.value is timeout
+        mock_logger.exception.assert_any_call(
+            "Timed out requesting url %s", "http://example.com"
+        )
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.logger")
+    def test_missing_element_for_dashboard_height_falls_back_without_crashing(
+        self, mock_logger, mock_browser_manager
+    ):
+        """Missing dashboard element should not crash height evaluation."""
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_element = MagicMock()
+        mock_chart_container = MagicMock()
+
+        mock_browser_manager.get_browser.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+
+        def locator_side_effect(selector):
+            if selector == ".dashboard":
+                return mock_element
+            if selector == ".chart-container":
+                locator = MagicMock()
+                locator.all.return_value = [mock_chart_container]
+                return locator
+            if selector == ".loading":
+                locator = MagicMock()
+                locator.all.return_value = []
+                return locator
+            return MagicMock()
+
+        mock_page.locator.side_effect = locator_side_effect
+        mock_element.wait_for.return_value = None
+        mock_element.screenshot.return_value = b"fake_screenshot"
+        mock_chart_container.wait_for.return_value = None
+        mock_page.wait_for_timeout.return_value = None
+
+        def evaluate_side_effect(script):
+            if script == 'document.querySelectorAll(".chart-container").length':
+                return 1
+            if "const target = document.querySelector" in script:
+                return 0
+            return None
+
+        mock_page.evaluate.side_effect = evaluate_side_effect
+
+        with patch("superset.utils.webdriver.app") as mock_app:
+            mock_app.config = {
+                "WEBDRIVER_OPTION_ARGS": [],
+                "WEBDRIVER_WINDOW": {"pixel_density": 1},
+                "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+                "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+                "SCREENSHOT_SELENIUM_HEADSTART": 5,
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
+                "SCREENSHOT_LOCATE_WAIT": 10,
+                "SCREENSHOT_LOAD_WAIT": 10,
+                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
+                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
+                "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+                "SCREENSHOT_TILED_ENABLED": True,
+                "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
+                "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 5000,
+                "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
+            }
+
+            with patch.object(WebDriverPlaywright, "auth") as mock_auth:
+                mock_auth.return_value = mock_context
+
+                driver = WebDriverPlaywright("chrome")
                 result = driver.get_screenshot(
-                    "http://example.com", "test-element", mock_user
+                    "http://example.com", "dashboard", mock_user
+                )
+
+        assert result == b"fake_screenshot"
+        mock_logger.warning.assert_any_call(
+            "Could not determine dashboard height for element %s at url %s; "
+            "falling back to standard screenshot behavior",
+            "dashboard",
+            "http://example.com",
+        )
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.logger")
+    @patch("superset.utils.webdriver.take_tiled_screenshot")
+    def test_tiled_screenshot_failure_returns_none_without_fallback(
+        self, mock_take_tiled, mock_logger, mock_browser_manager
+    ) -> None:
+        """When take_tiled_screenshot fails, return None rather than fall back to a
+        potentially blank standard screenshot."""
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_element = MagicMock()
+
+        mock_browser_manager.get_browser.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+        mock_page.locator.return_value = mock_element
+        mock_element.wait_for.return_value = None
+        mock_element.screenshot.return_value = b"should_not_be_called"
+
+        def evaluate_side_effect(script):
+            if "querySelectorAll" in script:
+                return 25  # chart_count >= threshold
+            if "const target" in script:
+                return 6000  # dashboard_height > height_threshold and > tile_height
+            return None
+
+        mock_page.evaluate.side_effect = evaluate_side_effect
+        mock_take_tiled.return_value = None  # tiled screenshot fails
+
+        with patch("superset.utils.webdriver.app") as mock_app:
+            mock_app.config = {
+                "WEBDRIVER_OPTION_ARGS": [],
+                "WEBDRIVER_WINDOW": {"pixel_density": 1},
+                "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+                "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+                "SCREENSHOT_SELENIUM_HEADSTART": 0,
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+                "SCREENSHOT_LOCATE_WAIT": 10,
+                "SCREENSHOT_LOAD_WAIT": 10,
+                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
+                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
+                "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+                "SCREENSHOT_TILED_ENABLED": True,
+                "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
+                "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 5000,
+                "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
+            }
+
+            with patch.object(WebDriverPlaywright, "auth") as mock_auth:
+                mock_auth.return_value = mock_context
+
+                driver = WebDriverPlaywright("chrome")
+                result = driver.get_screenshot(
+                    "http://example.com", "dashboard", mock_user
                 )
 
         assert result is None
-        # Should log timeout for element wait
-        assert mock_logger.exception.call_count >= 1
+        mock_element.screenshot.assert_not_called()
+        mock_logger.error.assert_any_call(
+            "Tiled screenshot failed at url %s; "
+            "not falling back to avoid sending a blank PDF",
+            "http://example.com",
+        )

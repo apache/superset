@@ -27,9 +27,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout Repository"
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
       - name: "Dependency Review"
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         continue-on-error: true
         with:
           fail-on-severity: critical
@@ -41,7 +43,7 @@ jobs:
           #   the latest version. It's MIT: https://github.com/nbubna/store/blob/master/LICENSE-MIT
           # pkg:npm/node-forge@1.3.1
           #   selecting BSD-3-Clause licensing terms for node-forge to ensure compatibility with Apache
-          allow-dependencies-licenses: pkg:npm/store2@2.14.2, pkg:npm/node-forge@1.3.1, pkg:npm/rgbcolor, pkg:npm/jszip@3.10.1
+          allow-dependencies-licenses: pkg:npm/rgbcolor, pkg:npm/jszip@3.10.1
 
   python-dependency-liccheck:
     # NOTE: Configuration for liccheck lives in our pyproject.yml.
@@ -49,7 +51,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: "Checkout Repository"
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Setup Python
         uses: ./.github/actions/setup-backend/

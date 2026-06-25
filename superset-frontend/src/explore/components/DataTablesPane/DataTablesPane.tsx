@@ -206,6 +206,7 @@ export const DataTablesPane = ({
         <StyledDiv>
           <SamplesPane
             datasource={datasource}
+            queryFormData={queryFormData}
             queryForce={queryForce}
             isRequest={isRequest.samples}
             setForceQuery={setForceQuery}

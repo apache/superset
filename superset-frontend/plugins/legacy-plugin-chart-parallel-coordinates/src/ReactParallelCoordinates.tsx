@@ -64,6 +64,7 @@ export default styled(ParallelCoordinates)`
     .parcoords text.label {
       font: 100%;
       font-size: ${theme.fontSizeSM}px;
+      fill: ${theme.colorText};
       cursor: drag;
     }
     .parcoords rect.background {
@@ -84,6 +85,9 @@ export default styled(ParallelCoordinates)`
       fill: none;
       stroke: ${theme.colorText};
       shape-rendering: crispEdges;
+    }
+    .parcoords .axis text {
+      fill: ${theme.colorText};
     }
     .parcoords canvas {
       opacity: 1;

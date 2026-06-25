@@ -34,7 +34,7 @@ import {
 } from '@apache-superset/core/theme';
 import { ThemeController } from './ThemeController';
 
-const ThemeContext = createContext<ThemeContextType | null>(null);
+export const ThemeContext = createContext<ThemeContextType | null>(null);
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -53,12 +53,25 @@ export function SupersetThemeProvider({
     themeController.getCurrentMode(),
   );
 
+  const [hasThemeConfigOverride, setHasThemeConfigOverride] = useState<boolean>(
+    themeController.hasThemeConfigOverride(),
+  );
+
   useEffect(() => {
-    const unsubscribe = themeController.onChange(theme => {
+    // TODO: Once we migrate to react>=18 is should be possible
+    // to replace the useState and useEffect with a singular
+    // useSyncExternalStore, simplifying quite a bit
+    const updateState = (theme: Theme) => {
       setCurrentTheme(theme);
       setCurrentThemeMode(themeController.getCurrentMode());
-    });
-
+      setHasThemeConfigOverride(themeController.hasThemeConfigOverride());
+      document.documentElement.setAttribute(
+        'data-theme-mode',
+        themeController.getCurrentModeResolved(),
+      );
+    };
+    const unsubscribe = themeController.onChange(updateState);
+    updateState(themeController.getTheme());
     return unsubscribe;
   }, [themeController]);
 
@@ -85,7 +98,8 @@ export function SupersetThemeProvider({
   // setCrudTheme removed - dashboards should NOT modify the global controller
 
   const setTemporaryTheme = useCallback(
-    (config: AnyThemeConfig) => themeController.setTemporaryTheme(config),
+    (config: AnyThemeConfig, themeId?: number | null) =>
+      themeController.setTemporaryTheme(config, themeId),
     [themeController],
   );
 
@@ -141,6 +155,7 @@ export function SupersetThemeProvider({
       clearLocalOverrides,
       getCurrentCrudThemeId,
       hasDevOverride,
+      hasThemeConfigOverride,
       canSetMode,
       canSetTheme,
       canDetectOSPreference,
@@ -158,6 +173,7 @@ export function SupersetThemeProvider({
       clearLocalOverrides,
       getCurrentCrudThemeId,
       hasDevOverride,
+      hasThemeConfigOverride,
       canSetMode,
       canSetTheme,
       canDetectOSPreference,

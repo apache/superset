@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
+    ChartError,
     ChartFilter,
     ChartInfo,
     ChartLike,
@@ -38,7 +39,12 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    remove_chart_data_model_columns,
+    request_uses_chart_data_model_filter,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +53,11 @@ DEFAULT_CHART_COLUMNS = [
     "id",
     "slice_name",
     "viz_type",
+    "description",
+    "certified_by",
+    "certification_details",
     "url",
+    "changed_on",
     "changed_on_humanized",
 ]
 
@@ -55,11 +65,12 @@ SORTABLE_CHART_COLUMNS = [
     "id",
     "slice_name",
     "viz_type",
-    "datasource_name",
     "description",
     "changed_on",
     "created_on",
 ]
+
+_DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
 
 
 @tool(
@@ -71,16 +82,40 @@ SORTABLE_CHART_COLUMNS = [
         destructiveHint=False,
     ),
 )
-@parse_request(ListChartsRequest)
-async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
+async def list_charts(
+    request: ListChartsRequest | None = None,
+    ctx: Context = None,
+) -> ChartList | ChartError:
     """List charts with filtering and search.
 
     Returns chart metadata including id, name, viz_type, URL, and last
     modified time.
 
-    Sortable columns for order_column: id, slice_name, viz_type,
-    datasource_name, description, changed_on, created_on
+    **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
+    Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
+    keyword arguments — they will be rejected. Use the ``request`` wrapper::
+
+        # Correct usage
+        list_charts(request={"search": "revenue", "page": 1, "page_size": 10})
+        list_charts(request={"filters": [{"col": "slice_name", "opr": "sw", "value": "sales"}]})
+        list_charts()  # no arguments returns first page with defaults
+
+        # Wrong — causes pydantic validation errors
+        list_charts(search="revenue", page=1)  # DO NOT DO THIS
+
+    Valid filter columns for ``filters[].col``:
+        ``slice_name``, ``viz_type``, ``datasource_name``,
+        ``created_by_fk``, ``changed_by_fk``
+
+    Sortable columns for ``order_column``:
+        ``id``, ``slice_name``, ``viz_type``, ``description``,
+        ``changed_on``, ``created_on``
+
+    To filter by a person, call find_users to resolve the name to a user ID,
+    then pass it as a filter: filters=[{"col": "created_by_fk", "opr": "eq",
+    "value": <id>}] (or "changed_by_fk"). Do not pass the name as search.
     """
+    request = request or _DEFAULT_LIST_CHARTS_REQUEST.model_copy(deep=True)
     await ctx.info(
         "Listing charts: page=%s, page_size=%s, search=%s"
         % (
@@ -105,8 +140,26 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
         get_chart_columns,
     )
 
+    can_view_data_model_metadata = user_can_view_data_model_metadata()
+    if not can_view_data_model_metadata and request_uses_chart_data_model_filter(
+        request.filters
+    ):
+        return ChartError(
+            error=(
+                "You don't have permission to access underlying dataset or "
+                "database details for your role."
+            ),
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
+
     # Get all column names dynamically from the model
     all_columns = get_all_column_names(get_chart_columns())
+    sortable_columns = CHART_SORTABLE_COLUMNS
+    select_columns = request.select_columns
+    if not can_view_data_model_metadata:
+        all_columns = remove_chart_data_model_columns(all_columns)
+        sortable_columns = remove_chart_data_model_columns(sortable_columns)
+        select_columns = remove_chart_data_model_columns(select_columns)
 
     def _serialize_chart(
         obj: "Slice | None", cols: list[str] | None
@@ -127,7 +180,7 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
         list_field_name="charts",
         output_list_schema=ChartList,
         all_columns=all_columns,
-        sortable_columns=CHART_SORTABLE_COLUMNS,
+        sortable_columns=sortable_columns,
         logger=logger,
     )
 
@@ -136,11 +189,13 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
             result = tool.run_tool(
                 filters=request.filters,
                 search=request.search,
-                select_columns=request.select_columns,
+                select_columns=select_columns,
                 order_column=request.order_column,
                 order_direction=request.order_direction,
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,
+                created_by_me=request.created_by_me,
+                owned_by_me=request.owned_by_me,
             )
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)

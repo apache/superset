@@ -39,9 +39,10 @@ export interface StatusIndicatorDotProps {
 interface StatusConfig {
   color: string;
   needsBorder: boolean;
+  outlineColor?: string;
 }
 
-const getStatusConfig = (
+export const getStatusConfig = (
   theme: ReturnType<typeof useTheme>,
   status: AutoRefreshStatus,
 ): StatusConfig => {
@@ -75,6 +76,7 @@ const getStatusConfig = (
       return {
         color: theme.colorBgContainer,
         needsBorder: true,
+        outlineColor: 'currentColor',
       };
     default:
       return {
@@ -136,13 +138,15 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
       width: ${size}px;
       height: ${size}px;
       border-radius: 50%;
+      color: ${theme.colorTextSecondary};
       background-color: ${statusConfig.color};
       transition:
         background-color ${theme.motionDurationMid} ease-in-out,
         border-color ${theme.motionDurationMid} ease-in-out;
-      border: ${statusConfig.needsBorder
-        ? `1px solid ${theme.colorBorder}`
-        : 'none'};
+      border: ${statusConfig.needsBorder ? '1px solid' : 'none'};
+      border-color: ${statusConfig.needsBorder
+        ? statusConfig.outlineColor
+        : 'transparent'};
       box-shadow: ${statusConfig.needsBorder
         ? 'none'
         : `0 0 0 2px ${theme.colorBgContainer}`};

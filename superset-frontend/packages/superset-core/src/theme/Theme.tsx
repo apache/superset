@@ -40,9 +40,17 @@ import {
 import { normalizeThemeConfig, serializeThemeConfig } from './utils';
 
 export class Theme {
-  theme: SupersetTheme;
+  // Forward-compat: TS 6.0 enforces strictPropertyInitialization here;
+  // both fields are assigned via setConfig() during construction, so we
+  // use a definite-assignment assertion rather than hoisting the logic
+  // out of setConfig().
+  //
+  // Assigned via setConfig() in the constructor; TypeScript 6.0's
+  // strictPropertyInitialization can't trace that call chain, so we use
+  // a definite-assignment assertion.
+  theme!: SupersetTheme;
 
-  private antdConfig: AntdThemeConfig;
+  private antdConfig!: AntdThemeConfig;
 
   private constructor({ config }: { config?: AnyThemeConfig }) {
     this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);
@@ -68,6 +76,17 @@ export class Theme {
       mergedConfig = mergeWith({}, baseTheme, config, (objValue, srcValue) =>
         Array.isArray(srcValue) ? srcValue : undefined,
       );
+
+      // In Ant Design v5, colorLink derives from colorInfo, not colorPrimary.
+      // Currently we expectlinks to follow the brand/primary color. When the user
+      // overrides colorPrimary without explicitly setting colorLink, update the
+      // merged colorLink so links match the new primary palette.
+      if (config.token?.colorPrimary && !config.token?.colorLink) {
+        const mToken = mergedConfig?.token;
+        if (mToken) {
+          mToken.colorLink = mToken.colorPrimary;
+        }
+      }
     } else if (baseTheme && !config) {
       mergedConfig = baseTheme;
     }
@@ -111,6 +130,10 @@ export class Theme {
    */
   setConfig(config: AnyThemeConfig): void {
     const antdConfig = normalizeThemeConfig(config);
+
+    if (antdConfig.token?.colorPrimary && !antdConfig.token?.colorLink) {
+      antdConfig.token.colorLink = antdConfig.token.colorPrimary;
+    }
 
     // First phase: Let Ant Design compute the tokens
     const tokens = Theme.getFilteredAntdTheme(antdConfig);

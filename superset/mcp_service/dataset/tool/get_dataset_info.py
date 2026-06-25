@@ -24,6 +24,7 @@ about a specific dataset.
 
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from fastmcp import Context
 from sqlalchemy.orm import joinedload, subqueryload
@@ -37,7 +38,11 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +56,10 @@ logger = logging.getLogger(__name__)
         destructiveHint=False,
     ),
 )
-@parse_request(GetDatasetInfoRequest)
+@requires_data_model_metadata_access
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
-) -> DatasetInfo | DatasetError:
+) -> dict[str, Any] | DatasetError:
     """Get dataset metadata by ID or UUID.
 
     Returns columns, metrics, and schema details.
@@ -63,6 +68,11 @@ async def get_dataset_info(
     - Use numeric ID (e.g., 123) or UUID string (e.g., "a1b2c3d4-...")
     - DO NOT use schema.table_name format (e.g., "public.customers")
     - To find a dataset ID, use the list_datasets tool first
+
+    IMPORTANT - Saved Metrics vs Columns:
+    The response includes both 'columns' (raw database columns) and 'metrics'
+    (pre-defined saved metrics). When building chart configs, use saved_metric=true
+    for metrics — do not treat them as columns. See instructions for details.
 
     Example usage:
     ```json
@@ -89,6 +99,14 @@ async def get_dataset_info(
             request.force_refresh,
         )
     )
+
+    # The decorator hides this tool from search; this check enforces direct calls.
+    if not user_can_view_data_model_metadata():
+        await ctx.warning("Dataset metadata lookup blocked by privacy controls")
+        return DatasetError.create(
+            error="You don't have permission to access dataset details for your role.",
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
 
     try:
         from superset.connectors.sqla.models import SqlaTable
@@ -127,6 +145,19 @@ async def get_dataset_info(
                     len(result.metrics) if result.metrics else 0,
                 )
             )
+            await ctx.debug(
+                "Filtering response: select_columns=%s, column_fields=%s"
+                % (request.select_columns, request.column_fields)
+            )
+            with event_logger.log_context(action="mcp.get_dataset_info.serialization"):
+                return result.model_dump(
+                    mode="json",
+                    by_alias=True,
+                    context={
+                        "select_columns": request.select_columns,
+                        "column_fields": request.column_fields,
+                    },
+                )
         else:
             await ctx.warning(
                 "Dataset retrieval failed: error_type=%s, error=%s"

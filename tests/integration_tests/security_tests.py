@@ -24,7 +24,7 @@ from unittest.mock import Mock, patch, call, ANY
 from typing import Any
 
 import jwt
-import prison
+import rison
 import pytest
 
 from flask import current_app, g
@@ -1293,7 +1293,7 @@ class TestRolePermission(SupersetTestCase):
             "page": 0,
             "page_size": -1,
         }
-        NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={prison.dumps(arguments)}"  # noqa: N806
+        NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={rison.dumps(arguments)}"  # noqa: N806
         self.login(GAMMA_USERNAME)
         databases_json = self.client.get(NEW_FLASK_GET_SQL_DBS_REQUEST).json
         assert databases_json["count"] == 1
@@ -1778,6 +1778,256 @@ class TestSecurityManager(SupersetTestCase):
                 database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
             )
 
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_allows_dataset(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        """
+        With force_dataset_match=True (SQL Lab path), a query that references
+        a table backed by a Superset dataset the user has datasource_access
+        on still succeeds.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM foo",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = [
+            Mock(perm="[examples].[bar].[foo](id:1)")
+        ]
+        # Only datasource_access succeeds; database_access / schema_access
+        # / catalog_access return False.
+        mock_can_access.side_effect = lambda perm, _vm: perm == "datasource_access"
+        mock_is_owner.return_value = False
+        security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_schema_only(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, schema_access alone
+        is not sufficient. The user must have datasource_access (or own) a
+        registered Superset dataset for the referenced table.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM table_with_no_dataset",
+            catalog=None,
+        )
+        # No SqlaTable registered for the referenced table.
+        mock_query_datasources.return_value = []
+        # User holds schema_access only (would have been sufficient before
+        # the fix); everything else returns False.
+        mock_can_access.side_effect = lambda perm, _vm: perm == "schema_access"
+        mock_is_owner.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_unresolved_schema(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, a query that
+        references a table without a resolvable schema (parser couldn't
+        infer one and the database has no default_schema) is denied
+        outright. Otherwise SqlaTable.query_datasources_by_name would drop
+        the schema filter and match a dataset in an unrelated schema while
+        the engine's search_path resolved the actual query against a
+        different schema.
+        """
+        database = get_example_database()
+        # default_schema_for_query returns None; the parser yields a Table
+        # with no schema either.
+        with patch.object(
+            database.db_engine_spec,
+            "get_default_schema_for_query",
+            return_value=None,
+        ):
+            query = Mock(
+                database=database,
+                schema=None,
+                sql="SELECT * FROM foo",
+                catalog=None,
+            )
+            # If the deny didn't fire first, query_datasources_by_name
+            # would return something matching across schemas.
+            mock_query_datasources.return_value = [
+                Mock(perm="[examples].[other_schema].[foo](id:1)")
+            ]
+            mock_can_access.return_value = False
+            mock_is_owner.return_value = False
+
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+                security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_unparseable(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, a query whose AST
+        contains an unparseable statement (sqlglot exp.Command, e.g. a
+        stored-procedure call whose internal SQL is dynamic) is denied,
+        because the per-table check below cannot see tables referenced
+        inside such statements.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="public",
+            # CALL on Postgres parses as exp.Command with no parseable
+            # literal, yielding zero extracted tables.
+            sql="CALL get_secret_data();",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = []
+        mock_can_access.return_value = False
+        mock_is_owner.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.security.manager.process_jinja_sql")
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_prefers_executed_sql(
+        self,
+        mock_can_access,
+        mock_is_owner,
+        mock_query_datasources,
+        mock_process_jinja,
+    ):
+        """
+        Re-validation (results fetch, CSV export, streaming export) does not
+        carry template_params, so the security manager parses
+        ``executed_sql`` (the rendered SQL that actually ran) when it is set
+        to keep the table set aligned with the execute-time check.
+        """
+        from superset.sql.parse import JinjaSQLResult, SQLScript
+
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM {{ table_name }}",
+            executed_sql="SELECT * FROM bar.foo",
+            catalog=None,
+        )
+        mock_process_jinja.return_value = JinjaSQLResult(
+            script=SQLScript("SELECT * FROM bar.foo", "postgresql"),
+            tables=set(),
+        )
+        mock_query_datasources.return_value = []
+        mock_can_access.return_value = False
+        mock_is_owner.return_value = False
+
+        security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+        sql_passed = mock_process_jinja.call_args.args[0]
+        assert sql_passed == "SELECT * FROM bar.foo"
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_kql(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, Kusto KQL (and any
+        other engine sqlglot doesn't model) is denied because table
+        extraction is unsupported. Otherwise raise_for_access would silently
+        return on an empty table set.
+        """
+        kql_db = Mock()
+        kql_db.database_name = "kql_db"
+        kql_db.db_engine_spec.engine = "kustokql"
+        kql_db.get_default_catalog.return_value = None
+        kql_db.get_default_schema_for_query.return_value = None
+        query = Mock(
+            database=kql_db,
+            schema=None,
+            sql="StormEvents | take 1",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = []
+        mock_can_access.return_value = False
+        mock_is_owner.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_default_keeps_schema_access(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        """
+        Without force_dataset_match (default), schema_access still grants
+        access to non-dataset tables. Preserves backwards compatibility for
+        chart-data on saved queries, dataset CRUD from SQL, explore on saved
+        queries, and other non-SQL-Lab callers.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM table_with_no_dataset",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = []
+        mock_can_access.side_effect = lambda perm, _vm: perm == "schema_access"
+        mock_is_owner.return_value = False
+
+        security_manager.raise_for_access(query=query)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_table_uses_default_schema(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        """
+        Regression test: under force_dataset_match=True, a caller that passes
+        an under-qualified Table (e.g. MetaDB's 2-part URI ``db.table``) is
+        resolved against the database's default schema before the strict
+        deny fires, so a user with datasource_access on the default-schema
+        dataset is not refused.
+        """
+        database = get_example_database()
+        with patch.object(
+            database.db_engine_spec,
+            "get_default_schema",
+            return_value="public",
+        ):
+            table = Table("foo", None, None)
+            mock_query_datasources.return_value = [
+                Mock(perm="[examples].[public].[foo](id:1)")
+            ]
+            mock_can_access.side_effect = lambda perm, _vm: perm == "datasource_access"
+            mock_is_owner.return_value = False
+            security_manager.raise_for_access(
+                database=database,
+                table=table,
+                force_dataset_match=True,
+            )
+            # query_datasources_by_name should have been called with the
+            # resolved default schema, not None.
+            mock_query_datasources.assert_called_once()
+            _args, kwargs = mock_query_datasources.call_args
+            assert kwargs.get("schema") == "public"
+
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
@@ -1895,16 +2145,19 @@ class TestSecurityManager(SupersetTestCase):
                         }
                     )
 
-                # Undefined dashboard chart.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={"dashboardId": births.id},
-                            )
-                        }
-                    )
+                # Drill to Detail (no slice_id/chart_id): datasource on dashboard.
+                # Access is granted via DASHBOARD_RBAC — D2D is a valid operation
+                # for users who have dashboard access.
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={"dashboardId": births.id},
+                            slice_=None,
+                            queries=[],
+                        )
+                    }
+                )
 
                 # Ill-defined dashboard chart.
                 with self.assertRaises(SupersetSecurityException):  # noqa: PT027

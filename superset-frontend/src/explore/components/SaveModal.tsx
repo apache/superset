@@ -34,6 +34,7 @@ import {
   Loading,
   Divider,
   Flex,
+  Typography,
   TreeSelect,
 } from '@superset-ui/core/components';
 import { logging } from '@apache-superset/core/utils';
@@ -48,9 +49,16 @@ import {
 } from '@apache-superset/core/theme';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
-import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
+import {
+  canUserEditDashboard,
+  isUserAdmin,
+} from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
-import { SaveActionType, ChartStatusType } from 'src/explore/types';
+import {
+  SaveActionType,
+  ChartStatusType,
+  ExplorePageInitialData,
+} from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   removeChartState,
@@ -71,11 +79,13 @@ interface SaveModalProps extends RouteComponentProps {
   alert?: string;
   sliceName?: string;
   slice?: Record<string, any>;
+  can_overwrite?: boolean;
   datasource?: Record<string, any>;
   dashboardId: '' | number | null;
   isVisible: boolean;
   dispatch: Dispatch;
   theme: SupersetTheme;
+  metadata?: ExplorePageInitialData['metadata'];
 }
 
 type SaveModalState = {
@@ -92,11 +102,6 @@ type SaveModalState = {
 export const StyledModal = styled(Modal)`
   .ant-modal-body {
     overflow: visible;
-  }
-  i {
-    position: absolute;
-    top: -${({ theme }) => theme.sizeUnit * 5.25}px;
-    left: ${({ theme }) => theme.sizeUnit * 26.75}px;
   }
 `;
 
@@ -129,7 +134,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   canOverwriteSlice(): boolean {
     return (
-      this.props.slice?.owners?.includes(this.props.user.userId) &&
+      (this.props.can_overwrite ||
+        isUserAdmin(this.props.user) ||
+        this.props.slice?.owners?.includes(this.props.user.userId)) &&
       !this.props.slice?.is_managed_externally
     );
   }
@@ -160,6 +167,35 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           t('An error occurred while loading dashboard information.'),
         );
       }
+    } else {
+      const metadataDashboards = this.props.metadata?.dashboards;
+      if (metadataDashboards?.length) {
+        // Fallback: the chart is already on one or more dashboards (from Explore API
+        // metadata). Pre-populate with the first dashboard the user can edit so the
+        // "Save & go to dashboard" button works out of the box.
+        try {
+          let editable: Dashboard | undefined;
+          for (const { id } of metadataDashboards) {
+            // eslint-disable-next-line no-await-in-loop
+            const result = await this.loadDashboard(id).catch(() => null);
+            if (result && canUserEditDashboard(result, this.props.user)) {
+              editable = result as Dashboard;
+              break;
+            }
+          }
+          if (editable) {
+            this.setState({
+              dashboard: {
+                label: editable.dashboard_title,
+                value: editable.id,
+              },
+            });
+            await this.loadTabs(editable.id);
+          }
+        } catch (error) {
+          logging.warn(error);
+        }
+      }
     }
   }
 
@@ -172,17 +208,21 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     this.setState({ newSliceName: event.target.value });
   }
 
-  onDashboardChange = async (dashboard: {
-    label: string;
-    value: string | number;
-  }) => {
+  onDashboardChange = async (
+    dashboard:
+      | {
+          label: string;
+          value: string | number;
+        }
+      | undefined,
+  ) => {
     this.setState({
       dashboard,
       tabsData: [],
       selectedTab: undefined,
     });
 
-    if (typeof dashboard.value === 'number') {
+    if (dashboard && typeof dashboard.value === 'number') {
       await this.loadTabs(dashboard.value);
     }
   };
@@ -196,10 +236,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   handleRedirect = (windowLocationSearch: string, chart: any) => {
     const searchParams = new URLSearchParams(windowLocationSearch);
-    searchParams.set('save_action', this.state.action);
-
     searchParams.delete('form_data_key');
-
     searchParams.set('slice_id', chart.id.toString());
     return searchParams;
   };
@@ -343,7 +380,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         return;
       }
       const searchParams = this.handleRedirect(window.location.search, value);
-      this.props.history.replace(`/explore/?${searchParams.toString()}`);
+      this.props.history.replace(`/explore/?${searchParams.toString()}`, {
+        saveAction: this.state.action,
+      });
 
       this.setState({ isLoading: false });
       this.onHide();
@@ -599,18 +638,32 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   renderSaveChartModal = () => {
     const info = this.info();
+    const canOverwriteSlice = this.canOverwriteSlice();
     return (
       <Form data-test="save-modal-body" layout="vertical">
         <FormItem data-test="radio-group">
           <Radio
             id="overwrite-radio"
-            disabled={!this.canOverwriteSlice()}
+            disabled={!canOverwriteSlice}
             checked={this.state.action === 'overwrite'}
             onChange={() => this.changeAction('overwrite')}
             data-test="save-overwrite-radio"
           >
             {t('Save (Overwrite)')}
           </Radio>
+          {this.props.slice && !canOverwriteSlice && (
+            <div>
+              <Typography.Text type="secondary">
+                {this.props.slice.is_managed_externally
+                  ? t(
+                      "This chart is managed externally and can't be overwritten in Superset.",
+                    )
+                  : t(
+                      'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+                    )}
+              </Typography.Text>
+            </div>
+          )}
           <Radio
             id="saveas-radio"
             data-test="saveas-radio"
@@ -802,10 +855,12 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 interface StateProps {
   datasource: any;
   slice: any;
+  can_overwrite: boolean;
   user: UserWithPermissionsAndRoles;
   dashboards: any;
   alert: any;
   isVisible: boolean;
+  metadata?: ExplorePageInitialData['metadata'];
 }
 
 function mapStateToProps({
@@ -816,10 +871,12 @@ function mapStateToProps({
   return {
     datasource: explore.datasource,
     slice: explore.slice,
+    can_overwrite: explore.can_overwrite,
     user,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
     isVisible: saveModal.isVisible,
+    metadata: explore.metadata,
   };
 }
 

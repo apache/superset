@@ -179,6 +179,33 @@ test('renders the right footer buttons', () => {
   ).toBeInTheDocument();
 });
 
+test('initializes chart name from current Explore slice name', () => {
+  const previewSliceName = 'RENAMED - Bug Evidence';
+  const savedSliceName = 'Most Populated Countries';
+  const { getByTestId } = setup(
+    {
+      ...defaultProps,
+      form_data: {
+        ...defaultProps.form_data,
+        slice_name: previewSliceName,
+      },
+      sliceName: previewSliceName,
+    },
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          slice_name: savedSliceName,
+        },
+      },
+    }),
+  );
+
+  expect(getByTestId('new-chart-name')).toHaveValue(previewSliceName);
+});
+
 test('does not render a message when overriding', () => {
   const { getByRole, queryByRole } = setup();
 
@@ -255,7 +282,7 @@ test('disables overwrite option for new slice', () => {
 });
 
 test('disables overwrite option for non-owner', () => {
-  const { getByRole } = setup(
+  const { getByRole, getByText } = setup(
     {},
     mockStore({
       ...initialState,
@@ -263,6 +290,49 @@ test('disables overwrite option for non-owner', () => {
     }),
   );
   expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+  expect(
+    getByText(
+      'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('disables overwrite option for externally managed slice', () => {
+  const { getByRole, getByText } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          is_managed_externally: true,
+        },
+      },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+  expect(
+    getByText(
+      "This chart is managed externally and can't be overwritten in Superset.",
+    ),
+  ).toBeInTheDocument();
+});
+
+test('enables overwrite option for admin non-owner', () => {
+  const { getByRole } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      user: {
+        userId: 2,
+        username: 'Admin2',
+        roles: { Admin: Array(173) },
+        permissions: {},
+      },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeEnabled();
 });
 
 test('updates slice name and selected dashboard', async () => {
@@ -381,7 +451,7 @@ test('removes form_data_key from URL parameters after save', () => {
   // other parameters should remain
   expect(result.get('other_param')).toEqual('value');
   expect(result.get('slice_id')).toEqual('1');
-  expect(result.get('save_action')).toEqual('overwrite');
+  expect(result.has('save_action')).toBe(false);
 });
 
 test('dispatches removeChartState when saving and going to dashboard', async () => {
@@ -542,6 +612,172 @@ test('onTabChange correctly updates selectedTab via forceUpdate', () => {
   expect(component.state.selectedTab).toEqual({
     value: 'tab2',
     label: 'Analytics Tab',
+  });
+});
+
+const ownerUser = {
+  userId: 1,
+  username: 'testuser',
+  firstName: 'Test',
+  lastName: 'User',
+  isActive: true,
+  isAnonymous: false,
+  permissions: {},
+  roles: { Alpha: [['can_write', 'Dashboard']] as [string, string][] },
+  groups: [],
+};
+
+const makeMetadataDashboard = (id: number, title: string) => ({
+  id,
+  dashboard_title: title,
+  owners: [{ id: 1, first_name: 'Test', last_name: 'User' }],
+  extra_owners: [],
+  roles: [],
+  url: `/superset/dashboard/${id}/`,
+  slug: null,
+  thumbnail_url: null,
+  published: true,
+  changed_by_name: 'Test User',
+  changed_by: { id: 1, first_name: 'Test', last_name: 'User' },
+  changed_on: '2024-01-01',
+  charts: [],
+});
+
+test('pre-populates dashboard from metadata.dashboards when dashboardId prop is absent', async () => {
+  const dashboardId = 5;
+  const dashboardTitle = 'Chart Dashboard';
+
+  const myProps = {
+    ...defaultProps,
+    dashboardId: null,
+    metadata: {
+      dashboards: [{ id: dashboardId, dashboard_title: dashboardTitle }],
+      owners: ['Test User'],
+      created_on_humanized: '2 days ago',
+      changed_on_humanized: '1 day ago',
+    },
+    user: ownerUser,
+    slice: { slice_id: 1, slice_name: 'My Chart', owners: [1] },
+    dispatch: jest.fn(),
+    addDangerToast: jest.fn(),
+  };
+
+  const component = new TestSaveModal(myProps);
+  const mockFull = makeMetadataDashboard(dashboardId, dashboardTitle);
+
+  component.loadDashboard = jest.fn().mockResolvedValue(mockFull);
+  component.loadTabs = jest.fn().mockResolvedValue([]);
+
+  const stateUpdates: any[] = [];
+  component.setState = jest.fn((update: any) => {
+    stateUpdates.push(update);
+  });
+
+  try {
+    sessionStorage.clear();
+  } catch (_) {
+    // ignore
+  }
+
+  await component.componentDidMount();
+
+  expect(component.loadDashboard).toHaveBeenCalledWith(dashboardId);
+  expect(stateUpdates).toContainEqual({
+    dashboard: { label: dashboardTitle, value: dashboardId },
+  });
+  expect(component.loadTabs).toHaveBeenCalledWith(dashboardId);
+});
+
+test('skips non-editable dashboards and picks the first editable one from metadata', async () => {
+  const editableId = 7;
+  const editableTitle = 'Editable Dashboard';
+
+  const myProps = {
+    ...defaultProps,
+    dashboardId: null,
+    metadata: {
+      dashboards: [
+        { id: 6, dashboard_title: 'Not Mine' },
+        { id: editableId, dashboard_title: editableTitle },
+      ],
+      owners: ['Test User'],
+      created_on_humanized: '2 days ago',
+      changed_on_humanized: '1 day ago',
+    },
+    user: ownerUser,
+    slice: { slice_id: 1, slice_name: 'My Chart', owners: [1] },
+    dispatch: jest.fn(),
+    addDangerToast: jest.fn(),
+  };
+
+  const component = new TestSaveModal(myProps);
+
+  const notMine = makeMetadataDashboard(6, 'Not Mine');
+  notMine.owners = [{ id: 99, first_name: 'Other', last_name: 'Owner' }];
+  const editable = makeMetadataDashboard(editableId, editableTitle);
+
+  component.loadDashboard = jest
+    .fn()
+    .mockImplementation((id: number) =>
+      Promise.resolve(id === 6 ? notMine : editable),
+    );
+  component.loadTabs = jest.fn().mockResolvedValue([]);
+
+  const stateUpdates: any[] = [];
+  component.setState = jest.fn((update: any) => {
+    stateUpdates.push(update);
+  });
+
+  try {
+    sessionStorage.clear();
+  } catch (_) {
+    // ignore
+  }
+
+  await component.componentDidMount();
+
+  expect(stateUpdates).toContainEqual({
+    dashboard: { label: editableTitle, value: editableId },
+  });
+  expect(component.loadTabs).toHaveBeenCalledWith(editableId);
+});
+
+test('does not use metadata fallback when dashboardId prop is set', async () => {
+  const propDashboardId = 3;
+  const propDashboardTitle = 'Prop Dashboard';
+
+  const myProps = {
+    ...defaultProps,
+    dashboardId: propDashboardId,
+    metadata: {
+      dashboards: [{ id: 99, dashboard_title: 'Should Not Be Used' }],
+      owners: ['Test User'],
+      created_on_humanized: '2 days ago',
+      changed_on_humanized: '1 day ago',
+    },
+    user: ownerUser,
+    slice: { slice_id: 1, slice_name: 'My Chart', owners: [1] },
+    dispatch: jest.fn(),
+    addDangerToast: jest.fn(),
+  };
+
+  const component = new TestSaveModal(myProps);
+  const mockFull = makeMetadataDashboard(propDashboardId, propDashboardTitle);
+
+  component.loadDashboard = jest.fn().mockResolvedValue(mockFull);
+  component.loadTabs = jest.fn().mockResolvedValue([]);
+
+  const stateUpdates: any[] = [];
+  component.setState = jest.fn((update: any) => {
+    stateUpdates.push(update);
+  });
+
+  await component.componentDidMount();
+
+  expect(component.loadDashboard).toHaveBeenCalledWith(propDashboardId);
+  expect(component.loadDashboard).not.toHaveBeenCalledWith(99);
+  expect(stateUpdates).toContainEqual({
+    dashboard: { label: propDashboardTitle, value: propDashboardId },
   });
 });
 

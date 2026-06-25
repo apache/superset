@@ -167,6 +167,7 @@ class DatasetPostSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
     template_params = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
@@ -291,6 +292,20 @@ class ImportV1MetricSchema(Schema):
         if isinstance(data.get("extra"), str):
             data["extra"] = json.loads(data["extra"])
 
+        return data
+
+    @pre_load
+    def fix_template_params(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """
+        Fix for template_params initially being exported as an empty string.
+        """
+        if (
+            isinstance(data.get("template_params"), str)
+            and data["template_params"].strip() == ""
+        ):
+            data["template_params"] = None
         return data
 
     metric_name = fields.String(required=True)

@@ -42,7 +42,10 @@ function alterUnsavedQueryEditorState(
   id: string,
   silent = false,
 ): Partial<SqlLabState> {
-  if (state.tabHistory[state.tabHistory.length - 1] !== id) {
+  if (
+    state.tabHistory.length > 0 &&
+    state.tabHistory[state.tabHistory.length - 1] !== id
+  ) {
     const { queryEditors } = alterInArr(
       state,
       'queryEditors',
@@ -601,8 +604,20 @@ export default function sqlLabReducer(
     },
     [actions.QUERY_EDITOR_SET_SQL]() {
       const { unsavedQueryEditor } = state;
+      const actionId = action.queryEditor!.id!;
+      // Skip the O(n) tabViewId scan on the common path (keystroke: actionId already
+      // matches the active editor's client-side id). Only scan when ids differ, which
+      // happens when restoring from history with a backend-assigned tabViewId.
+      const normalizedId =
+        unsavedQueryEditor?.id === actionId
+          ? actionId
+          : ((
+              getFromArr(state.queryEditors, actionId, 'tabViewId') as
+                | QueryEditor
+                | undefined
+            )?.id ?? actionId);
       if (
-        unsavedQueryEditor?.id === action.queryEditor!.id &&
+        unsavedQueryEditor?.id === normalizedId &&
         unsavedQueryEditor.sql === action.sql
       ) {
         return state;
@@ -615,7 +630,7 @@ export default function sqlLabReducer(
             sql: action.sql ?? undefined,
             ...(action.queryId && { latestQueryId: action.queryId }),
           },
-          action.queryEditor!.id!,
+          normalizedId,
         ),
       };
     },

@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"name":{"maxLength":64,"type":"string"}},"required":["name"],"type":"object","title":"SupersetRoleApi.post"},"example":{"name":"string"}}},"description":"Model schema","required":true}}

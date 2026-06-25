@@ -101,13 +101,14 @@ import { RefreshButton } from '../RefreshButton';
 
 type DashboardPropertiesUpdate = {
   slug?: string;
+  description?: string;
   jsonMetadata?: string;
   certifiedBy?: string;
   certificationDetails?: string;
   owners?: Owner[];
   roles?: Role[];
   tags?: TagType[];
-  themeId?: number | null;
+  theme?: { id: number; theme_name: string; json_data: string } | null;
   css?: string;
   title?: string;
 };
@@ -122,6 +123,7 @@ type DashboardInfoState = RootState['dashboardInfo'] & {
   dash_share_perm?: boolean;
   is_managed_externally?: boolean;
   slug?: string;
+  description?: string;
   last_modified_time?: number;
   certified_by?: string;
   certification_details?: string;
@@ -442,6 +444,7 @@ const Header = (): JSX.Element => {
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
       slug,
+      description: dashboardInfo.description,
       tags: (dashboardInfo.tags || []).filter(
         item => item.type === TagTypeEnum.Custom || !item.type,
       ),
@@ -497,6 +500,7 @@ const Header = (): JSX.Element => {
     shouldPersistRefreshFrequency,
     slug,
     themeId,
+    dashboardInfo.description,
   ]);
 
   const {
@@ -555,13 +559,17 @@ const Header = (): JSX.Element => {
     (updates: DashboardPropertiesUpdate) => {
       boundActionCreators.dashboardInfoChanged({
         slug: updates.slug,
+        description: updates.description,
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
         owners: updates.owners,
         roles: updates.roles,
         tags: updates.tags,
-        theme_id: updates.themeId,
+        // Conditional spread: omit `theme` key entirely when undefined
+        // to prevent the reducer from overwriting the existing theme.
+        // `undefined` means "not changed" (e.g., theme not in fetched list).
+        ...(updates.theme !== undefined && { theme: updates.theme }),
         css: updates.css,
       });
       boundActionCreators.setUnsavedChanges(true);
@@ -746,7 +754,7 @@ const Header = (): JSX.Element => {
         ) : (
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
-            {userCanEdit && (
+            {userCanEdit && !isEmbedded && (
               <Button
                 buttonStyle="secondary"
                 onClick={handleEnterEditMode}
@@ -773,6 +781,7 @@ const Header = (): JSX.Element => {
       handleCtrlZ,
       handleEnterEditMode,
       hasUnsavedChanges,
+      isEmbedded,
       overwriteDashboard,
       redoLength,
       undoLength,
