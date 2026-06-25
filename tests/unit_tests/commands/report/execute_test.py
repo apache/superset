@@ -17,7 +17,8 @@
 
 import json  # noqa: TID251
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
+from typing import Any
+from unittest.mock import MagicMock, Mock, patch
 from urllib.error import URLError
 from uuid import UUID, uuid4
 
@@ -37,6 +38,8 @@ from superset.commands.report.exceptions import (
     ReportScheduleStateNotFoundError,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
+    ReportScheduleXlsxFailedError,
+    ReportScheduleXlsxTimeout,
 )
 from superset.commands.report.execute import (
     BaseReportState,
@@ -1416,7 +1419,7 @@ def test_screenshot_width_calculation(
 
 def _executor_report_state(mocker: MockerFixture) -> BaseReportState:
     report_schedule = create_report_schedule(mocker)
-    # _get_csv_data/_get_embedded_data build a chart-data URL from chart_id
+    # _get_data/_get_embedded_data build a chart-data URL from chart_id
     # before resolving the executor; give it a concrete value so URL building
     # succeeds and the executor resolution is actually reached.
     report_schedule.chart_id = 1
@@ -1429,11 +1432,18 @@ def _executor_report_state(mocker: MockerFixture) -> BaseReportState:
 
 
 @pytest.mark.parametrize(
-    "method_name",
-    ["_get_screenshots", "_get_csv_data", "_get_embedded_data"],
+    ("method_name", "method_args"),
+    [
+        ("_get_screenshots", ()),
+        ("_get_data", (ChartDataResultFormat.CSV,)),
+        ("_get_embedded_data", ()),
+    ],
 )
 def test_get_content_raises_when_executor_user_missing(
-    app: SupersetApp, mocker: MockerFixture, method_name: str
+    app: SupersetApp,
+    mocker: MockerFixture,
+    method_name: str,
+    method_args: tuple[Any, ...],
 ) -> None:
     """
     When the configured executor user cannot be resolved
@@ -1460,7 +1470,37 @@ def test_get_content_raises_when_executor_user_missing(
         mock_sm.find_user = mocker.MagicMock(return_value=None)
 
         with pytest.raises(ReportScheduleExecutorNotFoundError, match="ghost_user"):
-            getattr(report_state, method_name)()
+            getattr(report_state, method_name)(*method_args)
+
+
+def test_get_data_xlsx_wraps_soft_time_limit_as_xlsx_timeout(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """
+    A ``SoftTimeLimitExceeded`` during XLSX fetch surfaces as
+    ``ReportScheduleXlsxTimeout`` (not the CSV timeout class), so Excel report
+    timeouts are classified under the format-specific error.
+    """
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    app.config.update({"ALERT_REPORTS_CSV_REQUEST_TIMEOUT": 60})
+    report_state = _executor_report_state(mocker)
+    # Non-None query context so _get_data skips the screenshot fallback and
+    # reaches the get_chart_csv_data call this test drives to time out.
+    report_state._report_schedule.chart.query_context = '{"mock": "qc"}'
+
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.MagicMock(), "executor"),
+    )
+    mocker.patch("superset.commands.report.execute.machine_auth_provider_factory")
+    mocker.patch(
+        "superset.commands.report.execute.get_chart_csv_data",
+        side_effect=SoftTimeLimitExceeded(),
+    )
+
+    with pytest.raises(ReportScheduleXlsxTimeout):
+        report_state._get_data(ChartDataResultFormat.XLSX)
 
 
 def test_executor_not_found_error_message_without_username() -> None:
@@ -1757,6 +1797,22 @@ def test_update_query_context_wraps_screenshot_failure(mocker: MockerFixture) ->
         state._update_query_context()
 
 
+def test_update_query_context_wraps_screenshot_failure_xlsx(
+    mocker: MockerFixture,
+) -> None:
+    """_update_query_context surfaces the caller's error class (XLSX, not CSV)."""
+    schedule = mocker.Mock(spec=ReportSchedule)
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._report_schedule = schedule
+    mocker.patch.object(
+        state,
+        "_get_screenshots",
+        side_effect=ReportScheduleScreenshotFailedError("boom"),
+    )
+    with pytest.raises(ReportScheduleXlsxFailedError, match="query context"):
+        state._update_query_context(ReportScheduleXlsxFailedError)
+
+
 def test_update_query_context_wraps_screenshot_timeout(mocker: MockerFixture) -> None:
     """_update_query_context wraps ScreenshotTimeout as CsvFailedError."""
     schedule = mocker.Mock(spec=ReportSchedule)
@@ -1876,10 +1932,27 @@ def test_get_notification_content_csv_format(mock_ff, mocker: MockerFixture) -> 
     state = _make_notification_state(
         mocker, report_format=ReportDataFormat.CSV, has_chart=True
     )
-    mocker.patch.object(state, "_get_csv_data", return_value=b"col1,col2\n1,2")
+    mocker.patch.object(state, "_get_data", return_value=b"col1,col2\n1,2")
 
     content = state._get_notification_content()
     assert content.csv == b"col1,col2\n1,2"
+    assert content.xlsx is None
+
+
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_get_notification_content_xlsx_format(
+    mock_ff: MagicMock, mocker: MockerFixture
+) -> None:
+    """XLSX-format reports populate ``NotificationContent.xlsx`` (not ``csv``)."""
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(
+        mocker, report_format=ReportDataFormat.XLSX, has_chart=True
+    )
+    mocker.patch.object(state, "_get_data", return_value=b"xlsx_bytes")
+
+    content = state._get_notification_content()
+    assert content.xlsx == b"xlsx_bytes"
+    assert content.csv is None
 
 
 @patch("superset.commands.report.execute.feature_flag_manager")
