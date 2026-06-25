@@ -36,7 +36,11 @@ from superset.utils.core import check_is_safe_zip
 logger = logging.getLogger(__name__)
 
 FRONTEND_REGEX = re.compile(r"^frontend/dist/([^/]+)$")
-BACKEND_REGEX = re.compile(r"^backend/src/(.+)$")
+# Reject any entry whose path contains "..", conservatively excluding parent
+# traversal segments along with the (in practice nonexistent) case of a module
+# path embedding consecutive dots, so a crafted entry name cannot produce a
+# traversal-style module path (defense in depth; check_is_safe_zip runs first).
+BACKEND_REGEX = re.compile(r"^backend/src/(?!.*\.\.)(.+)$")
 
 
 class InMemoryLoader(importlib.abc.Loader):
@@ -234,6 +238,7 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     manifest = extension.manifest
     extension_data: dict[str, Any] = {
         "id": manifest.id,
+        "publisher": manifest.publisher,
         "name": extension.name,
         "version": extension.version,
         "description": manifest.description or "",

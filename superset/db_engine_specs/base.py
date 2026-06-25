@@ -72,6 +72,7 @@ from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
+    Partition,
     RLSMethod,
     SQLScript,
     SQLStatement,
@@ -1355,12 +1356,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         table: Table,
+        partition: Partition | None = None,
     ) -> TableMetadataResponse:
         """
         Returns basic table metadata
 
         :param database: Database instance
         :param table: A Table instance
+        :param partition: Optional partition info used by engines that support
+            partitioned tables (e.g. ODPS). Ignored by engines that don't.
         :return: Basic table metadata
         """
         return get_table_metadata(database, table)
@@ -1982,7 +1986,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             fields = cls._get_fields(cols)
 
         full_table_name = cls.quote_table(table, dialect)
-        qry = select(fields).select_from(text(full_table_name))
+        qry = select(*fields if isinstance(fields, list) else fields).select_from(
+            text(full_table_name)
+        )
 
         qry = qry.limit(limit)
         if latest_partition:
@@ -2472,6 +2478,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
 
         return None
+
+    @staticmethod
+    def validate_cancel_query_id(
+        cancel_query_id: str | None,
+        pattern: str = r"^\d+$",
+    ) -> bool:
+        """
+        Validate that a cancel_query_id matches expected format.
+
+        This is a defense-in-depth measure to prevent SQL injection in cancel_query
+        implementations that use string interpolation. While cancel_query_id typically
+        comes from trusted database sources (e.g., CONNECTION_ID()), validation ensures
+        safety even if the data source is compromised.
+
+        :param cancel_query_id: The query identifier to validate
+        :param pattern: Regex pattern to match (default: numeric only)
+        :return: True if valid, False otherwise
+        """
+        if cancel_query_id is None:
+            return False
+        return bool(re.fullmatch(pattern, str(cancel_query_id)))
 
     @classmethod
     def cancel_query(  # pylint: disable=unused-argument

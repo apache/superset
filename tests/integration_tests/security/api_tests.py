@@ -260,8 +260,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_positive(self):
@@ -276,8 +277,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_negative(self):
@@ -349,6 +351,33 @@ class TestSecurityRolesApi(SupersetTestCase):
             content_type="application/json",
         )
         self.assert403(response)
+
+    def test_show_roles_unexpected_error_returns_generic_message(self):
+        """
+        Security API: an unexpected error in role listing returns a generic 500
+        body (no raw exception text) and is logged server-side.
+        """
+        from unittest.mock import patch
+
+        self.login(ADMIN_USERNAME)
+        error_detail = "raw-driver-detail-should-not-leak"
+        # Patch a symbol used only inside get_list's query construction so the
+        # failure happens within the handler's try/except, not in the @protect()
+        # auth check (which also touches db.session.query).
+        with (
+            patch(
+                "superset.security.api.selectinload",
+                side_effect=Exception(error_detail),
+            ),
+            patch("superset.security.api.logger") as mock_logger,
+        ):
+            response = self.client.get(self.show_uri)
+
+        assert response.status_code == 500
+        body = response.data.decode("utf-8")
+        assert error_detail not in body
+        assert "An unexpected error occurred" in body
+        mock_logger.exception.assert_called_once()
 
     def test_show_roles_admin(self):
         """

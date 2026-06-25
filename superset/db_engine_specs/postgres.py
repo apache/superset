@@ -24,7 +24,7 @@ from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
@@ -785,10 +785,10 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return {
             catalog
             for (catalog,) in inspector.bind.execute(
-                """
+                text("""
 SELECT datname FROM pg_database
 WHERE datistemplate = false;
-            """
+                """)
             )
         }
 
@@ -862,6 +862,11 @@ WHERE datistemplate = false;
         :param cancel_query_id: Postgres PID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # PostgreSQL pg_backend_pid() returns an integer
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
+            return False
+
         try:
             cursor.execute(
                 "SELECT pg_terminate_backend(pid) "  # noqa: S608

@@ -28,7 +28,7 @@ jobs:
         python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "previous", "next"]') }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           submodules: recursive
@@ -48,9 +48,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'superset-frontend/package-lock.json'
+          node-version-file: "superset-frontend/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "superset-frontend/package-lock.json"
 
       - name: Install Frontend Dependencies
         run: |
@@ -74,7 +74,7 @@ jobs:
         id: changed_files
         uses: ./.github/actions/file-changes-action
         with:
-          output: ' '
+          output: " "
 
       - name: pre-commit
         env:

@@ -134,9 +134,11 @@ async function runOxlintAndProcess() {
     console.log('Running minimal ESLint for custom rules...');
     let eslintOutput = '[]';
     try {
-      // Run ESLint and capture output directly
+      // Run ESLint and capture output directly.
+      // Flat config (eslint.config.minimal.js) is explicitly selected via
+      // --config; ESLint v9+/v10 no longer support eslintrc or --no-eslintrc.
       eslintOutput = execSync(
-        'npx eslint --no-eslintrc --config .eslintrc.minimal.js --no-inline-config --format json src',
+        'npx eslint --config eslint.config.minimal.js --no-inline-config --format json src',
         {
           encoding: 'utf8',
           maxBuffer: 50 * 1024 * 1024,

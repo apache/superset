@@ -14,12 +14,102 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional, TypedDict, Union
+import hashlib
+import logging
+from typing import Any, Optional, TypedDict, Union
 
 from flask_appbuilder.security.sqla.models import Group, Role
 from flask_login import AnonymousUserMixin
 
 from superset.utils.backports import StrEnum
+
+logger = logging.getLogger(__name__)
+
+
+def build_guest_token_audit_payload(
+    issuer_user_id: Optional[int],
+    source_ip: Optional[str],
+    body: dict[str, Any],
+    token: str,
+) -> dict[str, Any]:
+    """Build security-relevant metadata for a guest-token issuance event.
+
+    Captures who issued the token, from where, what it grants, and a hash of
+    the issued token (never the raw token) so a later investigation into a
+    misissued or over-scoped token can be scoped from the audit log.
+    """
+    resources = body.get("resources") or []
+    rls = body.get("rls") or []
+    return {
+        "issuer_user_id": issuer_user_id,
+        "source_ip": source_ip,
+        "resources": [
+            f"{resource.get('type')}:{resource.get('id')}" for resource in resources
+        ],
+        "datasets": body.get("datasets"),
+        # RLS clauses can carry data values; record only the datasets in scope
+        # and the rule count, not the clause text.
+        "rls_datasets": [rule.get("dataset") for rule in rls],
+        "rls_rule_count": len(rls),
+        # Hash, not the raw token, so the log can be correlated without
+        # becoming a credential store.
+        "token_sha256": hashlib.sha256(token.encode("utf-8")).hexdigest(),
+    }
+
+
+# JWT claim that carries the revocation version a token was minted with.
+GUEST_TOKEN_REVOCATION_CLAIM = "rev"  # noqa: S105
+
+# Tokens minted before the revocation feature existed carry no version claim.
+# They are treated as version 0, which is only rejected once an admin has
+# explicitly bumped the expected version above 0.
+DEFAULT_GUEST_TOKEN_REVOCATION_VERSION = 0
+
+
+def get_current_guest_token_revocation_version() -> int:
+    """
+    Return the minimum guest-token revocation version accepted at validation time.
+
+    The value is stored in the metadata database via the ``key_value`` store so it
+    can be bumped at runtime (e.g. via the ``revoke-guest-tokens`` CLI command)
+    without a code deploy. A missing entry means revocation has never been
+    triggered, so the default version is returned.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.key_value.shared_entries import get_shared_value
+    from superset.key_value.types import SharedKey
+
+    try:
+        value = get_shared_value(SharedKey.GUEST_TOKEN_REVOCATION_VERSION)
+    except Exception:  # pylint: disable=broad-except
+        # Never let a metadata-store hiccup hard-fail token validation; fall back
+        # to the default version (fail-open to the pre-feature behaviour).
+        logger.warning("Could not read guest token revocation version", exc_info=True)
+        return DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+    if value is None:
+        return DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        logger.warning("Invalid guest token revocation version stored: %r", value)
+        return DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+
+
+def bump_guest_token_revocation_version() -> int:
+    """
+    Increment and persist the guest-token revocation version, revoking every
+    outstanding guest token minted with a lower version.
+
+    :return: the new revocation version
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.key_value.shared_entries import upsert_shared_value
+    from superset.key_value.types import SharedKey
+
+    new_version = get_current_guest_token_revocation_version() + 1
+    upsert_shared_value(SharedKey.GUEST_TOKEN_REVOCATION_VERSION, new_version)
+    logger.info("Bumped guest token revocation version to %d", new_version)
+    return new_version
 
 
 class GuestTokenUser(TypedDict, total=False):
@@ -64,6 +154,9 @@ class GuestToken(_GuestTokenRequired, total=False):
     """
 
     datasets: list[int]
+    # Revocation version the token was minted with. Absent on tokens minted
+    # before the revocation feature was introduced.
+    rev: int
 
 
 class GuestUser(AnonymousUserMixin):

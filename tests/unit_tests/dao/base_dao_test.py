@@ -258,3 +258,54 @@ def test_find_by_ids_none_id_column():
         results = TestDAO.find_by_ids([1, 2, 3])
 
         assert results == []
+
+
+def _list_with_page_size(page_size: int) -> Mock:
+    """
+    Run ``BaseDAO.list`` with a mocked query chain and return the mock query so
+    the ``.limit()`` call (the effective page size) can be inspected.
+    """
+    mock_query = Mock()
+    # Every chainable call returns the same mock so the chain is easy to inspect
+    mock_query.options.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.order_by.return_value = mock_query
+    mock_query.offset.return_value = mock_query
+    mock_query.limit.return_value = mock_query
+    mock_query.count.return_value = 0
+    mock_query.all.return_value = []
+
+    mock_data_model = Mock()
+    mock_data_model.session.query.return_value = mock_query
+
+    with (
+        patch("superset.daos.base.SQLAInterface", return_value=mock_data_model),
+        patch.object(TestDAO, "_apply_base_filter", side_effect=lambda q, **_: q),
+    ):
+        TestDAO.list(page=0, page_size=page_size)
+
+    return mock_query
+
+
+def test_list_page_size_oversized_is_clamped():
+    """An oversized page_size is clamped to the configured maximum."""
+    from flask import current_app
+
+    max_page_size = current_app.config.get("SQLALCHEMY_DAO_MAX_PAGE_SIZE", 1000)
+    mock_query = _list_with_page_size(max_page_size + 5000)
+
+    mock_query.limit.assert_called_once_with(max_page_size)
+
+
+def test_list_page_size_normal_unaffected():
+    """A page_size within the allowed range is passed through unchanged."""
+    mock_query = _list_with_page_size(50)
+
+    mock_query.limit.assert_called_once_with(50)
+
+
+def test_list_page_size_below_one_is_floored():
+    """A non-positive page_size is floored to 1 (existing semantics)."""
+    mock_query = _list_with_page_size(0)
+
+    mock_query.limit.assert_called_once_with(1)

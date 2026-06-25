@@ -10,13 +10,13 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: 'The branch or tag to checkout'
+        description: "The branch or tag to checkout"
         required: false
-        default: ''
+        default: ""
       pr_id:
-        description: 'The pull request ID to checkout'
+        description: "The pull request ID to checkout"
         required: false
-        default: ''
+        default: ""
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -34,7 +34,7 @@ jobs:
       frontend: ${{ steps.check.outputs.frontend }}
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: Check for file changes
@@ -83,21 +83,21 @@ jobs:
       # Conditional checkout based on context (same as Cypress workflow)
       - name: Checkout for push or pull_request event
         if: github.event_name == 'push' || github.event_name == 'pull_request'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           submodules: recursive
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref }}
           submodules: recursive
       - name: Checkout using PR ID (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
@@ -116,9 +116,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version-file: './superset-frontend/.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: 'superset-frontend/package-lock.json'
+          node-version-file: "./superset-frontend/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Install npm dependencies
         uses: ./.github/actions/cached-dependencies
         with:

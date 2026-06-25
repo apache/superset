@@ -274,7 +274,9 @@ class AdhocMetricPopoverTrigger extends PureComponent<
           title={popoverTitle}
           destroyOnHidden
         >
-          {this.props.children}
+          {/* Wrap in span so the Popover can attach a ref without relying
+              on findDOMNode (deprecated in React 18+). */}
+          <span>{this.props.children}</span>
         </ControlPopover>
       </>
     );
