@@ -66,6 +66,7 @@ import {
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from 'src/logger/LogUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
@@ -397,7 +398,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
-      document.title = props.sliceName;
+      document.title = sanitizeDocumentTitle(props.sliceName);
     }
   }, [props.sliceName]);
 

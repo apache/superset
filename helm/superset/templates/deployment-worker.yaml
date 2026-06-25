@@ -134,6 +134,9 @@ spec:
           {{- if .Values.supersetWorker.livenessProbe }}
           livenessProbe: {{- .Values.supersetWorker.livenessProbe | toYaml | nindent 12 }}
           {{- end }}
+          {{- if .Values.supersetWorker.lifecycle }}
+          lifecycle: {{- .Values.supersetWorker.lifecycle | toYaml | nindent 12 }}
+          {{- end }}
           resources:
             {{- if .Values.supersetWorker.resources }}
               {{- toYaml .Values.supersetWorker.resources | nindent 12 }}
@@ -169,6 +172,9 @@ spec:
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.supersetWorker.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.supersetWorker.terminationGracePeriodSeconds }}
       {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}
