@@ -18,7 +18,7 @@
  */
 
 /**
- * End-to-end coverage for the Recently-Deleted (Archive) view.
+ * End-to-end coverage for the Archive (Recently-Archived) view.
  *
  * Requires the running instance to have the SOFT_DELETE feature flag enabled
  * (the docker dev stack does). Each test creates a disposable object via the
@@ -97,8 +97,8 @@ const TYPES: TypeConfig[] = [
 ];
 
 async function openArchive(page: Page, typeLabel: string, name: string) {
-  await page.goto('deleted/');
-  await expect(page.getByTestId('deleted-list-view')).toBeVisible();
+  await page.goto('archived/');
+  await expect(page.getByTestId('archived-list-view')).toBeVisible();
   // Select the object type, then narrow to the unique name. The antd Select's
   // value chip overlays the combobox input, so force the click to open it, then
   // pick the option from the portal listbox.
@@ -127,7 +127,7 @@ for (const cfg of TYPES) {
     // unrelated archived residue on the instance can't make the action ambiguous).
     const row = page.getByRole('row').filter({ hasText: name });
     await expect(row).toBeVisible();
-    await row.getByTestId('deleted-row-restore').click();
+    await row.getByTestId('archived-row-restore').click();
 
     // Success toast, and the object is live again per the API.
     await expect(
@@ -143,8 +143,8 @@ for (const cfg of TYPES) {
 test('shows an empty message and no rows when the search matches nothing', async ({
   page,
 }) => {
-  await page.goto('deleted/');
-  await expect(page.getByTestId('deleted-list-view')).toBeVisible();
+  await page.goto('archived/');
+  await expect(page.getByTestId('archived-list-view')).toBeVisible();
 
   const search = page.getByPlaceholder(/type a value/i);
   await search.click();
@@ -154,7 +154,7 @@ test('shows an empty message and no rows when the search matches nothing', async
   await expect(
     page.getByText('No results match your filter criteria'),
   ).toBeVisible();
-  await expect(page.getByTestId('deleted-row-restore')).toHaveCount(0);
+  await expect(page.getByTestId('archived-row-restore')).toHaveCount(0);
 });
 
 test('restoring an already-restored row surfaces an error without crashing', async ({
@@ -177,13 +177,13 @@ test('restoring an already-restored row surfaces an error without crashing', asy
   await page
     .getByRole('row')
     .filter({ hasText: name })
-    .getByTestId('deleted-row-restore')
+    .getByTestId('archived-row-restore')
     .click();
   await expect(
     page.getByText(`There was an issue restoring ${name}`, { exact: false }),
   ).toBeVisible({ timeout: 15000 });
   // The page is still functional (the list view did not crash).
-  await expect(page.getByTestId('deleted-list-view')).toBeVisible();
+  await expect(page.getByTestId('archived-list-view')).toBeVisible();
 
   // Cleanup: re-archive the restored dashboard.
   await apiDeleteDashboard(page, id);
