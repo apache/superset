@@ -29,6 +29,7 @@ import { css } from '@apache-superset/core/theme';
 import { Layout, Loading } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
+import { SkipLink } from 'src/components/Accessibility';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
@@ -84,6 +85,7 @@ const App = () => (
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
+      <SkipLink />
       <Menu
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}
@@ -95,9 +97,14 @@ const App = () => (
               <Suspense fallback={<Fallback />}>
                 <Layout>
                   <Layout.Content
+                    id="main-content"
+                    role="main"
                     css={css`
                       display: flex;
                       flex-direction: column;
+                      &[tabindex='-1']:focus {
+                        outline: none;
+                      }
                     `}
                   >
                     <ErrorBoundary
