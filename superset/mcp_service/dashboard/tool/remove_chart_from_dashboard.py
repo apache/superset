@@ -59,12 +59,14 @@ def _find_chart_keys(layout: Dict[str, Any], chart_id: int) -> list[str]:
     A chart can legitimately appear more than once in a layout (e.g. under
     multiple tabs), so all occurrences are returned.
     """
+    # Accept both int and string chartId — position_json is user/frontend-authored
+    # and imported or hand-edited layouts may store chartId as a string.
     return [
         key
         for key, node in layout.items()
         if isinstance(node, dict)
         and node.get("type") == "CHART"
-        and (node.get("meta") or {}).get("chartId") == chart_id
+        and (node.get("meta") or {}).get("chartId") in (chart_id, str(chart_id))
     ]
 
 
@@ -269,6 +271,8 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
             try:
                 current_layout = json.loads(dashboard.position_json or "{}")
             except (json.JSONDecodeError, TypeError):
+                current_layout = {}
+            if not isinstance(current_layout, dict):
                 current_layout = {}
 
             remaining_slices = [
