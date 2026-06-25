@@ -2007,7 +2007,11 @@ def test_slack_token_callable_chart_report(
                 TEST_ID, create_report_slack_chart.id, datetime.utcnow()
             ).run()
             slack_token_mock.assert_called()
-            slack_client_mock_class.assert_called_with(token="cool_code", proxy=None)  # noqa: S106
+            slack_client_mock_class.assert_called_with(
+                token="cool_code",  # noqa: S106
+                proxy=None,
+                timeout=30,
+            )
             assert_log(ReportState.SUCCESS)
 
 
