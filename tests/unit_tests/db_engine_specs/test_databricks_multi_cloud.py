@@ -51,7 +51,7 @@ def mock_database_azure(mocker: MockerFixture) -> MagicMock:
     """
     database = mocker.MagicMock()
     database.url_object.host = "adb-123456789.12.azuredatabricks.net"
-    database.extra = "{}"
+    database.extra = '{"tenant_id": "azure-tenant-id"}'
     database.id = 2
     return database
 
@@ -63,7 +63,7 @@ def mock_database_gcp(mocker: MockerFixture) -> MagicMock:
     """
     database = mocker.MagicMock()
     database.url_object.host = "123456789.gcp.databricks.com"
-    database.extra = "{}"
+    database.extra = '{"account_id": "12345"}'
     database.id = 3
     return database
 
@@ -71,7 +71,7 @@ def mock_database_gcp(mocker: MockerFixture) -> MagicMock:
 @pytest.fixture
 def oauth2_config() -> OAuth2ClientConfig:
     """
-    Config for Databricks OAuth2.
+    Config for Databricks OAuth2 with a fully-resolved endpoint configured.
     """
     return {
         "id": "databricks-client-id",
@@ -80,6 +80,23 @@ def oauth2_config() -> OAuth2ClientConfig:
         "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
         "authorization_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/12345/v1/authorize",
         "token_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/12345/v1/token",
+        "request_content_type": "json",
+    }
+
+
+@pytest.fixture
+def oauth2_config_no_uri() -> OAuth2ClientConfig:
+    """
+    Config for Databricks OAuth2 without a pre-configured endpoint, so the
+    per-provider endpoint is auto-detected and account-resolved.
+    """
+    return {
+        "id": "databricks-client-id",
+        "secret": "databricks-client-secret",
+        "scope": "sql",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "",
+        "token_request_uri": "",
         "request_content_type": "json",
     }
 
@@ -160,7 +177,7 @@ def test_get_oauth2_authorization_uri_aws(
 
 def test_get_oauth2_authorization_uri_azure(
     mocker: MockerFixture,
-    oauth2_config: OAuth2ClientConfig,
+    oauth2_config_no_uri: OAuth2ClientConfig,
     mock_database_azure: MagicMock,
 ) -> None:
     """
@@ -178,7 +195,9 @@ def test_get_oauth2_authorization_uri_azure(
         "tab_id": "1234",
     }
 
-    url = DatabricksNativeEngineSpec.get_oauth2_authorization_uri(oauth2_config, state)
+    url = DatabricksNativeEngineSpec.get_oauth2_authorization_uri(
+        oauth2_config_no_uri, state
+    )
     parsed = urlparse(url)
     assert parsed.netloc == "login.microsoftonline.com"
     assert "/oauth2/v2.0/authorize" in parsed.path
@@ -191,7 +210,7 @@ def test_get_oauth2_authorization_uri_azure(
 
 def test_get_oauth2_authorization_uri_gcp(
     mocker: MockerFixture,
-    oauth2_config: OAuth2ClientConfig,
+    oauth2_config_no_uri: OAuth2ClientConfig,
     mock_database_gcp: MagicMock,
 ) -> None:
     """
@@ -209,7 +228,9 @@ def test_get_oauth2_authorization_uri_gcp(
         "tab_id": "1234",
     }
 
-    url = DatabricksNativeEngineSpec.get_oauth2_authorization_uri(oauth2_config, state)
+    url = DatabricksNativeEngineSpec.get_oauth2_authorization_uri(
+        oauth2_config_no_uri, state
+    )
     parsed = urlparse(url)
     assert parsed.netloc == "accounts.gcp.databricks.com"
     assert "/oidc/accounts/" in parsed.path
@@ -235,7 +256,7 @@ def test_python_connector_cloud_provider_detection_azure(
 
 def test_python_connector_oauth2_authorization_uri_azure(
     mocker: MockerFixture,
-    oauth2_config: OAuth2ClientConfig,
+    oauth2_config_no_uri: OAuth2ClientConfig,
     mock_database_azure: MagicMock,
 ) -> None:
     """
@@ -254,7 +275,7 @@ def test_python_connector_oauth2_authorization_uri_azure(
     }
 
     url = DatabricksPythonConnectorEngineSpec.get_oauth2_authorization_uri(
-        oauth2_config, state
+        oauth2_config_no_uri, state
     )
     parsed = urlparse(url)
     assert parsed.netloc == "login.microsoftonline.com"
