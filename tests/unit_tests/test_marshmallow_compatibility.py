@@ -73,12 +73,11 @@ class TestMarshmallowCompatibility:
         schema = EmptySchema()
         assert hasattr(schema, "declared_fields")
 
-    def test_patch_adds_missing_field_and_retries_initialization(self):
-        """Test that missing fields are injected as Raw fields and retried."""
+    def test_patch_pre_stubs_missing_fab_fields_before_initialization(self):
+        """Test that FAB-looking missing fields are stubbed before init runs."""
 
         def fake_init_fields(self: Schema):
-            if "missing_field" not in self.declared_fields:
-                raise KeyError("missing_field")
+            assert "missing_field" in self.declared_fields
             return "initialized"
 
         with patch.object(Schema, "_init_fields", fake_init_fields):
@@ -86,6 +85,11 @@ class TestMarshmallowCompatibility:
 
             schema = object.__new__(Schema)
             schema.declared_fields = {}
+            schema.opts = type(
+                "Opts",
+                (),
+                {"fields": ("missing_field",), "additional": ()},
+            )()
 
             result = Schema._init_fields(schema)
 
@@ -97,11 +101,11 @@ class TestMarshmallowCompatibility:
     def test_raw_field_creation_and_configuration(self):
         """Test that Raw fields can be created with the expected configuration."""
         # Test creating a Raw field with our configuration
-        raw_field = fields.Raw(allow_none=True, dump_only=True)
+        raw_field = fields.Raw(allow_none=True, load_default=None)
 
         assert isinstance(raw_field, fields.Raw)
         assert raw_field.allow_none is True
-        assert raw_field.dump_only is True
+        assert raw_field.load_default is None
 
     def test_schema_declared_fields_manipulation(self):
         """Test that we can manipulate schema declared_fields."""
@@ -117,14 +121,14 @@ class TestMarshmallowCompatibility:
 
         # Test adding a new field
         schema.declared_fields["new_field"] = fields.Raw(
-            allow_none=True, dump_only=True
+            allow_none=True, load_default=None
         )
 
         # Verify the new field was added
         assert "new_field" in schema.declared_fields
         assert isinstance(schema.declared_fields["new_field"], fields.Raw)
         assert schema.declared_fields["new_field"].allow_none is True
-        assert schema.declared_fields["new_field"].dump_only is True
+        assert schema.declared_fields["new_field"].load_default is None
 
     def test_flask_appbuilder_field_names_list(self):
         """Test that we have the correct list of Flask-AppBuilder field names."""
