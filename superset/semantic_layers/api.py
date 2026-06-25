@@ -41,6 +41,7 @@ from superset.commands.semantic_layer.delete import (
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerCreateFailedError,
     SemanticLayerDeleteFailedError,
+    SemanticLayerForbiddenError,
     SemanticLayerInvalidError,
     SemanticLayerNotFoundError,
     SemanticLayerUpdateFailedError,
@@ -856,6 +857,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response(200, result={"uuid": str(changed_model.uuid)})
         except SemanticLayerNotFoundError:
             return self.response_404()
+        except SemanticLayerForbiddenError:
+            return self.response_403()
         except SemanticLayerInvalidError as ex:
             return self.response_422(message=str(ex))
         except SemanticLayerUpdateFailedError as ex:
@@ -895,6 +898,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response(200, message="OK")
         except SemanticLayerNotFoundError:
             return self.response_404()
+        except SemanticLayerForbiddenError:
+            return self.response_403()
         except SemanticLayerDeleteFailedError as ex:
             logger.error(
                 "Error deleting semantic layer: %s",
@@ -1141,7 +1146,15 @@ class SemanticLayerRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
+            return self.response_404()
+        try:
+            layer.raise_for_access()
+        except SupersetSecurityException:
+            # Hide existence from users without access to this layer.
             return self.response_404()
         return self.response(200, result=_serialize_layer(layer))

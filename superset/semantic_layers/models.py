@@ -144,6 +144,26 @@ class SemanticLayer(AuditMixinNullable, Model):
         """Compute the permission string for this semantic layer."""
         return f"[{self.name}](id:{self.uuid.hex})"
 
+    def raise_for_access(self) -> None:
+        """Check that the user has access to this semantic layer."""
+        from superset import security_manager
+        from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+        from superset.exceptions import SupersetSecurityException
+
+        if security_manager.can_access_all_datasources():
+            return
+
+        if self.perm and security_manager.can_access("datasource_access", self.perm):
+            return
+
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message=str(_("You don't have access to this semantic layer.")),
+                level=ErrorLevel.ERROR,
+            )
+        )
+
     @staticmethod
     def after_insert(
         mapper: Mapper,
