@@ -201,7 +201,7 @@ function DeletedListBody({
                 className="action-button"
                 onClick={() => handleRestore(original)}
               >
-                <Icons.ReloadOutlined iconSize="l" />
+                <Icons.RollbackOutlined iconSize="l" />
               </span>
             </Tooltip>
           </StyledActions>
