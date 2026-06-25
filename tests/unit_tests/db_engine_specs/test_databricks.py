@@ -17,19 +17,20 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url
 
+from superset.db_engine_specs.base import OAuth2State
 from superset.db_engine_specs.databricks import (
     DatabricksNativeEngineSpec,
     DatabricksPythonConnectorEngineSpec,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2RedirectError
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
 from superset.utils.oauth2 import decode_oauth2_state
@@ -662,6 +663,141 @@ def test_get_oauth2_fresh_token_native(
         },
         timeout=30.0,
     )
+
+
+def _oauth2_state() -> OAuth2State:
+    state: OAuth2State = {
+        "database_id": 1,
+        "user_id": 1,
+        "default_redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "tab_id": "1234",
+    }
+    return state
+
+
+def _unresolved_oauth2_config() -> OAuth2ClientConfig:
+    """
+    Config as built by `get_oauth2_config` when no endpoints are overridden:
+    the URIs default to the spec's empty class attributes.
+    """
+    return {
+        "id": "databricks-client-id",
+        "secret": "databricks-client-secret",
+        "scope": "sql",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "",
+        "token_request_uri": "",
+        "request_content_type": "json",
+    }
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+@pytest.mark.parametrize(
+    "extra, netloc, path",
+    [
+        (
+            {"cloud_provider": "aws", "account_id": "acct-999"},
+            "accounts.cloud.databricks.com",
+            "/oidc/accounts/acct-999/v1/authorize",
+        ),
+        (
+            {"cloud_provider": "azure", "tenant_id": "tenant-abc"},
+            "login.microsoftonline.com",
+            "/tenant-abc/oauth2/v2.0/authorize",
+        ),
+        (
+            {"cloud_provider": "gcp", "account_id": "acct-gcp"},
+            "accounts.gcp.databricks.com",
+            "/oidc/accounts/acct-gcp/v1/authorize",
+        ),
+    ],
+)
+def test_get_oauth2_authorization_uri_autodetects_and_resolves(
+    mocker: MockerFixture,
+    spec: Any,
+    extra: dict[str, Any],
+    netloc: str,
+    path: str,
+) -> None:
+    """
+    With no configured `authorization_request_uri`, the endpoint is auto-detected
+    per cloud provider and the `account_id`/`tenant_id` placeholder is resolved
+    from the database `extra`.
+    """
+    database = mocker.MagicMock()
+    database.extra = json.dumps(extra)
+    database.url_object.host = "dbc-abc.cloud.databricks.com"
+    mocker.patch("superset.db.session.get", return_value=database)
+
+    url = spec.get_oauth2_authorization_uri(
+        _unresolved_oauth2_config(), _oauth2_state()
+    )
+    parsed = urlparse(url)
+    assert parsed.netloc == netloc
+    assert parsed.path == path
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+def test_get_oauth2_authorization_uri_preserves_configured(
+    mocker: MockerFixture,
+    spec: Any,
+) -> None:
+    """
+    A fully-resolved `authorization_request_uri` is never overwritten by the
+    auto-detected template, and no database lookup is needed.
+    """
+    session_get = mocker.patch("superset.db.session.get")
+    config = _unresolved_oauth2_config()
+    config["authorization_request_uri"] = (
+        "https://accounts.cloud.databricks.com/oidc/accounts/override/v1/authorize"
+    )
+
+    url = spec.get_oauth2_authorization_uri(config, _oauth2_state())
+    assert urlparse(url).path == "/oidc/accounts/override/v1/authorize"
+    session_get.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+def test_get_oauth2_authorization_uri_fails_without_account_id(
+    mocker: MockerFixture,
+    spec: Any,
+) -> None:
+    """
+    When the endpoint must be auto-detected but no `account_id`/`tenant_id` is
+    available, fail fast instead of emitting an unresolved `.../{}/...` URL.
+    """
+    database = mocker.MagicMock()
+    database.extra = json.dumps({"cloud_provider": "aws"})
+    database.url_object.host = "dbc-abc.cloud.databricks.com"
+    mocker.patch("superset.db.session.get", return_value=database)
+
+    with pytest.raises(OAuth2Error):
+        spec.get_oauth2_authorization_uri(_unresolved_oauth2_config(), _oauth2_state())
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+def test_get_oauth2_token_fails_without_uri(
+    mocker: MockerFixture,
+    spec: Any,
+) -> None:
+    """
+    Token exchange has no database context to auto-detect the endpoint, so a
+    missing `token_request_uri` fails fast rather than POSTing to `.../{}/...`.
+    """
+    with pytest.raises(OAuth2Error):
+        spec.get_oauth2_token(_unresolved_oauth2_config(), "authorization-code")
 
 
 def test_get_oauth2_fresh_token_python(

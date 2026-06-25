@@ -575,15 +575,31 @@ Superset automatically detects your Databricks cloud provider and uses the appro
 - **Azure**: Detected from hostnames containing `azure` or `azuredatabricks`
 - **GCP**: Detected from hostnames containing `gcp` or `googleusercontent`
 
-You can also explicitly specify the cloud provider in your database configuration under **Advanced** → **Other** → **ENGINE PARAMETERS**:
+You can also explicitly specify the cloud provider, along with the account
+identifier used to build the OAuth2 endpoints, in your database configuration
+under **Advanced** → **Other** → **ENGINE PARAMETERS**:
 
 ```json
 {
-  "cloud_provider": "azure"
+  "cloud_provider": "azure",
+  "tenant_id": "your-azure-tenant-id"
 }
 ```
 
-Valid cloud provider values are: `aws`, `azure`, `gcp`.
+For AWS and GCP, supply `account_id` instead:
+
+```json
+{
+  "cloud_provider": "aws",
+  "account_id": "your-databricks-account-id"
+}
+```
+
+Valid cloud provider values are: `aws`, `azure`, `gcp`. When the OAuth2 endpoints
+are auto-detected, Superset substitutes this identifier into the provider's
+endpoint template. If you instead supply fully-resolved `authorization_request_uri`
+and `token_request_uri` values in `DATABASE_OAUTH2_CLIENTS`, those take precedence
+and no `account_id`/`tenant_id` is required.
 
 ###### Usage
 
