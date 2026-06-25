@@ -33,6 +33,7 @@ class TestValidateExpression:
         self.table.schema = "test_schema"
         self.table.catalog = None
         self.table.database = MagicMock()
+        self.table.database.backend = "sqlite"
         self.table.database.db_engine_spec = MagicMock()
         self.table.database.db_engine_spec.make_sqla_column_compatible = lambda x, _: x
         self.table.columns = []
@@ -105,10 +106,8 @@ class TestValidateExpression:
 
     @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
     def test_validate_invalid_expression(self, mock_execute):
-        """Test validation of invalid SQL expressions"""
-        # Mock _execute_validation_query to raise an exception
-        mock_execute.side_effect = Exception("Invalid SQL syntax")
-
+        """Unparseable SQL is rejected by the shared expression parser before the
+        validation query is built or executed."""
         result = self.table.validate_expression(
             expression="INVALID SQL HERE",
             expression_type=SqlExpressionType.COLUMN,
@@ -116,7 +115,8 @@ class TestValidateExpression:
 
         assert result["valid"] is False
         assert len(result["errors"]) == 1
-        assert "Invalid SQL syntax" in result["errors"][0]["message"]
+        assert result["errors"][0]["message"]
+        mock_execute.assert_not_called()
 
     @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
     def test_validate_having_with_non_aggregated_column(self, mock_execute):
@@ -151,6 +151,34 @@ class TestValidateExpression:
         assert len(result["errors"]) == 1
         # The actual error message will come from the exception
         assert "empty" in result["errors"][0]["message"].lower()
+
+    @patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
+    def test_validate_expression_rejects_subquery(self, mock_execute, mock_ff):
+        """A sub-query expression is rejected by the same validate_adhoc_subquery
+        gate used for stored adhoc expressions, before any validation query is
+        built or run (with ALLOW_ADHOC_SUBQUERY off, the default). Locks in that
+        expression validation never executes the sub-query."""
+        result = self.table.validate_expression(
+            expression="(SELECT 1) IS NOT NULL OR 1 = 1",
+            expression_type=SqlExpressionType.WHERE,
+        )
+
+        assert result["valid"] is False
+        mock_execute.assert_not_called()
+
+    @patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
+    def test_validate_expression_rejects_set_operation(self, mock_execute, mock_ff):
+        """A set-operation expression is rejected before the validation query is
+        built or run, matching the stored-adhoc-expression policy."""
+        result = self.table.validate_expression(
+            expression="1 UNION SELECT 1",
+            expression_type=SqlExpressionType.WHERE,
+        )
+
+        assert result["valid"] is False
+        mock_execute.assert_not_called()
 
     @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
     def test_validate_expression_with_rls(self, mock_execute):
