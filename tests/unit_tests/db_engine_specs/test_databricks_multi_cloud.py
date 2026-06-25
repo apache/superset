@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
+from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -32,7 +33,7 @@ from superset.utils.oauth2 import decode_oauth2_state
 
 
 @pytest.fixture
-def mock_database_aws(mocker: MockerFixture):
+def mock_database_aws(mocker: MockerFixture) -> MagicMock:
     """
     Mock database with AWS hostname.
     """
@@ -44,7 +45,7 @@ def mock_database_aws(mocker: MockerFixture):
 
 
 @pytest.fixture
-def mock_database_azure(mocker: MockerFixture):
+def mock_database_azure(mocker: MockerFixture) -> MagicMock:
     """
     Mock database with Azure hostname.
     """
@@ -56,7 +57,7 @@ def mock_database_azure(mocker: MockerFixture):
 
 
 @pytest.fixture
-def mock_database_gcp(mocker: MockerFixture):
+def mock_database_gcp(mocker: MockerFixture) -> MagicMock:
     """
     Mock database with GCP hostname.
     """
@@ -83,7 +84,7 @@ def oauth2_config() -> OAuth2ClientConfig:
     }
 
 
-def test_cloud_provider_detection_aws(mock_database_aws) -> None:
+def test_cloud_provider_detection_aws(mock_database_aws: MagicMock) -> None:
     """
     Test cloud provider detection for AWS.
     """
@@ -91,7 +92,7 @@ def test_cloud_provider_detection_aws(mock_database_aws) -> None:
     assert provider == "aws"
 
 
-def test_cloud_provider_detection_azure(mock_database_azure) -> None:
+def test_cloud_provider_detection_azure(mock_database_azure: MagicMock) -> None:
     """
     Test cloud provider detection for Azure.
     """
@@ -99,7 +100,7 @@ def test_cloud_provider_detection_azure(mock_database_azure) -> None:
     assert provider == "azure"
 
 
-def test_cloud_provider_detection_gcp(mock_database_gcp) -> None:
+def test_cloud_provider_detection_gcp(mock_database_gcp: MagicMock) -> None:
     """
     Test cloud provider detection for GCP.
     """
@@ -128,7 +129,7 @@ def test_cloud_provider_detection_explicit_config(mocker: MockerFixture) -> None
 def test_get_oauth2_authorization_uri_aws(
     mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
-    mock_database_aws,
+    mock_database_aws: MagicMock,
 ) -> None:
     """
     Test OAuth2 authorization URI generation for AWS provider.
@@ -160,7 +161,7 @@ def test_get_oauth2_authorization_uri_aws(
 def test_get_oauth2_authorization_uri_azure(
     mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
-    mock_database_azure,
+    mock_database_azure: MagicMock,
 ) -> None:
     """
     Test OAuth2 authorization URI generation for Azure provider.
@@ -191,7 +192,7 @@ def test_get_oauth2_authorization_uri_azure(
 def test_get_oauth2_authorization_uri_gcp(
     mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
-    mock_database_gcp,
+    mock_database_gcp: MagicMock,
 ) -> None:
     """
     Test OAuth2 authorization URI generation for GCP provider.
@@ -220,7 +221,9 @@ def test_get_oauth2_authorization_uri_gcp(
     assert decode_oauth2_state(encoded_state) == state
 
 
-def test_python_connector_cloud_provider_detection_azure(mock_database_azure) -> None:
+def test_python_connector_cloud_provider_detection_azure(
+    mock_database_azure: MagicMock,
+) -> None:
     """
     Test cloud provider detection for Python Connector with Azure.
     """
@@ -233,7 +236,7 @@ def test_python_connector_cloud_provider_detection_azure(mock_database_azure) ->
 def test_python_connector_oauth2_authorization_uri_azure(
     mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
-    mock_database_azure,
+    mock_database_azure: MagicMock,
 ) -> None:
     """
     Test OAuth2 authorization URI generation for Python Connector with Azure provider.
