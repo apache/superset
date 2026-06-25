@@ -135,6 +135,10 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 3
 
 FAB_ADD_SECURITY_API = True
 
+# Swagger UI / OpenAPI spec is opt-in in the base config; enable it for tests
+# that exercise the /api/v1/_openapi spec endpoint.
+FAB_API_SWAGGER_UI = True
+
 
 class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"

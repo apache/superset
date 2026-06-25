@@ -25,7 +25,9 @@ from superset.security.api import RlsRuleSchema
 
 @pytest.mark.parametrize(
     "app",
-    [{"WTF_CSRF_ENABLED": True}],
+    # Enable the Swagger UI / OpenAPI spec (opt-in, off by default) so the
+    # OpenApi blueprint is registered and included in the exempt set below.
+    [{"WTF_CSRF_ENABLED": True, "FAB_API_SWAGGER_UI": True}],
     indirect=True,
 )
 def test_csrf_exempt_blueprints(app_context: None) -> None:
