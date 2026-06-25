@@ -20,12 +20,21 @@
 import { screen, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import * as chartAction from 'src/components/Chart/chartAction';
+import type { ChartDataRequestResponse } from 'src/components/Chart/chartAction';
 import ViewQueryModal from './ViewQueryModal';
 
 const mockFormData = {
   datasource: '1__table',
   viz_type: 'table',
 };
+
+// Minimal, type-correct response that satisfies ChartDataRequestResponse
+// without constructing a full Response object - the assertions only inspect
+// the call arguments, never the resolved value's contents.
+const mockChartDataResponse = {
+  response: {},
+  json: { result: [] },
+} as ChartDataRequestResponse;
 
 const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
 
@@ -128,7 +137,7 @@ test('passes ownState through to getChartDataRequest', async () => {
    */
   const getChartDataRequestSpy = jest
     .spyOn(chartAction, 'getChartDataRequest')
-    .mockResolvedValue({ json: { result: [] } });
+    .mockResolvedValue(mockChartDataResponse);
 
   const ownState = { searchText: 'foo', order_by: [['col', 'asc']] };
 
@@ -157,7 +166,7 @@ test('falls back to empty ownState when prop is omitted', async () => {
    */
   const getChartDataRequestSpy = jest
     .spyOn(chartAction, 'getChartDataRequest')
-    .mockResolvedValue({ json: { result: [] } });
+    .mockResolvedValue(mockChartDataResponse);
 
   render(<ViewQueryModal latestQueryFormData={mockFormData} />, {
     useRedux: true,
