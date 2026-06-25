@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"description":"Datasource id or uuid"},"type":{"description":"Datasource type","enum":["table","dataset","query","saved_query","view"],"type":"string"}},"required":["id"],"type":"object","title":"ChartDataDatasource"},"schemaType":"response"}

@@ -98,7 +98,10 @@ class CopyToClip extends Component<CopyToClipboardProps> {
             trigger={['hover']}
             arrow={{ pointAtCenter: true }}
           >
-            {this.getDecoratedCopyNode()}
+            {/* Wrap in a span so antd Tooltip has a real DOM ref target;
+                avoids findDOMNode fallback when copyNode is a function
+                component without forwardRef. */}
+            <span>{this.getDecoratedCopyNode()}</span>
           </Tooltip>
         ) : (
           this.getDecoratedCopyNode()

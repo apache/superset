@@ -16,20 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isValidElement, cloneElement, useMemo, useRef, useState } from 'react';
+import {
+  isValidElement,
+  cloneElement,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from 'react';
 import { isNil } from 'lodash';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd';
 import { Resizable } from 're-resizable';
-import Draggable, {
+import RawDraggable, {
   DraggableBounds,
   DraggableData,
   DraggableEvent,
+  DraggableProps,
 } from 'react-draggable';
 import { Icons } from '../Icons';
 import { Button } from '../Button';
 import type { ModalProps, StyledModalProps } from './types';
+
+// react-draggable 4.6.0 ships generated types that mark every Draggable prop as
+// required (its LibraryManagedAttributes no longer honors defaultProps), even
+// though the component accepts a Partial<DraggableProps> at runtime. Re-type the
+// component so optional props stay optional, preserving the prior behavior.
+const Draggable = RawDraggable as ComponentType<Partial<DraggableProps>>;
 
 const MODAL_HEADER_HEIGHT = 55;
 const MODAL_MIN_CONTENT_HEIGHT = 54;
@@ -246,7 +260,7 @@ const CustomModal = ({
     [bodyStyle, stylesProp],
   );
   const draggableRef = useRef<HTMLDivElement>(null);
-  const [bounds, setBounds] = useState<DraggableBounds>();
+  const [bounds, setBounds] = useState<DraggableBounds>({});
   const [dragDisabled, setDragDisabled] = useState<boolean>(true);
   const theme = useTheme();
 
@@ -355,8 +369,11 @@ const CustomModal = ({
         resizable || draggable ? (
           <Draggable
             disabled={!draggable || dragDisabled}
-            bounds={bounds}
+            bounds={bounds ?? false}
             onStart={(event, uiData) => onDragStart(event, uiData)}
+            // Pass nodeRef so react-draggable does not fall back to
+            // ReactDOM.findDOMNode (deprecated in React 18+ Strict Mode).
+            nodeRef={draggableRef}
             {...draggableConfig}
           >
             {resizable ? (

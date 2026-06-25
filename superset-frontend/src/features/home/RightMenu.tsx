@@ -28,6 +28,7 @@ import {
   getExtensionsRegistry,
   isFeatureEnabled,
   FeatureFlag,
+  CACHE_KEY,
 } from '@superset-ui/core';
 import {
   styled,
@@ -44,7 +45,7 @@ import {
   TelemetryPixel,
 } from '@superset-ui/core/components';
 import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
-import { ensureAppRoot, makeUrl } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -213,7 +214,10 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: makeUrl('/sqllab?new=true'),
+      // Keep the URL relative so isFrontendRoute() matches and Link navigates
+      // via React Router; the <Typography.Link> fallback applies ensureAppRoot
+      // exactly once for non-frontend routes.
+      url: '/sqllab?new=true',
       icon: <Icons.SearchOutlined data-test={`menu-item-${t('SQL query')}`} />,
       perm: 'can_sqllab',
       view: 'Superset',
@@ -229,7 +233,7 @@ const RightMenu = ({
     },
     {
       label: t('Dashboard'),
-      url: '/dashboard/new',
+      url: '/dashboard/new/',
       icon: (
         <Icons.DashboardOutlined data-test={`menu-item-${t('Dashboard')}`} />
       ),
@@ -350,6 +354,14 @@ const RightMenu = ({
     try {
       window.localStorage.removeItem('redux');
       window.sessionStorage.removeItem('login_attempted');
+      // Purge the namespaced Cache API store so cached GET responses are not
+      // retained on the device after the session ends. Best-effort: the
+      // returned promise is not awaited since logout navigates away.
+      if (typeof caches !== 'undefined') {
+        caches.delete(CACHE_KEY).catch(() => {
+          /* best-effort: ignore cache deletion failures */
+        });
+      }
     } catch (error) {
       console.warn('Failed to clear storage on logout:', error);
     }

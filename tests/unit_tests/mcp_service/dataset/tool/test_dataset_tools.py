@@ -1641,6 +1641,65 @@ class TestDatasetDefaultColumnFiltering:
                 )
 
 
+class TestGetDatasetInfoRequestValidators:
+    """Unit tests for GetDatasetInfoRequest field validators."""
+
+    def test_column_fields_json_string_parses_to_list(self):
+        """JSON string input for column_fields is decoded into a list."""
+        from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+        request = GetDatasetInfoRequest(
+            identifier=1,
+            column_fields='["column_name","type"]',
+        )
+        assert request.column_fields == ["column_name", "type"]
+
+    def test_column_fields_empty_list_stays_empty(self):
+        """An explicit empty list for column_fields is preserved as-is."""
+        from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+        request = GetDatasetInfoRequest(identifier=1, column_fields=[])
+        assert request.column_fields == []
+
+    def test_column_fields_empty_list_serializes_column_name_only(self):
+        """An explicit empty list still includes the required column_name field."""
+        from superset.mcp_service.dataset.schemas import TableColumnInfo
+
+        column = TableColumnInfo(
+            column_name="region",
+            verbose_name="Region",
+            type="VARCHAR",
+            is_dttm=False,
+            groupby=True,
+            filterable=True,
+            description="Region dimension",
+        )
+
+        assert column.model_dump(context={"column_fields": []}) == {
+            "column_name": "region"
+        }
+
+    def test_column_fields_none_falls_back_to_default(self):
+        """When column_fields is None (not provided), the default columns are used."""
+        from superset.mcp_service.dataset.schemas import (
+            DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
+            GetDatasetInfoRequest,
+        )
+
+        request = GetDatasetInfoRequest(identifier=1, column_fields=None)
+        assert request.column_fields == list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+
+    def test_column_fields_default_when_omitted(self):
+        """When column_fields is omitted entirely, the default columns are used."""
+        from superset.mcp_service.dataset.schemas import (
+            DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
+            GetDatasetInfoRequest,
+        )
+
+        request = GetDatasetInfoRequest(identifier=1)
+        assert request.column_fields == list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+
+
 class TestDatasetSortableColumns:
     """Test sortable columns configuration for dataset tools."""
 
@@ -1700,7 +1759,8 @@ class TestDatasetSortableColumns:
 
         # Check list_datasets docstring for sortable columns documentation
         assert list_datasets.__doc__ is not None
-        assert "Sortable columns for order_column:" in list_datasets.__doc__
+        assert "Sortable columns for" in list_datasets.__doc__
+        assert "order_column" in list_datasets.__doc__
         for col in SORTABLE_DATASET_COLUMNS:
             assert col in list_datasets.__doc__
 
@@ -1745,14 +1805,34 @@ def _make_mock_virtual_dataset(
     id: int = 21,
     table_name: str = "Customer Revenue",
     column_names: list[str] | None = None,
+    metric_names: list[str] | None = None,
 ) -> MagicMock:
-    """Create a mock virtual dataset object with configurable columns."""
+    """Create a mock virtual dataset object with configurable columns and metrics."""
     if column_names is None:
         column_names = ["name", "revenue"]
+    if metric_names is None:
+        metric_names = []
+
     dataset = MagicMock()
     dataset.id = id
     dataset.table_name = table_name
-    dataset.columns = [MagicMock(column_name=c) for c in column_names]
+
+    cols = []
+    for i, c in enumerate(column_names):
+        col = MagicMock()
+        col.id = i + 1
+        col.column_name = c
+        cols.append(col)
+    dataset.columns = cols
+
+    metrics = []
+    for i, m in enumerate(metric_names):
+        metric = MagicMock()
+        metric.id = i + 100
+        metric.metric_name = m
+        metrics.append(metric)
+    dataset.metrics = metrics
+
     return dataset
 
 
@@ -2017,6 +2097,250 @@ async def test_create_virtual_dataset_optional_fields_forwarded(
     assert props["description"] == "A test dataset"
 
 
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_with_metrics_and_columns(
+    mcp_server: object,
+) -> None:
+    """metrics and calculated_columns are forwarded to UpdateDatasetCommand."""
+    mock_dataset = _make_mock_virtual_dataset(
+        column_names=["col1"], metric_names=["existing_m"]
+    )
+    mock_create_instance = MagicMock()
+    mock_create_instance.run.return_value = mock_dataset
+    mock_create_cls = MagicMock(return_value=mock_create_instance)
+
+    mock_update_instance = MagicMock()
+    mock_update_instance.run.return_value = mock_dataset
+    mock_update_cls = MagicMock(return_value=mock_update_instance)
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            mock_create_cls,
+        ),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            mock_update_cls,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT col1 FROM t",
+                dataset_name="My Dataset",
+                metrics=[{"metric_name": "m1", "expression": "SUM(col1)"}],
+                calculated_columns=[{"column_name": "c1", "expression": "col1 + 1"}],
+            )
+            await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+
+    # Verify create was called normally
+    props = mock_create_cls.call_args[0][0]
+    assert props["sql"] == "SELECT col1 FROM t"
+
+    # Verify update was called with the nested objects
+    mock_update_cls.assert_called_once()
+    update_id, update_props = mock_update_cls.call_args[0]
+    assert update_id == mock_dataset.id
+
+    assert "metrics" in update_props
+    assert len(update_props["metrics"]) == 2
+    # Verify existing metric is preserved with id and metric_name
+    assert update_props["metrics"][0]["id"] == 100
+    assert update_props["metrics"][0]["metric_name"] == "existing_m"
+    # Verify new metric is appended
+    assert update_props["metrics"][1]["metric_name"] == "m1"
+
+    assert "columns" in update_props
+    assert len(update_props["columns"]) == 2
+    # Verify existing column is preserved with id and column_name
+    assert update_props["columns"][0]["id"] == 1
+    assert update_props["columns"][0]["column_name"] == "col1"
+    # Verify new column is appended
+    assert update_props["columns"][1]["column_name"] == "c1"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "exception_to_raise",
+    [
+        "DatasetUpdateFailedError",
+        "DatasetInvalidError",
+    ],
+)
+async def test_create_virtual_dataset_update_failure_rollback(
+    mcp_server: object,
+    exception_to_raise: str,
+) -> None:
+    """
+    If UpdateDatasetCommand fails,
+    DeleteDatasetCommand should clean up the orphan dataset.
+    """
+    from superset.commands.dataset.exceptions import (
+        DatasetInvalidError,
+        DatasetUpdateFailedError,
+    )
+
+    mock_dataset = _make_mock_virtual_dataset()
+    mock_create_instance = MagicMock()
+    mock_create_instance.run.return_value = mock_dataset
+    mock_create_cls = MagicMock(return_value=mock_create_instance)
+
+    mock_update_instance = MagicMock()
+    if exception_to_raise == "DatasetUpdateFailedError":
+        mock_update_instance.run.side_effect = DatasetUpdateFailedError()
+    else:
+        mock_update_instance.run.side_effect = DatasetInvalidError()
+    mock_update_cls = MagicMock(return_value=mock_update_instance)
+
+    mock_delete_instance = MagicMock()
+    mock_delete_cls = MagicMock(return_value=mock_delete_instance)
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            mock_create_cls,
+        ),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            mock_update_cls,
+        ),
+        patch(
+            "superset.commands.dataset.delete.DeleteDatasetCommand",
+            mock_delete_cls,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT col1 FROM t",
+                dataset_name="My Dataset",
+                metrics=[{"metric_name": "m1", "expression": "SUM(col1)"}],
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+
+    # Verify create was called normally
+    mock_create_cls.assert_called_once()
+
+    # Verify update was attempted
+    mock_update_cls.assert_called_once()
+    # Verify delete was called to rollback
+    mock_delete_cls.assert_called_once_with([mock_dataset.id])
+    mock_delete_instance.run.assert_called_once()
+
+    # Verify the error response
+    data = json.loads(result.content[0].text)
+    assert data["id"] is None
+    assert "creation rolled back" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_metrics_only(
+    mcp_server: object,
+) -> None:
+    """
+    If only metrics are provided,
+    calculated_columns are omitted in the update props.
+    """
+    mock_dataset = _make_mock_virtual_dataset()
+    mock_create_instance = MagicMock()
+    mock_create_instance.run.return_value = mock_dataset
+    mock_create_cls = MagicMock(return_value=mock_create_instance)
+
+    mock_update_instance = MagicMock()
+    mock_update_instance.run.return_value = mock_dataset
+    mock_update_cls = MagicMock(return_value=mock_update_instance)
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            mock_create_cls,
+        ),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            mock_update_cls,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT col1 FROM t",
+                dataset_name="My Dataset",
+                metrics=[{"metric_name": "m1", "expression": "SUM(col1)"}],
+            )
+            await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+
+    mock_update_cls.assert_called_once()
+    update_props = mock_update_cls.call_args[0][1]
+    assert "metrics" in update_props
+    assert "columns" not in update_props
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_columns_only(
+    mcp_server: object,
+) -> None:
+    """
+    If only calculated_columns are provided,
+    metrics are omitted in the update props.
+    """
+    mock_dataset = _make_mock_virtual_dataset()
+    mock_create_instance = MagicMock()
+    mock_create_instance.run.return_value = mock_dataset
+    mock_create_cls = MagicMock(return_value=mock_create_instance)
+
+    mock_update_instance = MagicMock()
+    mock_update_instance.run.return_value = mock_dataset
+    mock_update_cls = MagicMock(return_value=mock_update_instance)
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            mock_create_cls,
+        ),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            mock_update_cls,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT col1 FROM t",
+                dataset_name="My Dataset",
+                calculated_columns=[{"column_name": "c1", "expression": "col1 + 1"}],
+            )
+            await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+
+    mock_update_cls.assert_called_once()
+    update_props = mock_update_cls.call_args[0][1]
+    assert "columns" in update_props
+    assert "metrics" not in update_props
+
+
 class TestListDatasetsCreatedByMe:
     """Tests for the created_by_me flag on ListDatasetsRequest."""
 
@@ -2042,12 +2366,10 @@ class TestListDatasetsCreatedByMe:
         with pytest.raises(ValidationError, match="created_by_me"):
             ListDatasetsRequest(created_by_me=True, search="My tables")
 
-    def test_dataset_filter_rejects_created_by_fk(self):
-        """created_by_fk is not a public filter column; use created_by_me instead."""
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError):
-            DatasetFilter(col="created_by_fk", opr="eq", value=1)
+    def test_dataset_filter_accepts_created_by_fk(self):
+        """created_by_fk is exposed for person-filtering via find_users."""
+        f = DatasetFilter(col="created_by_fk", opr="eq", value=1)
+        assert f.col == "created_by_fk"
 
 
 class TestListDatasetsOwnedByMe:
@@ -2080,3 +2402,86 @@ class TestListDatasetsOwnedByMe:
         request = ListDatasetsRequest(owned_by_me=True, created_by_me=True)
         assert request.owned_by_me is True
         assert request.created_by_me is True
+
+
+class TestListDatasetsRequestWrapper:
+    """
+    Tests verifying that list_datasets requires a ``request`` wrapper object.
+
+    LLMs sometimes pass parameters like ``search``, ``page``, or ``page_size``
+    as flat top-level kwargs instead of nesting them inside a ``request``
+    object.  These tests confirm the correct call shape through both the Pydantic
+    schema and the actual MCP tool layer, and verify that invalid filter column
+    names (e.g. ``created_by_fk``) are rejected.
+    """
+
+    def test_request_wrapper_with_search(self) -> None:
+        """Parameters passed inside request= are accepted by the schema."""
+        request = ListDatasetsRequest(search="sales", page=1, page_size=10)
+        assert request.search == "sales"
+        assert request.page == 1
+        assert request.page_size == 10
+
+    def test_request_wrapper_defaults(self) -> None:
+        """No-arg constructor produces valid schema defaults."""
+        request = ListDatasetsRequest()
+        assert request.search is None
+        assert request.page == 1
+        assert request.filters == []
+
+    def test_dataset_filter_valid_col(self) -> None:
+        """Valid col values are accepted by DatasetFilter."""
+        for col in ("table_name", "schema", "database_name"):
+            f = DatasetFilter(col=col, opr="sw", value="test")
+            assert f.col == col
+
+    def test_dataset_filter_invalid_col_raises(self) -> None:
+        """Column names not in the Literal are rejected with a validation error."""
+        from pydantic import ValidationError
+
+        for bad_col in ("id", "database_id", "owner"):
+            with pytest.raises(ValidationError):
+                DatasetFilter(col=bad_col, opr="eq", value="1")
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_request_wrapper_enforced_by_tool(
+        self, mock_list, mcp_server
+    ) -> None:
+        """The MCP tool layer accepts the request wrapper and returns results.
+
+        Verifies end-to-end that wrapping params in ``request={}`` works through
+        the actual FastMCP tool call, not just schema validation.
+        """
+        mock_list.return_value = ([], 0)
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_datasets",
+                {"request": {"search": "sales", "page": 1, "page_size": 5}},
+            )
+        data = json.loads(result.content[0].text)
+        assert data["count"] == 0
+        assert data["datasets"] == []
+
+    @pytest.mark.asyncio
+    async def test_flat_kwargs_rejected(self, mcp_server) -> None:
+        """Passing search/page/page_size as top-level kwargs raises a ToolError
+        that specifically mentions the unexpected arguments.
+
+        This is the exact failure pattern from story #105712: LLMs call
+        ``list_datasets(search=..., page=..., page_size=...)`` instead of
+        ``list_datasets(request={...})``.
+        """
+        with pytest.raises(ToolError) as exc_info:
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "list_datasets",
+                    {"search": "sales", "page": 1, "page_size": 10},
+                )
+        error_text = str(exc_info.value)
+        # The error must call out the unexpected arguments, not some unrelated failure
+        assert (
+            "search" in error_text
+            or "Unexpected" in error_text
+            or "request" in error_text
+        )

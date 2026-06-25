@@ -62,6 +62,7 @@ import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import copyTextToClipboard from 'src/utils/copy';
+import type Owner from 'src/types/Owner';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
@@ -90,6 +91,15 @@ interface SavedQueryListProps {
     lastName: string;
   };
 }
+
+type SavedQueryCellProps = {
+  row: {
+    original: SavedQueryObject & {
+      changed_by?: Owner | null;
+      created_by?: Owner | null;
+    };
+  };
+};
 
 const StyledTableLabel = styled.div`
   .count {
@@ -223,7 +233,9 @@ function SavedQueryList({
     name: t('Query'),
     buttonStyle: 'primary',
     onClick: () => {
-      history.push(makeUrl('/sqllab?new=true'));
+      // React Router's basename already includes the application root; passing
+      // a relative path ensures correct navigation under subdirectory deployments.
+      history.push('/sqllab?new=true');
     },
   });
 
@@ -245,7 +257,9 @@ function SavedQueryList({
     if (openInNewWindow) {
       window.open(makeUrl(`/sqllab?savedQueryId=${id}`));
     } else {
-      history.push(makeUrl(`/sqllab?savedQueryId=${id}`));
+      // React Router's basename already includes the application root; passing
+      // a relative path ensures correct navigation under subdirectory deployments.
+      history.push(`/sqllab?savedQueryId=${id}`);
     }
   };
 
@@ -338,9 +352,7 @@ function SavedQueryList({
           row: {
             original: { id, label },
           },
-        }: any) => (
-          <Link to={makeUrl(`/sqllab?savedQueryId=${id}`)}>{label}</Link>
-        ),
+        }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
         id: 'label',
       },
       {
@@ -433,11 +445,29 @@ function SavedQueryList({
               changed_on_delta_humanized: changedOn,
             },
           },
-        }: any) => <ModifiedInfo user={changedBy} date={changedOn} />,
+        }: SavedQueryCellProps) => (
+          <ModifiedInfo user={changedBy ?? undefined} date={changedOn} />
+        ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
         id: 'changed_on_delta_humanized',
+      },
+      {
+        accessor: 'created_by.first_name',
+        Header: t('Created by'),
+        disableSortBy: true,
+        size: 'xl',
+        Cell: ({
+          row: {
+            original: { created_by: createdBy },
+          },
+        }: SavedQueryCellProps) =>
+          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
+      },
+      {
+        accessor: 'created_by',
+        hidden: true,
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -581,6 +611,28 @@ function SavedQueryList({
             t(
               'An error occurred while fetching dataset datasource values: %s',
               errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Created by'),
+        key: 'created_by',
+        id: 'created_by',
+        input: 'select',
+        operator: FilterOperator.RelationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'saved_query',
+          'created_by',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching created by values: %s',
+                errMsg,
+              ),
             ),
           ),
           user,

@@ -36,9 +36,9 @@ Screenshots will be taken but no messages actually sent as long as `ALERT_REPORT
 #### In your `Dockerfile`
 
 You'll need to extend the Superset image to include a headless browser. Your options include:
-- Use Playwright with Chrome: this is the recommended approach as of version 4.1.x or greater. A working example of a Dockerfile that installs these tools is provided under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page. Read the code comments there as you'll also need to change a feature flag in your config.
-- Use Firefox: you'll need to install geckodriver and Firefox.
-- Use Chrome without Playwright: you'll need to install Chrome and set the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
+- Use Playwright with Chromium: this is the recommended approach as of version 4.1.x or greater. Playwright always uses Chromium — the `WEBDRIVER_TYPE` config setting has no effect when Playwright is active. A working example of a Dockerfile that installs these tools is provided under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page. Enable the `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` feature flag in your config to activate it.
+- Use Firefox (Selenium): you'll need to install geckodriver and Firefox. Set `WEBDRIVER_TYPE` to `"firefox"` in your `superset_config.py`.
+- Use Chrome (Selenium): you'll need to install Chrome. Set `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
 
 In Superset versions &lt;=4.0x, users installed Firefox or Chrome and that was documented here.
 
@@ -80,6 +80,87 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
 # Default: 2
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 5
 ```
+
+### Webhook integration
+
+Superset can send alert and report notifications to any HTTP endpoint — useful for chat platforms, incident management tools, or custom automation.
+
+#### Enabling Webhooks
+
+Enable the feature flag in `superset_config.py`:
+
+```python
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "ALERT_REPORT_WEBHOOK": True,
+}
+```
+
+#### Configuring a Webhook Recipient
+
+When creating or editing an alert or report, select **Webhook** as the notification method and enter your endpoint URL.
+
+#### Payload Format
+
+Superset sends an HTTP POST with `Content-Type: application/json`:
+
+```json
+{
+  "name": "My Alert",
+  "header": {
+    "notification_format": "JSON",
+    "notification_type": "Alert",
+    "notification_source": "Alert",
+    "chart_id": 42,
+    "dashboard_id": null
+  },
+  "text": "Alert condition met: value exceeded threshold",
+  "description": "Monthly revenue dropped below target",
+  "url": "https://your-superset-host/superset/dashboard/1/"
+}
+```
+
+When a report includes file attachments (CSV, PDF, or PNG screenshots), the request is sent as `multipart/form-data` instead. In that case, each top-level payload field (`name`, `text`, `description`, `url`) becomes its own form field, and nested structures like `header` are serialized as a JSON-encoded string in their own field. Every attachment is added as a repeated form field named `files`:
+
+```
+POST /webhook HTTP/1.1
+Content-Type: multipart/form-data; boundary=...
+
+--...
+Content-Disposition: form-data; name="name"
+
+My Alert
+--...
+Content-Disposition: form-data; name="header"
+
+{"notification_format": "JSON", "notification_type": "Alert", ...}
+--...
+Content-Disposition: form-data; name="text"
+
+Alert condition met: value exceeded threshold
+--...
+Content-Disposition: form-data; name="files"; filename="report.csv"
+Content-Type: text/csv
+
+<file bytes>
+--...
+```
+
+Webhook consumers should branch on `Content-Type`: parse the body as JSON when `application/json`, or read the individual form fields (decoding `header` as JSON) when `multipart/form-data`.
+
+#### HTTPS Enforcement
+
+To require HTTPS webhook URLs (recommended for production), set:
+
+```python
+ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
+```
+
+When enabled, Superset rejects webhook configurations that use `http://` URLs.
+
+#### Retry Behavior
+
+Superset automatically retries webhook deliveries on `429 Too Many Requests` and `5xx` server errors using exponential backoff.
 
 ### Kubernetes-specific
 

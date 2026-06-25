@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MouseEventHandler, forwardRef } from 'react';
+import { MouseEventHandler } from 'react';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
-import type { IconType } from '@superset-ui/core/components/Icons/types';
 import { Tooltip } from '../Tooltip';
 
 export interface RefreshLabelProps {
@@ -32,25 +31,19 @@ const RefreshLabel = ({
   onClick,
   tooltipContent,
   disabled,
-}: RefreshLabelProps) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const IconWithoutRef = forwardRef((props: IconType, ref: any) => (
-    <Icons.SyncOutlined iconSize="l" {...props} />
-  ));
-
-  return (
-    <Tooltip title={tooltipContent}>
-      <IconWithoutRef
-        role="button"
-        onClick={disabled ? undefined : onClick}
-        css={(theme: SupersetTheme) => ({
-          cursor: 'pointer',
-          color: theme.colorIcon,
-          '&:hover': { color: theme.colorPrimary },
-        })}
-      />
-    </Tooltip>
-  );
-};
+}: RefreshLabelProps) => (
+  <Tooltip title={tooltipContent}>
+    <Icons.SyncOutlined
+      iconSize="l"
+      role="button"
+      onClick={disabled ? undefined : onClick}
+      css={(theme: SupersetTheme) => ({
+        cursor: 'pointer',
+        color: theme.colorIcon,
+        '&:hover': { color: theme.colorPrimary },
+      })}
+    />
+  </Tooltip>
+);
 
 export default RefreshLabel;

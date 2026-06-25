@@ -24,9 +24,10 @@ single dataframe.
 
 """
 
-from datetime import datetime, timedelta
-from time import time
+from datetime import date, datetime, time, timedelta, tzinfo
+from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
+from zoneinfo import ZoneInfo
 
 import isodate
 import numpy as np
@@ -55,6 +56,7 @@ from superset.common.utils.time_range_utils import get_since_until_from_query_ob
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
 from superset.models.helpers import QueryResult
+from superset.result_set import stringify_extension_columns
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     FilterOperator,
@@ -103,7 +105,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         raise ValueError("QueryObject must have a datasource defined.")
 
     # Track execution time
-    start_time = time()
+    start_time = current_time()
 
     semantic_view = query_object.datasource.implementation
     dispatcher = (
@@ -120,14 +122,14 @@ def get_results(query_object: QueryObject) -> QueryResult:
     main_query = queries[0]
     main_result = dispatcher(main_query)
 
-    main_df = main_result.results.to_pandas()
+    main_df = stringify_extension_columns(main_result.results).to_pandas()
 
     # Collect all requests (SQL queries, HTTP requests, etc.) for troubleshooting
     all_requests = list(main_result.requests)
 
     # If no time offsets, return the main result as-is
     if not query_object.time_offsets or len(queries) <= 1:
-        duration = timedelta(seconds=time() - start_time)
+        duration = timedelta(seconds=current_time() - start_time)
         return map_semantic_result_to_query_result(
             main_result,
             query_object,
@@ -154,7 +156,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         # Add this query's requests to the collection
         all_requests.extend(result.requests)
 
-        offset_df = result.results.to_pandas()
+        offset_df = stringify_extension_columns(result.results).to_pandas()
 
         # Handle empty results - add NaN columns directly instead of merging
         # This avoids dtype mismatch issues with empty DataFrames
@@ -197,7 +199,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         requests=all_requests,
         results=pa.Table.from_pandas(main_df),
     )
-    duration = timedelta(seconds=time() - start_time)
+    duration = timedelta(seconds=current_time() - start_time)
     return map_semantic_result_to_query_result(
         semantic_result,
         query_object,
@@ -228,7 +230,7 @@ def map_semantic_result_to_query_result(
 
     return QueryResult(
         # Core data
-        df=semantic_result.results.to_pandas(),
+        df=stringify_extension_columns(semantic_result.results).to_pandas(),
         query=query_str,
         duration=duration,
         # Template filters - not applicable to semantic layers
@@ -541,21 +543,29 @@ def _convert_query_object_filter(
     if operator_str == FilterOperator.TEMPORAL_RANGE.value:
         if not isinstance(value, str) or value == NO_TIME_RANGE:
             return None
-        start, end = value.split(" : ")
-        return {
-            Filter(
-                type=PredicateType.WHERE,
-                column=dimension,
-                operator=Operator.GREATER_THAN_OR_EQUAL,
-                value=start,
-            ),
-            Filter(
-                type=PredicateType.WHERE,
-                column=dimension,
-                operator=Operator.LESS_THAN,
-                value=end,
-            ),
-        }
+        start, end = (side.strip() for side in value.split(" : "))
+        filters: set[Filter] = set()
+        if start:
+            filters.add(
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=dimension,
+                    operator=Operator.GREATER_THAN_OR_EQUAL,
+                    value=_coerce_scalar_filter_value(start, dimension),
+                )
+            )
+        if end:
+            filters.add(
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=dimension,
+                    operator=Operator.LESS_THAN,
+                    value=_coerce_scalar_filter_value(end, dimension),
+                )
+            )
+        return filters or None
+
+    value = _coerce_filter_value(value, dimension)
 
     # Map QueryObject operators to semantic layer operators
     operator_mapping = {
@@ -586,6 +596,149 @@ def _convert_query_object_filter(
             value=value,
         )
     }
+
+
+def _coerce_filter_value(
+    value: FilterValues | frozenset[FilterValues],
+    dimension: Dimension,
+) -> FilterValues | frozenset[FilterValues]:
+    if isinstance(value, frozenset):
+        return frozenset(_coerce_scalar_filter_value(v, dimension) for v in value)
+    return _coerce_scalar_filter_value(value, dimension)
+
+
+def _timestamp_target_tz(dtype: pa.DataType) -> tzinfo | None:
+    tz_name = getattr(dtype, "tz", None)
+    return ZoneInfo(tz_name) if tz_name else None
+
+
+def _align_tz(dt: datetime, target_tz: tzinfo | None) -> datetime:
+    if target_tz is None:
+        return dt
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=target_tz)
+    return dt.astimezone(target_tz)
+
+
+def _coerce_scalar_filter_value(  # noqa: C901 — type dispatch, complexity is inherent
+    value: FilterValues, dimension: Dimension
+) -> FilterValues:
+    if value is None:
+        return None
+
+    dtype = dimension.type
+
+    if pa.types.is_boolean(dtype):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)) and value in (0, 1):
+            return bool(value)
+        if isinstance(value, str):
+            parsed = value.strip().lower()
+            if parsed in {"true", "t", "1", "yes", "y", "on"}:
+                return True
+            if parsed in {"false", "f", "0", "no", "n", "off"}:
+                return False
+        raise ValueError(
+            f"Invalid boolean value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_integer(dtype):
+        if isinstance(value, bool):
+            raise ValueError(
+                f"Invalid integer value {value!r} for filter column {dimension.name}"
+            )
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(value.strip())
+            except ValueError as ex:
+                raise ValueError(
+                    f"Invalid integer value {value!r} for filter column "
+                    f"{dimension.name}"
+                ) from ex
+        raise ValueError(
+            f"Invalid integer value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_floating(dtype) or pa.types.is_decimal(dtype):
+        # Decimal dimensions are coerced through ``float`` because ``FilterValues``
+        # does not include ``Decimal``. That is lossless for the common case
+        # (≤ ~15 significant digits) and matches how downstream semantic-view
+        # implementations consume numeric filters; high-precision decimals would
+        # need a wider ``FilterValues`` union and propagation through the cache's
+        # comparability checks.
+        if isinstance(value, bool):
+            raise ValueError(
+                f"Invalid numeric value {value!r} for filter column {dimension.name}"
+            )
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            try:
+                return float(value.strip())
+            except ValueError as ex:
+                raise ValueError(
+                    f"Invalid numeric value {value!r} for filter column "
+                    f"{dimension.name}"
+                ) from ex
+        raise ValueError(
+            f"Invalid numeric value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_date(dtype):
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, date):
+            return value
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value.strip()).date()
+            except ValueError as ex:
+                raise ValueError(
+                    f"Invalid date value {value!r} for filter column {dimension.name}"
+                ) from ex
+        raise ValueError(
+            f"Invalid date value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_timestamp(dtype):
+        target_tz = _timestamp_target_tz(dtype)
+        if isinstance(value, datetime):
+            return _align_tz(value, target_tz)
+        if isinstance(value, date):
+            return _align_tz(datetime.combine(value, time.min), target_tz)
+        if isinstance(value, str):
+            normalized = value.strip().replace("Z", "+00:00")
+            try:
+                return _align_tz(datetime.fromisoformat(normalized), target_tz)
+            except ValueError as ex:
+                raise ValueError(
+                    f"Invalid timestamp value {value!r} for filter column "
+                    f"{dimension.name}"
+                ) from ex
+        raise ValueError(
+            f"Invalid timestamp value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_time(dtype):
+        if isinstance(value, time):
+            return value
+        if isinstance(value, str):
+            try:
+                return time.fromisoformat(value.strip())
+            except ValueError as ex:
+                raise ValueError(
+                    f"Invalid time value {value!r} for filter column {dimension.name}"
+                ) from ex
+        raise ValueError(
+            f"Invalid time value {value!r} for filter column {dimension.name}"
+        )
+
+    return value
 
 
 def _get_order_from_query_object(

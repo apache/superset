@@ -856,7 +856,7 @@ export function loadQueryEditor(queryEditor: QueryEditor): SqlLabAction {
   return { type: LOAD_QUERY_EDITOR, queryEditor };
 }
 
-interface TableSchema {
+export interface TableSchema {
   description: {
     columns: unknown[];
     selectStar: string;
@@ -1284,7 +1284,7 @@ export function addTable(
   };
 }
 
-interface NewTable {
+export interface NewTable {
   id?: string;
   dbId: number | string;
   catalog?: string | null;
@@ -1343,52 +1343,6 @@ export function runTablePreviewQuery(
       ]);
     }
     return Promise.resolve();
-  };
-}
-
-interface TableMetaData {
-  columns?: unknown[];
-  selectStar?: string;
-  primaryKey?: unknown;
-  foreignKeys?: unknown[];
-  indexes?: unknown[];
-}
-
-export function syncTable(
-  table: Table,
-  tableMetadata: TableMetaData,
-  finalQueryEditorId?: string,
-): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: AppDispatch) {
-    const finalTable = { ...table, queryEditorId: finalQueryEditorId };
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.post({
-          endpoint: encodeURI('/tableschemaview/'),
-          postPayload: { table: { ...tableMetadata, ...finalTable } },
-        })
-      : Promise.resolve({ json: { id: table.id } });
-
-    return sync
-      .then(({ json: resultJson }) => {
-        const newTable = { ...table, id: `${resultJson.id}` };
-        dispatch(
-          mergeTable({
-            ...newTable,
-            expanded: true,
-            initialized: true,
-          }),
-        );
-      })
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'An error occurred while fetching table metadata. ' +
-                'Please contact your administrator.',
-            ),
-          ),
-        ),
-      );
   };
 }
 
@@ -1660,7 +1614,7 @@ export function createDatasourceFailed(err: string): SqlLabAction {
   return { type: CREATE_DATASOURCE_FAILED, err };
 }
 
-interface VizOptions {
+export interface VizOptions {
   dbId: number;
   catalog?: string | null;
   schema: string;
@@ -1671,7 +1625,7 @@ interface VizOptions {
 
 export function createDatasource(
   vizOptions: VizOptions,
-): SqlLabThunkAction<Promise<unknown>> {
+): SqlLabThunkAction<Promise<{ id: number }>> {
   return (dispatch: AppDispatch) => {
     dispatch(createDatasourceStarted());
     const { dbId, catalog, schema, datasourceName, sql, templateParams } =
@@ -1691,9 +1645,10 @@ export function createDatasource(
       }),
     })
       .then(({ json }) => {
-        dispatch(createDatasourceSuccess(json as { id: number }));
+        const result = json as { id: number };
+        dispatch(createDatasourceSuccess(result));
 
-        return Promise.resolve(json);
+        return result;
       })
       .catch(error => {
         getClientErrorObject(error).then(e => {
@@ -1712,7 +1667,7 @@ export function createDatasource(
 
 export function createCtasDatasource(
   vizOptions: Record<string, unknown>,
-): SqlLabThunkAction<Promise<{ id: number }>> {
+): SqlLabThunkAction<Promise<{ table_id: number }>> {
   return (dispatch: AppDispatch) => {
     dispatch(createDatasourceStarted());
     return SupersetClient.post({
@@ -1720,9 +1675,14 @@ export function createCtasDatasource(
       jsonPayload: vizOptions,
     })
       .then(({ json }) => {
-        dispatch(createDatasourceSuccess(json.result));
+        const result = json.result as { table_id: number };
+        // The endpoint's `result.table_id` IS the dataset id; normalize so
+        // createDatasourceSuccess's `${data.id}__table` resolves correctly.
+        // Without this, the CTAS Explore button silently produced
+        // `"undefined__table"` because `result.id` doesn't exist.
+        dispatch(createDatasourceSuccess({ id: result.table_id }));
 
-        return json.result;
+        return result;
       })
       .catch(() => {
         const errorMsg = t('An error occurred while creating the data source');

@@ -54,7 +54,7 @@ export function getQueryMode(formData: TableChartFormData) {
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
-const buildQuery: BuildQuery<TableChartFormData> = (
+export const buildQuery: BuildQuery<TableChartFormData> = (
   formData: TableChartFormData,
   options,
 ) => {
@@ -86,6 +86,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     const postProcessing: PostProcessingRule[] = [];
+    // Capture the percent-metric `contribution` rule so it can be reused for
+    // the totals query below. Without it the totals row's percent-metric
+    // columns are keyed `metric` instead of `%metric`, so the footer renders
+    // 0.000%. We reuse only this rule and not the full `postProcessing` array,
+    // which may also contain a time-comparison operator that must not run on
+    // the single totals row.
+    let contributionPostProcessing: PostProcessingRule | undefined;
     const nonCustomNorInheritShifts = ensureIsArray(
       formData.time_compare,
     ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
@@ -137,12 +144,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         orderby = [[metrics[0], false]];
       }
       // add postprocessing for percent metrics only when in aggregation mode
-      type PercentMetricCalculationMode = 'row_limit' | 'all_records';
-
-      const calculationMode: PercentMetricCalculationMode =
-        (formData.percent_metric_calculation as PercentMetricCalculationMode) ||
-        'row_limit';
-
       if (percentMetrics && percentMetrics.length > 0) {
         const percentMetricsLabelsWithTimeComparison = isTimeComparison(
           formData,
@@ -162,23 +163,14 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           getMetricLabel,
         );
 
-        if (calculationMode === 'all_records') {
-          postProcessing.push({
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(m => `%${m}`),
-            },
-          });
-        } else {
-          postProcessing.push({
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(m => `%${m}`),
-            },
-          });
-        }
+        contributionPostProcessing = {
+          operation: 'contribution',
+          options: {
+            columns: percentMetricLabels,
+            rename_columns: percentMetricLabels.map(m => `%${m}`),
+          },
+        };
+        postProcessing.push(contributionPostProcessing);
       }
 
       // Add the operator for the time comparison if some is selected
@@ -217,6 +209,17 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
+    // Server pagination sizing, shared between the per-page request below and
+    // the filter-change reset further down.
+    const pageSize =
+      Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0;
+    const configuredRowLimit = Number(formDataCopy.row_limit) || 0;
+    // row_limit for the first page, capped by the configured row limit. Used
+    // when a filter change resets pagination back to page 0.
+    const firstPageRowLimit =
+      configuredRowLimit > 0
+        ? Math.min(pageSize, configuredRowLimit)
+        : pageSize;
     // Build Query flag to check if its for either download as csv, excel or json
     const isDownloadQuery =
       ['csv', 'xlsx'].includes(formData?.result_format || '') ||
@@ -229,11 +232,24 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     }
 
     if (!isDownloadQuery && formDataCopy.server_pagination) {
-      const pageSize = ownState.pageSize ?? formDataCopy.server_page_length;
-      const currentPage = ownState.currentPage ?? 0;
+      // Never page past the configured row limit. Clamping the page to the last
+      // one that still falls within the limit keeps the request inside the cap
+      // and avoids emitting row_limit: 0, which the backend treats as
+      // "no limit" rather than "no rows" (see helpers.py get_sqla_query).
+      const lastPage =
+        configuredRowLimit > 0 && pageSize > 0
+          ? Math.max(Math.ceil(configuredRowLimit / pageSize) - 1, 0)
+          : Number(ownState.currentPage) || 0;
+      const currentPage = Math.min(Number(ownState.currentPage) || 0, lastPage);
+      const rowOffset = currentPage * pageSize;
+      const remainingRows =
+        configuredRowLimit > 0
+          ? Math.max(configuredRowLimit - rowOffset, 0)
+          : pageSize;
 
-      moreProps.row_limit = pageSize;
-      moreProps.row_offset = currentPage * pageSize;
+      moreProps.row_limit =
+        configuredRowLimit > 0 ? Math.min(pageSize, remainingRows) : pageSize;
+      moreProps.row_offset = rowOffset;
     }
 
     // getting sort by in case of server pagination from own state
@@ -263,11 +279,19 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
         JSON.stringify(queryObject.filters)
     ) {
-      queryObject = { ...queryObject, row_offset: 0 };
+      // Reset to the first page: restore the full first-page row_limit rather
+      // than carrying over the last page's capped value.
+      queryObject = {
+        ...queryObject,
+        row_offset: 0,
+        row_limit: firstPageRowLimit,
+      };
       const modifiedOwnState = {
         ...options?.ownState,
         currentPage: 0,
-        pageSize: queryObject.row_limit ?? 0,
+        // Persist the user-selected page size, not the per-request row_limit,
+        // which may be capped to the remaining rows on the last page.
+        pageSize,
       };
       updateTableOwnState(options?.hooks?.setDataMask, modifiedOwnState);
     }
@@ -325,7 +349,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         columns: [],
         row_limit: 0,
         row_offset: 0,
-        post_processing: [],
+        // Reapply only the percent-metric contribution rule so the totals row
+        // exposes `%metric` keys (value/value = 100% on the single aggregated
+        // row). The time-comparison operator from the main query is omitted on
+        // purpose; it must not run against the single-row totals query.
+        post_processing: contributionPostProcessing
+          ? [contributionPostProcessing]
+          : [],
         order_desc: undefined,
         orderby: undefined,
       });

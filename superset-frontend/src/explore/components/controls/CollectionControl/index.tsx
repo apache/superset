@@ -50,7 +50,7 @@ interface CollectionItem {
   [key: string]: unknown;
 }
 
-interface CollectionControlProps {
+export interface CollectionControlProps {
   name: string;
   label?: string | null;
   description?: string | null;
@@ -188,7 +188,9 @@ function CollectionControl({
   // Two items can collide when keyAccessor returns falsy and the index
   // fallback is used — breaking dnd-kit reordering and React reconciliation.
   // Assign a stable nanoid per item ref when no key is available.
-  const generatedIdsRef = useRef<WeakMap<CollectionItem, string>>(new WeakMap());
+  const generatedIdsRef = useRef<WeakMap<CollectionItem, string>>(
+    new WeakMap(),
+  );
   const itemIds = useMemo(
     () =>
       value.map(item => {
