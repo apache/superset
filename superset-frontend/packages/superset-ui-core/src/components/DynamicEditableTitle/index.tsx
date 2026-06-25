@@ -93,8 +93,9 @@ export const DynamicEditableTitle = memo(
         // move cursor and scroll to the end
         const { length } = inputElement.value;
         inputElement.setSelectionRange(length, length);
-        inputElement.scrollLeft =
-          theme.direction === 'rtl' ? 0 : inputElement.scrollWidth;
+        if (theme.direction !== 'rtl') {
+          inputElement.scrollLeft = inputElement.scrollWidth;
+        }
       }
     }, [isEditing, theme.direction]);
 
