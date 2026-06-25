@@ -56,7 +56,7 @@ const PanelToolbar = ({
 
           return (
             <Button
-              key={item.view}
+              key={item.command}
               onClick={() => commands.executeCommand(command?.id)}
               tooltip={command?.description ?? command?.title}
               icon={<Icon iconSize="m" />}

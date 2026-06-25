@@ -1278,6 +1278,29 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "CODEC": JsonKeyValueCodec(),
 }
 
+# Extension Tier 2: Ephemeral State - Server-side cache with TTL.
+# Short-lived KV storage that automatically expires. Not guaranteed to
+# survive server restarts. Use for temporary state like job progress,
+# intermediate results, or cross-request state. Can be replaced by any
+# `Flask-Caching` backend (e.g. RedisCache for production).
+EXTENSIONS_EPHEMERAL_STORAGE: CacheConfig = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
+    # Maximum TTL (in seconds) that clients may request. Requests exceeding
+    # this value are rejected. Defaults to 7 days.
+    "MAX_TTL": int(timedelta(days=7).total_seconds()),
+    # The following parameter only applies to `MetastoreCache`:
+    # How should entries be serialized/deserialized?
+    "CODEC": JsonKeyValueCodec(),
+}
+
+# Extension Tier 3: Persistent State - Database storage.
+# Durable KV storage backed by a dedicated database table (`extension_storage`).
+# Survives server restarts, cache evictions, and browser clears.
+EXTENSIONS_PERSISTENT_STORAGE: dict[str, Any] = {
+    # Maximum storage quota per extension in bytes (default: 100 MB)
+    "QUOTA_PER_EXTENSION": 100 * 1024 * 1024,
+}
+
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 

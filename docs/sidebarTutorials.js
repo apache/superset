@@ -88,6 +88,7 @@ const sidebars = {
         'extensions/deployment',
         'extensions/mcp',
         'extensions/security',
+        'extensions/storage',
         'extensions/tasks',
         'extensions/registry',
       ],

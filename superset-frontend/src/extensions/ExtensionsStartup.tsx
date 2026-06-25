@@ -33,21 +33,7 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
 import ExtensionsLoader from './ExtensionsLoader';
-
-declare global {
-  interface Window {
-    superset: {
-      authentication: typeof authentication;
-      core: typeof core;
-      commands: typeof commands;
-      editors: typeof editors;
-      extensions: typeof extensions;
-      menus: typeof menus;
-      sqlLab: typeof sqlLab;
-      views: typeof views;
-    };
-  }
-}
+import './types';
 
 const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   children,
