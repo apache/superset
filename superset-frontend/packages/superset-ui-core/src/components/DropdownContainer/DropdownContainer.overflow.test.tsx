@@ -323,3 +323,41 @@ test('a second item-set change before the confirmation frame fires still settles
   expect(barItemCount()).toBe(3);
   expect(screen.queryByText('More')).toBeInTheDocument();
 });
+
+test('a stale confirmation frame cannot undo a normal overflow settle before it fires', async () => {
+  const filters = nativeFilters(8);
+  const { rerender } = await renderOverflowing(filters);
+  expect(barItemCount()).toBe(3);
+
+  // Keep the frame in the queue even when the component cancels it, so this
+  // test exercises the callback-level stale guard as well as cancellation.
+  cancelRafSpy.mockImplementation(() => {});
+  rafSpy.mockImplementationOnce((cb: FrameRequestCallback) => {
+    rafSeq += 1;
+    rafQueue.push({ id: rafSeq, cb });
+    // Model a transient "fits" measurement that closes immediately after the
+    // confirmation is queued. The setItemsWidth render then re-runs the layout
+    // effect before the frame fires and settles the correct overflow split.
+    containerRight = BAR_WIDTH;
+    return rafSeq;
+  });
+
+  containerRight = Number.MAX_SAFE_INTEGER;
+  const withCrossFilterChip = [
+    makeItem('cross-filter-chip', 'Region'),
+    ...filters,
+  ];
+  await act(async () => {
+    rerender(<DropdownContainer items={withCrossFilterChip} />);
+  });
+
+  await waitFor(() => expect(barItemCount()).toBe(3));
+  expect(screen.queryByText('More')).toBeInTheDocument();
+
+  await act(async () => {
+    flushRAF();
+  });
+
+  expect(barItemCount()).toBe(3);
+  expect(screen.queryByText('More')).toBeInTheDocument();
+});

@@ -351,6 +351,16 @@ export const DropdownContainer = forwardRef(
               // A newer item-set change superseded this confirmation while the
               // frame was queued; let the newer one's own confirmation settle.
               if (confirmVersionRef.current !== scheduledVersion) return;
+              // The normal layout-effect settle path can run before this
+              // frame (for example, from the setItemsWidth render) and clear
+              // the pending confirmation. In that case this queued frame is
+              // stale and must not overwrite the settled overflow index.
+              if (
+                pendingConfirmForLengthRef.current !== items.length ||
+                !confirmationScheduledRef.current
+              ) {
+                return;
+              }
               // Reset guard refs so future layout effect runs are unaffected.
               pendingConfirmForLengthRef.current = -1;
               confirmationScheduledRef.current = false;
@@ -378,6 +388,10 @@ export const DropdownContainer = forwardRef(
 
         pendingConfirmForLengthRef.current = -1;
         confirmationScheduledRef.current = false;
+        if (rafIdRef.current) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = 0;
+        }
         setOverflowingIndex(newOverflowingIndex);
         setRecalculating(false);
       }
