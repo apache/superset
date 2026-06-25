@@ -408,19 +408,29 @@ AUTH_PASSWORD_COMMON_BLOCKLIST: list[str] = []
 APP_NAME = "Superset"
 
 # Specify the App icon
+# NOTE: This variable is used to populate THEME_DEFAULT. If you override this in
+# superset_config.py, you must also override THEME_DEFAULT to see the change,
+# or set THEME_DEFAULT["token"]["brandLogoUrl"] directly.
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 
-# Specify where clicking the logo would take the user'
+# Specify where clicking the logo would take the user
 # Default value of None will take you to '/superset/welcome'
 # You can also specify a relative URL e.g. '/superset/welcome' or '/dashboards/list'
 # or you can specify a full URL e.g. 'https://foo.bar'
+# NOTE: Overriding this in superset_config.py automatically updates the logo link
+# (THEME_DEFAULT["token"]["brandLogoHref"]); see sync_theme_logo_href below.
 LOGO_TARGET_PATH = None
 
 # Specify tooltip that should appear when hovering over the App Icon/Logo
+# NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_TOOLTIP = ""
 
 # Specify any text that should appear to the right of the logo
+# NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
+
+# APP_ICON_WIDTH is deprecated.
+# Use THEME_DEFAULT["token"]["brandLogoHeight"] instead (default: "24px").
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
@@ -1000,7 +1010,12 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # Default theme configuration - foundation for all themes
 # This acts as the base theme for all users
-THEME_DEFAULT: Theme = {
+#
+# _THEME_DEFAULT_BASE is a private copy of the built-in defaults.
+# It is NOT overridden by ``from superset_config import *`` (underscore prefix)
+# and is used to deep-merge partial user overrides so that unspecified token
+# fields gracefully fall back to the built-in values.
+_THEME_DEFAULT_BASE: Theme = {
     "token": {
         # Brand
         # Application name for window titles
@@ -1008,9 +1023,10 @@ THEME_DEFAULT: Theme = {
         "brandLogoAlt": "Apache Superset",
         "brandLogoUrl": APP_ICON,
         "brandLogoMargin": "18px 0",
-        "brandLogoHref": "/",
+        "brandLogoHref": LOGO_TARGET_PATH or "/",
         "brandLogoHeight": "24px",
-        # Spinner
+        # Spinner - Set this to use a custom GIF/image loader
+        # "brandSpinnerUrl": "/static/assets/images/loading.gif",
         "brandSpinnerUrl": None,
         "brandSpinnerSvg": None,
         # Default colors
@@ -1039,18 +1055,38 @@ THEME_DEFAULT: Theme = {
     "algorithm": "default",
 }
 
+THEME_DEFAULT: Theme = _THEME_DEFAULT_BASE
+
 # Dark theme configuration - foundation for dark mode
 # Inherits all tokens from THEME_DEFAULT and adds dark algorithm
 # Set to None to disable dark mode
-THEME_DARK: Optional[Theme] = {
-    **THEME_DEFAULT,
+_THEME_DARK_BASE: Theme = {
+    **_THEME_DEFAULT_BASE,
     "token": {
-        **THEME_DEFAULT["token"],
+        **_THEME_DEFAULT_BASE["token"],
         # Darker selection color for dark mode
         "colorEditorSelection": "#5c4d1a",
     },
     "algorithm": "dark",
 }
+
+THEME_DARK: Optional[Theme] = _THEME_DARK_BASE
+
+
+def sync_theme_logo_href(
+    theme: Optional[Theme], logo_target_path: Optional[str]
+) -> None:
+    """
+    Apply ``LOGO_TARGET_PATH`` to a theme's ``brandLogoHref`` token.
+
+    ``THEME_DEFAULT`` / ``THEME_DARK`` are built above, before ``superset_config.py``
+    and environment overrides are applied at the bottom of this module. This is
+    re-run after those overrides so that setting only ``LOGO_TARGET_PATH`` updates
+    the logo link without also having to override the whole theme object.
+    """
+    if theme and logo_target_path and isinstance(theme.get("token"), dict):
+        theme["token"]["brandLogoHref"] = logo_target_path
+
 
 # Theme behavior and user preference settings
 # To force a single theme on all users, set THEME_DARK = None
@@ -2831,3 +2867,9 @@ for env_var in ENV_VAR_KEYS:
     if env_var in os.environ:
         config_var = env_var.replace("SUPERSET__", "")
         globals()[config_var] = os.environ[env_var]
+
+# THEME_DEFAULT / THEME_DARK are defined before the overrides above are applied,
+# so re-sync the logo link from the final LOGO_TARGET_PATH value here. This lets
+# users set just LOGO_TARGET_PATH without also overriding the whole theme.
+sync_theme_logo_href(THEME_DEFAULT, LOGO_TARGET_PATH)
+sync_theme_logo_href(THEME_DARK, LOGO_TARGET_PATH)
