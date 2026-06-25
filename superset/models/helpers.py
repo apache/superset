@@ -27,7 +27,7 @@ import re
 import uuid
 from collections.abc import Hashable, Iterator
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
@@ -117,6 +117,7 @@ from superset.utils.core import (
     GenericDataType,
     get_base_axis_labels,
     get_column_name,
+    get_column_names,
     get_metric_names,
     get_non_base_axis_columns,
     get_user_id,
@@ -1564,6 +1565,61 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         return self.query(qry)
 
+    def _python_date_format(self, column: str | None) -> str | None:
+        """Return the column's configured ``python_date_format`` (e.g. ``epoch_s``
+        or a strftime pattern), or ``None`` if the column declares no format.
+        Reads from either a column object or a dict, matching ``_is_dttm``."""
+        if not hasattr(self, "get_column") or not (col := self.get_column(column)):
+            return None
+        fmt = (
+            col.get("python_date_format")
+            if isinstance(col, dict)
+            else getattr(col, "python_date_format", None)
+        )
+        return str(fmt) if fmt else None
+
+    def _collect_dttm_labels(
+        self, query_object: QueryObject
+    ) -> tuple[tuple[str, str | None], ...]:
+        """``(label, python_date_format)`` for the columns whose values should be
+        normalized to datetimes: base-axis / granularity columns (aggregated
+        charts), plus raw/unaggregated temporal columns that declare a
+        ``python_date_format``. The raw columns are gated on the declared format
+        rather than ``is_dttm`` alone so a plain integer column is not misread as
+        nanosecond timestamps. The format is resolved here with a single column
+        lookup per label so callers need not look it up again."""
+
+        def _resolve(label: str | None) -> tuple[bool, str | None]:
+            """``(is_dttm, python_date_format)`` from one ``get_column`` lookup."""
+            if not hasattr(self, "get_column") or not (col := self.get_column(label)):
+                return False, None
+            if isinstance(col, dict):
+                fmt = col.get("python_date_format")
+                return bool(col.get("is_dttm")), str(fmt) if fmt else None
+            fmt = getattr(col, "python_date_format", None)
+            return bool(col.is_dttm), str(fmt) if fmt else None
+
+        labels: list[tuple[str, str | None]] = []
+        seen: set[str] = set()
+        for label in [
+            *get_base_axis_labels(query_object.columns),
+            query_object.granularity,
+        ]:
+            if not label or label in seen:
+                continue
+            is_dttm, fmt = _resolve(label)
+            if is_dttm:
+                labels.append((label, fmt))
+                seen.add(label)
+        for label in get_column_names(query_object.columns):
+            if label in seen:
+                continue
+            is_dttm, fmt = _resolve(label)
+            if is_dttm and fmt:
+                labels.append((label, fmt))
+                seen.add(label)
+        return tuple(labels)
+
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         """
         Normalize the dataframe by converting datetime columns and ensuring
@@ -1573,46 +1629,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param query_object: The query object with metadata about columns
         :return: Normalized dataframe
         """
-
-        def _get_timestamp_format(column: str | None) -> str | None:
-            if not hasattr(self, "get_column"):
-                return None
-            column_obj = self.get_column(column)
-            if (
-                column_obj
-                and hasattr(column_obj, "python_date_format")
-                and (formatter := column_obj.python_date_format)
-            ):
-                return str(formatter)
-            return None
-
-        # Collect datetime columns
-        labels = tuple(
-            label
-            for label in [
-                *get_base_axis_labels(query_object.columns),
-                query_object.granularity,
-            ]
-            if hasattr(self, "get_column")
-            and (col := self.get_column(label))
-            and (col.get("is_dttm") if isinstance(col, dict) else col.is_dttm)
-        )
+        labels = self._collect_dttm_labels(query_object)
 
         dttm_cols = [
             DateColumn(
-                timestamp_format=_get_timestamp_format(label),
+                timestamp_format=fmt,
                 offset=self.offset,
                 time_shift=query_object.time_shift,
                 col_label=label,
             )
-            for label in labels
-            if label
+            for label, fmt in labels
         ]
 
         if DTTM_ALIAS in df:
             dttm_cols.append(
                 DateColumn.get_legacy_time_column(
-                    timestamp_format=_get_timestamp_format(query_object.granularity),
+                    timestamp_format=self._python_date_format(query_object.granularity),
                     offset=self.offset,
                     time_shift=query_object.time_shift,
                 )
@@ -1947,7 +1979,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if offset_metrics_df.empty:
                 offset_metrics_df = pd.DataFrame(
                     {
-                        col: [np.NaN]
+                        col: [np.nan]
                         for col in join_keys + list(metrics_mapping.values())
                     }
                 )
@@ -2733,7 +2765,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if tf:
             if tf in {"epoch_ms", "epoch_s"}:
-                seconds_since_epoch = int(dttm.timestamp())
+                # In general, Superset works with timezone-naive datetime objects
+                # internally. However, timestamp() applies local timezone to
+                # timezone-naive datetime objects. Therefore, we have to be explicit
+                # about UTC before calling timestamp().
+                dttm_tz_aware = dttm
+                if dttm_tz_aware.tzinfo is None:
+                    dttm_tz_aware = dttm_tz_aware.replace(tzinfo=timezone.utc)
+
+                seconds_since_epoch = int(dttm_tz_aware.timestamp())
                 if tf == "epoch_s":
                     return str(seconds_since_epoch)
                 return str(seconds_since_epoch * 1000)
@@ -2806,7 +2846,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # automatically add a random alias to the projection because of the
                 # call to DISTINCT; others will uppercase the column names. This
                 # gives us a deterministic column name in the dataframe.
-                [target_col.get_sqla_col(template_processor=tp).label("column_values")]
+                target_col.get_sqla_col(template_processor=tp).label("column_values")
             )
             .select_from(tbl)
             .distinct()
@@ -2900,15 +2940,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Select:
         """Build validation query based on expression type. Raises on error."""
         if expression_type == SqlExpressionType.COLUMN:
-            return sa.select([sa.literal_column(expression).label("test_col")])
+            return sa.select(sa.literal_column(expression).label("test_col"))
         elif expression_type == SqlExpressionType.METRIC:
-            return sa.select([sa.literal_column(expression).label("test_metric")])
+            return sa.select(sa.literal_column(expression).label("test_metric"))
         elif expression_type == SqlExpressionType.WHERE:
-            return sa.select([sa.literal(1)]).where(sa.text(expression))
+            return sa.select(sa.literal(1)).where(sa.text(expression))
         elif expression_type == SqlExpressionType.HAVING:
             dummy_col = sa.literal("A").label("dummy")
             return (
-                sa.select([dummy_col])
+                sa.select(dummy_col)
                 .group_by(sa.text("dummy"))
                 .having(sa.text(expression))
             )
@@ -3345,7 +3385,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if not db_engine_spec.allows_hidden_orderby_agg:
             select_exprs = remove_duplicates(select_exprs + orderby_exprs)
 
-        qry = sa.select(select_exprs)
+        qry = sa.select(*select_exprs)
 
         if groupby_all_columns:
             qry = qry.group_by(*groupby_all_columns.values())
@@ -3685,7 +3725,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     inner_select_exprs.append(inner)
 
                 inner_select_exprs += [inner_main_metric_expr]
-                subq = sa.select(inner_select_exprs).select_from(tbl)
+                subq = sa.select(*inner_select_exprs).select_from(tbl)
                 inner_time_filter = []
 
                 if dttm_col and not db_engine_spec.time_groupby_inline:
@@ -3750,7 +3790,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
 
                     # Reconstruct query with modified expressions
-                    qry = sa.select(select_exprs)
+                    qry = sa.select(*select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(*groupby_all_columns.values())
 
@@ -3824,7 +3864,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
 
                     # Reconstruct query with modified expressions
-                    qry = sa.select(select_exprs)
+                    qry = sa.select(*select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(*groupby_all_columns.values())
 
@@ -3851,7 +3891,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             label = "rowcount"
             col = self.make_sqla_column_compatible(literal_column("COUNT(*)"), label)
-            qry = sa.select([col]).select_from(qry.alias("rowcount_qry"))
+            qry = sa.select(col).select_from(qry.alias("rowcount_qry"))
             labels_expected = [label]
 
         filter_columns = [flt.get("col") for flt in filter] if filter else []
