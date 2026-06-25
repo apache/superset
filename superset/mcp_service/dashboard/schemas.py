@@ -162,12 +162,25 @@ def serialize_role_object(role: Any) -> RoleInfo | None:
     if raw_permissions is not None:
         permissions = []
         try:
-            for permission in raw_permissions:
+            permission_iterator = iter(raw_permissions)
+        except TypeError:
+            permission_iterator = iter(())
+
+        while True:
+            try:
+                permission = next(permission_iterator)
+            except StopIteration:
+                break
+            except (DetachedInstanceError, TypeError):
+                break
+
+            try:
                 permission_name = _serialize_permission_name(permission)
-                if permission_name is not None:
-                    permissions.append(permission_name)
-        except (DetachedInstanceError, TypeError):
-            permissions = []
+            except (DetachedInstanceError, TypeError):
+                continue
+
+            if permission_name is not None:
+                permissions.append(permission_name)
 
     return RoleInfo(
         id=getattr(role, "id", None),

@@ -28,6 +28,7 @@ import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
 from flask import g
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
@@ -151,6 +152,32 @@ def test_dashboard_role_serializer_serializes_permission_view_names() -> None:
         "name": "Gamma",
         "permissions": ["can_read on Dashboard"],
     }
+
+
+def test_dashboard_role_serializer_skips_bad_permission_items() -> None:
+    class DetachedPermission:
+        @property
+        def name(self) -> str:
+            raise DetachedInstanceError("detached permission")
+
+    permission_view = SimpleNamespace(
+        permission=SimpleNamespace(name="can_read"),
+        view_menu=SimpleNamespace(name="Dashboard"),
+    )
+    role = SimpleNamespace(
+        id=1,
+        name="Gamma",
+        permissions=[
+            permission_view,
+            DetachedPermission(),
+            SimpleNamespace(name="can_write"),
+        ],
+    )
+
+    role_info = serialize_role_object(role)
+
+    assert role_info is not None
+    assert role_info.permissions == ["can_read on Dashboard", "can_write"]
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
