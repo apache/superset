@@ -666,6 +666,9 @@ def test_get_oauth2_fresh_token_native(
 
 
 def _oauth2_state() -> OAuth2State:
+    """
+    Build the default OAuth2 state shared by the OAuth2 tests.
+    """
     state: OAuth2State = {
         "database_id": 1,
         "user_id": 1,
