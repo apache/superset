@@ -1152,12 +1152,14 @@ test('pasting an non-existent option should not add it if allowNewOptions is fal
 // silently dropped. allowNewOptionsOnPaste keeps such values so the filter can
 // still apply them.
 test('keeps pasted values outside loaded options when allowNewOptionsOnPaste is true', async () => {
+  const onChange = jest.fn();
   render(
     <Select
       {...defaultProps}
       mode="multiple"
       allowNewOptions={false}
       allowNewOptionsOnPaste
+      onChange={onChange}
     />,
   );
   const input = getElementByClassName('.ant-select-selection-search-input');
@@ -1172,8 +1174,17 @@ test('keeps pasted values outside loaded options when allowNewOptionsOnPaste is 
     const values = [
       ...getElementsByClassName('.ant-select-selection-item'),
     ].map(value => value.textContent);
-    expect(values).toEqual(expect.arrayContaining(['Liam', 'OutsideValue']));
+    // The paste handler appends, so the loaded option resolves first.
+    expect(values).toEqual(['Liam', 'OutsideValue']);
   });
+  // Assert the unloaded value actually reaches the change handler (the value
+  // that gets applied to the filter query), not just the rendered label.
+  expect(onChange).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({ value: 'OutsideValue' }),
+    ]),
+    expect.anything(),
+  );
 });
 
 test('drops pasted values outside loaded options when allowNewOptionsOnPaste is false', async () => {
