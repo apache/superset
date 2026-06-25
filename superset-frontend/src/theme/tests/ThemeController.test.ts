@@ -17,7 +17,7 @@
  * under the License.
  */
 import { theme as antdThemeImport } from 'antd';
-import {} from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
 import {
   type AnyThemeConfig,
   type SupersetThemeConfig,
@@ -111,12 +111,15 @@ const createController = (
     ...options,
   });
 
-// Shared console spies
-const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+// Shared console spies — re-installed in beforeEach so each test starts
+// with a fresh call count and a clean implementation.
+let consoleSpy: jest.SpyInstance;
+let consoleErrorSpy: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
   // Setup DOM environment
   Object.defineProperty(window, 'localStorage', {
@@ -912,6 +915,7 @@ test('recovery flow: fetchSystemDefaultTheme returns theme → applies fetched t
     // Verify API was called to fetch system default theme
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/v1/theme/'),
+      expect.any(Object),
     );
 
     // Verify the fetched theme was applied via applyThemeWithRecovery
@@ -1850,4 +1854,264 @@ test('getResolvedThemeMode returns dark when default theme is dark but mode is D
   const controller = createController();
   expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
   expect(controller.getCurrentModeResolved()).toBe('dark');
+});
+
+test('fallback fetch: uses custom guest token header from SupersetClient when client.get fails', async () => {
+  const originalFetch = global.fetch;
+  const mockGet = jest
+    .spyOn(SupersetClient, 'get')
+    .mockRejectedValue(new Error('Client not configured'));
+  const mockGetGuestToken = jest
+    .spyOn(SupersetClient, 'getGuestToken')
+    .mockReturnValue('custom-guest-token-123');
+
+  // Define getter for guestTokenHeaderName
+  Object.defineProperty(SupersetClient, 'guestTokenHeaderName', {
+    value: 'X-Custom-Guest-Header',
+    configurable: true,
+  });
+
+  const mockFetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      result: [
+        {
+          json_data: JSON.stringify({
+            token: { colorPrimary: '#custom-header-theme' },
+          }),
+        },
+      ],
+    }),
+  });
+  global.fetch = mockFetch;
+
+  try {
+    const controller = createController();
+    const result = await (controller as any).fetchSystemDefaultTheme();
+
+    expect(mockGet).toHaveBeenCalled();
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/theme/'),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-Custom-Guest-Header': 'custom-guest-token-123',
+        }),
+      }),
+    );
+    expect(result).toEqual({ token: { colorPrimary: '#custom-header-theme' } });
+  } finally {
+    global.fetch = originalFetch;
+    mockGet.mockRestore();
+    mockGetGuestToken.mockRestore();
+    Object.defineProperty(SupersetClient, 'guestTokenHeaderName', {
+      value: undefined,
+      configurable: true,
+    });
+  }
+});
+
+test('fallback fetch: uses bootstrap config for guest token header when SupersetClient is not configured', async () => {
+  const originalFetch = global.fetch;
+  const mockGet = jest
+    .spyOn(SupersetClient, 'get')
+    .mockRejectedValue(new Error('Client not configured'));
+  const mockGetGuestToken = jest
+    .spyOn(SupersetClient, 'getGuestToken')
+    .mockReturnValue('bootstrap-guest-token');
+
+  // Ensure SupersetClient.guestTokenHeaderName is undefined or throws
+  Object.defineProperty(SupersetClient, 'guestTokenHeaderName', {
+    get: () => {
+      throw new Error('Not configured');
+    },
+    configurable: true,
+  });
+
+  // Mock bootstrapData.config?.GUEST_TOKEN_HEADER_NAME
+  mockGetBootstrapData.mockReturnValue({
+    ...createMockBootstrapData(),
+    config: {
+      GUEST_TOKEN_HEADER_NAME: 'X-Bootstrap-Custom-Header',
+    },
+  } as any);
+
+  const mockFetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      result: [
+        {
+          json_data: JSON.stringify({
+            token: { colorPrimary: '#bootstrap-theme' },
+          }),
+        },
+      ],
+    }),
+  });
+  global.fetch = mockFetch;
+
+  try {
+    const controller = createController();
+    const result = await (controller as any).fetchSystemDefaultTheme();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/theme/'),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-Bootstrap-Custom-Header': 'bootstrap-guest-token',
+        }),
+      }),
+    );
+    expect(result).toEqual({ token: { colorPrimary: '#bootstrap-theme' } });
+  } finally {
+    global.fetch = originalFetch;
+    mockGet.mockRestore();
+    mockGetGuestToken.mockRestore();
+    mockGetBootstrapData.mockReturnValue(createMockBootstrapData());
+    Object.defineProperty(SupersetClient, 'guestTokenHeaderName', {
+      value: undefined,
+      configurable: true,
+    });
+  }
+});
+
+test('SDK override toggling and dynamic transitions', () => {
+  const controller = createController();
+
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+
+  // Set theme config override
+  const sdkThemeConfig: SupersetThemeConfig = {
+    theme_default: { token: { colorPrimary: '#sdk-default' } },
+    theme_dark: { token: { colorPrimary: '#sdk-dark' } },
+  };
+  controller.setThemeConfig(sdkThemeConfig);
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+
+  // Clear local overrides (which should reset override flag)
+  controller.clearLocalOverrides();
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+});
+
+test('ThemeController cleans up injected fonts on destroy', () => {
+  const controller = createController();
+
+  // Inject some fonts
+  (controller as any).loadFonts(['https://fonts.example.com/font-test.css']);
+
+  let fontStyle = document.querySelector('style[data-superset-fonts]');
+  expect(fontStyle).not.toBeNull();
+
+  controller.destroy();
+
+  fontStyle = document.querySelector('style[data-superset-fonts]');
+  expect(fontStyle).toBeNull();
+});
+
+test('fallback fetch: uses bootstrap GUEST_TOKEN_HEADER_NAME when guestTokenHeaderName getter throws', async () => {
+  const originalFetch = global.fetch;
+
+  // SupersetClient.get throws so we fall through to native fetch
+  const mockGet = jest
+    .spyOn(SupersetClient, 'get')
+    .mockRejectedValue(new Error('Client not configured'));
+
+  // getGuestToken succeeds (we have a guest token)
+  const mockGetGuestToken = jest
+    .spyOn(SupersetClient, 'getGuestToken')
+    .mockReturnValue('my-guest-token');
+
+  // guestTokenHeaderName getter throws → should fall back to bootstrap config
+  Object.defineProperty(SupersetClient, 'guestTokenHeaderName', {
+    get: () => {
+      throw new Error('Not configured');
+    },
+    configurable: true,
+  });
+
+  // Return a bootstrap config with a custom header name
+  mockGetBootstrapData.mockReturnValue({
+    ...createMockBootstrapData(),
+    config: {
+      GUEST_TOKEN_HEADER_NAME: 'X-Bootstrap-Header',
+    },
+  } as any);
+
+  const mockFetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      result: [
+        {
+          json_data: JSON.stringify({
+            token: { colorPrimary: '#bootstrap-fallback' },
+          }),
+        },
+      ],
+    }),
+  });
+  global.fetch = mockFetch;
+
+  try {
+    const controller = createController();
+    const result = await (controller as any).fetchSystemDefaultTheme();
+
+    // Verify the bootstrap header was used instead of SupersetClient.guestTokenHeaderName
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/theme/'),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-Bootstrap-Header': 'my-guest-token',
+        }),
+      }),
+    );
+    expect(result).toEqual({ token: { colorPrimary: '#bootstrap-fallback' } });
+  } finally {
+    global.fetch = originalFetch;
+    mockGet.mockRestore();
+    mockGetGuestToken.mockRestore();
+    mockGetBootstrapData.mockReturnValue(createMockBootstrapData());
+    Object.defineProperty(SupersetClient, 'guestTokenHeaderName', {
+      value: undefined,
+      configurable: true,
+    });
+  }
+});
+
+test('fetchSystemDefaultTheme: second named-theme fallback fetch succeeds when first API calls fail', async () => {
+  const originalFetch = global.fetch;
+
+  // SupersetClient.get always throws (not configured)
+  const mockGet = jest
+    .spyOn(SupersetClient, 'get')
+    .mockRejectedValue(new Error('Client not configured'));
+
+  const namedTheme = { token: { colorPrimary: '#named-theme' } };
+
+  // First fetch call (is_system_default) returns empty result; second (THEME_DEFAULT name) succeeds
+  const mockFetch = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ result: [] }), // first path: no results
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        result: [{ json_data: JSON.stringify(namedTheme) }],
+      }),
+    });
+  global.fetch = mockFetch;
+
+  try {
+    const controller = createController();
+    const result = await (controller as any).fetchSystemDefaultTheme();
+
+    // Both fetches should have been called
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+
+    // The result should be from the second (named-theme) fallback fetch
+    expect(result).toEqual(namedTheme);
+  } finally {
+    global.fetch = originalFetch;
+    mockGet.mockRestore();
+  }
 });

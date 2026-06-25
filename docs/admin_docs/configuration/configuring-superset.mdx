@@ -455,6 +455,51 @@ def FLASK_APP_MUTATOR(app: Flask) -> None:
     app.before_request_funcs.setdefault(None, []).append(make_session_permanent)
 ```
 
+## Customizing the landing page (index view)
+
+The page served at `/` is rendered by an index view. By default Superset registers
+`SupersetIndexView`, which redirects to `/superset/welcome/` and also adds the
+`/lang/<locale>` locale handler. You can replace it with your own view, for example
+to send users straight to a specific dashboard or to a chart list.
+
+Set `FAB_INDEX_VIEW` to the **importable dotted path** of your view class. Flask-AppBuilder
+resolves this during app initialization and uses it in place of the default:
+
+```python
+# my_overrides.py — must be importable on the PYTHONPATH
+from flask import redirect
+from superset.initialization import SupersetIndexView
+from superset.superset_typing import FlaskResponse
+from flask_appbuilder import expose
+
+
+class MyIndexView(SupersetIndexView):
+    @expose("/")
+    def index(self) -> FlaskResponse:
+        return redirect("/chart/list/")
+```
+
+```python
+# superset_config.py
+FAB_INDEX_VIEW = "my_overrides.MyIndexView"
+```
+
+A few things that commonly trip people up:
+
+- **Subclass `SupersetIndexView`, not Flask-AppBuilder's bare `IndexView`.** Subclassing
+  keeps Superset's `/lang/<locale>` locale handling; replacing it with a bare `IndexView`
+  silently drops that behavior.
+- **The class must be importable as a real module.** `FAB_INDEX_VIEW` is resolved by
+  importing the dotted path, which is independent of how `superset_config.py` itself is
+  loaded. Superset only copies **uppercase** names out of `superset_config.py` into its
+  runtime config, so a `FAB_INDEX_VIEW = "superset_config.MyIndexView"` reference only works
+  if `superset_config` is itself importable by that name on the `PYTHONPATH`. If you load
+  config via `SUPERSET_CONFIG_PATH` (an arbitrary file path), put the view in a separate
+  importable module instead and reference that module.
+- **Don't set `appbuilder.indexview` from `FLASK_APP_MUTATOR`.** The mutator runs after
+  routes are already registered, so the assignment has no effect on the `/` route. Use
+  `FAB_INDEX_VIEW` instead.
+
 ## Feature Flags
 
 To support a diverse set of users, Superset has some features that are not enabled by default. For

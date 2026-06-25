@@ -3153,6 +3153,48 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
         ("col1 = 1) AND (col2 = 2", QueryClauseValidationException, "base"),
         ("(col1 = 1)) AND ((col2 = 2)", QueryClauseValidationException, "base"),
         ("TRUE; SELECT 1", QueryClauseValidationException, "base"),
+        # Regression test for https://github.com/apache/superset/issues/39223:
+        # dialects with `MULTI_ARG_DISTINCT=False` (Postgres, Presto, Trino,
+        # DuckDB) must not rewrite user-defined multi-argument DISTINCT
+        # aggregates into row-expression null guards. Dremio is included
+        # below as a defensive regression guard even though its generator
+        # does not currently set `MULTI_ARG_DISTINCT=False`.
+        (
+            "DISTINCT_AVG(DISTINCT report_id, time_to_accept / 86400)",
+            "DISTINCT_AVG(DISTINCT report_id, time_to_accept / 86400)",
+            "postgresql",
+        ),
+        (
+            "DISTINCT_SUM(DISTINCT report_id, total_bounty_reward_amount)",
+            "DISTINCT_SUM(DISTINCT report_id, total_bounty_reward_amount)",
+            "postgresql",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "presto",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "trino",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "duckdb",
+        ),
+        (
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "DISTINCT_AVG(DISTINCT k, v)",
+            "dremio",
+        ),
+        # Single-argument DISTINCT must still round-trip cleanly.
+        (
+            "COUNT(DISTINCT x)",
+            "COUNT(DISTINCT x)",
+            "postgresql",
+        ),
     ],
 )
 def test_sanitize_clause(sql: str, expected: str | Exception, engine: str) -> None:
@@ -3164,6 +3206,30 @@ def test_sanitize_clause(sql: str, expected: str | Exception, engine: str) -> No
     else:
         with pytest.raises(expected):
             sanitize_clause(sql, engine)
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "postgresql",
+        "presto",
+        "trino",
+        "duckdb",
+        "dremio",
+    ],
+)
+def test_sqlstatement_format_preserves_multi_arg_distinct(engine: str) -> None:
+    """
+    Regression guard for https://github.com/apache/superset/issues/39223:
+    ``SQLStatement.format()`` must not rewrite user-defined multi-argument
+    DISTINCT aggregates into row-expression null guards. This is the SQL Lab /
+    executor path; the metric-expression path is covered by
+    ``test_sanitize_clause``.
+    """
+    sql = "SELECT DISTINCT_AVG(DISTINCT a, b) FROM t"
+    formatted = SQLScript(sql, engine).format()
+    assert "DISTINCT_AVG(DISTINCT a, b)" in formatted
+    assert "CASE WHEN" not in formatted
 
 
 @pytest.mark.parametrize(
@@ -3483,6 +3549,17 @@ def test_tokenize_kql(kql: str, expected: list[tuple[KQLTokenType, str]]) -> Non
             "postgresql",
             True,
         ),
+        # Set operations: a top-level UNION/INTERSECT/EXCEPT is not an
+        # exp.Subquery, so it must be detected explicitly. A predicate fragment
+        # that introduces one (e.g. supplied through a chart filter) must be
+        # flagged.
+        ("true UNION SELECT name FROM other_table", "postgresql", True),
+        ("1 = 1 UNION ALL SELECT password FROM users", "postgresql", True),
+        ("SELECT 1 INTERSECT SELECT 2", "postgresql", True),
+        ("SELECT 1 EXCEPT SELECT 2", "postgresql", True),
+        # Nested SELECT under non-Select top-level nodes (e.g. extra
+        # parentheses) must still be detected.
+        ("name IN (((SELECT secret FROM s)))", "postgresql", True),
     ],
 )
 def test_has_subquery(sql: str, engine: str, expected: bool) -> None:

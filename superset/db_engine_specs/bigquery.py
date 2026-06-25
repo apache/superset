@@ -512,7 +512,10 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             database, catalog=table.catalog, schema=table.schema
         ) as engine:
             client = cls._get_client(engine, database)
-            bq_table = client.get_table(f"{table.schema}.{table.table}")
+            table_ref = f"{table.schema}.{table.table}"
+            if table.catalog:
+                table_ref = f"{table.catalog}.{table_ref}"
+            bq_table = client.get_table(table_ref)
 
             if bq_table.time_partitioning:
                 return bq_table.time_partitioning.field

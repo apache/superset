@@ -90,6 +90,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
+    // Capture the percent-metric `contribution` rule so it can be reused for
+    // the totals query below. The totals query must rename percent-metric
+    // columns the same way (`metric` -> `%metric`) so the footer can look them
+    // up; without it the totals row renders 0.000%. We deliberately reuse only
+    // this rule and not the full `postProcessing` array, which may also contain
+    // a time-comparison operator that must not run on the single totals row.
+    let contributionPostProcessing: PostProcessingRule | undefined;
     const nonCustomNorInheritShifts = ensureIsArray(
       formData.time_compare,
     ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
@@ -157,15 +164,14 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           metrics.concat(percentMetrics),
           getMetricLabel,
         );
-        postProcessing = [
-          {
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(x => `%${x}`),
-            },
+        contributionPostProcessing = {
+          operation: 'contribution',
+          options: {
+            columns: percentMetricLabels,
+            rename_columns: percentMetricLabels.map(x => `%${x}`),
           },
-        ];
+        };
+        postProcessing = [contributionPostProcessing];
       }
       // Add the operator for the time comparison if some is selected
       if (!isEmpty(timeOffsets)) {
@@ -658,7 +664,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,
-        post_processing: [],
+        // Reapply only the percent-metric contribution rule so the totals row
+        // exposes `%metric` keys (value/value = 100% on the single aggregated
+        // row). The time-comparison operator from the main query is omitted on
+        // purpose; it must not run against the single-row totals query.
+        post_processing: contributionPostProcessing
+          ? [contributionPostProcessing]
+          : [],
         order_desc: undefined, // we don't need orderby stuff here,
         orderby: undefined, // because this query will be used for get total aggregation.
       });
