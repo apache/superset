@@ -89,8 +89,8 @@ test('Recoverable (soft-delete) mode drops the type-to-confirm input and confirm
   // No "type DELETE to confirm" input in recoverable mode.
   expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
 
-  // Delete fires straight away — no confirmation gate.
-  await userEvent.click(screen.getByText('Delete'));
+  // The primary action is labelled "Archive" and fires straight away.
+  await userEvent.click(screen.getByText('Archive'));
   expect(props.onConfirm).toHaveBeenCalledTimes(1);
 });
 
