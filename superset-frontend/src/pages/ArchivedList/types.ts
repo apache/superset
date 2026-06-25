@@ -70,5 +70,11 @@ export interface ArchivedItem {
   uuid: string;
   changed_by?: { first_name?: string; last_name?: string; id?: number } | null;
   deleted_at?: string | null;
+  /** Link to the asset, used by the recovery toast (charts/dashboards). */
+  url?: string | null;
+  /** Dataset link target, used by the recovery toast. */
+  explore_url?: string | null;
+  // The per-type name field (slice_name / dashboard_title / table_name) is read
+  // dynamically via the type config, so the index signature remains.
   [key: string]: unknown;
 }
