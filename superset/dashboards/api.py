@@ -374,6 +374,9 @@ class DashboardRestApi(
         "changed_on_delta_humanized",
         "created_by.first_name",
         "dashboard_title",
+        # Exposed so the Recently-Deleted view can sort archived dashboards by
+        # deletion time (sc-111760).
+        "deleted_at",
         "published",
         "changed_on",
     ]
@@ -405,6 +408,9 @@ class DashboardRestApi(
         "roles",
         "slug",
         "description",
+        # Exposed so the Recently-Deleted view can filter archived dashboards by
+        # a deletion-time cutoff (e.g. ``deleted_at`` ``gt`` cutoff) — sc-111760.
+        "deleted_at",
         "tags",
         "uuid",
     )

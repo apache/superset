@@ -23,7 +23,12 @@ import { styled } from '@apache-superset/core/theme';
 import { Select, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { ListView, type ListViewProps } from 'src/components';
+import {
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
 import SubMenu from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
@@ -135,6 +140,14 @@ function DeletedListBody({
         id: 'type',
         disableSortBy: true,
       },
+      // Backing column for the Time-range filter + default sort. Hidden here;
+      // US3 (T022) turns it into a visible relative-time "Deleted" column.
+      {
+        accessor: 'deleted_at',
+        Header: t('Deleted'),
+        id: 'deleted_at',
+        hidden: true,
+      },
       {
         Cell: ({ row: { original } }: { row: { original: DeletedItem } }) => (
           <StyledActions className="actions">
@@ -164,13 +177,54 @@ function DeletedListBody({
     [config.nameField, type, handleRestore],
   );
 
-  // H5: default to changed_on (always orderable); deleted_at sort arrives in US2.
-  const initialSort = useMemo(() => [{ id: 'changed_on', desc: true }], []);
+  // Default to most-recently-deleted first. `deleted_at` is now orderable on
+  // all three list endpoints (T014-T016), so it replaces the US1 `changed_on`
+  // fallback (C1).
+  const initialSort = useMemo(() => [{ id: 'deleted_at', desc: true }], []);
+
+  // Time-range presets map to a `deleted_at` greater-than cutoff. FAB exposes
+  // `gt` (not `ge`) for a DateTime column; for a relative window the half-open
+  // boundary is equivalent. "All time" is the unfiltered default.
+  const timeRangeOptions = useMemo(() => {
+    const cutoff = (days: number) => {
+      const date = new Date();
+      date.setDate(date.getDate() - days);
+      return date.toISOString();
+    };
+    return [
+      { label: t('Last 7 days'), value: cutoff(7) },
+      { label: t('Last 30 days'), value: cutoff(30) },
+      { label: t('Last 90 days'), value: cutoff(90) },
+    ];
+  }, []);
+
+  const filters: ListViewFilters = useMemo(
+    () => [
+      {
+        Header: t('Name'),
+        key: 'search',
+        id: config.nameField,
+        input: 'search',
+        operator: FilterOperator.Contains,
+      },
+      {
+        Header: t('Deleted'),
+        key: 'deleted_at',
+        id: 'deleted_at',
+        input: 'select',
+        operator: FilterOperator.GreaterThan,
+        unfilteredLabel: t('All time'),
+        selects: timeRangeOptions,
+      },
+    ],
+    [config.nameField, timeRangeOptions],
+  );
 
   return (
     <ListView<DeletedItem>
       className="deleted-list-view"
       columns={columns}
+      filters={filters}
       data={resourceCollection}
       count={resourceCount}
       pageSize={PAGE_SIZE}
