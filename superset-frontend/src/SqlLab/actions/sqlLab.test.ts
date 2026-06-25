@@ -1843,14 +1843,14 @@ describe('async actions', () => {
           {
             ...query,
             id: 'previewOne',
-            sqlEditorId: oldQueryEditor.id,
-            inLocalStorage: true,
+            sqlEditorId: null,
+            isDataPreview: true,
           },
           {
             ...query,
             id: 'previewTwo',
-            sqlEditorId: oldQueryEditor.id,
-            inLocalStorage: true,
+            sqlEditorId: null,
+            isDataPreview: true,
           },
           {
             ...query,
@@ -1897,16 +1897,6 @@ describe('async actions', () => {
           },
           {
             type: actions.MIGRATE_QUERY,
-            queryId: 'previewOne',
-            queryEditorId: '1',
-          },
-          {
-            type: actions.MIGRATE_QUERY,
-            queryId: 'previewTwo',
-            queryEditorId: '1',
-          },
-          {
-            type: actions.MIGRATE_QUERY,
             queryId: 'runningQuery',
             queryEditorId: '1',
           },
@@ -1917,7 +1907,7 @@ describe('async actions', () => {
             expect(store.getActions()).toEqual(expectedActions);
             expect(
               fetchMock.callHistory.calls(updateTabStateEndpoint),
-            ).toHaveLength(4);
+            ).toHaveLength(2);
 
             // query editor has 2 tables loaded in the schema viewer
             expect(
