@@ -179,7 +179,9 @@ test('name search refetches with a contains filter on the name field', async () 
   await waitFor(() => {
     const hit = fetchMock.callHistory
       .calls(/chart\/\?q/)
-      .find(call => call.url.includes('(col:slice_name,opr:ct,value:invoice)'));
+      .find(call =>
+        call.url.includes('(col:slice_name,opr:chart_all_text,value:invoice)'),
+      );
     expect(hit).toBeTruthy();
   });
 });
