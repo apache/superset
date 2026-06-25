@@ -131,7 +131,7 @@ for (const cfg of TYPES) {
 
     // Success toast, and the object is live again per the API.
     await expect(
-      page.getByText(`Restored ${name}`, { exact: false }),
+      page.getByText(`${name} restored successfully`, { exact: false }),
     ).toBeVisible({ timeout: 15000 });
     await expect.poll(() => cfg.status(page, id)).toBe(200);
 
@@ -139,6 +139,27 @@ for (const cfg of TYPES) {
     await cfg.softDelete(page, id);
   });
 }
+
+test('permanently deletes an archived item from the view', async ({ page }) => {
+  const name = `e2e_purge_${Date.now()}`;
+  const id = await TYPES[0].create(page, name); // dashboard
+  expect((await TYPES[0].softDelete(page, id)).ok()).toBeTruthy();
+
+  await openArchive(page, TYPES[0].label, name);
+  const row = page.getByRole('row').filter({ hasText: name });
+  await expect(row).toBeVisible();
+
+  // "Delete permanently" opens a plain danger confirm (no type-to-confirm).
+  await row.getByTestId('archived-row-purge').click();
+  await expect(page.getByTestId('delete-modal-input')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+
+  // Success toast, and the row is gone for good.
+  await expect(page.getByText(`${name} deleted successfully`)).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(page.getByRole('row').filter({ hasText: name })).toHaveCount(0);
+});
 
 test('shows an empty message and no rows when the search matches nothing', async ({
   page,
@@ -180,7 +201,7 @@ test('restoring an already-restored row surfaces an error without crashing', asy
     .getByTestId('archived-row-restore')
     .click();
   await expect(
-    page.getByText(`There was an issue restoring ${name}`, { exact: false }),
+    page.getByText(`Failed to restore ${name}`, { exact: false }),
   ).toBeVisible({ timeout: 15000 });
   // The page is still functional (the list view did not crash).
   await expect(page.getByTestId('archived-list-view')).toBeVisible();
