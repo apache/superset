@@ -25,7 +25,7 @@ translating high-level operations into the ``deleted`` / ``modified`` /
 
 import copy
 import logging
-from typing import Any
+from typing import Any, cast
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -40,6 +40,7 @@ from superset.mcp_service.dashboard.schemas import (
     NativeFilterSummary,
     NativeFilterUpdateSpec,
 )
+from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -60,10 +61,17 @@ class _FilterValidationError(Exception):
 
 
 def _empty_data_mask() -> dict[str, Any]:
+    """Return the default data mask for a filter with no applied value."""
     return {"filterState": {"value": None}, "extraFormData": {}}
 
 
 def _time_data_mask(default_time_range: str | None) -> dict[str, Any]:
+    """Build the default data mask for a time filter.
+
+    When ``default_time_range`` is empty the filter starts unset (the empty
+    mask); otherwise the range is applied as both the filter state value and
+    the ``time_range`` extra form data.
+    """
     if not default_time_range:
         return _empty_data_mask()
     return {
@@ -240,11 +248,30 @@ def _merge_filter_update(
 
 
 def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
+    """Summarize a filter config for the response.
+
+    Returns the id, name, filterType, and non-empty targets; empty target
+    entries (e.g. for time filters) are dropped so the summary only lists
+    real dataset/column targets. The user-controlled ``name`` and ``targets``
+    come from dashboard metadata and are wrapped as untrusted content before
+    being exposed to LLM context (mirroring the get_dashboard_info read path).
+    """
+    name = conf.get("name")
+    targets = [t for t in (conf.get("targets") or []) if t]
     return NativeFilterSummary(
         id=conf.get("id"),
-        name=conf.get("name"),
+        name=sanitize_for_llm_context(name, field_path=("name",))
+        if name is not None
+        else None,
         filter_type=conf.get("filterType"),
-        targets=[t for t in (conf.get("targets") or []) if t],
+        targets=cast(
+            list[dict[str, Any]],
+            sanitize_for_llm_context(
+                targets,
+                field_path=("targets",),
+                excluded_field_names=frozenset(),
+            ),
+        ),
     )
 
 
@@ -272,6 +299,14 @@ def _build_native_filters_payload(  # noqa: C901
     removed_ids = set(request.remove)
     modified: list[dict[str, Any]] = []
     updated_filter_ids: list[str] = []
+
+    update_ids = [update_spec.id for update_spec in request.update]
+    duplicate_updates = sorted({fid for fid in update_ids if update_ids.count(fid) > 1})
+    if duplicate_updates:
+        raise _FilterValidationError(
+            f"update contains duplicate filter IDs: {duplicate_updates}. "
+            "Provide at most one update per filter."
+        )
 
     for update_spec in request.update:
         if update_spec.id in removed_ids:
