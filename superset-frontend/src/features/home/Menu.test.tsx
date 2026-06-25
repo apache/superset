@@ -809,92 +809,98 @@ test('brand link falls back to brand.path when theme brandLogoUrl is absent', as
 const getMenuItemByText = (text: string): HTMLElement | null =>
   screen.getByText(text).closest('li');
 
-afterEach(() => {
-  // Reset the route so a pushed path does not leak into the next test.
-  window.history.pushState({}, '', '/');
-});
-
-test('highlights the active top-level tab on a matching route (English)', async () => {
-  useSelectorMock.mockReturnValue({ roles: user.roles });
-  window.history.pushState({}, '', '/dashboard/list/');
-
-  render(<Menu {...mockedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-    useRouter: true,
-    useTheme: true,
+// Scoped in a describe so the route-resetting afterEach only applies to these
+// tests and does not leak into the rest of the file.
+describe('active tab highlighting (regression #36403)', () => {
+  afterEach(() => {
+    // Reset the route so a pushed path does not leak into the next test.
+    window.history.pushState({}, '', '/');
   });
 
-  await screen.findByText('Dashboards');
-  expect(getMenuItemByText('Dashboards')).toHaveClass('ant-menu-item-selected');
-});
+  test('highlights the active top-level tab on a matching route (English)', async () => {
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    window.history.pushState({}, '', '/dashboard/list/');
 
-test('highlights the active top-level tab when the label is localized', async () => {
-  // Russian locale: the FAB `name` stays the stable English identifier while
-  // the displayed `label` is translated. Highlighting must still work.
-  const localizedProps = {
-    ...mockedProps,
-    data: {
-      ...mockedProps.data,
-      menu: mockedProps.data.menu.map(item =>
-        item.name === 'Dashboards' ? { ...item, label: 'Дашборды' } : item,
-      ),
-    },
-  };
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
 
-  useSelectorMock.mockReturnValue({ roles: user.roles });
-  window.history.pushState({}, '', '/dashboard/list/');
-
-  render(<Menu {...localizedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-    useRouter: true,
-    useTheme: true,
+    await screen.findByText('Dashboards');
+    expect(getMenuItemByText('Dashboards')).toHaveClass(
+      'ant-menu-item-selected',
+    );
   });
 
-  await screen.findByText('Дашборды');
-  expect(getMenuItemByText('Дашборды')).toHaveClass('ant-menu-item-selected');
-});
+  test('highlights the active top-level tab when the label is localized', async () => {
+    // Russian locale: the FAB `name` stays the stable English identifier while
+    // the displayed `label` is translated. Highlighting must still work.
+    const localizedProps = {
+      ...mockedProps,
+      data: {
+        ...mockedProps.data,
+        menu: mockedProps.data.menu.map(item =>
+          item.name === 'Dashboards' ? { ...item, label: 'Дашборды' } : item,
+        ),
+      },
+    };
 
-test('highlights the active SQL tab when the label is localized', async () => {
-  // The SQL Lab top-level entry is a FAB category: its stable `name` is
-  // "SQL Lab" while its label ("SQL") is localized.
-  const localizedProps = {
-    ...mockedProps,
-    data: {
-      ...mockedProps.data,
-      menu: [
-        ...mockedProps.data.menu,
-        {
-          name: 'SQL Lab',
-          icon: 'fa-flask',
-          label: 'SQL запросы',
-          childs: [
-            {
-              name: 'SQL Editor',
-              label: 'SQL Lab',
-              url: '/sqllab/',
-              index: 1,
-            },
-          ],
-        },
-      ],
-    },
-  };
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    window.history.pushState({}, '', '/dashboard/list/');
 
-  useSelectorMock.mockReturnValue({ roles: user.roles });
-  window.history.pushState({}, '', '/sqllab/');
+    render(<Menu {...localizedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
 
-  render(<Menu {...localizedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-    useRouter: true,
-    useTheme: true,
+    await screen.findByText('Дашборды');
+    expect(getMenuItemByText('Дашборды')).toHaveClass('ant-menu-item-selected');
   });
 
-  await screen.findByText('SQL запросы');
-  // SQL Lab renders as a submenu, so antd marks it with the submenu variant.
-  expect(getMenuItemByText('SQL запросы')).toHaveClass(
-    'ant-menu-submenu-selected',
-  );
+  test('highlights the active SQL tab when the label is localized', async () => {
+    // The SQL Lab top-level entry is a FAB category: its stable `name` is
+    // "SQL Lab" while its label ("SQL") is localized.
+    const localizedProps = {
+      ...mockedProps,
+      data: {
+        ...mockedProps.data,
+        menu: [
+          ...mockedProps.data.menu,
+          {
+            name: 'SQL Lab',
+            icon: 'fa-flask',
+            label: 'SQL запросы',
+            childs: [
+              {
+                name: 'SQL Editor',
+                label: 'SQL Lab',
+                url: '/sqllab/',
+                index: 1,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    window.history.pushState({}, '', '/sqllab/');
+
+    render(<Menu {...localizedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    await screen.findByText('SQL запросы');
+    // SQL Lab renders as a submenu, so antd marks it with the submenu variant.
+    expect(getMenuItemByText('SQL запросы')).toHaveClass(
+      'ant-menu-submenu-selected',
+    );
+  });
 });
