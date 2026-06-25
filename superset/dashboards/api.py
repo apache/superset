@@ -85,6 +85,7 @@ from superset.commands.database.exceptions import DatasetValidationError
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.purge import PurgeArchivedCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.dashboards.filters import (
@@ -257,6 +258,7 @@ class DashboardRestApi(
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "restore",
+        "purge",
         "favorite_status",
         "add_favorite",
         "remove_favorite",
@@ -291,6 +293,7 @@ class DashboardRestApi(
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "restore": "write",
+        "purge": "write",
     }
 
     # Default list_columns (used if config not set)
@@ -1416,6 +1419,71 @@ class DashboardRestApi(
         except DashboardRestoreFailedError as ex:
             logger.error(
                 "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
+    @expose("/<uuid>/purge", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.purge",
+        log_to_statsd=False,
+    )
+    def purge(self, uuid: str) -> Response:
+        """Permanently delete a soft-deleted (archived) dashboard.
+        ---
+        post:
+          summary: Permanently delete a soft-deleted dashboard
+          description: >-
+            Irreversibly remove an archived dashboard and its dependents.
+            Limited to owners and admins (same audience as restore).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Dashboard permanently deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            PurgeArchivedCommand(
+                uuid,
+                DashboardDAO,
+                DashboardNotFoundError,
+                DashboardForbiddenError,
+                DashboardDeleteFailedError,
+            ).run()
+            return self.response(200, message="OK")
+        except DashboardNotFoundError:
+            return self.response_404()
+        except DashboardForbiddenError:
+            return self.response_403()
+        except DashboardDeleteFailedError as ex:
+            logger.error(
+                "Error purging model %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,

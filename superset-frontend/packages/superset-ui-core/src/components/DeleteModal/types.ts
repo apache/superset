@@ -32,4 +32,10 @@ export interface DeleteModalProps {
    * friction and uses a primary (non-danger) confirm button.
    */
   recoverable?: boolean;
+  /**
+   * Whether to require typing "DELETE" to confirm (default true). Set false for
+   * a plain danger confirm with no typing — e.g. a "delete forever" from the
+   * archive, which warns instead of gating. Ignored when `recoverable` is true.
+   */
+  requireConfirmationText?: boolean;
 }

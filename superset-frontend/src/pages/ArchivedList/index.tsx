@@ -17,11 +17,16 @@
  * under the License.
  */
 import { useCallback, useMemo, useState } from 'react';
+import { escape } from 'lodash';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
-import { Select, Tooltip } from '@superset-ui/core/components';
+import {
+  ConfirmStatusChange,
+  Select,
+  Tooltip,
+} from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
@@ -68,7 +73,7 @@ const TYPE_LABELS: Record<ArchivedType, string> = {
 
 interface ToastProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: { allowHtml?: boolean }) => void;
 }
 
 /**
@@ -114,10 +119,51 @@ function ArchivedListBody({
         await SupersetClient.post({
           endpoint: `/api/v1/${config.resource}/${item.uuid}/restore`,
         });
-        addSuccessToast(t('Restored %(name)s', { name }));
+        // Recovery toast: "<name> restored successfully" + a link to the
+        // restored asset where one exists (charts/dashboards/datasets expose a
+        // url/explore_url). HTML is escaped before opting into allowHtml.
+        const url = item.url ?? item.explore_url;
+        const message = t('%(name)s restored successfully', { name });
+        if (url) {
+          const linkText = t('View %(type)s', { type: TYPE_LABELS[type] });
+          addSuccessToast(
+            `${escape(message)} <a href="${escape(String(url))}">${escape(
+              linkText,
+            )} →</a>`,
+            { allowHtml: true },
+          );
+        } else {
+          addSuccessToast(message);
+        }
         refreshData();
       } catch (error) {
-        addDangerToast(t('There was an issue restoring %(name)s', { name }));
+        addDangerToast(t('Failed to restore %(name)s', { name }));
+      }
+    },
+    [
+      config.resource,
+      config.nameField,
+      type,
+      addSuccessToast,
+      addDangerToast,
+      refreshData,
+    ],
+  );
+
+  // Permanent delete (force-purge) of an archived item — irreversible. Owner/
+  // admin-gated server-side (mirrors restore). The confirmation is a plain
+  // danger modal (no type-to-confirm), per the "delete forever" design.
+  const handlePurge = useCallback(
+    async (item: ArchivedItem) => {
+      const name = String(item[config.nameField] ?? '');
+      try {
+        await SupersetClient.post({
+          endpoint: `/api/v1/${config.resource}/${item.uuid}/purge`,
+        });
+        addSuccessToast(t('%(name)s deleted successfully', { name }));
+        refreshData();
+      } catch (error) {
+        addDangerToast(t('Failed to delete %(name)s', { name }));
       }
     },
     [
@@ -187,32 +233,61 @@ function ArchivedListBody({
         disableSortBy: true,
       },
       {
-        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => (
-          <StyledActions className="actions">
-            <Tooltip
-              id="restore-action-tooltip"
-              title={t('Restore')}
-              placement="bottom"
-            >
-              <span
-                data-test="archived-row-restore"
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={() => handleRestore(original)}
+        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => {
+          const name = String(original[config.nameField] ?? '');
+          return (
+            <StyledActions className="actions">
+              <Tooltip
+                id="restore-action-tooltip"
+                title={t('Recover this item')}
+                placement="bottom"
               >
-                <Icons.RollbackOutlined iconSize="l" />
-              </span>
-            </Tooltip>
-          </StyledActions>
-        ),
+                <span
+                  data-test="archived-row-restore"
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={() => handleRestore(original)}
+                >
+                  <Icons.RollbackOutlined iconSize="l" />
+                </span>
+              </Tooltip>
+              <ConfirmStatusChange
+                title={t('Delete permanently %(name)s?', { name })}
+                description={t(
+                  "If you delete this item, you won't be able to recover it.",
+                )}
+                onConfirm={() => handlePurge(original)}
+                requireConfirmationText={false}
+              >
+                {confirmDelete => (
+                  <Tooltip
+                    id="purge-action-tooltip"
+                    title={t('Delete permanently')}
+                    placement="bottom"
+                  >
+                    <span
+                      data-test="archived-row-purge"
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={confirmDelete}
+                    >
+                      <Icons.DeleteOutlined iconSize="l" />
+                    </span>
+                  </Tooltip>
+                )}
+              </ConfirmStatusChange>
+            </StyledActions>
+          );
+        },
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
         size: 'sm',
       },
     ],
-    [config.nameField, config.previewable, type, handleRestore],
+    [config.nameField, config.previewable, type, handleRestore, handlePurge],
   );
 
   // Default to most-recently-archived first. `deleted_at` is now orderable on
