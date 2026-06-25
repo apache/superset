@@ -700,7 +700,7 @@ const Select = forwardRef(
                 .map(item => item.trim())
                 .filter(Boolean),
             )
-          : [pastedText.trim()];
+          : [pastedText.trim()].filter(Boolean);
 
         const newOptions: SelectOptionsType = [];
         // When `allowNewOptionsOnPaste` is set, accept pasted values that are

@@ -1220,6 +1220,36 @@ test('trims whitespace around pasted comma-separated values', async () => {
   );
 });
 
+test('does not create an empty option when pasting blank text', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions={false}
+      allowNewOptionsOnPaste
+      onChange={onChange}
+    />,
+  );
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => '   ',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    expect(values).toEqual([]);
+  });
+  // No empty-string value should ever reach the handler.
+  onChange.mock.calls.forEach(([value]) => {
+    expect(value).not.toContain('');
+  });
+});
+
 test('drops pasted values outside loaded options when allowNewOptionsOnPaste is false', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions={false} />);
   const input = getElementByClassName('.ant-select-selection-search-input');
