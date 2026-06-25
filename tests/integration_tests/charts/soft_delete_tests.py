@@ -692,3 +692,27 @@ class TestChartArchiveListing(InsertChartMixin, SupersetTestCase):
 
         # Cleanup
         _hard_delete_chart(chart_id)
+
+    def test_purge_failure_returns_422(self) -> None:
+        """A failure during the cascade surfaces as a clean 422 (via the
+        ``ChartDeleteFailedError`` handler) rather than an unhandled 500 —
+        mirroring the restore failure path."""
+        from unittest.mock import patch
+
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("arch_purge_fail", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        with patch(
+            "superset.commands.deletion_retention.force_purge.ForcePurgeCommand.run",
+            side_effect=Exception("boom"),
+        ):
+            rv = self.client.post(f"/api/v1/chart/{chart_uuid}/purge")
+        assert rv.status_code == 422
+
+        # Cleanup — the row is still soft-deleted (purge never completed).
+        _hard_delete_chart(chart_id)
