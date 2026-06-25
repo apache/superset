@@ -20,10 +20,10 @@ import { useCallback, useMemo, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { Select, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   GenericLink,
   ListView,
@@ -34,10 +34,10 @@ import {
 import SubMenu from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
-  DELETED_TYPES,
-  DELETED_TYPE_CONFIG,
-  type DeletedItem,
-  type DeletedType,
+  ARCHIVED_TYPES,
+  ARCHIVED_TYPE_CONFIG,
+  type ArchivedItem,
+  type ArchivedType,
 } from './types';
 
 const PAGE_SIZE = 25;
@@ -60,7 +60,7 @@ const StyledActions = styled.div`
   `}
 `;
 
-const TYPE_LABELS: Record<DeletedType, string> = {
+const TYPE_LABELS: Record<ArchivedType, string> = {
   chart: t('Chart'),
   dashboard: t('Dashboard'),
   dataset: t('Dataset'),
@@ -75,14 +75,14 @@ interface ToastProps {
  * The per-type table body. Mounted with `key={type}` by the parent so the
  * `useListViewResource` state and derived columns reset cleanly on a type
  * switch (review H2). Sourced from the selected type's existing list endpoint
- * with the `<type>_deleted_state:only` baseline filter.
+ * with the soft-delete `<type>_deleted_state:only` baseline filter.
  */
-function DeletedListBody({
+function ArchivedListBody({
   type,
   addDangerToast,
   addSuccessToast,
-}: ToastProps & { type: DeletedType }) {
-  const config = DELETED_TYPE_CONFIG[type];
+}: ToastProps & { type: ArchivedType }) {
+  const config = ARCHIVED_TYPE_CONFIG[type];
 
   const baseFilters = useMemo(
     () => [{ id: 'id', operator: config.deletedStateOperator, value: 'only' }],
@@ -93,7 +93,7 @@ function DeletedListBody({
     state: { loading, resourceCount, resourceCollection },
     fetchData,
     refreshData,
-  } = useListViewResource<DeletedItem>(
+  } = useListViewResource<ArchivedItem>(
     config.resource,
     TYPE_LABELS[type],
     addDangerToast,
@@ -108,7 +108,7 @@ function DeletedListBody({
   // the row in place. The list read is already owner-scoped, so every visible
   // row is restorable — no client-side gating (H1).
   const handleRestore = useCallback(
-    async (item: DeletedItem) => {
+    async (item: ArchivedItem) => {
       const name = String(item[config.nameField] ?? '');
       try {
         await SupersetClient.post({
@@ -134,7 +134,7 @@ function DeletedListBody({
       {
         // T024: chart/dashboard names link to a preview; dataset names are
         // plain text with a tooltip explaining why no preview is offered.
-        Cell: ({ row: { original } }: { row: { original: DeletedItem } }) => {
+        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => {
           const name = String(original[config.nameField] ?? '');
           if (config.previewable && original.url) {
             return <GenericLink to={String(original.url)}>{name}</GenericLink>;
@@ -161,19 +161,19 @@ function DeletedListBody({
         disableSortBy: true,
       },
       {
-        // T022: relative deletion time. Sortable — `deleted_at` is in
+        // T022: relative archive (deletion) time. Sortable — `deleted_at` is in
         // order_columns on all three list APIs (T014-T016).
-        Cell: ({ row: { original } }: { row: { original: DeletedItem } }) =>
+        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) =>
           original.deleted_at
             ? extendedDayjs.utc(String(original.deleted_at)).fromNow()
             : '',
-        Header: t('Deleted'),
+        Header: t('Archived'),
         id: 'deleted_at',
       },
       {
-        // T023: deleting user, sourced from changed_by. Non-sortable — there is
+        // T023: archiving user, sourced from changed_by. Non-sortable — there is
         // no backend deleted-by ordering (M1).
-        Cell: ({ row: { original } }: { row: { original: DeletedItem } }) => {
+        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => {
           const by = [
             original.changed_by?.first_name,
             original.changed_by?.last_name,
@@ -182,12 +182,12 @@ function DeletedListBody({
             .join(' ');
           return by || t('Unknown');
         },
-        Header: t('Deleted by'),
-        id: 'deleted_by',
+        Header: t('Archived by'),
+        id: 'archived_by',
         disableSortBy: true,
       },
       {
-        Cell: ({ row: { original } }: { row: { original: DeletedItem } }) => (
+        Cell: ({ row: { original } }: { row: { original: ArchivedItem } }) => (
           <StyledActions className="actions">
             <Tooltip
               id="restore-action-tooltip"
@@ -195,7 +195,7 @@ function DeletedListBody({
               placement="bottom"
             >
               <span
-                data-test="deleted-row-restore"
+                data-test="archived-row-restore"
                 role="button"
                 tabIndex={0}
                 className="action-button"
@@ -215,7 +215,7 @@ function DeletedListBody({
     [config.nameField, config.previewable, type, handleRestore],
   );
 
-  // Default to most-recently-deleted first. `deleted_at` is now orderable on
+  // Default to most-recently-archived first. `deleted_at` is now orderable on
   // all three list endpoints (T014-T016), so it replaces the US1 `changed_on`
   // fallback (C1).
   const initialSort = useMemo(() => [{ id: 'deleted_at', desc: true }], []);
@@ -252,7 +252,7 @@ function DeletedListBody({
             : FilterOperator.Contains,
       },
       {
-        Header: t('Deleted'),
+        Header: t('Archived'),
         key: 'deleted_at',
         id: 'deleted_at',
         input: 'select',
@@ -265,8 +265,8 @@ function DeletedListBody({
   );
 
   return (
-    <ListView<DeletedItem>
-      className="deleted-list-view"
+    <ListView<ArchivedItem>
+      className="archived-list-view"
       columns={columns}
       filters={filters}
       data={resourceCollection}
@@ -287,27 +287,27 @@ function DeletedListBody({
 }
 
 /**
- * Recently-Deleted (Archive) view (sc-111760): find and restore soft-deleted
+ * Archive (Recently-Archived) view (sc-111760): find and restore soft-deleted
  * charts, dashboards, and datasets — one type at a time via the Type selector.
  */
-function DeletedList({ addDangerToast, addSuccessToast }: ToastProps) {
-  const [type, setType] = useState<DeletedType>('chart');
+function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
+  const [type, setType] = useState<ArchivedType>('chart');
 
   return (
     <>
-      <SubMenu name={t('Recently deleted')} />
+      <SubMenu name={t('Recently archived')} />
       <TypeSelectRow>
         <Select
           ariaLabel={t('Type')}
           value={type}
-          onChange={value => setType(value as DeletedType)}
-          options={DELETED_TYPES.map(option => ({
+          onChange={value => setType(value as ArchivedType)}
+          options={ARCHIVED_TYPES.map(option => ({
             value: option,
             label: TYPE_LABELS[option],
           }))}
         />
       </TypeSelectRow>
-      <DeletedListBody
+      <ArchivedListBody
         key={type}
         type={type}
         addDangerToast={addDangerToast}
@@ -317,4 +317,4 @@ function DeletedList({ addDangerToast, addSuccessToast }: ToastProps) {
   );
 }
 
-export default withToasts(DeletedList);
+export default withToasts(ArchivedList);

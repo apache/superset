@@ -200,6 +200,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
+        from superset.views.archived_assets import ArchivedAssetsView
         from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import CssTemplateModelView
@@ -209,7 +210,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
-        from superset.views.deleted_assets import DeletedAssetsView
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
@@ -469,7 +469,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
-        appbuilder.add_view_no_menu(DeletedAssetsView)
+        appbuilder.add_view_no_menu(ArchivedAssetsView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_view_no_menu(PwaManifestView)

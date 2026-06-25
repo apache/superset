@@ -29,7 +29,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
-import DeletedList from 'src/pages/DeletedList';
+import ArchivedList from 'src/pages/ArchivedList';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -91,11 +91,11 @@ const mockRoutes = (restoreStatus = 200) => {
   });
 };
 
-const renderDeletedList = () =>
+const renderArchivedList = () =>
   render(
     <MemoryRouter>
       <QueryParamProvider adapter={ReactRouter5Adapter}>
-        <DeletedList />
+        <ArchivedList />
       </QueryParamProvider>
     </MemoryRouter>,
     { useRedux: true, store },
@@ -108,9 +108,9 @@ beforeEach(() => {
 
 test('renders archived rows with Name and Type columns', async () => {
   mockRoutes();
-  renderDeletedList();
+  renderArchivedList();
 
-  expect(await screen.findByTestId('deleted-list-view')).toBeInTheDocument();
+  expect(await screen.findByTestId('archived-list-view')).toBeInTheDocument();
   expect(await screen.findByText('Deleted Chart One')).toBeInTheDocument();
   expect(screen.getByText('Deleted Chart Two')).toBeInTheDocument();
   // Name + Type column headers render.
@@ -120,7 +120,7 @@ test('renders archived rows with Name and Type columns', async () => {
 
 test('issues the deleted-only baseline filter on the list request', async () => {
   mockRoutes();
-  renderDeletedList();
+  renderArchivedList();
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls(/chart\/\?q/);
@@ -131,10 +131,10 @@ test('issues the deleted-only baseline filter on the list request', async () => 
 
 test('restore posts to the per-type endpoint and refetches on success', async () => {
   mockRoutes();
-  renderDeletedList();
-  await screen.findByTestId('deleted-list-view');
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
 
-  const restoreButtons = await screen.findAllByTestId('deleted-row-restore');
+  const restoreButtons = await screen.findAllByTestId('archived-row-restore');
   fireEvent.click(restoreButtons[0]);
 
   await waitFor(() => {
@@ -151,10 +151,10 @@ test('restore posts to the per-type endpoint and refetches on success', async ()
 
 test('restore failure surfaces an error and leaves the row in place', async () => {
   mockRoutes(422);
-  renderDeletedList();
-  await screen.findByTestId('deleted-list-view');
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
 
-  const restoreButtons = await screen.findAllByTestId('deleted-row-restore');
+  const restoreButtons = await screen.findAllByTestId('archived-row-restore');
   fireEvent.click(restoreButtons[0]);
 
   await waitFor(() => {
@@ -169,8 +169,8 @@ test('restore failure surfaces an error and leaves the row in place', async () =
 
 test('name search refetches with a contains filter on the name field', async () => {
   mockRoutes();
-  renderDeletedList();
-  await screen.findByTestId('deleted-list-view');
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
 
   const searchInput = screen.getByPlaceholderText(/type a value/i);
   fireEvent.change(searchInput, { target: { value: 'invoice' } });
@@ -188,8 +188,8 @@ test('name search refetches with a contains filter on the name field', async () 
 
 test('switching Type fetches the newly selected resource with its deleted-state filter', async () => {
   mockRoutes();
-  renderDeletedList();
-  await screen.findByTestId('deleted-list-view');
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
 
   await selectOption('Dashboard', 'Type');
 
@@ -204,8 +204,8 @@ test('switching Type fetches the newly selected resource with its deleted-state 
 
 test('time-range preset refetches with a deleted_at greater-than filter', async () => {
   mockRoutes();
-  renderDeletedList();
-  await screen.findByTestId('deleted-list-view');
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
 
   // The Time-range preset renders as a compact filter pill; selecting an
   // option applies immediately (no Apply button).
@@ -222,8 +222,8 @@ test('time-range preset refetches with a deleted_at greater-than filter', async 
 
 test('shows relative deletion time and the deleting user', async () => {
   mockRoutes();
-  renderDeletedList();
-  await screen.findByTestId('deleted-list-view');
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
 
   // deleted_at is humanized to a relative "... ago" string.
   expect(screen.getAllByText(/ago$/i).length).toBeGreaterThan(0);
@@ -233,8 +233,8 @@ test('shows relative deletion time and the deleting user', async () => {
 
 test('renders chart names as preview links', async () => {
   mockRoutes();
-  renderDeletedList();
-  await screen.findByTestId('deleted-list-view');
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
 
   const link = screen.getByText('Deleted Chart One').closest('a');
   expect(link).not.toBeNull();
@@ -243,8 +243,8 @@ test('renders chart names as preview links', async () => {
 
 test('renders dataset names as plain text with no preview link', async () => {
   mockRoutes();
-  renderDeletedList();
-  await screen.findByTestId('deleted-list-view');
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
 
   await selectOption('Dataset', 'Type');
 
