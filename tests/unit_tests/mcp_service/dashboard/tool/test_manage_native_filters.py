@@ -129,6 +129,7 @@ def _mock_dashboard(
 
 
 def _mock_dataset(columns: list[str] | None = None) -> Mock:
+    """Build a mock dataset whose columns expose the given column names."""
     dataset = Mock()
     dataset.id = 5
     cols = []
@@ -154,7 +155,7 @@ def _mock_command(captured: dict[str, Any]) -> Callable[[int, dict[str, Any]], M
 
         command = Mock()
 
-        def run():
+        def run() -> list[dict[str, Any]]:
             current = captured.get("current_config", [])
             deleted = payload.get("deleted", [])
             modified = payload.get("modified", [])
@@ -443,6 +444,39 @@ async def test_remove_filter(mcp_server):
     assert data["removed_filter_ids"] == ["NATIVE_FILTER-existing1"]
     assert captured["payload"] == {"deleted": ["NATIVE_FILTER-existing1"]}
     assert [f["id"] for f in data["filters"]] == ["NATIVE_FILTER-existing2"]
+
+
+@pytest.mark.asyncio
+async def test_non_dict_json_metadata_does_not_crash(mcp_server):
+    # Legacy/corrupt dashboards may persist json_metadata as a JSON array
+    # ("[]") rather than an object; the tool should treat it as empty rather
+    # than raising AttributeError on metadata.get(...).
+    captured: dict = {"current_config": []}
+    dashboard = _mock_dashboard(filters=[], chart_ids=[10, 11])
+    dashboard.json_metadata = "[]"
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_select",
+                        "name": "Region",
+                        "dataset_id": 5,
+                        "column": "region",
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    assert len(data["added_filter_ids"]) == 1
 
 
 @pytest.mark.asyncio
