@@ -121,13 +121,15 @@ export class DashboardPage {
   /**
    * Locator for the individual tabs of the top-level tab bar.
    * A dashboard can contain several nested tab bars; the top-level one is the
-   * first `dashboard-component-tabs` rendered in the DOM.
+   * first `dashboard-component-tabs` rendered in the DOM. The nav list is
+   * scoped to the immediate child (`:scope >`) so that tabs belonging to nested
+   * tab bars rendered inside this container's content are not counted.
    */
   topLevelTabs(): Locator {
     return this.page
       .locator(DashboardPage.SELECTORS.DASHBOARD_TABS)
       .first()
-      .locator('[data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab');
+      .locator(':scope > [data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab');
   }
 
   /**
