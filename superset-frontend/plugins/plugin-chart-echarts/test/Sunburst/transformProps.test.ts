@@ -51,3 +51,49 @@ test('series label has no textBorderColor or textBorderWidth', () => {
   expect(series.label).not.toHaveProperty('textBorderColor');
   expect(series.label).not.toHaveProperty('textBorderWidth');
 });
+
+const nullValueProps = (showNullValues?: boolean) =>
+  new ChartProps({
+    formData: {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      columns: ['category'],
+      metric: 'sum__value',
+      ...(showNullValues === undefined ? {} : { showNullValues }),
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { category: 'A', sum__value: 10 },
+          { category: 'B', sum__value: 20 },
+          { category: null, sum__value: 5 },
+        ],
+      },
+    ],
+    theme: supersetTheme,
+  });
+
+const seriesValues = (props: ChartProps) =>
+  (
+    (transformProps(props as EchartsSunburstChartProps).echartOptions as any)
+      .series[0].data as { value: number }[]
+  )
+    .map(node => node.value)
+    .sort((a, b) => a - b);
+
+// Charts saved before the "Show Null Values" control existed have no
+// `showNullValues` in form data; they must keep showing nulls (non-breaking).
+test('keeps null values when showNullValues is unset (legacy charts)', () => {
+  expect(seriesValues(nullValueProps(undefined))).toEqual([5, 10, 20]);
+});
+
+test('keeps null values when showNullValues is true', () => {
+  expect(seriesValues(nullValueProps(true))).toEqual([5, 10, 20]);
+});
+
+// Single-column sunburst: the toggle must actually drop the null node.
+test('removes null values when showNullValues is false', () => {
+  expect(seriesValues(nullValueProps(false))).toEqual([10, 20]);
+});

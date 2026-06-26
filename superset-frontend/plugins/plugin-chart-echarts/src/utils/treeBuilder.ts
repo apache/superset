@@ -40,7 +40,7 @@ export function treeBuilder(
 ): TreeNode[] {
   const [curGroupBy, ...restGroupby] = groupBy;
   const curData = _groupBy(data, curGroupBy);
-  return transform(
+  const nodes = transform(
     curData,
     (result, value, key) => {
       const name = curData[key][0][curGroupBy]!;
@@ -59,6 +59,9 @@ export function treeBuilder(
           result.push(item);
         });
       } else {
+        // Children are already null-filtered by the recursive call, so the
+        // parent's value/secondaryValue exclude hidden nulls. This keeps the
+        // parent arc sized to its visible children (no empty gap).
         const children = treeBuilder(
           value,
           restGroupby,
@@ -76,12 +79,9 @@ export function treeBuilder(
               0,
             )
           : metricValue;
-        const validChildren = filterNullNames
-          ? children.filter(child => child.name !== null)
-          : children;
         result.push({
           name,
-          children: validChildren,
+          children,
           value: metricValue,
           secondaryValue,
           groupBy: curGroupBy,
@@ -90,4 +90,7 @@ export function treeBuilder(
     },
     [] as TreeNode[],
   );
+  // Filter at every level so single-level charts and root nodes are covered,
+  // not just nested children.
+  return filterNullNames ? nodes.filter(node => node.name !== null) : nodes;
 }
