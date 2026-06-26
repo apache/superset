@@ -24,12 +24,14 @@ import pytest
 
 @pytest.fixture
 def mock_thumbnail_cache() -> Iterator[None]:
+    """Enable thumbnail cache mocking so tasks don't exit early."""
     with patch("superset.tasks.thumbnails.thumbnail_cache", True):
         yield
 
 
 @pytest.fixture
 def mock_dashboard() -> MagicMock:
+    """Return a mocked Dashboard with id=1 and a fixed digest."""
     dashboard = MagicMock()
     dashboard.id = 1
     dashboard.digest = "test_digest"

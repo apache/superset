@@ -165,12 +165,12 @@ class TestCacheOnlyOnSuccess:
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         BaseScreenshot.cache = MockCache()
 
-        def check_cache_during_screenshot(*args, **kwargs):
+        def check_cache_during_screenshot(*args: object, **kwargs: object) -> bytes:
             cache_key = screenshot_obj.get_cache_key()
             cached_value = BaseScreenshot.cache.get(cache_key)
-            assert (
-                cached_value is not None
-            ), "Cache should be set to COMPUTING before screenshot starts"
+            assert cached_value is not None, (
+                "Cache should be set to COMPUTING before screenshot starts"
+            )
             assert cached_value["status"] == "Computing"
             return b"image_data"
 
