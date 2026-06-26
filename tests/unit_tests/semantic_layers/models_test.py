@@ -653,6 +653,13 @@ def test_semantic_view_data(
         assert data["table_name"] == "Orders View"
         assert data["datasource_name"] == "Orders View"
         assert data["offset"] == 0
+        # Semantic views don't model raw rows, so samples aren't available.
+        assert data["supports_samples"] is False
+
+
+def test_semantic_view_supports_samples_is_false() -> None:
+    """The class-level flag opts SemanticView out of the Samples affordance."""
+    assert SemanticView.supports_samples is False
 
 
 @pytest.fixture
