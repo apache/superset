@@ -302,21 +302,19 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
                 "slices": remaining_slices,  # Pass ORM objects, not IDs
             }
 
-            # Clean stale chart references from json_metadata. When anything
-            # changed, route the full metadata blob through the command's
-            # json_metadata path, including the new layout under "positions"
-            # so DashboardDAO.set_dash_metadata takes its legacy branch that
-            # preserves (and re-scopes) filter_scopes; without "positions"
-            # that DAO method drops filter_scopes entirely.
+            # Clean stale chart references from json_metadata without routing
+            # through UpdateDashboardCommand: that path calls
+            # DashboardDAO.set_dash_metadata which, when "positions" is
+            # present in the metadata blob, overwrites dashboard.slices from
+            # layout data and silently drops charts attached via the slices
+            # relationship but absent from position_json.
             try:
                 metadata = json.loads(dashboard.json_metadata or "{}")
             except (json.JSONDecodeError, TypeError):
                 metadata = None
-            if isinstance(metadata, dict) and _clean_json_metadata(
+            metadata_changed = isinstance(metadata, dict) and _clean_json_metadata(
                 metadata, request.chart_id
-            ):
-                metadata["positions"] = current_layout
-                update_data["json_metadata"] = json.dumps(metadata)
+            )
 
             command = UpdateDashboardCommand(request.dashboard_id, update_data)
             updated_dashboard = command.run()
@@ -375,6 +373,15 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
                 removed_layout_keys=removed_keys,
                 error=None,
             )
+
+        # Write cleaned metadata directly, bypassing UpdateDashboardCommand's
+        # json_metadata path which triggers set_dash_metadata's positions
+        # branch and overwrites slices from layout data.
+        if metadata_changed and isinstance(metadata, dict):
+            from superset import db
+
+            updated_dashboard.json_metadata = json.dumps(metadata)
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (
