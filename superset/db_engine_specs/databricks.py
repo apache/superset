@@ -308,8 +308,11 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
             str: The cloud provider ('aws', 'azure', or 'gcp')
         """
         # Check if cloud provider is explicitly configured in extra
-        if "cloud_provider" in (extra := cls.get_extra_params(database)):
-            provider = extra["cloud_provider"].lower()
+        if isinstance(
+            (cloud_provider := cls.get_extra_params(database).get("cloud_provider")),
+            str,
+        ):
+            provider = cloud_provider.lower()
             if provider in cls._oauth2_endpoints:
                 return provider
 
