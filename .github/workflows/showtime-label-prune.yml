@@ -1,0 +1,131 @@
+name: 🎪 Showtime Label Prune
+
+# Superset Showtime stores per-PR ephemeral environment state in GitHub labels
+# (e.g. "🎪 <sha> 🚦 running", "🎪 <sha> 🌐 <ip>", "🎪 🎯 <sha>"). GitHub removes
+# these labels from a PR when they are no longer applied, but it never deletes the
+# repo-level label *definition*. Over time thousands of orphaned definitions
+# accumulate and clutter the label picker. This job prunes the orphans.
+#
+# An orphan is a "🎪 " label that:
+#   - encodes a git SHA (token of 7-40 hex chars), i.e. it is per-commit state, and
+#   - is applied to zero issues and zero pull requests (any state).
+#
+# Persistent control labels never contain a SHA and are always preserved:
+#   "🎪 ⌛ 1w", "🎪 ⌛ 48h", "🎪 ⚡ showtime-trigger[-start|-stop]", "🎪 🔒 showtime-blocked".
+
+on:
+  schedule:
+    - cron: '30 7 * * *'  # Daily at 07:30 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'List orphaned labels without deleting them'
+        type: boolean
+        default: false
+
+permissions:
+  issues: write        # GitHub label CRUD is part of the issues API
+  pull-requests: read
+
+concurrency:
+  group: showtime-label-prune
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    name: Prune orphaned 🎪 showtime labels
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Delete orphaned ephemeral environment labels
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const dryRun = String(context.payload.inputs?.dry_run) === 'true';
+
+            // Ephemeral labels carry a git SHA; control labels never do.
+            const SHA = /[0-9a-f]{7,40}/;
+            // Defense in depth: never touch known persistent control labels.
+            const CONTROL = /^🎪 (⌛|⚡|🔒) /u;
+
+            // Page through every label with its attachment counts (all states).
+            const orphans = [];
+            let cursor = null;
+            for (;;) {
+              const { repository } = await github.graphql(
+                `query($owner:String!, $repo:String!, $cursor:String) {
+                   repository(owner:$owner, name:$repo) {
+                     labels(first:100, after:$cursor) {
+                       pageInfo { hasNextPage endCursor }
+                       nodes {
+                         name
+                         issues { totalCount }
+                         pullRequests { totalCount }
+                       }
+                     }
+                   }
+                 }`,
+                { owner, repo, cursor }
+              );
+              const { nodes, pageInfo } = repository.labels;
+              for (const l of nodes) {
+                if (!l.name.startsWith('🎪 ')) continue;
+                if (CONTROL.test(l.name)) continue;
+                if (!SHA.test(l.name)) continue;
+                if (l.issues.totalCount > 0 || l.pullRequests.totalCount > 0) continue;
+                orphans.push(l.name);
+              }
+              if (!pageInfo.hasNextPage) break;
+              cursor = pageInfo.endCursor;
+            }
+
+            core.info(`Found ${orphans.length} orphaned 🎪 label(s).`);
+            if (dryRun) {
+              core.info('Dry run — nothing will be deleted.');
+            }
+
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            let deleted = 0;
+            const failures = [];
+            for (const name of orphans) {
+              if (dryRun) {
+                core.info(`[dry-run] would delete: ${name}`);
+                continue;
+              }
+              try {
+                await github.rest.issues.deleteLabel({ owner, repo, name });
+                deleted++;
+                // Stay under GitHub's secondary rate limit for mutations.
+                await sleep(200);
+              } catch (err) {
+                if (err.status === 403 || err.status === 429) {
+                  // Secondary rate limit — back off and retry once.
+                  core.warning(`Rate limited on "${name}", backing off 60s…`);
+                  await sleep(60000);
+                  try {
+                    await github.rest.issues.deleteLabel({ owner, repo, name });
+                    deleted++;
+                    continue;
+                  } catch (retryErr) {
+                    failures.push(`${name}: ${retryErr.message}`);
+                  }
+                } else {
+                  failures.push(`${name}: ${err.message}`);
+                }
+              }
+            }
+
+            await core.summary
+              .addHeading('🎪 Showtime label prune')
+              .addRaw(dryRun ? '**Dry run** — no labels deleted.\n\n' : '')
+              .addList([
+                `Orphans found: ${orphans.length}`,
+                `Deleted: ${dryRun ? 0 : deleted}`,
+                `Failures: ${failures.length}`,
+              ])
+              .write();
+
+            if (failures.length) {
+              core.setFailed(`Failed to delete ${failures.length} label(s):\n${failures.join('\n')}`);
+            }
