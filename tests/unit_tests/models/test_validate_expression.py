@@ -19,6 +19,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils.core import SqlExpressionType
 
@@ -155,34 +157,32 @@ class TestValidateExpression:
         # The actual error message will come from the exception
         assert "empty" in result["errors"][0]["message"].lower()
 
+    @pytest.mark.parametrize(
+        "expression, expected_message",
+        [
+            ("(SELECT 1) IS NOT NULL OR 1 = 1", "cannot contain sub-queries"),
+            ("1 UNION SELECT 1", "cannot contain set operations"),
+        ],
+    )
     @patch("superset.models.helpers.is_feature_enabled", return_value=False)
     @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
-    def test_validate_expression_rejects_subquery(self, mock_execute, mock_ff):
-        """A sub-query expression is rejected by the same validate_adhoc_subquery
-        gate used for stored adhoc expressions, before any validation query is
-        built or run (with ALLOW_ADHOC_SUBQUERY off, the default). Locks in that
-        expression validation never executes the sub-query."""
+    def test_validate_expression_rejects_disallowed_constructs(
+        self,
+        mock_execute: MagicMock,
+        mock_ff: MagicMock,
+        expression: str,
+        expected_message: str,
+    ) -> None:
+        """Sub-queries and set operations are rejected by the same stored-adhoc
+        policy before any validation query is built or run (with
+        ALLOW_ADHOC_SUBQUERY off, the default), so the construct never executes."""
         result = self.table.validate_expression(
-            expression="(SELECT 1) IS NOT NULL OR 1 = 1",
+            expression=expression,
             expression_type=SqlExpressionType.WHERE,
         )
 
         assert result["valid"] is False
-        assert "cannot contain sub-queries" in result["errors"][0]["message"]
-        mock_execute.assert_not_called()
-
-    @patch("superset.models.helpers.is_feature_enabled", return_value=False)
-    @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
-    def test_validate_expression_rejects_set_operation(self, mock_execute, mock_ff):
-        """A set-operation expression is rejected before the validation query is
-        built or run, matching the stored-adhoc-expression policy."""
-        result = self.table.validate_expression(
-            expression="1 UNION SELECT 1",
-            expression_type=SqlExpressionType.WHERE,
-        )
-
-        assert result["valid"] is False
-        assert "cannot contain set operations" in result["errors"][0]["message"]
+        assert expected_message in result["errors"][0]["message"]
         mock_execute.assert_not_called()
 
     @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
