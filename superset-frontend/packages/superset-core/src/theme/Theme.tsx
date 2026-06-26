@@ -27,7 +27,7 @@ import {
 } from '@emotion/react';
 import createCache from '@emotion/cache';
 import { noop, mergeWith } from 'lodash';
-import { DirectionType } from 'antd/es/config-provider';
+import type { TextDirection } from './types';
 import { GlobalStyles } from './GlobalStyles';
 import {
   AntdThemeConfig,
@@ -208,7 +208,7 @@ export class Theme {
     this.setConfig(newConfig);
   }
 
-  setDirection(direction: DirectionType): void {
+  setDirection(direction: TextDirection): void {
     this.theme = { ...this.theme, direction };
     this.updateProviders(this.theme, this.antdConfig, this.emotionCaches);
   }
@@ -239,15 +239,16 @@ export class Theme {
     });
     const { direction = 'ltr' } = themeState.theme;
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    React.useEffect(() => {
+      if (typeof document !== 'undefined' && document.documentElement) {
+        document.documentElement.setAttribute('dir', direction);
+        document.documentElement.setAttribute('data-direction', direction);
+      }
+    }, [direction]);
+
     this.updateProviders = (theme, antdConfig, emotionCache) => {
       setThemeState({ theme, antdConfig, emotionCache });
-      const dir = theme?.direction ?? 'ltr';
-      // Ensure we update the document direction attribute on every change,
-      // and safely guard for non-browser environments.
-      if (typeof document !== 'undefined' && document.documentElement) {
-        document.documentElement.setAttribute('dir', dir);
-        document.documentElement.setAttribute('data-direction', dir);
-      }
     };
 
     return (

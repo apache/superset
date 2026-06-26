@@ -31,7 +31,13 @@ const mockGetBootstrapData = getBootstrapData as jest.MockedFunction<
 
 test('getLanguageCodeFromLocale strips region suffix', () => {
   expect(getLanguageCodeFromLocale('ar-SA')).toBe('ar');
+  expect(getLanguageCodeFromLocale('ar_SA')).toBe('ar');
   expect(getLanguageCodeFromLocale('en')).toBe('en');
+});
+
+test('getDirectionFromLocale returns rtl for underscore locales', () => {
+  expect(getDirectionFromLocale('ar_SA')).toBe('rtl');
+  expect(getDirectionFromLocale('fa_IR')).toBe('rtl');
 });
 
 test('getDirectionFromLocale returns ltr for LTR locales', () => {
@@ -44,6 +50,7 @@ test.each(rtlLanguages)(
   languageCode => {
     expect(getDirectionFromLocale(languageCode)).toBe('rtl');
     expect(getDirectionFromLocale(`${languageCode}-XX`)).toBe('rtl');
+    expect(getDirectionFromLocale(`${languageCode}_XX`)).toBe('rtl');
   },
 );
 

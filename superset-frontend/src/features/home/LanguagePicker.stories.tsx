@@ -17,24 +17,19 @@
  * under the License.
  */
 import { Menu } from '@superset-ui/core/components/Menu';
-import type { DirectionType } from 'antd/es/config-provider';
 import { useLanguageMenuItems } from './LanguagePicker';
 import type { Languages } from './LanguagePicker';
 
-// Component to demonstrate the hook usage
 const LanguagePicker = ({
   locale,
   languages,
-  setDirection,
 }: {
   locale: string;
   languages: Languages;
-  setDirection: (newDirection: DirectionType) => void;
 }) => {
   const languageMenuItem = useLanguageMenuItems({
     locale,
     languages,
-    setDirection,
   });
 
   return (
@@ -69,10 +64,9 @@ const mockedProps = {
       url: '/lang/it',
     },
   },
-  setDirection: () => {},
 };
 
-const Template = (args: any) => <LanguagePicker {...args} />;
+const Template = (args: typeof mockedProps) => <LanguagePicker {...args} />;
 
 export const Default = Template.bind({});
 Default.args = mockedProps;

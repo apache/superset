@@ -68,6 +68,10 @@ export default function CrudThemeProvider({
         normalizedConfig,
         baseTheme || undefined,
       );
+      const parentDirection = themeContext?.theme.theme.direction;
+      if (parentDirection) {
+        createdTheme.setDirection(parentDirection);
+      }
       const rawUrls = themeConfig?.token?.fontUrls;
       const urls = Array.isArray(rawUrls) ? (rawUrls as string[]) : undefined;
       return { dashboardTheme: createdTheme, fontUrls: urls };
@@ -75,7 +79,7 @@ export default function CrudThemeProvider({
       logging.warn('Failed to load dashboard theme:', error);
       return { dashboardTheme: null, fontUrls: undefined };
     }
-  }, [theme?.json_data, hasThemeConfigOverride]);
+  }, [theme?.json_data, hasThemeConfigOverride, themeContext?.theme]);
 
   useEffect(() => {
     if (hasThemeConfigOverride || !dashboardTheme || !fontUrls?.length) {

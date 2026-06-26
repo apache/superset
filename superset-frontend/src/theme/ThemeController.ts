@@ -19,6 +19,7 @@
 import {
   type AnyThemeConfig,
   type SupersetThemeConfig,
+  type TextDirection,
   type ThemeControllerOptions,
   type ThemeStorage,
   isThemeConfigDark,
@@ -28,7 +29,6 @@ import {
   normalizeThemeConfig,
 } from '@apache-superset/core/theme';
 import { makeApi, SupersetClient } from '@superset-ui/core';
-import { DirectionType } from 'antd/es/config-provider';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
@@ -388,7 +388,7 @@ export class ThemeController {
    * Sets the direction ('ltr', 'rtl', undefined).
    * @param direction - The new direction to apply
    */
-  public setDirection(direction: DirectionType): void {
+  public setDirection(direction: TextDirection): void {
     this.globalTheme.setDirection(direction);
     this.notifyListeners();
   }

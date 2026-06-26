@@ -61,7 +61,8 @@ const titleStyles = (theme: SupersetTheme) => css`
     position: absolute;
     display: inline-block;
     white-space: pre;
-    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
   }
 `;
 

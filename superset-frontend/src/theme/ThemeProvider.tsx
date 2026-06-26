@@ -24,7 +24,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { DirectionType } from 'antd/es/config-provider';
+import type { TextDirection } from '@apache-superset/core/theme';
 import {
   type AnyThemeConfig,
   type ThemeContextType,
@@ -85,7 +85,7 @@ export function SupersetThemeProvider({
   );
 
   const setDirection = useCallback(
-    (direction: DirectionType) => themeController.setDirection(direction),
+    (direction: TextDirection) => themeController.setDirection(direction),
     [themeController],
   );
 

@@ -16,22 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { rtlLanguages } from 'src/constants';
-import type { TextDirection } from '@apache-superset/core/theme';
-import getBootstrapData from './getBootstrapData';
+import { render } from '@testing-library/react';
+import { Theme } from './Theme';
 
-export type { TextDirection };
+test('SupersetThemeProvider sets document direction on mount', () => {
+  document.documentElement.removeAttribute('dir');
+  document.documentElement.removeAttribute('data-direction');
 
-export function getLanguageCodeFromLocale(locale: string): string {
-  return locale.split(/[-_]/)[0].toLowerCase();
-}
+  const theme = Theme.fromConfig();
+  theme.setDirection('rtl');
 
-export function getDirectionFromLocale(locale: string): TextDirection {
-  const languageCode = getLanguageCodeFromLocale(locale);
-  return (rtlLanguages as readonly string[]).includes(languageCode) ? 'rtl' : 'ltr';
-}
+  const { SupersetThemeProvider } = theme;
+  render(
+    <SupersetThemeProvider>
+      <div>child</div>
+    </SupersetThemeProvider>,
+  );
 
-export function getBootstrapLocale(): string {
-  const { common } = getBootstrapData();
-  return common?.menu_data?.navbar_right?.locale || common?.locale || 'en';
-}
+  expect(document.documentElement.getAttribute('dir')).toBe('rtl');
+  expect(document.documentElement.getAttribute('data-direction')).toBe('rtl');
+});

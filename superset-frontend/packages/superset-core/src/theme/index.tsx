@@ -27,6 +27,7 @@ import {
   type ThemeControllerOptions,
   type ThemeContextType,
   type SupersetThemeConfig,
+  type TextDirection,
   ThemeAlgorithm,
   ThemeMode,
 } from './types';
@@ -83,6 +84,7 @@ export type {
   ThemeControllerOptions,
   ThemeContextType,
   SupersetThemeConfig,
+  TextDirection,
 };
 
 // Export theme utility functions

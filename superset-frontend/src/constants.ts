@@ -213,7 +213,7 @@ export const rtlLanguages = [
   'ug',
   'ur',
   'yi',
-];
+] as const;
 
 /**
  * Default threshold for CSV streaming export.

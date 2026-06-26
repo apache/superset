@@ -51,7 +51,7 @@ const StyledHeader = styled.header`
     padding: 0 ${theme.sizeUnit * 4}px;
     z-index: 10;
 
-    .main-nav {
+    .main-nav.ant-menu-horizontal {
       display: flex;
     }
 
