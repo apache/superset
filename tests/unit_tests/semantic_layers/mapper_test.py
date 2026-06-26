@@ -1003,6 +1003,96 @@ def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
     }
 
 
+def _make_grain_variant_datasource(
+    mocker: MockerFixture,
+    granularity_dim_grain: Grain | None,
+    extra_dim_grain: Grain | None = None,
+) -> MagicMock:
+    """Datasource with raw + Hour + Day variants on ``order_date``."""
+    datasource = mocker.Mock()
+    base = {
+        "id": "orders.order_date",
+        "name": "order_date",
+        "type": pa.timestamp("us"),
+        "description": "Order date",
+        "definition": "order_date",
+    }
+    date_variants = {
+        Dimension(**base, grain=None),
+        Dimension(**base, grain=Grains.HOUR),
+        Dimension(**base, grain=Grains.DAY),
+    }
+    category = Dimension(
+        id="products.category",
+        name="category",
+        type=pa.utf8(),
+        description="Product category",
+        definition="category",
+    )
+    sales = Metric(
+        id="orders.total_sales",
+        name="total_sales",
+        type=pa.float64(),
+        definition="SUM(amount)",
+        description="Total sales",
+    )
+    implementation = MockSemanticView(
+        dimensions=date_variants | {category},
+        metrics={sales},
+        features=frozenset(),
+    )
+    datasource.implementation = implementation
+    datasource.fetch_values_predicate = None
+    return datasource
+
+
+def test_map_query_object_picks_grain_variant_matching_user_selection(
+    mocker: MockerFixture,
+) -> None:
+    """Only the variant matching the user's grain is sent through."""
+    datasource = _make_grain_variant_datasource(
+        mocker, granularity_dim_grain=Grains.DAY
+    )
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        metrics=["total_sales"],
+        columns=["category", "order_date"],
+        granularity="order_date",
+        extras={"time_grain_sqla": "P1D"},
+    )
+
+    result = map_query_object(query_object)
+
+    selected_grains = {dim.grain for dim in result[0].dimensions}
+    assert selected_grains == {
+        Grains.DAY,
+        None,
+    }  # day for order_date, None for category
+
+
+def test_map_query_object_picks_raw_variant_when_no_grain_selected(
+    mocker: MockerFixture,
+) -> None:
+    """
+    No grain selected — the time-axis column must collapse to the raw (grain=None)
+    variant rather than passing all grain variants through to the semantic view.
+    """
+    datasource = _make_grain_variant_datasource(mocker, granularity_dim_grain=None)
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        metrics=["total_sales"],
+        columns=["category", "order_date"],
+        granularity="order_date",
+        # No time_grain_sqla in extras
+    )
+
+    result = map_query_object(query_object)
+
+    order_date_dims = [dim for dim in result[0].dimensions if dim.name == "order_date"]
+    assert len(order_date_dims) == 1
+    assert order_date_dims[0].grain is None
+
+
 def test_convert_query_object_filter_unknown_operator(
     mock_datasource: MagicMock,
 ) -> None:
