@@ -184,6 +184,7 @@ class RLSPutSchema(Schema):
         metadata={"description": "tables_description"},
         required=False,
         allow_none=False,
+        validate=Length(1),
     )
     roles = fields.List(
         fields.Integer(),

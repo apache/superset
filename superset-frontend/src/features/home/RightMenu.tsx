@@ -36,6 +36,7 @@ import {
   getExtensionsRegistry,
   isFeatureEnabled,
   FeatureFlag,
+  CACHE_KEY,
 } from '@superset-ui/core';
 import {
   styled,
@@ -240,7 +241,7 @@ const RightMenu = ({
     },
     {
       label: t('Dashboard'),
-      url: '/dashboard/new',
+      url: '/dashboard/new/',
       icon: (
         <Icons.DashboardOutlined data-test={`menu-item-${t('Dashboard')}`} />
       ),
@@ -361,6 +362,14 @@ const RightMenu = ({
     try {
       window.localStorage.removeItem('redux');
       window.sessionStorage.removeItem('login_attempted');
+      // Purge the namespaced Cache API store so cached GET responses are not
+      // retained on the device after the session ends. Best-effort: the
+      // returned promise is not awaited since logout navigates away.
+      if (typeof caches !== 'undefined') {
+        caches.delete(CACHE_KEY).catch(() => {
+          /* best-effort: ignore cache deletion failures */
+        });
+      }
     } catch (error) {
       console.warn('Failed to clear storage on logout:', error);
     }
