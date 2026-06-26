@@ -1079,8 +1079,13 @@ class PieChartConfig(UnknownFieldCheckMixin):
 
     @model_validator(mode="after")
     def reject_sql_expression_on_dimensions(self) -> "PieChartConfig":
-        """sql_expression is metric-only; reject it on the dimension."""
+        """sql_expression and saved_metric are metric-only; reject on the dimension."""
         _reject_sql_expression_on_dimension(self.dimension, "dimension")
+        if self.dimension and self.dimension.saved_metric:
+            raise ValueError(
+                "dimension cannot use saved_metric=True; "
+                "saved metrics belong in the 'metric' field"
+            )
         return self
 
 

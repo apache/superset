@@ -98,11 +98,11 @@ class PieChartPlugin(BaseChartPlugin):
         config_dict = config.model_dump()
 
         if config_dict.get("dimension"):
-            config_dict["dimension"]["name"] = (
-                DatasetValidator._get_canonical_column_name(
-                    config_dict["dimension"]["name"], dataset_context
+            dim = config_dict["dimension"]
+            if not dim.get("sql_expression") and not dim.get("saved_metric"):
+                dim["name"] = DatasetValidator._get_canonical_column_name(
+                    dim["name"], dataset_context
                 )
-            )
         if config_dict.get("metric"):
             if config_dict["metric"].get("sql_expression"):
                 pass

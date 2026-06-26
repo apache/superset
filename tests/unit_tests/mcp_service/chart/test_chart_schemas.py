@@ -966,6 +966,14 @@ class TestSqlExpressionRejectedOnDimensionPositions:
                 metric=ColumnRef(name="sales", aggregate="SUM"),
             )
 
+    def test_pie_config_rejects_saved_metric_on_dimension(self) -> None:
+        with pytest.raises(ValidationError):
+            PieChartConfig(
+                chart_type="pie",
+                dimension=ColumnRef(name="Total Revenue", saved_metric=True),
+                metric=ColumnRef(name="sales", aggregate="SUM"),
+            )
+
     def test_pivot_config_rejects_sql_expression_on_rows(self) -> None:
         with pytest.raises(ValidationError):
             PivotTableChartConfig(
