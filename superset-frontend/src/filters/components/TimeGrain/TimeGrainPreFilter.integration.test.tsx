@@ -36,6 +36,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import PluginFilterTimegrain from 'src/filters/components/TimeGrain/TimeGrainFilterPlugin';
+import type { PluginFilterTimeGrainProps } from 'src/filters/components/TimeGrain/types';
 
 /**
  * Scenario: Dashboard owner configures a time grain filter to show only Hour, Day, Week.
@@ -45,7 +46,7 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
   // Step 1: Simulate saved dashboard config
   // (User previously set pre-filter to ['PT1H', 'P1D', 'P1W'])
   const setDataMask = jest.fn();
-  const dashboardConfig = {
+  const dashboardConfig: PluginFilterTimeGrainProps = {
     data: [
       { duration: 'PT1M', name: 'Minute' },
       { duration: 'PT1H', name: 'Hour' },
@@ -54,6 +55,9 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
       { duration: 'P1M', name: 'Month' },
     ],
     formData: {
+      datasource: '3__table',
+      height: 100,
+      width: 300,
       nativeFilterId: 'time_grain_1',
       defaultValue: null,
       viz_type: 'filter_timegrain',
@@ -77,7 +81,7 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
   };
 
   // Step 2: Render the dashboard filter
-  render(<PluginFilterTimegrain {...(dashboardConfig as any)} />);
+  render(<PluginFilterTimegrain {...dashboardConfig} />);
 
   // Ignore initialization updates and validate the explicit user-selection payload.
   setDataMask.mockClear();
@@ -119,7 +123,7 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
  * No restrictions: all time grains appear in the runtime filter.
  */
 test('all time grains appear when pre-filter is unchecked', async () => {
-  const dashboardConfig = {
+  const dashboardConfig: PluginFilterTimeGrainProps = {
     data: [
       { duration: 'PT1M', name: 'Minute' },
       { duration: 'PT1H', name: 'Hour' },
@@ -128,6 +132,9 @@ test('all time grains appear when pre-filter is unchecked', async () => {
       { duration: 'P1M', name: 'Month' },
     ],
     formData: {
+      datasource: '3__table',
+      height: 100,
+      width: 300,
       nativeFilterId: 'time_grain_1',
       defaultValue: null,
       viz_type: 'filter_timegrain',
@@ -150,7 +157,7 @@ test('all time grains appear when pre-filter is unchecked', async () => {
     inputRef: { current: null },
   };
 
-  render(<PluginFilterTimegrain {...(dashboardConfig as any)} />);
+  render(<PluginFilterTimegrain {...dashboardConfig} />);
 
   const select = screen.getByRole('combobox');
   await userEvent.click(select);

@@ -33,6 +33,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import PluginFilterTimegrain from 'src/chartCustomizations/components/TimeGrain/TimeGrainFilterPlugin';
+import type { PluginFilterTimeGrainProps } from 'src/chartCustomizations/components/TimeGrain/types';
 
 const data = [
   { duration: 'PT1M', name: 'Minute' },
@@ -59,10 +60,13 @@ const baseConfig = {
  */
 test('time grain pre-filter restricts dashboard filter options', async () => {
   const setDataMask = jest.fn();
-  const dashboardConfig = {
+  const dashboardConfig: PluginFilterTimeGrainProps = {
     ...baseConfig,
     data,
     formData: {
+      datasource: '3__table',
+      height: 100,
+      width: 300,
       nativeFilterId: 'time_grain_1',
       defaultValue: null,
       viz_type: 'filter_timegrain',
@@ -76,7 +80,7 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
     setDataMask,
   };
 
-  render(<PluginFilterTimegrain {...(dashboardConfig as any)} />);
+  render(<PluginFilterTimegrain {...dashboardConfig} />);
 
   setDataMask.mockClear();
 
@@ -104,10 +108,13 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
  * No restrictions: all time grains appear in the runtime filter.
  */
 test('all time grains appear when pre-filter is unchecked', async () => {
-  const dashboardConfig = {
+  const dashboardConfig: PluginFilterTimeGrainProps = {
     ...baseConfig,
     data,
     formData: {
+      datasource: '3__table',
+      height: 100,
+      width: 300,
       nativeFilterId: 'time_grain_1',
       defaultValue: null,
       viz_type: 'filter_timegrain',
@@ -121,7 +128,7 @@ test('all time grains appear when pre-filter is unchecked', async () => {
     setDataMask: jest.fn(),
   };
 
-  render(<PluginFilterTimegrain {...(dashboardConfig as any)} />);
+  render(<PluginFilterTimegrain {...dashboardConfig} />);
 
   await userEvent.click(screen.getByRole('combobox'));
 
@@ -137,10 +144,13 @@ test('all time grains appear when pre-filter is unchecked', async () => {
  * The current selection stays visible so the filter does not silently drop it.
  */
 test('current selection stays visible when it is outside the pre-filter allowlist', async () => {
-  const dashboardConfig = {
+  const dashboardConfig: PluginFilterTimeGrainProps = {
     ...baseConfig,
     data,
     formData: {
+      datasource: '3__table',
+      height: 100,
+      width: 300,
       nativeFilterId: 'time_grain_1',
       defaultValue: null,
       viz_type: 'filter_timegrain',
@@ -154,7 +164,7 @@ test('current selection stays visible when it is outside the pre-filter allowlis
     setDataMask: jest.fn(),
   };
 
-  render(<PluginFilterTimegrain {...(dashboardConfig as any)} />);
+  render(<PluginFilterTimegrain {...dashboardConfig} />);
 
   await userEvent.click(screen.getByRole('combobox'));
 
