@@ -21,16 +21,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-26 10:30+0900\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
 "Language-Team: tr <LL@li.org>\n"
-"Plural-Forms: nplurals=1; plural=0\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.9.1\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -814,6 +814,9 @@ msgstr "Aynı adı olan bir veritabanı zaten var."
 msgid "A date is required when using custom date shift"
 msgstr "Özel tarih değişikliği kullanırken bir tarih gereklidir"
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -868,6 +871,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Renk için kullanmak için bir metrik"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Yeni bir grafik ve pano oluşturulacak."
@@ -1760,19 +1768,9 @@ msgstr ""
 msgid "An error occurred while fetching tab state"
 msgstr "Bir hata, sekme devletini satın alırken gerçekleşti"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "Masa metadata alırken bir hata meydana geldi"
-
 #, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr ""
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"Masa metadata alırken bir hata meydana geldi. Lütfen yöneticinizle "
-"iletişime geçin."
 
 msgid "An error occurred while fetching the configuration schema"
 msgstr ""
@@ -1805,6 +1803,11 @@ msgstr "Verisetini kaydederken bir hata oluştu"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "%s ithal ederken bir hata oluştu:   %s "
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Bir hata, yükleme pano bilgilerini yükleme sırasında gerçekleşti."
@@ -3542,9 +3545,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Köşe Oluşturu"
 
-msgid "Column Formatting"
-msgstr "Köşe Biçimi"
-
 #, fuzzy
 msgid "Column Settings"
 msgstr "Ayarları Filtrele"
@@ -3680,6 +3680,9 @@ msgid ""
 msgstr ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Son sayı MAX için sağlanan değerle eşleşmelidir."
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "Karşılaştırmacı seçenek"
@@ -3972,6 +3975,9 @@ msgstr "Tüm kayıtlı grafikler getirilemedi"
 
 msgid "Could not find viz object"
 msgstr "viz nesnesi bulamaz"
+
+msgid "Could not load SQL Lab"
+msgstr ""
 
 msgid "Could not load database driver"
 msgstr "Veritabanı sürücüsü yüklenemedi"
@@ -6021,9 +6027,6 @@ msgstr "İlk Credentials girin"
 msgid "Enter a name for this sheet"
 msgstr "Bu sayfa için bir isim girin"
 
-msgid "Enter a new title for the tab"
-msgstr "sekme için yeni bir başlık girin"
-
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Rapor ismi"
@@ -6424,6 +6427,17 @@ msgstr "Orijinal .CSV'ye ihracat"
 msgid "Export to pivoted .CSV"
 msgstr ".CSV"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 msgid "Expose database in SQL Lab"
 msgstr "Expose database in SQL Lab"
 
@@ -6531,6 +6545,11 @@ msgstr "Rapor oluşturmak için başarısız oldu"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "%(query)s "
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 msgid "Failed to fetch API keys"
 msgstr ""
@@ -6944,6 +6963,9 @@ msgstr "Güçler X Axis Etiketler için en yüksek aralığı olarak Zaman T'yi 
 msgid "Forecast periods"
 msgstr "Tahmin süreleri"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "Yabancı anahtar"
 
@@ -6994,9 +7016,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "E-postada eklenmiş olan CSV"
-
-msgid "Formatted date"
-msgstr "Formated date"
 
 msgid "Formatted value"
 msgstr "Şekillenmiş değer"
@@ -7399,8 +7418,10 @@ msgstr "Resim (PNG) e-postada gömülü"
 msgid "Image download failed, please refresh and try again."
 msgstr "Resim indirme başarısız oldu, lütfen yenileme ve tekrar deneyin."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
-msgstr "Kullanıcı Girişi (Presto, Trino, Drill, Hive ve Google Sheets)"
+msgid ""
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Snowflake and "
+"Google Sheets)"
+msgstr ""
 
 msgid "Import"
 msgstr "İçe aktar"
@@ -7878,9 +7899,6 @@ msgstr "Klavye kısayolları"
 
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
-
-msgid "Keys for table"
-msgstr "Masa için Anahtarlar"
 
 msgid "Kilometers"
 msgstr "Kilometers"
@@ -9612,6 +9630,12 @@ msgstr "Open Datasource sekmesi"
 msgid "Open SQL Lab in a new tab"
 msgstr "Sorguyu yeni sekmede çalıştır"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "SQL Lab’da aç"
 
@@ -9695,9 +9719,6 @@ msgstr "Ağaçlama"
 
 msgid "Original"
 msgstr "Orijinal"
-
-msgid "Original table column order"
-msgstr "Original table column order"
 
 msgid "Original value"
 msgstr "Orijinal değer"
@@ -9879,6 +9900,10 @@ msgstr "Şifre"
 #, fuzzy
 msgid "Password is required"
 msgstr "İsim gereklidir"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10205,6 +10230,13 @@ msgstr "Lütfen Dataset ID'yi Jinja makro'daki \"  %(name)s \" metric için beli
 msgid "Please use 3 different metric labels"
 msgstr "Lütfen 3 farklı ölçüm etiketi kullanın"
 
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
+
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Uzaklığı (örneğin uçuş yolları gibi) ve varış noktası."
 
@@ -10234,6 +10266,9 @@ msgstr "Point Radius Scale"
 
 msgid "Point Radius Unit"
 msgstr "Point Radius Unit"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Nokta Boyutu"
@@ -10681,6 +10716,9 @@ msgstr "Relative miktar"
 msgid "Reload"
 msgstr "Reload"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr "Kaldırın"
 
@@ -10704,9 +10742,6 @@ msgstr "öğeyi kaldır"
 
 msgid "Remove query from log"
 msgstr "Girişten Soruyu Kaldırın"
-
-msgid "Remove table preview"
-msgstr "Kaldır tablo Tanıtımı"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -10796,6 +10831,9 @@ msgstr "Rapor aktiftir"
 msgid "Report name"
 msgstr "Rapor ismi"
 
+msgid "Report not yet run"
+msgstr ""
+
 msgid "Report schedule client error"
 msgstr "Rapor zamanlama müşteri hatası"
 
@@ -10847,6 +10885,10 @@ msgstr "Gerekli kontrol değerleri kaldırıldı"
 
 msgid "Resample"
 msgstr "Resample"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "Resample yöntemi içeride olmalıdır"
@@ -12323,6 +12365,9 @@ msgstr ""
 "Y-kürücüklere gösterin. Aksi halde verilerdeki belirli veya min /max "
 "değerleri ayarlayacaklardır."
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
 msgid "Show all columns"
 msgstr "Tüm sütunları göster"
 
@@ -12359,6 +12404,9 @@ msgstr "Boş sütunlar göster"
 
 msgid "Show entries per page"
 msgstr "Sayfa başına girişleri göster"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -12920,6 +12968,9 @@ msgstr "Sokaklar"
 msgid "Streets (Carto)"
 msgstr ""
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr "Grafikleri merkeze doğru çekmek için güç"
 
@@ -13371,6 +13422,9 @@ msgid ""
 "configuration details."
 msgstr ""
 
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr ""
+
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -13419,7 +13473,15 @@ msgstr ""
 "Renkler atamak için kullanılan kaynak düğümleri kategorisi. Eğer bir node"
 " bir kategoriden daha ilişkiliyse, sadece ilki kullanılacaktır."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
+msgstr ""
+
+msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -14004,6 +14066,11 @@ msgstr ""
 "Bireysel noktaların ikizi (bir kümede olmayan biri). Ya bir sayısal sütun"
 " ya da \"Auto\", en büyük kümeye dayanan noktayı ölçeklendirir"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Rapor oluşturuldu"
 
@@ -14203,6 +14270,11 @@ msgstr "ikon büyüklüğü için birim"
 
 msgid "The unit for label size"
 msgstr "Etiket büyüklüğü için birim"
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
+msgstr ""
 
 msgid "The unit of measure for the specified point radius"
 msgstr "Belirtilen nokta ikizi için ölçü ünitesi"
@@ -14857,6 +14929,9 @@ msgstr ""
 "Bu sayfa bir iframe içinde gömülü olmak amaçlanmıştır, ancak durum böyle "
 "değil gibi görünüyor."
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -15190,6 +15265,18 @@ msgstr "Panonuz için okunabilir bir URL almak için"
 msgid "Token Request URI"
 msgstr "Hediye İste URIRIRI"
 
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Tüm paneller"
@@ -15456,6 +15543,10 @@ msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Böyle bir tatil bulmak mümkün değil: [  %(holiday)s ]"
 
 msgid "Unable to generate download payload"
+msgstr ""
+
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
 msgstr ""
 
 msgid ""
@@ -16001,10 +16092,6 @@ msgstr "Tablo olarak gör"
 
 msgid "View in SQL Lab"
 msgstr "SQL Lab’da gör"
-
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Anahtarları ve indeksleri görüntüle (  %s )"
 
 msgid "View query"
 msgstr "Sorguyu gör"
@@ -16714,6 +16801,9 @@ msgstr "Y-axis"
 msgid "Y-axis bounds"
 msgstr "Y-axis sınırları"
 
+msgid "Y-axis range slider"
+msgstr ""
+
 msgid "Y-scale interval"
 msgstr "Y-scale interval"
 
@@ -16890,6 +16980,9 @@ msgstr "Bu gösterim paneliı değiştirmeye yetkiniz yok."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "grafiği düzenlemek için yeterli izniniz yok"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "Bu grafiğe erişemezsiniz."
 
@@ -16976,11 +17069,20 @@ msgstr ""
 "Düzenlemek için bir veri kümesi sahibi olmalısınız. Lütfen değişiklikler "
 "veya düzenleme erişimi talep etmek için bir veri kümesi sahibine ulaşın."
 
+msgid "You must change your password before continuing."
+msgstr ""
+
 msgid "You must pick a name for the new dashboard"
 msgstr "Yeni pano için bir isim seçmelisiniz"
 
 msgid "You must run the query successfully first"
 msgstr "Önce sorguyu başarıyla çalıştırmalısınız"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr ""
@@ -17052,6 +17154,9 @@ msgstr "Sorgunuz güncellendi"
 
 msgid "Your report could not be deleted"
 msgstr "Raporunuz silinemez"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -17155,6 +17260,9 @@ msgstr "\"row offset\" 0'dan fazla veya eşit olmalıdır"
 msgid "`width` must be greater or equal to 0"
 msgstr "“altın” 0'a daha büyük veya eşit olmalıdır"
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 msgid "a few seconds"
 msgstr ""
 
@@ -17186,6 +17294,9 @@ msgstr "Annotasyon"
 msgid "annotation_layer"
 msgstr "Annotation layer"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "Asfreq"
 
@@ -17199,6 +17310,9 @@ msgid "background"
 msgstr "Arka plan"
 
 msgid "background color"
+msgstr ""
+
+msgid "banana"
 msgstr ""
 
 msgid "basis"

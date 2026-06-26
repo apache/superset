@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:18+0900\n"
+"POT-Creation-Date: 2026-06-26 10:30+0900\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -3556,9 +3556,6 @@ msgstr "Kolonna \"%(column)s\" nav skaitliska vai nepastāv vaicājuma rezultāt
 msgid "Column Configuration"
 msgstr "Kolonnas konfigurācija"
 
-msgid "Column Formatting"
-msgstr "Kolonnas formatējums"
-
 msgid "Column Settings"
 msgstr "Kolonnas iestatījumi"
 
@@ -6011,9 +6008,6 @@ msgstr "Ievadiet primāros akreditācijas datus"
 msgid "Enter a name for this sheet"
 msgstr "Ievadiet nosaukumu šai lapai"
 
-msgid "Enter a new title for the tab"
-msgstr "Ievadiet jaunu cilnes nosaukumu"
-
 msgid "Enter a part of the object name"
 msgstr "Ievadiet daļu no objekta nosaukuma"
 
@@ -6386,6 +6380,17 @@ msgstr "Eksportēt uz oriģinālo .CSV"
 msgid "Export to pivoted .CSV"
 msgstr "Eksportēt uz šķērsgriezuma .CSV"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 msgid "Expose database in SQL Lab"
 msgstr "Padarīt datubāzi pieejamu SQL Lab"
 
@@ -6493,6 +6498,11 @@ msgstr "Neizdevās izveidot atskaiti"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Neizdevās izpildīt %(query)s"
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -6901,6 +6911,9 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Prognozes periodi"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "Ārējā atslēga"
 
@@ -6955,9 +6968,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Formatēts CSV pievienots e-pastā"
-
-msgid "Formatted date"
-msgstr "Formatēts datums"
 
 msgid "Formatted value"
 msgstr "Formatēta vērtība"
@@ -9525,6 +9535,12 @@ msgstr "Atvērt datu avota cilni"
 msgid "Open SQL Lab in a new tab"
 msgstr "Atvērt SQL Lab jaunā cilnē"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Atvērt SQL laboratorijā"
 
@@ -10114,6 +10130,13 @@ msgstr "Lūdzu, norādiet datu kopas ID metrikai ``%(name)s`` Jinja makro."
 
 msgid "Please use 3 different metric labels"
 msgstr "Lūdzu, izmantojiet 3 dažādus metriku apzīmējumus"
+
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr ""
@@ -12223,6 +12246,9 @@ msgstr ""
 "Rādīt Y asi dzirkstlīnijā. Attēlos manuāli iestatītās min/maks vērtības, "
 "ja iestatītas, vai min/maks vērtības datos pretējā gadījumā."
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
 msgid "Show all columns"
 msgstr "Rādīt visas kolonnas"
 
@@ -12259,6 +12285,9 @@ msgstr "Rādīt tukšas kolonnas"
 
 msgid "Show entries per page"
 msgstr "Rādīt ierakstus katrā lapā"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13319,7 +13348,15 @@ msgstr ""
 "Avota mezglu kategorija krāsu piešķiršanai. Ja mezgls ir saistīts ar "
 "vairākām kategorijām, tiks izmantota tikai pirmā."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
+msgstr ""
+
+msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15366,6 +15403,10 @@ msgstr "Nevar atrast šādu brīvdienu: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Nevar ielādēt paneli"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -16618,6 +16659,9 @@ msgstr "Y ass"
 msgid "Y-axis bounds"
 msgstr "Y ass robežas"
 
+msgid "Y-axis range slider"
+msgstr ""
+
 msgid "Y-scale interval"
 msgstr "Y skalas intervāls"
 
@@ -16902,6 +16946,12 @@ msgstr "Jums jāizvēlas nosaukums jaunajam panelim"
 
 msgid "You must run the query successfully first"
 msgstr "Vispirms veiksmīgi jāizpilda vaicājums"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr ""

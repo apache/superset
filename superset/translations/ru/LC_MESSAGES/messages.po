@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:18+0900\n"
+"POT-Creation-Date: 2026-06-26 10:30+0900\n"
 "PO-Revision-Date: 2025-11-05 14:37+0300\n"
 "Last-Translator: innovark\n"
 "Language: ru\n"
@@ -3544,9 +3544,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Свойства столбца"
 
-msgid "Column Formatting"
-msgstr "Форматирование столбца(ов)"
-
 msgid "Column Settings"
 msgstr "Настройки столбца"
 
@@ -5992,9 +5989,6 @@ msgstr "Введите основные учетные данные"
 msgid "Enter a name for this sheet"
 msgstr "Введите название для этого листа"
 
-msgid "Enter a new title for the tab"
-msgstr "Введите новое название для вкладки"
-
 msgid "Enter a part of the object name"
 msgstr "Введите часть имени объекта"
 
@@ -6367,6 +6361,17 @@ msgstr "Экспорт исходных данных в CSV"
 msgid "Export to pivoted .CSV"
 msgstr "Экспорт сводной таблицы в CSV"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 msgid "Expose database in SQL Lab"
 msgstr "Предоставить доступ к базе в SQL Lab"
 
@@ -6474,6 +6479,11 @@ msgstr "Не удалось создать рассылку"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Не удалось выполнить %(query)s"
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -6880,6 +6890,9 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Кол-во прогнозных периодов"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "Внешний ключ"
 
@@ -6930,9 +6943,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Форматированный CSV, прикрепленный к письму"
-
-msgid "Formatted date"
-msgstr "Форматированная дата"
 
 msgid "Formatted value"
 msgstr "Форматированное значение"
@@ -9510,6 +9520,12 @@ msgstr "Открыть вкладку источника данных"
 msgid "Open SQL Lab in a new tab"
 msgstr "Открыть SQL Lab в новой вкладке"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Открыть в SQL редакторе"
 
@@ -10102,6 +10118,13 @@ msgstr "Укажите ID датасета для меры ``%(name)s`` в Jinja
 
 msgid "Please use 3 different metric labels"
 msgstr "Используйте три разных названия для мер"
+
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Изображает расстояние между пунктами отправления и назначения в виде дуг"
@@ -12196,6 +12219,9 @@ msgid ""
 "set or min/max values in the data otherwise."
 msgstr "Показывать ось Y на спарклайне."
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
 msgid "Show all columns"
 msgstr "Показать все столбцы"
 
@@ -12232,6 +12258,9 @@ msgstr "Показывать пустые столбцы"
 
 msgid "Show entries per page"
 msgstr "Количество записей на странице"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13293,7 +13322,15 @@ msgstr ""
 "Категория исходных вершин предназначена для задания цветов. Если вершина "
 "связана более, чем с одной категорией, только первая будет использована."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
+msgstr ""
+
+msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15341,6 +15378,10 @@ msgstr "Не удалось найти такой праздник: [%(holiday)s
 msgid "Unable to generate download payload"
 msgstr "Не удалось загрузить дашборд"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -16599,6 +16640,9 @@ msgstr "Ось Y"
 msgid "Y-axis bounds"
 msgstr "Границы оси Y"
 
+msgid "Y-axis range slider"
+msgstr ""
+
 msgid "Y-scale interval"
 msgstr "Интервал оси Y"
 
@@ -16881,6 +16925,12 @@ msgstr "Вы должны выбрать имя для нового дашбор
 
 msgid "You must run the query successfully first"
 msgstr "Сначала необходимо успешно выполнить запрос"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr ""

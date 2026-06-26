@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:18+0900\n"
+"POT-Creation-Date: 2026-06-26 10:30+0900\n"
 "PO-Revision-Date: 2026-05-21 18:05+0200\n"
 "Last-Translator: Korbinian Preisler <timitos@virtual-things.biz>\n"
 "Language: de\n"
@@ -3589,9 +3589,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Spaltenkonfiguration"
 
-msgid "Column Formatting"
-msgstr "Spaltenformatierung"
-
 msgid "Column Settings"
 msgstr "Spalteneinstellungen"
 
@@ -6077,9 +6074,6 @@ msgstr "Primäre Anmeldeinformationen eingeben"
 msgid "Enter a name for this sheet"
 msgstr "Geben Sie einen neuen Titel für die Registerkarte ein"
 
-msgid "Enter a new title for the tab"
-msgstr "Geben Sie einen neuen Titel für die Registerkarte ein"
-
 msgid "Enter a part of the object name"
 msgstr "Geben Sie einen Teil des Objektnamens ein"
 
@@ -6451,6 +6445,17 @@ msgstr "Export in das ursprüngliche .CSV"
 msgid "Export to pivoted .CSV"
 msgstr "Export in das pivotierte .CSV"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 msgid "Expose database in SQL Lab"
 msgstr "Datenbank in SQL-Lab verfügbar machen"
 
@@ -6554,6 +6559,11 @@ msgstr "Bericht konnte nicht erstellt werden"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Fehler beim Ausführen %(query)s"
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 msgid "Failed to fetch API keys"
 msgstr "API-Schlüssel konnten nicht abgerufen werden"
@@ -6966,6 +6976,9 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Prognosezeiträume"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "Fremdschlüssel"
 
@@ -7019,9 +7032,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Formatierte CSV-Datei in E-Mail angehängt"
-
-msgid "Formatted date"
-msgstr "Formatiertes Datum"
 
 msgid "Formatted value"
 msgstr "Formatierter Wert"
@@ -9610,6 +9620,12 @@ msgstr "Datenquellen-Registerkarte öffnen"
 msgid "Open SQL Lab in a new tab"
 msgstr "SQL-Lab in einer neuen Registerkarte öffnen"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "In SQL-Lab öffnen"
 
@@ -10218,6 +10234,13 @@ msgstr ""
 
 msgid "Please use 3 different metric labels"
 msgstr "Bitte verwenden Sie 3 verschiedene metrische Beschriftungen"
+
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Entfernung (wie Flugrouten) zwischen Abflug- und Zielort zeichen."
@@ -12331,6 +12354,9 @@ msgstr ""
 "y-Achse auf der Sparkline anzeigen. Zeigt die manuell eingestellten Min"
 "/Max-Werte an, falls festgelegt, andernfalls Min/Max-Werte der Daten."
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
 msgid "Show all columns"
 msgstr "Alle Spalten anzeigen"
 
@@ -12366,6 +12392,9 @@ msgstr "Leere Spalten anzeigen"
 
 msgid "Show entries per page"
 msgstr "Einträge pro Seite anzeigen"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13457,10 +13486,18 @@ msgstr ""
 "werden. Wenn ein Knoten mehr als einer Kategorie zugeordnet ist, wird nur"
 " die erste verwendet."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr ""
 "Das Diagramm wird noch geladen. Bitte warten Sie einen Moment und "
 "versuchen Sie es erneut."
+
+msgid "The chat failed to load."
+msgstr ""
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -15631,6 +15668,10 @@ msgstr "Kann einen solchen Feiertag nicht finden: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Die Daten für den Download können nicht generiert werden"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -16935,6 +16976,9 @@ msgstr "y-Achse"
 msgid "Y-axis bounds"
 msgstr "Grenzen der y-Achse"
 
+msgid "Y-axis range slider"
+msgstr ""
+
 msgid "Y-scale interval"
 msgstr "Y-Skalen-Intervall"
 
@@ -17218,6 +17262,12 @@ msgstr "Sie müssen einen Namen für das neue Dashboard auswählen"
 
 msgid "You must run the query successfully first"
 msgstr "Sie müssen die Abfrage zuerst erfolgreich ausführen"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr "Sie müssen"

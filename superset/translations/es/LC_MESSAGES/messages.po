@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:18+0900\n"
+"POT-Creation-Date: 2026-06-26 10:30+0900\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -256,8 +256,8 @@ msgid ""
 "%(prefix)sResults truncated to %(row_count)s rows due to memory "
 "constraints."
 msgstr ""
-"%(prefix)sResultados truncados a %(row_count)s filas por limitaciones "
-"en la memoria"
+"%(prefix)sResultados truncados a %(row_count)s filas por limitaciones en "
+"la memoria"
 
 #, python-format
 msgid ""
@@ -1024,8 +1024,9 @@ msgid "API key revoked successfully"
 msgstr ""
 
 msgid "API keys allow scoped programmatic access to Superset."
-msgstr "Las claves API permiten el acceso programático con "
-"ámbito restringido a Superset."
+msgstr ""
+"Las claves API permiten el acceso programático con ámbito restringido a "
+"Superset."
 
 msgid "APPLY"
 msgstr "APLICAR"
@@ -3734,9 +3735,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Configuración de la columna"
 
-msgid "Column Formatting"
-msgstr "Formato de columna"
-
 msgid "Column Settings"
 msgstr "Ajustes de columna"
 
@@ -6348,9 +6346,6 @@ msgstr "Introduce las credenciales primarias"
 msgid "Enter a name for this sheet"
 msgstr "Introduce un nombre para esta hoja"
 
-msgid "Enter a new title for the tab"
-msgstr "Introduce un nuevo título para la pestaña"
-
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Si se deben rellenar los objetos"
@@ -6757,6 +6752,17 @@ msgstr "Exportar a .CSV original"
 msgid "Export to pivoted .CSV"
 msgstr "Exportar a .CSV dinámico"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 msgid "Expose database in SQL Lab"
 msgstr "Exponer base de datos en SQL Lab"
 
@@ -6870,6 +6876,11 @@ msgstr "No se ha podido generar el informe"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "No se ha podido ejecutar %(query)s"
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -7322,6 +7333,9 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Periodos de previsión"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "Clave foránea"
 
@@ -7379,9 +7393,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV formateado adjunto en el correo electrónico"
-
-msgid "Formatted date"
-msgstr "Fecha formateada"
 
 msgid "Formatted value"
 msgstr "Valor formateado"
@@ -10116,6 +10127,12 @@ msgstr "Abrir la pestaña de la fuente de datos"
 msgid "Open SQL Lab in a new tab"
 msgstr "Ejecutar consulta en una nueva pestaña"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Abrir en SQL Lab"
 
@@ -10739,6 +10756,13 @@ msgstr ""
 
 msgid "Please use 3 different metric labels"
 msgstr "Utiliza 3 etiquetas métricas diferentes"
+
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Traza la distancia (como rutas de vuelo) entre el origen y el destino."
@@ -12990,6 +13014,9 @@ msgstr ""
 " manualmente si se establece; de lo contrario, mostrará los valores "
 "mínimo/máximo en los datos."
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
 msgid "Show all columns"
 msgstr "Mostrar todas las columnas"
 
@@ -13028,6 +13055,9 @@ msgstr "Mostrar columnas vacías"
 
 msgid "Show entries per page"
 msgstr "Mostrar entradas por página"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -14151,7 +14181,15 @@ msgstr ""
 "nodo está asociado con más de una categoría, solo se utilizará la "
 "primera."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
+msgstr ""
+
+msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -16396,6 +16434,10 @@ msgstr "No se ha podido encontrar el festivo en cuestión: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "No se ha podido cargar el panel de control"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
 msgid ""
@@ -17725,6 +17767,9 @@ msgstr "Eje Y"
 msgid "Y-axis bounds"
 msgstr "Límites del eje Y"
 
+msgid "Y-axis range slider"
+msgstr ""
+
 msgid "Y-scale interval"
 msgstr "Intervalo de escala Y"
 
@@ -18015,6 +18060,12 @@ msgstr "Debes elegir un nombre para el nuevo panel de control"
 
 msgid "You must run the query successfully first"
 msgstr "Primero debes ejecutar la consulta correctamente"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr ""

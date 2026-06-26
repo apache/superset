@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:18+0900\n"
+"POT-Creation-Date: 2026-06-26 10:30+0900\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -4483,10 +4483,6 @@ msgstr "Колона \"%(column)s\" није нумеричка или не по
 msgid "Column Configuration"
 msgstr "Конфигурација колоне"
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-msgid "Column Formatting"
-msgstr "Форматирање колоне"
-
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Column Settings"
 msgstr "Подешавања колоне"
@@ -7628,10 +7624,6 @@ msgstr "Унесите примарне акредитиве"
 msgid "Enter a name for this sheet"
 msgstr "Унесите назив за овај лист"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-msgid "Enter a new title for the tab"
-msgstr "Унесите нови назив за картицу"
-
 # uk]
 msgid "Enter a part of the object name"
 msgstr "Унесите део назива објекта"
@@ -8114,6 +8106,17 @@ msgstr "Извези у оригинални .CSV"
 msgid "Export to pivoted .CSV"
 msgstr "Извези у укрштени .CSV"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Expose database in SQL Lab"
 msgstr "Изложи базу података у SQL лабораторији"
@@ -8244,6 +8247,11 @@ msgstr "Неуспело креирање извештаја"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Неуспело извршавање %(query)s"
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 msgid "Failed to fetch API keys"
 msgstr "Неуспело преузимање API кључева"
@@ -8762,6 +8770,9 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Периоди прогнозе"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Foreign key"
 msgstr "Страни кључ"
@@ -8819,10 +8830,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Formatted CSV attached in email"
 msgstr "Форматиран CSV приложен у е-поруци"
-
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-msgid "Formatted date"
-msgstr "Форматиран датум"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Formatted value"
@@ -12111,6 +12118,12 @@ msgstr "Отвори картицу извора података"
 msgid "Open SQL Lab in a new tab"
 msgstr "Отвори SQL Lab у новој картици"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 msgid "Open in SQL Lab"
@@ -12865,6 +12878,13 @@ msgstr "Наведите ID скупа података за меру ``%(name)s
 # zh_TW]
 msgid "Please use 3 different metric labels"
 msgstr "Користите 3 различите ознаке мера"
+
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Plot the distance (like flight paths) between origin and destination."
@@ -15547,6 +15567,9 @@ msgstr ""
 "Прикажи Y-осу на спарклајну. Приказује ручно подешене мин/макс вредности "
 "ако су подешене, у супротном мин/макс вредности из података."
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Show all columns"
 msgstr "Прикажи све колоне"
@@ -15593,6 +15616,9 @@ msgstr "Прикажи празне колоне"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Show entries per page"
 msgstr "Прикажи број ставки по страници"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -16939,8 +16965,16 @@ msgstr ""
 "Категорија изворних чворова која се користи за додељивање боја. Ако је "
 "чвор повезан са више од једне категорије, користиће се само прва."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr "Графикон се још учитава. Сачекајте тренутак и покушајте поново."
+
+msgid "The chat failed to load."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -19452,6 +19486,10 @@ msgstr "Није могуће пронаћи такав празник: [%(holid
 msgid "Unable to generate download payload"
 msgstr "Није могуће генерисати садржај за преузимање"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
@@ -21037,6 +21075,9 @@ msgstr "Y оса"
 msgid "Y-axis bounds"
 msgstr "Границе Y осе"
 
+msgid "Y-axis range slider"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Y-scale interval"
 msgstr "Интервал скале Y"
@@ -21374,6 +21415,12 @@ msgstr "Морате изабрати назив за нову контролн�
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "You must run the query successfully first"
 msgstr "Морате прво успешно извршити упит"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr "Морате"

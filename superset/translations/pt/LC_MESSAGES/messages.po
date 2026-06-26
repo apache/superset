@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:18+0900\n"
+"POT-Creation-Date: 2026-06-26 10:30+0900\n"
 "PO-Revision-Date: 2018-03-12 16:24+0000\n"
 "Last-Translator: Nuno Heli Beires <nuno.beires@douroeci.com>\n"
 "Language: pt\n"
@@ -3556,9 +3556,6 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Contribuição"
 
-msgid "Column Formatting"
-msgstr ""
-
 #, fuzzy
 msgid "Column Settings"
 msgstr "Lista de Métricas"
@@ -6100,9 +6097,6 @@ msgstr ""
 msgid "Enter a name for this sheet"
 msgstr "Insira um novo título para a aba"
 
-msgid "Enter a new title for the tab"
-msgstr "Insira um novo título para a aba"
-
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Nome do modelo"
@@ -6519,6 +6513,17 @@ msgstr ""
 msgid "Export to pivoted .CSV"
 msgstr "Exportar para o formato .csv"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 msgid "Expose database in SQL Lab"
 msgstr ""
 
@@ -6625,6 +6630,11 @@ msgstr ""
 
 #, python-format
 msgid "Failed to execute %(query)s"
+msgstr ""
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
 msgstr ""
 
 #, fuzzy
@@ -7043,6 +7053,9 @@ msgstr ""
 msgid "Forecast periods"
 msgstr ""
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr ""
 
@@ -7087,9 +7100,6 @@ msgid ""
 msgstr ""
 
 msgid "Formatted CSV attached in email"
-msgstr ""
-
-msgid "Formatted date"
 msgstr ""
 
 msgid "Formatted value"
@@ -9806,6 +9816,12 @@ msgstr "Nome da origem de dados"
 msgid "Open SQL Lab in a new tab"
 msgstr "Executar a query em nova aba"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Expor no SQL Lab"
 
@@ -10407,6 +10423,13 @@ msgstr ""
 
 msgid "Please use 3 different metric labels"
 msgstr "Selecione métricas diferentes para o eixo esquerdo e direito"
+
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr ""
@@ -12631,6 +12654,9 @@ msgid ""
 "set or min/max values in the data otherwise."
 msgstr ""
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
 #, fuzzy
 msgid "Show all columns"
 msgstr "Mostrar Coluna"
@@ -12676,6 +12702,9 @@ msgstr "Mostrar Coluna"
 #, fuzzy
 msgid "Show entries per page"
 msgstr "Mostrar Métrica"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13761,7 +13790,15 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr ""
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
+msgstr ""
+
+msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15705,6 +15742,10 @@ msgstr ""
 msgid "Unable to generate download payload"
 msgstr "Adicionar ao novo dashboard"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -16914,6 +16955,9 @@ msgstr ""
 msgid "Y-axis bounds"
 msgstr ""
 
+msgid "Y-axis range slider"
+msgstr ""
+
 msgid "Y-scale interval"
 msgstr ""
 
@@ -17169,6 +17213,12 @@ msgid "You must pick a name for the new dashboard"
 msgstr "Escolha um nome para o novo dashboard"
 
 msgid "You must run the query successfully first"
+msgstr ""
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
 msgstr ""
 
 msgid "You need to"

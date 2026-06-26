@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:18+0900\n"
+"POT-Creation-Date: 2026-06-26 10:30+0900\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -3690,10 +3690,6 @@ msgid "Column Configuration"
 msgstr "Konfiguracja kolumn"
 
 #, fuzzy
-msgid "Column Formatting"
-msgstr "Formatowanie kolumn"
-
-#, fuzzy
 msgid "Column Settings"
 msgstr "Ustawienia wielokątów"
 
@@ -6354,9 +6350,6 @@ msgstr "Wprowadź główne dane uwierzytelniające"
 msgid "Enter a name for this sheet"
 msgstr "Wprowadź nazwę dla tego arkusza"
 
-msgid "Enter a new title for the tab"
-msgstr "Wprowadź nowy tytuł dla karty"
-
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Czy wypełniać obiekty"
@@ -6780,6 +6773,17 @@ msgstr "Eksportuj do oryginalnego .CSV"
 msgid "Export to pivoted .CSV"
 msgstr "Eksportuj do .CSV z pivotem"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 msgid "Expose database in SQL Lab"
 msgstr "Udostępnij bazę danych w SQL Lab"
 
@@ -6896,6 +6900,11 @@ msgstr "Nie udało się stworzyć raportu"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Nie udało się wykonać %(query)s"
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -7340,6 +7349,9 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Okresy prognoz"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "Klucz obcy"
 
@@ -7392,10 +7404,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Sformatowany CSV załączony w e-mailu"
-
-#, fuzzy
-msgid "Formatted date"
-msgstr "Sformatowana data"
 
 #, fuzzy
 msgid "Formatted value"
@@ -10122,6 +10130,12 @@ msgstr "Otwórz kartę Źródło danych"
 msgid "Open SQL Lab in a new tab"
 msgstr "Uruchom zapytanie w nowej karcie"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "Otwórz w SQL Lab"
 
@@ -10758,6 +10772,13 @@ msgstr ""
 
 msgid "Please use 3 different metric labels"
 msgstr "Proszę użyć 3 różnych etykiet metryk"
+
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr ""
@@ -13071,6 +13092,9 @@ msgstr ""
 "Pokaż oś Y na linii trendu. Wyświetli ręcznie ustawione wartości "
 "min/maks, jeśli zostały określone, lub wartości min/maks z danych."
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
 #, fuzzy
 msgid "Show all columns"
 msgstr "Pokaż wszystkie kolumny"
@@ -13116,6 +13140,9 @@ msgstr "Pokaż puste kolumny"
 #, fuzzy
 msgid "Show entries per page"
 msgstr "Pokaż wpisy %s"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -14273,7 +14300,15 @@ msgstr ""
 "jest związany z więcej niż jedną kategorią, używana będzie tylko "
 "pierwsza."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
+msgstr ""
+
+msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -16453,6 +16488,10 @@ msgstr "Nie można znaleźć takiego święta: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Nie można załadować pulpitu nawigacyjnego"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -17788,6 +17827,9 @@ msgstr "Oś Y"
 msgid "Y-axis bounds"
 msgstr "Granice osi Y"
 
+msgid "Y-axis range slider"
+msgstr ""
+
 #, fuzzy
 msgid "Y-scale interval"
 msgstr "Przedział YScale"
@@ -18080,6 +18122,12 @@ msgstr "Musisz wybrać nazwę dla nowego pulpitu nawigacyjnego"
 
 msgid "You must run the query successfully first"
 msgstr "Musisz najpierw pomyślnie uruchomić zapytanie"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr ""
