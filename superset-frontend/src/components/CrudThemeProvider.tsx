@@ -48,6 +48,7 @@ export default function CrudThemeProvider({
   // dashboard theme so the override is not shadowed by this nested provider.
   const themeContext = useContext(ThemeContext);
   const hasThemeConfigOverride = themeContext?.hasThemeConfigOverride ?? false;
+  const parentDirection = themeContext?.theme?.theme?.direction;
 
   const { dashboardTheme, fontUrls } = useMemo(() => {
     // When an SDK override is active it fully owns theming, so skip parsing the
@@ -68,7 +69,6 @@ export default function CrudThemeProvider({
         normalizedConfig,
         baseTheme || undefined,
       );
-      const parentDirection = themeContext?.theme.theme.direction;
       if (parentDirection) {
         createdTheme.setDirection(parentDirection);
       }
@@ -79,7 +79,7 @@ export default function CrudThemeProvider({
       logging.warn('Failed to load dashboard theme:', error);
       return { dashboardTheme: null, fontUrls: undefined };
     }
-  }, [theme?.json_data, hasThemeConfigOverride, themeContext?.theme]);
+  }, [theme?.json_data, hasThemeConfigOverride, parentDirection]);
 
   useEffect(() => {
     if (hasThemeConfigOverride || !dashboardTheme || !fontUrls?.length) {

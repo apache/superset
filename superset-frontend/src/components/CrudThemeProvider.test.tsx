@@ -309,6 +309,96 @@ test('ignores non-array fontUrls in theme config without throwing', () => {
   expect(fontStyle).toBeNull();
 });
 
+test('inherits text direction from parent theme when json_data is present', () => {
+  const mockSetDirection = jest.fn();
+  jest.spyOn(Theme, 'fromConfig').mockReturnValue({
+    SupersetThemeProvider: MockSupersetThemeProvider,
+    setDirection: mockSetDirection,
+  } as unknown as Theme);
+
+  const parentTheme = {
+    theme: { direction: 'rtl' },
+  } as unknown as Theme;
+  const themeConfig = { token: { colorPrimary: '#ff0000' } };
+
+  render(
+    <ThemeContext.Provider
+      value={
+        {
+          hasThemeConfigOverride: false,
+          theme: parentTheme,
+        } as unknown as ThemeContextType
+      }
+    >
+      <CrudThemeProvider
+        theme={{
+          id: 1,
+          theme_name: 'Custom Theme',
+          json_data: JSON.stringify(themeConfig),
+        }}
+      >
+        <div>Dashboard Content</div>
+      </CrudThemeProvider>
+    </ThemeContext.Provider>,
+  );
+
+  expect(mockSetDirection).toHaveBeenCalledWith('rtl');
+});
+
+test('re-applies parent direction when it changes without replacing the theme instance', () => {
+  const mockSetDirection = jest.fn();
+  jest.spyOn(Theme, 'fromConfig').mockReturnValue({
+    SupersetThemeProvider: MockSupersetThemeProvider,
+    setDirection: mockSetDirection,
+  } as unknown as Theme);
+
+  const parentTheme = {
+    theme: { direction: 'ltr' },
+  } as unknown as Theme;
+  const themeConfig = { token: { colorPrimary: '#ff0000' } };
+  const dashboardTheme = {
+    id: 1,
+    theme_name: 'Custom Theme',
+    json_data: JSON.stringify(themeConfig),
+  };
+
+  const { rerender } = render(
+    <ThemeContext.Provider
+      value={
+        {
+          hasThemeConfigOverride: false,
+          theme: parentTheme,
+        } as unknown as ThemeContextType
+      }
+    >
+      <CrudThemeProvider theme={dashboardTheme}>
+        <div>Dashboard Content</div>
+      </CrudThemeProvider>
+    </ThemeContext.Provider>,
+  );
+
+  expect(mockSetDirection).toHaveBeenCalledWith('ltr');
+  mockSetDirection.mockClear();
+
+  parentTheme.theme = { direction: 'rtl' };
+  rerender(
+    <ThemeContext.Provider
+      value={
+        {
+          hasThemeConfigOverride: false,
+          theme: parentTheme,
+        } as unknown as ThemeContextType
+      }
+    >
+      <CrudThemeProvider theme={dashboardTheme}>
+        <div>Dashboard Content</div>
+      </CrudThemeProvider>
+    </ThemeContext.Provider>,
+  );
+
+  expect(mockSetDirection).toHaveBeenCalledWith('rtl');
+});
+
 test('skips the dashboard theme when an SDK theme config override is active', () => {
   const themeConfig = { token: { colorPrimary: '#ff0000' } };
   render(

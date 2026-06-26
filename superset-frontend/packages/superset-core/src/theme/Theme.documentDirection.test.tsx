@@ -19,10 +19,12 @@
 import { render } from '@testing-library/react';
 import { Theme } from './Theme';
 
-test('SupersetThemeProvider sets document direction on mount', () => {
+beforeEach(() => {
   document.documentElement.removeAttribute('dir');
   document.documentElement.removeAttribute('data-direction');
+});
 
+test('SupersetThemeProvider sets document direction on mount', () => {
   const theme = Theme.fromConfig();
   theme.setDirection('rtl');
 
