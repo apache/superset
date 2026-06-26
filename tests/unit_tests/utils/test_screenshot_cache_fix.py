@@ -27,6 +27,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pytest_mock import MockerFixture
 
+from superset.exceptions import LockAlreadyHeldException
 from superset.utils.screenshots import (
     BaseScreenshot,
     ScreenshotCachePayload,
@@ -34,6 +35,7 @@ from superset.utils.screenshots import (
 )
 
 BASE_SCREENSHOT_PATH = "superset.utils.screenshots.BaseScreenshot"
+DISTRIBUTED_LOCK_PATH = "superset.utils.screenshots.DistributedLock"
 
 
 class MockCache:
@@ -56,7 +58,7 @@ class MockCache:
 
 
 @pytest.fixture
-def mock_user():
+def mock_user() -> MagicMock:
     """Fixture to create a mock user."""
     user = MagicMock()
     user.id = 1
@@ -64,7 +66,7 @@ def mock_user():
 
 
 @pytest.fixture
-def screenshot_obj():
+def screenshot_obj() -> BaseScreenshot:
     """Fixture to create a BaseScreenshot object."""
     url = "http://example.com"
     digest = "sample_digest"
@@ -74,8 +76,11 @@ def screenshot_obj():
 class TestCacheOnlyOnSuccess:
     """Test that cache is only saved when image generation succeeds."""
 
-    def _setup_mocks(self, mocker: MockerFixture, screenshot_obj):
+    def _setup_mocks(
+        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot
+    ) -> MagicMock:
         """Helper method to set up common mocks."""
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         get_screenshot = mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=b"image_data"
@@ -91,6 +96,7 @@ class TestCacheOnlyOnSuccess:
         self, mocker: MockerFixture, screenshot_obj, mock_user
     ):
         """Test that error status is cached when screenshot generation fails."""
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         get_screenshot = mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
@@ -149,38 +155,37 @@ class TestCacheOnlyOnSuccess:
         assert cached_value["status"] == "Updated"
         assert cached_value["image"] is not None
 
-    def test_no_intermediate_cache_during_computing(
-        self, mocker: MockerFixture, screenshot_obj, mock_user
-    ):
-        """Test that cache is not saved during COMPUTING state."""
+    def test_computing_status_written_to_cache_early(
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
+    ) -> None:
+        """compute_and_cache writes COMPUTING to cache before taking the screenshot
+        so concurrent tasks can detect it and avoid duplicate work."""
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         BaseScreenshot.cache = MockCache()
 
-        # Mock get_screenshot to check cache state during execution
-        def check_cache_during_screenshot(*args, **kwargs):
-            # At this point, we're in COMPUTING state
-            # Cache should NOT be set yet
+        def check_cache_during_screenshot(*args: object, **kwargs: object) -> bytes:
             cache_key = screenshot_obj.get_cache_key()
             cached_value = BaseScreenshot.cache.get(cache_key)
-            # Cache should be empty during screenshot generation
-            assert cached_value is None, (
-                "Cache should not be saved during COMPUTING state"
+            assert cached_value is not None, (
+                "Cache should be set to COMPUTING before screenshot starts"
             )
+            assert cached_value["status"] == "Computing"
             return b"image_data"
 
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
             side_effect=check_cache_during_screenshot,
         )
-        # Mock resize to avoid PIL errors with fake image data
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image_data"
         )
 
-        # Execute compute_and_cache
         screenshot_obj.compute_and_cache(user=mock_user, force=True)
 
-        # After completion, cache should be set with UPDATED status
         cache_key = screenshot_obj.get_cache_key()
         cached_value = BaseScreenshot.cache.get(cache_key)
         assert cached_value is not None
@@ -191,10 +196,10 @@ class TestShouldTriggerTask:
     """Test the should_trigger_task method improvements."""
 
     @patch("superset.utils.screenshots.app")
-    def test_trigger_on_stale_computing_status(self, mock_app):
+    def test_trigger_on_stale_computing_status(self, mock_app: MagicMock) -> None:
         """Test that stale COMPUTING status triggers recomputation."""
         # Set TTL to 300 seconds
-        mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Create payload with COMPUTING status from 400 seconds ago (stale)
         old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
@@ -209,7 +214,7 @@ class TestShouldTriggerTask:
     def test_no_trigger_on_fresh_computing_status(self, mock_app):
         """Test that fresh COMPUTING status does not trigger recomputation."""
         # Set TTL to 300 seconds
-        mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Create payload with COMPUTING status from 100 seconds ago (fresh)
         fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
@@ -246,8 +251,10 @@ class TestShouldTriggerTask:
     @patch("superset.utils.screenshots.app")
     def test_trigger_on_expired_error(self, mock_app):
         """Test that expired ERROR status triggers task."""
-        # Set TTL to 300 seconds
-        mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+        mock_app.config = {
+            "THUMBNAIL_COMPUTING_CACHE_TTL": 300,
+            "THUMBNAIL_ERROR_CACHE_TTL": 300,
+        }
 
         # Create payload with ERROR status from 400 seconds ago (expired)
         old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
@@ -258,10 +265,12 @@ class TestShouldTriggerTask:
         assert payload.should_trigger_task(force=False) is True
 
     @patch("superset.utils.screenshots.app")
-    def test_no_trigger_on_fresh_error(self, mock_app):
+    def test_no_trigger_on_fresh_error(self, mock_app: MagicMock) -> None:
         """Test that fresh ERROR status does not trigger task."""
-        # Set TTL to 300 seconds
-        mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+        mock_app.config = {
+            "THUMBNAIL_COMPUTING_CACHE_TTL": 300,
+            "THUMBNAIL_ERROR_CACHE_TTL": 300,
+        }
 
         # Create payload with ERROR status from 100 seconds ago (fresh)
         fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
@@ -288,7 +297,7 @@ class TestIsComputingStale:
     @patch("superset.utils.screenshots.app")
     def test_computing_is_stale(self, mock_app):
         """Test that old COMPUTING status is detected as stale."""
-        mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Timestamp from 400 seconds ago
         old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
@@ -301,7 +310,7 @@ class TestIsComputingStale:
     @patch("superset.utils.screenshots.app")
     def test_computing_is_not_stale(self, mock_app):
         """Test that fresh COMPUTING status is not stale."""
-        mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Timestamp from 100 seconds ago
         fresh_timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
@@ -314,7 +323,7 @@ class TestIsComputingStale:
     @patch("superset.utils.screenshots.app")
     def test_computing_exactly_at_ttl(self, mock_app):
         """Test boundary condition at exactly TTL."""
-        mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Timestamp from exactly 300 seconds ago
         exact_timestamp = (datetime.now() - timedelta(seconds=300)).isoformat()
@@ -328,7 +337,7 @@ class TestIsComputingStale:
     @patch("superset.utils.screenshots.app")
     def test_computing_just_past_ttl(self, mock_app):
         """Test boundary condition just past TTL."""
-        mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         # Timestamp from 301 seconds ago (just past TTL)
         past_ttl_timestamp = (datetime.now() - timedelta(seconds=301)).isoformat()
@@ -350,6 +359,7 @@ class TestIntegrationCacheBugFix:
         Integration test: Failed screenshot should cache error status
         to prevent immediate retries, not leave corrupted cache with image=None.
         """
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
             side_effect=Exception("Network error"),
@@ -373,13 +383,18 @@ class TestIntegrationCacheBugFix:
 
     @patch("superset.utils.screenshots.app")
     def test_stale_computing_triggers_retry(
-        self, mock_app, mocker: MockerFixture, screenshot_obj, mock_user
-    ):
+        self,
+        mock_app: MagicMock,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
+    ) -> None:
         """
         Integration test: Stale COMPUTING status should trigger retry
         to recover from stuck tasks.
         """
-        mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
         BaseScreenshot.cache = MockCache()
 
         # Create stale COMPUTING entry and seed it in the cache
@@ -408,3 +423,39 @@ class TestIntegrationCacheBugFix:
         assert cached_value is not None
         assert cached_value["status"] == "Updated"
         assert cached_value["image"] is not None
+
+    def test_concurrent_task_skips_when_lock_already_held(
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
+    ) -> None:
+        """compute_and_cache exits without rendering when the distributed lock
+        is already held by another worker — atomically preventing duplicate Selenium."""
+        mock_lock = mocker.patch(DISTRIBUTED_LOCK_PATH)
+        mock_lock.return_value.__enter__.side_effect = LockAlreadyHeldException(
+            "lock held"
+        )
+        get_screenshot = mocker.patch(BASE_SCREENSHOT_PATH + ".get_screenshot")
+        BaseScreenshot.cache = MockCache()
+
+        screenshot_obj.compute_and_cache(user=mock_user, force=False)
+
+        get_screenshot.assert_not_called()
+
+    def test_computing_preserves_previous_image(
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
+    ) -> None:
+        """computing() must not wipe the cached image so a stale thumbnail remains
+        visible while a refresh is in progress."""
+        old_image = b"old_thumbnail_bytes"
+        payload = ScreenshotCachePayload(image=old_image)
+        assert payload._image == old_image
+
+        payload.computing()
+
+        assert payload._image == old_image
+        assert payload.status == StatusValues.COMPUTING

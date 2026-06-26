@@ -147,6 +147,24 @@ class Theme(AuditMixinNullable, ImportExportMixin, Model):
     export_fields = ["theme_name", "json_data"]
 
 
+# Event listeners to clear the memoized bootstrap data cache when a theme is modified
+@sqla.event.listens_for(Theme, "after_insert")
+@sqla.event.listens_for(Theme, "after_update")
+@sqla.event.listens_for(Theme, "after_delete")
+def clear_bootstrap_cache(
+    _mapper: sqla.orm.Mapper,
+    _connection: sqla.engine.Connection,
+    _target: Theme,
+) -> None:
+    from superset.extensions import cache_manager
+    from superset.views.base import cached_common_bootstrap_data
+
+    try:
+        cache_manager.cache.delete_memoized(cached_common_bootstrap_data)
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.warning("Failed to clear theme bootstrap cache: %s", ex)
+
+
 class ConfigurationMethod(StrEnum):
     SQLALCHEMY_FORM = "sqlalchemy_form"
     DYNAMIC_FORM = "dynamic_form"
@@ -686,7 +704,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             return (
                 not df_series.empty
                 and isinstance(df_series, pd.Series)
-                and isinstance(df_series[0], (list, dict))
+                and isinstance(df_series.iloc[0], (list, dict))
             )
 
         for col, coltype in df.dtypes.to_dict().items():
@@ -762,8 +780,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             description = None
 
             for i, statement in enumerate(script.statements):
+                # For a single statement, execute the original SQL as-is. Re-rendering
+                # via statement.format() would round-trip through sqlglot
+                rendered = sql if len(script.statements) == 1 else statement.format()
                 sql_ = self.mutate_sql_based_on_config(
-                    statement.format(),
+                    rendered,
                     is_split=True,
                 )
                 _log_query(sql_)
