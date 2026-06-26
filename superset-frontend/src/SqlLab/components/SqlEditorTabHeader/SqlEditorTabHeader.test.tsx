@@ -135,13 +135,16 @@ describe('SqlEditorTabHeader', () => {
 
     test('should dispatch queryEditorSetTitle action', async () => {
       await waitFor(() =>
-        expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
       );
       const expectedTitle = 'typed text';
-      const mockPrompt = jest
-        .spyOn(window, 'prompt')
-        .mockImplementation(() => expectedTitle);
       fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      fireEvent.change(input, { target: { value: expectedTitle } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
       const actions = store.getActions();
       await waitFor(() =>
@@ -153,7 +156,127 @@ describe('SqlEditorTabHeader', () => {
           }),
         }),
       );
-      mockPrompt.mockClear();
+    });
+
+    test('prefills the rename input with the current tab name', async () => {
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      expect(input).toHaveValue(defaultQueryEditor.name);
+    });
+
+    test('focuses the rename input when the modal opens', async () => {
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      await waitFor(() => expect(input).toHaveFocus());
+    });
+
+    test('disables Save when the input is empty or whitespace', async () => {
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      fireEvent.change(input, { target: { value: '   ' } });
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
+
+    test('does not dispatch or dismiss on Enter when the input is empty', async () => {
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      fireEvent.change(input, { target: { value: '   ' } });
+      fireEvent.keyDown(input, { key: 'Enter', keyCode: 13, charCode: 13 });
+
+      const dispatchedTitleChange = store
+        .getActions()
+        .some(action => action.type === QUERY_EDITOR_SET_TITLE);
+      expect(dispatchedTitleChange).toBe(false);
+      // the modal must stay open so the user can correct the name,
+      // mirroring the disabled Save button rather than dismissing like Escape
+      expect(screen.queryByRole('dialog')).toBeInTheDocument();
+    });
+
+    test('does not dispatch a title change when the modal is cancelled', async () => {
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      fireEvent.change(input, { target: { value: 'discarded text' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(store.getActions()).toEqual([]);
+    });
+
+    test('does not dispatch a title change when dismissed with the close button', async () => {
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      fireEvent.change(input, { target: { value: 'discarded text' } });
+      fireEvent.click(screen.getByTestId('close-modal-btn'));
+
+      expect(store.getActions()).toEqual([]);
+    });
+
+    test('returns focus to the tab header after the modal is cancelled', async () => {
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      await screen.findByTestId('rename-tab-input');
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('sql-editor-tab-header')).toHaveFocus(),
+      );
+    });
+
+    test('returns focus to the tab header after a successful rename', async () => {
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      fireEvent.change(input, { target: { value: 'renamed tab' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('sql-editor-tab-header')).toHaveFocus(),
+      );
     });
 
     test('should dispatch removeAllOtherQueryEditors action', async () => {
@@ -195,5 +318,43 @@ describe('SqlEditorTabHeader', () => {
         }),
       );
     });
+  });
+
+  test('does not leak tab-editing keystrokes from the rename input to the surrounding tabs', async () => {
+    const onContainerKeyDown = jest.fn();
+    const store = mockStore(initialState);
+    render(
+      <div onKeyDown={onContainerKeyDown}>
+        <SqlEditorTabHeader queryEditor={defaultQueryEditor} />
+      </div>,
+      { useRedux: true, store },
+    );
+
+    userEvent.click(screen.getByTestId('dropdown-trigger'));
+    await waitFor(() =>
+      expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+    const input = await screen.findByTestId('rename-tab-input');
+
+    // The modal portals over the editable-card tabs, whose keyboard handler would
+    // otherwise remove, navigate, or activate a tab (and swallow Space). None of
+    // these keys should escape the modal to the surrounding container.
+    [
+      'Delete',
+      'Backspace',
+      'ArrowLeft',
+      'ArrowRight',
+      'Home',
+      'End',
+      ' ',
+    ].forEach(key => fireEvent.keyDown(input, { key }));
+    expect(onContainerKeyDown).not.toHaveBeenCalled();
+
+    // Escape (close) and Tab (focus trap) must still reach the Modal.
+    fireEvent.keyDown(input, { key: 'Tab' });
+    fireEvent.keyDown(input, { key: 'Escape' });
+    const reached = onContainerKeyDown.mock.calls.map(call => call[0].key);
+    expect(reached).toEqual(expect.arrayContaining(['Tab', 'Escape']));
   });
 });
