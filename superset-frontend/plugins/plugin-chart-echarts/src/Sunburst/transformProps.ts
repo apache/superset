@@ -186,7 +186,9 @@ export default function transformProps(
     showLabels,
     showLabelsThreshold,
     showTotal,
-    showNullValues,
+    // Default to true so charts saved before this control existed keep
+    // showing null values instead of silently hiding them on upgrade.
+    showNullValues = true,
     sliceId,
   } = formData;
   const {
