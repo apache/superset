@@ -108,6 +108,7 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-loadable": "^5.5.0",
+    "stylis-plugin-rtl": "^2.1.1",
     "tinycolor2": "*",
     "lodash": "^4.18.1",
     "antd": "^5.26.0",
