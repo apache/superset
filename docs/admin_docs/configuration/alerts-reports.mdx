@@ -160,7 +160,7 @@ When enabled, Superset rejects webhook configurations that use `http://` URLs.
 
 #### Retry Behavior
 
-Superset automatically retries webhook deliveries on `429 Too Many Requests` and `5xx` server errors using exponential backoff.
+Superset automatically retries webhook deliveries on `429 Too Many Requests` and `5xx` server errors using exponential backoff. Retries are bounded to roughly 120 seconds of cumulative wall-clock time (worst case ~210 seconds, because the bound is checked against the time elapsed before each attempt, so the final request can begin just under the limit and still run its full request timeout), after which the delivery is abandoned.
 
 ### Kubernetes-specific
 

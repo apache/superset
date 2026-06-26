@@ -160,6 +160,15 @@ VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 # can be replaced at build time to expose build information.
 BUILD_NUMBER = None
 
+# Whether to expose precise build details (the git SHA and build number) to
+# all users via the "About" section and the bootstrap payload. When False
+# (default), these are only included for admins, so non-admin/anonymous viewers
+# cannot read the exact commit/build of the deployment. The release version
+# string is always included. Enable with SUPERSET_EXPOSE_BUILD_DETAILS.
+EXPOSE_BUILD_DETAILS_TO_USERS = utils.cast_to_boolean(
+    os.environ.get("SUPERSET_EXPOSE_BUILD_DETAILS", False)
+)
+
 # default viz used in chart explorer & SQL Lab explore
 DEFAULT_VIZ_TYPE = "table"
 
@@ -1183,6 +1192,9 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
+# How long to treat a COMPUTING cache entry as an active lease before considering
+# the worker stuck.  Should exceed the task soft_time_limit (300 s) by a margin.
+THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
 
 # Cache warmup user — must be set explicitly before enabling the cache-warmup
 # Celery task. Intentionally defaults to None so operators pick a dedicated
