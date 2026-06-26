@@ -113,6 +113,102 @@ def test_apply_dashboard_filter_context_does_not_duplicate_filters(
         assert ExtraCache().filter_values("country") == ["USA"]
 
 
+def test_apply_dashboard_filter_context_applies_time_grain_to_extras() -> None:
+    """
+    A dashboard time-grain filter must land in ``query["extras"]``, where
+    get_time_grain() reads it for charts that have no adhoc x-axis column.
+    """
+    query_context_json: dict[str, Any] = {
+        "queries": [{"extras": {"time_grain_sqla": "P1D", "having": "", "where": ""}}],
+    }
+
+    apply_dashboard_filter_context(query_context_json, {"time_grain_sqla": "P1M"})
+
+    assert query_context_json["queries"][0]["extras"]["time_grain_sqla"] == "P1M"
+
+
+def test_apply_dashboard_filter_context_overrides_x_axis_time_grain() -> None:
+    """
+    For charts with an adhoc X-Axis, the dashboard grain must override the
+    BASE_AXIS column's ``timeGrain`` (which get_time_grain() reads before
+    falling back to extras), mirroring the frontend's normalizeTimeColumn.
+    """
+    query_context_json: dict[str, Any] = {
+        "queries": [
+            {
+                "columns": [
+                    {
+                        "timeGrain": "P1D",
+                        "columnType": "BASE_AXIS",
+                        "sqlExpression": "order_date",
+                    }
+                ],
+                "extras": {"time_grain_sqla": "P1D"},
+            }
+        ],
+    }
+
+    apply_dashboard_filter_context(query_context_json, {"time_grain_sqla": "P1Y"})
+
+    query = query_context_json["queries"][0]
+    assert query["columns"][0]["timeGrain"] == "P1Y"
+    assert query["extras"]["time_grain_sqla"] == "P1Y"
+
+
+def test_apply_dashboard_filter_context_grain_targets_first_adhoc_column() -> None:
+    """
+    The grain override must land on ``columns[0]`` to match frontend logic.
+    """
+    query_context_json: dict[str, Any] = {
+        "queries": [
+            {
+                "columns": [
+                    {"timeGrain": "P1D", "sqlExpression": "order_date"},
+                    {"columnType": "BASE_AXIS", "sqlExpression": "other"},
+                ],
+                "extras": {},
+            }
+        ],
+    }
+
+    apply_dashboard_filter_context(query_context_json, {"time_grain_sqla": "P1Y"})
+
+    columns = query_context_json["queries"][0]["columns"]
+    assert columns[0]["timeGrain"] == "P1Y"  # the column get_time_grain reads
+    assert "timeGrain" not in columns[1]  # the BASE_AXIS-tagged one is untouched
+
+
+def test_apply_dashboard_filter_context_keeps_grain_when_no_grain_filter() -> None:
+    """
+    When the dashboard applies a non-grain filter (e.g. a value filter), the
+    chart's own x-axis ``timeGrain`` must be preserved -- not wiped -- since no
+    dashboard grain was provided.
+    """
+    query_context_json: dict[str, Any] = {
+        "queries": [
+            {
+                "columns": [
+                    {
+                        "timeGrain": "P1M",
+                        "columnType": "BASE_AXIS",
+                        "sqlExpression": "order_date",
+                    }
+                ],
+                "extras": {"time_grain_sqla": "P1M"},
+            }
+        ],
+    }
+
+    # extra_form_data carries a value filter but NO time_grain_sqla
+    apply_dashboard_filter_context(
+        query_context_json,
+        {"filters": [{"col": "country", "op": "IN", "val": ["US"]}]},
+    )
+
+    query = query_context_json["queries"][0]
+    assert query["columns"][0]["timeGrain"] == "P1M"
+
+
 def _extract_filename(form_value: str) -> str | None:
     """Run _extract_export_params_from_request with a form filename value."""
     from superset.charts.data.api import ChartDataRestApi

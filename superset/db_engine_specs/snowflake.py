@@ -30,7 +30,7 @@ from cryptography.hazmat.primitives import serialization
 from flask import current_app as app, has_request_context
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
@@ -394,7 +394,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return {
             catalog
             for (catalog,) in inspector.bind.execute(
-                "SELECT DATABASE_NAME from information_schema.databases"
+                text("SELECT DATABASE_NAME from information_schema.databases")
             )
         }
 

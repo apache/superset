@@ -23,6 +23,7 @@ These tests demonstrate the core functionality works correctly.
 from unittest.mock import MagicMock, patch
 
 from superset.utils.webdriver import (
+    _PlaywrightBrowserManager,
     PLAYWRIGHT_AVAILABLE,
     validate_webdriver_config,
 )
@@ -98,3 +99,101 @@ class TestPlaywrightMigrationCore:
         # Should have required attributes
         assert hasattr(playwright_driver, "_driver_type")
         assert hasattr(selenium_driver, "_driver_type")
+
+
+class TestPlaywrightBrowserManager:
+    """Tests for the per-worker browser manager."""
+
+    def test_initial_state(self):
+        manager = _PlaywrightBrowserManager()
+        assert manager._playwright is None
+        assert manager._browser is None
+
+    def test_get_browser_creates_browser(self):
+        mock_browser = MagicMock()
+        mock_browser.is_connected.return_value = True
+
+        mock_pw_instance = MagicMock()
+        mock_pw_instance.chromium.launch.return_value = mock_browser
+
+        mock_sync_pw = MagicMock()
+        mock_sync_pw.start.return_value = mock_pw_instance
+
+        manager = _PlaywrightBrowserManager()
+        with patch(
+            "superset.utils.webdriver.sync_playwright", return_value=mock_sync_pw
+        ):
+            browser = manager.get_browser(["--headless"])
+
+        assert browser is mock_browser
+        mock_pw_instance.chromium.launch.assert_called_once_with(args=["--headless"])
+
+    def test_get_browser_reuses_connected_browser(self):
+        mock_browser = MagicMock()
+        mock_browser.is_connected.return_value = True
+
+        manager = _PlaywrightBrowserManager()
+        manager._browser = mock_browser
+        manager._playwright = MagicMock()
+
+        browser = manager.get_browser(["--headless"])
+
+        assert browser is mock_browser
+        # Should NOT launch a new browser
+        manager._playwright.chromium.launch.assert_not_called()
+
+    def test_get_browser_recreates_on_disconnect(self):
+        stale_browser = MagicMock()
+        stale_browser.is_connected.return_value = False
+
+        new_browser = MagicMock()
+        new_browser.is_connected.return_value = True
+
+        mock_pw_instance = MagicMock()
+        mock_pw_instance.chromium.launch.return_value = new_browser
+
+        mock_sync_pw = MagicMock()
+        mock_sync_pw.start.return_value = mock_pw_instance
+
+        manager = _PlaywrightBrowserManager()
+        manager._browser = stale_browser
+        manager._playwright = MagicMock()
+
+        with patch(
+            "superset.utils.webdriver.sync_playwright", return_value=mock_sync_pw
+        ):
+            browser = manager.get_browser(["--headless"])
+
+        assert browser is new_browser
+        stale_browser.close.assert_called_once()
+
+    def test_cleanup(self):
+        mock_browser = MagicMock()
+        mock_playwright = MagicMock()
+
+        manager = _PlaywrightBrowserManager()
+        manager._browser = mock_browser
+        manager._playwright = mock_playwright
+
+        manager._cleanup()
+
+        mock_browser.close.assert_called_once()
+        mock_playwright.stop.assert_called_once()
+        assert manager._browser is None
+        assert manager._playwright is None
+
+    def test_cleanup_handles_exceptions(self):
+        mock_browser = MagicMock()
+        mock_browser.close.side_effect = Exception("crash")
+        mock_playwright = MagicMock()
+        mock_playwright.stop.side_effect = Exception("crash")
+
+        manager = _PlaywrightBrowserManager()
+        manager._browser = mock_browser
+        manager._playwright = mock_playwright
+
+        # Should not raise
+        manager._cleanup()
+
+        assert manager._browser is None
+        assert manager._playwright is None
