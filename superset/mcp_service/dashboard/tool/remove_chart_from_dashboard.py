@@ -366,6 +366,8 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
                     id=updated_dashboard.id,
                     dashboard_title=updated_dashboard.dashboard_title,
                     published=updated_dashboard.published,
+                    created_on=updated_dashboard.created_on,
+                    changed_on=updated_dashboard.changed_on,
                     chart_count=len(remaining_slices),
                     url=dashboard_url,
                 ),
@@ -439,5 +441,7 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
         return RemoveChartFromDashboardResponse(
             dashboard=None,
             dashboard_url=None,
+            removed_layout_keys=[],
+            permission_denied=False,
             error=f"Failed to remove chart from dashboard: {str(e)}",
         )

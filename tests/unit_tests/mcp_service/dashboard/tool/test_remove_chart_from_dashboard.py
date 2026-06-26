@@ -256,7 +256,7 @@ def _tabbed_layout() -> dict[str, Any]:
 async def _call_remove(
     mcp_server: object, dashboard_id: int = 1, chart_id: int = 10
 ) -> dict[str, Any]:
-    """Call remove_chart_from_dashboard via the MCP client and return structured content."""
+    """Call remove_chart_from_dashboard via MCP client; return structured content."""
     async with Client(mcp_server) as client:
         result = await client.call_tool(
             "remove_chart_from_dashboard",
