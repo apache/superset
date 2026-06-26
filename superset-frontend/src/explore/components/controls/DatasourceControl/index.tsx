@@ -35,6 +35,7 @@ import {
   DatasourceModal,
   ErrorAlert,
 } from 'src/components';
+import SemanticViewEditModal from 'src/features/semanticViews/SemanticViewEditModal';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
@@ -554,14 +555,27 @@ export default function DatasourceControl({
           )}
         </div>
       )}
-      {showEditDatasourceModal && (
-        <DatasourceModal
-          datasource={datasource}
-          show={showEditDatasourceModal}
-          onDatasourceSave={handleDatasourceSave}
-          onHide={toggleEditDatasourceModal}
-        />
-      )}
+      {showEditDatasourceModal &&
+        (String(datasource.type) === 'semantic_view' ? (
+          <SemanticViewEditModal
+            show={showEditDatasourceModal}
+            onHide={toggleEditDatasourceModal}
+            onSave={() => handleDatasourceSave(datasource)}
+            semanticView={{
+              id: datasource.id,
+              table_name: datasource.name,
+              description: datasource.description,
+              cache_timeout: datasource.cache_timeout,
+            }}
+          />
+        ) : (
+          <DatasourceModal
+            datasource={datasource}
+            show={showEditDatasourceModal}
+            onDatasourceSave={handleDatasourceSave}
+            onHide={toggleEditDatasourceModal}
+          />
+        ))}
       {showChangeDatasourceModal && (
         <ChangeDatasourceModal
           onDatasourceSave={handleDatasourceSave}
