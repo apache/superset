@@ -48,7 +48,11 @@ def get_slack_client() -> WebClient:
     token: str = app.config["SLACK_API_TOKEN"]
     if callable(token):
         token = token()
-    client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
+    client = WebClient(
+        token=token,
+        proxy=app.config["SLACK_PROXY"],
+        timeout=app.config["SLACK_API_TIMEOUT"],
+    )
 
     max_retry_count = app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)
     rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=max_retry_count)
@@ -190,9 +194,9 @@ def should_use_v2_api() -> bool:
     except SlackApiError:
         # use the v1 api but warn with a deprecation message
         logger.warning(
-            """Your current Slack scopes are missing `channels:read`. Please add
-            this to your Slack app in order to continue using the v1 API. Support
-            for the old Slack API will be removed in Superset version 6.0.0."""
+            "Your current Slack scopes are missing `channels:read`. Please add "
+            "this to your Slack app in order to continue using the v1 API. Support "
+            "for the old Slack API will be removed in Superset version 6.0.0."
         )
         return False
 

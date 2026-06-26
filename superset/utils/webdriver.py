@@ -502,9 +502,23 @@ class WebDriverSelenium(WebDriverProxy):
             self._driver = self._create()
             if not self._driver:
                 raise RuntimeError("WebDriver creation failed")
-            self._driver.set_window_size(*self._window)
-            if self._user:
-                self._auth(self._user)
+            try:
+                self._driver.set_window_size(*self._window)
+                # Bound driver.get() so an unreachable page raises a
+                # TimeoutException instead of blocking the worker (and the
+                # report schedule) forever.
+                page_load_wait = app.config["SCREENSHOT_PAGE_LOAD_WAIT"]
+                if page_load_wait is not None:
+                    self._driver.set_page_load_timeout(page_load_wait)
+                if self._user:
+                    self._auth(self._user)
+            except Exception:
+                # A failure mid-setup (e.g. the new page-load timeout or auth
+                # raising) would otherwise leave a partially initialized,
+                # unauthenticated driver cached for reuse. Tear it down so the
+                # next access recreates it cleanly.
+                self._destroy()
+                raise
         return self._driver
 
     def _create_firefox_driver(

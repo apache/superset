@@ -3549,6 +3549,17 @@ def test_tokenize_kql(kql: str, expected: list[tuple[KQLTokenType, str]]) -> Non
             "postgresql",
             True,
         ),
+        # Set operations: a top-level UNION/INTERSECT/EXCEPT is not an
+        # exp.Subquery, so it must be detected explicitly. A predicate fragment
+        # that introduces one (e.g. supplied through a chart filter) must be
+        # flagged.
+        ("true UNION SELECT name FROM other_table", "postgresql", True),
+        ("1 = 1 UNION ALL SELECT password FROM users", "postgresql", True),
+        ("SELECT 1 INTERSECT SELECT 2", "postgresql", True),
+        ("SELECT 1 EXCEPT SELECT 2", "postgresql", True),
+        # Nested SELECT under non-Select top-level nodes (e.g. extra
+        # parentheses) must still be detected.
+        ("name IN (((SELECT secret FROM s)))", "postgresql", True),
     ],
 )
 def test_has_subquery(sql: str, engine: str, expected: bool) -> None:
