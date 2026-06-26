@@ -269,6 +269,9 @@ const AsyncSelect = forwardRef(
       }
       if (autoClearSearchValue) {
         setInputValue('');
+        if (fetchOnlyOnSearch) {
+          setSelectOptions([]);
+        }
       }
       onSelect?.(selectedItem, option);
     };
