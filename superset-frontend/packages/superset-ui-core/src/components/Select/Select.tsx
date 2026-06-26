@@ -91,6 +91,7 @@ const Select = forwardRef(
       className,
       allowClear,
       allowNewOptions = false,
+      allowNewOptionsOnPaste = false,
       allowSelectAll = true,
       ariaLabel,
       autoClearSearchValue = false,
@@ -519,7 +520,8 @@ const Select = forwardRef(
               handleSelectAll();
             }}
           >
-            {t('Select all')} {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.selectable)})`}
+            {t('Select all')}{' '}
+            {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.selectable)})`}
           </Button>
           <Button
             type="link"
@@ -536,7 +538,8 @@ const Select = forwardRef(
               handleDeselectAll();
             }}
           >
-            {t('Clear')} {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.deselectable)})`}
+            {t('Clear')}{' '}
+            {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.deselectable)})`}
           </Button>
         </StyledBulkActionsContainer>
       ),
@@ -690,20 +693,34 @@ const Select = forwardRef(
         }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
-        const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const array = token
+          ? uniq(
+              pastedText
+                .split(token)
+                .map(item => item.trim())
+                .filter(Boolean),
+            )
+          : [pastedText.trim()].filter(Boolean);
 
         const newOptions: SelectOptionsType = [];
+        // When `allowNewOptionsOnPaste` is set, accept pasted values that are
+        // not in the loaded options even if `allowNewOptions` is false. The
+        // full option set is searched server-side and only partially loaded
+        // client-side, so a pasted value can legitimately exist in the dataset
+        // but fall outside the loaded page.
+        const keepUnknownValues = allowNewOptions || allowNewOptionsOnPaste;
 
         const values = array
           .map(item => {
             const option = getOption(item, fullSelectOptions, true);
-            if (!option && allowNewOptions) {
+            if (!option && keepUnknownValues) {
               const newOption = {
                 label: item,
                 value: item,
                 isNewOption: true,
               };
               newOptions.push(newOption);
+              return labelInValue ? { label: item, value: item } : item;
             }
             return getPastedTextValue(item);
           })

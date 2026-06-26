@@ -855,7 +855,9 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
         fields.String(allow_none=False),
         metadata={"description": "Columns to group by on the table columns"},
     )
-    metric_fill_value = fields.Number(
+    # `fields.Number` became abstract in marshmallow 4; use `Float`, which
+    # preserves the previous "any numeric value" semantics for this field.
+    metric_fill_value = fields.Float(
         metadata={
             "description": "Value to replace missing values with in "
             "aggregate calculations."
@@ -1452,6 +1454,18 @@ class ChartDataQueryObjectSchema(Schema):
     time_offsets = fields.List(
         fields.String(),
         allow_none=True,
+    )
+    time_compare_full_range = fields.Boolean(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "When using a time comparison (time_offsets), plot each shifted "
+                "series across its full time range instead of truncating it to the "
+                "main series' range. Useful for comparing a partial current period "
+                "against complete prior periods."
+            )
+        },
     )
 
     @post_load

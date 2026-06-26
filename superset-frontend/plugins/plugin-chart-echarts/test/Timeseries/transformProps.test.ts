@@ -1564,9 +1564,13 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
   });
 
   const { echartOptions } = transformProps(chartProps);
-  const xAxis = echartOptions.xAxis as { type: string };
+  const xAxis = echartOptions.xAxis as {
+    triggerEvent?: boolean;
+    type: string;
+  };
 
   expect(xAxis.type).toBe(AxisType.Category);
+  expect(xAxis.triggerEvent).toBe(true);
 });
 
 test('temporal x coltype wires the time formatter and Time axis', () => {
