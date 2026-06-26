@@ -384,6 +384,38 @@ const fmtNonString =
     typeof x === 'string' ? x : formatter(x as number);
 
 /*
+ * Passthrough "aggregator" for the multi-query pivot. Because the database
+ * already computed every rollup level (one query per level), each cell receives
+ * exactly one record per metric, whose value we store verbatim rather than
+ * re-aggregating. This is what makes non-additive totals correct. See SIP.md.
+ * Currency tracking mirrors the real aggregators for AUTO-mode detection.
+ */
+const cellValue =
+  (formatter: Formatter = usFmt) =>
+  ([attr]: string[]) =>
+  () => ({
+    val: null as string | number | null,
+    currencySet: new Set<string>(),
+    push(record: PivotRecord) {
+      this.val = record[attr] as string | number | null;
+      if (
+        record.__currencyColumn &&
+        record[record.__currencyColumn as string]
+      ) {
+        this.currencySet.add(String(record[record.__currencyColumn as string]));
+      }
+    },
+    value() {
+      return this.val;
+    },
+    getCurrencies() {
+      return Array.from(this.currencySet);
+    },
+    format: fmtNonString(formatter),
+    numInputs: typeof attr !== 'undefined' ? 0 : 1,
+  });
+
+/*
  * Aggregators track currencies via push() and expose them via getCurrencies()
  * for per-cell currency detection in AUTO mode.
  */
@@ -931,14 +963,10 @@ class PivotData {
       'PivotData',
     );
 
-    const aggregatorsFactory = this.props.aggregatorsFactory as (
-      fmt: unknown,
-    ) => Record<string, (vals: unknown) => (...args: unknown[]) => Aggregator>;
-    const aggregatorName = this.props.aggregatorName as string;
     const vals = this.props.vals as string[];
-    this.aggregator = aggregatorsFactory(this.props.defaultFormatter)[
-      aggregatorName
-    ](vals);
+    // Values come pre-aggregated from the database (one query per rollup level),
+    // so the pivot stores them verbatim via `cellValue` instead of aggregating.
+    this.aggregator = cellValue(this.props.defaultFormatter as Formatter)(vals);
     this.formattedAggregators = this.props.customFormatters
       ? Object.entries(
           this.props.customFormatters as Record<
@@ -955,8 +983,7 @@ class PivotData {
           ) => {
             acc[key] = {};
             Object.entries(columnFormatter).forEach(([column, formatter]) => {
-              acc[key][column] =
-                aggregatorsFactory(formatter)[aggregatorName](vals);
+              acc[key][column] = cellValue(formatter as Formatter)(vals);
             });
             return acc;
           },
@@ -1089,76 +1116,106 @@ class PivotData {
   }
 
   processRecord(record: PivotRecord): void {
-    // this code is called in a tight loop
+    // this code is called in a tight loop.
+    // Each record is tagged (in PivotTableChart) with `rows`/`columns`: the
+    // dimension labels of the rollup level that produced it. The database has
+    // already aggregated that level, so we place the value into exactly one
+    // slot and store it verbatim (no re-aggregation). A key shorter than the
+    // full dimension list identifies a subtotal level. Records without tags
+    // (e.g. direct unit-test construction) fall back to the full dimension
+    // lists, i.e. they are treated as leaf rows.
+    const recordRows = (record.rows as unknown as string[]) ?? null;
+    const recordColumns = (record.columns as unknown as string[]) ?? null;
+    const levelRows = recordRows ?? (this.props.rows as string[]);
+    const levelColumns = recordColumns ?? (this.props.cols as string[]);
+
     const colKey: string[] = [];
     const rowKey: string[] = [];
-    (this.props.cols as string[]).forEach((col: string) => {
+    levelColumns.forEach((col: string) => {
       colKey.push(col in record ? String(record[col]) : 'null');
     });
-    (this.props.rows as string[]).forEach((row: string) => {
+    levelRows.forEach((row: string) => {
       rowKey.push(row in record ? String(record[row]) : 'null');
     });
 
-    this.allTotal.push(record);
+    const flatRowKey = flatKey(rowKey);
+    const flatColKey = flatKey(colKey);
 
-    const rowStart = this.subtotals.rowEnabled ? 1 : Math.max(1, rowKey.length);
-    const colStart = this.subtotals.colEnabled ? 1 : Math.max(1, colKey.length);
+    const isColSubtotal = colKey.length < (this.props.cols as string[]).length;
+    const isRowSubtotal = rowKey.length < (this.props.rows as string[]).length;
 
-    let isRowSubtotal;
-    let isColSubtotal;
-    for (let ri = rowStart; ri <= rowKey.length; ri += 1) {
-      isRowSubtotal = ri < rowKey.length;
-      const fRowKey = rowKey.slice(0, ri);
-      const flatRowKey = flatKey(fRowKey);
-      if (!this.rowTotals[flatRowKey]) {
-        this.rowKeys.push(fRowKey);
-        this.rowTotals[flatRowKey] = this.getFormattedAggregator(
-          record,
-          rowKey,
-        )(this, fRowKey, []);
+    // Register/create the column-total slot the first time this colKey is seen.
+    if (colKey.length > 0 && !this.colTotals[flatColKey]) {
+      if (!isColSubtotal || this.subtotals.colEnabled) {
+        this.colKeys.push(colKey);
       }
-      this.rowTotals[flatRowKey].push(record);
-      this.rowTotals[flatRowKey].isSubtotal = isRowSubtotal;
+      this.colTotals[flatColKey] = this.getFormattedAggregator(record, colKey)(
+        this,
+        [],
+        colKey,
+      );
     }
-
-    for (let ci = colStart; ci <= colKey.length; ci += 1) {
-      isColSubtotal = ci < colKey.length;
-      const fColKey = colKey.slice(0, ci);
-      const flatColKey = flatKey(fColKey);
-      if (!this.colTotals[flatColKey]) {
-        this.colKeys.push(fColKey);
-        this.colTotals[flatColKey] = this.getFormattedAggregator(
-          record,
-          colKey,
-        )(this, [], fColKey);
+    // Register/create the row-total slot the first time this rowKey is seen.
+    if (rowKey.length > 0 && !this.rowTotals[flatRowKey]) {
+      if (!isRowSubtotal || this.subtotals.rowEnabled) {
+        this.rowKeys.push(rowKey);
       }
-      this.colTotals[flatColKey].push(record);
-      this.colTotals[flatColKey].isSubtotal = isColSubtotal;
+      this.rowTotals[flatRowKey] = this.getFormattedAggregator(record, rowKey)(
+        this,
+        rowKey,
+        [],
+      );
     }
-
-    // And now fill in for all the sub-cells.
-    for (let ri = rowStart; ri <= rowKey.length; ri += 1) {
-      isRowSubtotal = ri < rowKey.length;
-      const fRowKey = rowKey.slice(0, ri);
-      const flatRowKey = flatKey(fRowKey);
+    // Create the body-cell slot.
+    if (rowKey.length > 0 && colKey.length > 0) {
       if (!this.tree[flatRowKey]) {
         this.tree[flatRowKey] = {};
       }
-      for (let ci = colStart; ci <= colKey.length; ci += 1) {
-        isColSubtotal = ci < colKey.length;
-        const fColKey = colKey.slice(0, ci);
-        const flatColKey = flatKey(fColKey);
-        if (!this.tree[flatRowKey][flatColKey]) {
-          this.tree[flatRowKey][flatColKey] = this.getFormattedAggregator(
-            record,
-          )(this, fRowKey, fColKey);
-        }
-        this.tree[flatRowKey][flatColKey].push(record);
+      if (!this.tree[flatRowKey][flatColKey]) {
+        this.tree[flatRowKey][flatColKey] = this.getFormattedAggregator(record)(
+          this,
+          rowKey,
+          colKey,
+        );
+      }
+    }
 
-        this.tree[flatRowKey][flatColKey].isRowSubtotal = isRowSubtotal;
-        this.tree[flatRowKey][flatColKey].isColSubtotal = isColSubtotal;
-        this.tree[flatRowKey][flatColKey].isSubtotal =
-          isRowSubtotal || isColSubtotal;
+    // Place the value in exactly one slot, determined by the level.
+    if (rowKey.length === 0 && colKey.length === 0) {
+      this.allTotal.push(record);
+    } else if (rowKey.length === 0) {
+      this.colTotals[flatColKey].push(record);
+      this.colTotals[flatColKey].isSubtotal = isColSubtotal;
+    } else if (colKey.length === 0) {
+      this.rowTotals[flatRowKey].push(record);
+      this.rowTotals[flatRowKey].isSubtotal = isRowSubtotal;
+    } else {
+      this.tree[flatRowKey][flatColKey].push(record);
+      this.tree[flatRowKey][flatColKey].isRowSubtotal = isRowSubtotal;
+      this.tree[flatRowKey][flatColKey].isColSubtotal = isColSubtotal;
+      this.tree[flatRowKey][flatColKey].isSubtotal =
+        isRowSubtotal || isColSubtotal;
+    }
+
+    // Metric-collapse totals. The metric is a pseudo-dimension always present on
+    // one axis, so no rollup level produces an empty key on that axis -- which
+    // would leave the opposite "Total" axis and the grand-total corner empty.
+    // When a record's axis holds only the metric (no real dims there), its value
+    // is also the collapsed total for that axis, so mirror it into rowTotals /
+    // colTotals / allTotal. (For a single metric this equals the metric column;
+    // for multiple metrics it is the last metric -- a cross-metric total is not
+    // well defined and is left as future work.)
+    const metricKey = record.__metricKey as unknown as string | undefined;
+    if (metricKey) {
+      const realColCount = levelColumns.filter(c => c !== metricKey).length;
+      const realRowCount = levelRows.filter(r => r !== metricKey).length;
+      if (levelColumns.includes(metricKey) && realColCount === 0) {
+        if (rowKey.length === 0) this.allTotal.push(record);
+        else this.rowTotals[flatRowKey]?.push(record);
+      }
+      if (levelRows.includes(metricKey) && realRowCount === 0) {
+        if (colKey.length === 0) this.allTotal.push(record);
+        else this.colTotals[flatColKey]?.push(record);
       }
     }
   }
@@ -1202,11 +1259,9 @@ PivotData.forEachRecord = function (
 };
 
 PivotData.defaultProps = {
-  aggregators,
   cols: [],
   rows: [],
   vals: [],
-  aggregatorName: 'Count',
   sorters: {},
   rowOrder: 'key_a_to_z',
   colOrder: 'key_a_to_z',
@@ -1215,7 +1270,6 @@ PivotData.defaultProps = {
 PivotData.propTypes = {
   data: PropTypes.oneOfType([PropTypes.array, PropTypes.object, PropTypes.func])
     .isRequired,
-  aggregatorName: PropTypes.string,
   cols: PropTypes.arrayOf(PropTypes.string),
   rows: PropTypes.arrayOf(PropTypes.string),
   vals: PropTypes.arrayOf(PropTypes.string),

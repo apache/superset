@@ -278,6 +278,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     supports_dynamic_schema = True
     supports_catalog = True
     supports_dynamic_catalog = True
+    supports_grouping_sets = True
 
     default_driver = "psycopg2"
     sqlalchemy_uri_placeholder = (

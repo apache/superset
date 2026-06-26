@@ -133,6 +133,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         series_limit: int = 0,
         series_limit_metric: Metric | None = None,
         group_others_when_limit_reached: bool = False,
+        grouping_sets: list[list[str]] | None = None,
         time_range: str | None = None,
         time_shift: str | None = None,
         **kwargs: Any,
@@ -157,6 +158,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.series_limit = series_limit
         self.series_limit_metric = series_limit_metric
         self.group_others_when_limit_reached = group_others_when_limit_reached
+        self.grouping_sets = grouping_sets or []
         self.time_range = time_range
         self.time_shift = time_shift
         self.from_dttm = kwargs.get("from_dttm")
@@ -410,6 +412,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "series_limit": self.series_limit,
             "series_limit_metric": self.series_limit_metric,
             "group_others_when_limit_reached": self.group_others_when_limit_reached,
+            "grouping_sets": self.grouping_sets,
             "to_dttm": self.to_dttm,
             "time_shift": self.time_shift,
             "time_compare_full_range": self.time_compare_full_range,

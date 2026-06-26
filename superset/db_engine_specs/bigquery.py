@@ -196,6 +196,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
     supports_dynamic_schema = True
+    supports_grouping_sets = True
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name

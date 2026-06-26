@@ -71,6 +71,11 @@ from sqlalchemy_utils import UUIDType
 from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
+from superset.common.grouping_sets import (
+    grouping_id_column,
+    grouping_marker_label,
+    grouping_sets_clause,
+)
 from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
@@ -194,6 +199,7 @@ SQLA_QUERY_KEYS = {
     "series_limit",
     "series_limit_metric",
     "group_others_when_limit_reached",
+    "grouping_sets",
     "row_limit",
     "row_offset",
     "timeseries_limit",
@@ -3122,6 +3128,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         series_limit: Optional[int] = None,
         series_limit_metric: Optional[Metric] = None,
         group_others_when_limit_reached: bool = False,
+        grouping_sets: Optional[list[list[str]]] = None,
         row_limit: Optional[int] = None,
         row_offset: Optional[int] = None,
         timeseries_limit: Optional[int] = None,
@@ -3441,6 +3448,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             select_exprs + metrics_exprs, key=lambda x: x.name
         )
 
+        # GROUPING SETS collapse (SIP.md, phase 3b): when the request supplies
+        # rollup levels via `grouping_sets` and the engine supports it, compute
+        # every level in one query and tag each row with GROUPING() markers so
+        # the caller can split the result back per level. Strictly opt-in: with
+        # `grouping_sets` unset the query is byte-identical to before.
+        use_grouping_sets = bool(
+            grouping_sets
+            and groupby_all_columns
+            and db_engine_spec.supports_grouping_sets
+        )
+        if use_grouping_sets:
+            select_exprs = select_exprs + [
+                grouping_id_column(gby_expr, grouping_marker_label(name))
+                for name, gby_expr in groupby_all_columns.items()
+            ]
+
         # Expected output columns
         labels_expected = [c.key for c in select_exprs]
 
@@ -3452,7 +3475,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         qry = sa.select(*select_exprs)
 
         if groupby_all_columns:
-            qry = qry.group_by(*groupby_all_columns.values())
+            if use_grouping_sets:
+                gs_levels = [
+                    [
+                        groupby_all_columns[col]
+                        for col in level
+                        if col in groupby_all_columns
+                    ]
+                    for level in grouping_sets or []
+                ]
+                qry = qry.group_by(grouping_sets_clause(gs_levels))
+            else:
+                qry = qry.group_by(*groupby_all_columns.values())
 
         where_clause_and: list[ColumnElement] = []
         having_clause_and: list[ColumnElement] = []
@@ -3768,7 +3802,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             direction = sa.asc if ascending else sa.desc
             qry = qry.order_by(direction(col))
 
-        if row_limit:
+        # A GROUPING SETS query computes a bounded set of rollup levels; applying
+        # a row LIMIT is both unnecessary and unparseable by some SQL parsers
+        # (LIMIT after a GROUPING SETS GROUP BY), so skip it for that path.
+        if row_limit and not use_grouping_sets:
             qry = qry.limit(row_limit)
         if row_offset:
             qry = qry.offset(row_offset)

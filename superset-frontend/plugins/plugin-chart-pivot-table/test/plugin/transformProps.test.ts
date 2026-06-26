@@ -30,7 +30,6 @@ const formData = {
   tableRenderer: 'Table With Subtotal',
   colOrder: 'key_a_to_z',
   rowOrder: 'key_a_to_z',
-  aggregateFunction: 'Sum',
   transposePivot: true,
   combineMetric: true,
   rowSubtotalPosition: true,
@@ -64,36 +63,73 @@ const chartProps = new ChartProps<QueryFormData>({
   theme: supersetTheme,
 });
 
-test('should transform chart props for viz', () => {
-  expect(transformProps(chartProps)).toEqual({
-    width: 800,
-    height: 600,
-    groupbyRows: ['row1', 'row2'],
-    groupbyColumns: ['col1', 'col2'],
-    metrics: ['metric1', 'metric2'],
-    tableRenderer: 'Table With Subtotal',
-    colOrder: 'key_a_to_z',
-    rowOrder: 'key_a_to_z',
-    aggregateFunction: 'Sum',
-    transposePivot: true,
-    combineMetric: true,
-    rowSubtotalPosition: true,
-    colSubtotalPosition: true,
+test('should pass through formData props for viz', () => {
+  const result = transformProps(chartProps) as any;
+  expect(result.width).toBe(800);
+  expect(result.height).toBe(600);
+  expect(result.groupbyRows).toEqual(['row1', 'row2']);
+  expect(result.groupbyColumns).toEqual(['col1', 'col2']);
+  expect(result.metrics).toEqual(['metric1', 'metric2']);
+  expect(result.metricsLayout).toBe(MetricsLayoutEnum.COLUMNS);
+  expect(result.currencyFormat).toEqual({
+    symbol: 'USD',
+    symbolPosition: 'prefix',
+  });
+  // data is the per-level QueryData[] (split/synthesized), not raw rows.
+  expect(Array.isArray(result.data)).toBe(true);
+  result.data.forEach((level: any) => {
+    expect(level).toHaveProperty('groupby');
+    expect(level).toHaveProperty('data');
+  });
+});
+
+test('non-additive: transformProps splits the GROUPING SETS result by level', () => {
+  const gm = (col: string) => `${col}__superset_grouping`;
+  const localFormData = {
+    ...formData,
+    combineMetric: false,
+    transposePivot: false,
+    metricsLayout: MetricsLayoutEnum.ROWS,
+    groupbyRows: ['region'],
+    groupbyColumns: [],
     colTotals: true,
     rowTotals: true,
-    valueFormat: 'SMART_NUMBER',
-    data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
-    setDataMask,
-    selectedFilters: {},
-    verboseMap: {},
-    metricsLayout: MetricsLayoutEnum.COLUMNS,
-    metricColorFormatters: [],
-    dateFormatters: {},
-    emitCrossFilters: false,
-    columnFormats: {},
-    currencyFormats: {},
-    currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
+    metrics: ['m'], // saved-metric string -> non-additive
+  };
+  const cp = new ChartProps<QueryFormData>({
+    formData: localFormData as unknown as QueryFormData,
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        // One combined GROUPING SETS result: leaf rows (region marker 0) +
+        // grand total row (region marker 1).
+        data: [
+          { region: 'US', m: 10, [gm('region')]: 0 },
+          { region: 'EU', m: 5, [gm('region')]: 0 },
+          { region: null, m: 15, [gm('region')]: 1 },
+        ],
+        colnames: ['region', 'm', gm('region')],
+        coltypes: [1, 0, 0],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
   });
+
+  const result = transformProps(cp) as any;
+  const grand = result.data.find(
+    (d: any) => d.groupby.rows.length === 0 && d.groupby.columns.length === 0,
+  );
+  const leaf = result.data.find((d: any) => d.groupby.rows.length === 1);
+  // Markers stripped; rows routed to the correct level.
+  expect(grand.data).toEqual([{ region: null, m: 15 }]);
+  expect(leaf.data).toEqual([
+    { region: 'US', m: 10 },
+    { region: 'EU', m: 5 },
+  ]);
 });
 
 test('should pass AUTO mode through for per-cell detection (single currency data)', () => {
@@ -334,4 +370,59 @@ test('should map conditional formatting rules to metricColorFormatters with corr
   expect(
     result.metricColorFormatters[1].getColorFromValue(column2Formatting),
   ).toEqual('#5ac189FF');
+});
+
+test('additive metrics: synthesizes rollup levels from a single leaf query', () => {
+  const additiveFormData = {
+    ...formData,
+    combineMetric: false,
+    transposePivot: false,
+    metricsLayout: MetricsLayoutEnum.ROWS,
+    groupbyRows: ['region'],
+    groupbyColumns: [],
+    colTotals: true,
+    rowTotals: true,
+    metrics: [
+      {
+        expressionType: 'SIMPLE',
+        aggregate: 'SUM',
+        column: { column_name: 'v' },
+        label: 'v',
+      },
+    ],
+  };
+  const additiveChartProps = new ChartProps<QueryFormData>({
+    formData: additiveFormData as unknown as QueryFormData,
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { region: 'US', v: 10 },
+          { region: 'EU', v: 5 },
+        ],
+        colnames: ['region', 'v'],
+        coltypes: [1, 0],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(additiveChartProps);
+  // One query produced multiple synthesized rollup levels.
+  expect(result.data.length).toBeGreaterThan(1);
+  // Grand-total level: region collapsed -> v = 10 + 5 = 15.
+  const grand = (result.data as any[]).find(
+    d => d.groupby.rows.length === 0 && d.groupby.columns.length === 0,
+  );
+  expect(grand.data[0].v).toBe(15);
+  // Leaf level keeps per-region values.
+  const leaf = (result.data as any[]).find(d => d.groupby.rows.length === 1);
+  expect(leaf.data).toEqual([
+    { region: 'US', v: 10 },
+    { region: 'EU', v: 5 },
+  ]);
 });

@@ -219,6 +219,7 @@ class QueryObjectDict(TypedDict, total=False):
     series_limit: int
     series_limit_metric: Metric | None
     group_others_when_limit_reached: bool
+    grouping_sets: list[list[str]]
     to_dttm: datetime | None
     time_shift: str | None
     time_compare_full_range: bool
