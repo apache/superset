@@ -20,7 +20,12 @@
 import type React from 'react';
 import { Route } from 'react-router-dom';
 import fetchMock from 'fetch-mock';
-import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
+import {
+  DatasourceType,
+  JsonObject,
+  JsonResponse,
+  SupersetClient,
+} from '@superset-ui/core';
 import {
   render,
   screen,
@@ -270,9 +275,9 @@ test('Click on Swap dataset option', async () => {
       if (endpoint.includes('_info')) {
         return {
           json: { permissions: ['can_read', 'can_write'] },
-        } as any;
+        } as unknown as JsonResponse;
       }
-      return { json: { result: [] } } as any;
+      return { json: { result: [] } } as unknown as JsonResponse;
     },
   );
 
