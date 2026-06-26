@@ -395,7 +395,11 @@ const comboboxSelect = async (
   });
 };
 
-const addAsyncSelectValue = async (selectName: RegExp, value: string) => {
+const addAsyncSelectValue = async (
+  selectName: RegExp,
+  value: string,
+  endpoint: string,
+) => {
   const select = await screen.findByRole('combobox', { name: selectName });
   await userEvent.click(select);
   fireEvent.paste(select, {
@@ -405,7 +409,7 @@ const addAsyncSelectValue = async (selectName: RegExp, value: string) => {
   });
   await waitFor(() => {
     expect(
-      fetchMock.callHistory.calls(reportOwnersEndpoint).length,
+      fetchMock.callHistory.calls(endpoint).length,
     ).toBeGreaterThan(0);
   });
 };
@@ -1541,7 +1545,11 @@ test('create mode submits POST and calls onAdd with response', async () => {
 
   // Open notification panel and set recipient email
   userEvent.click(screen.getByTestId('notification-method-panel'));
-  await addAsyncSelectValue(/email recipients/i, 'test@example.com');
+  await addAsyncSelectValue(
+    /email recipients/i,
+    'test@example.com',
+    reportOwnersEndpoint,
+  );
 
   // Wait for Add button to be enabled (use exact name to avoid matching
   // "Add CC Recipients" and "Add BCC Recipients" buttons)
@@ -2568,7 +2576,11 @@ test('invalid CC email blocks submit', async () => {
   userEvent.click(addCcButton);
 
   // Type invalid email in CC field
-  await addAsyncSelectValue(/cc recipients/i, 'not-an-email');
+  await addAsyncSelectValue(
+    /cc recipients/i,
+    'not-an-email',
+    reportOwnersEndpoint,
+  );
 
   // Save should now be disabled due to invalid email format
   await waitFor(() => {
@@ -2596,7 +2608,11 @@ test('invalid BCC email blocks submit', async () => {
   userEvent.click(addBccButton);
 
   // Type invalid email in BCC field
-  await addAsyncSelectValue(/bcc recipients/i, 'not-an-email');
+  await addAsyncSelectValue(
+    /bcc recipients/i,
+    'not-an-email',
+    reportOwnersEndpoint,
+  );
 
   // Save should now be disabled due to invalid email format
   await waitFor(() => {
