@@ -336,3 +336,21 @@ class ReportScheduleUserEmailNotFoundError(ValidationError):
             ),
             field_name="recipients",
         )
+
+
+class ReportScheduleExecuteNowFailedError(CommandException):
+    """Command exception raised when a report schedule fails to execute immediately."""
+
+    message = _("Report Schedule execute now failed.")
+
+
+class ReportScheduleCeleryNotConfiguredError(CommandException):
+    """Command exception raised when a report schedule is executed but
+    Celery is not configured.
+    """
+
+    status = 503
+    message = _(
+        "Report Schedule execution requires a Celery backend to be configured. "
+        "Please configure a Celery broker (Redis or RabbitMQ) and worker processes."
+    )

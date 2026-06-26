@@ -186,6 +186,7 @@ export default function transformProps(
     showLabels,
     showLabelsThreshold,
     showTotal,
+    showNullValues,
     sliceId,
   } = formData;
   const {
@@ -251,6 +252,7 @@ export default function transformProps(
     columnLabels,
     metricLabel,
     secondaryMetricLabel,
+    !showNullValues,
   );
   const totalValue = treeData.reduce(
     (result, treeNode) => result + treeNode.value,
@@ -285,8 +287,6 @@ export default function transformProps(
   }
   const labelProps = {
     color: theme.colorText,
-    textBorderColor: theme.colorBgBase,
-    textBorderWidth: 1,
   };
   const traverse = (
     treeNodes: TreeNode[],

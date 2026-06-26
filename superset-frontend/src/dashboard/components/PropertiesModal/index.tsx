@@ -38,10 +38,6 @@ import {
 } from '@superset-ui/core';
 
 import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-} from 'src/features/owners/OwnerSelectLabel';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import {
   applyColors,
@@ -65,6 +61,7 @@ import {
   CertificationSection,
   AdvancedSection,
 } from './sections';
+import { parseSelectedOwners, type OwnerOption } from './utils';
 
 type PropertiesModalProps = {
   dashboardId: number;
@@ -181,10 +178,12 @@ const PropertiesModal = ({
         is_managed_externally,
         theme,
         css,
+        description,
       } = dashboardData;
       const dashboardInfo = {
         id,
         title: dashboard_title,
+        description: description || '',
         slug: slug || '',
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
@@ -254,17 +253,12 @@ const PropertiesModal = ({
   };
 
   const handleOnChangeOwners = (
-    owners: { value: number; label: string }[],
-    options: Record<string, unknown>[],
+    selectedOwners: OwnerOption[],
+    options: OwnerOption[],
   ) => {
-    const parsedOwners: Owners = ensureIsArray(owners).map((o, i) => ({
-      id: o.value,
-      full_name:
-        (options?.[i]?.[OWNER_TEXT_LABEL_PROP] as string) ||
-        (typeof o.label === 'string' ? o.label : ''),
-      email: (options?.[i]?.[OWNER_EMAIL_PROP] as string) || '',
-    }));
-    setOwners(parsedOwners);
+    // Use the functional updater so the parse always reads the latest owners
+    // state rather than the value captured in this render's closure.
+    setOwners(prev => parseSelectedOwners(selectedOwners, options, prev));
   };
 
   const handleOnChangeRoles = (roles: { value: number; label: string }[]) => {
@@ -317,8 +311,13 @@ const PropertiesModal = ({
   };
 
   const onFinish = () => {
-    const { title, slug, certifiedBy, certificationDetails } =
-      form.getFieldsValue();
+    const {
+      title,
+      description = '',
+      slug,
+      certifiedBy,
+      certificationDetails,
+    } = form.getFieldsValue();
     let currentJsonMetadata = jsonMetadata;
 
     // validate currentJsonMetadata
@@ -397,6 +396,7 @@ const PropertiesModal = ({
     const onSubmitProps = {
       id: dashboardId,
       title,
+      description,
       slug,
       jsonMetadata: currentJsonMetadata,
       owners,
@@ -424,6 +424,7 @@ const PropertiesModal = ({
     } else {
       const saveData = {
         dashboard_title: title,
+        description: description || null,
         slug: slug || null,
         json_metadata: currentJsonMetadata || null,
         owners: (owners || []).map(o => o.id),

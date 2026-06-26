@@ -40,8 +40,13 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
+from superset.mcp_service.chart.preview_utils import (
+    generate_preview_from_form_data,
+    SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartError,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
 )
@@ -59,6 +64,23 @@ INVALID_FORM_DATA_KEY_WARNING = (
     "configuration only; the previous form_data_key may be invalid or "
     "expired."
 )
+
+
+def _find_dataset(dataset_id: int | str) -> Any | None:
+    """Look up a dataset by numeric ID or UUID and check access."""
+    from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.auth import has_dataset_access
+
+    if isinstance(dataset_id, int) or (
+        isinstance(dataset_id, str) and dataset_id.isdigit()
+    ):
+        dataset = DatasetDAO.find_by_id(int(dataset_id))
+    else:
+        dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+
+    if dataset and not has_dataset_access(dataset):
+        return None
+    return dataset
 
 
 def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
@@ -97,10 +119,11 @@ def update_chart_preview(  # noqa: C901
 
     IMPORTANT:
     - Modifies cached form_data from generate_chart (save_chart=False)
-    - Original form_data_key is invalidated, new one returned
+    - Original form_data_key (when provided) is invalidated, new one returned
     - LLM clients MUST display explore_url to users
 
     Use when:
+    - Creating a fresh preview from config + dataset_id (omit form_data_key)
     - Modifying preview before deciding to save
     - Iterating on chart design without creating permanent charts
     - Testing different configurations
@@ -112,6 +135,33 @@ def update_chart_preview(  # noqa: C901
     try:
         # config is already a typed ChartConfig (validated by Pydantic)
         config = request.config
+
+        # Validate dataset exists and user has access
+        with event_logger.log_context(action="mcp.update_chart_preview.dataset_lookup"):
+            dataset = _find_dataset(request.dataset_id)
+
+            if not dataset:
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "dataset_not_found",
+                        "message": (f"Dataset not found: {request.dataset_id}"),
+                        "details": (
+                            f"No dataset found with identifier "
+                            f"'{request.dataset_id}'. This could "
+                            f"be an invalid ID/UUID or a "
+                            f"permissions issue."
+                        ),
+                        "suggestions": [
+                            "Verify the dataset ID or UUID",
+                            "Check dataset access permissions",
+                            "Use list_datasets to find available datasets",
+                        ],
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
             # Map the new config to form_data format
@@ -190,8 +240,11 @@ def update_chart_preview(  # noqa: C901
                     "api_version": "v1",
                 }
 
-            # Generate new explore link with updated form_data
-            explore_url = generate_explore_link(request.dataset_id, new_form_data)
+            # Generate new explore link with updated form_data. This preview flow
+            # extracts and re-caches the form_data_key, so force that URL shape.
+            explore_url = generate_explore_link(
+                request.dataset_id, new_form_data, prefer_permalink=False
+            )
 
         # Extract new form_data_key from the explore URL
         new_form_data_key = extract_form_data_key_from_url(explore_url)
@@ -229,9 +282,39 @@ def update_chart_preview(  # noqa: C901
             high_contrast_available=False,
         )
 
-        # Note: Screenshot-based previews are not supported.
-        # Use the explore_url to view the chart interactively.
         previews: Dict[str, Any] = {}
+        if request.generate_preview:
+            try:
+                with event_logger.log_context(
+                    action="mcp.update_chart_preview.preview"
+                ):
+                    for format_type in request.preview_formats:
+                        # URL previews are represented by explore_url/chart.url.
+                        # Screenshot-based previews are not supported.
+                        if format_type not in SUPPORTED_FORM_DATA_PREVIEW_FORMATS:
+                            continue
+
+                        preview_result = generate_preview_from_form_data(
+                            form_data=new_form_data,
+                            dataset_id=dataset.id,
+                            preview_format=format_type,
+                        )
+
+                        if isinstance(preview_result, ChartError):
+                            logger.warning(
+                                "Preview '%s' failed: %s",
+                                format_type,
+                                preview_result.error,
+                            )
+                        else:
+                            previews[format_type] = (
+                                preview_result.model_dump(mode="json")
+                                if hasattr(preview_result, "model_dump")
+                                else preview_result
+                            )
+
+            except (CommandException, ValueError, KeyError) as e:
+                logger.warning("Preview generation failed: %s", e)
 
         # Return enhanced data
         result = {

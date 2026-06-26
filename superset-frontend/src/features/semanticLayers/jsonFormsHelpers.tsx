@@ -170,18 +170,64 @@ export function areDependenciesSatisfied(
  * Renderer for fields marked `x-dynamic` in the JSON Schema.
  * Shows a loading spinner inside the input while the schema is being
  * refreshed with dynamic values from the backend.
+ *
+ * Enum-typed fields (e.g. the Snowflake ``schema`` dropdown) get an explicit
+ * Antd Select so the ``loading``/``disabled`` props work natively — wrapping
+ * TextControl with ``inputProps.suffix`` doesn't reach the underlying Select.
  */
 function DynamicFieldControl(props: ControlProps) {
   const { refreshingSchema, formData: cfgData } = props.config ?? {};
-  const deps = (props.schema as Record<string, unknown>)?.['x-dependsOn'];
+  const schema = props.schema as Record<string, unknown>;
+  const deps = schema?.['x-dependsOn'];
   const refreshing =
-    refreshingSchema &&
+    !!refreshingSchema &&
     Array.isArray(deps) &&
     areDependenciesSatisfied(
       deps as string[],
       (cfgData as Record<string, unknown>) ?? {},
       props.rootSchema,
     );
+
+  const enumValues = Array.isArray(schema.enum)
+    ? (schema.enum as unknown[])
+    : undefined;
+
+  if (enumValues && enumValues.length > 0) {
+    // Honour ``x-enumNames`` when present so labels can differ from values
+    // (e.g. MetricFlow's mode picker maps "full" / "cube" to human strings).
+    const enumNames = Array.isArray(schema['x-enumNames'])
+      ? (schema['x-enumNames'] as unknown[])
+      : undefined;
+    // The backend returns these as a set, so order is undefined. Sort by
+    // label so the dropdown is stable and alphabetised.
+    const options = enumValues
+      .map((value, index) => ({
+        value: value as string | number,
+        label:
+          enumNames?.[index] !== undefined
+            ? String(enumNames[index])
+            : String(value),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    const tooltip = (props.uischema?.options as Record<string, unknown>)
+      ?.tooltip as string | undefined;
+    const placeholder = (props.uischema?.options as Record<string, unknown>)
+      ?.placeholderText as string | undefined;
+    return (
+      <Form.Item label={props.label} tooltip={tooltip}>
+        <Select
+          value={(props.data as string | number | undefined) ?? undefined}
+          onChange={value => props.handleChange(props.path, value)}
+          options={options}
+          style={{ width: '100%' }}
+          disabled={!props.enabled || refreshing}
+          loading={refreshing}
+          allowClear
+          placeholder={refreshing ? t('Loading...') : placeholder}
+        />
+      </Form.Item>
+    );
+  }
 
   if (!refreshing) {
     return TextControl(props);
@@ -199,8 +245,12 @@ function DynamicFieldControl(props: ControlProps) {
 }
 const DynamicFieldRenderer = withJsonFormsControlProps(DynamicFieldControl);
 const dynamicFieldEntry = {
+  // Rank 6 so we beat ``@great-expectations`` ``EnumControl`` (rank 4) — when
+  // a field is both ``x-dynamic`` and has an ``enum`` (e.g. the Snowflake
+  // ``schema`` dropdown), the plain EnumControl would otherwise win and
+  // bypass our loading / dependency-clearing behavior entirely.
   tester: rankWith(
-    3,
+    6,
     and(
       isStringControl,
       schemaMatches(
@@ -252,17 +302,99 @@ function EnumNamesControl(props: ControlProps) {
   );
 }
 const EnumNamesRenderer = withJsonFormsControlProps(EnumNamesControl);
-const enumNamesEntry = {
+export const enumNamesEntry = {
   // Rank 5: higher than the default string renderer (2–3) so this fires
   // whenever x-enumNames is present, regardless of the underlying type.
+  // Array-of-enum schemas are handled by ``multiEnumEntry`` below — this
+  // renderer only targets scalar string/number controls.
   tester: rankWith(
     5,
-    schemaMatches(s => {
-      const names = (s as Record<string, unknown>)['x-enumNames'];
-      return Array.isArray(names) && (names as unknown[]).length > 0;
-    }),
+    and(
+      schemaMatches(s => {
+        const names = (s as Record<string, unknown>)['x-enumNames'];
+        return Array.isArray(names) && (names as unknown[]).length > 0;
+      }),
+      schemaMatches(s => (s as Record<string, unknown>)?.type !== 'array'),
+    ),
   ),
   renderer: EnumNamesRenderer,
+};
+
+/**
+ * Renderer for ``{type: 'array', items: {enum: [...]}}`` schemas.  Renders
+ * a single Antd Select with ``mode="multiple"`` (tag-style multi-select),
+ * matching the natural expectation of a "pick several from a list" control.
+ *
+ * Without this, the default ``PrimitiveArrayControl`` from the upstream
+ * library renders an "Add …" button that creates one single-select per
+ * element — visually wrong for an enum multi-select and unable to display
+ * ``items.x-enumNames`` labels.
+ *
+ * The renderer is dynamic-aware: when the host form is refreshing the
+ * schema (e.g. compatible options narrowing as the user picks), the Select
+ * shows a loading indicator without becoming disabled, so the user can
+ * continue editing while options refresh.
+ */
+export function MultiEnumControl(props: ControlProps) {
+  const { refreshingSchema } = props.config ?? {};
+  const arraySchema = props.schema as Record<string, unknown>;
+  const itemsSchema =
+    (arraySchema.items as Record<string, unknown>) ??
+    ({} as Record<string, unknown>);
+
+  const enumValues = (itemsSchema.enum as unknown[]) ?? [];
+  const enumNames =
+    (itemsSchema['x-enumNames'] as string[]) ?? enumValues.map(String);
+
+  const options = enumValues.map((value, index) => ({
+    value: value as string | number,
+    label: enumNames[index] ?? String(value),
+  }));
+
+  const value = Array.isArray(props.data) ? (props.data as unknown[]) : [];
+
+  const tooltip = (props.uischema?.options as Record<string, unknown>)
+    ?.tooltip as string | undefined;
+
+  return (
+    <Form.Item label={props.label} tooltip={tooltip}>
+      <Select
+        mode="multiple"
+        value={value as (string | number)[]}
+        onChange={next => props.handleChange(props.path, next)}
+        options={options}
+        style={{ width: '100%' }}
+        disabled={!props.enabled}
+        loading={!!refreshingSchema}
+        allowClear
+        optionFilterProp="label"
+        placeholder={
+          (props.uischema?.options as Record<string, unknown>)
+            ?.placeholderText as string | undefined
+        }
+      />
+    </Form.Item>
+  );
+}
+const MultiEnumRenderer = withJsonFormsControlProps(MultiEnumControl);
+export const multiEnumEntry = {
+  // Rank 35: must beat upstream ``PrimitiveArrayRenderer`` (rank 30) so an
+  // ``array``/``items.enum`` schema renders as one Antd multi-select tag
+  // box instead of the "Add" repeater pattern that PrimitiveArray uses.
+  tester: rankWith(
+    35,
+    schemaMatches(s => {
+      const schema = s as Record<string, unknown>;
+      if (schema?.type !== 'array') return false;
+      const items = schema.items as Record<string, unknown> | undefined;
+      return (
+        !!items &&
+        Array.isArray(items.enum) &&
+        (items.enum as unknown[]).length > 0
+      );
+    }),
+  ),
+  renderer: MultiEnumRenderer,
 };
 
 export const renderers = [
@@ -271,6 +403,7 @@ export const renderers = [
   constEntry,
   readOnlyEntry,
   enumNamesEntry,
+  multiEnumEntry,
   dynamicFieldEntry,
 ];
 

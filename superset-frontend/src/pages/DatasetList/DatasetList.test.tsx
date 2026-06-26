@@ -42,14 +42,15 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  // Restore real timers FIRST so the flush below uses real setTimeout,
+  // preventing a deadlock if a test threw while fake timers were active.
+  jest.useRealTimers();
+
   // Flush pending React state updates within act() to prevent warnings
   // and "document global undefined" errors from async operations
   await act(async () => {
     await new Promise(resolve => setTimeout(resolve, 0));
   });
-
-  // Restore real timers in case a test using fake timers threw early
-  jest.useRealTimers();
 
   // Reset browser history state to prevent query params leaking between tests
   window.history.replaceState({}, '', '/');
@@ -199,8 +200,8 @@ test('renders Name search filter', async () => {
 test('renders Type filter (Virtual/Physical dropdown)', async () => {
   renderDatasetList(mockAdminUser);
 
-  // Filter dropdowns should be present
-  const filters = await screen.findAllByRole('combobox');
+  // Filter pills should be present (compact pill UI)
+  const filters = await screen.findAllByTestId('compact-filter-pill');
   expect(filters.length).toBeGreaterThan(0);
 });
 
@@ -444,7 +445,8 @@ test('selecting Database filter triggers API call with database relation filter'
 
   await waitForDatasetsPageReady();
 
-  const filtersContainers = screen.getAllByRole('combobox');
+  // Filter pills should be present (compact pill UI replaces comboboxes)
+  const filtersContainers = screen.getAllByTestId('compact-filter-pill');
   expect(filtersContainers.length).toBeGreaterThan(0);
 });
 

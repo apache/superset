@@ -81,6 +81,10 @@ from superset.utils.core import (
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.hashing import hash_from_str
+from superset.utils.pandas_postprocessing.utils import (
+    escape_separator,
+    FLAT_COLUMN_SEPARATOR,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -97,6 +101,27 @@ METRIC_KEYS = [
     "y",
     "size",
 ]
+
+# Allowlist of resampler aggregation methods that may be invoked dynamically via
+# ``getattr`` on a pandas ``Resampler``. Restricting the set of callable names
+# keeps the dynamic dispatch limited to known-safe aggregations.
+ALLOWED_RESAMPLE_METHODS = frozenset(
+    {
+        "asfreq",
+        "bfill",
+        "count",
+        "ffill",
+        "first",
+        "last",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "std",
+        "sum",
+        "var",
+    }
+)
 
 
 class BaseViz:  # pylint: disable=too-many-public-methods
@@ -629,7 +654,12 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 )
                 self.errors.append(error)
                 self.status = QueryStatus.FAILED
-                stacktrace = utils.get_stacktrace()
+                # Only expose the raw stacktrace when explicitly enabled, mirroring
+                # the gating used elsewhere (e.g. superset.views.base.get_error_msg).
+                # ``get_stacktrace()`` itself returns ``None`` unless SHOW_STACKTRACE
+                # is set, so gating purely on that config keeps the two consistent.
+                if current_app.config.get("SHOW_STACKTRACE"):
+                    stacktrace = utils.get_stacktrace()
 
             if is_loaded and cache_key and self.status != QueryStatus.FAILED:
                 set_and_log_cache(
@@ -763,6 +793,11 @@ class TimeTableViz(BaseViz):
         pt = df.pivot_table(index=DTTM_ALIAS, columns=columns, values=values)
         pt.index = pt.index.map(str)
         pt = pt.sort_index()
+        if isinstance(pt.columns, pd.MultiIndex):
+            pt.columns = [
+                FLAT_COLUMN_SEPARATOR.join(escape_separator(str(s)) for s in col)
+                for col in pt.columns
+            ]
         return {
             "records": pt.to_dict(orient="index"),
             "columns": list(pt.columns),
@@ -1052,6 +1087,17 @@ class NVD3TimeSeriesViz(NVD3Viz):
         method = self.form_data.get("resample_method")
 
         if rule and method:
+            # ``method`` comes straight from ``form_data`` and may be a
+            # non-string (e.g. a list) for malformed requests; guard the
+            # membership test so unsupported input returns a controlled
+            # validation error instead of an unhashable-type ``TypeError``.
+            if not isinstance(method, str) or method not in ALLOWED_RESAMPLE_METHODS:
+                raise QueryObjectValidationError(
+                    _(
+                        "Resample method '%(method)s' is not supported.",
+                        method=method,
+                    )
+                )
             df = getattr(df.resample(rule), method)()
 
         if self.sort_series:
@@ -1072,6 +1118,17 @@ class NVD3TimeSeriesViz(NVD3Viz):
         # backwards compatibility
         if not isinstance(time_compare, list):
             time_compare = [time_compare]
+
+        max_time_compare = current_app.config["VIZ_TIME_COMPARE_MAX"]
+        if len(time_compare) > max_time_compare:
+            raise QueryObjectValidationError(
+                _(
+                    "Too many time comparisons requested. The maximum allowed is "
+                    "%(max)s, but %(count)s were requested.",
+                    max=max_time_compare,
+                    count=len(time_compare),
+                )
+            )
 
         for option in time_compare:
             query_object = self.query_obj()
@@ -1569,6 +1626,32 @@ class DeckGLMultiLayer(BaseViz):
     is_timeseries = False
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
 
+    @staticmethod
+    def _merge_filter_metadata(
+        *filter_groups: list[dict[str, Any]] | None,
+    ) -> list[dict[str, Any]]:
+        """Merge multiple filter metadata lists, de-duplicating identical entries.
+
+        Used to combine the applied/rejected filter metadata reported by each
+        child layer into a single list for the multi-layer chart payload.
+        """
+        merged_filters: list[dict[str, Any]] = []
+        seen_filters: set[str] = set()
+
+        for filters in filter_groups:
+            for filter_metadata in filters or []:
+                if not isinstance(filter_metadata, dict):
+                    continue
+
+                cache_key = json.dumps(filter_metadata, sort_keys=True)
+                if cache_key in seen_filters:
+                    continue
+
+                merged_filters.append(filter_metadata)
+                seen_filters.add(cache_key)
+
+        return merged_filters
+
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         return {}
@@ -1655,10 +1738,22 @@ class DeckGLMultiLayer(BaseViz):
         from superset import db
         from superset.models.slice import Slice
 
-        slice_ids = self.form_data.get("deck_slices")
+        slice_ids = self.form_data.get("deck_slices") or []
+        max_slices = current_app.config["DECK_MULTI_MAX_SLICES"]
+        if len(slice_ids) > max_slices:
+            raise QueryObjectValidationError(
+                _(
+                    "Too many sub-slices requested. The maximum allowed is "
+                    "%(max)s, but %(count)s were requested.",
+                    max=max_slices,
+                    count=len(slice_ids),
+                )
+            )
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
 
         features: dict[str, list[Any]] = {}
+        self.applied_filters = []
+        self.rejected_filters = []
 
         for layer_index, slc in enumerate(slices):
             form_data = slc.form_data
@@ -1671,6 +1766,15 @@ class DeckGLMultiLayer(BaseViz):
 
             viz_instance = viz_class(datasource=slc.datasource, form_data=form_data)
             payload = viz_instance.get_payload()
+            if payload:
+                self.applied_filters = self._merge_filter_metadata(
+                    self.applied_filters,
+                    payload.get("applied_filters"),
+                )
+                self.rejected_filters = self._merge_filter_metadata(
+                    self.rejected_filters,
+                    payload.get("rejected_filters"),
+                )
 
             if (
                 payload
@@ -1687,6 +1791,25 @@ class DeckGLMultiLayer(BaseViz):
             "mapboxApiKey": current_app.config["MAPBOX_API_KEY"],
             "slices": [slc.data for slc in slices if slc.data is not None],
         }
+
+    @deprecated(deprecated_in="3.0")
+    def get_payload(self, query_obj: QueryObjectDict | None = None) -> VizPayload:
+        """Extend the base payload with merged child-layer filter metadata.
+
+        The applied/rejected filter metadata collected from each sub-slice in
+        ``get_data`` is merged into the base payload so dashboard filter badges
+        reflect the filters applied across all layers.
+        """
+        payload = super().get_payload(query_obj)
+        payload["applied_filters"] = self._merge_filter_metadata(
+            payload.get("applied_filters"),
+            self.applied_filters,
+        )
+        payload["rejected_filters"] = self._merge_filter_metadata(
+            payload.get("rejected_filters"),
+            self.rejected_filters,
+        )
+        return payload
 
 
 class BaseDeckGLViz(BaseViz):

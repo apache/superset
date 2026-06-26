@@ -18,6 +18,7 @@
 
 from uuid import UUID
 
+import yaml
 from sqlalchemy.orm.session import Session
 
 from superset import db
@@ -304,3 +305,54 @@ version: 1.0.0
 """,
         ),
     ]
+
+
+def test_export_two_datasets_same_table_name_different_schema(
+    session: Session,
+) -> None:
+    """
+    Regression coverage for GitHub issue #16141.
+
+    Exporting two datasets that share a `table_name` but live in
+    different schemas (e.g. prod.users + dev.users) must produce two
+    distinct entries in the export. Historically the pair could collide
+    onto a single filename — the export filename is now disambiguated by
+    dataset id, so this test pins that behavior so it can't silently
+    regress.
+    """
+    from superset.commands.dataset.export import ExportDatasetsCommand
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    prod = SqlaTable(table_name="users", schema="prod", database=database)
+    dev = SqlaTable(table_name="users", schema="dev", database=database)
+    db.session.add_all([prod, dev])
+    db.session.flush()
+
+    paths: list[str] = []
+    contents: list[str] = []
+    for ds in (prod, dev):
+        for path, content_fn in ExportDatasetsCommand._export(  # pylint: disable=protected-access
+            ds, export_related=False
+        ):
+            paths.append(path)
+            contents.append(content_fn())
+
+    # Both datasets must produce distinct export paths — no collision.
+    assert len(paths) == len(set(paths)), (
+        f"Export filenames collided for same-table-name datasets: {paths}"
+    )
+
+    # And both YAML payloads must reflect their own schema, not be
+    # silently merged or overwritten.
+    schemas_in_yaml = {yaml.safe_load(c)["schema"] for c in contents}
+    assert schemas_in_yaml == {"prod", "dev"}, (
+        f"Expected both prod and dev schemas in export, got {schemas_in_yaml}"
+    )
