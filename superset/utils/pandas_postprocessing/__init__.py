@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset.utils.pandas_postprocessing.aggregate import aggregate
+from superset.utils.pandas_postprocessing.anomaly import anomaly_detection
 from superset.utils.pandas_postprocessing.boxplot import boxplot
 from superset.utils.pandas_postprocessing.compare import compare
 from superset.utils.pandas_postprocessing.contribution import contribution
@@ -42,6 +43,7 @@ from superset.utils.pandas_postprocessing.utils import (
 
 __all__ = [
     "aggregate",
+    "anomaly_detection",
     "boxplot",
     "compare",
     "contribution",

@@ -135,6 +135,23 @@ export type PostProcessingProphet =
   | _PostProcessingProphet
   | DefaultPostProcessing;
 
+interface _PostProcessingAnomalyDetection {
+  operation: 'anomaly_detection';
+  options: {
+    method: string;
+    rolling_window?: number;
+    sensitivity?: number;
+    index?: string;
+    confidence_interval?: number;
+    yearly_seasonality?: boolean | number;
+    weekly_seasonality?: boolean | number;
+    daily_seasonality?: boolean | number;
+  };
+}
+export type PostProcessingAnomalyDetection =
+  | _PostProcessingAnomalyDetection
+  | DefaultPostProcessing;
+
 interface _PostProcessingDiff {
   operation: 'diff';
   options: {
@@ -258,6 +275,7 @@ export type PostProcessingRule =
   | PostProcessingContribution
   | PostProcessingPivot
   | PostProcessingProphet
+  | PostProcessingAnomalyDetection
   | PostProcessingDiff
   | PostProcessingRolling
   | PostProcessingCum
@@ -297,6 +315,12 @@ export function isPostProcessingProphet(
   rule?: PostProcessingRule,
 ): rule is PostProcessingProphet {
   return rule?.operation === 'prophet';
+}
+
+export function isPostProcessingAnomalyDetection(
+  rule?: PostProcessingRule,
+): rule is PostProcessingAnomalyDetection {
+  return rule?.operation === 'anomaly_detection';
 }
 
 export function isPostProcessingDiff(

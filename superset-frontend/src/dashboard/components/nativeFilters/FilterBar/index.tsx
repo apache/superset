@@ -107,14 +107,8 @@ const publishDataMask = debounce(
     const previousParams = new URLSearchParams(search);
     const newParams = new URLSearchParams();
     let dataMaskKey: string | null;
-    // Capture the raw, still-URL-encoded `f=` payload from the query string
-    // directly. URLSearchParams decodes values (and turns `+` into space), which
-    // would corrupt the Rison payload if we re-inserted it without re-encoding.
-    const rawRisonMatch = search.match(/[?&]f=([^&]*)/);
-    const rawRisonFilterValue = rawRisonMatch ? rawRisonMatch[1] : null;
-
     previousParams.forEach((value, key) => {
-      if (!EXCLUDED_URL_PARAMS.includes(key) && key !== 'f') {
+      if (!EXCLUDED_URL_PARAMS.includes(key)) {
         newParams.append(key, value);
       }
     });
@@ -154,16 +148,9 @@ const publishDataMask = debounce(
       if (appRoot !== '/' && replacementPathname.startsWith(appRoot)) {
         replacementPathname = replacementPathname.substring(appRoot.length);
       }
-      // Manually reconstruct the search string to preserve Rison filter encoding
-      let searchString = newParams.toString();
-      if (rawRisonFilterValue) {
-        const separator = searchString ? '&' : '';
-        searchString = `${searchString}${separator}f=${rawRisonFilterValue}`;
-      }
-
       history.replace({
         pathname: replacementPathname,
-        search: searchString,
+        search: newParams.toString(),
       });
     }
   },

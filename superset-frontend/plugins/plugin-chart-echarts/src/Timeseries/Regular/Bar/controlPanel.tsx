@@ -317,6 +317,7 @@ const config: ControlPanelConfig = {
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
+    sections.anomalyDetectionControls,
     {
       label: t('Chart Orientation'),
       expanded: true,
