@@ -24,6 +24,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import type { ReactNode } from 'react';
 
 import {
   FeatureFlag,
@@ -73,7 +74,7 @@ type MockSelectProps = {
 };
 
 jest.mock('@superset-ui/core/components', () => {
-  const React = jest.requireActual('react');
+  const React = jest.requireActual('react') as typeof import('react');
   const Input = Object.assign(
     ({
       'data-test': dataTest,
@@ -197,10 +198,8 @@ jest.mock('@superset-ui/core/components', () => {
 });
 
 jest.mock('../AlertReportModal', () => {
-  const React = jest.requireActual('react');
-
   return {
-    StyledInputContainer: ({ children }: { children: React.ReactNode }) => (
+    StyledInputContainer: ({ children }: { children: ReactNode }) => (
       <div>{children}</div>
     ),
   };
@@ -346,7 +345,7 @@ describe('NotificationMethod', () => {
           },
         ],
       },
-    } as JsonResponse);
+    } as unknown as JsonResponse);
 
     render(
       <NotificationMethod

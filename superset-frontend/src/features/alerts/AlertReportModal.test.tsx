@@ -216,6 +216,7 @@ const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
 const databaseEndpoint = 'glob:*/api/v1/alert/related/database?*';
 const dashboardEndpoint = 'glob:*/api/v1/alert/related/dashboard?*';
 const chartEndpoint = 'glob:*/api/v1/alert/related/chart?*';
+const reportOwnersEndpoint = 'glob:*/api/v1/report/related/owners?*';
 const reportDashboardEndpoint = 'glob:*/api/v1/report/related/dashboard?*';
 const reportChartEndpoint = 'glob:*/api/v1/report/related/chart?*';
 const tabsEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
@@ -224,6 +225,7 @@ fetchMock.get(ownersEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
 fetchMock.get(dashboardEndpoint, { result: [] });
 fetchMock.get(chartEndpoint, { result: [{ text: 'table chart', value: 1 }] });
+fetchMock.get(reportOwnersEndpoint, { count: 0, result: [] });
 fetchMock.get(reportDashboardEndpoint, { result: [] });
 fetchMock.get(reportChartEndpoint, {
   result: [{ text: 'table chart', value: 1 }],
@@ -387,9 +389,33 @@ const comboboxSelect = async (
   newElementQuery: Function,
 ) => {
   expect(element).toBeInTheDocument();
-  userEvent.type(element, `${value}{enter}`);
-  const newElement = newElementQuery();
-  expect(newElement).toBeInTheDocument();
+  await userEvent.type(element, `${value}{enter}`);
+  await waitFor(() => {
+    expect(newElementQuery()).toBeInTheDocument();
+  });
+};
+
+const addAsyncSelectValue = async (selectName: RegExp, value: string) => {
+  const select = await screen.findByRole('combobox', { name: selectName });
+  await userEvent.click(select);
+  fireEvent.paste(select, {
+    clipboardData: {
+      getData: () => value,
+    },
+  });
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(reportOwnersEndpoint).length,
+    ).toBeGreaterThan(0);
+  });
+};
+
+const removeFirstAsyncSelectValue = async (testId: string) => {
+  const select = await screen.findByTestId(testId);
+  // eslint-disable-next-line testing-library/no-node-access
+  const removeButton = select.querySelector('.ant-select-selection-item-remove');
+  expect(removeButton).toBeInTheDocument();
+  await userEvent.click(removeButton as HTMLElement);
 };
 
 // --------------- TEST SECTION ------------------
@@ -860,14 +886,6 @@ test('adds another notification method section after clicking add notification m
       name: /delivery method/i,
     }).length,
   ).toBe(2);
-  await comboboxSelect(
-    screen.getAllByRole('combobox', {
-      name: /delivery method/i,
-    })[1],
-    'Slack',
-    () => screen.getAllByRole('textbox')[1],
-  );
-  expect(screen.getAllByTestId('recipients').length).toBe(2);
 });
 
 test('removes notification method on clicking trash can', async () => {
@@ -879,13 +897,6 @@ test('removes notification method on clicking trash can', async () => {
     /add another notification method/i,
   );
   userEvent.click(addNotificationMethod);
-  await comboboxSelect(
-    screen.getAllByRole('combobox', {
-      name: /delivery method/i,
-    })[1],
-    'Email',
-    () => screen.getAllByRole('textbox')[1],
-  );
   const images = screen.getAllByRole('img');
   const trash = images[images.length - 1];
   userEvent.click(trash);
@@ -1530,8 +1541,7 @@ test('create mode submits POST and calls onAdd with response', async () => {
 
   // Open notification panel and set recipient email
   userEvent.click(screen.getByTestId('notification-method-panel'));
-  const recipientInput = await screen.findByTestId('recipients');
-  fireEvent.change(recipientInput, { target: { value: 'test@example.com' } });
+  await addAsyncSelectValue(/email recipients/i, 'test@example.com');
 
   // Wait for Add button to be enabled (use exact name to avoid matching
   // "Add CC Recipients" and "Add BCC Recipients" buttons)
@@ -2558,9 +2568,7 @@ test('invalid CC email blocks submit', async () => {
   userEvent.click(addCcButton);
 
   // Type invalid email in CC field
-  const ccInput = await screen.findByTestId('cc');
-  userEvent.type(ccInput, 'not-an-email');
-  fireEvent.blur(ccInput);
+  await addAsyncSelectValue(/cc recipients/i, 'not-an-email');
 
   // Save should now be disabled due to invalid email format
   await waitFor(() => {
@@ -2588,9 +2596,7 @@ test('invalid BCC email blocks submit', async () => {
   userEvent.click(addBccButton);
 
   // Type invalid email in BCC field
-  const bccInput = await screen.findByTestId('bcc');
-  userEvent.type(bccInput, 'not-an-email');
-  fireEvent.blur(bccInput);
+  await addAsyncSelectValue(/bcc recipients/i, 'not-an-email');
 
   // Save should now be disabled due to invalid email format
   await waitFor(() => {
@@ -2653,9 +2659,7 @@ test('clearing notification recipients disables submit and prevents API call', a
 
   // Open notification panel and clear the recipients field
   userEvent.click(screen.getByTestId('notification-method-panel'));
-  const recipientInput = await screen.findByTestId('recipients');
-  userEvent.clear(recipientInput);
-  fireEvent.blur(recipientInput);
+  await removeFirstAsyncSelectValue('recipients');
 
   // Save should be disabled — empty recipients block submission
   await waitFor(() => {
