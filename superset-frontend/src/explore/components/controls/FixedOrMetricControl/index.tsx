@@ -60,6 +60,10 @@ interface FixedOrMetricControlProps {
   name?: string;
   label?: React.ReactNode;
   description?: React.ReactNode;
+  // Remaining control-header props (validationErrors, hovered, warning,
+  // renderTrigger, ...) are forwarded to <ControlHeader />, mirroring the
+  // legacy class component's {...this.props} spread.
+  [key: string]: unknown;
 }
 
 const DEFAULT_VALUE: ControlValue = { type: controlTypes.fixed, value: 5 };
@@ -73,6 +77,7 @@ function FixedOrMetricControl({
   name,
   label,
   description,
+  ...restProps
 }: FixedOrMetricControlProps) {
   const initialType = (value?.type ??
     defaultValue?.type ??
@@ -138,7 +143,12 @@ function FixedOrMetricControl({
 
   return (
     <div>
-      <ControlHeader name={name} label={label} description={description} />
+      <ControlHeader
+        {...restProps}
+        name={name}
+        label={label}
+        description={description}
+      />
       <Collapse
         ghost
         items={[

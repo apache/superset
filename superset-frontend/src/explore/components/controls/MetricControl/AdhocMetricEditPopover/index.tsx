@@ -18,6 +18,7 @@
  */
 /* eslint-disable camelcase */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import type { editors } from '@apache-superset/core';
@@ -48,6 +49,7 @@ import {
 } from 'src/explore/components/optionRenderers';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
+import type { ExplorePageState } from 'src/explore/types';
 import type { RefObject } from 'react';
 
 interface ColumnType {
@@ -132,6 +134,11 @@ function AdhocMetricEditPopover({
   );
   const [width, setWidth] = useState(POPOVER_INITIAL_WIDTH);
   const [height, setHeight] = useState(POPOVER_INITIAL_HEIGHT);
+
+  const compatibleMetrics = useSelector<
+    ExplorePageState,
+    string[] | null | undefined
+  >(state => state.explore?.compatibleMetrics);
 
   const aceEditorRef = useRef<editors.EditorHandle>(null);
 
@@ -314,13 +321,7 @@ function AdhocMetricEditPopover({
 
   const refreshAceEditor = useCallback((): void => {
     setTimeout(() => {
-      if (aceEditorRef.current) {
-        (
-          aceEditorRef.current as unknown as {
-            editor?: { resize?: () => void };
-          }
-        ).editor?.resize?.();
-      }
+      aceEditorRef.current?.resize?.();
     }, 0);
   }, []);
 
@@ -454,13 +455,22 @@ function AdhocMetricEditPopover({
               ensureIsArray(savedMetricsOptions).length > 0 ? (
                 <FormItem label={t('Saved metric')}>
                   <StyledSelect
-                    options={ensureIsArray(savedMetricsOptions).map(metric => ({
-                      value: metric.metric_name,
-                      label: renderMetricOption(metric),
-                      key: metric.id,
-                      metric_name: metric.metric_name,
-                      verbose_name: metric.verbose_name ?? '',
-                    }))}
+                    options={[...ensureIsArray(savedMetricsOptions)]
+                      .sort((a, b) =>
+                        (a.metric_name ?? '').localeCompare(
+                          b.metric_name ?? '',
+                        ),
+                      )
+                      .map(metric => ({
+                        value: metric.metric_name,
+                        label: renderMetricOption(metric),
+                        key: metric.id,
+                        metric_name: metric.metric_name,
+                        verbose_name: metric.verbose_name ?? '',
+                        disabled:
+                          compatibleMetrics != null &&
+                          !compatibleMetrics.includes(metric.metric_name),
+                      }))}
                     optionFilterProps={['metric_name', 'verbose_name']}
                     {...savedSelectProps}
                   />

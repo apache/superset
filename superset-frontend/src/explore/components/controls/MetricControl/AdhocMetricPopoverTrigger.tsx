@@ -91,7 +91,11 @@ type Action =
     }
   | {
       type: 'GET_CURRENT_LABEL';
-      payload: { currentLabel: string; hasCustomLabel: boolean };
+      payload: {
+        currentLabel: string;
+        savedMetricLabel: string;
+        hasCustomLabel: boolean;
+      };
     };
 
 function reducer(state: ComponentState, action: Action): ComponentState {
@@ -134,13 +138,13 @@ function reducer(state: ComponentState, action: Action): ComponentState {
       };
     }
     case 'GET_CURRENT_LABEL': {
-      const { currentLabel, hasCustomLabel } = action.payload;
+      const { currentLabel, savedMetricLabel, hasCustomLabel } = action.payload;
       const newState: ComponentState = {
         ...state,
         currentLabel,
         labelModified: true,
       };
-      if (currentLabel || !hasCustomLabel) {
+      if (savedMetricLabel || !hasCustomLabel) {
         newState.title = {
           label: currentLabel,
           hasCustomLabel: false,
@@ -259,6 +263,7 @@ function AdhocMetricPopoverTrigger({
         type: 'GET_CURRENT_LABEL',
         payload: {
           currentLabel,
+          savedMetricLabel,
           hasCustomLabel: state.title.hasCustomLabel,
         },
       });

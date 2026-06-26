@@ -367,21 +367,25 @@ function AdhocFilterEditPopover({
               </ErrorBoundary>
             ),
           },
-          {
-            key: ExpressionTypes.Sql,
-            label: t('Custom SQL'),
-            children: (
-              <ErrorBoundary>
-                <AdhocFilterEditPopoverSqlTabContent
-                  adhocFilter={adhocFilter}
-                  onChange={onAdhocFilterChange}
-                  options={options}
-                  height={height}
-                  datasource={datasource}
-                />
-              </ErrorBoundary>
-            ),
-          },
+          ...(datasource?.type === 'semantic_view'
+            ? []
+            : [
+                {
+                  key: ExpressionTypes.Sql,
+                  label: t('Custom SQL'),
+                  children: (
+                    <ErrorBoundary>
+                      <AdhocFilterEditPopoverSqlTabContent
+                        adhocFilter={adhocFilter}
+                        onChange={onAdhocFilterChange}
+                        options={options}
+                        height={height}
+                        datasource={datasource}
+                      />
+                    </ErrorBoundary>
+                  ),
+                },
+              ]),
         ]}
       />
       {hasDeckSlices && (

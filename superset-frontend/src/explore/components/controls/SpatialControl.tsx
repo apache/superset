@@ -56,6 +56,10 @@ interface SpatialControlProps {
   name?: string;
   label?: React.ReactNode;
   description?: React.ReactNode;
+  // Remaining control-header props (validationErrors, hovered, warning,
+  // renderTrigger, ...) are forwarded to <ControlHeader />, mirroring the
+  // legacy class component's {...this.props} spread.
+  [key: string]: unknown;
 }
 
 export default function SpatialControl({
@@ -65,6 +69,7 @@ export default function SpatialControl({
   name,
   label,
   description,
+  ...restProps
 }: SpatialControlProps): JSX.Element {
   const v = propValue || ({} as SpatialValue);
   const defaultCol = choices.length > 0 ? choices[0][0] : undefined;
@@ -257,7 +262,12 @@ export default function SpatialControl({
 
   return (
     <div>
-      <ControlHeader name={name} label={label} description={description} />
+      <ControlHeader
+        {...restProps}
+        name={name}
+        label={label}
+        description={description}
+      />
       <Popover
         content={renderPopoverContent()}
         placement="topLeft"

@@ -887,6 +887,7 @@ function DatasourceEditor({
   const isInitialMount = useRef(true);
   const prevPropsDatasourceRef = useRef(propsDatasource);
   const isSyncingColumnsFromProps = useRef(false);
+  const pendingTableSync = useRef(false);
   const abortControllers = useRef<AbortControllers>({
     formatQuery: null,
     formatSql: null,
@@ -1086,6 +1087,11 @@ function DatasourceEditor({
 
   const onDatasourcePropChange = useCallback((attr: string, value: unknown) => {
     if (value === undefined) return;
+    // Changing the physical table should refresh columns from the new table,
+    // matching the legacy class component's tableChangeAndSyncMetadata path.
+    if (attr === 'table_name') {
+      pendingTableSync.current = true;
+    }
     setDatasource(prev => {
       const newDatasource = { ...prev, [attr]: value };
       return newDatasource;
@@ -1290,6 +1296,17 @@ function DatasourceEditor({
       abortControllers.current.syncMetadata = null;
     }
   }, [datasource, addSuccessToast, addDangerToast, setColumns]);
+
+  // After a physical table change, refresh columns from the new table, matching
+  // the legacy class component's tableChangeAndSyncMetadata path. Declared after
+  // the validation effect so validation runs first.
+  useEffect(() => {
+    if (isComponentMounted.current && pendingTableSync.current) {
+      pendingTableSync.current = false;
+      syncMetadata();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datasource]);
 
   const fetchUsageData = useCallback(
     async (

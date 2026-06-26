@@ -88,6 +88,10 @@ export interface AdhocFilterControlProps {
     filter: AdhocFilter,
     allFilters: AdhocFilter[],
   ) => string | boolean | undefined;
+  // Control-header props are forwarded through to <ControlHeader />, mirroring
+  // the legacy class component's {...this.props} spread (validation styling,
+  // description/warning tooltips, renderTrigger, hovered state).
+  [key: string]: unknown;
 }
 
 interface FilterOption {
@@ -154,6 +158,7 @@ function AdhocFilterControl({
   savedMetrics = [],
   selectedMetrics = [],
   canDelete,
+  ...restProps
 }: AdhocFilterControlProps) {
   const [values, setValues] = useState<AdhocFilter[]>(() =>
     (value || []).map(filter =>
@@ -396,7 +401,7 @@ function AdhocFilterControl({
   return (
     <div className="metrics-select" data-test="adhoc-filter-control">
       <HeaderContainer>
-        <ControlHeader label={label} name={name} />
+        <ControlHeader {...restProps} label={label} name={name} />
       </HeaderContainer>
       <LabelsContainer>
         {[
