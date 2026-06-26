@@ -473,8 +473,15 @@ async def update_chart(  # noqa: C901
 
         # Normalize column case to match dataset canonical names
         # (mirrors generate_chart pipeline layer 4)
-        chart_datasource_id = getattr(chart, "datasource_id", None)
-        if parsed_config is not None and chart_datasource_id is not None:
+        # When rebinding to a new dataset, normalize against the target dataset —
+        # not the chart's current datasource — so canonical names are resolved
+        # against the schema that will actually be used after the update.
+        effective_norm_dataset_id = (
+            request.dataset_id
+            if request.dataset_id is not None
+            else getattr(chart, "datasource_id", None)
+        )
+        if parsed_config is not None and effective_norm_dataset_id is not None:
             from superset.mcp_service.chart.validation.dataset_validator import (
                 DatasetValidator,
                 NORMALIZATION_EXCEPTIONS,
@@ -482,7 +489,7 @@ async def update_chart(  # noqa: C901
 
             try:
                 parsed_config = DatasetValidator.normalize_column_names(
-                    parsed_config, chart_datasource_id
+                    parsed_config, effective_norm_dataset_id
                 )
             except NORMALIZATION_EXCEPTIONS as e:
                 logger.warning(

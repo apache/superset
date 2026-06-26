@@ -1466,6 +1466,70 @@ class TestUpdateChartColumnNormalization:
 
         mock_normalize.assert_not_called()
 
+    @patch.object(update_chart_module, "validate_and_compile")
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
+    @patch("superset.mcp_service.auth.check_chart_data_access", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.validate_against_dataset",
+        new=Mock(return_value=(True, None)),
+    )
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator"
+        ".DatasetValidator.normalize_column_names",
+    )
+    @pytest.mark.asyncio
+    async def test_normalization_uses_request_dataset_id_when_rebinding(
+        self,
+        mock_normalize,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_create_preview,
+        mock_validate,
+        mcp_server,
+    ):
+        """When dataset_id is in the request, normalization must use it — not the
+        chart's current datasource — so column names are resolved against the
+        target schema after rebind."""
+        from superset.mcp_service.chart.compile import CompileResult
+
+        chart = self._mock_chart(datasource_id=10)
+        mock_find_by_id.return_value = chart
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True, dataset_id=99, dataset_name="new_ds", warnings=[]
+        )
+        mock_validate.return_value = CompileResult(
+            success=True, error=None, error_code=None, tier="validation", error_obj=None
+        )
+        mock_create_preview.return_value = ("http://example.com/explore", None, [])
+
+        def _passthrough(config, dataset_id):
+            return config
+
+        mock_normalize.side_effect = _passthrough
+
+        request = {
+            "identifier": 1,
+            "dataset_id": 99,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "ds"},
+                "y": [{"name": "num_boys", "aggregate": "SUM"}],
+                "kind": "line",
+            },
+        }
+
+        async with Client(mcp) as client:
+            await client.call_tool("update_chart", {"request": request})
+
+        mock_normalize.assert_called_once()
+        _, call_dataset_id = mock_normalize.call_args.args
+        # Must use the request's dataset_id (99), not the chart's current one (10)
+        assert call_dataset_id == 99
+
 
 # ---------------------------------------------------------------------------
 # Custom SQL metrics (sql_expression) — Ticket #3, update_chart side.

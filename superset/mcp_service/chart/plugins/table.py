@@ -110,7 +110,7 @@ class TableChartPlugin(BaseChartPlugin):
         for col in config_dict.get("columns") or []:
             if col.get("saved_metric"):
                 col["name"] = get_canonical_metric(col["name"], dataset_context)
-            else:
+            elif not col.get("sql_expression"):
                 col["name"] = get_canonical(col["name"], dataset_context)
 
         DatasetValidator._normalize_filters(config_dict, dataset_context)

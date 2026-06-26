@@ -161,7 +161,7 @@ class HandlebarsChartPlugin(BaseChartPlugin):
                         col["name"] = DatasetValidator._get_canonical_metric_name(
                             col["name"], dataset_context
                         )
-                    else:
+                    elif not col.get("sql_expression"):
                         col["name"] = DatasetValidator._get_canonical_column_name(
                             col["name"], dataset_context
                         )

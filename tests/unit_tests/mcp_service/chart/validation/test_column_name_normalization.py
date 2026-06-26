@@ -188,6 +188,58 @@ class TestNormalizeColumnNames:
         assert normalized.columns[2].name == "Sales"
 
     @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_table_sql_expression_column_skips_name_normalization(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """sql_expression columns have name=None; normalization must skip them."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="orderdate"),
+                ColumnRef(sql_expression="SUM(sales)/COUNT(*)", label="Avg Sale"),
+            ],
+        )
+        # Must not raise — _get_canonical_column_name(None, ...) crashes without guard.
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.columns[0].name == "OrderDate"
+        assert normalized.columns[1].sql_expression == "SUM(sales)/COUNT(*)"
+        assert normalized.columns[1].name is None
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_handlebars_sql_expression_metric_skips_name_normalization(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """sql_expression metrics in handlebars charts must not cause a crash.
+
+        HandlebarsChartConfig rejects sql_expression on columns/groupby, but
+        allows it on metrics; that is the live code path where name=None can occur.
+        """
+        from superset.mcp_service.chart.schemas import HandlebarsChartConfig
+
+        mock_get_context.return_value = mock_dataset_context
+
+        config = HandlebarsChartConfig(
+            chart_type="handlebars",
+            handlebars_template="{{col}}",
+            query_mode="aggregate",
+            groupby=[ColumnRef(name="orderdate")],
+            metrics=[
+                ColumnRef(name="sales", aggregate="SUM"),
+                ColumnRef(sql_expression="COUNT(DISTINCT id)", label="Unique IDs"),
+            ],
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.groupby is not None
+        assert normalized.groupby[0].name == "OrderDate"
+        assert normalized.metrics is not None
+        assert normalized.metrics[1].sql_expression == "COUNT(DISTINCT id)"
+        assert normalized.metrics[1].name is None
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
     def test_returns_original_when_dataset_not_found(self, mock_get_context) -> None:
         """Test that original config is returned when dataset context is unavailable."""
         mock_get_context.return_value = None
