@@ -108,8 +108,6 @@ else:
     {{ fail (printf "Unsupported database type: %s. Please use 'postgresql' or 'mysql'." .Values.supersetNode.connections.db_type) }}
     {{- end }}
 
-SQLALCHEMY_TRACK_MODIFICATIONS = True
-
 class CeleryConfig:
   imports  = ("superset.sql_lab", )
   broker_url = CELERY_REDIS_URL

@@ -17,8 +17,7 @@
 # isort:skip_file
 
 import logging
-import random
-import string
+import uuid as uuid_module
 from typing import Any, Optional, Callable
 from collections.abc import Iterator
 
@@ -49,13 +48,6 @@ DEFAULT_CHART_HEIGHT = 50
 DEFAULT_CHART_WIDTH = 4
 
 
-def suffix(length: int = 8) -> str:
-    return "".join(
-        random.SystemRandom().choice(string.ascii_uppercase + string.digits)
-        for _ in range(length)
-    )
-
-
 def get_default_position(title: str) -> dict[str, Any]:
     return {
         "DASHBOARD_VERSION_KEY": "v2",
@@ -71,12 +63,12 @@ def get_default_position(title: str) -> dict[str, Any]:
 
 
 def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any]:
-    chart_hashes = [f"CHART-{suffix()}" for _ in charts]
+    chart_hashes = [f"CHART-{str(chart.uuid)}" for chart in charts]
 
     # if we have ROOT_ID/GRID_ID, append orphan charts to a new row inside the grid
     row_hash = None
     if "ROOT_ID" in position and "GRID_ID" in position["ROOT_ID"]["children"]:
-        row_hash = f"ROW-N-{suffix()}"
+        row_hash = f"ROW-N-{len(position['GRID_ID']['children'])}"
         position["GRID_ID"]["children"].append(row_hash)
         position[row_hash] = {
             "children": chart_hashes,
@@ -103,6 +95,189 @@ def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any
             position[chart_hash]["parents"] = ["ROOT_ID", "GRID_ID", row_hash]
 
     return position
+
+
+# Bound the derived id to the largest positive signed 32-bit integer
+# (2**31 - 1) so it stays within the range a database auto-increment primary
+# key would occupy and never collides with the sign bit. The concrete value is
+# irrelevant — only its stability across environments matters.
+_STABLE_CHART_ID_MODULO = 2_147_483_647
+
+
+def stable_chart_id(chart_uuid: str) -> int:
+    """Derive a deterministic, environment-independent integer from a chart UUID.
+
+    The dashboard export format historically embedded ``meta.chartId`` — the
+    source environment's auto-increment primary key — inside every ``CHART-*``
+    position node (issue #32972). That integer differs between environments, so
+    re-exporting an imported dashboard produced a different bundle for the same
+    logical content. Deriving the id from the (stable) UUID instead makes the
+    export reproducible while still giving the importer an integer it can use to
+    rewire the legacy, integer-keyed metadata references back to local IDs.
+    """
+    return (uuid_module.UUID(chart_uuid).int % _STABLE_CHART_ID_MODULO) + 1
+
+
+def _stabilize_chart_ids(payload: dict[str, Any]) -> None:
+    """Replace env-local integer chart IDs in ``payload`` with UUID-derived ones.
+
+    Rewrites ``meta.chartId`` in every ``CHART`` position node to a value derived
+    from ``meta.uuid`` and remaps the legacy, integer-keyed metadata references
+    (filter scopes, default filters, expanded slices, native filter scopes, and
+    cross-filter/chart configuration) accordingly so the bundle stays internally
+    consistent and the import-side id remap resolves against the same IDs.
+    Mappings are applied defensively — a reference whose source id is unknown is
+    dropped rather than raising, and a node with a malformed ``meta.uuid`` is
+    skipped — so a partially corrupt position never aborts the export. See
+    ``stable_chart_id`` and issue #32972 for the motivation.
+    """
+    position = payload.get("position")
+    if not isinstance(position, dict):
+        return
+
+    # Collect each chart node with its stable UUID-derived id. Nodes are
+    # processed in UUID order so that, on the (astronomically unlikely) event
+    # that two UUIDs reduce to the same integer, the deterministic collision
+    # resolution below assigns the same ids regardless of dict iteration order
+    # or environment.
+    chart_nodes: list[tuple[str, Any, dict[str, Any]]] = []
+    for node in position.values():
+        if (
+            isinstance(node, dict)
+            and node.get("type") == "CHART"
+            and isinstance(node.get("meta"), dict)
+        ):
+            meta = node["meta"]
+            chart_uuid = meta.get("uuid")
+            if chart_uuid is None:
+                continue
+            try:
+                uuid_module.UUID(str(chart_uuid))
+            except ValueError:
+                # A malformed ``meta.uuid`` (corrupt position_json) must not
+                # abort the whole export — skip stabilizing this single node
+                # and leave its existing chartId untouched.
+                logger.warning(
+                    "Skipping chart id stabilization for invalid uuid %r",
+                    chart_uuid,
+                )
+                continue
+            chart_nodes.append((str(chart_uuid), meta.get("chartId"), meta))
+
+    # Map each chart's env-local integer id -> stable UUID-derived id. Since
+    # ``stable_chart_id`` reduces a UUID into a finite integer space, two
+    # distinct charts could in principle collide; if so, probe forward
+    # deterministically so every chart keeps a distinct id and the metadata
+    # remaps below never silently overwrite one another.
+    id_map: dict[int, int] = {}
+    assigned: set[int] = set()
+    for chart_uuid, old_id, meta in sorted(chart_nodes, key=lambda item: item[0]):
+        new_id = stable_chart_id(chart_uuid)
+        while new_id in assigned:
+            new_id = (new_id % _STABLE_CHART_ID_MODULO) + 1
+        assigned.add(new_id)
+        if isinstance(old_id, int):
+            id_map[old_id] = new_id
+        meta["chartId"] = new_id
+
+    if not id_map:
+        return
+
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, dict):
+        return
+
+    def remap_id(old_id: Any) -> Optional[int]:
+        """Map a single legacy chart id to its stabilized id, or ``None``.
+
+        Returns ``None`` when the id is unknown or not coercible to ``int`` so
+        callers can drop unresolved references rather than raising.
+        """
+        try:
+            return id_map.get(int(old_id))
+        except (TypeError, ValueError):
+            return None
+
+    def remap_ids(old_ids: Any) -> list[int]:
+        """Remap a collection of legacy chart ids, dropping unresolved entries."""
+        return [
+            new_id for old_id in old_ids if (new_id := remap_id(old_id)) is not None
+        ]
+
+    if isinstance(metadata.get("timed_refresh_immune_slices"), list):
+        metadata["timed_refresh_immune_slices"] = remap_ids(
+            metadata["timed_refresh_immune_slices"]
+        )
+
+    if isinstance(metadata.get("filter_scopes"), dict):
+        metadata["filter_scopes"] = {
+            str(new_key): columns
+            for old_key, columns in metadata["filter_scopes"].items()
+            if (new_key := remap_id(old_key)) is not None
+        }
+        for columns in metadata["filter_scopes"].values():
+            if not isinstance(columns, dict):
+                continue
+            for attributes in columns.values():
+                if isinstance(attributes, dict) and isinstance(
+                    attributes.get("immune"), list
+                ):
+                    attributes["immune"] = remap_ids(attributes["immune"])
+
+    if isinstance(metadata.get("expanded_slices"), dict):
+        metadata["expanded_slices"] = {
+            str(new_key): value
+            for old_key, value in metadata["expanded_slices"].items()
+            if (new_key := remap_id(old_key)) is not None
+        }
+
+    if metadata.get("default_filters"):
+        try:
+            default_filters = json.loads(metadata["default_filters"])
+        except (TypeError, json.JSONDecodeError):
+            default_filters = None
+        if isinstance(default_filters, dict):
+            metadata["default_filters"] = json.dumps(
+                {
+                    str(new_key): value
+                    for old_key, value in default_filters.items()
+                    if (new_key := remap_id(old_key)) is not None
+                }
+            )
+
+    def remap_scope(container: Any) -> None:
+        """Remap ``scope.excluded`` and ``chartsInScope`` of a filter container.
+
+        Shared by native filters and (global) cross-filter configuration, which
+        both denormalize the charts a filter applies to into these two lists.
+        """
+        if not isinstance(container, dict):
+            return
+        scope = container.get("scope")
+        if isinstance(scope, dict) and isinstance(scope.get("excluded"), list):
+            scope["excluded"] = remap_ids(scope["excluded"])
+        if isinstance(container.get("chartsInScope"), list):
+            container["chartsInScope"] = remap_ids(container["chartsInScope"])
+
+    if isinstance(metadata.get("native_filter_configuration"), list):
+        for native_filter in metadata["native_filter_configuration"]:
+            remap_scope(native_filter)
+
+    if isinstance(metadata.get("global_chart_configuration"), dict):
+        remap_scope(metadata["global_chart_configuration"])
+
+    if isinstance(metadata.get("chart_configuration"), dict):
+        new_chart_configuration: dict[str, Any] = {}
+        for old_key, chart_config in metadata["chart_configuration"].items():
+            new_key = remap_id(old_key)
+            if new_key is None:
+                continue
+            if isinstance(chart_config, dict):
+                if isinstance(chart_config.get("id"), int):
+                    chart_config["id"] = new_key
+                remap_scope(chart_config.get("crossFilters"))
+            new_chart_configuration[str(new_key)] = chart_config
+        metadata["chart_configuration"] = new_chart_configuration
 
 
 class ExportDashboardsCommand(ExportModelsCommand):
@@ -181,6 +356,11 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         if orphan_charts:
             payload["position"] = append_charts(payload["position"], orphan_charts)
+
+        # Strip env-local integer chart IDs in favor of UUID-derived ones so the
+        # export is reproducible across environments (issue #32972). Must run
+        # after orphan charts are appended so their nodes are stabilized too.
+        _stabilize_chart_ids(payload)
 
         # Add theme UUID for proper cross-system imports
         payload["theme_uuid"] = str(model.theme.uuid) if model.theme else None

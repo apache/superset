@@ -1626,6 +1626,32 @@ class DeckGLMultiLayer(BaseViz):
     is_timeseries = False
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
 
+    @staticmethod
+    def _merge_filter_metadata(
+        *filter_groups: list[dict[str, Any]] | None,
+    ) -> list[dict[str, Any]]:
+        """Merge multiple filter metadata lists, de-duplicating identical entries.
+
+        Used to combine the applied/rejected filter metadata reported by each
+        child layer into a single list for the multi-layer chart payload.
+        """
+        merged_filters: list[dict[str, Any]] = []
+        seen_filters: set[str] = set()
+
+        for filters in filter_groups:
+            for filter_metadata in filters or []:
+                if not isinstance(filter_metadata, dict):
+                    continue
+
+                cache_key = json.dumps(filter_metadata, sort_keys=True)
+                if cache_key in seen_filters:
+                    continue
+
+                merged_filters.append(filter_metadata)
+                seen_filters.add(cache_key)
+
+        return merged_filters
+
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         return {}
@@ -1726,6 +1752,8 @@ class DeckGLMultiLayer(BaseViz):
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
 
         features: dict[str, list[Any]] = {}
+        self.applied_filters = []
+        self.rejected_filters = []
 
         for layer_index, slc in enumerate(slices):
             form_data = slc.form_data
@@ -1738,6 +1766,15 @@ class DeckGLMultiLayer(BaseViz):
 
             viz_instance = viz_class(datasource=slc.datasource, form_data=form_data)
             payload = viz_instance.get_payload()
+            if payload:
+                self.applied_filters = self._merge_filter_metadata(
+                    self.applied_filters,
+                    payload.get("applied_filters"),
+                )
+                self.rejected_filters = self._merge_filter_metadata(
+                    self.rejected_filters,
+                    payload.get("rejected_filters"),
+                )
 
             if (
                 payload
@@ -1754,6 +1791,25 @@ class DeckGLMultiLayer(BaseViz):
             "mapboxApiKey": current_app.config["MAPBOX_API_KEY"],
             "slices": [slc.data for slc in slices if slc.data is not None],
         }
+
+    @deprecated(deprecated_in="3.0")
+    def get_payload(self, query_obj: QueryObjectDict | None = None) -> VizPayload:
+        """Extend the base payload with merged child-layer filter metadata.
+
+        The applied/rejected filter metadata collected from each sub-slice in
+        ``get_data`` is merged into the base payload so dashboard filter badges
+        reflect the filters applied across all layers.
+        """
+        payload = super().get_payload(query_obj)
+        payload["applied_filters"] = self._merge_filter_metadata(
+            payload.get("applied_filters"),
+            self.applied_filters,
+        )
+        payload["rejected_filters"] = self._merge_filter_metadata(
+            payload.get("rejected_filters"),
+            self.rejected_filters,
+        )
+        return payload
 
 
 class BaseDeckGLViz(BaseViz):

@@ -48,7 +48,7 @@ dependencies = [
     "click>=8.4.0",
     "click-option-group",
     "colorama",
-    "flask-cors>=6.0.0, <7.0",
+    "flask-cors>=6.0.5, <7.0",
     "croniter>=6.2.2",
     "cron-descriptor",
     "cryptography>=48.0.0, <49.0.0",
@@ -63,7 +63,7 @@ dependencies = [
     "flask-session>=0.4.0, <1.0",
     "flask-wtf>=1.3.0, <2.0",
     "geopy",
-    "greenlet>=3.0.3, <=3.5.0",
+    "greenlet<=3.5.1, >=3.5.1",
     "gunicorn>=25.3.0, <26; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # holidays>=0.45 required for security fix
@@ -78,7 +78,7 @@ dependencies = [
     # https://github.com/apache/superset/issues/33162
     "marshmallow>=3.0, <5",
     "marshmallow-union>=0.1",
-    "msgpack>=1.0.0, <1.2",
+    "msgpack>=1.2.0, <1.3",
     "nh3>=0.3.5, <0.4",
     "numpy>1.23.5, <2.3",
     "packaging",
@@ -98,7 +98,7 @@ dependencies = [
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
     "pygeohash",
     "pyarrow>=24.0.0, <25", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
-    "pyyaml>=6.0.0, <7.0.0",
+    "pyyaml>=6.0.3, <7.0.0",
     "PyJWT>=2.4.0, <3.0",
     "redis>=5.0.0, <6.0",
     "rison>=2.0.0, <3.0",
@@ -191,7 +191,7 @@ pinot = ["pinotdb>=5.0.0, <10.0.0"]
 playwright = ["playwright>=1.60.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
-trino = ["trino>=0.328.0"]
+trino = ["trino>=0.337.0"]
 prophet = ["prophet>=1.1.6, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 risingwave = ["sqlalchemy-risingwave"]
@@ -224,7 +224,7 @@ development = [
     "docker",
     "flask-testing",
     "freezegun",
-    "grpcio>=1.55.3",
+    "grpcio>=1.81.1",
     "openapi-spec-validator",
     "parameterized",
     "pip",
@@ -375,7 +375,6 @@ select = [
 
 ignore = [
     "S101",
-    "PT004",  # Fixtures that don't return values - underscore prefix conflicts with pytest usage
     "PT006",
     "T201",
     "N999",
