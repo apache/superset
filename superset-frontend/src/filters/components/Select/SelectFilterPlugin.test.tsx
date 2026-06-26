@@ -1658,3 +1658,42 @@ test('renders standard Select dropdown when operatorType is Exact', () => {
 
   expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
 });
+
+test('renders dashboard select dropdown popup under document body', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  render(<SelectFilterPlugin {...buildSelectFilterProps()} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'IN', val: ['boy'] }],
+          },
+          filterState: {
+            value: ['boy'],
+            label: 'boy',
+            excludeFilterValues: true,
+          },
+        },
+      },
+    },
+  });
+
+  const [filterSelect] = screen.getAllByRole('combobox');
+  userEvent.click(filterSelect);
+
+  let dropdown: Element | undefined;
+  await waitFor(() => {
+    dropdown = Array.from(
+      document.querySelectorAll('.ant-select-dropdown'),
+    ).find(
+      element => !element.classList.contains('ant-select-dropdown-hidden'),
+    );
+    expect(dropdown).toBeDefined();
+  });
+
+  expect(dropdown?.parentElement).toBe(document.body);
+});

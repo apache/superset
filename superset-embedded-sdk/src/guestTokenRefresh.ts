@@ -21,6 +21,7 @@ import { jwtDecode } from "jwt-decode";
 export const REFRESH_TIMING_BUFFER_MS = 5000 // refresh guest token early to avoid failed superset requests
 export const MIN_REFRESH_WAIT_MS = 10000 // avoid blasting requests as fast as the cpu can handle
 export const DEFAULT_TOKEN_EXP_MS = 300000 // (5 min) used only when parsing guest token exp fails
+export const DEFAULT_TOKEN_REFRESH_RETRY_MS = 10000 // wait before retrying a failed/timed-out token refresh
 
 // when do we refresh the guest token?
 export function getGuestTokenRefreshTiming(currentGuestToken: string) {

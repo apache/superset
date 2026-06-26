@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -2660,6 +2660,9 @@ msgstr "Kopijas saņēmēji"
 msgid "COPY QUERY"
 msgstr "KOPĒT VAICĀJUMU"
 
+msgid "Copy query"
+msgstr "KOPĒT VAICĀJUMU"
+
 msgid "CREATE TABLE AS"
 msgstr "CREATE TABLE AS"
 
@@ -4572,6 +4575,9 @@ msgstr "Datubāzes iestatījumi atjaunināti"
 msgid "Database type does not support file uploads."
 msgstr "Datubāzes tips neatbalsta failu augšupielādi."
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr "Datubāzes faila augšupielāde neizdevās"
 
@@ -6440,6 +6446,9 @@ msgid "FEB"
 msgstr "FEB"
 
 msgid "FIT DATA"
+msgstr "PIELĀGOT DATIEM"
+
+msgid "Fit data"
 msgstr "PIELĀGOT DATIEM"
 
 msgid "FRI"
@@ -17002,6 +17011,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Pēcapstrādes objekta `operation` rekvizīts nav definēts"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "`prophet` pakotne nav instalēta"
 
@@ -17860,10 +17873,6 @@ msgstr "vērtība augošā secībā"
 
 msgid "value descending"
 msgstr "vērtība dilstošā secībā"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Tabulas nosaukums"
 
 msgid "var"
 msgstr "dispersija"
