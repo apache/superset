@@ -296,6 +296,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         cls,
         config: OAuth2ClientConfig,
         state: OAuth2State,
+        code_verifier: str | None = None, # pylint: disable=unused-argument
     ) -> str:
         """
         Return URI for initial OAuth2 request.
