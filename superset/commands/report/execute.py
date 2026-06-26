@@ -1207,18 +1207,17 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
 
-            # Resolve the executor at the run() boundary the same way master
-            # does: tolerate a missing user (find_user -> None) so the state
-            # machine still runs and its error envelope writes the ERROR
-            # execution-log row and sends the owner notification. The dedicated
-            # ReportScheduleExecutorNotFoundError guard lives at the content
-            # sites (_get_screenshots / _get_csv_data / _get_embedded_data),
-            # which raise inside that envelope. Guarding here instead would
-            # surface the executor error above the state machine, suppressing
-            # both the log row and the owner notification. The alert-query path
-            # (AlertCommand) is intentionally left on master behavior — a
-            # missing executor there surfaces as a query error, not the
-            # dedicated executor error; tightening it is out of scope here.
+            # Resolve the executor at the run() boundary, tolerating a missing
+            # user (find_user -> None) so the state machine still runs and its
+            # error envelope writes the ERROR execution-log row and sends the
+            # owner notification. The dedicated ReportScheduleExecutorNotFoundError
+            # guard lives at the content sites (_get_screenshots / _get_csv_data /
+            # _get_embedded_data), which raise inside that envelope. Guarding here
+            # instead would surface the executor error above the state machine,
+            # suppressing both the log row and the owner notification. The
+            # alert-query path (AlertCommand) is intentionally left unchanged — a
+            # missing executor there surfaces as a query error, not the dedicated
+            # executor error; tightening it is out of scope here.
             _, username = get_executor(
                 executors=app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._model,

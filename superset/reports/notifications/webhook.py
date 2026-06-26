@@ -133,15 +133,20 @@ class WebhookNotification(BaseNotification):
         factor=10,
         base=2,
         max_tries=5,
-        # Bound total wall-clock retry time. Without this, a hanging or
-        # persistently failing target can stall a worker for minutes per bad URL
-        # (up to ~5 socket waits at timeout=60 plus ~150s of retry sleeps),
-        # starving sequential report dispatch. backoff evaluates max_time against
-        # the elapsed time sampled BEFORE each attempt, so the last request can
-        # start just under the bound and still run its full timeout: worst case
-        # ~210s (~150s elapsed at the final pre-attempt check + one 60s request),
-        # not 120s. factor is intentionally kept at 10 so legitimately-transient
-        # 5xx targets are not abandoned early.
+        # Bound total wall-clock retry time. Without max_time, a hanging or
+        # persistently-failing target can stall a worker for minutes per bad
+        # URL, starving sequential report dispatch.
+        #
+        # backoff (see backoff._sync.retry_exception) samples elapsed at the
+        # start of each attempt and checks it against max_time only after that
+        # attempt fails -- so the giveup decision uses the time measured before
+        # the attempt ran, ignoring the attempt's own duration. With each
+        # request carrying timeout=60, a third attempt can begin past the 120s
+        # mark (its start gated by the prior check, which still saw ~60-70s) and
+        # then run its full 60s before the check trips. The loop therefore makes
+        # 3 attempts: total wall-clock is ~180-210s (180s of requests + up to
+        # ~30s of jitter sleeps: <=10s then <=20s), not 120s. factor is kept at
+        # 10 so legitimately-transient 5xx targets are not abandoned early.
         max_time=120,
     )
     @statsd_gauge("reports.webhook.send")

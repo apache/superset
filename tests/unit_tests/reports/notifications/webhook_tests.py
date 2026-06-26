@@ -334,7 +334,7 @@ def test_send_backoff_bounded_by_max_time(monkeypatch, mock_header_data) -> None
     monkeypatch.setattr(
         "superset.reports.notifications.webhook.requests.post", fake_post
     )
-    monkeypatch.setattr("backoff._sync.time.sleep", lambda *a, **k: None)
+    monkeypatch.setattr("time.sleep", lambda *a, **k: None)
 
     with freeze_time("2020-01-01", auto_tick_seconds=30):
         with pytest.raises(NotificationUnprocessableException):
@@ -369,7 +369,7 @@ def test_send_flat_clock_falls_back_to_max_tries(monkeypatch, mock_header_data) 
     monkeypatch.setattr(
         "superset.reports.notifications.webhook.requests.post", fake_post
     )
-    monkeypatch.setattr("backoff._sync.time.sleep", lambda *a, **k: None)
+    monkeypatch.setattr("time.sleep", lambda *a, **k: None)
 
     with freeze_time("2020-01-01"):
         with pytest.raises(NotificationUnprocessableException):
@@ -413,7 +413,7 @@ def test_send_max_time_does_not_abandon_recovering_target(
     monkeypatch.setattr(
         "superset.reports.notifications.webhook.requests.post", fake_post
     )
-    monkeypatch.setattr("backoff._sync.time.sleep", lambda *a, **k: None)
+    monkeypatch.setattr("time.sleep", lambda *a, **k: None)
 
     with freeze_time("2020-01-01", auto_tick_seconds=5):
         webhook_notification.send()
