@@ -388,6 +388,10 @@
   "overrides": {
     "uuid": "$uuid",
     "core-js": "^3.38.1",
+    "dompurify": "^3.4.11",
+    "esbuild": "^0.28.1",
+    "http-proxy-middleware": "^2.0.10",
+    "tar": "^7.5.16",
     "puppeteer": "^22.4.1",
     "remark-gfm": "^3.0.1",
     "underscore": "^1.13.7",
