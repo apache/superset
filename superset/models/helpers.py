@@ -2971,7 +2971,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             from superset.connectors.sqla.models import validate_stored_expression
 
             validate_stored_expression(
-                self.database, self.catalog, self.schema or "", processed_expression
+                self.database, self.catalog, self.schema, processed_expression
             )
 
             # Build validation query

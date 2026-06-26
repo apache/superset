@@ -115,7 +115,10 @@ class TestValidateExpression:
 
         assert result["valid"] is False
         assert len(result["errors"]) == 1
-        assert result["errors"][0]["message"]
+        assert (
+            "cannot be parsed as a single SQL statement"
+            in result["errors"][0]["message"]
+        )
         mock_execute.assert_not_called()
 
     @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
@@ -165,6 +168,7 @@ class TestValidateExpression:
         )
 
         assert result["valid"] is False
+        assert "cannot contain sub-queries" in result["errors"][0]["message"]
         mock_execute.assert_not_called()
 
     @patch("superset.models.helpers.is_feature_enabled", return_value=False)
@@ -178,6 +182,7 @@ class TestValidateExpression:
         )
 
         assert result["valid"] is False
+        assert "cannot contain set operations" in result["errors"][0]["message"]
         mock_execute.assert_not_called()
 
     @patch("superset.connectors.sqla.models.SqlaTable._execute_validation_query")
