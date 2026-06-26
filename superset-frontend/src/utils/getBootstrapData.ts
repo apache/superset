@@ -43,11 +43,21 @@ const normalizePathWithFallback = (
 // history.pushState in navigationUtils), so enforce the documented
 // "/segment(/segment)*" shape at the source: a value that doesn't conform
 // degrades to a root deployment rather than reaching those sinks.
-// Each segment must begin with a non-dot character so a "." or ".." segment
-// (e.g. "/app/..") is rejected — otherwise browser path normalization would
-// collapse `ensureAppRoot('/foo')` → `/app/../foo` → `/foo`, silently
+// Each segment must begin with a non-dot character so a literal "." or ".."
+// segment (e.g. "/app/..") is rejected — otherwise browser path normalization
+// would collapse `ensureAppRoot('/foo')` → `/app/../foo` → `/foo`, silently
 // defeating subdirectory containment. Dots are still allowed inside a
 // segment (e.g. "/foo.bar").
+//
+// This guards the *literal* value only. Percent-encoded dot segments
+// ("/app/%2e%2e") pass through unchanged: `%` is a permitted path-segment
+// character and the regex does not decode. A browser would later normalize
+// "/app/%2e%2e/foo" → "/foo", so such a value silently defeats subdirectory
+// prefixing — but application_root is operator-controlled, server-rendered
+// configuration (SECURITY.md trust-boundary 2), so an encoded-traversal value
+// is an unsupported misconfiguration, not an attacker-reachable input. It is
+// intentionally neither decoded nor rejected here; the behavior is pinned by a
+// test in getBootstrapData.test.ts.
 const APP_ROOT_PATH_RE = /^(?:\/[\w~%-]+(?:\.[\w~%-]+)*)*$/;
 
 const sanitizeAppRoot = (root: string): string =>

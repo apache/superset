@@ -264,6 +264,11 @@ export function navigateTo(
   // string derived from the verified URL properties, so the data-flow
   // chain from `url` (source) to the sink is broken by the parse +
   // property-check pair.
+  // `SAFE_NAVIGATION_URL_RE` requires an explicit `//` after http(s)/ftp,
+  // mirroring `assertSafeNavigationUrl`. Without it, `new URL('http:evil.com')`
+  // parses the authority as `evil.com` — a cross-origin URL masquerading as a
+  // safe absolute one. The protocol-equality check below alone would accept it
+  // because `parsed.protocol` is still `http:` after normalisation.
   let parsed: URL | null;
   try {
     parsed = new URL(target);
@@ -272,6 +277,7 @@ export function navigateTo(
   }
   if (
     parsed !== null &&
+    SAFE_NAVIGATION_URL_RE.test(target) &&
     (parsed.protocol === 'https:' ||
       parsed.protocol === 'http:' ||
       parsed.protocol === 'ftp:' ||
@@ -381,7 +387,9 @@ export function navigateWithState(
       }
     }
   }
-  // External-URL path (see `navigateTo` for rationale).
+  // External-URL path (see `navigateTo` for rationale, including the
+  // `SAFE_NAVIGATION_URL_RE` `//`-after-scheme requirement that rejects
+  // `http:evil.com`-style scheme-without-authority bypasses).
   let parsed: URL | null;
   try {
     parsed = new URL(target);
@@ -390,6 +398,7 @@ export function navigateWithState(
   }
   if (
     parsed !== null &&
+    SAFE_NAVIGATION_URL_RE.test(target) &&
     (parsed.protocol === 'https:' ||
       parsed.protocol === 'http:' ||
       parsed.protocol === 'ftp:' ||

@@ -294,6 +294,36 @@ describe('redirect', () => {
       }
     });
   });
+
+  // Scheme-without-authority bypass on the full-page-nav path. WHATWG URL
+  // parsers extract the host from `http:evil.com/foo` as `evil.com`, so the
+  // external-URL branch's bare `parsed.protocol === 'http:'` check mistook a
+  // cross-origin URL for a safe absolute one. `openInNewTab` already rejected
+  // this shape; `redirect` (→ `navigateTo`) must too, falling back to `/`
+  // with a `console.error` rather than following the cross-origin target.
+  test.each([
+    ['http:evil.example.com/phish'],
+    ['https:evil.example.com/phish'],
+    ['HTTP:evil.example.com/phish'],
+    ['ftp:evil.example.com/file'],
+  ])(
+    'falls back to "/" + console.error for scheme-without-authority URL %s',
+    async (unsafeUrl: string) => {
+      await withApplicationRoot('', async () => {
+        const errorSpy = jest
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+        try {
+          const { redirect } = await import('src/utils/navigationUtils');
+          redirect(unsafeUrl);
+          expect(window.location.href).toBe('/');
+          expect(errorSpy).toHaveBeenCalled();
+        } finally {
+          errorSpy.mockRestore();
+        }
+      });
+    },
+  );
 });
 
 // `navigateTo` and `navigateWithState` are exported imperative helpers
@@ -351,6 +381,52 @@ describe('navigateTo', () => {
           expect.anything(),
           expect.anything(),
         );
+        expect(window.location.href).toBe('/');
+        expect(errorSpy).toHaveBeenCalled();
+      } finally {
+        errorSpy.mockRestore();
+      }
+    });
+  });
+
+  // Scheme-without-authority bypass: `new URL('http:evil.com/foo')` resolves
+  // the host to `evil.com`, so the external-URL branch must require an
+  // explicit `//` after the scheme (mirroring `SAFE_NAVIGATION_URL_RE`) and
+  // fall back to `/` rather than navigating cross-origin.
+  test.each([
+    ['http:evil.example.com/phish'],
+    ['https:evil.example.com/phish'],
+    ['HTTP:evil.example.com/phish'],
+    ['ftp:evil.example.com/file'],
+  ])(
+    'falls back to "/" + console.error for scheme-without-authority URL %s',
+    async (unsafeUrl: string) => {
+      await withApplicationRoot('', async () => {
+        const errorSpy = jest
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+        try {
+          const { navigateTo } = await import('src/utils/navigationUtils');
+          navigateTo(unsafeUrl);
+          expect(window.location.href).toBe('/');
+          expect(openSpy).not.toHaveBeenCalled();
+          expect(errorSpy).toHaveBeenCalled();
+        } finally {
+          errorSpy.mockRestore();
+        }
+      });
+    },
+  );
+
+  test('refuses scheme-without-authority URL on the newWindow path', async () => {
+    await withApplicationRoot('', async () => {
+      const errorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const { navigateTo } = await import('src/utils/navigationUtils');
+        navigateTo('http:evil.example.com/phish', { newWindow: true });
+        expect(openSpy).not.toHaveBeenCalled();
         expect(window.location.href).toBe('/');
         expect(errorSpy).toHaveBeenCalled();
       } finally {
@@ -425,6 +501,35 @@ describe('navigateWithState', () => {
       }
     });
   });
+
+  // Scheme-without-authority bypass on the history-API path: the external-URL
+  // branch must reject `http:evil.com/foo` (host normalises to `evil.com`)
+  // and no-op rather than pushing a cross-origin URL into history.
+  test.each([
+    ['http:evil.example.com/phish'],
+    ['https:evil.example.com/phish'],
+    ['HTTP:evil.example.com/phish'],
+    ['ftp:evil.example.com/file'],
+  ])(
+    'no-ops + console.error for scheme-without-authority URL %s',
+    async (unsafeUrl: string) => {
+      await withApplicationRoot('', async () => {
+        const errorSpy = jest
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+        try {
+          const { navigateWithState } =
+            await import('src/utils/navigationUtils');
+          navigateWithState(unsafeUrl, { from: 'test' });
+          expect(pushSpy).not.toHaveBeenCalled();
+          expect(replaceSpy).not.toHaveBeenCalled();
+          expect(errorSpy).toHaveBeenCalled();
+        } finally {
+          errorSpy.mockRestore();
+        }
+      });
+    },
+  );
 
   test('passes legitimate router-relative path through to pushState', async () => {
     await withApplicationRoot('/superset/', async () => {
