@@ -61,8 +61,8 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
       nativeFilterId: 'time_grain_1',
       defaultValue: null,
       viz_type: 'filter_timegrain',
-      // This is what was saved by the config form:
-      time_grains: ['PT1H', 'P1D', 'P1W'],
+      // This is what was saved by the config form (camelCased by ChartProps):
+      timeGrains: ['PT1H', 'P1D', 'P1W'],
     },
     filterState: {
       value: null,
@@ -82,6 +82,8 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
 
   // Step 2: Render the dashboard filter
   render(<PluginFilterTimegrain {...dashboardConfig} />);
+
+  expect(screen.getByText('3 options')).toBeInTheDocument();
 
   // Ignore initialization updates and validate the explicit user-selection payload.
   setDataMask.mockClear();
@@ -139,7 +141,7 @@ test('all time grains appear when pre-filter is unchecked', async () => {
       defaultValue: null,
       viz_type: 'filter_timegrain',
       // Pre-filter not set (checkbox unchecked in config)
-      time_grains: undefined,
+      timeGrains: undefined,
     },
     filterState: {
       value: null,

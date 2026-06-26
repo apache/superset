@@ -70,7 +70,7 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
       nativeFilterId: 'time_grain_1',
       defaultValue: null,
       viz_type: 'filter_timegrain',
-      time_grains: ['PT1H', 'P1D', 'P1W'],
+      timeGrains: ['PT1H', 'P1D', 'P1W'],
     },
     filterState: {
       value: null,
@@ -81,6 +81,8 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
   };
 
   render(<PluginFilterTimegrain {...dashboardConfig} />);
+
+  expect(screen.getByText('3 options')).toBeInTheDocument();
 
   setDataMask.mockClear();
 
@@ -118,7 +120,7 @@ test('all time grains appear when pre-filter is unchecked', async () => {
       nativeFilterId: 'time_grain_1',
       defaultValue: null,
       viz_type: 'filter_timegrain',
-      time_grains: undefined,
+      timeGrains: undefined,
     },
     filterState: {
       value: null,
@@ -154,7 +156,7 @@ test('current selection stays visible when it is outside the pre-filter allowlis
       nativeFilterId: 'time_grain_1',
       defaultValue: null,
       viz_type: 'filter_timegrain',
-      time_grains: ['PT1H', 'P1D', 'P1W'],
+      timeGrains: ['PT1H', 'P1D', 'P1W'],
     },
     filterState: {
       value: ['P1M'],
