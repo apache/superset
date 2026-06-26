@@ -38,27 +38,22 @@
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPost, apiPut } from '../../helpers/api/requests';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
+import { getDatasetByName } from '../../helpers/api/dataset';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
 
 const DATASET_NAME = 'birth_names';
-
-async function findDatasetIdByName(page: any, name: string): Promise<number> {
-  const rison = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
-  const resp = await page.request.get(`api/v1/dataset/?q=${rison}`);
-  const body = await resp.json();
-  if (!body.result?.length) {
-    throw new Error(`Dataset ${name} not found`);
-  }
-  return body.result[0].id;
-}
 
 testWithAssets(
   'dashboard-level force refresh re-queries every chart with force=true and uncached results',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const datasetId = await findDatasetIdByName(page, DATASET_NAME);
+    const dataset = await getDatasetByName(page, DATASET_NAME);
+    if (!dataset) {
+      throw new Error(`Dataset ${DATASET_NAME} not found`);
+    }
+    const datasetId = dataset.id;
     const datasource = `${datasetId}__table`;
 
     const chartSpecs = [
@@ -144,9 +139,22 @@ testWithAssets(
     // Initial load warms the cache; the force refresh must then bypass it.
     await dashboard.waitForChartsToLoad();
 
-    // Capture the force-refresh chart-data round-trips.
+    // Capture the force-refresh chart-data round-trips. The chart id is carried
+    // in the request URL's form_data param (`{"slice_id":N}`), so we can tie
+    // each forced request back to a specific chart and assert that every chart
+    // — not just "enough requests" — was re-queried.
+    const sliceIdFromForceUrl = (url: string): number | undefined => {
+      const formData = new URL(url).searchParams.get('form_data');
+      if (!formData) return undefined;
+      try {
+        return JSON.parse(formData).slice_id as number;
+      } catch {
+        return undefined;
+      }
+    };
+    const forcedSliceIds = new Set<number>();
     const forceResponses: Promise<{
-      url: string;
+      sliceId: number | undefined;
       status: number;
       isCached: unknown;
     }>[] = [];
@@ -157,12 +165,14 @@ testWithAssets(
         response.url().includes('/api/v1/chart/data') &&
         response.url().includes('force=true')
       ) {
+        const sliceId = sliceIdFromForceUrl(response.url());
+        if (sliceId !== undefined) forcedSliceIds.add(sliceId);
         forceResponses.push(
           (async () => {
             const body = await response.json();
             const result = Array.isArray(body.result) ? body.result[0] : body;
             return {
-              url: response.url(),
+              sliceId,
               status: response.status(),
               isCached: result?.is_cached,
             };
@@ -173,15 +183,22 @@ testWithAssets(
 
     await dashboard.forceRefresh();
 
-    // One forced re-query per chart should fire.
+    // Every chart — identified by slice_id, not merely by request count — must
+    // fire its own forced re-query. Polling on the distinct set (rather than the
+    // raw length) rejects a regression that refreshes one chart twice while
+    // skipping another.
     await expect
-      .poll(() => forceResponses.length, { timeout: TIMEOUT.API_RESPONSE })
-      .toBeGreaterThanOrEqual(chartIds.length);
+      .poll(
+        () => chartIds.every(id => forcedSliceIds.has(id)),
+        { timeout: TIMEOUT.API_RESPONSE },
+      )
+      .toBe(true);
 
     const resolved = await Promise.all(forceResponses);
-    for (const { url, status, isCached } of resolved) {
-      // Request carried the force flag and the backend served a real result...
-      expect(url).toContain('force=true');
+    for (const { sliceId, status, isCached } of resolved) {
+      // Each forced request targeted one of this dashboard's charts...
+      expect(chartIds).toContain(sliceId);
+      // ...and the backend served a real result...
       expect(status).toBe(200);
       // ...that was freshly computed, not served from cache. The backend reports
       // an uncached result as a falsy is_cached (null or false depending on
@@ -191,5 +208,9 @@ testWithAssets(
         `force-refreshed result should not be cached, got is_cached=${isCached}`,
       ).toBeFalsy();
     }
+
+    // The set of refreshed charts matches exactly the charts on the dashboard:
+    // none skipped, none foreign.
+    expect([...forcedSliceIds].sort()).toEqual([...chartIds].sort());
   },
 );
