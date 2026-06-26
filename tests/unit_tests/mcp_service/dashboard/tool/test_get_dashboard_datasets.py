@@ -138,6 +138,17 @@ def mock_dataset_access():
         yield mock_access
 
 
+@pytest.fixture(autouse=True)
+def allow_data_model_metadata():
+    """Keep tests in the metadata-allowed path unless a test overrides it."""
+    with patch(
+        "superset.mcp_service.dashboard.tool.get_dashboard_datasets."
+        "user_can_view_data_model_metadata",
+        return_value=True,
+    ) as mock_allow:
+        yield mock_allow
+
+
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_get_dashboard_datasets_multiple_datasets(mock_find, mcp_server):
@@ -274,6 +285,27 @@ async def test_get_dashboard_datasets_not_found(mock_find, mcp_server):
         data = json.loads(result.content[0].text)
 
     assert data["error_type"] == "not_found"
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_datasets_metadata_restricted(
+    mock_find, mcp_server, allow_data_model_metadata
+):
+    """Users without data-model metadata permission get a structured denial."""
+    from superset.mcp_service.privacy import DATA_MODEL_METADATA_ERROR_TYPE
+
+    allow_data_model_metadata.return_value = False
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_datasets", {"request": {"identifier": 1}}
+        )
+        data = json.loads(result.content[0].text)
+
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+    # The privacy gate short-circuits before any dashboard lookup.
+    mock_find.assert_not_called()
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")

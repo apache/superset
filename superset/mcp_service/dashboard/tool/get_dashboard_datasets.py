@@ -38,6 +38,11 @@ from superset.mcp_service.dashboard.schemas import (
     GetDashboardDatasetsRequest,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +56,7 @@ logger = logging.getLogger(__name__)
         destructiveHint=False,
     ),
 )
+@requires_data_model_metadata_access
 async def get_dashboard_datasets(
     request: GetDashboardDatasetsRequest, ctx: Context
 ) -> DashboardDatasets | DashboardError:
@@ -68,6 +74,10 @@ async def get_dashboard_datasets(
     capped per dataset; when truncated, columns_truncated/metrics_truncated
     are set and total counts are reported.
 
+    Requires data-model metadata permission (same as the dataset tools); a
+    dashboard-only viewer without that permission receives a structured
+    privacy denial.
+
     Example usage:
     ```json
     {
@@ -79,12 +89,30 @@ async def get_dashboard_datasets(
         "Retrieving dashboard datasets: identifier=%s" % (request.identifier,)
     )
 
+    # The decorator hides this tool from search; this check enforces direct
+    # calls so dashboard-only viewers can't read dataset/database metadata.
+    if not user_can_view_data_model_metadata():
+        await ctx.warning("Dashboard datasets lookup blocked by privacy controls")
+        return DashboardError.create(
+            error="You don't have permission to access dataset details for your role.",
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
+
     try:
+        from superset.connectors.sqla.models import SqlaTable
         from superset.daos.dashboard import DashboardDAO
         from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
 
-        # Eager load slices to avoid N+1 queries when grouping by datasource.
-        eager_options = [subqueryload(Dashboard.slices)]
+        # Eager load slices and each slice's dataset columns/metrics/database to
+        # avoid N+1 queries: the serializer groups slices by datasource and reads
+        # columns, metrics, and database off every dataset.
+        slice_dataset = subqueryload(Dashboard.slices).subqueryload(Slice.table)
+        eager_options = [
+            slice_dataset.subqueryload(SqlaTable.columns),
+            slice_dataset.subqueryload(SqlaTable.metrics),
+            slice_dataset.joinedload(SqlaTable.database),
+        ]
 
         with event_logger.log_context(action="mcp.get_dashboard_datasets.lookup"):
             core = ModelGetInfoCore(
