@@ -17,7 +17,11 @@
  * under the License.
  */
 import type { ReactElement } from 'react';
-import type { ControlPanelSectionConfig } from '@superset-ui/chart-controls';
+import type {
+  ControlPanelSectionConfig,
+  CustomControlItem,
+} from '@superset-ui/chart-controls';
+import { isCustomControlItem } from '@superset-ui/chart-controls';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { render } from '@testing-library/react';
 import { SqlaFormData } from '@superset-ui/core';
@@ -28,6 +32,7 @@ import DeckGLGeoJson, {
   computeGeoJsonIconOptionsFromJsOutput,
   computeGeoJsonIconOptionsFromFormData,
   getPoints,
+  getLayer,
 } from './Geojson';
 import controlPanel from './controlPanel';
 
@@ -294,4 +299,159 @@ test('DeckGLGeoJson falls back to legacy map_style when provider-specific style 
       mapboxApiKey: 'bootstrap-mapbox-key',
     }),
   );
+});
+
+const baseFormData: SqlaFormData = {
+  datasource: 'test_datasource',
+  viz_type: 'deck_geojson',
+  slice_id: 1,
+  fill_color_picker: { r: 0, g: 0, b: 255, a: 1 },
+  stroke_color_picker: { r: 0, g: 0, b: 0, a: 1 },
+};
+
+const baseLayerArgs = {
+  onContextMenu: jest.fn(),
+  filterState: undefined,
+  setDataMask: jest.fn(),
+  payload: { data: { type: 'FeatureCollection', features: [] } },
+  setTooltip: jest.fn(),
+  emitCrossFilters: false,
+};
+
+test('getLayer preserves rendering for existing charts without new point radius fields', () => {
+  // Simulate form data from an existing chart that only has point_radius_scale
+  const legacyFormData = {
+    ...baseFormData,
+    point_radius_scale: 200,
+    // point_radius and point_radius_units intentionally absent
+  };
+
+  const layer = getLayer({ formData: legacyFormData, ...baseLayerArgs });
+  const { props } = layer;
+
+  // Should match deck.gl defaults, NOT the new control panel defaults
+  expect(props.getPointRadius).toBe(1); // deck.gl default, not 10
+  expect(props.pointRadiusUnits).toBe('meters'); // deck.gl default, not 'pixels'
+  expect(props.pointRadiusScale).toBe(200); // user's saved value preserved
+});
+
+test('getLayer uses control panel defaults for new charts', () => {
+  const newChartFormData = {
+    ...baseFormData,
+    point_radius: 10,
+    point_radius_units: 'pixels',
+    point_radius_scale: 1,
+  };
+
+  const layer = getLayer({ formData: newChartFormData, ...baseLayerArgs });
+  const { props } = layer;
+
+  expect(props.getPointRadius).toBe(10);
+  expect(props.pointRadiusUnits).toBe('pixels');
+  expect(props.pointRadiusScale).toBe(1);
+});
+
+test('getLayer falls back to defaults when legacy fields are null', () => {
+  // The old point_radius_scale control had `default: null`, so legacy charts
+  // can have null persisted; it must fall back to 1, not coerce to 0.
+  const nullFormData = {
+    ...baseFormData,
+    point_radius: null,
+    point_radius_scale: null,
+  };
+
+  const layer = getLayer({ formData: nullFormData, ...baseLayerArgs });
+  const { props } = layer;
+
+  expect(props.getPointRadius).toBe(1);
+  expect(props.pointRadiusScale).toBe(1);
+});
+
+test('getLayer preserves an explicit zero radius scale', () => {
+  const zeroFormData = {
+    ...baseFormData,
+    point_radius_scale: 0,
+  };
+
+  const layer = getLayer({ formData: zeroFormData, ...baseLayerArgs });
+  const { props } = layer;
+
+  expect(props.pointRadiusScale).toBe(0);
+});
+
+test('getLayer coerces free-form string radius values to numbers', () => {
+  // Free-form SelectControls can store user-typed values as strings
+  const stringFormData = {
+    ...baseFormData,
+    point_radius: '3',
+    point_radius_scale: '0.25',
+  };
+
+  const layer = getLayer({ formData: stringFormData, ...baseLayerArgs });
+  const { props } = layer;
+
+  expect(props.getPointRadius).toBe(3);
+  expect(props.pointRadiusScale).toBe(0.25);
+});
+
+type ControlConfig = {
+  default?: unknown;
+  validators?: unknown[];
+  choices?: [unknown, unknown][];
+  renderTrigger?: boolean;
+};
+
+const controlItems = controlPanel.controlPanelSections
+  .filter(
+    (s: ControlPanelSectionConfig | null): s is ControlPanelSectionConfig =>
+      s !== null,
+  )
+  .flatMap((section: ControlPanelSectionConfig) => section.controlSetRows)
+  .flat();
+
+const findControlConfig = (name: string): ControlConfig | undefined =>
+  (controlItems.filter(isCustomControlItem) as CustomControlItem[]).find(
+    (item: CustomControlItem) => item.name === name,
+  )?.config as ControlConfig | undefined;
+
+test('controlPanel exposes a Point Radius control defaulting to 10', () => {
+  const config = findControlConfig('point_radius');
+  expect(config).toBeDefined();
+  expect(config?.default).toBe(10);
+  expect(config?.renderTrigger).toBe(true);
+  expect(config?.validators).toHaveLength(1);
+  expect(config?.choices).toEqual(
+    expect.arrayContaining([
+      [1, '1'],
+      [10, '10'],
+      [100, '100'],
+    ]),
+  );
+});
+
+test('controlPanel Point Radius Scale defaults to 1 with fractional choices', () => {
+  const config = findControlConfig('point_radius_scale');
+  expect(config).toBeDefined();
+  expect(config?.default).toBe(1);
+  expect(config?.renderTrigger).toBe(true);
+  expect(config?.validators).toHaveLength(1);
+  expect(config?.choices).toEqual(
+    expect.arrayContaining([
+      [0.1, '0.1'],
+      [1, '1'],
+      [10, '10'],
+    ]),
+  );
+});
+
+test('controlPanel Point Radius Units defaults to pixels', () => {
+  const config = findControlConfig('point_radius_units');
+  expect(config).toBeDefined();
+  expect(config?.default).toBe('pixels');
+  expect(config?.renderTrigger).toBe(true);
+  expect(config?.choices?.map(([value]) => value)).toEqual([
+    'pixels',
+    'meters',
+    'common',
+  ]);
 });

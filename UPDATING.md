@@ -24,6 +24,32 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Guest-token RLS rules reject unknown fields
+
+The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a *global* rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
+
+### MCP service requires `MCP_JWT_AUDIENCE` when JWT auth is enabled
+
+When the MCP service has JWT auth enabled (`MCP_AUTH_ENABLED = True`), an audience must be configured via `MCP_JWT_AUDIENCE` so issued tokens are bound to this service. The service now fails to start with a clear configuration error when the audience is unset, instead of starting with audience validation skipped. Deployments that enable MCP JWT auth must set `MCP_JWT_AUDIENCE` to the audience value their identity provider issues for the MCP service. API-key-only MCP deployments (JWT auth disabled) are unaffected.
+
+### Swagger UI is opt-in (off by default)
+
+`FAB_API_SWAGGER_UI` now defaults to `False` and is driven by the `SUPERSET_ENABLE_SWAGGER_UI` environment variable. The interactive Swagger UI / OpenAPI documentation endpoints (e.g. `/swagger/v1`) are therefore no longer exposed by default. To enable them, set `SUPERSET_ENABLE_SWAGGER_UI=true` (the bundled Docker development environment sets this) or override `FAB_API_SWAGGER_UI = True` in `superset_config.py`.
+
+### Pivot table First/Last aggregations follow data order
+
+The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
+
+### `thumbnail_url` removed from dashboard list API response
+
+The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list responses. External consumers relying on this field must now construct the thumbnail URL client-side using `id` and `changed_on_utc`:
+
+```
+/api/v1/dashboard/{id}/thumbnail/{changed_on_utc}/
+```
+
+The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
+
 ### Webhook alerts/reports block private/internal hosts by default
 
 Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
@@ -121,6 +147,20 @@ This change is backward compatible. The feature is off by default, and even when
 
 Disabling a user account (setting `active` to `False`, via the admin UI, REST API, or CLI) now terminates that user's outstanding sessions on their next request, instead of relying on a passive check. This works for both client-side cookie sessions and server-side session stores via a per-user invalidation epoch (`user_attribute.sessions_invalidated_at`, added by a migration). The mechanism is inert for users that were never disabled (NULL epoch), so there is no behavior change for active users. Re-enabling an account and logging in again starts a fresh, valid session. The migration backfills the epoch for accounts that are already disabled at upgrade time, so re-enabling such an account does not revive a session that predates this feature.
 
+### Opt-in SSH tunnel server host key verification
+
+SSH tunnels can now optionally pin the expected SSH server host key as a defense-in-depth measure against man-in-the-middle attacks. paramiko's transport performs no known-hosts checking by default, so previously the SSH server's identity was not verified. This feature is opt-in and off by default; existing tunnels are unaffected.
+
+- A new nullable `server_host_key` column on the `ssh_tunnels` table stores the expected host key in authorized-key form (e.g. `ssh-ed25519 AAAA...`). It is a public key and is stored in plaintext. It can be set via the SSH tunnel POST/PUT payloads (`ssh_tunnel.server_host_key`).
+- When a tunnel has `server_host_key` set, Superset connects to the SSH server, reads the host key it presents, and rejects the tunnel if it does not match.
+- A new config flag `SSH_TUNNEL_STRICT_HOST_KEY_CHECKING` (default `False`) controls fail-closed behavior. When `True`, every tunnel must declare a `server_host_key`; a tunnel without one is rejected.
+
+Runbook to adopt:
+
+1. Capture the SSH server's host key, e.g. `ssh-keyscan -t ed25519 ssh.example.com` (verify it out-of-band).
+2. Set that value on the tunnel's `server_host_key` (via the database/SSH tunnel API or UI payload).
+3. Optionally set `SSH_TUNNEL_STRICT_HOST_KEY_CHECKING = True` in `superset_config.py` to require host-key verification on all tunnels.
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
@@ -139,6 +179,36 @@ Both default to empty (no behavior change). They apply to both the `LOCAL_EXTENS
 ### Dynamic Group By respects the sort toggle for display values
 
 The Dynamic Group By chart customization now orders its display values according to the "Sort display control values" toggle: ascending (A–Z), descending (Z–A), or the dataset's source order when the toggle is unset. Previously the dropdown always sorted alphabetically. Existing dashboards where the toggle was never set will show options in source order instead of A–Z; open the customization and enable the toggle to restore alphabetical ordering.
+
+### Selectable encryption engine for app-encrypted fields (AES-GCM)
+
+App-encrypted fields (database passwords, SSH tunnel credentials, OAuth tokens, etc.) can now use authenticated **AES-GCM** encryption instead of the historical unauthenticated **AES-CBC**. A new config selects the engine for the default adapter:
+
+```python
+# "aes" (AES-CBC, historical default) | "aes-gcm" (authenticated, recommended for new installs)
+SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
+```
+
+**No action required / no behavior change:** the default remains `"aes"`, so existing installs are unaffected.
+
+**Opting in on an existing install:** flipping the engine on a populated database without re-encrypting first will make stored secrets undecryptable, because the two ciphertext formats are not compatible. A migrator is provided. Recommended runbook:
+
+1. Take a metadata-DB backup.
+2. Re-encrypt existing secrets into the new engine (the `SECRET_KEY` is unchanged):
+   ```bash
+   superset re-encrypt-secrets --engine aes-gcm
+   ```
+3. Set `SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes-gcm"` in your config.
+4. Restart Superset.
+5. Re-run the migrator once more after the restart:
+   ```bash
+   superset re-encrypt-secrets --engine aes-gcm
+   ```
+   A live instance keeps writing *new* secrets as AES-CBC during the window between step 2 and the restart in step 4; this second pass sweeps those up (it is idempotent, so already-migrated values are skipped).
+
+Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
+
+The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
 
 ### Granular Export Controls
 
@@ -169,6 +239,9 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 - The endpoint is available to users with at least one of `can_read` on `Dataset` or `SemanticView`.
 - Semantic views are included only when the `SEMANTIC_LAYERS` feature flag is enabled.
 - The endpoint enforces strict `order_column` validation and returns `400` for invalid sort columns.
+
+## 6.1.0
+
 ### ClickHouse minimum driver version bump
 
 The minimum required version of `clickhouse-connect` has been raised to `>=0.13.0`. If you are using the ClickHouse connector, please upgrade your `clickhouse-connect` package. The `_mutate_label` workaround that appended hash suffixes to column aliases has also been removed, as it is no longer needed with modern versions of the driver.

@@ -52,6 +52,7 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
+from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
 from superset.db_engine_specs import get_available_engine_specs
@@ -375,9 +376,18 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     # Check if UI theme administration is enabled
     enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False)
 
-    # Get config themes to use as fallback
+    # Get config themes, deep-merging partial user overrides with built-in defaults
+    # so that unspecified token fields fall back gracefully.
     config_theme_default = get_config_value("THEME_DEFAULT")
+    if config_theme_default:
+        config_theme_default = _merge_theme_dicts(
+            dict(_THEME_DEFAULT_BASE), dict(config_theme_default)
+        )
     config_theme_dark = get_config_value("THEME_DARK")
+    if config_theme_dark:
+        config_theme_dark = _merge_theme_dicts(
+            dict(_THEME_DARK_BASE), dict(config_theme_dark)
+        )
 
     if enable_ui_admin:
         # Try to load themes from database
@@ -730,11 +740,20 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
 class CsvResponse(Response):
     """
-    Override Response to take into account csv encoding from config.py
+    Response that encodes its body with the configured CSV_EXPORT encoding.
+
+    Werkzeug 3.0 removed ``Response.charset``, which this class relied on,
+    so the configured encoding (e.g. the default "utf-8-sig") was silently
+    ignored and bodies were always plain utf-8.
     """
 
-    charset = app.config["CSV_EXPORT"].get("encoding", "utf-8")
     default_mimetype = "text/csv"
+
+    def __init__(self, response: Any = None, *args: Any, **kwargs: Any) -> None:
+        if isinstance(response, str):
+            encoding = app.config["CSV_EXPORT"].get("encoding", "utf-8")
+            response = response.encode(encoding)
+        super().__init__(response, *args, **kwargs)
 
 
 class XlsxResponse(Response):
