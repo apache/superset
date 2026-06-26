@@ -27,7 +27,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.exceptions import AcquireDistributedLockFailedException
+from superset.exceptions import LockAlreadyHeldException
 from superset.utils.screenshots import (
     BaseScreenshot,
     ScreenshotCachePayload,
@@ -429,8 +429,8 @@ class TestIntegrationCacheBugFix:
         """compute_and_cache exits without rendering when the distributed lock
         is already held by another worker — atomically preventing duplicate Selenium."""
         mock_lock = mocker.patch(DISTRIBUTED_LOCK_PATH)
-        mock_lock.return_value.__enter__.side_effect = (
-            AcquireDistributedLockFailedException("lock held")
+        mock_lock.return_value.__enter__.side_effect = LockAlreadyHeldException(
+            "lock held"
         )
         get_screenshot = mocker.patch(BASE_SCREENSHOT_PATH + ".get_screenshot")
         BaseScreenshot.cache = MockCache()

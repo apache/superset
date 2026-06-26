@@ -28,7 +28,7 @@ from flask import current_app as app
 from superset import feature_flag_manager, thumbnail_cache
 from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
-    AcquireDistributedLockFailedException,
+    LockAlreadyHeldException,
     ScreenshotImageNotAvailableException,
 )
 from superset.extensions import event_logger
@@ -336,7 +336,7 @@ class BaseScreenshot:
                 logger.info(
                     "Updated thumbnail cache; Status: %s", cache_payload.get_status()
                 )
-        except AcquireDistributedLockFailedException:
+        except LockAlreadyHeldException:
             logger.info(
                 "Skipping duplicate thumbnail task for %s - lock already held",
                 cache_key,
