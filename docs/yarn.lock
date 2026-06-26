@@ -4138,6 +4138,41 @@
   version "1.11.0"
   resolved "https://registry.yarnpkg.com/@swagger-api/apidom-reference/-/apidom-reference-1.11.0.tgz#9deaff0a93e46058c090946394dbb83975a86a51"
   integrity sha512-ftqegYrxxl9UwQFbdVOtXIqNolVd25M5u53X8fP96Wx6lEVr5Ed7B6+dzch8ttCUmKeoLIeagvt76b6BoYtnLw==
+  dependencies:
+    "@babel/runtime-corejs3" "^7.26.10"
+    "@swagger-api/apidom-core" "^1.11.0"
+    "@swagger-api/apidom-error" "^1.11.0"
+    "@types/ramda" "~0.30.0"
+    axios "^1.15.0"
+    minimatch "^10.2.1"
+    ramda "~0.30.0"
+    ramda-adjunct "^5.0.0"
+  optionalDependencies:
+    "@swagger-api/apidom-json-pointer" "^1.11.0"
+    "@swagger-api/apidom-ns-arazzo-1" "^1.11.0"
+    "@swagger-api/apidom-ns-asyncapi-2" "^1.11.0"
+    "@swagger-api/apidom-ns-openapi-2" "^1.11.0"
+    "@swagger-api/apidom-ns-openapi-3-0" "^1.11.0"
+    "@swagger-api/apidom-ns-openapi-3-1" "^1.11.0"
+    "@swagger-api/apidom-ns-openapi-3-2" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-api-design-systems-json" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-api-design-systems-yaml" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-arazzo-json-1" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-arazzo-yaml-1" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-asyncapi-json-2" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-asyncapi-json-3" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-asyncapi-yaml-2" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-asyncapi-yaml-3" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-json" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-openapi-json-2" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-openapi-json-3-0" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-openapi-json-3-1" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-openapi-json-3-2" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-openapi-yaml-2" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-openapi-yaml-3-0" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-openapi-yaml-3-1" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-openapi-yaml-3-2" "^1.11.0"
+    "@swagger-api/apidom-parser-adapter-yaml-1-2" "^1.11.0"
 
 "@swaggerexpert/cookie@^2.0.2":
   version "2.0.2"
@@ -6537,6 +6572,11 @@ cssfilter@0.0.10:
   version "0.0.10"
   resolved "https://registry.npmjs.org/cssfilter/-/cssfilter-0.0.10.tgz"
   integrity sha512-FAaLDaplstoRsDR8XGYH51znUN0UY7nMc6Z9/fvE8EXGwvJE9hu7W2vHwx1+bd6gCYnln9nLbzxFTrcO9YQDZw==
+
+cssjanus@^2.0.1:
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/cssjanus/-/cssjanus-2.3.0.tgz#af91e639a34d8b241e5032824f3f1b7f8dd91557"
+  integrity sha512-ZZXXn51SnxRxAZ6fdY7mBDPmA4OZd83q/J9Gdqz3YmE9TUq+9tZl+tdOnCi7PpNygI6PEkehj9rgifv5+W8a5A==
 
 cssnano-preset-advanced@^6.1.2:
   version "6.1.2"
@@ -14059,6 +14099,13 @@ stylehacks@^6.1.1:
   dependencies:
     browserslist "^4.23.0"
     postcss-selector-parser "^6.0.16"
+
+stylis-plugin-rtl@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/stylis-plugin-rtl/-/stylis-plugin-rtl-2.1.1.tgz#16707809c878494835f77e5d4aadaae3db639b5e"
+  integrity sha512-q6xIkri6fBufIO/sV55md2CbgS5c6gg9EhSVATtHHCdOnbN/jcI0u3lYhNVeuI65c4lQPo67g8xmq5jrREvzlg==
+  dependencies:
+    cssjanus "^2.0.1"
 
 stylis@4.2.0:
   version "4.2.0"
