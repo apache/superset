@@ -16,6 +16,7 @@
 # under the License.
 
 import math
+from typing import Optional
 
 from flask_babel import lazy_gettext as _
 
@@ -198,6 +199,26 @@ class ReportScheduleCsvFailedError(CommandException):
 
 class ReportScheduleDataFrameFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a dataframe.")
+
+
+class ReportScheduleExecutorNotFoundError(CommandException):
+    """Raised when the configured report executor user cannot be resolved."""
+
+    # 5xx (not 4xx): a missing executor user is a server-side misconfiguration,
+    # not a malformed client request. The status drives get_logger_from_status,
+    # which marks the Celery task FAILURE for 5xx — keeping the executor problem
+    # visible to ops task-state alerting. A 4xx would log a WARNING and leave the
+    # task non-FAILURE, hiding the misconfiguration from that signal.
+    status = 500
+
+    def __init__(self, username: str = "", exception: Optional[Exception] = None):
+        super().__init__(
+            _(
+                "Report Schedule executor user %(username)s was not found.",
+                username=f'"{username}"' if username else "(unknown)",
+            ),
+            exception,
+        )
 
 
 class ReportScheduleExecuteUnexpectedError(CommandException):
