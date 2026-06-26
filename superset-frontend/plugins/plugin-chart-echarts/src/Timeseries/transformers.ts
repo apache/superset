@@ -568,7 +568,7 @@ export function transformIntervalAnnotation(
     animation: false,
     z: 10,
     markArea: {
-      silent: false,
+      silent: true,
       itemStyle: {
         color: color || colorScale(name, sliceId),
         opacity: parseAnnotationOpacity(opacity || AnnotationOpacity.Medium),
@@ -664,7 +664,7 @@ export function transformEventAnnotation(
     animation: false,
     z: 10,
     markLine: {
-      silent: false,
+      silent: true,
       symbol: 'none',
       lineStyle,
       label: eventLabel,

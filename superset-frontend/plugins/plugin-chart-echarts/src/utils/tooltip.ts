@@ -144,6 +144,11 @@ export function getDefaultTooltip(refs: Refs) {
       // (markLine/markArea labels rendered at insideEndTop are within the first ~40px)
       if (divRect) {
         yPos = Math.max(yPos, divRect.y + TOOLTIP_TOP_CLEARANCE);
+        // Re-apply bottom overflow check in case top clearance pushed the tooltip off-screen
+        if (yPos + effectiveTooltipHeight >= viewportHeight) {
+          yPos =
+            viewportHeight - effectiveTooltipHeight - TOOLTIP_OVERFLOW_MARGIN;
+        }
       }
 
       // Return the position (converted back to a relative position on the canvas)
