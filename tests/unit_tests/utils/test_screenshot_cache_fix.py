@@ -383,8 +383,12 @@ class TestIntegrationCacheBugFix:
 
     @patch("superset.utils.screenshots.app")
     def test_stale_computing_triggers_retry(
-        self, mock_app, mocker: MockerFixture, screenshot_obj, mock_user
-    ):
+        self,
+        mock_app: MagicMock,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
+    ) -> None:
         """
         Integration test: Stale COMPUTING status should trigger retry
         to recover from stuck tasks.
