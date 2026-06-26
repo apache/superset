@@ -38,7 +38,7 @@ When the MCP service has JWT auth enabled (`MCP_AUTH_ENABLED = True`), an audien
 
 ### Build details (git SHA / build number) are admin-only by default
 
-The git SHA and build number surfaced in the "About" section and the bootstrap payload are now only included for admin users by default; the release version string is still shown to everyone. To expose the build details to all users (the previous behavior), set the `SUPERSET_EXPOSE_BUILD_DETAILS` environment variable (or `EXPOSE_BUILD_DETAILS_TO_USERS = True` in `superset_config.py`).
+The git SHA and build number surfaced in the "About" section, the bootstrap payload, and the public `/version` endpoint are now only included for admin users by default; the release version string is still shown to everyone. To expose the build details to all users (the previous behavior), set the `SUPERSET_EXPOSE_BUILD_DETAILS` environment variable (or `EXPOSE_BUILD_DETAILS_TO_USERS = True` in `superset_config.py`).
 
 ### Pivot table First/Last aggregations follow data order
 
