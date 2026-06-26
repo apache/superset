@@ -18,7 +18,11 @@
 import warnings
 
 import pytest
-from slack_sdk.errors import SlackApiError, SlackClientNotConnectedError
+from slack_sdk.errors import (
+    SlackApiError,
+    SlackClientNotConnectedError,
+    SlackRequestError,
+)
 
 from superset.utils.slack import (
     _emit_v1_flag_off_deprecation,
@@ -402,21 +406,50 @@ class TestShouldUseV2Api:
         assert "probe failed" in msg
         assert "channels:read" not in msg
 
-    def test_propagates_non_slack_api_errors_from_probe(self, mocker):
-        """Any non-`SlackApiError` exception from the probe (network issue,
-        unexpected SDK error) propagates out of `should_use_v2_api` rather than
-        silently falling back to v1. Falling back on a non-API error would
-        mask real bugs as "you don't have channels:read", which is misleading.
+    @pytest.mark.parametrize(
+        "exception",
+        [
+            SlackClientNotConnectedError("transport closed"),
+            SlackRequestError("bad request args"),
+        ],
+    )
+    def test_returns_false_on_slack_sdk_client_error_from_probe(
+        self, exception: Exception, mocker
+    ):
+        """Non-`SlackApiError` SDK failures (e.g. `SlackClientNotConnectedError`,
+        `SlackRequestError`) are not subclasses of `SlackApiError`, so before the
+        fix they escaped the probe raw. Because `should_use_v2_api` runs *before*
+        the mapped Slack send `try`, that aborted the whole recipient loop instead
+        of failing a single recipient. The probe must now treat any SDK client
+        error as "v2 unavailable" and fall back to the deprecated v1 API so the
+        send still flows through the per-recipient error handling.
         """
         mocker.patch(
             "superset.utils.slack.feature_flag_manager.is_feature_enabled",
             return_value=True,
         )
         mock_client = mocker.Mock()
-        mock_client.conversations_list.side_effect = SlackClientNotConnectedError(
-            "transport closed"
+        mock_client.conversations_list.side_effect = exception
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+        logger_mock = mocker.patch("superset.utils.slack.logger")
+
+        assert should_use_v2_api() is False
+        assert logger_mock.warning.call_count == 1
+        assert "probe failed to connect" in logger_mock.warning.call_args.args[0]
+
+    def test_propagates_non_sdk_errors_from_probe(self, mocker):
+        """A truly unexpected, non-SDK exception (e.g. a programming error) still
+        propagates out of `should_use_v2_api` rather than being silently swallowed
+        as a v1 fallback — only Slack SDK client errors are treated as a graceful
+        "v2 unavailable" signal.
+        """
+        mocker.patch(
+            "superset.utils.slack.feature_flag_manager.is_feature_enabled",
+            return_value=True,
         )
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.side_effect = RuntimeError("unexpected boom")
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
-        with pytest.raises(SlackClientNotConnectedError):
+        with pytest.raises(RuntimeError):
             should_use_v2_api()

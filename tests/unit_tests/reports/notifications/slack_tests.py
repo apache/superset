@@ -16,6 +16,7 @@
 # under the License.
 
 import uuid
+from typing import Any
 from unittest.mock import call, MagicMock, patch
 
 import pandas as pd
@@ -30,6 +31,7 @@ from slack_sdk.errors import (
     SlackRequestError,
     SlackTokenRotationError,
 )
+from slack_sdk.web.slack_response import SlackResponse
 
 from superset.reports.notifications.exceptions import (
     NotificationAuthorizationException,
@@ -37,7 +39,10 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
     NotificationUnprocessableException,
 )
-from superset.reports.notifications.slackv2 import SlackV2Notification
+from superset.reports.notifications.slackv2 import (
+    _give_up_slack_api_retry,
+    SlackV2Notification,
+)
 from superset.utils.core import HeaderDataType
 
 
@@ -870,6 +875,60 @@ def test_v2_send_does_not_retry_param_errors(
         notification.send()
 
     assert slack_client_mock.return_value.chat_postMessage.call_count == 1
+
+
+def _make_slack_response(status_code: int, data: dict[str, Any]) -> SlackResponse:
+    """Build an SDK-faithful SlackResponse that carries a real ``status_code``.
+
+    The existing retry tests pass ``SlackApiError(response={...})`` — a plain
+    dict, which has no ``status_code`` attribute. That makes
+    ``_get_slack_api_status_code`` return ``None`` and the ``429 / 5xx → retry``
+    branch in ``_give_up_slack_api_retry`` is never exercised. The real SDK hands
+    back a ``SlackResponse`` with a populated ``status_code``, so we mirror that
+    here to cover the status-code branch faithfully.
+    """
+    return SlackResponse(
+        client=None,
+        http_verb="POST",
+        api_url="https://slack.com/api/chat.postMessage",
+        req_args={},
+        data=data,
+        headers={},
+        status_code=status_code,
+    )
+
+
+@pytest.mark.parametrize(
+    "status_code,data",
+    [
+        # 5xx with an empty / unknown body: no `error` code to classify, so the
+        # status-code branch is the only thing that can decide to retry. This is
+        # the case the dict-based tests silently lost.
+        (503, {"ok": False}),
+        (502, {}),
+        # Rate limiting is retryable by status code as well as error code.
+        (429, {"ok": False, "error": "ratelimited"}),
+    ],
+)
+def test_give_up_slack_api_retry_retries_on_status_code(
+    status_code: int, data: dict[str, Any]
+) -> None:
+    response = _make_slack_response(status_code, data)
+    ex = SlackApiError(message="transient", response=response)
+
+    # give_up == False -> the request WILL be retried by backoff.
+    assert _give_up_slack_api_retry(ex) is False
+
+
+def test_give_up_slack_api_retry_gives_up_on_permanent_status_code() -> None:
+    """Control: a 4xx (non-429) with a non-transient error code is not retried,
+    even when carried by a faithful SlackResponse — so the new helper above is
+    asserting the status-code branch, not merely that everything retries.
+    """
+    response = _make_slack_response(404, {"ok": False, "error": "channel_not_found"})
+    ex = SlackApiError(message="permanent", response=response)
+
+    assert _give_up_slack_api_retry(ex) is True
 
 
 @patch("superset.reports.notifications.slackv2.g")

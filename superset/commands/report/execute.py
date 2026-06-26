@@ -135,46 +135,55 @@ class BaseReportState:
         """
         Update the report schedule type and channels for all slack recipients to v2.
         V2 uses ids instead of names for channels.
+
+        Channel ids for every Slack recipient are resolved first and the
+        recipients are only mutated once all of them resolve. This keeps the
+        upgrade all-or-nothing: a single unresolvable channel can no longer
+        leave the schedule with some recipients already switched to v2 (and
+        persisted by a later error-log commit) while others are untouched.
         """
+        resolved: list[tuple[ReportRecipients, str]] = []
         try:
             for recipient in self._report_schedule.recipients:
-                if recipient.type == ReportRecipientType.SLACK:
-                    recipient.type = ReportRecipientType.SLACKV2
-                    slack_recipients = json.loads(recipient.recipient_config_json)
-                    # V1 method allowed to use leading `#` in the channel name
-                    channel_names = (slack_recipients["target"] or "").replace("#", "")
-                    # we need to ensure that existing reports can also fetch
-                    # ids from private channels
-                    channels = get_channels_with_search(
-                        search_string=channel_names,
-                        types=[
-                            SlackChannelTypes.PRIVATE,
-                            SlackChannelTypes.PUBLIC,
-                        ],
-                        exact_match=True,
+                if recipient.type != ReportRecipientType.SLACK:
+                    continue
+                slack_recipients = json.loads(recipient.recipient_config_json)
+                # V1 method allowed to use leading `#` in the channel name
+                channel_names = (slack_recipients["target"] or "").replace("#", "")
+                # we need to ensure that existing reports can also fetch
+                # ids from private channels
+                channels = get_channels_with_search(
+                    search_string=channel_names,
+                    types=[
+                        SlackChannelTypes.PRIVATE,
+                        SlackChannelTypes.PUBLIC,
+                    ],
+                    exact_match=True,
+                )
+                channels_list = recipients_string_to_list(channel_names)
+                if len(channels_list) != len(channels):
+                    missing_channels = set(channels_list) - {
+                        channel["name"] for channel in channels
+                    }
+                    msg = (
+                        "Could not find the following channels: "
+                        f"{', '.join(missing_channels)}"
                     )
-                    channels_list = recipients_string_to_list(channel_names)
-                    if len(channels_list) != len(channels):
-                        missing_channels = set(channels_list) - {
-                            channel["name"] for channel in channels
-                        }
-                        msg = (
-                            "Could not find the following channels: "
-                            f"{', '.join(missing_channels)}"
-                        )
-                        raise UpdateFailedError(msg)
-                    channel_ids = ",".join(channel["id"] for channel in channels)
-                    recipient.recipient_config_json = json.dumps(
-                        {
-                            "target": channel_ids,
-                        }
-                    )
+                    raise UpdateFailedError(msg)
+                channel_ids = ",".join(channel["id"] for channel in channels)
+                resolved.append((recipient, json.dumps({"target": channel_ids})))
         except Exception as ex:
-            # Revert to v1 to preserve configuration (requires manual fix)
-            recipient.type = ReportRecipientType.SLACK
+            # No recipient has been mutated yet, so there is no partial upgrade
+            # to revert; surface the failure so the configuration can be fixed
+            # manually.
             msg = f"Failed to update slack recipients to v2: {str(ex)}"
             logger.exception(msg)
             raise UpdateFailedError(msg) from ex
+
+        # Every Slack recipient resolved; apply the upgrade atomically.
+        for recipient, recipient_config_json in resolved:
+            recipient.type = ReportRecipientType.SLACKV2
+            recipient.recipient_config_json = recipient_config_json
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """

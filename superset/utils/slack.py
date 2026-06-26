@@ -23,7 +23,7 @@ from typing import Callable, Optional
 
 from flask import current_app as app
 from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
+from slack_sdk.errors import SlackApiError, SlackClientError as SlackSDKClientError
 from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 
 from superset import feature_flag_manager
@@ -265,6 +265,22 @@ def should_use_v2_api() -> bool:
                 "Slack API error — this is not a missing-scope problem.",
                 error_code or str(ex),
             )
+        return False
+    except SlackSDKClientError as ex:
+        # Non-API SDK failures (e.g. SlackClientNotConnectedError,
+        # SlackRequestError, SlackClientConfigurationError) are not subclasses
+        # of SlackApiError, so without this branch they would escape the probe
+        # raw. The caller runs this probe *before* the mapped Slack send `try`,
+        # so an un-caught probe error aborts the entire recipient loop instead
+        # of failing a single recipient. Treat any probe connection/transport
+        # failure as "v2 unavailable" and fall back to the deprecated v1 API,
+        # matching the SlackApiError behavior above.
+        logger.warning(
+            "Slack v2 probe failed to connect (%s: %s); falling back to the "
+            "deprecated v1 API for this send.",
+            type(ex).__name__,
+            ex,
+        )
         return False
 
 
