@@ -230,7 +230,7 @@ export default function CRUDCollection({
     if (itemGenerator) {
       let newItem = itemGenerator() as CollectionItem;
       const shouldStartExpanded = newItem.expanded === true;
-      if (!newItem.id) {
+      if (newItem.id == null) {
         newItem = { ...newItem, id: nanoid() };
       }
       delete newItem.expanded;
