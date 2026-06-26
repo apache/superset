@@ -452,6 +452,38 @@ async def test_refetch_failure_rolls_back_and_returns_minimal_response(
     assert "/superset/dashboard/7/" in content["dashboard_url"]
 
 
+@patch("superset.commands.dashboard.copy.CopyDashboardCommand")
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_malformed_metadata_returns_structured_error(
+    mock_get_by_id_or_slug: Mock,
+    mock_copy_cmd_cls: Mock,
+    mcp_server: object,
+) -> None:
+    """Malformed source metadata yields a structured error, not a crash.
+
+    The copy command parses the source's stored params/json_metadata again
+    via ``set_dash_metadata``; on malformed JSON that raises a
+    ``ValueError``/``JSONDecodeError`` which the transaction handler does not
+    wrap as ``DashboardCopyError``. The tool must catch it and return a normal
+    error response rather than letting it escape as a hard tool failure.
+    """
+    source = _mock_dashboard(id=1, slices=[_mock_chart(id=10)])
+    mock_get_by_id_or_slug.return_value = source
+    mock_copy_cmd_cls.return_value.run.side_effect = ValueError("Expecting value")
+
+    with patch("superset.db.session"):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "duplicate_dashboard",
+                {"request": {"dashboard_id": 1, "dashboard_title": "Copy"}},
+            )
+
+    content = result.structured_content
+    assert content["dashboard"] is None
+    assert "metadata is invalid" in (content["error"] or "")
+
+
 def test_title_xss_only_rejected_by_schema() -> None:
     """A title that sanitizes to nothing is rejected with a clear error."""
     from pydantic import ValidationError

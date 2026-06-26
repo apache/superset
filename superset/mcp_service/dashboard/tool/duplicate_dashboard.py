@@ -139,6 +139,113 @@ def _serialize_new_dashboard(dashboard: Any) -> tuple[DashboardInfo, str]:
     return _sanitize_dashboard_info_for_llm_context(info), dashboard_url
 
 
+def _safe_rollback(context_label: str) -> None:
+    """Roll back the current DB session, swallowing rollback failures.
+
+    A failed operation can leave the shared session in an invalid
+    transaction state; rolling back keeps later ORM use in the same request
+    lifecycle from inheriting the broken transaction.
+    """
+    from superset import db
+
+    try:
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+    except SQLAlchemyError:
+        logger.warning(
+            "Database rollback failed during %s error handling",
+            context_label,
+            exc_info=True,
+        )
+
+
+def _refetch_and_serialize(
+    new_dashboard: Any, dashboard_title: str
+) -> tuple[DashboardInfo, str]:
+    """Re-fetch the new dashboard with eager-loaded relationships.
+
+    The eager load avoids lazy-loading on a session the command's commit may
+    have invalidated. If the re-fetch fails, the failed transaction is rolled
+    back and a minimal response is returned instead.
+    """
+    from sqlalchemy.orm import subqueryload
+
+    from superset.daos.dashboard import DashboardDAO
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    try:
+        dashboard = (
+            DashboardDAO.find_by_id(
+                new_dashboard.id,
+                query_options=[
+                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                    subqueryload(Dashboard.tags),
+                ],
+            )
+            or new_dashboard
+        )
+        return _serialize_new_dashboard(dashboard)
+    except SQLAlchemyError:
+        logger.warning(
+            "Re-fetch of dashboard %s failed; returning minimal response",
+            new_dashboard.id,
+            exc_info=True,
+        )
+        _safe_rollback("dashboard re-fetch")
+        dashboard_url = (
+            f"{get_superset_base_url()}/superset/dashboard/{new_dashboard.id}/"
+        )
+        info = _sanitize_dashboard_info_for_llm_context(
+            DashboardInfo(
+                id=new_dashboard.id,
+                dashboard_title=dashboard_title,
+                url=dashboard_url,
+            )
+        )
+        return info, dashboard_url
+
+
+async def _resolve_source(
+    request: DuplicateDashboardRequest, ctx: Context
+) -> tuple[Any, DuplicateDashboardResponse | None]:
+    """Resolve and authorize the source dashboard.
+
+    Returns ``(source, None)`` on success, or ``(None, error_response)`` when
+    the dashboard is missing or inaccessible.
+    """
+    from superset.commands.dashboard.exceptions import (
+        DashboardAccessDeniedError,
+        DashboardNotFoundError,
+    )
+    from superset.daos.dashboard import DashboardDAO
+
+    with event_logger.log_context(action="mcp.duplicate_dashboard.lookup"):
+        try:
+            return DashboardDAO.get_by_id_or_slug(str(request.dashboard_id)), None
+        except DashboardNotFoundError:
+            await ctx.warning(
+                "Dashboard not found for duplication: dashboard_id=%s"
+                % (request.dashboard_id,)
+            )
+            return None, DuplicateDashboardResponse(
+                error=(
+                    f"Dashboard '{request.dashboard_id}' not found. "
+                    "Use list_dashboards to get valid dashboard IDs."
+                ),
+            )
+        except DashboardAccessDeniedError:
+            await ctx.warning(
+                "Dashboard access denied for duplication: dashboard_id=%s"
+                % (request.dashboard_id,)
+            )
+            return None, DuplicateDashboardResponse(
+                error=(
+                    f"You don't have access to dashboard "
+                    f"'{request.dashboard_id}', so it cannot be duplicated."
+                ),
+            )
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -170,40 +277,15 @@ async def duplicate_dashboard(
 
     from superset.commands.dashboard.copy import CopyDashboardCommand
     from superset.commands.dashboard.exceptions import (
-        DashboardAccessDeniedError,
         DashboardCopyError,
         DashboardForbiddenError,
         DashboardInvalidError,
-        DashboardNotFoundError,
     )
-    from superset.daos.dashboard import DashboardDAO
 
     try:
-        with event_logger.log_context(action="mcp.duplicate_dashboard.lookup"):
-            try:
-                source = DashboardDAO.get_by_id_or_slug(str(request.dashboard_id))
-            except DashboardNotFoundError:
-                await ctx.warning(
-                    "Dashboard not found for duplication: dashboard_id=%s"
-                    % (request.dashboard_id,)
-                )
-                return DuplicateDashboardResponse(
-                    error=(
-                        f"Dashboard '{request.dashboard_id}' not found. "
-                        "Use list_dashboards to get valid dashboard IDs."
-                    ),
-                )
-            except DashboardAccessDeniedError:
-                await ctx.warning(
-                    "Dashboard access denied for duplication: dashboard_id=%s"
-                    % (request.dashboard_id,)
-                )
-                return DuplicateDashboardResponse(
-                    error=(
-                        f"You don't have access to dashboard "
-                        f"'{request.dashboard_id}', so it cannot be duplicated."
-                    ),
-                )
+        source, error_response = await _resolve_source(request, ctx)
+        if error_response is not None:
+            return error_response
 
         data, layout_has_charts = _build_copy_payload(
             source, request.dashboard_title, request.duplicate_slices
@@ -227,50 +309,9 @@ async def duplicate_dashboard(
         with event_logger.log_context(action="mcp.duplicate_dashboard.copy"):
             new_dashboard = CopyDashboardCommand(source, data).run()
 
-        # Re-fetch with eager-loaded relationships to avoid lazy-loading on
-        # a session that the command's commit may have invalidated.
-        from sqlalchemy.orm import subqueryload
-
-        from superset.models.dashboard import Dashboard
-        from superset.models.slice import Slice
-
-        try:
-            new_dashboard = (
-                DashboardDAO.find_by_id(
-                    new_dashboard.id,
-                    query_options=[
-                        subqueryload(Dashboard.slices).subqueryload(Slice.tags),
-                        subqueryload(Dashboard.tags),
-                    ],
-                )
-                or new_dashboard
-            )
-            info, dashboard_url = _serialize_new_dashboard(new_dashboard)
-        except SQLAlchemyError:
-            logger.warning(
-                "Re-fetch of dashboard %s failed; returning minimal response",
-                new_dashboard.id,
-                exc_info=True,
-            )
-            from superset import db
-
-            try:
-                db.session.rollback()  # pylint: disable=consider-using-transaction
-            except SQLAlchemyError:
-                logger.warning(
-                    "Database rollback failed during dashboard re-fetch error handling",
-                    exc_info=True,
-                )
-            dashboard_url = (
-                f"{get_superset_base_url()}/superset/dashboard/{new_dashboard.id}/"
-            )
-            info = _sanitize_dashboard_info_for_llm_context(
-                DashboardInfo(
-                    id=new_dashboard.id,
-                    dashboard_title=request.dashboard_title,
-                    url=dashboard_url,
-                )
-            )
+        info, dashboard_url = _refetch_and_serialize(
+            new_dashboard, request.dashboard_title
+        )
 
         logger.info(
             "Duplicated dashboard %s into dashboard %s (duplicate_slices=%s)",
@@ -304,17 +345,28 @@ async def duplicate_dashboard(
             ),
         )
     except DashboardCopyError as exc:
-        from superset import db
-
-        try:
-            db.session.rollback()  # pylint: disable=consider-using-transaction
-        except SQLAlchemyError:
-            logger.warning(
-                "Database rollback failed during error handling", exc_info=True
-            )
+        _safe_rollback("dashboard duplication")
         await ctx.error("Dashboard duplication failed: %s" % (str(exc),))
         return DuplicateDashboardResponse(
             error=f"Failed to duplicate dashboard: {exc}",
+        )
+    except (ValueError, TypeError) as exc:
+        # Malformed stored metadata on the source (e.g. invalid json_metadata
+        # or params) surfaces as a JSON/parse error from CopyDashboardCommand
+        # rather than a DashboardCopyError, because the transaction handler
+        # only wraps SQLAlchemyError. Return a structured response instead of
+        # letting it escape as a hard tool failure.
+        _safe_rollback("dashboard duplication")
+        await ctx.error(
+            "Dashboard duplication failed parsing source metadata: %s: %s"
+            % (type(exc).__name__, str(exc))
+        )
+        return DuplicateDashboardResponse(
+            error=(
+                f"Dashboard '{request.dashboard_id}' could not be duplicated "
+                "because its stored metadata is invalid. Open and re-save the "
+                "source dashboard to repair it, then try again."
+            ),
         )
     except Exception as exc:
         await ctx.error(
