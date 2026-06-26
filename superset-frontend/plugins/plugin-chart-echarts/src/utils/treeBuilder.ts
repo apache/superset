@@ -96,7 +96,7 @@ export function treeBuilder(
   // secondaryValue/value ratio for coloring and tooltips.
   return filterNullNames
     ? nodes.filter(
-        node => node.name !== null && !(node.children && !node.children.length),
+        node => node.name !== null && node.children?.length !== 0,
       )
     : nodes;
 }
