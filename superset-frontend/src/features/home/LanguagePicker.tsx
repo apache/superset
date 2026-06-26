@@ -23,7 +23,7 @@ import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { DirectionType } from 'antd/es/config-provider';
-import { rtlLanguages } from 'src/constants';
+import { getDirectionFromLocale } from 'src/utils/localeUtils';
 
 export interface Languages {
   [key: string]: {
@@ -62,9 +62,7 @@ export const useLanguageMenuItems = ({
 }: LanguagePickerProps): MenuItem => {
 
   useEffect(() => {
-    const languageCode = locale.split('-')[0];
-    const isRtl = rtlLanguages.includes(languageCode);
-    setDirection(isRtl ? 'rtl' : 'ltr');
+    setDirection(getDirectionFromLocale(locale));
   }, [locale, setDirection]);
 
   return useMemo(() => {

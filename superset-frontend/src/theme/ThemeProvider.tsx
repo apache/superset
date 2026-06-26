@@ -25,7 +25,6 @@ import {
   useState,
 } from 'react';
 import { DirectionType } from 'antd/es/config-provider';
-import {} from '@superset-ui/core';
 import {
   type AnyThemeConfig,
   type ThemeContextType,

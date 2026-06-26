@@ -2133,6 +2133,20 @@ test('ThemeController initializes direction from bootstrap locale', () => {
   expect(mockSetDirection).toHaveBeenCalledWith('rtl');
 });
 
+test('ThemeController initializes direction with ltr for English locale', () => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      ...createMockBootstrapData().common,
+      locale: 'en',
+      menu_data: {},
+    } as unknown as CommonBootstrapData,
+  });
+
+  createController();
+
+  expect(mockSetDirection).toHaveBeenCalledWith('ltr');
+});
+
 test('ThemeController initializes direction from common locale when navbar locale is absent', () => {
   mockGetBootstrapData.mockReturnValue({
     common: {

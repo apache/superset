@@ -27,9 +27,7 @@ export function getLanguageCodeFromLocale(locale: string): string {
 
 export function getDirectionFromLocale(locale: string): TextDirection {
   const languageCode = getLanguageCodeFromLocale(locale);
-  return rtlLanguages.includes(languageCode as (typeof rtlLanguages)[number])
-    ? 'rtl'
-    : 'ltr';
+  return rtlLanguages.includes(languageCode) ? 'rtl' : 'ltr';
 }
 
 export function getBootstrapLocale(): string {
