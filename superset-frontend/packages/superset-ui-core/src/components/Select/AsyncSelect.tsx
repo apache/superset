@@ -113,7 +113,7 @@ const AsyncSelect = forwardRef(
       allowClear,
       allowNewOptions = false,
       ariaLabel,
-      autoClearSearchValue = false,
+      autoClearSearchValue = true,
       fetchOnlyOnSearch,
       filterOption = true,
       header = null,
@@ -266,6 +266,12 @@ const AsyncSelect = forwardRef(
           return previousState;
         });
         fireOnChange();
+      }
+      if (autoClearSearchValue) {
+        setInputValue('');
+        if (fetchOnlyOnSearch) {
+          setSelectOptions([]);
+        }
       }
       onSelect?.(selectedItem, option);
     };

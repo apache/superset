@@ -940,7 +940,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       const errors = await getValidation(dbToUpdate, true);
-      if (!isEmpty(validationErrors) || errors?.length) {
+      if (!isEmpty(validationErrors) || !isEmpty(errors)) {
         addDangerToast(
           t('Connection failed, please check your connection settings.'),
         );

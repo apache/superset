@@ -46,7 +46,15 @@ def async_query_manager():
 
 def set_current_as_guest_user():
     g.user = security_manager.get_guest_user_from_token(
-        {"user": {}, "resources": [{"type": "dashboard", "id": "some-uuid"}]}
+        {
+            "user": {},
+            "resources": [{"type": "dashboard", "id": "some-uuid"}],
+            "rls_rules": [{"clause": '"STATEID" = 3'}],
+            "iat": 1700000000.0,
+            "exp": 1700000300.0,
+            "aud": "http://0.0.0.0:8080/",
+            "type": "guest",
+        }
     )
 
 
@@ -145,6 +153,75 @@ def test_parse_channel_id_from_request_bad_jwt(async_query_manager):
         async_query_manager.parse_channel_id_from_request(request)
 
 
+@mock.patch("superset.is_feature_enabled")
+def test_parse_channel_id_from_request_as_guest_user_no_cookie(
+    is_feature_enabled_mock, async_query_manager
+):
+    """
+    Embedded guest sessions cannot rely on the async-token cookie because
+    cross-origin cookies are blocked or stripped by modern browsers when the
+    dashboard is rendered inside a third-party iframe. The channel id must
+    therefore be derived from the guest token rather than the cookie.
+    """
+    is_feature_enabled_mock.return_value = True
+    set_current_as_guest_user()
+
+    request = Mock()
+    request.cookies = {}
+
+    channel_id = async_query_manager.parse_channel_id_from_request(request)
+    assert channel_id.startswith("guest-")
+
+
+@mock.patch("superset.is_feature_enabled")
+def test_parse_channel_id_from_request_as_guest_user_is_deterministic(
+    is_feature_enabled_mock, async_query_manager
+):
+    """
+    The same guest token (including its RLS rules) must yield the same channel
+    id across requests. Otherwise the chart-data submission and the polling
+    endpoint would write to and read from different streams, returning 401s
+    even though the work was scheduled correctly.
+    """
+    is_feature_enabled_mock.return_value = True
+    set_current_as_guest_user()
+
+    request = Mock()
+    request.cookies = {}
+
+    first = async_query_manager.parse_channel_id_from_request(request)
+    second = async_query_manager.parse_channel_id_from_request(request)
+    assert first == second
+
+
+@mock.patch("superset.is_feature_enabled")
+def test_parse_channel_id_from_request_as_guest_user_differs_per_token(
+    is_feature_enabled_mock, async_query_manager
+):
+    """Different guest tokens must produce different channel ids."""
+    is_feature_enabled_mock.return_value = True
+
+    set_current_as_guest_user()
+    request = Mock()
+    request.cookies = {}
+    first = async_query_manager.parse_channel_id_from_request(request)
+
+    g.user = security_manager.get_guest_user_from_token(
+        {
+            "user": {"username": "other"},
+            "resources": [{"type": "dashboard", "id": "another-uuid"}],
+            "rls_rules": [{"clause": '"STATEID" = 4'}],
+            "iat": 1700000000.0,
+            "exp": 1700000300.0,
+            "aud": "http://0.0.0.0:8080/",
+            "type": "guest",
+        }
+    )
+    second = async_query_manager.parse_channel_id_from_request(request)
+
+    assert first != second
+
+
 @mark.parametrize(
     "cache_type, cache_backend",
     [
@@ -174,8 +251,13 @@ def test_submit_chart_data_job_as_guest_user(
             "channel_id": "test_channel_id",
             "errors": [],
             "guest_token": {
-                "resources": [{"id": "some-uuid", "type": "dashboard"}],
                 "user": {},
+                "resources": [{"type": "dashboard", "id": "some-uuid"}],
+                "rls_rules": [{"clause": '"STATEID" = 3'}],
+                "iat": 1700000000.0,
+                "exp": 1700000300.0,
+                "aud": "http://0.0.0.0:8080/",
+                "type": "guest",
             },
             "job_id": ANY,
             "result_url": None,
@@ -219,8 +301,13 @@ def test_submit_explore_json_job_as_guest_user(
             "channel_id": "test_channel_id",
             "errors": [],
             "guest_token": {
-                "resources": [{"id": "some-uuid", "type": "dashboard"}],
                 "user": {},
+                "resources": [{"type": "dashboard", "id": "some-uuid"}],
+                "rls_rules": [{"clause": '"STATEID" = 3'}],
+                "iat": 1700000000.0,
+                "exp": 1700000300.0,
+                "aud": "http://0.0.0.0:8080/",
+                "type": "guest",
             },
             "job_id": ANY,
             "result_url": None,

@@ -32,6 +32,14 @@ The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated
 
 When the MCP service has JWT auth enabled (`MCP_AUTH_ENABLED = True`), an audience must be configured via `MCP_JWT_AUDIENCE` so issued tokens are bound to this service. The service now fails to start with a clear configuration error when the audience is unset, instead of starting with audience validation skipped. Deployments that enable MCP JWT auth must set `MCP_JWT_AUDIENCE` to the audience value their identity provider issues for the MCP service. API-key-only MCP deployments (JWT auth disabled) are unaffected.
 
+### Swagger UI is opt-in (off by default)
+
+`FAB_API_SWAGGER_UI` now defaults to `False` and is driven by the `SUPERSET_ENABLE_SWAGGER_UI` environment variable. The interactive Swagger UI / OpenAPI documentation endpoints (e.g. `/swagger/v1`) are therefore no longer exposed by default. To enable them, set `SUPERSET_ENABLE_SWAGGER_UI=true` (the bundled Docker development environment sets this) or override `FAB_API_SWAGGER_UI = True` in `superset_config.py`.
+
+### Build details (git SHA / build number) are admin-only by default
+
+The git SHA and build number surfaced in the "About" section, the bootstrap payload, and the public `/version` endpoint are now only included for admin users by default; the release version string is still shown to everyone. To expose the build details to all users (the previous behavior), set the `SUPERSET_EXPOSE_BUILD_DETAILS` environment variable (or `EXPOSE_BUILD_DETAILS_TO_USERS = True` in `superset_config.py`).
+
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
