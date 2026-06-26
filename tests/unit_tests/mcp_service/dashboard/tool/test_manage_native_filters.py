@@ -115,6 +115,7 @@ def _mock_dashboard(
     filters: list[dict[str, Any]] | None = None,
     chart_ids: list[int] | None = None,
 ) -> Mock:
+    """Build a mock dashboard with the given native filters and chart slices."""
     dashboard = Mock()
     dashboard.id = id
     dashboard.dashboard_title = "Test Dashboard"
@@ -184,6 +185,7 @@ def _mock_command(captured: dict[str, Any]) -> Callable[[int, dict[str, Any]], M
 
 
 async def _call(mcp_server: object, request: dict[str, Any]) -> dict[str, Any]:
+    """Invoke manage_native_filters via the MCP client and return parsed JSON."""
     async with Client(mcp_server) as client:
         result = await client.call_tool("manage_native_filters", {"request": request})
         return json.loads(result.content[0].text)
@@ -480,6 +482,41 @@ async def test_non_dict_json_metadata_does_not_crash(mcp_server):
 
 
 @pytest.mark.asyncio
+async def test_malformed_native_filter_configuration_is_ignored(mcp_server):
+    # native_filter_configuration may be a non-list or contain non-dict items;
+    # malformed entries must be dropped rather than crashing payload building
+    # on conf["id"] / conf.get(...).
+    captured: dict = {"current_config": []}
+    dashboard = _mock_dashboard(filters=[], chart_ids=[10, 11])
+    dashboard.json_metadata = json.dumps(
+        {"native_filter_configuration": ["oops", 123, None]}
+    )
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_select",
+                        "name": "Region",
+                        "dataset_id": 5,
+                        "column": "region",
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    assert len(data["added_filter_ids"]) == 1
+
+
+@pytest.mark.asyncio
 async def test_remove_unknown_filter_id(mcp_server):
     dashboard = _mock_dashboard(filters=[EXISTING_SELECT_FILTER])
 
@@ -541,6 +578,23 @@ async def test_reorder_must_include_all_filters(mcp_server):
 
     assert "every remaining filter" in data["error"]
     assert "NATIVE_FILTER-existing1" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_reorder_empty_list_accepted_on_empty_dashboard(mcp_server):
+    # An explicit empty reorder is a valid (no-op) operation: it must pass the
+    # "at least one operation" request validator and round-trip as reordered=[].
+    captured: dict = {"current_config": []}
+    dashboard = _mock_dashboard(filters=[])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(mcp_server, {"dashboard_id": 1, "reorder": []})
+
+    assert data["error"] is None
+    assert captured["payload"] == {"reordered": []}
 
 
 # ---------------------------------------------------------------------------

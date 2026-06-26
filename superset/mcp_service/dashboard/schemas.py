@@ -1869,8 +1869,18 @@ class ManageNativeFiltersRequest(BaseModel):
 
     @model_validator(mode="after")
     def _require_at_least_one_operation(self) -> "ManageNativeFiltersRequest":
-        """Reject requests that specify no add/update/remove/reorder operation."""
-        if not self.add and not self.update and not self.remove and not self.reorder:
+        """Reject requests that specify no add/update/remove/reorder operation.
+
+        ``reorder`` is checked with ``is None`` (not falsiness) so an explicit
+        empty list still counts as a reorder operation, matching how the tool's
+        payload builder treats ``reorder is not None``.
+        """
+        if (
+            not self.add
+            and not self.update
+            and not self.remove
+            and self.reorder is None
+        ):
             raise ValueError(
                 "At least one operation (add, update, remove, reorder) is required"
             )

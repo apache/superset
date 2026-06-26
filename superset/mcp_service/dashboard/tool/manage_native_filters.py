@@ -288,7 +288,12 @@ def _current_native_filter_config(dashboard: Any) -> list[dict[str, Any]]:
         metadata = {}
     if not isinstance(metadata, dict):
         return []
-    return metadata.get("native_filter_configuration") or []
+    config = metadata.get("native_filter_configuration")
+    if not isinstance(config, list):
+        return []
+    # Drop malformed (non-dict) entries so downstream conf["id"] / conf.get(...)
+    # cannot raise on corrupt metadata.
+    return [item for item in config if isinstance(item, dict)]
 
 
 def _build_native_filters_payload(  # noqa: C901
