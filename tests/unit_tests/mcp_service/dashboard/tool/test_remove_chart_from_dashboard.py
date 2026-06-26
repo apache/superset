@@ -544,17 +544,19 @@ async def test_json_metadata_cleanup(
     assert content["error"] is None
 
     _, update_data = mock_update_cmd_cls.call_args.args
-    new_metadata = json.loads(update_data["json_metadata"])
+    # json_metadata is NOT routed through UpdateDashboardCommand to avoid
+    # set_dash_metadata overwriting slices from layout data.
+    assert "json_metadata" not in update_data
+    # Cleaned metadata is written directly to updated_dashboard.json_metadata.
+    new_metadata = json.loads(updated_dashboard.json_metadata)
     assert new_metadata["expanded_slices"] == {"20": True}
     assert new_metadata["timed_refresh_immune_slices"] == [20]
     assert "10" not in new_metadata["filter_scopes"]
     assert new_metadata["filter_scopes"]["30"]["region"]["immune"] == [20]
     # Unrelated keys are preserved
     assert new_metadata["refresh_frequency"] == 300
-    # The new layout is passed under "positions" so set_dash_metadata takes
-    # the branch that preserves filter_scopes instead of dropping them.
-    assert "CHART-aaa" not in new_metadata["positions"]
-    assert "CHART-bbb" in new_metadata["positions"]
+    # "positions" is never injected into json_metadata.
+    assert "positions" not in new_metadata
 
 
 @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
