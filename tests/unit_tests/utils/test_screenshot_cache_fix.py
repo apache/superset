@@ -154,7 +154,10 @@ class TestCacheOnlyOnSuccess:
         assert cached_value["image"] is not None
 
     def test_computing_status_written_to_cache_early(
-        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot, mock_user: MagicMock
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
     ) -> None:
         """compute_and_cache writes COMPUTING to cache before taking the screenshot
         so concurrent tasks can detect it and avoid duplicate work."""
@@ -165,9 +168,9 @@ class TestCacheOnlyOnSuccess:
         def check_cache_during_screenshot(*args, **kwargs):
             cache_key = screenshot_obj.get_cache_key()
             cached_value = BaseScreenshot.cache.get(cache_key)
-            assert cached_value is not None, (
-                "Cache should be set to COMPUTING before screenshot starts"
-            )
+            assert (
+                cached_value is not None
+            ), "Cache should be set to COMPUTING before screenshot starts"
             assert cached_value["status"] == "Computing"
             return b"image_data"
 
@@ -416,7 +419,10 @@ class TestIntegrationCacheBugFix:
         assert cached_value["image"] is not None
 
     def test_concurrent_task_skips_when_lock_already_held(
-        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot, mock_user: MagicMock
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
     ) -> None:
         """compute_and_cache exits without rendering when the distributed lock
         is already held by another worker — atomically preventing duplicate Selenium."""
@@ -432,7 +438,10 @@ class TestIntegrationCacheBugFix:
         get_screenshot.assert_not_called()
 
     def test_computing_preserves_previous_image(
-        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot, mock_user: MagicMock
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
     ) -> None:
         """computing() must not wipe the cached image so a stale thumbnail remains
         visible while a refresh is in progress."""
