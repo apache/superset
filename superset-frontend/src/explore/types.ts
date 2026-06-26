@@ -74,6 +74,12 @@ export type Datasource = Dataset & {
   schema?: string;
   is_sqllab_view?: boolean;
   extra?: string | object;
+  /**
+   * False when the datasource (e.g. a semantic view) doesn't model raw rows
+   * and therefore can't return a row sample. Defaults to true on the server
+   * side; missing here means the explore UI keeps current behavior.
+   */
+  supports_samples?: boolean;
 };
 
 export interface ExplorePageInitialData {

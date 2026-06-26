@@ -193,6 +193,11 @@ class BaseDatasource(
     # Only some datasources support Row Level Security
     is_rls_supported: bool = False
 
+    # Datasources that can return raw row samples (anything backed by a SQL
+    # table can; semantic-layer abstractions cannot, since they only expose
+    # pre-defined metrics and dimensions).
+    supports_samples: bool = True
+
     @property
     def name(self) -> str:
         # can be a Column or a property pointing to one
@@ -486,6 +491,7 @@ class BaseDatasource(
             "order_by_choices": self.order_by_choices,
             "verbose_map": self.verbose_map,
             "select_star": self.select_star,
+            "supports_samples": self.supports_samples,
         }
 
     def data_for_slices(  # pylint: disable=too-many-locals  # noqa: C901

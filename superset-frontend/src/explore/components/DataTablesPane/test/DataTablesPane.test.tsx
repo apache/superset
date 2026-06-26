@@ -89,6 +89,17 @@ describe('DataTablesPane', () => {
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
   });
 
+  test('Hides Samples tab when datasource opts out via supports_samples=false', async () => {
+    const props = createDataTablesPaneProps(0);
+    const propsWithoutSamples = {
+      ...props,
+      datasource: { ...props.datasource, supports_samples: false },
+    };
+    render(<DataTablesPane {...propsWithoutSamples} />, { useRedux: true });
+    expect(await screen.findByText('Results')).toBeVisible();
+    expect(screen.queryByText('Samples')).not.toBeInTheDocument();
+  });
+
   test('Should copy data table content correctly', async () => {
     fetchMock.post(
       'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
