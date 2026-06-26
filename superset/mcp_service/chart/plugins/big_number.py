@@ -208,7 +208,9 @@ class BigNumberChartPlugin(BaseChartPlugin):
         config_dict = config.model_dump()
 
         if config_dict.get("metric"):
-            if config_dict["metric"].get("saved_metric"):
+            if config_dict["metric"].get("sql_expression"):
+                pass
+            elif config_dict["metric"].get("saved_metric"):
                 config_dict["metric"]["name"] = (
                     DatasetValidator._get_canonical_metric_name(
                         config_dict["metric"]["name"], dataset_context

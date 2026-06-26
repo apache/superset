@@ -47,7 +47,7 @@ class PivotTableChartPlugin(BaseChartPlugin):
     ) -> ChartGenerationError | None:
         missing_fields = []
 
-        if not config.get("rows"):
+        if not (config.get("rows") or config.get("groupby") or config.get("dimension")):
             missing_fields.append("'rows' (row grouping columns)")
         if not config.get("metrics"):
             missing_fields.append("'metrics' (aggregation metrics)")
@@ -67,7 +67,10 @@ class PivotTableChartPlugin(BaseChartPlugin):
                 error_code="MISSING_PIVOT_FIELDS",
             )
 
-        if not isinstance(config.get("rows", []), list):
+        rows_val = (
+            config.get("rows") or config.get("groupby") or config.get("dimension") or []
+        )
+        if not isinstance(rows_val, list):
             return ChartGenerationError(
                 error_type="invalid_rows_format",
                 message="Rows must be a list of columns",
@@ -123,6 +126,8 @@ class PivotTableChartPlugin(BaseChartPlugin):
         def _norm_col_list(key: str) -> None:
             if config_dict.get(key):
                 for col in config_dict[key]:
+                    if col.get("sql_expression"):
+                        continue
                     if col.get("saved_metric"):
                         col["name"] = DatasetValidator._get_canonical_metric_name(
                             col["name"], dataset_context

@@ -132,6 +132,8 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
         def _norm_list(key: str) -> None:
             if config_dict.get(key):
                 for col in config_dict[key]:
+                    if col.get("sql_expression"):
+                        continue
                     if col.get("saved_metric"):
                         col["name"] = DatasetValidator._get_canonical_metric_name(
                             col["name"], dataset_context

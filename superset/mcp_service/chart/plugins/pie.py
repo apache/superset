@@ -47,7 +47,7 @@ class PieChartPlugin(BaseChartPlugin):
     ) -> ChartGenerationError | None:
         missing_fields = []
 
-        if "dimension" not in config:
+        if "dimension" not in config and "groupby" not in config:
             missing_fields.append("'dimension' (category column for slices)")
         if "metric" not in config:
             missing_fields.append("'metric' (value metric for slice sizes)")
@@ -104,7 +104,9 @@ class PieChartPlugin(BaseChartPlugin):
                 )
             )
         if config_dict.get("metric"):
-            if config_dict["metric"].get("saved_metric"):
+            if config_dict["metric"].get("sql_expression"):
+                pass
+            elif config_dict["metric"].get("saved_metric"):
                 config_dict["metric"]["name"] = (
                     DatasetValidator._get_canonical_metric_name(
                         config_dict["metric"]["name"], dataset_context
