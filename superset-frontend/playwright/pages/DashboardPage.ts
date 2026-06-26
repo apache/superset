@@ -18,7 +18,7 @@
  */
 
 import { Page, Download, Locator } from '@playwright/test';
-import { Menu } from '../components/core';
+import { Button, Menu } from '../components/core';
 import { NativeFiltersConfigModal } from '../components/modals';
 import { gotoWithRetry } from '../helpers/navigation';
 import { TIMEOUT } from '../utils/constants';
@@ -209,9 +209,11 @@ export class DashboardPage {
    * This is the whole-chart entry point (no row-level filters applied).
    */
   async openDrillToDetailFromMenu(vizType: string): Promise<void> {
-    await this.chartByVizType(vizType)
-      .getByLabel('More Options', { exact: true })
-      .click();
+    const moreOptions = new Button(
+      this.page,
+      this.chartByVizType(vizType).getByLabel('More Options', { exact: true }),
+    );
+    await moreOptions.click();
     await this.page
       .getByRole('menuitem', { name: 'Drill to detail', exact: true })
       .click();
