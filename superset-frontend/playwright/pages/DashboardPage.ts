@@ -106,7 +106,9 @@ export class DashboardPage {
     return this.page
       .locator(DashboardPage.SELECTORS.DASHBOARD_TABS)
       .first()
-      .locator(':scope > [data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab');
+      .locator(
+        ':scope > [data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab',
+      );
   }
 
   /**
