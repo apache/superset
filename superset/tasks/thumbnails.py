@@ -93,9 +93,6 @@ def cache_dashboard_thumbnail(
     dashboard = Dashboard.get(dashboard_id)
     url = get_url_path("Superset.dashboard", dashboard_id_or_slug=dashboard.id)
 
-    screenshot = DashboardScreenshot(url, dashboard.digest)
-    resolved_cache_key = cache_key or screenshot.get_cache_key(window_size, thumb_size)
-
     logger.info("Caching dashboard: %s", url)
     _, username = get_executor(
         executors=current_app.config["THUMBNAIL_EXECUTORS"],
@@ -104,6 +101,10 @@ def cache_dashboard_thumbnail(
     )
     user = security_manager.find_user(username)
     with override_user(user):
+        screenshot = DashboardScreenshot(url, dashboard.digest)
+        resolved_cache_key = cache_key or screenshot.get_cache_key(
+            window_size, thumb_size
+        )
         screenshot.compute_and_cache(
             user=user,
             window_size=window_size,
