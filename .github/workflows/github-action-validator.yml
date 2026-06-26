@@ -18,7 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   validate-all-ghas:
     runs-on: ubuntu-24.04
     permissions:
@@ -28,14 +27,14 @@ jobs:
       security-events: write
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install Dependencies
         run: npm install -g @action-validator/core @action-validator/cli --save-dev

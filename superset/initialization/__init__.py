@@ -35,8 +35,10 @@ from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
+from sqlalchemy import text
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import (
     CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
@@ -299,7 +301,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Setup regular views
         #
-        app_root = appbuilder.app.config["APPLICATION_ROOT"]
+        app_root = current_app.config["APPLICATION_ROOT"]
         if app_root.endswith("/"):
             app_root = app_root.rstrip("/")
 
@@ -351,7 +353,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -361,7 +363,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=_("User Registrations"),
             category="Security",
             category_label=_("Security"),
-            menu_cond=lambda: bool(appbuilder.app.config["AUTH_USER_REGISTRATION"]),
+            menu_cond=lambda: bool(current_app.config["AUTH_USER_REGISTRATION"]),
         )
 
         appbuilder.add_view(
@@ -371,7 +373,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -382,7 +384,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -608,9 +610,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     with extension_context(extension.manifest):
                         eager_import(backend.entrypoint)
 
-                except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
-                    # Surface exceptions during initialization of extensions
-                    print(ex)
+                except Exception:  # pylint: disable=broad-except
+                    # Surface extension-initialization failures through the
+                    # configured logger (with traceback) so they reach log
+                    # aggregation, rather than being written to stdout.
+                    logger.exception(
+                        "Failed to initialize extension '%s'",
+                        extension.manifest.id,
+                    )
 
     def init_app_in_ctx(self) -> None:
         """
@@ -729,6 +736,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """Register app-level request handlers"""
         from flask import request, Response
 
+        from superset.security.password_change import (
+            register_password_change_enforcement,
+        )
+
+        # Redirect users with a pending forced password change to the reset
+        # page (no-op unless ENABLE_FORCE_PASSWORD_CHANGE is enabled).
+        register_password_change_enforcement(self.superset_app)
+
         @self.superset_app.after_request
         def apply_http_headers(response: Response) -> Response:
             """Applies the configuration's http headers to all responses"""
@@ -764,6 +779,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 gc.collect()
             return response
 
+        @self.superset_app.before_request
+        def enforce_session_validity() -> Any:
+            """Force logout of sessions invalidated by a per-user epoch."""
+            from superset.security.session_invalidation import (
+                enforce_session_validity as _enforce,
+            )
+
+            return _enforce()
+
+        # Stamp the per-user invalidation epoch when an account is disabled,
+        # so outstanding sessions are terminated on their next request.
+        from superset.security.session_invalidation import (
+            register_session_invalidation_events,
+        )
+
+        register_session_invalidation_events(appbuilder.sm.user_model)
+
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
             # Import here to avoid circular imports
@@ -783,10 +815,20 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         try:
             with self.superset_app.app_context():
                 # Simple connection test
-                db.engine.execute("SELECT 1")
+                db.engine.execute(text("SELECT 1"))
         except Exception:
             db_uri = self.database_uri
-            safe_uri = make_url_safe(db_uri) if db_uri else "Not configured"
+
+            if db_uri:
+                try:
+                    safe_uri = make_url_safe(db_uri).render_as_string(
+                        hide_password=True
+                    )
+                except DatabaseInvalidError:
+                    safe_uri = "<invalid database URI>"
+            else:
+                safe_uri = "Not configured"
+
             print(
                 f"{Fore.RED}ERROR: Cannot connect to database {safe_uri}\n"
                 f"NOTE: Most CLI commands require a database{Style.RESET_ALL}"

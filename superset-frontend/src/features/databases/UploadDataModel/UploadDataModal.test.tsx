@@ -437,6 +437,32 @@ describe('UploadDataModal - Form Validation', () => {
       expect(screen.getByText('Table name is required')).toBeInTheDocument();
     });
   });
+
+  test('database validation error clears after selecting a database', async () => {
+    render(<UploadDataModal {...csvProps} />, { useRedux: true });
+
+    const uploadButton = screen.getByRole('button', { name: 'Upload' });
+    await userEvent.click(uploadButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Selecting a database is required'),
+      ).toBeInTheDocument();
+    });
+
+    const selectDatabase = screen.getByRole('combobox', {
+      name: /select a database/i,
+    });
+    await userEvent.click(selectDatabase);
+    await waitFor(() => screen.getByText('database1'));
+    await userEvent.click(screen.getByText('database1'));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Selecting a database is required'),
+      ).not.toBeInTheDocument();
+    });
+  });
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

@@ -161,6 +161,7 @@ Here's the documentation section how how to set up Talisman: https://superset.ap
 
   - [ ] Regularly update to the latest major or minor versions of Superset. Those versions receive up-to-date security patches.
   - [ ] Rotate the `SUPERSET_SECRET_KEY` periodically (e.g., quarterly) and after any potential security incident.
+  - [ ] Rotate the other security-critical secrets (guest-token and async-query JWT secrets, SMTP and database credentials) on the cadence in Appendix C, and after any potential security incident.
   - [ ] Conduct quarterly access reviews for all users.
   - [ ] Assuming logging and monitoring is in place, review security monitoring alerts weekly.
 
@@ -172,6 +173,24 @@ Rotating the `SUPERSET_SECRET_KEY` is a critical security procedure. It is manda
 **Procedure for Rotating the Key**
 The procedure for safely rotating the SECRET_KEY must be followed precisely to avoid locking yourself out of your instance. The official Apache Superset documentation maintains the correct, up-to-date procedure. Please follow the official guide here:
 https://superset.apache.org/admin-docs/configuration/configuring-superset/#rotating-to-a-newer-secret_key
+
+### **Appendix C: Secrets Register and Rotation Schedule**
+
+`SUPERSET_SECRET_KEY` is not the only security-critical secret in a Superset deployment. Maintain an inventory of all such secrets, store each in a secrets manager (not in `superset_config.py` or version control), assign an owner, and rotate them on a defined cadence as well as after any suspected compromise.
+
+| Secret | Purpose | Risk if leaked | Suggested rotation |
+|---|---|---|---|
+| `SUPERSET_SECRET_KEY` | Signs session cookies; key material for encrypting stored DB credentials (Fernet/AES) | Forged sessions (auth bypass / privilege escalation); decryption of exfiltrated metadata-DB secrets | Quarterly + post-incident |
+| `GUEST_TOKEN_JWT_SECRET` | Signs embedded-dashboard guest tokens | Forged guest tokens → unauthorized dashboard/data access | Quarterly + post-incident |
+| `GLOBAL_ASYNC_QUERIES_JWT_SECRET` | Signs the async-query channel JWT | Forged async-query tokens | Quarterly + post-incident |
+| SMTP password | Outbound email for alerts & reports | Email relay abuse / spoofing | Per organizational policy + post-incident |
+| Database connection passwords | Access to analytical databases and the metadata DB | Direct database access | Per organizational policy + post-incident |
+
+Notes:
+
+- Rotating `GUEST_TOKEN_JWT_SECRET` or `GLOBAL_ASYNC_QUERIES_JWT_SECRET` invalidates outstanding tokens of that type; schedule rotations accordingly.
+- After a suspected compromise, rotate **all** of the above, not only `SUPERSET_SECRET_KEY`.
+- Keep the register under change control so new secrets introduced by future features are added to the rotation schedule.
 
 :::resources
 - [Blog: Running Apache Superset on the Open Internet](https://preset.io/blog/running-apache-superset-on-the-open-internet-a-report-from-the-fireline/)
