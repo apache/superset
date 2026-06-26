@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2018-03-12 16:24+0000\n"
 "Last-Translator: Nuno Heli Beires <nuno.beires@douroeci.com>\n"
 "Language: pt\n"
@@ -799,6 +799,9 @@ msgstr "Origem de dados %(name)s já existe"
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -842,6 +845,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Uma métrica a utilizar para cor"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 #, fuzzy
 msgid "A new chart and dashboard will be created."
@@ -1757,16 +1765,8 @@ msgstr "Ocorreu um erro ao renderizar a visualização: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "Ocorreu um erro ao carregar os metadados da tabela"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "Ocorreu um erro ao carregar os metadados da tabela"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "Ocorreu um erro ao carregar os metadados da tabela"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
 msgstr "Ocorreu um erro ao carregar os metadados da tabela"
 
 #, fuzzy
@@ -1804,6 +1804,11 @@ msgstr "Ocorreu um erro ao criar a origem dos dados"
 #, fuzzy, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Ocorreu um erro ao renderizar a visualização: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while loading dashboard information."
@@ -3691,6 +3696,9 @@ msgid ""
 "4-5. Last number should match the value provided for MAX."
 msgstr ""
 
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
+
 msgid "Comparator option"
 msgstr ""
 
@@ -3991,6 +3999,9 @@ msgid "Could not fetch all saved charts"
 msgstr "Não foi possível ligar ao servidor"
 
 msgid "Could not find viz object"
+msgstr ""
+
+msgid "Could not load SQL Lab"
 msgstr ""
 
 msgid "Could not load database driver"
@@ -7501,9 +7512,10 @@ msgstr ""
 msgid "Image download failed, please refresh and try again."
 msgstr ""
 
-#, fuzzy
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
-msgstr "Personificar o utilizador conectado"
+msgid ""
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Snowflake and "
+"Google Sheets)"
+msgstr ""
 
 msgid "Import"
 msgstr "Importar"
@@ -7998,9 +8010,6 @@ msgstr ""
 
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
-
-msgid "Keys for table"
-msgstr "Chaves para tabela"
 
 #, fuzzy
 msgid "Kilometers"
@@ -9877,9 +9886,6 @@ msgstr ""
 msgid "Original"
 msgstr "Origem"
 
-msgid "Original table column order"
-msgstr "Ordenação original das colunas"
-
 msgid "Original value"
 msgstr ""
 
@@ -10067,6 +10073,10 @@ msgstr "Broker Port"
 #, fuzzy
 msgid "Password is required"
 msgstr "Origem de dados"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10425,6 +10435,9 @@ msgid "Point Radius Scale"
 msgstr ""
 
 msgid "Point Radius Unit"
+msgstr ""
+
+msgid "Point Radius Units"
 msgstr ""
 
 msgid "Point Size"
@@ -10911,6 +10924,9 @@ msgstr ""
 msgid "Reload"
 msgstr "Criado em"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr ""
 
@@ -10936,9 +10952,6 @@ msgstr ""
 
 msgid "Remove query from log"
 msgstr "Remover query do histórico"
-
-msgid "Remove table preview"
-msgstr "Remover pré-visualização de tabela"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -11032,6 +11045,9 @@ msgstr "Nome do modelo"
 msgid "Report name"
 msgstr "Nome do modelo"
 
+msgid "Report not yet run"
+msgstr ""
+
 #, fuzzy
 msgid "Report schedule client error"
 msgstr "Não foi possível gravar a sua query"
@@ -11088,6 +11104,10 @@ msgid "Required control values have been removed"
 msgstr ""
 
 msgid "Resample"
+msgstr ""
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
 msgstr ""
 
 #, fuzzy
@@ -13230,6 +13250,9 @@ msgstr ""
 msgid "Streets (Carto)"
 msgstr "Explorar gráfico"
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr ""
 
@@ -13694,6 +13717,9 @@ msgid ""
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
+msgstr ""
+
+msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
 
 msgid ""
@@ -14240,6 +14266,11 @@ msgid ""
 " cluster"
 msgstr ""
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 #, fuzzy
 msgid "The report has been created"
 msgstr "Esta origem de dados parece ter sido excluída"
@@ -14424,6 +14455,11 @@ msgid "The unit for icon size"
 msgstr "Tamanho da bolha"
 
 msgid "The unit for label size"
+msgstr ""
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -15044,6 +15080,9 @@ msgid ""
 " is not the case."
 msgstr ""
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -15378,6 +15417,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "Obter um URL legível para o seu dashboard"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 msgid "Tool Panel"
@@ -16184,10 +16235,6 @@ msgstr "fechar aba"
 
 msgid "View in SQL Lab"
 msgstr "Expor no SQL Lab"
-
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Ver chaves e índices (%s)"
 
 msgid "View query"
 msgstr "partilhar query"
@@ -17017,6 +17064,9 @@ msgstr "Não tem permissão para aceder à origem de dados: %(name)s."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Não tem permissão para aprovar este pedido"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 #, fuzzy
 msgid "You don't have access to this chart."
 msgstr "Não tem permissão para aprovar este pedido"
@@ -17112,6 +17162,9 @@ msgid ""
 "dataset owner to request modifications or edit access."
 msgstr ""
 
+msgid "You must change your password before continuing."
+msgstr ""
+
 msgid "You must pick a name for the new dashboard"
 msgstr "Escolha um nome para o novo dashboard"
 
@@ -17183,6 +17236,9 @@ msgstr "A sua query foi gravada"
 #, fuzzy
 msgid "Your report could not be deleted"
 msgstr "Não foi possível carregar a query"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -17282,6 +17338,9 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 #, fuzzy
 msgid "a few seconds"
 msgstr "30 segundos"
@@ -17314,6 +17373,9 @@ msgstr "Anotações"
 msgid "annotation_layer"
 msgstr "Camadas de anotação"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr ""
 
@@ -17329,6 +17391,9 @@ msgstr ""
 #, fuzzy
 msgid "background color"
 msgstr "Colunas das séries temporais"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr ""

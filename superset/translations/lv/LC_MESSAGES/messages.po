@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -864,6 +864,9 @@ msgstr "Datubāze ar tādu pašu nosaukumu jau pastāv."
 msgid "A date is required when using custom date shift"
 msgstr "Izmantojot pielāgotu datuma nobīdi, nepieciešams datums"
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -917,6 +920,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Metrika krāsas noteikšanai"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Tiks izveidota jauna diagramma un infopanelis."
@@ -1805,19 +1813,9 @@ msgstr "Radās kļūda, iegūstot shēmu vērtības: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "Radās kļūda, ielādējot cilnes stāvokli"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "Radās kļūda, ielādējot tabulas metadatus"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "Radās kļūda, ielādējot tabulas metadatus"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"Ielādējot tabulas metadatus, radās kļūda. Lūdzu, sazinieties ar "
-"administratoru."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1852,6 +1850,11 @@ msgstr "SQL formatēšanas laikā radās kļūda"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Radās kļūda, importējot %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Radās kļūda, ielādējot infopaneļa informāciju."
@@ -3689,6 +3692,9 @@ msgstr ""
 "Ar komatu atdalītas intervālu robežas, piem., 2,4,5 intervāliem 0-2, 2-4 "
 "un 4-5. Pēdējam skaitlim jāatbilst MAX norādītajai vērtībai."
 
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
+
 msgid "Comparator option"
 msgstr "Salīdzinātāja opcija"
 
@@ -3976,6 +3982,9 @@ msgstr "Nevarēja iegūt visas saglabātās diagrammas"
 
 msgid "Could not find viz object"
 msgstr "Nevarēja atrast vizualizācijas objektu"
+
+msgid "Could not load SQL Lab"
+msgstr ""
 
 msgid "Could not load database driver"
 msgstr "Nevarēja ielādēt datubāzes draiveri"
@@ -7345,10 +7354,10 @@ msgstr "Attēls (PNG) iegults e-pastā"
 msgid "Image download failed, please refresh and try again."
 msgstr "Attēla lejupielāde neizdevās, lūdzu, atsvaidziniet un mēģiniet vēlreiz."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
+msgid ""
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Snowflake and "
+"Google Sheets)"
 msgstr ""
-"Uzdoties par pieteicušos lietotāju (Presto, Trino, Drill, Hive un Google "
-"Sheets)"
 
 msgid "Import"
 msgstr "Importēt"
@@ -7817,9 +7826,6 @@ msgstr "Tastatūras saīsnes"
 
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
-
-msgid "Keys for table"
-msgstr "Tabulas atslēgas"
 
 msgid "Kilometers"
 msgstr "Kilometri"
@@ -9603,9 +9609,6 @@ msgstr "Koka orientācija"
 msgid "Original"
 msgstr "Oriģināls"
 
-msgid "Original table column order"
-msgstr "Sākotnējā tabulas kolonnu secība"
-
 msgid "Original value"
 msgstr "Sākotnējā vērtība"
 
@@ -9785,6 +9788,10 @@ msgstr "Parole"
 
 msgid "Password is required"
 msgstr "Parole ir obligāta"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 msgid "Password:"
 msgstr "Parole:"
@@ -10140,6 +10147,9 @@ msgstr "Punkta rādiusa skala"
 
 msgid "Point Radius Unit"
 msgstr "Punkta rādiusa vienība"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Punkta izmērs"
@@ -10581,6 +10591,9 @@ msgstr "Relatīvais daudzums"
 msgid "Reload"
 msgstr "Pārlādēt"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr "Noņemt"
 
@@ -10606,9 +10619,6 @@ msgstr "Noņemt elementu"
 
 msgid "Remove query from log"
 msgstr "Noņemt vaicājumu no žurnāla"
-
-msgid "Remove table preview"
-msgstr "Noņemt tabulas priekšskatu"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -10699,6 +10709,9 @@ msgstr "Atskaite ir aktīva"
 msgid "Report name"
 msgstr "Atskaites nosaukums"
 
+msgid "Report not yet run"
+msgstr ""
+
 msgid "Report schedule client error"
 msgstr "Atskaites grafika klienta kļūda"
 
@@ -10750,6 +10763,10 @@ msgstr "Obligātās vadīklas vērtības ir noņemtas"
 
 msgid "Resample"
 msgstr "Atkārtota izlase"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "Atkārtotās izlases metodei jābūt "
@@ -12800,6 +12817,9 @@ msgstr "Ielas"
 msgid "Streets (Carto)"
 msgstr "Koka diagramma"
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr "Spēks, kas velk grafu uz centru"
 
@@ -13248,6 +13268,9 @@ msgid ""
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
+msgstr ""
+
+msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
 
 msgid ""
@@ -13879,6 +13902,11 @@ msgstr ""
 "Atsevišķu punktu (to, kas nav klasterī) rādiuss. Vai nu skaitliska "
 "kolonna, vai `Auto`, kas mērogo punktu, balstoties uz lielāko klasteri"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Atskaite ir izveidota"
 
@@ -14079,6 +14107,11 @@ msgstr "Ikonas izmēra vienība"
 
 msgid "The unit for label size"
 msgstr "Apzīmējuma izmēra vienība"
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
+msgstr ""
 
 msgid "The unit of measure for the specified point radius"
 msgstr "Mērvienība norādītajam punkta rādiusam"
@@ -14712,6 +14745,9 @@ msgid ""
 " is not the case."
 msgstr "Šī lapa ir paredzēta iegulšanai iframe, bet šķiet, ka tas tā nav."
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -15046,6 +15082,18 @@ msgstr "Lai iegūtu lasāmu URL jūsu panelim"
 
 msgid "Token Request URI"
 msgstr "Talona pieprasījuma URI"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "Rīku panelis"
@@ -15844,10 +15892,6 @@ msgstr "Skatīt kā tabulu"
 
 msgid "View in SQL Lab"
 msgstr "Skatīt SQL laboratorijā"
-
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Skatīt atslēgas un indeksus (%s)"
 
 msgid "View query"
 msgstr "Skatīt vaicājumu"
@@ -16753,6 +16797,9 @@ msgstr "Jums nav atļauju rediģēt šo paneli."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Jums nav pietiekamu atļauju diagrammas rediģēšanai"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "Jums nav piekļuves šai diagrammai."
 
@@ -16847,6 +16894,9 @@ msgstr ""
 "sazinieties ar datu kopas īpašnieku, lai pieprasītu izmaiņas vai "
 "rediģēšanas piekļuvi."
 
+msgid "You must change your password before continuing."
+msgstr ""
+
 msgid "You must pick a name for the new dashboard"
 msgstr "Jums jāizvēlas nosaukums jaunajam panelim"
 
@@ -16925,6 +16975,9 @@ msgstr "Jūsu vaicājums tika atjaunināts"
 
 msgid "Your report could not be deleted"
 msgstr "Jūsu atskaiti nevarēja dzēst"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 msgid "Your user information"
 msgstr "Jūsu lietotāja informācija"
@@ -17028,6 +17081,9 @@ msgstr "`row_offset` jābūt lielākam vai vienādam ar 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` jābūt lielākam vai vienādam ar 0"
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 #, fuzzy
 msgid "a few seconds"
 msgstr "5 sekundes"
@@ -17059,6 +17115,9 @@ msgstr "anotācija"
 msgid "annotation_layer"
 msgstr "anotācijas_slānis"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -17074,6 +17133,9 @@ msgstr "fons"
 #, fuzzy
 msgid "background color"
 msgstr "Fona krāsa"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr "pamats"

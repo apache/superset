@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -856,6 +856,9 @@ msgstr "Databáza sa stejným názvom již existuje."
 msgid "A date is required when using custom date shift"
 msgstr "Pri použití vlastného posunu data je vyžadováno dátum."
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -910,6 +913,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Metrika pre určenie farby"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Bude vytvorený nový graf a nová nástenka."
@@ -1818,19 +1826,9 @@ msgstr "Pri načítavanie hodnôt schématu došlo k chybe: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "Pri načítavanie stavu karty došlo k chybe"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "Pri načítavanie metadat tabuľky došlo k chybe"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "Pri načítavanie metadat tabuľky došlo k chybe"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"Pri načítavanie metadat tabuľky došlo k chybe. Kontaktujte prosím svojho "
-"administrátora."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1867,6 +1865,11 @@ msgstr "Pri formátovanie SQL došlo k chybe"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Pri importu %s došlo k chybe: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Pri načítavanie informací o nástenke došlo k chybe."
@@ -3738,6 +3741,9 @@ msgstr ""
 "Čiarkou oddelené hranica intervalů, např. 2,4,5 pre intervaly 0-2, 2-4 a "
 "4-5. Posledný číslo by sa melo shodovať s hodnotou zadanou pre MAX."
 
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
+
 msgid "Comparator option"
 msgstr "Možnosť komparátoru"
 
@@ -4028,6 +4034,9 @@ msgstr "Nepodarilo sa načítať všetky uložené grafy"
 
 msgid "Could not find viz object"
 msgstr "Nemožno najít objekt vizualizácia"
+
+msgid "Could not load SQL Lab"
+msgstr ""
 
 msgid "Could not load database driver"
 msgstr "Nepodarilo sa načítať ovladač databáza"
@@ -7502,10 +7511,10 @@ msgstr "Obrázek (PNG) vložený v e-mailu"
 msgid "Image download failed, please refresh and try again."
 msgstr "Staženie obrázku zlyhalo, obnovte prosím stránku a skúste to znovu."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
+msgid ""
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Snowflake and "
+"Google Sheets)"
 msgstr ""
-"Zosobnit přihlášeného používateľa (Presto, Trino, Drill, Hive a Tabuľky "
-"Google)"
 
 msgid "Import"
 msgstr "Importovať"
@@ -7996,9 +8005,6 @@ msgstr "Klávesové zkratky"
 
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
-
-msgid "Keys for table"
-msgstr "Klíče pre tabuľku"
 
 msgid "Kilometers"
 msgstr "Kilometry"
@@ -9821,9 +9827,6 @@ msgstr "Orientace stromu"
 msgid "Original"
 msgstr "Pôvodný"
 
-msgid "Original table column order"
-msgstr "Pôvodný poradie stĺpcov tabuľky"
-
 msgid "Original value"
 msgstr "Pôvodný hodnota"
 
@@ -10007,6 +10010,10 @@ msgstr "Heslo"
 
 msgid "Password is required"
 msgstr "Heslo je povinné"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10375,6 +10382,9 @@ msgstr "Meřítko polomeru bodu"
 
 msgid "Point Radius Unit"
 msgstr "Jednotka polomeru bodu"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Veľkosť bodu"
@@ -10825,6 +10835,9 @@ msgstr "Relatívne množství"
 msgid "Reload"
 msgstr "Znovu načítať"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr "Odstrániť"
 
@@ -10850,9 +10863,6 @@ msgstr "Odstrániť položku"
 
 msgid "Remove query from log"
 msgstr "Odstrániť dotaz z protokolu"
-
-msgid "Remove table preview"
-msgstr "Odstrániť náhľad tabuľky"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -10943,6 +10953,9 @@ msgstr "Report je aktívny"
 msgid "Report name"
 msgstr "Názov reportu"
 
+msgid "Report not yet run"
+msgstr ""
+
 msgid "Report schedule client error"
 msgstr "Chyba klienta plánu reportu"
 
@@ -10994,6 +11007,10 @@ msgstr "Požadované hodnoty ovládacích prvkov boli odstránenýy"
 
 msgid "Resample"
 msgstr "Převzorkovať"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "Metoda převzorkovanie by mela být v "
@@ -13101,6 +13118,9 @@ msgstr "Ulice"
 msgid "Streets (Carto)"
 msgstr "Stromový graf"
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr "Síla pre přitahovanie grafu ke středu"
 
@@ -13554,6 +13574,9 @@ msgid ""
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
+msgstr ""
+
+msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
 
 msgid ""
@@ -14193,6 +14216,11 @@ msgstr ""
 "Polomer jednotlivých bodov (tech, ktoré nesú ve zhluku). Buď číselný "
 "stĺpec, alebo `Auto`, ktoré škáluje bod na základe nejväčšího zhluku"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Report bol vytvořen"
 
@@ -14394,6 +14422,11 @@ msgstr "Jednotka pre veľkosť ikony"
 
 msgid "The unit for label size"
 msgstr "Jednotka pre veľkosť popisku"
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
+msgstr ""
 
 msgid "The unit of measure for the specified point radius"
 msgstr "Jednotka míry pre zadaný polomer bodu"
@@ -15063,6 +15096,9 @@ msgstr ""
 "Táto stránka je určena k vloženie do iframe, ale zdá se, že tomu tak nie "
 "je."
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -15401,6 +15437,18 @@ msgstr "Pre získanie čitelné URL pre vaši nástenku"
 
 msgid "Token Request URI"
 msgstr "URI žádosti o token"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -16224,10 +16272,6 @@ msgstr "Zobraziť ako tabuľku"
 
 msgid "View in SQL Lab"
 msgstr "Zobraziť v SQL Labu"
-
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Zobraziť klíče a indexy (%s)"
 
 msgid "View query"
 msgstr "Zobraziť dotaz"
@@ -17136,6 +17180,9 @@ msgstr "Nemáte oprávnenie k úprave tejto nástenky."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Nemáte dostatečná oprávnenie k úprave grafu"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "K tomuto grafu nemáte prístup."
 
@@ -17229,6 +17276,9 @@ msgstr ""
 "Pre úpravu musíte být vlastníkem sady dat. Obraťte sa prosím na vlastníka"
 " sady dat a požádejte o úpravy alebo o prístup k úpravám."
 
+msgid "You must change your password before continuing."
+msgstr ""
+
 msgid "You must pick a name for the new dashboard"
 msgstr "Musíte vybrať názov pre novou nástenku"
 
@@ -17307,6 +17357,9 @@ msgstr "Váš dotaz bol aktualizován"
 
 msgid "Your report could not be deleted"
 msgstr "Váš report sa nepodarilo zmazať"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -17413,6 +17466,9 @@ msgstr "`row_offset` musí byť väčší alebo roven 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` musí byť väčší alebo roven 0"
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 #, fuzzy
 msgid "a few seconds"
 msgstr "5 sekund"
@@ -17444,6 +17500,9 @@ msgstr "anotace"
 msgid "annotation_layer"
 msgstr "vrstva_anotací"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -17459,6 +17518,9 @@ msgstr "pozadí"
 #, fuzzy
 msgid "background color"
 msgstr "Farba pozadí"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr "základ"

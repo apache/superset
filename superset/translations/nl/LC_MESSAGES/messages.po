@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -816,6 +816,9 @@ msgstr "Een database met dezelfde naam bestaat al."
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, fuzzy, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -869,6 +872,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Een metriek te gebruiken voor kleur"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Een nieuwe grafiek en dashboard zullen worden aangemaakt."
@@ -1810,23 +1818,11 @@ msgstr "Er is een fout opgetreden tijdens het ophalen van schemawaarden: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "Er is een fout opgetreden tijdens het ophalen van de tabbladstatus"
 
-msgid "An error occurred while fetching table metadata"
-msgstr ""
-"Er is een fout opgetreden tijdens het ophalen van de metagegevens van de "
-"tabel"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr ""
 "Er is een fout opgetreden tijdens het ophalen van de metagegevens van de "
 "tabel"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"Er is een fout opgetreden tijdens het ophalen van de metagegevens van de "
-"tabel. Neem contact op met uw beheerder."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1867,6 +1863,11 @@ msgstr "Er is een fout opgetreden bij het laden van de SQL"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Er is een fout opgetreden tijdens het importeren van %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Er is een fout opgetreden bij het laden van dashboard informatie."
@@ -3774,6 +3775,9 @@ msgstr ""
 "0-2, 2-4 en 4-5. Laatste getal moet overeenkomen met de opgegeven waarde "
 "voor MAX."
 
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
+
 msgid "Comparator option"
 msgstr "Vergelijkingsoptie"
 
@@ -4072,6 +4076,9 @@ msgstr "Kon niet alle opgeslagen grafieken ophalen"
 
 msgid "Could not find viz object"
 msgstr "Kon het viz object niet vinden"
+
+msgid "Could not load SQL Lab"
+msgstr ""
 
 msgid "Could not load database driver"
 msgstr "Kon het database driver niet laden"
@@ -7591,8 +7598,10 @@ msgstr ""
 "Afbeelding downloaden mislukt, gelieve te vernieuwen en probeer het "
 "opnieuw."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
-msgstr "Inloggen als ingelogde gebruiker (Presto, Trino, Drill, Hive en GSheets)"
+msgid ""
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Snowflake and "
+"Google Sheets)"
+msgstr ""
 
 msgid "Import"
 msgstr "Importeer"
@@ -8084,9 +8093,6 @@ msgstr "Toetsenbord snelkoppelingen"
 
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
-
-msgid "Keys for table"
-msgstr "Sleutels voor tabel"
 
 msgid "Kilometers"
 msgstr "Kilometers"
@@ -9941,9 +9947,6 @@ msgstr "Oriëntatie van de structuur"
 msgid "Original"
 msgstr "Origineel"
 
-msgid "Original table column order"
-msgstr "Originele tabel kolom volgorde"
-
 msgid "Original value"
 msgstr "Originele waarde"
 
@@ -10130,6 +10133,10 @@ msgstr "Wachtwoord"
 #, fuzzy
 msgid "Password is required"
 msgstr "Type is vereist"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10505,6 +10512,9 @@ msgstr "Punt Radius Schaal"
 
 msgid "Point Radius Unit"
 msgstr "Punt Radius Eenheid"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Punt Grootte"
@@ -10962,6 +10972,9 @@ msgstr "Relatieve hoeveelheid"
 msgid "Reload"
 msgstr "Herlaad"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr "Verwijder"
 
@@ -10988,9 +11001,6 @@ msgstr "Item verwijderen"
 
 msgid "Remove query from log"
 msgstr "Verwijder de query uit de log"
-
-msgid "Remove table preview"
-msgstr "Verwijder tabel preview"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -11083,6 +11093,9 @@ msgstr "E-mailrapporten actief"
 msgid "Report name"
 msgstr "Naam rapport"
 
+msgid "Report not yet run"
+msgstr ""
+
 msgid "Report schedule client error"
 msgstr "Meld schema client fout"
 
@@ -11134,6 +11147,10 @@ msgstr "Vereiste controlewaarden zijn verwijderd"
 
 msgid "Resample"
 msgstr "Opnieuw bemonsteren"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 #, fuzzy
 msgid "Resample method should be in "
@@ -13269,6 +13286,9 @@ msgstr "Straten"
 msgid "Streets (Carto)"
 msgstr "Boomdiagram"
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr "Sterkte om de grafiek naar het midden te trekken"
 
@@ -13722,6 +13742,9 @@ msgid ""
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
+msgstr ""
+
+msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
 
 msgid ""
@@ -14361,6 +14384,11 @@ msgstr ""
 " Of een numerieke kolom of `Auto`, die het punt zal schalen gebaseerd op "
 "het grootste cluster"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "Het rapport is gemaakt"
 
@@ -14567,6 +14595,11 @@ msgid "The unit for icon size"
 msgstr "Bubbelgrootte"
 
 msgid "The unit for label size"
+msgstr ""
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -15250,6 +15283,9 @@ msgid ""
 " is not the case."
 msgstr ""
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -15576,6 +15612,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "Om een leesbare URL voor uw dashboard te krijgen"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 #, fuzzy
@@ -16419,10 +16467,6 @@ msgstr "Bekijk als tabel"
 
 msgid "View in SQL Lab"
 msgstr "Bekijk in SQL Lab"
-
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Bekijk sleutels & indexen (%s)"
 
 msgid "View query"
 msgstr "Bekijk zoekopdracht"
@@ -17359,6 +17403,9 @@ msgstr "U hebt geen rechten om dit dashboard te bewerken."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "U heeft niet voldoende rechten om de grafiek te bewerken"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "U heeft geen toegang tot deze grafiek."
 
@@ -17454,6 +17501,9 @@ msgstr ""
 "met een dataset eigenaar om wijzigingen aan te vragen of toegang te "
 "bewerken."
 
+msgid "You must change your password before continuing."
+msgstr ""
+
 msgid "You must pick a name for the new dashboard"
 msgstr "U moet een naam kiezen voor het nieuwe dashboard"
 
@@ -17531,6 +17581,9 @@ msgstr "Uw zoekopdracht werd bijgewerkt"
 
 msgid "Your report could not be deleted"
 msgstr "Uw rapport kon niet worden verwijderd"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -17638,6 +17691,9 @@ msgstr "`rij_offset` moet groter zijn dan of gelijk aan 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`breedte` moet groter of gelijk zijn aan 0"
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 #, fuzzy
 msgid "a few seconds"
 msgstr "5 seconden"
@@ -17670,6 +17726,9 @@ msgstr "aantekening"
 msgid "annotation_layer"
 msgstr "annotatie_laag"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -17685,6 +17744,9 @@ msgstr "achtergrond"
 #, fuzzy
 msgid "background color"
 msgstr "achtergrond"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr "basis"

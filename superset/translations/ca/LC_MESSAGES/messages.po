@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -852,6 +852,9 @@ msgstr ""
 "Es requereix una data quan s'utilitza un desplaçament de data "
 "personalitzat"
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -907,6 +910,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "Una mètrica a utilitzar per al color"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "Es crearà un nou gràfic i dashboard."
@@ -1838,19 +1846,9 @@ msgstr "S'ha produït un error mentre es recuperaven els valors de l'esquema: %s
 msgid "An error occurred while fetching tab state"
 msgstr "S'ha produït un error mentre es recuperava l'estat de la pestanya"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "S'ha produït un error mentre es recuperaven les metadades de la taula"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "S'ha produït un error mentre es recuperaven les metadades de la taula"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr ""
-"S'ha produït un error mentre es recuperaven les metadades de la taula. Si"
-" us plau, contacta el teu administrador."
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1889,6 +1887,11 @@ msgstr "S'ha produït un error mentre es carregava l'SQL"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "S'ha produït un error mentre s'importava %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "S'ha produït un error mentre es carregava la informació del dashboard."
@@ -3762,6 +3765,9 @@ msgstr ""
 "2-4 i 4-5. L'últim número ha de coincidir amb el valor proporcionat per a"
 " MAX."
 
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
+
 msgid "Comparator option"
 msgstr "Opció de comparador"
 
@@ -4050,6 +4056,9 @@ msgstr "No s'han pogut recuperar tots els gràfics desats"
 
 msgid "Could not find viz object"
 msgstr "No s'ha pogut trobar l'objecte de visualització"
+
+msgid "Could not load SQL Lab"
+msgstr ""
 
 msgid "Could not load database driver"
 msgstr "No s'ha pogut carregar el controlador de base de dades"
@@ -7510,8 +7519,10 @@ msgstr ""
 "La descàrrega d'imatge ha fallat, si us plau actualitza i torna-ho a "
 "provar."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
-msgstr "Suplantar usuari connectat (Presto, Trino, Drill, Hive, i GSheets)"
+msgid ""
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Snowflake and "
+"Google Sheets)"
+msgstr ""
 
 msgid "Import"
 msgstr "Importar"
@@ -7999,9 +8010,6 @@ msgstr "Dreceres de teclat"
 
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
-
-msgid "Keys for table"
-msgstr "Claus per taula"
 
 msgid "Kilometers"
 msgstr "Quilòmetres"
@@ -9839,9 +9847,6 @@ msgstr "Orientació de l'arbre"
 msgid "Original"
 msgstr "Original"
 
-msgid "Original table column order"
-msgstr "Ordre original de columnes de taula"
-
 msgid "Original value"
 msgstr "Valor original"
 
@@ -10025,6 +10030,10 @@ msgstr "Contrasenya"
 
 msgid "Password is required"
 msgstr "La contrasenya és obligatòria"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10396,6 +10405,9 @@ msgstr "Escala del Radi del Punt"
 
 msgid "Point Radius Unit"
 msgstr "Unitat del Radi del Punt"
+
+msgid "Point Radius Units"
+msgstr ""
 
 msgid "Point Size"
 msgstr "Mida del Punt"
@@ -10848,6 +10860,9 @@ msgstr "Quantitat relativa"
 msgid "Reload"
 msgstr "Recarregar"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr "Eliminar"
 
@@ -10874,9 +10889,6 @@ msgstr "Eliminar element"
 
 msgid "Remove query from log"
 msgstr "Eliminar consulta del registre"
-
-msgid "Remove table preview"
-msgstr "Eliminar vista prèvia de taula"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -10968,6 +10980,9 @@ msgstr "L'informe està actiu"
 msgid "Report name"
 msgstr "Nom de l'informe"
 
+msgid "Report not yet run"
+msgstr ""
+
 msgid "Report schedule client error"
 msgstr "Error del client de programació d'informe"
 
@@ -11019,6 +11034,10 @@ msgstr "Els valors de control obligatoris han estat eliminats"
 
 msgid "Resample"
 msgstr "Remostreig"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "El mètode de remostreig hauria de ser a "
@@ -13131,6 +13150,9 @@ msgstr "Carrers"
 msgid "Streets (Carto)"
 msgstr "Gràfic d'Arbre"
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr "Força per atreure el gràfic cap al centre"
 
@@ -13583,6 +13605,9 @@ msgid ""
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
+msgstr ""
+
+msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
 
 msgid ""
@@ -14233,6 +14258,11 @@ msgstr ""
 "columna numèrica o `Auto`, que escala el punt basat en el clúster més "
 "gran"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "L'informe s'ha creat"
 
@@ -14444,6 +14474,11 @@ msgid "The unit for icon size"
 msgstr "Mida de Font del Subtítol"
 
 msgid "The unit for label size"
+msgstr ""
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -15114,6 +15149,9 @@ msgstr ""
 "Aquesta pàgina està destinada a ser incrustada en un iframe, però sembla "
 "que no és el cas."
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -15445,6 +15483,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "Per obtenir una URL llegible per al teu dashboard"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 #, fuzzy
@@ -16272,10 +16322,6 @@ msgstr "Veure com a taula"
 
 msgid "View in SQL Lab"
 msgstr "Veure a SQL Lab"
-
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "Veure claus i índexs (%s)"
 
 msgid "View query"
 msgstr "Veure consulta"
@@ -17168,6 +17214,9 @@ msgstr "No tens permisos per editar aquest dashboard."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "No tens permisos suficients per editar el gràfic"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "No tens accés a aquest gràfic."
 
@@ -17263,6 +17312,9 @@ msgstr ""
 "amb un propietari del dataset per sol·licitar modificacions o accés "
 "d'edició."
 
+msgid "You must change your password before continuing."
+msgstr ""
+
 msgid "You must pick a name for the new dashboard"
 msgstr "Has de triar un nom per al nou dashboard"
 
@@ -17341,6 +17393,9 @@ msgstr "La teva consulta s'ha actualitzat"
 
 msgid "Your report could not be deleted"
 msgstr "El teu informe no s'ha pogut eliminar"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -17446,6 +17501,9 @@ msgstr "`row_offset` ha de ser major o igual a 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` ha de ser major o igual a 0"
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 #, fuzzy
 msgid "a few seconds"
 msgstr "5 segons"
@@ -17477,6 +17535,9 @@ msgstr "anotació"
 msgid "annotation_layer"
 msgstr "capa_anotació"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr "asfreq"
 
@@ -17492,6 +17553,9 @@ msgstr "fons"
 #, fuzzy
 msgid "background color"
 msgstr "Color de Fons"
+
+msgid "banana"
+msgstr ""
 
 msgid "basis"
 msgstr "base"
