@@ -44,6 +44,7 @@
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPost, apiPut } from '../../helpers/api/requests';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
+import { getDatasetByName } from '../../helpers/api/dataset';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
 
@@ -51,22 +52,16 @@ const DATASET_NAME = 'birth_names';
 const WIDE_VIEWPORT = { width: 1400, height: 900 };
 const NARROW_VIEWPORT = { width: 700, height: 900 };
 
-async function findDatasetIdByName(page: any, name: string): Promise<number> {
-  const rison = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
-  const resp = await page.request.get(`api/v1/dataset/?q=${rison}`);
-  const body = await resp.json();
-  if (!body.result?.length) {
-    throw new Error(`Dataset ${name} not found`);
-  }
-  return body.result[0].id;
-}
-
 testWithAssets(
   'chart in a hidden tab refits its container after the tab is revealed at a new width',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const datasetId = await findDatasetIdByName(page, DATASET_NAME);
+    const dataset = await getDatasetByName(page, DATASET_NAME);
+    if (!dataset) {
+      throw new Error(`Dataset ${DATASET_NAME} not found`);
+    }
+    const datasetId = dataset.id;
     const datasource = `${datasetId}__table`;
 
     // Tab A holds a width-sensitive treemap (echarts sizes it to fill the
