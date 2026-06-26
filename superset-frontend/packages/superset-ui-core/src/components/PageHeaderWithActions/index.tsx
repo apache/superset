@@ -19,7 +19,7 @@
 import { ReactNode, ReactElement, memo } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Icons, Flex } from '@superset-ui/core/components';
 import type { DropdownProps } from '../Dropdown/types';
 import type { TooltipPlacement } from '../Tooltip/types';
 import type { CertifiedBadgeProps } from '../CertifiedBadge/types';
@@ -68,13 +68,6 @@ const headerStyles = (theme: SupersetTheme) => css`
   span[role='button'] {
     display: flex;
     height: 100%;
-  }
-
-  .title-panel {
-    display: flex;
-    align-items: center;
-    min-width: 0;
-    margin-right: ${theme.sizeUnit * 12}px;
   }
 
   .right-button-panel {
@@ -135,10 +128,10 @@ export const PageHeaderWithActions = memo(
     const theme = useTheme();
     return (
       <div css={headerStyles} className="header-with-actions">
-        <div className="title-panel">
+        <Flex align="center" gap={theme.sizeUnit * 12}>
           <DynamicEditableTitle {...editableTitleProps} />
           {showTitlePanelItems && (
-            <div css={buttonsStyles}>
+            <div css={buttonsStyles(theme)}>
               {certificatiedBadgeProps?.certifiedBy && (
                 <CertifiedBadge {...certificatiedBadgeProps} />
               )}
@@ -146,10 +139,10 @@ export const PageHeaderWithActions = memo(
               {titlePanelAdditionalItems}
             </div>
           )}
-        </div>
+        </Flex>
         <div className="right-button-panel">
           {rightPanelAdditionalItems}
-          <div css={additionalActionsContainerStyles}>
+          <div css={additionalActionsContainerStyles(theme)}>
             {showMenuDropdown && (
               <Dropdown
                 trigger={['click']}

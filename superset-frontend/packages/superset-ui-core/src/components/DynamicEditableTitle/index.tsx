@@ -59,9 +59,9 @@ const titleStyles = (theme: SupersetTheme) => css`
 
   & .input-sizer {
     position: absolute;
-    left: -9999px;
     display: inline-block;
     white-space: pre;
+    opacity: 0;
   }
 `;
 
@@ -102,16 +102,16 @@ export const DynamicEditableTitle = memo(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [title]);
     useEffect(() => {
-      if (isEditing) {
+      const inputElement = inputRef.current?.input;
+      if (isEditing && inputElement) {
         // move cursor and scroll to the end
-        const inputElement = inputRef.current?.input;
-        if (inputElement) {
-          const { length } = inputElement.value;
-          inputElement.setSelectionRange(length, length);
+        const { length } = inputElement.value;
+        inputElement.setSelectionRange(length, length);
+        if (theme.direction !== 'rtl') {
           inputElement.scrollLeft = inputElement.scrollWidth;
         }
       }
-    }, [isEditing]);
+    }, [isEditing, theme.direction]);
 
     // a trick to make the input grow when user types text
     // we make an additional span component, place it somewhere out of view and

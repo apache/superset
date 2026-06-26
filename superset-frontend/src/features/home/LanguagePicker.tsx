@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { DirectionType } from 'antd/es/config-provider';
+import { getDirectionFromLocale } from 'src/utils/localeUtils';
 
 export interface Languages {
   [key: string]: {
@@ -34,6 +36,7 @@ export interface Languages {
 interface LanguagePickerProps {
   locale: string;
   languages: Languages;
+  setDirection: (newDirection: DirectionType) => void;
 }
 
 const StyledLabel = styled.div`
@@ -55,8 +58,14 @@ const StyledLabel = styled.div`
 export const useLanguageMenuItems = ({
   locale,
   languages,
-}: LanguagePickerProps): MenuItem =>
-  useMemo(() => {
+  setDirection,
+}: LanguagePickerProps): MenuItem => {
+
+  useEffect(() => {
+    setDirection(getDirectionFromLocale(locale));
+  }, [locale, setDirection]);
+
+  return useMemo(() => {
     const items: MenuItem[] = Object.keys(languages).map(langKey => ({
       key: langKey,
       label: (
@@ -84,3 +93,4 @@ export const useLanguageMenuItems = ({
       popupClassName: 'language-picker-popup',
     };
   }, [languages, locale]);
+};
