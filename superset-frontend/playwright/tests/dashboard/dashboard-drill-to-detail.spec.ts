@@ -41,13 +41,16 @@
  *   - Modal mechanics (open from header menu, pagination, reload-resets-page)
  *     and the no-filter big-number drill use stable DOM elements.
  *   - Table and Pivot drills right-click real DOM cells (no canvas pixels).
- *   - Canvas charts (Pie, Line) DID rely on hard-coded pixel coordinates in
- *     Cypress to land on a specific slice/point. Instead of reproducing those
- *     brittle pixels, these tests right-click a stable region of the canvas,
- *     read whichever value the drill submenu actually offers for the point under
- *     the cursor, drill by that value, and assert the SAME value round-trips
- *     into the modal filter. This exercises the full canvas → contextmenu →
- *     datum → samples pipeline while staying independent of exact geometry.
+ *   - Canvas (echarts) charts — Pie, Line, Scatter, generic/smooth/step
+ *     time-series, Mixed, Box plot, Funnel, Gauge, Treemap — DID rely on
+ *     hard-coded pixel coordinates in Cypress to land on a specific slice/point.
+ *     Instead of reproducing those brittle pixels, these tests scan a stable
+ *     region of the canvas (see `rightClickCanvasDatum`), read whichever value
+ *     the drill submenu actually offers for the point under the cursor, drill by
+ *     that value, and assert the SAME value round-trips into the modal filter.
+ *     This exercises the full canvas → contextmenu → datum → samples pipeline
+ *     while staying independent of exact geometry. `Big Number with Trendline`
+ *     drills the whole chart (no datum filter), like `Big Number`.
  *
  * Excluded (kept out, matching the original's own `describe.skip`s): Bar, Area,
  * World Map, Radar — skipped upstream for chart-specific reasons.
@@ -56,20 +59,11 @@ import { testWithAssets, expect } from '../../helpers/fixtures';
 import type { Page } from '@playwright/test';
 import { apiPost, apiPut } from '../../helpers/api/requests';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
+import { getDatasetByName } from '../../helpers/api/dataset';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
 
 const DATASET_NAME = 'birth_names';
-
-async function findDatasetIdByName(page: Page, name: string): Promise<number> {
-  const rison = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
-  const resp = await page.request.get(`api/v1/dataset/?q=${rison}`);
-  const body = await resp.json();
-  if (!body.result?.length) {
-    throw new Error(`Dataset ${name} not found`);
-  }
-  return body.result[0].id;
-}
 
 /**
  * Parse a RowCountLabel value ("75.7k rows", "1,234 rows") into a number so
@@ -105,7 +99,11 @@ async function buildSingleChartDashboard(
   },
   spec: ChartSpec,
 ): Promise<number> {
-  const datasetId = await findDatasetIdByName(page, DATASET_NAME);
+  const dataset = await getDatasetByName(page, DATASET_NAME);
+  if (!dataset) {
+    throw new Error(`Dataset ${DATASET_NAME} not found`);
+  }
+  const datasetId = dataset.id;
   const datasource = `${datasetId}__table`;
 
   const chartResp = await apiPost(page, 'api/v1/chart/', {
@@ -184,32 +182,43 @@ async function buildSingleChartDashboard(
 async function rightClickCanvasDatum(
   page: Page,
   canvas: ReturnType<Page['locator']>,
-  pattern: 'ring' | 'grid',
+  pattern: 'ring' | 'grid' | 'dense',
 ): Promise<void> {
   const box = await canvas.boundingBox();
   if (!box) throw new Error('canvas has no bounding box');
 
-  const candidates: Array<{ x: number; y: number }> = [];
-  if (pattern === 'ring') {
+  const ringPoints = (): Array<{ x: number; y: number }> => {
+    const pts: Array<{ x: number; y: number }> = [];
     const cx = box.width / 2;
     const cy = box.height / 2;
     const minSide = Math.min(box.width, box.height);
     for (const rf of [0.3, 0.22, 0.38]) {
       for (let a = 0; a < 360; a += 45) {
         const rad = (a * Math.PI) / 180;
-        candidates.push({
+        pts.push({
           x: cx + Math.cos(rad) * minSide * rf,
           y: cy + Math.sin(rad) * minSide * rf,
         });
       }
     }
-  } else {
+    return pts;
+  };
+  const gridPoints = (): Array<{ x: number; y: number }> => {
+    const pts: Array<{ x: number; y: number }> = [];
     for (const yf of [0.5, 0.4, 0.6, 0.3, 0.7]) {
       for (const xf of [0.3, 0.45, 0.6, 0.2, 0.75]) {
-        candidates.push({ x: box.width * xf, y: box.height * yf });
+        pts.push({ x: box.width * xf, y: box.height * yf });
       }
     }
-  }
+    return pts;
+  };
+
+  // 'dense' merges both scans for radial/stacked shapes (gauge, funnel, box
+  // plot) whose drillable marks don't fall neatly on a single ring or grid.
+  let candidates: Array<{ x: number; y: number }>;
+  if (pattern === 'ring') candidates = ringPoints();
+  else if (pattern === 'grid') candidates = gridPoints();
+  else candidates = [...gridPoints(), ...ringPoints()];
 
   // The submenu *title* element only exists when "Drill to detail by" is an
   // enabled submenu (a real datum was hit); a miss renders a disabled item.
@@ -255,6 +264,48 @@ async function loadDashboardWithChart(
     .waitFor({ state: 'visible', timeout: TIMEOUT.QUERY_EXECUTION });
   await dashboard.waitForChartsToLoad();
 }
+
+/**
+ * Full canvas-drill round-trip for an echarts (canvas-rendered) chart: build a
+ * hermetic single-chart dashboard, render it, right-click a real datum, drill by
+ * whatever value the submenu offers under the cursor, and assert that same value
+ * lands in the modal filter. Geometry-independent — see rightClickCanvasDatum.
+ * Reused across every canvas viz type so each migrated chart is a thin caller.
+ */
+async function expectCanvasDrillByValueRoundTrips(
+  page: Page,
+  testAssets: { trackChart(id: number): void; trackDashboard(id: number): void },
+  spec: ChartSpec,
+  pattern: 'ring' | 'grid' | 'dense',
+): Promise<void> {
+  const dashboard = new DashboardPage(page);
+  const dashboardId = await buildSingleChartDashboard(page, testAssets, spec);
+  await loadDashboardWithChart(dashboard, dashboardId, spec.vizType);
+
+  const canvas = dashboard.chartByVizType(spec.vizType).locator('canvas').first();
+  await expect(canvas).toBeVisible();
+  await rightClickCanvasDatum(page, canvas, pattern);
+
+  const offered = await dashboard.drillByOfferedValues();
+  expect(offered.length).toBeGreaterThan(0);
+  const value = offered[0];
+  const samples = expectSamplesPost(page);
+  await dashboard.contextMenuDrillToDetailBy(value);
+  await samples;
+
+  await expect(dashboard.drillModal()).toBeVisible();
+  await expect(dashboard.drillFilterValues().first()).toContainText(value);
+}
+
+// Shared form-data fragment for the echarts time-series family (line/scatter/
+// generic/smooth/step): one temporal axis, one metric, split by gender series.
+const TIMESERIES_PARAMS = {
+  x_axis: 'ds',
+  time_grain_sqla: 'P1Y',
+  metrics: ['count'],
+  groupby: ['gender'],
+  row_limit: 1000,
+};
 
 testWithAssets(
   'drill-to-detail modal: opens from the header menu, paginates, and reload resets to page 1',
@@ -508,5 +559,286 @@ testWithAssets(
 
     await expect(dashboard.drillModal()).toBeVisible();
     await expect(dashboard.drillFilterValues().first()).toContainText(value);
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: big number with trendline right-click drills the whole chart (no filter)',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    const dashboard = new DashboardPage(page);
+    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
+      vizType: 'big_number',
+      sliceName: 'drill_bignum_trend',
+      params: {
+        metric: 'count',
+        x_axis: 'ds',
+        time_grain_sqla: 'P1Y',
+        adhoc_filters: [],
+      },
+    });
+
+    await loadDashboardWithChart(dashboard, dashboardId, 'big_number');
+
+    // Right-click the rendered number opens the context menu; whole-chart drill.
+    const samples = expectSamplesPost(page);
+    await dashboard
+      .chartByVizType('big_number')
+      .locator('.header-line')
+      .click({ button: 'right' });
+    await dashboard.contextMenuDrillToDetail();
+    await samples;
+
+    await expect(dashboard.drillModal()).toBeVisible();
+    await expect(dashboard.drillFilterValues()).toHaveCount(0);
+    await expect(
+      dashboard.drillModal().locator('[data-test="row-count-label"]'),
+    ).toContainText('rows');
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: scatter chart point right-click (canvas) drills by the point value',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    await expectCanvasDrillByValueRoundTrips(
+      page,
+      testAssets,
+      {
+        vizType: 'echarts_timeseries_scatter',
+        sliceName: 'drill_scatter',
+        // Enlarge the markers so a region scan reliably lands on a point;
+        // scatter's default dots are a few pixels wide and a sparse grid misses
+        // them.
+        params: { ...TIMESERIES_PARAMS, markerSize: 20 },
+      },
+      'dense',
+    );
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: generic time-series point right-click (canvas) drills by the point value',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    await expectCanvasDrillByValueRoundTrips(
+      page,
+      testAssets,
+      {
+        vizType: 'echarts_timeseries',
+        sliceName: 'drill_generic',
+        params: TIMESERIES_PARAMS,
+      },
+      'grid',
+    );
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: smooth line point right-click (canvas) drills by the point value',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    await expectCanvasDrillByValueRoundTrips(
+      page,
+      testAssets,
+      {
+        vizType: 'echarts_timeseries_smooth',
+        sliceName: 'drill_smooth',
+        params: TIMESERIES_PARAMS,
+      },
+      'grid',
+    );
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: step line point right-click (canvas) drills by the point value',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    await expectCanvasDrillByValueRoundTrips(
+      page,
+      testAssets,
+      {
+        vizType: 'echarts_timeseries_step',
+        sliceName: 'drill_step',
+        params: TIMESERIES_PARAMS,
+      },
+      'grid',
+    );
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: mixed time-series point right-click (canvas) drills by the point value',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    await expectCanvasDrillByValueRoundTrips(
+      page,
+      testAssets,
+      {
+        vizType: 'mixed_timeseries',
+        sliceName: 'drill_mixed',
+        params: {
+          x_axis: 'ds',
+          time_grain_sqla: 'P1Y',
+          metrics: ['count'],
+          groupby: ['gender'],
+          metrics_b: ['count'],
+          groupby_b: ['gender'],
+          row_limit: 1000,
+        },
+      },
+      'grid',
+    );
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: box plot right-click (canvas) drills by the box value',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    await expectCanvasDrillByValueRoundTrips(
+      page,
+      testAssets,
+      {
+        vizType: 'box_plot',
+        sliceName: 'drill_boxplot',
+        params: {
+          groupby: ['gender'],
+          metrics: ['count'],
+          columns: ['ds'],
+        },
+      },
+      'dense',
+    );
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: funnel segment right-click (canvas) drills by the segment value',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    await expectCanvasDrillByValueRoundTrips(
+      page,
+      testAssets,
+      {
+        vizType: 'funnel',
+        sliceName: 'drill_funnel',
+        params: { groupby: ['gender'], metric: 'count' },
+      },
+      'dense',
+    );
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: gauge right-click (canvas) drills by the gauge value',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    await expectCanvasDrillByValueRoundTrips(
+      page,
+      testAssets,
+      {
+        vizType: 'gauge_chart',
+        sliceName: 'drill_gauge',
+        params: { groupby: ['gender'], metric: 'count' },
+      },
+      'dense',
+    );
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: treemap tile right-click (canvas) drills by the tile value',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    await expectCanvasDrillByValueRoundTrips(
+      page,
+      testAssets,
+      {
+        vizType: 'treemap_v2',
+        sliceName: 'drill_treemap',
+        params: { metric: 'count', groupby: ['gender'] },
+      },
+      'dense',
+    );
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: drilling a time-series point "by all" applies every dimension of that point',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    const dashboard = new DashboardPage(page);
+    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
+      vizType: 'echarts_timeseries_line',
+      sliceName: 'drill_all',
+      // Two groupby dimensions so each point genuinely carries more than one
+      // drillable value — the whole point of "Drill to detail by all".
+      params: { ...TIMESERIES_PARAMS, groupby: ['gender', 'state'] },
+    });
+
+    await loadDashboardWithChart(
+      dashboard,
+      dashboardId,
+      'echarts_timeseries_line',
+    );
+
+    const canvas = dashboard
+      .chartByVizType('echarts_timeseries_line')
+      .locator('canvas')
+      .first();
+    await expect(canvas).toBeVisible();
+    await rightClickCanvasDatum(page, canvas, 'grid');
+
+    // A line point carries two dimensions (the temporal value and the gender
+    // series), so "Drill to detail by all" must apply both as filters.
+    const offered = await dashboard.drillByOfferedValues();
+    expect(offered.length).toBeGreaterThanOrEqual(2);
+    const samples = expectSamplesPost(page);
+    await dashboard.contextMenuDrillToDetailBy('all');
+    await samples;
+
+    await expect(dashboard.drillModal()).toBeVisible();
+    expect(await dashboard.drillFilterValues().count()).toBeGreaterThanOrEqual(
+      2,
+    );
+  },
+);
+
+testWithAssets(
+  'drill-to-detail modal: table drills correctly by each of multiple dimension values',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+    const dashboard = new DashboardPage(page);
+    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
+      vizType: 'table',
+      sliceName: 'drill_table_multi',
+      params: {
+        query_mode: 'aggregate',
+        groupby: ['gender'],
+        metrics: ['count'],
+        row_limit: 100,
+        server_pagination: false,
+      },
+    });
+
+    await loadDashboardWithChart(dashboard, dashboardId, 'table');
+
+    for (const value of ['boy', 'girl']) {
+      const samples = expectSamplesPost(page);
+      await dashboard
+        .chartByVizType('table')
+        .getByText(value, { exact: true })
+        .first()
+        .click({ button: 'right' });
+      await dashboard.contextMenuDrillToDetailBy(value);
+      await samples;
+
+      const modal = dashboard.drillModal();
+      await expect(modal).toBeVisible();
+      await expect(dashboard.drillFilterValues().first()).toContainText(value);
+      await dashboard.closeDrillModal();
+    }
   },
 );
