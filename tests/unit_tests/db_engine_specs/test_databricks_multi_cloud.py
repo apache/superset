@@ -143,6 +143,26 @@ def test_cloud_provider_detection_explicit_config(mocker: MockerFixture) -> None
     assert provider == "azure"
 
 
+def test_cloud_provider_detection_invalid_config_falls_back_to_hostname(
+    mocker: MockerFixture,
+) -> None:
+    """
+    An unrecognized explicit `cloud_provider` is ignored and detection falls
+    back to the hostname rather than raising or returning the bad value.
+    """
+    database = mocker.MagicMock()
+    database.url_object.host = "adb-123456789.12.azuredatabricks.net"
+
+    mocker.patch.object(
+        DatabricksNativeEngineSpec,
+        "get_extra_params",
+        return_value={"cloud_provider": "oracle"},
+    )
+
+    provider = DatabricksNativeEngineSpec._detect_cloud_provider(database)
+    assert provider == "azure"
+
+
 def test_get_oauth2_authorization_uri_aws(
     mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
