@@ -26,10 +26,10 @@ RewriteRule ^(.*)$ https://superset.apache.org/$1 [R=301,L]
 # Additional domains required for docs site functionality:
 # - widget.kapa.ai: AI chatbot widget (uses Google reCAPTCHA). Approval here: https://privacy.apache.org/faq/committers.html
 # - *.googleapis.com, *.google.com, *.gstatic.com: Google Calendar embed, kapa.ai reCAPTCHA - all of these loaded with user consent, following policy laid out in https://privacy.apache.org/faq/committers.html
-# - *.github.com, *.githubusercontent.com: GitHub user-attachment images in docs. Discussed/resolved in this thread: https://issues.apache.org/jira/browse/INFRA-25701?filter=-2 (DPA in place with GitHub)
+# - github.com, *.github.com, *.githubusercontent.com: GitHub user-attachment images in docs (apex github.com serves user-attachments/* assets). Discussed/resolved in this thread: https://issues.apache.org/jira/browse/INFRA-25701?filter=-2 (DPA in place with GitHub)
 # - *.algolia.net, *.algolianet.com: Algolia DocSearch. Approved here: https://privacy.apache.org/faq/committers.html
 # See: https://infra.apache.org/tools/csp.html
-SetEnv CSP_PROJECT_DOMAINS "widget.kapa.ai https://*.googleapis.com/ https://*.google.com/ https://*.gstatic.com/ https://*.github.com/ https://*.githubusercontent.com/ https://*.algolia.net/ https://*.algolianet.com/"
+SetEnv CSP_PROJECT_DOMAINS "widget.kapa.ai https://*.googleapis.com/ https://*.google.com/ https://*.gstatic.com/ https://github.com/ https://*.github.com/ https://*.githubusercontent.com/ https://*.algolia.net/ https://*.algolianet.com/"
 
 # REDIRECTS
 
