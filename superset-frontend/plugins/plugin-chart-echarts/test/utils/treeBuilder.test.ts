@@ -621,4 +621,29 @@ describe('test treeBuilder', () => {
       },
     ]);
   });
+
+  // A parent whose children are all null must be dropped, not kept as a
+  // zero-value arc: a retained `value: 0` node yields NaN for the
+  // secondaryValue/value ratio used in linear coloring and tooltips.
+  test('filtering drops parents left with no children', () => {
+    const tree = treeBuilder(
+      [
+        { foo: 'keep', bar: 'a', count: 2, count2: 3 },
+        { foo: 'drop', bar: null, count: 5, count2: 7 },
+      ],
+      ['foo', 'bar'],
+      'count',
+      'count2',
+      true,
+    );
+    expect(tree).toEqual([
+      {
+        children: [{ groupBy: 'bar', name: 'a', secondaryValue: 3, value: 2 }],
+        groupBy: 'foo',
+        name: 'keep',
+        secondaryValue: 3,
+        value: 2,
+      },
+    ]);
+  });
 });

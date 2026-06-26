@@ -21,6 +21,13 @@ import { supersetTheme } from '@apache-superset/core/theme';
 import { EchartsSunburstChartProps } from '../../src/Sunburst/types';
 import transformProps from '../../src/Sunburst/transformProps';
 
+type SunburstSeries = {
+  label?: Record<string, unknown>;
+  data: { value: number }[];
+};
+const firstSeries = (echartOptions: unknown) =>
+  (echartOptions as { series: SunburstSeries[] }).series[0];
+
 const formData = {
   colorScheme: 'bnbColors',
   datasource: '3__table',
@@ -47,7 +54,7 @@ test('series label has no textBorderColor or textBorderWidth', () => {
   const { echartOptions } = transformProps(
     chartProps as EchartsSunburstChartProps,
   );
-  const series = (echartOptions as any).series[0];
+  const series = firstSeries(echartOptions);
   expect(series.label).not.toHaveProperty('textBorderColor');
   expect(series.label).not.toHaveProperty('textBorderWidth');
 });
@@ -75,13 +82,12 @@ const nullValueProps = (showNullValues?: boolean) =>
     theme: supersetTheme,
   });
 
-const seriesValues = (props: ChartProps) =>
-  (
-    (transformProps(props as EchartsSunburstChartProps).echartOptions as any)
-      .series[0].data as { value: number }[]
-  )
-    .map(node => node.value)
+const seriesValues = (props: ChartProps) => {
+  const { echartOptions } = transformProps(props as EchartsSunburstChartProps);
+  return firstSeries(echartOptions)
+    .data.map(node => node.value)
     .sort((a, b) => a - b);
+};
 
 // Charts saved before the "Show Null Values" control existed have no
 // `showNullValues` in form data; they must keep showing nulls (non-breaking).

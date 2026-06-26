@@ -91,6 +91,12 @@ export function treeBuilder(
     [] as TreeNode[],
   );
   // Filter at every level so single-level charts and root nodes are covered,
-  // not just nested children.
-  return filterNullNames ? nodes.filter(node => node.name !== null) : nodes;
+  // not just nested children. A parent whose children were all null-filtered
+  // is dropped too: keeping it would leave a zero-value arc that yields a NaN
+  // secondaryValue/value ratio for coloring and tooltips.
+  return filterNullNames
+    ? nodes.filter(
+        node => node.name !== null && !(node.children && !node.children.length),
+      )
+    : nodes;
 }
