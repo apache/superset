@@ -1480,8 +1480,9 @@ class TestUpdateChartDatasetIdIntegration:
         "superset.commands.chart.update.UpdateChartCommand",
         new_callable=Mock,
     )
-    @patch(
-        "superset.mcp_service.chart.tool.update_chart._validate_update_against_dataset",
+    @patch.object(
+        update_chart_module,
+        "_validate_update_against_dataset",
         return_value=None,
     )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)

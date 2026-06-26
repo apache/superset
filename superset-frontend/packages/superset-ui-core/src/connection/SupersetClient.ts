@@ -52,6 +52,7 @@ const SupersetClient: SupersetClientInterface = {
   request: request => getInstance().request(request),
   getCSRFToken: () => getInstance().getCSRFToken(),
   getUrl: (...args) => getInstance().getUrl(...args),
+  postBlob: (endpoint, payload) => getInstance().postBlob(endpoint, payload),
   get guestTokenHeaderName() {
     try {
       return getInstance().guestTokenHeaderName;
