@@ -721,7 +721,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
               $ref: '#/components/responses/500'
         """
         if column_name not in self.allowed_distinct_fields:
-            self.incr_stats("error", self.related.__name__)
+            self.incr_stats("error", self.distinct.__name__)
             self.log_rejected_field_access(self.distinct.__name__, column_name)
             return self.response_404()
         args = kwargs.get("rison", {})
