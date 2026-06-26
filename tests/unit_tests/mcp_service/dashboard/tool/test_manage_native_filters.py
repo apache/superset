@@ -27,9 +27,11 @@ Covers:
 - Adding a filter_select filter (full config shape, scope translation)
 - Adding a filter_time filter (with default time range)
 - Updating a filter (merge produces a FULL config, not a delta)
+- Update validation (duplicate update IDs, update+remove conflict)
 - Removing a filter
 - Reordering filters (including incomplete-reorder validation)
 - Invalid dataset / column errors
+- LLM-context sanitization of user-controlled filter names / targets
 - Dashboard not found
 - Permission denied (DashboardForbiddenError)
 """
@@ -397,6 +399,24 @@ async def test_update_duplicate_filter_ids_rejected(mcp_server):
         )
 
     assert "duplicate filter IDs" in data["error"]
+    assert "NATIVE_FILTER-existing1" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_and_remove_same_filter_rejected(mcp_server):
+    dashboard = _mock_dashboard(filters=[EXISTING_SELECT_FILTER])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER-existing1", "name": "X"}],
+                "remove": ["NATIVE_FILTER-existing1"],
+            },
+        )
+
+    assert "cannot be both updated and removed" in data["error"]
     assert "NATIVE_FILTER-existing1" in data["error"]
 
 
