@@ -3350,6 +3350,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
+                # Resolve a known column directly to its ``TableColumn`` so that
+                # multi-part identifiers (e.g. a BigQuery STRUCT field registered
+                # with a dotted ``column_name`` such as ``a.b.c``) are quoted per
+                # segment, matching the chart/groupby selection path above.
+                # Routing these through ``quote()`` + sqlglot normalization below
+                # can collapse the dotted path into a single quoted identifier
+                # (e.g. ```a.b`.`c```), which breaks drill to detail / samples
+                # queries on nested columns (SC-111745).
+                if isinstance(selected, str) and selected in columns_by_name:
+                    select_exprs.append(
+                        self.convert_tbl_column_to_sqla_col(
+                            columns_by_name[selected],
+                            label=selected,
+                            template_processor=template_processor,
+                        )
+                    )
+                    continue
                 if is_adhoc_column(selected):
                     _sql = selected["sqlExpression"]
                     _column_label = selected["label"]
