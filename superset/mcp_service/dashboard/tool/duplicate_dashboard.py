@@ -244,6 +244,23 @@ async def _resolve_source(
                     f"'{request.dashboard_id}', so it cannot be duplicated."
                 ),
             )
+        except SQLAlchemyError:
+            # Transient DB/session failures during lookup must surface as a
+            # structured response, not a hard tool failure. The raw error is
+            # logged with a traceback; the response stays generic because
+            # ``str(exc)`` can leak table/column/constraint names.
+            logger.error(
+                "Database error resolving dashboard %s for duplication",
+                request.dashboard_id,
+                exc_info=True,
+            )
+            _safe_rollback("dashboard lookup")
+            return None, DuplicateDashboardResponse(
+                error=(
+                    f"Dashboard '{request.dashboard_id}' could not be "
+                    "duplicated due to a database error. Please try again."
+                ),
+            )
 
 
 @tool(

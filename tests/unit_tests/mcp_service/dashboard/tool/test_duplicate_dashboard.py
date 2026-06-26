@@ -484,6 +484,39 @@ async def test_malformed_metadata_returns_structured_error(
     assert "metadata is invalid" in (content["error"] or "")
 
 
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_lookup_db_error_returns_structured_error(
+    mock_get_by_id_or_slug: Mock,
+    mcp_server: object,
+) -> None:
+    """A DB failure while resolving the source yields a structured error.
+
+    A transient ``SQLAlchemyError`` from ``get_by_id_or_slug`` must surface
+    as a ``DuplicateDashboardResponse`` error rather than escaping as a hard
+    tool failure, and the response message stays generic (no leaked DB
+    internals).
+    """
+    from sqlalchemy.exc import SQLAlchemyError
+
+    mock_get_by_id_or_slug.side_effect = SQLAlchemyError(
+        "could not connect to server: secret_table.column"
+    )
+
+    with patch("superset.db.session"):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "duplicate_dashboard",
+                {"request": {"dashboard_id": 1, "dashboard_title": "Copy"}},
+            )
+
+    content = result.structured_content
+    assert content["dashboard"] is None
+    error = content["error"] or ""
+    assert "database error" in error
+    assert "secret_table" not in error
+
+
 def test_title_xss_only_rejected_by_schema() -> None:
     """A title that sanitizes to nothing is rejected with a clear error."""
     from pydantic import ValidationError
