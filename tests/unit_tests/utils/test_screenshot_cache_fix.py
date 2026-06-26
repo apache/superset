@@ -76,7 +76,9 @@ def screenshot_obj() -> BaseScreenshot:
 class TestCacheOnlyOnSuccess:
     """Test that cache is only saved when image generation succeeds."""
 
-    def _setup_mocks(self, mocker: MockerFixture, screenshot_obj):
+    def _setup_mocks(
+        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot
+    ) -> MagicMock:
         """Helper method to set up common mocks."""
         mocker.patch(DISTRIBUTED_LOCK_PATH)
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
@@ -194,7 +196,7 @@ class TestShouldTriggerTask:
     """Test the should_trigger_task method improvements."""
 
     @patch("superset.utils.screenshots.app")
-    def test_trigger_on_stale_computing_status(self, mock_app):
+    def test_trigger_on_stale_computing_status(self, mock_app: MagicMock) -> None:
         """Test that stale COMPUTING status triggers recomputation."""
         # Set TTL to 300 seconds
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
@@ -263,7 +265,7 @@ class TestShouldTriggerTask:
         assert payload.should_trigger_task(force=False) is True
 
     @patch("superset.utils.screenshots.app")
-    def test_no_trigger_on_fresh_error(self, mock_app):
+    def test_no_trigger_on_fresh_error(self, mock_app: MagicMock) -> None:
         """Test that fresh ERROR status does not trigger task."""
         mock_app.config = {
             "THUMBNAIL_COMPUTING_CACHE_TTL": 300,
