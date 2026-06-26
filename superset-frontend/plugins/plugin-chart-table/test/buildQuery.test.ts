@@ -138,6 +138,23 @@ describe('plugin-chart-table', () => {
         expressionType: 'SQL',
       });
     });
+    test('should retain percent-metric post-processing on the summary (show_totals) query', () => {
+      // #37627: the summary row dropped post_processing, so percent-metric
+      // columns came back empty. The totals query must recompute them.
+      const { queries } = buildQuery({
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        metrics: ['count'],
+        percent_metrics: ['sum_sales'],
+        show_totals: true,
+      });
+      // Main query carries the contribution op for the percent metric ...
+      expect(queries[0].post_processing).toEqual([
+        expect.objectContaining({ operation: 'contribution' }),
+      ]);
+      // ... and so must the summary query (queries[1]).
+      expect(queries[1].post_processing).toEqual(queries[0].post_processing);
+    });
     test('should include time_grain_sqla in extras if temporal colum is used and keep the rest', () => {
       const { queries } = buildQueryCached({
         ...extraQueryFormData,

@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import copy
 import logging
 import re
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
@@ -26,6 +27,7 @@ from flask_babel import gettext as _
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
+from superset.common.grouping_sets import grouping_marker_label
 from superset.common.query_actions import get_query_results
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -252,8 +254,53 @@ class QueryContextProcessor:
         This method delegates to the datasource's get_query_result method,
         which handles query execution, normalization, time offsets, and
         post-processing.
+
+        When the query requests rollup ``grouping_sets`` but the engine does not
+        support native ``GROUPING SETS``, fall back to one query per level and
+        concatenate the results with ``GROUPING()``-equivalent markers, so the
+        combined result matches the shape the native path produces (SIP.md,
+        phase 3b). Engines that support it run the single native query.
         """
+        if query_object.grouping_sets and not self._supports_grouping_sets():
+            return self._grouping_sets_fallback(query_object)
         return self._qc_datasource.get_query_result(query_object)
+
+    def _supports_grouping_sets(self) -> bool:
+        engine_spec = getattr(self._qc_datasource, "db_engine_spec", None)
+        return bool(engine_spec and engine_spec.supports_grouping_sets)
+
+    def _grouping_sets_fallback(self, query_object: QueryObject) -> QueryResult:
+        """
+        Emulate a GROUPING SETS query on engines without native support: run one
+        query per rollup level and concatenate, tagging each level's rows with
+        the same per-column markers the native path emits.
+        """
+        levels = query_object.grouping_sets
+        all_labels = get_column_names_from_columns(query_object.columns)
+        label_to_column = dict(zip(all_labels, query_object.columns, strict=False))
+
+        frames: list[pd.DataFrame] = []
+        result: QueryResult | None = None
+        for level in levels:
+            level_labels = set(level)
+            sub_query = copy.copy(query_object)
+            sub_query.grouping_sets = []
+            sub_query.columns = [
+                label_to_column[label] for label in all_labels if label in level_labels
+            ]
+            result = self._qc_datasource.get_query_result(sub_query)
+            level_df = result.df.copy()
+            for label in all_labels:
+                level_df[grouping_marker_label(label)] = (
+                    0 if label in level_labels else 1
+                )
+            frames.append(level_df)
+
+        if result is None:  # no levels requested; nothing to do
+            return self._qc_datasource.get_query_result(query_object)
+
+        result.df = pd.concat(frames, ignore_index=True) if frames else result.df
+        return result
 
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]
