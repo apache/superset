@@ -333,6 +333,11 @@ const Select = forwardRef(
         });
         fireOnChange();
       }
+      if (autoClearSearchValue) {
+        setInputValue('');
+        setIsSearching(false);
+        setVisibleOptions(fullSelectOptions);
+      }
       onSelect?.(selectedItem, option);
     };
 

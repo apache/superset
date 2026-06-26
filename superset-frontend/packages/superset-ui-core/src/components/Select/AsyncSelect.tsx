@@ -267,6 +267,9 @@ const AsyncSelect = forwardRef(
         });
         fireOnChange();
       }
+      if (autoClearSearchValue) {
+        setInputValue('');
+      }
       onSelect?.(selectedItem, option);
     };
 
