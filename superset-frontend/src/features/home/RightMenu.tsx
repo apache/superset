@@ -776,8 +776,11 @@ const RightMenu = ({
       )}
       <TelemetryPixel
         version={navbarRight.version_string}
-        sha={navbarRight.version_sha}
-        build={navbarRight.build_number}
+        // Build details may be redacted to empty/null for non-admins; fall back
+        // to the component's "unknown" defaults instead of emitting empty path
+        // segments in the Scarf pixel URL.
+        sha={navbarRight.version_sha || undefined}
+        build={navbarRight.build_number || undefined}
       />
     </StyledDiv>
   );
