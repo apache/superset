@@ -32,11 +32,7 @@ fetchMock.put('glob:*/api/v1/dashboard/*/colors*', {});
 fetchMock.post('glob:*/superset/log/?*', {});
 
 jest.mock('@visx/responsive', () => ({
-  ParentSize: ({
-    children,
-  }: {
-    children: (props: { width: number }) => JSX.Element;
-  }) => children({ width: 800 }),
+  useParentSize: () => ({ parentRef: { current: null }, width: 800 }),
 }));
 
 jest.mock('src/dashboard/containers/DashboardGrid', () => ({
