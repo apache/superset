@@ -434,7 +434,13 @@ LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
-FAB_API_SWAGGER_UI = True
+# Disabled by default so the interactive API documentation surface is opt-in.
+# Enable it by setting the SUPERSET_ENABLE_SWAGGER_UI environment variable
+# (e.g. for local development) or by overriding FAB_API_SWAGGER_UI in
+# superset_config.py.
+FAB_API_SWAGGER_UI = utils.cast_to_boolean(
+    os.environ.get("SUPERSET_ENABLE_SWAGGER_UI", False)
+)
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -1010,7 +1016,12 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # Default theme configuration - foundation for all themes
 # This acts as the base theme for all users
-THEME_DEFAULT: Theme = {
+#
+# _THEME_DEFAULT_BASE is a private copy of the built-in defaults.
+# It is NOT overridden by ``from superset_config import *`` (underscore prefix)
+# and is used to deep-merge partial user overrides so that unspecified token
+# fields gracefully fall back to the built-in values.
+_THEME_DEFAULT_BASE: Theme = {
     "token": {
         # Brand
         # Application name for window titles
@@ -1050,18 +1061,22 @@ THEME_DEFAULT: Theme = {
     "algorithm": "default",
 }
 
+THEME_DEFAULT: Theme = _THEME_DEFAULT_BASE
+
 # Dark theme configuration - foundation for dark mode
 # Inherits all tokens from THEME_DEFAULT and adds dark algorithm
 # Set to None to disable dark mode
-THEME_DARK: Optional[Theme] = {
-    **THEME_DEFAULT,
+_THEME_DARK_BASE: Theme = {
+    **_THEME_DEFAULT_BASE,
     "token": {
-        **THEME_DEFAULT["token"],
+        **_THEME_DEFAULT_BASE["token"],
         # Darker selection color for dark mode
         "colorEditorSelection": "#5c4d1a",
     },
     "algorithm": "dark",
 }
+
+THEME_DARK: Optional[Theme] = _THEME_DARK_BASE
 
 
 def sync_theme_logo_href(
