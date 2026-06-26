@@ -65,6 +65,7 @@ interface ExtendedDatasource extends Datasource {
   }>;
   extra?: string;
   health_check_message?: string;
+  cache_timeout?: number | null;
   database?: {
     id: number;
     database_name: string;
