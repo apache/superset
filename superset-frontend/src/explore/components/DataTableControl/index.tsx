@@ -109,14 +109,17 @@ export const FilterInput = ({
 
   useEffect(() => {
     if (inputRef.current && shouldFocus) {
-      // Skip auto-focus if any meaningful element already has focus (e.g. user
-      // is typing in another control when this pane remounts after a data refresh)
+      // Skip auto-focus only when an editable element already has focus (e.g.
+      // user is typing in a form control when this pane remounts after a data
+      // refresh). Non-editable focused elements like tabs/buttons still allow
+      // auto-focus so the search box focuses on first open.
       const activeEl = document.activeElement;
-      const noElementFocused =
-        activeEl === null ||
-        activeEl === document.body ||
-        activeEl === document.documentElement;
-      if (noElementFocused) {
+      const editableFocused =
+        activeEl instanceof HTMLElement &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.isContentEditable);
+      if (!editableFocused) {
         inputRef.current.focus();
       }
     }
