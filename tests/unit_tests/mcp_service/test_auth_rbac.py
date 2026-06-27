@@ -246,6 +246,24 @@ def _make_mock_tool(
     return tool
 
 
+def _patch_token_scopes(scopes):
+    """Patch the JWT access-token lookup used by ``_get_token_scopes``.
+
+    ``scopes=None`` simulates no JWT context / no token; a list simulates a
+    token that advertises those scopes; an empty list simulates a token with
+    no scopes (treated as scope-less -> RBAC-only).
+    """
+    if scopes is None:
+        token = None
+    else:
+        token = MagicMock()
+        token.scopes = scopes
+    return patch(
+        "fastmcp.server.dependencies.get_access_token",
+        return_value=token,
+    )
+
+
 def test_visibility_returns_true_when_rbac_disabled(app_context, app) -> None:
     """is_tool_visible_to_current_user returns True when RBAC is disabled."""
     app.config["MCP_RBAC_ENABLED"] = False
@@ -343,3 +361,120 @@ def test_visibility_data_model_metadata_allowed(app_context) -> None:
         result = is_tool_visible_to_current_user(tool)
 
     assert result is True
+
+
+# -- Scope-aware authorization (intersection of token scopes and RBAC) --
+
+
+def test_scope_denies_when_token_lacks_required_scope(app_context) -> None:
+    """RBAC grants but the token does not carry the required write scope: deny."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="write")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes(["superset:read"]),
+    ):
+        result = check_tool_permission(func)
+
+    assert result is False
+
+
+def test_scope_allows_when_token_has_required_scope(app_context) -> None:
+    """RBAC grants and the token carries the required write scope: allow."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="write")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes(["superset:read", "superset:write"]),
+    ):
+        result = check_tool_permission(func)
+
+    assert result is True
+
+
+def test_scope_falls_back_to_rbac_when_token_has_no_scopes(app_context) -> None:
+    """Token present but with no scopes: RBAC-only behavior (back-compat)."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="write")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes([]),
+    ):
+        result = check_tool_permission(func)
+
+    # No scopes advertised -> scope check is skipped, RBAC grant stands.
+    assert result is True
+
+
+def test_scope_falls_back_to_rbac_when_no_jwt_context(app_context) -> None:
+    """No JWT context at all (e.g. API key / dev mode): RBAC-only behavior."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="read")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes(None),
+    ):
+        result = check_tool_permission(func)
+
+    assert result is True
+
+
+def test_scope_read_denied_when_token_lacks_read_scope(app_context) -> None:
+    """A read tool is denied when the token only carries an unrelated scope."""
+    g.user = MagicMock(username="viewer")
+    func = _make_tool_func(class_perm="Chart", method_perm="read")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes(["some:other-scope"]),
+    ):
+        result = check_tool_permission(func)
+
+    assert result is False
+
+
+def test_scope_denies_unmapped_method_for_scoped_token(app_context) -> None:
+    """A scoped token presented for a method permission that is NOT in the
+    scope map fails closed (denied), even when RBAC grants, so an unmapped
+    custom permission cannot silently bypass scope enforcement."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="some_custom_perm")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes(["superset:read", "superset:write"]),
+    ):
+        result = check_tool_permission(func)
+
+    assert result is False
+
+
+def test_scope_execute_sql_query_requires_write_scope(app_context) -> None:
+    """SQL execution (execute_sql_query) is a write-class operation: a scoped
+    token must carry the write scope, and a read-only scope is denied."""
+    g.user = MagicMock(username="analyst")
+    func = _make_tool_func(class_perm="SQLLab", method_perm="execute_sql_query")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with patch("superset.mcp_service.auth.security_manager", mock_sm):
+        with _patch_token_scopes(["superset:read"]):
+            assert check_tool_permission(func) is False
+        with _patch_token_scopes(["superset:write"]):
+            assert check_tool_permission(func) is True

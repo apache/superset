@@ -404,7 +404,7 @@ AdvancedPlayground.args = {
   autoFocus: true,
   allowNewOptions: false,
   allowClear: false,
-  autoClearSearchValue: false,
+  autoClearSearchValue: true,
   allowSelectAll: true,
   disabled: false,
   invertSelection: false,

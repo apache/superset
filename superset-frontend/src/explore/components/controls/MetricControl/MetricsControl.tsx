@@ -32,13 +32,6 @@ import MetricDefinitionValue from './MetricDefinitionValue';
 import AdhocMetric from './AdhocMetric';
 import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
 
-const defaultProps = {
-  onChange: () => {},
-  clearable: true,
-  savedMetrics: [],
-  columns: [],
-};
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getOptionsForSavedMetrics(
   savedMetrics: any,
@@ -122,11 +115,11 @@ export interface MetricsControlProps {
 }
 
 const MetricsControl = ({
-  onChange,
+  onChange = () => {},
   multi,
   value: propsValue,
-  columns,
-  savedMetrics,
+  columns = [],
+  savedMetrics = [],
   datasource,
   ...props
 }: MetricsControlProps) => {
@@ -350,7 +343,5 @@ const MetricsControl = ({
     </div>
   );
 };
-
-MetricsControl.defaultProps = defaultProps;
 
 export default MetricsControl;

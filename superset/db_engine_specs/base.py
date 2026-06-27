@@ -72,6 +72,7 @@ from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
+    Partition,
     RLSMethod,
     SQLScript,
     SQLStatement,
@@ -540,6 +541,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Set this to True on any engine spec where at least one row must be
     # fetched for cursor.description to be populated.
     type_probe_needs_row: bool = False
+    requires_column_value_normalization: bool = False
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
     custom_errors: dict[
@@ -1305,6 +1307,38 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def normalize_column_values(cls, col_values: list[Any]) -> list[Any]:
+        """
+        Engine-specific hook to normalize column values before PyArrow conversion.
+
+        Called when the initial pa.array() conversion raises an exception, giving
+        the engine a chance to clean up values (e.g. replace sentinel strings with
+        None) before a second conversion attempt.
+
+        :param col_values: Raw Python values for one column
+        :return: Normalized values; return the input list unchanged by default
+        """
+        return col_values
+
+    @classmethod
+    def resolve_column_type(
+        cls, cursor_type: str | None, pa_mapped: str | None
+    ) -> str | None:
+        """
+        Choose the reported column type from the cursor description type and the
+        type inferred by PyArrow.
+
+        The default prefers the cursor description when available.  Override in
+        engine specs where the cursor description is unreliable (e.g. pydruid
+        infers STRING from a None or special-float first row value).
+
+        :param cursor_type: Type string from the cursor description, or None
+        :param pa_mapped: Type string inferred by PyArrow, or None
+        :return: The type string to report for this column
+        """
+        return cursor_type or pa_mapped
+
+    @classmethod
     @deprecated(deprecated_in="3.0")
     def normalize_indexes(cls, indexes: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
@@ -1322,12 +1356,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         table: Table,
+        partition: Partition | None = None,
     ) -> TableMetadataResponse:
         """
         Returns basic table metadata
 
         :param database: Database instance
         :param table: A Table instance
+        :param partition: Optional partition info used by engines that support
+            partitioned tables (e.g. ODPS). Ignored by engines that don't.
         :return: Basic table metadata
         """
         return get_table_metadata(database, table)
@@ -1949,7 +1986,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             fields = cls._get_fields(cols)
 
         full_table_name = cls.quote_table(table, dialect)
-        qry = select(fields).select_from(text(full_table_name))
+        qry = select(*fields if isinstance(fields, list) else fields).select_from(
+            text(full_table_name)
+        )
 
         qry = qry.limit(limit)
         if latest_partition:
@@ -2439,6 +2478,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
 
         return None
+
+    @staticmethod
+    def validate_cancel_query_id(
+        cancel_query_id: str | None,
+        pattern: str = r"^\d+$",
+    ) -> bool:
+        """
+        Validate that a cancel_query_id matches expected format.
+
+        This is a defense-in-depth measure to prevent SQL injection in cancel_query
+        implementations that use string interpolation. While cancel_query_id typically
+        comes from trusted database sources (e.g., CONNECTION_ID()), validation ensures
+        safety even if the data source is compromised.
+
+        :param cancel_query_id: The query identifier to validate
+        :param pattern: Regex pattern to match (default: numeric only)
+        :return: True if valid, False otherwise
+        """
+        if cancel_query_id is None:
+            return False
+        return bool(re.fullmatch(pattern, str(cancel_query_id)))
 
     @classmethod
     def cancel_query(  # pylint: disable=unused-argument

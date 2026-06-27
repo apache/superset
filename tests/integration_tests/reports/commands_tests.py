@@ -35,7 +35,7 @@ from slack_sdk.errors import (
     SlackRequestError,
     SlackTokenRotationError,
 )
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
 
 from superset import db
 from superset.commands.report.exceptions import (
@@ -172,14 +172,17 @@ def assert_log(state: str, error_message: Optional[str] = None):
 def create_test_table_context(database: Database):
     with database.get_sqla_engine() as engine:
         engine.execute(
-            "CREATE TABLE IF NOT EXISTS test_table AS SELECT 1 as first, 2 as second"
+            text("""
+            CREATE TABLE IF NOT EXISTS test_table AS
+            SELECT 1 as first, 2 as second
+            """)
         )
-        engine.execute("INSERT INTO test_table (first, second) VALUES (1, 2)")
-        engine.execute("INSERT INTO test_table (first, second) VALUES (3, 4)")
+        engine.execute(text("INSERT INTO test_table (first, second) VALUES (1, 2)"))
+        engine.execute(text("INSERT INTO test_table (first, second) VALUES (3, 4)"))
 
     yield db.session
     with database.get_sqla_engine() as engine:
-        engine.execute("DROP TABLE test_table")
+        engine.execute(text("DROP TABLE test_table"))
 
 
 @pytest.fixture
@@ -2004,7 +2007,11 @@ def test_slack_token_callable_chart_report(
                 TEST_ID, create_report_slack_chart.id, datetime.utcnow()
             ).run()
             slack_token_mock.assert_called()
-            slack_client_mock_class.assert_called_with(token="cool_code", proxy=None)  # noqa: S106
+            slack_client_mock_class.assert_called_with(
+                token="cool_code",  # noqa: S106
+                proxy=None,
+                timeout=30,
+            )
             assert_log(ReportState.SUCCESS)
 
 

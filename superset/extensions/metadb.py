@@ -82,7 +82,7 @@ class SupersetAPSWDialect(APSWDialect):
 
         >>> engine = create_engine('superset://')
         >>> conn = engine.connect()
-        >>> results = conn.execute('SELECT * FROM "examples.birth_names"')
+        >>> results = conn.execute(text('SELECT * FROM "examples.birth_names"'))
 
     Queries can also join data across different Superset databases.
 
@@ -368,7 +368,7 @@ class SupersetShillelaghAdapter(Adapter):
         """
         Build SQLAlchemy query object.
         """
-        query = select([self._table])
+        query = select(self._table)
 
         for column_name, filter_ in bounds.items():
             column = self._table.c[column_name]
@@ -452,7 +452,7 @@ class SupersetShillelaghAdapter(Adapter):
             if self._rowid:
                 return result.inserted_primary_key[0]
 
-            query = select([func.count()]).select_from(self._table)
+            query = select(func.count()).select_from(self._table)
             return connection.execute(query).scalar()
 
     @check_dml

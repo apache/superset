@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1153,6 +1153,10 @@ msgstr "新しいカラー形式を追加"
 msgid "Add new formatter"
 msgstr "新しい形式を追加"
 
+#, fuzzy
+msgid "Add numbered column"
+msgstr "計算列を追加する"
+
 msgid "Add or edit display controls"
 msgstr "表示コントロールを追加または編集"
 
@@ -1667,7 +1671,7 @@ msgstr "スキーマの値を取得中にエラーが発生しました: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "利用可能なテーマの取得中にエラーが発生しました"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "スキーマの値を取得中にエラーが発生しました: %s"
 
@@ -1735,7 +1739,7 @@ msgstr "キーの解析中にエラーが発生しました。"
 msgid "An error occurred while pruning logs "
 msgstr "ログの削除(プルーニング)中にエラーが発生しました "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "視覚化(ビジュアライゼーション)のレンダリング中にエラーが発生しました: %s"
 
@@ -2256,7 +2260,7 @@ msgstr "基本の指数"
 msgid "Base height"
 msgstr "基本の高さ"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "ベースレイヤーのマップスタイル。Mapboxのドキュメントを参照: %s"
 
@@ -3916,6 +3920,13 @@ msgstr "カスタムSQL"
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "このデータセットではカスタムSQLアドホックメトリックが有効になっていません"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "カスタムSQLフィールドにサブクエリを含めることはできません。"
+
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "カスタムSQLフィールドにサブクエリを含めることはできません。"
 
@@ -4286,6 +4297,9 @@ msgstr "データベース設定を更新しました"
 
 msgid "Database type does not support file uploads."
 msgstr "このデータベース種類はファイルアップロードをサポートしていません。"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "データベースへのファイルアップロードに失敗しました"
@@ -5235,8 +5249,8 @@ msgstr "所要時間(ミリ秒) (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "所要時間(ミリ秒) (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "所要時間(ミリ秒) (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "所要時間(ミリ秒) (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "所要時間(ミリ秒) (66000 => 1分6秒)"
@@ -8661,7 +8675,7 @@ msgstr "該当する列が見つかりません。メトリックでフィルタ
 msgid "No table columns"
 msgstr "テーブル列がありません"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "%s はまだありません"
 
@@ -8745,6 +8759,10 @@ msgstr "未定義"
 
 msgid "Not equal to (≠)"
 msgstr "等しくない (≠)"
+
+#, fuzzy
+msgid "Not found"
+msgstr "チャートが見つかりません"
 
 msgid "Not in"
 msgstr "次を含まない (Not in)"
@@ -9716,6 +9734,12 @@ msgstr "プロジェクトID"
 msgid "Proportional"
 msgstr "比例"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "公開済み"
 
@@ -9963,9 +9987,6 @@ msgstr "登録"
 
 msgid "Registration date"
 msgstr "登録日"
-
-msgid "Registration hash"
-msgstr "登録ハッシュ"
 
 msgid "Registration successful"
 msgstr "登録が完了しました"
@@ -10446,6 +10467,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "SQL Lab クエリ"
@@ -14310,6 +14337,9 @@ msgstr "値を入力してください"
 msgid "Type is required"
 msgstr "種類は必須です"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr "スパークラインに表示するチャートの種類"
 
@@ -14457,6 +14487,10 @@ msgstr "操作を元に戻す"
 
 msgid "Undo?"
 msgstr "元に戻しますか？"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr "予期しないエラーが発生しました。詳細についてはログを確認してください"
 
 msgid "Unexpected error"
 msgstr "予期しないエラー"
@@ -15299,6 +15333,10 @@ msgstr "X軸の最小値と最大値を表示するかどうか"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Y軸の最小値と最大値を表示するかどうか"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "トレンドラインを表示するかどうか"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "セル内の数値を表示するかどうか"
 
@@ -15928,6 +15966,10 @@ msgstr ""
 
 msgid "`operation` property of post processing object undefined"
 msgstr "後処理オブジェクトの `operation` プロパティが未定義です"
+
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
 
 msgid "`prophet` package not installed"
 msgstr "`prophet` パッケージがインストールされていません"
@@ -16831,25 +16873,8 @@ msgstr "your-project-1234-a1"
 msgid "zoom area"
 msgstr "ズームエリア"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
-
 msgid "© Layer attribution"
 msgstr "© レイヤー帰属情報"
+
+msgid "№"
+msgstr ""
