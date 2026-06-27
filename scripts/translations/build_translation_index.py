@@ -88,10 +88,12 @@ def build_index(translations_dir: Path) -> dict[str, Any]:
         po_path = translations_dir / lang / "LC_MESSAGES" / "messages.po"
         try:
             cat = polib.pofile(str(po_path))
-        except OSError as exc:
-            # A single malformed catalog (e.g. an unescaped quote) shouldn't
-            # block backfilling every other language. Skip it with a loud
-            # warning so the corrupt file gets fixed separately.
+        except (OSError, UnicodeDecodeError) as exc:
+            # A single malformed catalog shouldn't block backfilling every
+            # other language. polib raises OSError on syntax errors (e.g. an
+            # unescaped quote) and UnicodeDecodeError on bad encoding; skip
+            # either with a loud warning so the corrupt file gets fixed
+            # separately.
             print(
                 f"WARNING: skipping {lang} — could not parse {po_path}: {exc}",
                 file=sys.stderr,

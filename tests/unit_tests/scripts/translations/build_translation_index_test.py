@@ -267,6 +267,30 @@ def test_build_index_skips_unparseable_catalog(tmp_path: Path) -> None:
     assert index["Hello"]["fr"] is None
 
 
+def test_build_index_skips_catalog_with_bad_encoding(tmp_path: Path) -> None:
+    """
+    A catalog with invalid encoding raises ``UnicodeDecodeError`` (not
+    ``OSError``) from ``polib.pofile``. It must be skipped like any other
+    unparseable file rather than crashing the whole index build.
+    """
+    root = tmp_path / "translations"
+    _write_po(
+        root / "es" / "LC_MESSAGES" / "messages.po",
+        [polib.POEntry(msgid="Hello", msgstr="Hola")],
+    )
+    bad_po = root / "fr" / "LC_MESSAGES" / "messages.po"
+    bad_po.parent.mkdir(parents=True, exist_ok=True)
+    # Declares UTF-8 but contains a byte that isn't valid UTF-8.
+    bad_po.write_bytes(
+        b'msgid ""\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n\n'
+        b'msgid "Hello"\nmsgstr "Bonjour \xff"\n'
+    )
+
+    index = build_translation_index.build_index(root)
+    assert index["Hello"]["es"] == "Hola"
+    assert index["Hello"]["fr"] is None
+
+
 def test_build_index_skips_header_entry(tmp_path: Path) -> None:
     """
     The .po header entry has an empty msgid by convention. It must not be
