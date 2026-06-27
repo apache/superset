@@ -606,12 +606,17 @@ class ChartFilter(ColumnOperator):
         "datasource_name",
         "created_by_fk",
         "changed_by_fk",
+        "dashboards",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='chart') for "
         "available filter columns. To filter by a person, first call find_users "
         "to resolve a name to a user ID, then filter by created_by_fk or "
-        "changed_by_fk with that integer ID.",
+        "changed_by_fk with that integer ID. To find charts attached to a "
+        "specific dashboard, filter by 'dashboards' with an integer "
+        "dashboard ID using opr='eq' (other supported operators on "
+        "'dashboards': ne, in, nin, is_null, is_not_null — like/sw/gt are "
+        "rejected because they don't apply to a collection relationship).",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -1417,6 +1422,32 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         ),
         ge=1,
     )
+    aggregation: (
+        Literal["LAST_VALUE", "sum", "mean", "min", "max", "median", "raw"] | None
+    ) = Field(
+        None,
+        description=(
+            "How the single big-number value is computed from the trendline "
+            "data points. Only applies when show_trendline=True. "
+            "Options: "
+            "'sum' = Total (Sum) — add all data points; use for all-time totals. "
+            "'LAST_VALUE' = most recent data point "
+            "(frontend default when this field is absent). "
+            "'mean' = Average (Mean). "
+            "'min' = Minimum. "
+            "'max' = Maximum. "
+            "'median' = Median. "
+            "'raw' = Overall value — single aggregate across the full period; best for "
+            "non-additive metrics like ratios, averages, or distinct counts. "
+            "DIAGNOSIS: if a Big Number with Trendline shows an unexpectedly low value "
+            "(e.g. yesterday's revenue instead of all-time total), "
+            "inspect form_data['aggregation'] "
+            "— when absent or 'LAST_VALUE' the chart shows only the last data point. "
+            "Fix by setting aggregation='sum'. "
+            "IMPORTANT: when updating aggregation, always include "
+            "show_trendline=True and temporal_column to preserve the trendline."
+        ),
+    )
     filters: list[FilterConfig] | None = Field(
         None,
         description="Filters to apply",
@@ -1436,6 +1467,13 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
                 "compare_lag requires show_trendline=True. "
                 "Period comparison is only available for "
                 "trendline charts."
+            )
+        if self.aggregation and not self.show_trendline:
+            raise ValueError(
+                "aggregation requires show_trendline=True. "
+                "The aggregation field only applies to Big Number with "
+                "Trendline charts. Set show_trendline=True and provide "
+                "a temporal_column, or omit aggregation."
             )
         return self
 

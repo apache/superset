@@ -56,6 +56,7 @@ from superset.commands.database.importers.dispatcher import ImportDatabasesComma
 from superset.commands.database.oauth2 import OAuth2StoreTokenCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
+    SSHTunnelHostKeyVerificationError,
     SSHTunnelingNotEnabledError,
 )
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
@@ -357,7 +358,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         }
         try:
             if database and database.ssh_tunnel:
-                response["result"]["ssh_tunnel"] = database.ssh_tunnel.data
+                # Mask credential fields explicitly at the API boundary so read
+                # responses apply the same masking contract as the write paths
+                # (POST/PUT), rather than relying solely on SSHTunnel.data.
+                response["result"]["ssh_tunnel"] = mask_password_info(
+                    database.ssh_tunnel.data
+                )
             return self.response(200, **response)
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
@@ -397,7 +403,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             database = DatabaseDAO.find_by_id(pk)
             if database and database.ssh_tunnel:
                 payload = data.json
-                payload["result"]["ssh_tunnel"] = database.ssh_tunnel.data
+                # Mask credential fields explicitly at the API boundary so read
+                # responses apply the same masking contract as the write paths
+                # (POST/PUT), rather than relying solely on SSHTunnel.data.
+                payload["result"]["ssh_tunnel"] = mask_password_info(
+                    database.ssh_tunnel.data
+                )
                 return payload
             return data
         except SupersetException as ex:
@@ -484,7 +495,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
+        except (
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+            SSHTunnelHostKeyVerificationError,
+        ) as ex:
             return self.response_400(message=str(ex))
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
@@ -569,7 +584,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
+        except (
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+            SSHTunnelHostKeyVerificationError,
+        ) as ex:
             return self.response_400(message=str(ex))
 
     @expose("/<int:pk>", methods=("DELETE",))
@@ -1291,7 +1310,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             TestConnectionDatabaseCommand(item).run()
             return self.response(200, message="OK")
-        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
+        except (
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+            SSHTunnelHostKeyVerificationError,
+        ) as ex:
             return self.response_400(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=("GET",))

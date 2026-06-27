@@ -186,8 +186,8 @@ BASE_LIST_COLUMNS = [
     "published",
     "status",
     "slug",
+    "description",
     "url",
-    "thumbnail_url",
     "certified_by",
     "certification_details",
     "changed_by.first_name",
@@ -352,6 +352,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "certification_details",
         "dashboard_title",
         "slug",
+        "description",
         "owners",
         "roles",
         "position_json",
@@ -372,6 +373,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "published",
         "roles",
         "slug",
+        "description",
         "tags",
         "uuid",
     )
@@ -519,6 +521,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             schema = self.dashboard_get_response_schema
 
         result = schema.dump(dash)
+        if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
+            result["extra_owners"] = resolver(dash)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
@@ -1471,7 +1475,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
 
         if cache_payload.should_trigger_task(force):
             logger.info("Triggering screenshot ASYNC")
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
             cache_dashboard_screenshot.delay(
                 username=get_current_user(),
                 guest_token=(
@@ -1667,7 +1670,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 "Triggering thumbnail compute (dashboard id: %s) ASYNC",
                 str(dashboard.id),
             )
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
             cache_dashboard_thumbnail.delay(
                 current_user=current_user,
                 dashboard_id=dashboard.id,
