@@ -242,6 +242,31 @@ def test_build_index_skips_languages_without_messages_po(tmp_path: Path) -> None
     assert index == {"Hello": {"es": "Hola"}}
 
 
+def test_build_index_skips_unparseable_catalog(tmp_path: Path) -> None:
+    """
+    A single malformed catalog must not block indexing every other language.
+    The corrupt file is skipped (with a warning) while valid languages are
+    still indexed.
+    """
+    root = tmp_path / "translations"
+    _write_po(
+        root / "es" / "LC_MESSAGES" / "messages.po",
+        [polib.POEntry(msgid="Hello", msgstr="Hola")],
+    )
+    bad_po = root / "fr" / "LC_MESSAGES" / "messages.po"
+    bad_po.parent.mkdir(parents=True, exist_ok=True)
+    bad_po.write_text(
+        'msgid "Hello"\nmsgstr "Bonjour"\nthis is not valid po syntax\n',
+        encoding="utf-8",
+    )
+
+    index = build_translation_index.build_index(root)
+    # The valid language is still indexed; the corrupt one contributes no
+    # translations (it surfaces as a null slot, never as parsed text).
+    assert index["Hello"]["es"] == "Hola"
+    assert index["Hello"]["fr"] is None
+
+
 def test_build_index_skips_header_entry(tmp_path: Path) -> None:
     """
     The .po header entry has an empty msgid by convention. It must not be
