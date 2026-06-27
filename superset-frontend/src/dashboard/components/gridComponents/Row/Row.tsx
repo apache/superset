@@ -293,6 +293,7 @@ const Row = memo((props: RowProps) => {
             <DeleteComponentButton onDelete={handleDeleteComponent} />
             <IconButton
               onClick={() => handleChangeFocus(true)}
+              label={t('Row settings')}
               icon={<Icons.SettingOutlined iconSize="l" />}
             />
           </HoverMenu>
