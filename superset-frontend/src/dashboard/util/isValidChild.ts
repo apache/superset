@@ -39,7 +39,7 @@ import {
   DASHBOARD_ROOT_TYPE,
   DIVIDER_TYPE,
   HEADER_TYPE,
-  IFRAME_TYPE,
+  EXTENSION_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
   TABS_TYPE,
@@ -65,7 +65,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [DASHBOARD_GRID_TYPE]: {
     [CHART_TYPE]: depthOne,
     [DYNAMIC_TYPE]: depthOne,
-    [IFRAME_TYPE]: depthOne,
+    [EXTENSION_TYPE]: depthOne,
     [MARKDOWN_TYPE]: depthOne,
     [COLUMN_TYPE]: depthOne,
     [DIVIDER_TYPE]: depthOne,
@@ -77,7 +77,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [ROW_TYPE]: {
     [CHART_TYPE]: depthFour,
     [DYNAMIC_TYPE]: depthFour,
-    [IFRAME_TYPE]: depthFour,
+    [EXTENSION_TYPE]: depthFour,
     [MARKDOWN_TYPE]: depthFour,
     [COLUMN_TYPE]: depthFour,
   },
@@ -89,7 +89,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [TAB_TYPE]: {
     [CHART_TYPE]: depthFive,
     [DYNAMIC_TYPE]: depthFive,
-    [IFRAME_TYPE]: depthFive,
+    [EXTENSION_TYPE]: depthFive,
     [MARKDOWN_TYPE]: depthFive,
     [COLUMN_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthFive,
@@ -101,7 +101,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [COLUMN_TYPE]: {
     [CHART_TYPE]: depthFive,
     [HEADER_TYPE]: depthFive,
-    [IFRAME_TYPE]: depthFive,
+    [EXTENSION_TYPE]: depthFive,
     [MARKDOWN_TYPE]: depthFive,
     [ROW_TYPE]: depthThree,
     [DIVIDER_TYPE]: depthThree,
@@ -113,7 +113,7 @@ const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [DYNAMIC_TYPE]: {},
   [DIVIDER_TYPE]: {},
   [HEADER_TYPE]: {},
-  [IFRAME_TYPE]: {},
+  [EXTENSION_TYPE]: {},
   [MARKDOWN_TYPE]: {},
 };
 
