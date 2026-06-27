@@ -37,6 +37,7 @@ from superset.commands.report.exceptions import (
     AlertQueryMultipleRowsError,
     AlertQueryTimeout,
     AlertValidatorConfigError,
+    ReportScheduleExecutorNotFoundError,
 )
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
 from superset.tasks.utils import get_executor
@@ -193,6 +194,19 @@ class AlertCommand(BaseCommand):
             database=self._report_schedule.database
         )
         rendered_sql = sql_template.process_template(self._report_schedule.sql)
+
+        # Resolve the executor before the query try/except. A deleted/disabled
+        # user or a misconfigured ALERT_REPORTS_EXECUTORS makes find_user return
+        # None; raising the dedicated error here keeps it from being swallowed by
+        # the broad handler below and re-surfaced as an opaque AlertQueryError.
+        _, username = get_executor(
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
+            model=self._report_schedule,
+        )
+        user = security_manager.find_user(username)
+        if user is None:
+            raise ReportScheduleExecutorNotFoundError(username)
+
         try:
             limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
                 rendered_sql, ALERT_SQL_LIMIT
@@ -205,11 +219,6 @@ class AlertCommand(BaseCommand):
                     )
                 )
 
-            executor, username = get_executor(  # pylint: disable=unused-variable
-                executors=app.config["ALERT_REPORTS_EXECUTORS"],
-                model=self._report_schedule,
-            )
-            user = security_manager.find_user(username)
             with override_user(user):
                 start = default_timer()
                 df = self._report_schedule.database.get_df(sql=limited_rendered_sql)
