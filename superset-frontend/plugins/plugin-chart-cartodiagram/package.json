@@ -47,7 +47,7 @@
     "geostyler-wfs-parser": "^3.0.1",
     "ol": "^10.8.0",
     "polished": "*",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
   }
 }

@@ -1363,52 +1363,6 @@ export function runTablePreviewQuery(
   };
 }
 
-export interface TableMetaData {
-  columns?: unknown[];
-  selectStar?: string;
-  primaryKey?: unknown;
-  foreignKeys?: unknown[];
-  indexes?: unknown[];
-}
-
-export function syncTable(
-  table: Table,
-  tableMetadata: TableMetaData,
-  finalQueryEditorId?: string,
-): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: AppDispatch) {
-    const finalTable = { ...table, queryEditorId: finalQueryEditorId };
-    const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
-      ? SupersetClient.post({
-          endpoint: encodeURI('/tableschemaview/'),
-          postPayload: { table: { ...tableMetadata, ...finalTable } },
-        })
-      : Promise.resolve({ json: { id: table.id } });
-
-    return sync
-      .then(({ json: resultJson }) => {
-        const newTable = { ...table, id: `${resultJson.id}` };
-        dispatch(
-          mergeTable({
-            ...newTable,
-            expanded: true,
-            initialized: true,
-          }),
-        );
-      })
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'An error occurred while fetching table metadata. ' +
-                'Please contact your administrator.',
-            ),
-          ),
-        ),
-      );
-  };
-}
-
 export function changeDataPreviewId(
   oldQueryId: string,
   newQuery: Query,

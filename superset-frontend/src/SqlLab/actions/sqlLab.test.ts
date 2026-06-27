@@ -1460,39 +1460,6 @@ describe('async actions', () => {
     });
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-    describe('syncTable', () => {
-      test('updates the table schema state in the backend', () => {
-        expect.assertions(4);
-
-        const tableName = 'table';
-        const schemaName = 'schema';
-        const store = mockStore(initialState);
-        const expectedActionTypes = [
-          actions.MERGE_TABLE, // syncTable
-        ];
-        const request = actions.syncTable(
-          query as any,
-          tableName as any,
-          schemaName,
-        );
-        return request(store.dispatch, store.getState, undefined).then(() => {
-          expect(store.getActions().map(a => a.type)).toEqual(
-            expectedActionTypes,
-          );
-          expect(store.getActions()[0].prepend).toBeFalsy();
-          expect(
-            fetchMock.callHistory.calls(updateTableSchemaEndpoint),
-          ).toHaveLength(1);
-
-          // tab state is not updated, since no query was run
-          expect(
-            fetchMock.callHistory.calls(updateTabStateEndpoint),
-          ).toHaveLength(0);
-        });
-      });
-    });
-
-    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('runTablePreviewQuery', () => {
       const results = {
         data: mockBigNumber,

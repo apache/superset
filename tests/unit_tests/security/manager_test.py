@@ -19,6 +19,7 @@
 
 import json  # noqa: TID251
 from types import SimpleNamespace
+from typing import Any, Optional
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -30,6 +31,8 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import (
+    _collect_sortable_identifiers,
+    freeze_value,
     query_context_modified,
     SupersetSecurityManager,
 )
@@ -401,8 +404,8 @@ def test_raise_for_access_query_default_schema(
         )
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
 
@@ -656,16 +659,188 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
-def test_query_context_modified_native_filter(mocker: MockerFixture) -> None:
-    """
-    Test the `query_context_modified` function with a native filter request.
+def _native_filter_ctx(
+    mocker: MockerFixture,
+    queries: list[Any],
+    *,
+    native_filter_id: str | None = "F1",
+    dashboard_id: int | None = 10,
+    dataset_id: int = 20,
+    targets: list[Any] | None = None,
+    control_values: dict[str, Any] | None = None,
+) -> Any:
+    """Build a native-filter query context (no slice_) + patched dashboard."""
+    if targets is None:
+        targets = [{"datasetId": dataset_id, "column": {"name": "region"}}]
+    qc = mocker.MagicMock()
+    qc.slice_ = None
+    qc.form_data = {
+        "type": "NATIVE_FILTER",
+        "native_filter_id": native_filter_id,
+        "dashboardId": dashboard_id,
+    }
+    qc.datasource.data = {"id": dataset_id}
+    qc.queries = queries
+    dash = mocker.MagicMock()
+    dash.json_metadata = json.dumps(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "F1",
+                    "targets": targets,
+                    "controlValues": control_values or {},
+                }
+            ]
+        }
+    )
+    query_chain = mocker.patch("superset.db.session.query")
+    query_chain.return_value.filter.return_value.one_or_none.return_value = dash
+    return qc
 
-    A native filter request has no chart (slice) associated with it.
-    """
-    query_context = mocker.MagicMock()
-    query_context.slice_ = None
 
-    assert not query_context_modified(query_context)
+def test_query_context_modified_native_filter_target_column_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A native-filter request reading only its target column is allowed."""
+    query = SimpleNamespace(columns=["region"], metrics=[], groupby=[])
+    qc = _native_filter_ctx(mocker, [query])
+    assert not query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_arbitrary_column_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A native-filter request reading a non-target column is modified."""
+    query = SimpleNamespace(columns=["ssn"], metrics=[], groupby=[])
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_simple_metric_on_target_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A range-style request (simple aggregate over the target column) is allowed."""
+    query = SimpleNamespace(
+        columns=[],
+        metrics=[
+            {
+                "expressionType": "SIMPLE",
+                "column": {"column_name": "region"},
+                "aggregate": "MIN",
+            }
+        ],
+        groupby=[],
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert not query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_adhoc_metric_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A free-form SQL metric on the native-filter path is modified."""
+    query = SimpleNamespace(
+        columns=[],
+        metrics=[{"expressionType": "SQL", "sqlExpression": "SUM(salary)"}],
+        groupby=[],
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_adhoc_column_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """An adhoc (free-form SQL) column on the native-filter path is modified."""
+    query = SimpleNamespace(
+        columns=[{"sqlExpression": "ssn", "label": "x"}], metrics=[], groupby=[]
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_no_filter_context_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Without a native_filter_id / dashboardId the request fails closed."""
+    query = SimpleNamespace(columns=["region"], metrics=[], groupby=[])
+    qc = _native_filter_ctx(mocker, [query], native_filter_id=None)
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_configured_sort_metric_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A value lookup sorted by the filter's configured saved metric is allowed."""
+    query = SimpleNamespace(
+        columns=["region"],
+        metrics=["total"],
+        groupby=[],
+        orderby=[["total", True]],
+    )
+    qc = _native_filter_ctx(mocker, [query], control_values={"sortMetric": "total"})
+    assert not query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_arbitrary_saved_metric_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A saved metric other than the filter's configured sort metric is modified."""
+    query = SimpleNamespace(columns=["region"], metrics=["salary_total"], groupby=[])
+    qc = _native_filter_ctx(mocker, [query], control_values={"sortMetric": "total"})
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_orderby_arbitrary_column_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Ordering by a non-target column on the native-filter path is modified."""
+    query = SimpleNamespace(
+        columns=["region"], metrics=[], groupby=[], orderby=[["ssn", True]]
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_orderby_adhoc_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Ordering by a free-form SQL expression on the native-filter path is modified."""
+    query = SimpleNamespace(
+        columns=["region"],
+        metrics=[],
+        groupby=[],
+        orderby=[[{"sqlExpression": "ssn"}, True]],
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_chartless_non_native_filter_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A chartless request that is not a native filter (drill-to-detail, drill-by,
+    samples) is validated by the datasource-access checks in raise_for_access and
+    is not constrained here.
+    """
+    qc = mocker.MagicMock()
+    qc.slice_ = None
+    qc.form_data = {"dashboardId": 10, "slice_id": 0, "groupby": ["ssn"]}
+    assert not query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_without_type_marker_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A request identified by native_filter_id is constrained even when the
+    NATIVE_FILTER type marker is absent.
+    """
+    query = SimpleNamespace(columns=["ssn"], metrics=[], groupby=[])
+    qc = _native_filter_ctx(mocker, [query])
+    del qc.form_data["type"]
+    assert query_context_modified(qc)
 
 
 def test_query_context_modified_mixed_chart(mocker: MockerFixture) -> None:
@@ -1045,6 +1220,305 @@ def test_query_context_modified_orderby(mocker: MockerFixture) -> None:
     assert query_context_modified(query_context)
 
 
+def _table_sort_query_context(
+    mocker: MockerFixture,
+    orderby: list[Any],
+    *,
+    stored_metrics: Optional[list[Any]] = None,
+    with_stored_query_context: bool = True,
+) -> Any:
+    """
+    Build a minimal table-chart query context for a guest that sorts by
+    ``orderby``. The stored chart groups by ``gender`` and aggregates ``count``.
+    """
+    metrics: list[Any] = stored_metrics if stored_metrics is not None else ["count"]
+    query_context = mocker.MagicMock()
+    query_context.queries = [
+        QueryObject(columns=["gender"], metrics=metrics, orderby=orderby),
+    ]
+    query_context.form_data = {"slice_id": 101, "groupby": ["gender"]}
+    query_context.slice_.id = 101
+    query_context.slice_.params_dict = {"groupby": ["gender"], "metrics": metrics}
+    query_context.slice_.query_context = (
+        json.dumps({"queries": [{"columns": ["gender"], "metrics": metrics}]})
+        if with_stored_query_context
+        else None
+    )
+    return query_context
+
+
+def test_query_context_modified_orderby_sort_by_column(mocker: MockerFixture) -> None:
+    """A guest sorting an embedded table by an existing column is allowed."""
+    query_context = _table_sort_query_context(mocker, orderby=[("gender", True)])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_metric(mocker: MockerFixture) -> None:
+    """A guest sorting by an existing metric is allowed."""
+    query_context = _table_sort_query_context(mocker, orderby=[("count", False)])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_adhoc_metric(
+    mocker: MockerFixture,
+) -> None:
+    """A guest sorting by an existing adhoc metric definition is allowed."""
+    adhoc_metric: AdhocMetric = {
+        "aggregate": "SUM",
+        "column": {"column_name": "num"},
+        "expressionType": "SIMPLE",
+        "hasCustomLabel": False,
+        "label": "SUM(num)",
+    }
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[(adhoc_metric, False)],
+        stored_metrics=[adhoc_metric],
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_unknown_column(mocker: MockerFixture) -> None:
+    """A guest sorting by a column the chart does not reference is rejected."""
+    query_context = _table_sort_query_context(mocker, orderby=[("salary", True)])
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_empty(mocker: MockerFixture) -> None:
+    """An empty order-by is not a modification."""
+    query_context = _table_sort_query_context(mocker, orderby=[])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_legacy_singular_metric(
+    mocker: MockerFixture,
+) -> None:
+    """A guest sorting by a legacy ``metric`` (singular) field is allowed."""
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[("num_sold", False)],
+        stored_metrics=[],
+        with_stored_query_context=False,
+    )
+    query_context.slice_.params_dict = {
+        "columns": ["gender"],
+        "groupby": ["gender"],
+        "metric": "num_sold",
+    }
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_malformed_entry(
+    mocker: MockerFixture,
+) -> None:
+    """A malformed order-by entry (not a ``(term, bool)`` pair) is rejected."""
+    query_context = _table_sort_query_context(mocker, orderby=[["gender"]])
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_stored_qc_only_column(
+    mocker: MockerFixture,
+) -> None:
+    """A column present only in the stored query context is an allowed sort target."""
+    query_context = _table_sort_query_context(mocker, orderby=[("age", True)])
+    # "age" is absent from params_dict but exposed via the stored query context,
+    # so sorting by it must be allowed.
+    query_context.slice_.params_dict = {"groupby": ["gender"], "metrics": ["count"]}
+    query_context.slice_.query_context = json.dumps(
+        {"queries": [{"columns": ["gender", "age"], "metrics": ["count"]}]}
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_collect_sortable_identifiers_includes_stored_qc_all_columns(
+    mocker: MockerFixture,
+) -> None:
+    """``all_columns`` exposed via the stored query context is a valid sort target."""
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"groupby": ["gender"], "metrics": ["count"]}
+    allowed = _collect_sortable_identifiers(
+        stored_chart,
+        {"queries": [{"all_columns": ["gender", "age"], "metrics": ["count"]}]},
+    )
+    assert freeze_value("age") in allowed
+
+
+def test_query_context_modified_time_grain_native_filter(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test `query_context_modified` when a guest applies a Time Grain native filter.
+
+    Reproduces https://github.com/apache/superset/issues/32768.
+
+    On a chart that uses a generic x-axis, the selected time grain is baked into the
+    ``BASE_AXIS`` adhoc column as a ``timeGrain`` property (see
+    ``normalizeTimeColumn`` on the frontend, which copies ``extras.time_grain_sqla``
+    onto the column). A Time Grain native filter is a supported, read-only guest
+    interaction: it only changes the granularity at which the *same* dimension is
+    bucketed, never which metrics or columns are queried.
+
+    Previously, because the changed time grain travels inside the ``columns``
+    payload, the subset comparison treated the request as tampering and
+    ``query_context_modified`` returned ``True`` -- so guests hit "Guest user cannot
+    modify chart payload" whenever they picked a grain other than the chart default.
+
+    ``freeze_value`` now drops the guest-overridable ``timeGrain`` key before
+    comparing, so a pure time-grain change is no longer flagged as a modification.
+    This test guards that behavior.
+    """
+    # The chart was saved with a monthly grain on its x-axis column.
+    stored_axis_column: AdhocColumn = {
+        "label": "order_date",
+        "sqlExpression": "order_date",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+    # The guest picked a daily grain via the dashboard Time Grain native filter;
+    # `normalizeTimeColumn` rewrote the otherwise-identical column accordingly.
+    requested_axis_column: AdhocColumn = {
+        **stored_axis_column,
+        "timeGrain": "P1D",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+    }
+    query_context.slice_.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "columns": [stored_axis_column],
+                    "metrics": ["count"],
+                }
+            ],
+        }
+    )
+    # Native-filter data requests don't carry the mutated columns at the top level;
+    # the grain change only shows up inside the query's columns.
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=[requested_axis_column],
+            metrics=["count"],
+        ),
+    ]
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_time_grain_with_tampered_column(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that relaxing the time grain comparison does not open a tamper hole.
+
+    Only the ``timeGrain`` key is guest-overridable. A request that changes the
+    grain *and* also swaps a non-overridable attribute (here ``sqlExpression``,
+    which selects which column is queried) must still be flagged as tampering --
+    otherwise a guest could query an arbitrary column under cover of a Time Grain
+    filter.
+    """
+    stored_axis_column: AdhocColumn = {
+        "label": "order_date",
+        "sqlExpression": "order_date",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+    # Guest changes the grain (allowed) but also rewrites the SQL expression to a
+    # different column (not allowed) -- this must still read as a modification.
+    tampered_axis_column: AdhocColumn = {
+        **stored_axis_column,
+        "sqlExpression": "secret_column",
+        "timeGrain": "P1D",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+    }
+    query_context.slice_.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "columns": [stored_axis_column],
+                    "metrics": ["count"],
+                }
+            ],
+        }
+    )
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=[tampered_axis_column],
+            metrics=["count"],
+        ),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_time_grain_in_orderby(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test `query_context_modified` when the time grain travels inside `orderby`.
+
+    Each ``orderby`` entry is an ``(column, bool)`` tuple, so a temporal x-axis
+    adhoc column carrying the guest-overridable ``timeGrain`` is nested one level
+    deep rather than sitting at the top level. The overridable key must still be
+    stripped before comparing, otherwise sorting by the temporal axis would make
+    a pure time-grain change read as tampering.
+    """
+    stored_axis_column: AdhocColumn = {
+        "label": "order_date",
+        "sqlExpression": "order_date",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+    requested_axis_column: AdhocColumn = {
+        **stored_axis_column,
+        "timeGrain": "P1D",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+    }
+    query_context.slice_.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "orderby": [[stored_axis_column, True]],
+                    "metrics": ["count"],
+                }
+            ],
+        }
+    )
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+    }
+    query_context.queries = [
+        QueryObject(
+            orderby=[(requested_axis_column, True)],
+            metrics=["count"],
+        ),
+    ]
+
+    assert not query_context_modified(query_context)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.
@@ -1105,8 +1579,8 @@ def test_raise_for_access_catalog(
         sm.raise_for_access(query=query)
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `db1.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "db1.public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
     query.sql = "SELECT * FROM db2.public.ab_user"
@@ -1114,8 +1588,8 @@ def test_raise_for_access_catalog(
         sm.raise_for_access(query=query)
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `db2.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "db2.public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
 

@@ -160,6 +160,15 @@ VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 # can be replaced at build time to expose build information.
 BUILD_NUMBER = None
 
+# Whether to expose precise build details (the git SHA and build number) to
+# all users via the "About" section and the bootstrap payload. When False
+# (default), these are only included for admins, so non-admin/anonymous viewers
+# cannot read the exact commit/build of the deployment. The release version
+# string is always included. Enable with SUPERSET_EXPOSE_BUILD_DETAILS.
+EXPOSE_BUILD_DETAILS_TO_USERS = utils.cast_to_boolean(
+    os.environ.get("SUPERSET_EXPOSE_BUILD_DETAILS", False)
+)
+
 # default viz used in chart explorer & SQL Lab explore
 DEFAULT_VIZ_TYPE = "table"
 
@@ -289,7 +298,10 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 #  as key material. Do note that AesEngine allows for queryability over the
 #  encrypted fields.
 #
-#  To change the default engine you need to define your own adapter:
+#  To switch the engine used by the default adapter, prefer the
+#  ``SQLALCHEMY_ENCRYPTED_FIELD_ENGINE`` knob below (e.g. "aes-gcm"). Defining a
+#  custom adapter, as shown next, is only needed for behaviour the built-in
+#  engines do not cover:
 #
 # e.g.:
 #
@@ -313,6 +325,16 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
+
+# Encryption engine used by the default SQLAlchemyUtilsAdapter for app-encrypted
+# fields. Options:
+#   "aes"     - AES-CBC (historical default; unauthenticated, queryable)
+#   "aes-gcm" - AES-GCM (authenticated encryption; recommended for NEW installs)
+# WARNING: changing this on a database that already holds encrypted secrets
+# (database passwords, SSH tunnel credentials, OAuth tokens, ...) will make
+# those values undecryptable unless they are re-encrypted first. See the
+# authenticated-encryption SIP/migration before switching an existing install.
+SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
 
 # Extends the default SQLGlot dialects with additional dialects
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
@@ -367,6 +389,21 @@ AUTH_RATE_LIMIT = "5 per second"
 # (e.g. accounts provisioned by an administrator) are redirected to the
 # password-reset page until they set a new password. Off by default.
 ENABLE_FORCE_PASSWORD_CHANGE = False
+
+# Password complexity policy, enforced (via Flask-AppBuilder) across
+# self-registration, the user edit/reset forms, and the User REST API.
+# The Superset validator requires a minimum length and rejects common
+# passwords; tune via AUTH_PASSWORD_MIN_LENGTH / AUTH_PASSWORD_COMMON_BLOCKLIST,
+# or replace FAB_PASSWORD_COMPLEXITY_VALIDATOR with your own callable.
+from superset.security.password_complexity import (  # noqa: E402
+    validate_password_complexity as _validate_password_complexity,
+)
+
+FAB_PASSWORD_COMPLEXITY_ENABLED = True
+FAB_PASSWORD_COMPLEXITY_VALIDATOR = _validate_password_complexity
+AUTH_PASSWORD_MIN_LENGTH = 8
+AUTH_PASSWORD_COMMON_BLOCKLIST: list[str] = []
+
 # A storage location conforming to the scheme in storage-scheme. See the limits
 # library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
 # RATELIMIT_STORAGE_URI = "redis://host:port"
@@ -380,23 +417,39 @@ ENABLE_FORCE_PASSWORD_CHANGE = False
 APP_NAME = "Superset"
 
 # Specify the App icon
+# NOTE: This variable is used to populate THEME_DEFAULT. If you override this in
+# superset_config.py, you must also override THEME_DEFAULT to see the change,
+# or set THEME_DEFAULT["token"]["brandLogoUrl"] directly.
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 
-# Specify where clicking the logo would take the user'
+# Specify where clicking the logo would take the user
 # Default value of None will take you to '/superset/welcome'
 # You can also specify a relative URL e.g. '/superset/welcome' or '/dashboards/list'
 # or you can specify a full URL e.g. 'https://foo.bar'
+# NOTE: Overriding this in superset_config.py automatically updates the logo link
+# (THEME_DEFAULT["token"]["brandLogoHref"]); see sync_theme_logo_href below.
 LOGO_TARGET_PATH = None
 
 # Specify tooltip that should appear when hovering over the App Icon/Logo
+# NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_TOOLTIP = ""
 
 # Specify any text that should appear to the right of the logo
+# NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
+
+# APP_ICON_WIDTH is deprecated.
+# Use THEME_DEFAULT["token"]["brandLogoHeight"] instead (default: "24px").
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
-FAB_API_SWAGGER_UI = True
+# Disabled by default so the interactive API documentation surface is opt-in.
+# Enable it by setting the SUPERSET_ENABLE_SWAGGER_UI environment variable
+# (e.g. for local development) or by overriding FAB_API_SWAGGER_UI in
+# superset_config.py.
+FAB_API_SWAGGER_UI = utils.cast_to_boolean(
+    os.environ.get("SUPERSET_ENABLE_SWAGGER_UI", False)
+)
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -460,6 +513,8 @@ LANGUAGES = {
     "cs": {"flag": "cz", "name": "Czech"},
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
+    "sr": {"flag": "rs", "name": "Serbian (Cyrillic)"},
+    "sr_Latn": {"flag": "rs", "name": "Serbian (Latin)"},
     "lv": {"flag": "lv", "name": "Latvian"},
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "ua", "name": "Ukrainian"},
@@ -867,6 +922,15 @@ SSH_TUNNEL_TIMEOUT_SEC = 10.0
 #: Timeout (seconds) for transport socket (``socket.settimeout``)
 SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
 
+#: Opt-in defense-in-depth: when enabled, every SSH tunnel must declare an expected
+#: server host key (``server_host_key`` on the tunnel) and the SSH server's presented
+#: host key is verified against it before the tunnel is opened. A mismatch, or a
+#: missing expected key while this flag is enabled, fails closed and the tunnel is
+#: rejected. When disabled (the default), tunnels without a ``server_host_key`` open
+#: without host-key verification, preserving existing behavior; tunnels that do set a
+#: ``server_host_key`` are still verified regardless of this flag.
+SSH_TUNNEL_STRICT_HOST_KEY_CHECKING: bool = False
+
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
@@ -961,7 +1025,12 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # Default theme configuration - foundation for all themes
 # This acts as the base theme for all users
-THEME_DEFAULT: Theme = {
+#
+# _THEME_DEFAULT_BASE is a private copy of the built-in defaults.
+# It is NOT overridden by ``from superset_config import *`` (underscore prefix)
+# and is used to deep-merge partial user overrides so that unspecified token
+# fields gracefully fall back to the built-in values.
+_THEME_DEFAULT_BASE: Theme = {
     "token": {
         # Brand
         # Application name for window titles
@@ -969,9 +1038,10 @@ THEME_DEFAULT: Theme = {
         "brandLogoAlt": "Apache Superset",
         "brandLogoUrl": APP_ICON,
         "brandLogoMargin": "18px 0",
-        "brandLogoHref": "/",
+        "brandLogoHref": LOGO_TARGET_PATH or "/",
         "brandLogoHeight": "24px",
-        # Spinner
+        # Spinner - Set this to use a custom GIF/image loader
+        # "brandSpinnerUrl": "/static/assets/images/loading.gif",
         "brandSpinnerUrl": None,
         "brandSpinnerSvg": None,
         # Default colors
@@ -1000,18 +1070,38 @@ THEME_DEFAULT: Theme = {
     "algorithm": "default",
 }
 
+THEME_DEFAULT: Theme = _THEME_DEFAULT_BASE
+
 # Dark theme configuration - foundation for dark mode
 # Inherits all tokens from THEME_DEFAULT and adds dark algorithm
 # Set to None to disable dark mode
-THEME_DARK: Optional[Theme] = {
-    **THEME_DEFAULT,
+_THEME_DARK_BASE: Theme = {
+    **_THEME_DEFAULT_BASE,
     "token": {
-        **THEME_DEFAULT["token"],
+        **_THEME_DEFAULT_BASE["token"],
         # Darker selection color for dark mode
         "colorEditorSelection": "#5c4d1a",
     },
     "algorithm": "dark",
 }
+
+THEME_DARK: Optional[Theme] = _THEME_DARK_BASE
+
+
+def sync_theme_logo_href(
+    theme: Optional[Theme], logo_target_path: Optional[str]
+) -> None:
+    """
+    Apply ``LOGO_TARGET_PATH`` to a theme's ``brandLogoHref`` token.
+
+    ``THEME_DEFAULT`` / ``THEME_DARK`` are built above, before ``superset_config.py``
+    and environment overrides are applied at the bottom of this module. This is
+    re-run after those overrides so that setting only ``LOGO_TARGET_PATH`` updates
+    the logo link without also having to override the whole theme object.
+    """
+    if theme and logo_target_path and isinstance(theme.get("token"), dict):
+        theme["token"]["brandLogoHref"] = logo_target_path
+
 
 # Theme behavior and user preference settings
 # To force a single theme on all users, set THEME_DARK = None
@@ -1102,6 +1192,9 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
+# How long to treat a COMPUTING cache entry as an active lease before considering
+# the worker stuck.  Should exceed the task soft_time_limit (300 s) by a margin.
+THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
 
 # Cache warmup user — must be set explicitly before enabling the cache-warmup
 # Celery task. Intentionally defaults to None so operators pick a dedicated
@@ -1114,6 +1207,12 @@ SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
 # Time before selenium times out after waiting for all DOM class elements named
 # "loading" are gone.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
+# Maximum time (in seconds) selenium waits for an initial page navigation
+# (driver.get) to complete. Without it the navigation blocks indefinitely when
+# the target page never finishes loading (e.g. an unreachable WEBDRIVER_BASEURL),
+# which leaves the report schedule stuck in the WORKING state. Set to None to
+# disable (not recommended).
+SCREENSHOT_PAGE_LOAD_WAIT = int(timedelta(minutes=2).total_seconds())
 # Selenium destroy retries
 SCREENSHOT_SELENIUM_RETRIES = 5
 # Give selenium an headstart, in seconds
@@ -1697,6 +1796,11 @@ SMTP_MAIL_FROM = "superset@superset.com"
 # If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
 # default system root CA certificates.
 SMTP_SSL_SERVER_AUTH = False
+# Socket timeout (in seconds) for the SMTP connection used when sending
+# alert/report emails. Without a timeout the underlying socket blocks
+# indefinitely if the SMTP server becomes unreachable, which leaves report
+# schedules stuck in the WORKING state. Set to None to disable (not recommended).
+SMTP_TIMEOUT = 30
 ENABLE_CHUNK_ENCODING = False
 
 # Whether to bump the logging level to ERROR on the flask_appbuilder package
@@ -2045,6 +2149,12 @@ ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 # Max tries to run queries to prevent false errors caused by transient errors
 # being returned to users. Set to a value >1 to enable retries.
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
+# Socket timeout (in seconds) for the HTTP request that fetches chart data when
+# generating CSV/dataframe report attachments. Without a timeout the request
+# blocks indefinitely if the Superset webserver is unreachable from the worker,
+# which leaves the report schedule stuck in the WORKING state. Set to None to
+# disable (not recommended).
+ALERT_REPORTS_CSV_REQUEST_TIMEOUT = 60
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
@@ -2057,6 +2167,21 @@ ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports
 ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
+
+# When True, webhook alert/report dispatch is permitted to call private/internal
+# IP addresses (RFC-1918, loopback, link-local). Intended for deployments where
+# the webhook target is on an internal network (a chatops bridge, an internal
+# Mattermost/Rocket.Chat, an automation server, etc.). Leave False (the default)
+# in any internet-facing deployment.
+ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS: bool = False
+
+# When True, Impala's cancel_query HTTP call is permitted to target hosts in
+# private/internal IP ranges (RFC-1918, loopback, link-local). Intended for
+# operators whose Impala cluster runs on an internal network. Leave False (the
+# default) in any deployment where untrusted users can create Impala database
+# connections, so a maliciously-configured impala:// URL cannot be used to
+# trigger outbound requests to internal targets via the cancel endpoint.
+IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS: bool = False
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
@@ -2073,6 +2198,12 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # Default: 2
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
+
+# Timeout (in seconds) for outbound Slack API calls. The Slack SDK defaults to 30s;
+# exposing it here lets operators grant more time for large file uploads (multi-MB
+# CSVs, PDFs, screenshot sets) to congested or rate-limited Slack endpoints without
+# patching code, consistent with the SMTP/CSV/screenshot timeouts.
+SLACK_API_TIMEOUT = 30
 
 # The webdriver to use for generating reports when using Selenium (not Playwright).
 # This setting is ignored when PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled, as
@@ -2347,12 +2478,20 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 
-# Define a list of allowed URLs for dataset data imports (v1).
+# Define a list of allowed URL patterns (regex) for dataset data imports (v1).
 # Simple example to only allow URLs that belong to certain domains:
-# ALLOWED_IMPORT_URL_DOMAINS = [
+# DATASET_IMPORT_ALLOWED_DATA_URLS = [
 #     r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"
 # ]
+# Local file:// URIs used for bundled example data are always permitted
+# regardless of this setting.
 DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
+
+# When True, dataset import is permitted to fetch data from private/internal
+# IP addresses (RFC-1918, loopback, link-local). Intended for air-gapped or
+# on-premises deployments where the data source is on an internal network.
+# Leave False (the default) in any internet-facing deployment.
+DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS: bool = False
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
@@ -2572,6 +2711,27 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 
 
+# Extra access query filters inject additional OR conditions into
+# ChartFilter and DashboardAccessFilter, enabling external systems
+# (e.g. folder permissions) to grant asset visibility.
+# The callable receives the current user ID and returns a subquery of asset IDs.
+class ExtraAccessQueryFilters(TypedDict, total=False):
+    charts: Callable[[int], Query]
+    dashboards: Callable[[int], Query]
+
+
+# Extension hooks for deployments to plug in custom access logic.
+# Additional query filters for chart/dashboard list views.
+EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
+# Bypass raise_for_access for specific assets. Return True to skip checks.
+EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
+# Resolve extra owners for a resource. Also used for ownership checks and
+# to skip auto-adding the current user to owners on create.
+EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
+# Post-create hook for charts/dashboards. Receives (model, asset_type).
+AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
+
+
 # The migrations that add catalog permissions might take a considerably long time
 # to execute as it has to create permissions to all schemas and catalogs from all
 # other catalogs accessible by the credentials. This flag allows to skip the
@@ -2725,3 +2885,9 @@ for env_var in ENV_VAR_KEYS:
     if env_var in os.environ:
         config_var = env_var.replace("SUPERSET__", "")
         globals()[config_var] = os.environ[env_var]
+
+# THEME_DEFAULT / THEME_DARK are defined before the overrides above are applied,
+# so re-sync the logo link from the final LOGO_TARGET_PATH value here. This lets
+# users set just LOGO_TARGET_PATH without also overriding the whole theme.
+sync_theme_logo_href(THEME_DEFAULT, LOGO_TARGET_PATH)
+sync_theme_logo_href(THEME_DARK, LOGO_TARGET_PATH)
