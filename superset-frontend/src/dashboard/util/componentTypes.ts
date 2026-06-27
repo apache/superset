@@ -23,6 +23,7 @@ export const DASHBOARD_GRID_TYPE = 'GRID';
 export const DASHBOARD_ROOT_TYPE = 'ROOT';
 export const DIVIDER_TYPE = 'DIVIDER';
 export const HEADER_TYPE = 'HEADER';
+export const IFRAME_TYPE = 'IFRAME';
 export const MARKDOWN_TYPE = 'MARKDOWN';
 export const NEW_COMPONENT_SOURCE_TYPE = 'NEW_COMPONENT_SOURCE';
 export const ROW_TYPE = 'ROW';
@@ -39,6 +40,7 @@ export default {
   DASHBOARD_ROOT_TYPE,
   DIVIDER_TYPE,
   HEADER_TYPE,
+  IFRAME_TYPE,
   MARKDOWN_TYPE,
   NEW_COMPONENT_SOURCE_TYPE,
   ROW_TYPE,
