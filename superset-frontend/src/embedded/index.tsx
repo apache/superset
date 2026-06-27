@@ -55,23 +55,30 @@ import { validateMessageEvent } from './originValidation';
 // Dynamic imports (webpackMode: "eager") keep modules in the same bundle chunk but defer
 // their evaluation until after initPreamble() resolves, so module-level t() calls in plugin
 // control panels and setup code run only after translations are available.
-const pluginsReady = initPreamble()
-  .catch(err => {
-    logging.warn(
-      'Preamble initialization failed, loading plugins without translations.',
-      err,
-    );
-  })
-  .then(async () => {
-    const [{ default: setupPlugins }, { default: setupCodeOverrides }] =
-      await Promise.all([
-        import(/* webpackMode: "eager" */ 'src/setup/setupPlugins'),
-        import(/* webpackMode: "eager" */ 'src/setup/setupCodeOverrides'),
-      ]);
-    setupPlugins();
-    setupCodeOverrides({ embedded: true });
-    setupAGGridModules();
-  });
+function loadPlugins() {
+  return initPreamble()
+    .catch(err => {
+      logging.warn(
+        'Preamble initialization failed, loading plugins without translations.',
+        err,
+      );
+    })
+    .then(async () => {
+      const [{ default: setupPlugins }, { default: setupCodeOverrides }] =
+        await Promise.all([
+          import(/* webpackMode: "eager" */ 'src/setup/setupPlugins'),
+          import(/* webpackMode: "eager" */ 'src/setup/setupCodeOverrides'),
+        ]);
+      setupPlugins();
+      setupCodeOverrides({ embedded: true });
+      setupAGGridModules();
+    });
+}
+
+// Kick off plugin setup eagerly at module load so it overlaps the handshake.
+// If it rejects, start() recreates the promise so a retry can re-run setup
+// instead of chaining off a permanently rejected promise.
+let pluginsReady = loadPlugins();
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 const bootstrapData = getBootstrapData();
@@ -223,9 +230,11 @@ function start() {
       ),
     err => {
       // setupPlugins() or setupCodeOverrides() threw while preparing plugins;
-      // reset the guard so a retry can re-run start() instead of leaving the
-      // dashboard stuck in a failed state.
+      // reset the guard and recreate pluginsReady so a retry actually re-runs
+      // plugin setup instead of chaining off this rejected promise and leaving
+      // the dashboard stuck in a failed state.
       logging.error(err);
+      pluginsReady = loadPlugins();
       started = false;
     },
   );
