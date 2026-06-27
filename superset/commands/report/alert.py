@@ -195,18 +195,6 @@ class AlertCommand(BaseCommand):
         )
         rendered_sql = sql_template.process_template(self._report_schedule.sql)
 
-        # Resolve the executor before the query try/except. A deleted/disabled
-        # user or a misconfigured ALERT_REPORTS_EXECUTORS makes find_user return
-        # None; raising the dedicated error here keeps it from being swallowed by
-        # the broad handler below and re-surfaced as an opaque AlertQueryError.
-        _, username = get_executor(
-            executors=app.config["ALERT_REPORTS_EXECUTORS"],
-            model=self._report_schedule,
-        )
-        user = security_manager.find_user(username)
-        if user is None:
-            raise ReportScheduleExecutorNotFoundError(username)
-
         try:
             limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
                 rendered_sql, ALERT_SQL_LIMIT
@@ -218,6 +206,18 @@ class AlertCommand(BaseCommand):
                         limited_rendered_sql
                     )
                 )
+
+            _, username = get_executor(
+                executors=app.config["ALERT_REPORTS_EXECUTORS"],
+                model=self._report_schedule,
+            )
+            user = security_manager.find_user(username)
+            # A deleted/disabled executor user makes find_user return None. Raise
+            # the dedicated error so the handler below re-surfaces it instead of
+            # masking it as an opaque AlertQueryError (or letting the missing user
+            # surface as a NoneType error from the downstream auth flow).
+            if user is None:
+                raise ReportScheduleExecutorNotFoundError(username)
 
             with override_user(user):
                 start = default_timer()
@@ -232,6 +232,10 @@ class AlertCommand(BaseCommand):
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
+        except ReportScheduleExecutorNotFoundError:
+            # A missing executor user is a configuration problem, not a transient
+            # query error; surface the typed error rather than masking it.
+            raise
         except Exception as ex:
             logger.warning("An error occurred when running alert query")
             # The exception message here can reveal to much information to malicious
