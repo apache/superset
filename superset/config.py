@@ -2192,6 +2192,12 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
+# Slack workspace (team) ID, either a string or a callable. Required when using
+# an org-scoped token on an Enterprise Grid org so that workspace-scoped methods
+# (e.g. conversations.list) know which workspace to target. It is accepted but
+# ignored for workspace-level tokens, so leaving it as None preserves the default
+# single-workspace behavior.
+SLACK_TEAM_ID: Callable[[], str] | str | None = None
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Maximum number of retries when Slack API returns rate limit errors
