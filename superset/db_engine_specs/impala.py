@@ -217,6 +217,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
         try:
             impala_host = query.database.url_object.host
+            # Strip any port suffix; the cancel endpoint port is always 25000.
+            impala_host = impala_host.split(":")[0] if impala_host else impala_host
             # The cancel call issues an outbound HTTP request from the
             # Superset backend to whatever host the DB connection was
             # configured with; validate it before the call to keep this

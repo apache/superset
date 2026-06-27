@@ -15,8 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import pytest
+from urllib.parse import parse_qs, urlparse
 from unittest.mock import Mock, patch
+
+import pytest
+
 from superset.db_engine_specs.impala import ImpalaEngineSpec
 
 
@@ -56,6 +59,10 @@ def test_cancel_query_uses_https_not_http(host: str, query_id: str) -> None:
         call_args = mock_post.call_args
         constructed_url = call_args[0][0] if call_args[0] else call_args[1].get("url")
 
-        # Security property: URL must start with https:// not http://
-        assert constructed_url.startswith("https://"), \
-            f"Cancel query URL must use HTTPS. Got: {constructed_url}"
+        # Assert full URL shape: scheme, host (no port suffix), port, path, query param.
+        parsed = urlparse(constructed_url)
+        assert parsed.scheme == "https", f"Expected https scheme, got: {constructed_url}"
+        assert parsed.hostname == host.split(":")[0], f"Unexpected hostname: {parsed.hostname}"
+        assert parsed.port == 25000, f"Expected port 25000, got: {parsed.port}"
+        assert parsed.path == "/cancel_query"
+        assert parse_qs(parsed.query).get("query_id") == [query_id]
