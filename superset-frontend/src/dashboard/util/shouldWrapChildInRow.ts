@@ -20,7 +20,7 @@ import {
   DASHBOARD_GRID_TYPE,
   CHART_TYPE,
   COLUMN_TYPE,
-  IFRAME_TYPE,
+  EXTENSION_TYPE,
   MARKDOWN_TYPE,
   TAB_TYPE,
 } from './componentTypes';
@@ -35,7 +35,7 @@ type ParentTypes = typeof DASHBOARD_GRID_TYPE | typeof TAB_TYPE;
 type ChildTypes =
   | typeof CHART_TYPE
   | typeof COLUMN_TYPE
-  | typeof IFRAME_TYPE
+  | typeof EXTENSION_TYPE
   | typeof MARKDOWN_TYPE;
 
 const typeToWrapChildLookup: Record<
@@ -45,14 +45,14 @@ const typeToWrapChildLookup: Record<
   [DASHBOARD_GRID_TYPE]: {
     [CHART_TYPE]: true,
     [COLUMN_TYPE]: true,
-    [IFRAME_TYPE]: true,
+    [EXTENSION_TYPE]: true,
     [MARKDOWN_TYPE]: true,
   },
 
   [TAB_TYPE]: {
     [CHART_TYPE]: true,
     [COLUMN_TYPE]: true,
-    [IFRAME_TYPE]: true,
+    [EXTENSION_TYPE]: true,
     [MARKDOWN_TYPE]: true,
   },
 };
