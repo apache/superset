@@ -17,19 +17,26 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { dashboardComponents } from 'src/core';
+import IframeContent from './IframeContent';
 
-import { Icons } from '@superset-ui/core/components';
-import { IFRAME_TYPE } from '../../../util/componentTypes';
-import { NEW_IFRAME_ID } from '../../../util/constants';
-import DraggableNewComponent from './DraggableNewComponent';
+export const IFRAME_COMPONENT_ID = 'superset.iframe';
 
-export default function DraggableNewIframe() {
-  return (
-    <DraggableNewComponent
-      id={NEW_IFRAME_ID}
-      type={IFRAME_TYPE}
-      label={t('Embed / Iframe')}
-      IconComponent={Icons.LinkOutlined}
-    />
+/**
+ * Registers the built-in iframe as a first-class dashboard component through the
+ * Extensions `dashboardComponents` contribution point. Core registers it the
+ * same way a third-party extension would, demonstrating the contract end to end.
+ */
+export default function registerIframeComponent() {
+  dashboardComponents.registerDashboardComponent(
+    {
+      id: IFRAME_COMPONENT_ID,
+      name: t('Embed / Iframe'),
+      description: t('Embed external content via a URL'),
+      icon: 'LinkOutlined',
+      resizable: true,
+      defaultMeta: { width: 4, height: 50, url: '' },
+    },
+    IframeContent,
   );
 }

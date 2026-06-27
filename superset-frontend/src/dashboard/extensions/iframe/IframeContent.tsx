@@ -16,32 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**
+ * Built-in "iframe" dashboard component, delivered through the
+ * `dashboardComponents` Extensions contribution point. This renders only the
+ * element's *content* and editor — the host (DashboardExtensionComponent) owns
+ * the drag/resize/delete chrome.
+ *
+ * The component also surfaces the runtime CSP allowlist UX (companion SIP):
+ * when the embedded origin is not allowed, it flags it and offers permitted
+ * admins an "Enable domain in CSP" action.
+ */
 import { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import type { ResizeStartCallback, ResizeCallback } from 're-resizable';
 
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import type { dashboardComponents as dashboardComponentsApi } from '@apache-superset/core';
 import { Alert } from '@apache-superset/core/components';
 import { Button, Input } from '@superset-ui/core/components';
 
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { findPermission } from 'src/utils/findPermission';
-
-import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
-import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
-import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
-import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import type { RootState } from 'src/dashboard/types';
-import type { LayoutItem } from 'src/dashboard/types';
-import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
-import { ROW_TYPE } from 'src/dashboard/util/componentTypes';
-import {
-  GRID_MIN_COLUMN_COUNT,
-  GRID_MIN_ROW_UNITS,
-  GRID_BASE_UNIT,
-} from 'src/dashboard/util/constants';
 import {
   addCspAllowlistEntry,
   CSP_ALLOWLIST_PERMISSION,
@@ -51,27 +49,7 @@ import {
   isEmbeddableUrl,
 } from 'src/dashboard/util/cspAllowlist';
 
-export interface IframeProps {
-  id: string;
-  parentId: string;
-  component: LayoutItem;
-  parentComponent: LayoutItem;
-  index: number;
-  depth: number;
-  editMode: boolean;
-
-  // grid related
-  availableColumnCount: number;
-  columnWidth: number;
-  onResizeStart: ResizeStartCallback;
-  onResize: ResizeCallback;
-  onResizeStop: ResizeCallback;
-
-  // dnd
-  deleteComponent: (id: string, parentId: string) => void;
-  handleComponentDrop: (dropResult: DropResult) => void;
-  updateComponents: (components: Record<string, LayoutItem>) => void;
-}
+type DashboardComponentProps = dashboardComponentsApi.DashboardComponentProps;
 
 const IframeStyles = styled.div`
   ${({ theme }) => `
@@ -100,23 +78,11 @@ const IframeStyles = styled.div`
   `}
 `;
 
-export default function Iframe(props: IframeProps) {
-  const {
-    component,
-    parentComponent,
-    index,
-    depth,
-    editMode,
-    availableColumnCount,
-    columnWidth,
-    onResizeStart,
-    onResize,
-    onResizeStop,
-    deleteComponent,
-    handleComponentDrop,
-    updateComponents,
-  } = props;
-
+export default function IframeContent({
+  meta,
+  editMode,
+  updateMeta,
+}: DashboardComponentProps) {
   const { addSuccessToast, addDangerToast } = useToasts();
   const roles = useSelector((state: RootState) => state.user?.roles);
   const cspFeatureEnabled = isFeatureEnabled(FeatureFlag.CspRuntimeAllowlist);
@@ -124,7 +90,7 @@ export default function Iframe(props: IframeProps) {
     cspFeatureEnabled &&
     findPermission(CSP_ALLOWLIST_PERMISSION, CSP_ALLOWLIST_VIEW, roles);
 
-  const url = (component.meta.url as string) ?? '';
+  const url = (meta.url as string) ?? '';
   const [draftUrl, setDraftUrl] = useState(url);
   const [allowlist, setAllowlist] = useState<Set<string> | null>(null);
   const [enabling, setEnabling] = useState(false);
@@ -148,22 +114,13 @@ export default function Iframe(props: IframeProps) {
     setDraftUrl(url);
   }, [url]);
 
-  const handleDeleteComponent = useCallback(() => {
-    deleteComponent(component.id, parentComponent.id);
-  }, [component.id, deleteComponent, parentComponent.id]);
-
   const handleSaveUrl = useCallback(() => {
     const trimmed = draftUrl.trim();
     if (trimmed === url) {
       return;
     }
-    updateComponents({
-      [component.id]: {
-        ...component,
-        meta: { ...component.meta, url: trimmed },
-      },
-    });
-  }, [component, draftUrl, updateComponents, url]);
+    updateMeta({ url: trimmed });
+  }, [draftUrl, updateMeta, url]);
 
   const handleEnableDomain = useCallback(() => {
     if (!origin) {
@@ -183,19 +140,13 @@ export default function Iframe(props: IframeProps) {
       .finally(() => setEnabling(false));
   }, [addDangerToast, addSuccessToast, origin, refreshAllowlist]);
 
-  // A domain is "flagged" when the runtime allowlist feature is on, the URL
-  // resolves to a concrete origin, the allowlist has loaded, and that origin is
-  // not yet allowed. When the feature is off we cannot reason about the CSP, so
-  // we never flag (the operator's static policy governs).
   const domainFlagged =
     cspFeatureEnabled &&
     !!origin &&
     allowlist !== null &&
     !allowlist.has(origin);
 
-  const widthMultiple = component.meta.width ?? GRID_MIN_COLUMN_COUNT;
-
-  const renderBody = () => (
+  return (
     <IframeStyles data-test="dashboard-iframe">
       {editMode && (
         <Input
@@ -257,50 +208,5 @@ export default function Iframe(props: IframeProps) {
         </div>
       )}
     </IframeStyles>
-  );
-
-  return (
-    <Draggable
-      component={component}
-      parentComponent={parentComponent}
-      orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
-      index={index}
-      depth={depth}
-      onDrop={handleComponentDrop}
-      editMode={editMode}
-    >
-      {({ dragSourceRef }: { dragSourceRef: React.Ref<HTMLDivElement> }) => (
-        <ResizableContainer
-          id={component.id}
-          adjustableWidth={parentComponent.type === ROW_TYPE}
-          adjustableHeight
-          widthStep={columnWidth}
-          widthMultiple={widthMultiple}
-          heightStep={GRID_BASE_UNIT}
-          heightMultiple={component.meta.height ?? GRID_MIN_ROW_UNITS}
-          minWidthMultiple={GRID_MIN_COLUMN_COUNT}
-          minHeightMultiple={GRID_MIN_ROW_UNITS}
-          maxWidthMultiple={availableColumnCount + widthMultiple}
-          onResizeStart={onResizeStart}
-          onResize={onResize}
-          onResizeStop={onResizeStop}
-          editMode={editMode}
-        >
-          <div
-            ref={dragSourceRef}
-            className="dashboard-component dashboard-component-iframe"
-            data-test="dashboard-component-iframe"
-            id={component.id}
-          >
-            {editMode && (
-              <HoverMenu position="top">
-                <DeleteComponentButton onDelete={handleDeleteComponent} />
-              </HoverMenu>
-            )}
-            {renderBody()}
-          </div>
-        </ResizableContainer>
-      )}
-    </Draggable>
   );
 }

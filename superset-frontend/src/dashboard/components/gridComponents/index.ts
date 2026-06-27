@@ -22,7 +22,7 @@ import {
   COLUMN_TYPE,
   DIVIDER_TYPE,
   HEADER_TYPE,
-  IFRAME_TYPE,
+  EXTENSION_TYPE,
   ROW_TYPE,
   TAB_TYPE,
   TABS_TYPE,
@@ -34,7 +34,7 @@ import Markdown from './Markdown';
 import Column from './Column';
 import Divider from './Divider';
 import Header from './Header';
-import Iframe from './Iframe';
+import DashboardExtensionComponent from './DashboardExtensionComponent';
 import Row from './Row';
 import Tab from './Tab';
 import Tabs from './Tabs';
@@ -46,7 +46,7 @@ export const componentLookup = {
   [COLUMN_TYPE]: Column,
   [DIVIDER_TYPE]: Divider,
   [HEADER_TYPE]: Header,
-  [IFRAME_TYPE]: Iframe,
+  [EXTENSION_TYPE]: DashboardExtensionComponent,
   [ROW_TYPE]: Row,
   [TAB_TYPE]: Tab,
   [TABS_TYPE]: Tabs,
