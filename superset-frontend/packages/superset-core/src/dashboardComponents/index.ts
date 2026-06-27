@@ -89,6 +89,35 @@ export interface DashboardComponentDefinition {
    * detection. Defaults to true.
    */
   isUserContent?: boolean;
+  /** Minimum width in grid columns. Defaults to 1. */
+  minWidth?: number;
+  /**
+   * Restrict which container types may hold this component (e.g.
+   * `['GRID', 'TAB']`). When omitted, the component is allowed wherever a
+   * standard content leaf is allowed (grid, row, column, tab).
+   */
+  validParents?: string[];
+  /**
+   * Whether a drop into the grid or a tab auto-wraps the component in a row.
+   * Defaults to true (matching built-in content components).
+   */
+  wrapInRow?: boolean;
+}
+
+/**
+ * The subset of a definition's behavior that is seeded onto each instance's
+ * `meta` at creation, so the dashboard layout engine can honor it (and so it
+ * round-trips in the saved layout even if the extension later becomes
+ * unavailable). Read by the dashboard util maps; not part of the rendered
+ * component's concern.
+ */
+export interface DashboardComponentBehaviorMeta {
+  extensionComponentId: string;
+  resizable?: boolean;
+  isUserContent?: boolean;
+  minWidth?: number;
+  validParents?: string[];
+  wrapInRow?: boolean;
 }
 
 /**

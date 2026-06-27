@@ -121,11 +121,26 @@ interface IsValidChildProps {
   parentType?: string;
   childType?: string;
   parentDepth?: unknown;
+  /**
+   * The child's meta, when available (e.g. during a drag). Extension-contributed
+   * components may declare `validParents` to restrict which container types may
+   * hold them; the restriction is seeded onto meta at creation.
+   */
+  childMeta?: { validParents?: string[] };
 }
 
 export default function isValidChild(child: IsValidChildProps): boolean {
-  const { parentType, childType, parentDepth } = child;
+  const { parentType, childType, parentDepth, childMeta } = child;
   if (!parentType || !childType || typeof parentDepth !== 'number') {
+    return false;
+  }
+
+  // Per-component parent restriction for extension components.
+  if (
+    childType === EXTENSION_TYPE &&
+    Array.isArray(childMeta?.validParents) &&
+    !childMeta.validParents.includes(parentType)
+  ) {
     return false;
   }
 

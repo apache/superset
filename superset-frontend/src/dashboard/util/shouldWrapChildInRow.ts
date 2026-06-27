@@ -29,6 +29,12 @@ import { ComponentType } from '../types';
 interface WrapChildParams {
   parentType: ComponentType | undefined | null;
   childType: ComponentType | undefined | null;
+  /**
+   * The child's meta, when available. Extension-contributed components may set
+   * `wrapInRow: false` in their definition (seeded onto meta) to opt out of the
+   * default auto-wrapping.
+   */
+  childMeta?: { wrapInRow?: boolean };
 }
 
 type ParentTypes = typeof DASHBOARD_GRID_TYPE | typeof TAB_TYPE;
@@ -60,8 +66,14 @@ const typeToWrapChildLookup: Record<
 export default function shouldWrapChildInRow({
   parentType,
   childType,
+  childMeta,
 }: WrapChildParams): boolean {
   if (!parentType || !childType) return false;
+
+  // Extension components may opt out of auto-wrapping.
+  if (childType === EXTENSION_TYPE && childMeta?.wrapInRow === false) {
+    return false;
+  }
 
   const wrapChildLookup = typeToWrapChildLookup[parentType as ParentTypes];
   if (!wrapChildLookup) return false;
