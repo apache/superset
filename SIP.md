@@ -19,6 +19,14 @@ under the License.
 
 # [SIP] Proposal for a first-class iframe dashboard component with a runtime CSP allowlist
 
+> **Companion SIP:** This proposal pairs with
+> [`SIP-DASHBOARD-COMPONENT-CONTRIBUTION-POINT.md`](SIP-DASHBOARD-COMPONENT-CONTRIBUTION-POINT.md),
+> which proposes the Extensions contribution point that would let this iframe
+> component (and others) be shipped as an extension. The two are deliberately
+> separate discussions: **this** SIP covers the security-sensitive feature
+> (runtime CSP override + permissions); the companion covers the framework
+> change. They share one POC branch so the end-to-end story is demonstrable.
+
 > **Status:** Draft — tracking the implementation in `feat/csp-runtime-allowlist-iframe`.
 > This document follows the SIP issue template and is kept in sync with the branch
 > as the implementation evolves. See SIP-0
