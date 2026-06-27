@@ -2963,6 +2963,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             tp = self.get_template_processor()
             processed_expression = self._process_expression_template(expression, tp)
 
+            # Apply the same parsing policy used for stored adhoc column and
+            # metric expressions (single statement, no set operations, and no
+            # sub-queries unless ALLOW_ADHOC_SUBQUERY is enabled), so expression
+            # validation follows one policy across the query pipeline. Imported
+            # locally to avoid a circular import with the connectors package.
+            from superset.connectors.sqla.models import validate_stored_expression
+
+            validate_stored_expression(
+                self.database, self.catalog, self.schema, processed_expression
+            )
+
             # Build validation query
             tbl, cte = self.get_from_clause(tp)
             validation_query = self._build_validation_query(
