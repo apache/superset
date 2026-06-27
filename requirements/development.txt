@@ -919,7 +919,7 @@ s3transfer==0.16.0
     # via boto3
 secretstorage==3.5.0
     # via keyring
-selenium==4.44.0
+selenium==4.45.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
