@@ -187,7 +187,7 @@ ocient = [
 ]
 oracle = ["oracledb>=2.0.0, <5"]
 parseable = ["sqlalchemy-parseable>=0.1.3,<0.2.0"]
-pinot = ["pinotdb>=5.0.0, <10.0.0"]
+pinot = ["pinotdb>=9.1.2, <10.0.0"]
 playwright = ["playwright>=1.60.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
