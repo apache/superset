@@ -1,0 +1,166 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+MCP tool: delete_dashboard
+"""
+
+import logging
+from typing import Any
+
+from fastmcp import Context
+from sqlalchemy.exc import SQLAlchemyError
+from superset_core.mcp.decorators import tool, ToolAnnotations
+
+from superset.commands.dashboard.exceptions import (
+    DashboardDeleteFailedReportsExistError,
+    DashboardForbiddenError,
+    DashboardNotFoundError,
+)
+from superset.commands.exceptions import CommandException
+from superset.extensions import event_logger
+from superset.mcp_service.dashboard.schemas import (
+    DeleteDashboardRequest,
+    DeleteDashboardResponse,
+)
+from superset.mcp_service.utils import escape_llm_context_delimiters
+
+logger = logging.getLogger(__name__)
+
+
+def _find_dashboard_by_identifier(identifier: int | str) -> Any | None:
+    """Resolve a dashboard by numeric ID, UUID string, or slug. Returns None."""
+    from superset.daos.dashboard import DashboardDAO
+
+    if isinstance(identifier, int) or (
+        isinstance(identifier, str) and identifier.isdigit()
+    ):
+        return DashboardDAO.find_by_id(int(identifier))
+    # Try UUID, then fall back to slug.
+    dashboard = DashboardDAO.find_by_id(identifier, id_column="uuid")
+    if dashboard:
+        return dashboard
+    try:
+        return DashboardDAO.get_by_id_or_slug(identifier)
+    except DashboardNotFoundError:
+        return None
+
+
+def _rollback() -> None:
+    from superset import db
+
+    try:
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+    except SQLAlchemyError:
+        logger.warning(
+            "Database rollback failed during delete_dashboard error handling"
+        )
+
+
+@tool(
+    tags=["mutate"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="Delete dashboard",
+        readOnlyHint=False,
+        destructiveHint=True,
+    ),
+)
+async def delete_dashboard(
+    request: DeleteDashboardRequest, ctx: Context
+) -> DeleteDashboardResponse:
+    """Permanently delete a dashboard.
+
+    Identify the dashboard by numeric ID, UUID string, or slug. This is
+    destructive and cannot be undone. It removes the dashboard container only —
+    the charts on it are NOT deleted. The caller must own the dashboard (or be
+    an Admin); dashboards with attached alerts/reports cannot be deleted until
+    those are removed.
+
+    Example:
+    ```json
+    {"identifier": 42}
+    ```
+
+    Returns success with the deleted dashboard's id/title, or an error. When the
+    caller lacks permission, ``permission_denied`` is true — do not retry; ask
+    the user.
+    """
+    await ctx.info("Deleting dashboard: identifier=%s" % (request.identifier,))
+
+    dashboard = _find_dashboard_by_identifier(request.identifier)
+    if not dashboard:
+        safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
+        msg = (
+            f"No dashboard found with identifier: {safe_id}. "
+            "Use list_dashboards to get valid dashboard IDs."
+        )
+        return DeleteDashboardResponse(success=False, error=msg, error_type="NotFound")
+
+    dashboard_id = dashboard.id
+    dashboard_name = dashboard.dashboard_title
+
+    try:
+        from superset.commands.dashboard.delete import DeleteDashboardCommand
+
+        with event_logger.log_context(action="mcp.delete_dashboard"):
+            DeleteDashboardCommand([dashboard_id]).run()
+
+        return DeleteDashboardResponse(
+            success=True,
+            deleted_id=dashboard_id,
+            deleted_name=dashboard_name,
+            message=(
+                f"Deleted dashboard '{dashboard_name}' (id={dashboard_id}). "
+                "Its charts were not deleted."
+            ),
+        )
+    except DashboardForbiddenError:
+        await ctx.warning(
+            "Permission denied deleting dashboard id=%s" % (dashboard_id,)
+        )
+        return DeleteDashboardResponse(
+            success=False,
+            permission_denied=True,
+            error=(
+                f"You do not have permission to delete dashboard "
+                f"'{dashboard_name}' (id={dashboard_id}). Ask the user to delete "
+                "it or grant access; do not retry."
+            ),
+            error_type="Forbidden",
+        )
+    except DashboardDeleteFailedReportsExistError as ex:
+        _rollback()
+        return DeleteDashboardResponse(
+            success=False,
+            error=(
+                f"Dashboard '{dashboard_name}' (id={dashboard_id}) cannot be "
+                f"deleted: {ex}. Remove the associated alerts/reports first."
+            ),
+            error_type="ReportsExist",
+        )
+    except DashboardNotFoundError:
+        msg = f"Dashboard id={dashboard_id} no longer exists."
+        return DeleteDashboardResponse(success=False, error=msg, error_type="NotFound")
+    except (CommandException, SQLAlchemyError, ValueError) as ex:
+        _rollback()
+        await ctx.error("Dashboard delete failed: %s: %s" % (type(ex).__name__, ex))
+        return DeleteDashboardResponse(
+            success=False,
+            error=f"Dashboard delete failed: {ex}",
+            error_type=type(ex).__name__,
+        )

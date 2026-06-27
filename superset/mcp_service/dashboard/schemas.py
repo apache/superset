@@ -1528,3 +1528,30 @@ def dashboard_layout_serializer(dashboard: "Dashboard") -> DashboardLayout:
             has_layout=bool(position_json_str),
         )
     )
+
+
+class DeleteDashboardRequest(BaseModel):
+    """Request schema for delete_dashboard."""
+
+    identifier: int | str = Field(
+        ...,
+        description="Dashboard identifier - numeric ID, UUID string, or slug.",
+    )
+
+
+class DeleteDashboardResponse(BaseModel):
+    """Result of a delete_dashboard operation."""
+
+    success: bool = Field(description="Whether the dashboard was deleted")
+    deleted_id: int | None = Field(None, description="ID of the deleted dashboard")
+    deleted_name: str | None = Field(None, description="Title of the deleted dashboard")
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the delete failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to delete the dashboard (do "
+            "not retry; ask the user)."
+        ),
+    )
