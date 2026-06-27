@@ -16,18 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  COLUMN_TYPE,
-  CHART_TYPE,
-  IFRAME_TYPE,
-  MARKDOWN_TYPE,
-  DYNAMIC_TYPE,
-} from './componentTypes';
+import Iframe from './Iframe';
 
-export default function componentIsResizable(entity: { type: string }) {
-  return (
-    [COLUMN_TYPE, CHART_TYPE, IFRAME_TYPE, MARKDOWN_TYPE, DYNAMIC_TYPE].indexOf(
-      entity.type,
-    ) > -1
-  );
-}
+export default Iframe;

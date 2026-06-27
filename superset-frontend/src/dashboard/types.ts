@@ -277,6 +277,8 @@ export type LayoutItemMeta = {
   headerSize?: string;
   /** Markdown source code for markdown components */
   code?: string;
+  /** Embedded URL for iframe components */
+  url?: string;
   /** Background style value for columns and rows */
   background?: string;
   /** Allow additional meta properties used by different component types */
