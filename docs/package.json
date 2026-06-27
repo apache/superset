@@ -72,7 +72,7 @@
     "@superset-ui/core": "^0.20.4",
     "@swc/core": "^1.15.41",
     "antd": "^6.4.4",
-    "baseline-browser-mapping": "^2.10.37",
+    "baseline-browser-mapping": "^2.10.38",
     "caniuse-lite": "^1.0.30001799",
     "docusaurus-plugin-openapi-docs": "^5.0.2",
     "docusaurus-theme-openapi-docs": "^5.0.2",
@@ -134,7 +134,8 @@
     "yaml": "1.10.3",
     "uuid": "11.1.1",
     "serialize-javascript": "7.0.5",
-    "d3-color": "3.1.0"
+    "d3-color": "3.1.0",
+    "ws": "^8.21.0"
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }

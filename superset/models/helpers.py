@@ -33,6 +33,7 @@ from typing import (
     Callable,
     cast,
     ClassVar,
+    Literal,
     NamedTuple,
     Optional,
     TYPE_CHECKING,
@@ -130,7 +131,11 @@ from superset.utils.core import (
     SqlExpressionType,
     TIME_COMPARISON,
 )
-from superset.utils.date_parser import get_past_or_future, normalize_time_delta
+from superset.utils.date_parser import (
+    get_past_or_future,
+    normalize_time_delta,
+    TimeDeltaAmbiguousError,
+)
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.rls import apply_rls
 
@@ -2013,6 +2018,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 offset_dfs,
                 time_grain,
                 join_keys,
+                full_range=getattr(query_object, "time_compare_full_range", False),
             )
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
@@ -2210,7 +2216,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return offset_df, join_keys
 
     def _perform_join(
-        self, df: pd.DataFrame, offset_df: pd.DataFrame, actual_join_keys: list[str]
+        self,
+        df: pd.DataFrame,
+        offset_df: pd.DataFrame,
+        actual_join_keys: list[str],
+        how: Literal["left", "right", "inner", "outer", "cross"] = "left",
     ) -> pd.DataFrame:
         """Perform the appropriate join operation."""
         if actual_join_keys:
@@ -2219,6 +2229,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 right_df=offset_df,
                 join_keys=actual_join_keys,
                 rsuffix=R_SUFFIX,
+                how=how,
             )
         else:
             temp_key = "__temp_join_key__"
@@ -2230,6 +2241,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 right_df=offset_df,
                 join_keys=[temp_key],
                 rsuffix=R_SUFFIX,
+                how=how,
             )
 
             # Remove temporary join keys
@@ -2245,6 +2257,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         offset_dfs: dict[str, pd.DataFrame],
         time_grain: str | None,
         join_keys: list[str],
+        full_range: bool = False,
     ) -> pd.DataFrame:
         """
         Join offset DataFrames with the main DataFrame.
@@ -2253,6 +2266,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param offset_dfs: A list of offset DataFrames.
         :param time_grain: The time grain used to calculate the temporal join key.
         :param join_keys: The keys to join on.
+        :param full_range: When True, time-shifted (offset) series keep their full
+            time range instead of being truncated to the main series' range. This
+            uses an outer join so offset-only rows (e.g. the rest of a prior day when
+            the current day is still in progress) are preserved.
         """
         join_column_producer = app.config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
             time_grain
@@ -2280,11 +2297,58 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 join_column_producer,
             )
 
-            df = self._perform_join(df, offset_df, actual_join_keys)
+            # The full-range option is only meaningful for relative offsets aligned
+            # on a temporal join column (time_grain set). Date-range offsets and the
+            # grain-less path keep the existing left-join behavior.
+            use_outer_join = (
+                full_range
+                and bool(time_grain)
+                and not is_date_range_offset
+                and bool(join_keys)
+            )
+            how: Literal["left", "outer"] = "outer" if use_outer_join else "left"
+
+            df = self._perform_join(df, offset_df, actual_join_keys, how=how)
+
+            if use_outer_join:
+                df = self._coalesce_offset_index(df, offset, join_keys)
+
             df = self._apply_cleanup_logic(
                 df, offset, time_grain, join_keys, is_date_range_offset
             )
 
+        return df
+
+    def _coalesce_offset_index(
+        self,
+        df: pd.DataFrame,
+        offset: str,
+        join_keys: list[str],
+    ) -> pd.DataFrame:
+        """
+        Rebuild the temporal x-axis after an outer join with an offset DataFrame.
+
+        Offset-only rows (those with no matching row in the main series) have a null
+        x-axis value because the join happens on the normalized offset join column,
+        not the raw temporal column. Their real timestamp lives in the suffixed
+        right-hand column, expressed in the offset's own time range (e.g. "yesterday
+        15:00"). Shifting it forward by the offset places it on the main series'
+        axis (e.g. "today 15:00") so the comparison line spans the full period.
+        """
+        x_axis = join_keys[0]
+        offset_x_axis = f"{x_axis}{R_SUFFIX}"
+        if x_axis not in df.columns or offset_x_axis not in df.columns:
+            return df
+
+        # normalize_time_delta returns a negative delta for "... ago" offsets, so
+        # subtracting it shifts the historical timestamp forward onto the main axis.
+        try:
+            forward_shift = DateOffset(**normalize_time_delta(offset))
+        except (ValueError, TimeDeltaAmbiguousError):
+            return df
+
+        shifted = df[offset_x_axis] - forward_shift
+        df[x_axis] = df[x_axis].fillna(shifted)
         return df
 
     def add_offset_join_column(
@@ -2898,6 +2962,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # Process template
             tp = self.get_template_processor()
             processed_expression = self._process_expression_template(expression, tp)
+
+            # Apply the same parsing policy used for stored adhoc column and
+            # metric expressions (single statement, no set operations, and no
+            # sub-queries unless ALLOW_ADHOC_SUBQUERY is enabled), so expression
+            # validation follows one policy across the query pipeline. Imported
+            # locally to avoid a circular import with the connectors package.
+            from superset.connectors.sqla.models import validate_stored_expression
+
+            validate_stored_expression(
+                self.database, self.catalog, self.schema or "", processed_expression
+            )
 
             # Build validation query
             tbl, cte = self.get_from_clause(tp)

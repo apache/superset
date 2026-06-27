@@ -767,3 +767,265 @@ def test_fetch_data_converts_bigquery_row_objects(mocker: MockerFixture) -> None
 
     assert result == [(1, "a"), (2, "b")]
     assert flask_g.bq_memory_limited is False
+
+
+def test_string_literal_with_apostrophe() -> None:
+    """
+    Test that string literals containing apostrophes are properly escaped
+    for BigQuery using backslash escaping.
+
+    BigQuery requires backslash escaping for single quotes ('O\\'Brien').
+    Doubled single quotes ('O''Brien') are NOT valid — BigQuery parses them
+    as two concatenated string literals, causing a syntax error.
+    The upstream sqlalchemy-bigquery dialect uses ``repr()`` which switches
+    to double-quote delimiters when the value contains an apostrophe.
+    Double-quoted tokens are identifiers in BigQuery, causing syntax errors.
+    """
+    from sqlalchemy import column as sa_column
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F811
+
+    # Trigger module load to ensure the monkey-patch is applied
+    assert BigQueryEngineSpec is not None
+
+    dialect = BigQueryDialect()
+
+    stmt = select(sa_column("name")).where(sa_column("name") == "Fernando's")
+    compiled_sql = str(
+        stmt.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    # The compiled SQL must use single-quoted literal with backslash-escaped
+    # apostrophes.  Doubled single quotes are NOT valid in BigQuery.
+    assert "= 'Fernando\\'s'" in compiled_sql
+    # Must NOT contain doubled-quote escaping (BigQuery rejects this)
+    assert "''" not in compiled_sql
+    # Must NOT contain double-quoted identifiers
+    assert '\\"' not in compiled_sql
+
+
+def test_string_literal_without_apostrophe() -> None:
+    """
+    Test that normal string literals (without apostrophes) still compile
+    correctly after the monkey-patch.
+    """
+    from sqlalchemy import column as sa_column
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F811
+
+    assert BigQueryEngineSpec is not None
+
+    dialect = BigQueryDialect()
+
+    stmt = select(sa_column("name")).where(sa_column("name") == "Fernando")
+    compiled_sql = str(
+        stmt.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    assert "= 'Fernando'" in compiled_sql
+
+
+def test_string_literal_in_filter_with_apostrophe() -> None:
+    """
+    Test that IN filters with apostrophes in values compile correctly
+    using backslash escaping.
+    """
+    from sqlalchemy import column as sa_column
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F811
+
+    assert BigQueryEngineSpec is not None
+
+    dialect = BigQueryDialect()
+
+    stmt = select(sa_column("name")).where(
+        sa_column("name").in_(["Fernando's", "O'Brien"])
+    )
+    compiled_sql = str(
+        stmt.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    assert "'Fernando\\'s'" in compiled_sql
+    assert "'O\\'Brien'" in compiled_sql
+    # Must NOT contain doubled-quote escaping
+    assert "''" not in compiled_sql
+
+
+def test_process_string_literal_directly() -> None:
+    """
+    Test _process_string_literal covers backslash escaping for apostrophes,
+    control-character escaping (newline/CR/tab/etc.), the ``\\xhh`` fallback
+    for control chars without a named escape, and pass-through for printable
+    Unicode and other characters BigQuery accepts unescaped.
+    """
+    from superset.db_engine_specs.bigquery import _process_string_literal
+
+    # Plain values
+    assert _process_string_literal("hello") == "'hello'"
+    assert _process_string_literal("") == "''"
+
+    # Apostrophes (the original fix)
+    assert _process_string_literal("O'Brien") == "'O\\'Brien'"
+    assert _process_string_literal("it's a test") == "'it\\'s a test'"
+
+    # Backslashes must be escaped before apostrophes
+    assert _process_string_literal("C:\\path") == "'C:\\\\path'"
+    assert _process_string_literal("it's C:\\path") == "'it\\'s C:\\\\path'"
+
+    # Literal backslash followed by 'n' (two characters, not a newline)
+    # must produce the two-char sequence '\\n' (escaped backslash + n) so
+    # BigQuery does not misread it as a newline escape.
+    assert _process_string_literal("\\n") == "'\\\\n'"
+
+    # Control characters must be escaped using named escapes — BigQuery
+    # rejects literal control characters inside quoted strings.
+    assert _process_string_literal("foo\nbar") == "'foo\\nbar'"
+    assert _process_string_literal("foo\rbar") == "'foo\\rbar'"
+    assert _process_string_literal("foo\tbar") == "'foo\\tbar'"
+    assert _process_string_literal("a\bb\fc\vd\ae") == "'a\\bb\\fc\\vd\\ae'"
+
+    # Control characters without a named escape fall through to ``\\xhh``.
+    assert _process_string_literal("null\0byte") == "'null\\x00byte'"
+    assert _process_string_literal("a\x01b") == "'a\\x01b'"
+    assert _process_string_literal("a\x1bb") == "'a\\x1bb'"
+    assert _process_string_literal("a\x7fb") == "'a\\x7fb'"
+
+    # Double quotes do NOT need escaping in single-quoted BigQuery literals.
+    assert _process_string_literal('say "hello"') == "'say \"hello\"'"
+
+    # Printable Unicode and percent signs pass through unchanged.
+    assert _process_string_literal("café") == "'café'"
+    assert _process_string_literal("日本") == "'日本'"
+    assert _process_string_literal("100%") == "'100%'"
+
+    # Combined: apostrophe + newline + backslash + unicode.
+    assert _process_string_literal("it's\nC:\\café") == "'it\\'s\\nC:\\\\café'"
+
+
+def test_process_string_literal_no_literal_control_chars() -> None:
+    """
+    Regression test for the issue raised in PR #38835 review: BigQuery
+    rejects literal control characters inside quoted string literals, so the
+    output must never contain them as literal characters.
+    """
+    from superset.db_engine_specs.bigquery import _process_string_literal
+
+    for char in ["\n", "\r", "\t", "\b", "\f", "\v", "\a", "\0", "\x01", "\x7f"]:
+        result = _process_string_literal(f"prefix{char}suffix")
+        assert char not in result, (
+            f"Literal {char!r} leaked into output {result!r}; "
+            "BigQuery would reject this literal."
+        )
+
+
+def test_string_literal_with_newline_in_filter() -> None:
+    """
+    End-to-end regression test for @rusackas's review feedback on PR #38835:
+    a filter value containing a newline must compile to valid BigQuery SQL
+    using the ``\\n`` escape sequence, not a literal newline.
+    """
+    from sqlalchemy import column as sa_column
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F811
+
+    assert BigQueryEngineSpec is not None
+
+    dialect = BigQueryDialect()
+    stmt = select(sa_column("note")).where(sa_column("note") == "line1\nline2")
+    compiled_sql = str(
+        stmt.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    # Must use the escape sequence form, not a literal newline.
+    assert "'line1\\nline2'" in compiled_sql
+    assert "\n" not in compiled_sql.split("note")[-1]
+
+
+def test_literal_processor_non_bigquery_dialect() -> None:
+    """
+    Test that BigQuerySafeString.literal_processor falls back to the parent
+    implementation when used with a non-BigQuery dialect.
+    """
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.bigquery import (
+        _monkeypatch_bigquery_string_literal,  # noqa: F811
+    )
+
+    _monkeypatch_bigquery_string_literal()
+
+    safe_cls = BigQueryDialect.colspecs[sqltypes.String]
+    instance = safe_cls()
+
+    # Use a non-BigQuery dialect (sqlite)
+    sqlite_dialect = create_engine("sqlite://").dialect
+    processor = instance.literal_processor(sqlite_dialect)
+
+    # The fallback processor should still produce a valid quoted string
+    assert processor is not None
+
+
+def test_monkeypatch_is_applied() -> None:
+    """
+    Test that _monkeypatch_bigquery_string_literal installs the custom
+    type decorator into BigQueryDialect.colspecs.
+    """
+    from sqlalchemy.sql import sqltypes as sa_sqltypes
+
+    from superset.db_engine_specs.bigquery import (
+        BigQueryEngineSpec,  # noqa: F811
+    )
+
+    assert BigQueryEngineSpec is not None
+
+    colspecs = BigQueryDialect.colspecs
+    assert sa_sqltypes.String in colspecs
+    safe_cls = colspecs[sa_sqltypes.String]
+    assert safe_cls.__name__ == "BigQuerySafeString"
+
+
+def test_literal_processor_returns_process_string_literal_for_bigquery() -> None:
+    """
+    Test that BigQuerySafeString.literal_processor returns the
+    _process_string_literal function when given a BigQuery dialect,
+    and that calling it produces correctly escaped output.
+    """
+    from superset.db_engine_specs.bigquery import (
+        _monkeypatch_bigquery_string_literal,
+        _process_string_literal,
+    )
+
+    _monkeypatch_bigquery_string_literal()
+
+    safe_cls = BigQueryDialect.colspecs[sqltypes.String]
+    instance = safe_cls()
+
+    dialect = BigQueryDialect()
+    processor = instance.literal_processor(dialect)
+
+    assert processor is _process_string_literal
+    assert processor("O'Brien") == "'O\\'Brien'"
+    assert processor("plain") == "'plain'"
+
+
+def test_monkeypatch_handles_missing_bigquery_package() -> None:
+    """
+    Test that _monkeypatch_bigquery_string_literal gracefully handles
+    the case where sqlalchemy_bigquery is not installed.
+    """
+    import builtins
+
+    from superset.db_engine_specs.bigquery import (
+        _monkeypatch_bigquery_string_literal,
+    )
+
+    original_import = builtins.__import__
+
+    def mock_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "sqlalchemy_bigquery":
+            raise ImportError("mocked missing package")
+        return original_import(name, *args, **kwargs)
+
+    with mock.patch("builtins.__import__", side_effect=mock_import):
+        # Should not raise — the except ImportError branch handles it
+        _monkeypatch_bigquery_string_literal()
