@@ -18,14 +18,14 @@
  */
 import {
   CHART_TYPE,
-  IFRAME_TYPE,
+  EXTENSION_TYPE,
   MARKDOWN_TYPE,
   DYNAMIC_TYPE,
 } from './componentTypes';
 
 const USER_CONTENT_COMPONENT_TYPE: string[] = [
   CHART_TYPE,
-  IFRAME_TYPE,
+  EXTENSION_TYPE,
   MARKDOWN_TYPE,
   DYNAMIC_TYPE,
 ];
