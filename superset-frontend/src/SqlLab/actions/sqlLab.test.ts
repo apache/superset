@@ -35,6 +35,11 @@ import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
 import { api } from 'src/hooks/apiResources/queryApi';
+import {
+  queryHistoryApi,
+  type QueryResult,
+} from 'src/hooks/apiResources/queries';
+import { defaultStore } from 'spec/helpers/testing-library';
 import { ToastType } from '../../components/MessageToasts/types';
 
 const isFeatureEnabledMock = isFeatureEnabled as unknown as jest.Mock;
@@ -1108,42 +1113,38 @@ describe('async actions', () => {
       });
     });
 
-    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-    describe('removeQuery', () => {
-      afterEach(() => {
-        jest.restoreAllMocks();
-      });
+    test('removeQuery removes the deleted query from the editorQueries cache', async () => {
+      isFeatureEnabledMock.mockReturnValue(false);
+      const editorId = 'editor1';
+      const queryToRemove = {
+        ...query,
+        id: 'queryToRemove',
+        sqlEditorId: editorId,
+      };
 
-      test('removes the deleted query from the editor queries cache', async () => {
-        const queryToRemove = {
-          ...query,
-          id: 'queryToRemove',
-          sqlEditorId: 'editor1',
-        };
-        const updateCache = jest.spyOn(api.util, 'updateQueryData');
-
-        await actions.removeQuery(queryToRemove)(
-          jest.fn(),
-          () => typedInitialState,
-          undefined,
-        );
-
-        expect(updateCache).toHaveBeenCalledWith(
-          'editorQueries',
-          { editorId: queryToRemove.sqlEditorId },
-          expect.any(Function),
-        );
-        const recipe = updateCache.mock.calls[0][2] as (draft: {
-          count: number;
-          result: { id: string }[];
-        }) => void;
-        const draft = {
+      await defaultStore.dispatch(
+        queryHistoryApi.util.upsertQueryData('editorQueries', { editorId }, {
           count: 2,
+          ids: [],
           result: [{ id: 'queryToRemove' }, { id: 'keep' }],
-        };
-        recipe(draft);
-        expect(draft).toEqual({ count: 1, result: [{ id: 'keep' }] });
+        } as unknown as QueryResult),
+      );
+
+      await defaultStore.dispatch(
+        actions.removeQuery(queryToRemove) as unknown as AnyAction,
+      );
+
+      const { data } = queryHistoryApi.endpoints.editorQueries.select({
+        editorId,
+      })(defaultStore.getState());
+
+      expect(data).toEqual({
+        count: 1,
+        ids: [],
+        result: [{ id: 'keep' }],
       });
+
+      defaultStore.dispatch(api.util.resetApiState());
     });
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
