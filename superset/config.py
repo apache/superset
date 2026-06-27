@@ -220,7 +220,10 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 # defaults to 0, which preserves the original behavior where every chart
 # request fires at the same time when the user clicks the Refresh dashboard
 # button. Set a positive value to opt in to staggering; the frontend then
-# uses the larger of this value and the dashboard's stagger_time metadata.
+# uses the larger of this value and the dashboard's stagger_time metadata,
+# which itself defaults to 5000 ms when it is not set explicitly. A dashboard
+# with stagger_refresh set to false in its metadata skips staggering on the
+# manual refresh path entirely, even when this value is positive.
 # If the backend does not provide this value at all (an older backend that
 # predates the key, or it is set to None), the frontend falls back to a
 # built-in default of 5000 ms.

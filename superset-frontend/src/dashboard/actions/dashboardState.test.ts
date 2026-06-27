@@ -304,6 +304,50 @@ describe('dashboardState actions', () => {
     expect(refreshChart).toHaveBeenCalledTimes(chartIds.length);
   });
 
+  test('fetchCharts fires each chart at evenly spaced staggered offsets', async () => {
+    jest.useFakeTimers();
+    (refreshChart as jest.Mock).mockClear();
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: { stagger_time: 4000, stagger_refresh: true },
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatch = (action: unknown): unknown => {
+      if (typeof action === 'function') {
+        return (action as Function)(dispatch, getState);
+      }
+      return action;
+    };
+    // refreshTime = max(interval, stagger_time) = 4000;
+    // delay between charts = 4000 / (3 - 1) = 2000.
+    const chartIds = [1, 2, 3];
+    const promise = fetchCharts(chartIds, false, 4000, 10)(dispatch, getState);
+
+    // First chart fires immediately (offset = delay * 0 = 0).
+    jest.advanceTimersByTime(0);
+    expect(refreshChart).toHaveBeenCalledTimes(1);
+    expect((refreshChart as jest.Mock).mock.calls[0][0]).toBe(1);
+
+    // Second chart fires one window later, at t = 2000.
+    jest.advanceTimersByTime(2000);
+    expect(refreshChart).toHaveBeenCalledTimes(2);
+    expect((refreshChart as jest.Mock).mock.calls[1][0]).toBe(2);
+
+    // Nothing fires in between windows.
+    jest.advanceTimersByTime(1999);
+    expect(refreshChart).toHaveBeenCalledTimes(2);
+
+    // Last chart fires at t = refreshTime = 4000.
+    jest.advanceTimersByTime(1);
+    expect(refreshChart).toHaveBeenCalledTimes(3);
+    expect((refreshChart as jest.Mock).mock.calls[2][0]).toBe(3);
+
+    jest.runAllTimers();
+    await promise;
+    jest.useRealTimers();
+  });
+
   test('fetchCharts rejects for staggered refreshes when any chart refresh fails', async () => {
     jest.useFakeTimers();
     (refreshChart as jest.Mock).mockClear();
