@@ -272,6 +272,7 @@ def pivot_table_v2(
     df: pd.DataFrame,
     form_data: dict[str, Any],
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+    apply_number_format: bool = True,
 ) -> pd.DataFrame:
     """
     Pivot table v2.
@@ -290,7 +291,9 @@ def pivot_table_v2(
         show_columns_total=bool(form_data.get("colTotals")),
         apply_metrics_on_rows=form_data.get("metricsLayout") == "ROWS",
     )
-    return apply_pivot_number_formats(pivoted, form_data)
+    if apply_number_format:
+        return apply_pivot_number_formats(pivoted, form_data)
+    return pivoted
 
 
 def apply_pivot_number_formats(
@@ -328,10 +331,14 @@ def table(
     datasource: Optional[  # pylint: disable=unused-argument
         Union["BaseDatasource", "Query"]
     ] = None,
+    apply_number_format: bool = True,
 ) -> pd.DataFrame:
     """
     Table.
     """
+    if not apply_number_format:
+        return df
+
     column_config = form_data.get("column_config", {})
     for column, config in column_config.items():
         if column in df.columns:
@@ -397,7 +404,8 @@ def apply_client_processing(  # noqa: C901
         if datasource:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
-        processed_df = post_processor(df, form_data, datasource)
+        apply_number_format = query["result_format"] == ChartDataResultFormat.JSON
+        processed_df = post_processor(df, form_data, datasource, apply_number_format)
 
         query["colnames"] = list(processed_df.columns)
         query["indexnames"] = list(processed_df.index)

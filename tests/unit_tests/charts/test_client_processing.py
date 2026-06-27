@@ -23,6 +23,8 @@ from sqlalchemy.orm.session import Session
 
 from superset.charts.client_processing import (
     apply_client_processing,
+    apply_pivot_number_formats,
+    format_column,
     pivot_df,
     pivot_table_v2,
     table,
@@ -1933,6 +1935,43 @@ def test_pivot_table_v2_applies_per_metric_format_when_metrics_combined():
     assert formatted[("x", "sales")].tolist() == ["100.00", "200.00"]
 
 
+def test_format_column_applies_d3_and_currency():
+    df = pd.DataFrame({"amount": [1234.5, 6789.0]})
+    format_column(df, "amount", ",.2f", {})
+    assert df["amount"].tolist() == ["1,234.50", "6,789.00"]
+
+    df = pd.DataFrame({"amount": [1234.5]})
+    format_column(df, "amount", ",.2f", {"symbol": "USD", "symbolPosition": "prefix"})
+    assert df["amount"].tolist() == ["$ 1,234.50"]
+
+
+def test_format_column_is_noop_without_format():
+    df = pd.DataFrame({"amount": [1234.5]})
+    format_column(df, "amount", None, {})
+    assert df["amount"].tolist() == [1234.5]
+
+
+def test_apply_pivot_number_formats_resolves_metric_level():
+    df = pd.DataFrame({("sales",): [1234.5], ("qty",): [10.0]})
+    df.columns = pd.MultiIndex.from_tuples([("sales",), ("qty",)])
+    apply_pivot_number_formats(
+        df, {"valueFormat": ",.2f", "columnFormats": {"qty": ",d"}}
+    )
+    assert df[("sales",)].tolist() == ["1,234.50"]
+    assert df[("qty",)].tolist() == ["10"]
+
+
+def test_apply_pivot_number_formats_metric_at_last_level_when_combined():
+    df = pd.DataFrame({("x", "sales"): [100.0], ("x", "qty"): [1111.0]})
+    df.columns = pd.MultiIndex.from_tuples([("x", "sales"), ("x", "qty")])
+    apply_pivot_number_formats(
+        df,
+        {"combineMetric": True, "valueFormat": ",.2f", "columnFormats": {"qty": ",d"}},
+    )
+    assert df[("x", "sales")].tolist() == ["100.00"]
+    assert df[("x", "qty")].tolist() == ["1,111"]
+
+
 def test_apply_client_processing_no_form_invalid_viz_type():
     """
     Test with invalid viz type. It should just return the result
@@ -2138,10 +2177,10 @@ COUNT(is_software_dev)
         "queries": [
             {
                 "result_format": ChartDataResultFormat.CSV,
-                "data": ",COUNT(is_software_dev)\nTotal (Sum),4.73k\n",
+                "data": ",COUNT(is_software_dev)\nTotal (Sum),4725\n",
                 "colnames": [("COUNT(is_software_dev)",)],
                 "indexnames": [("Total (Sum)",)],
-                "coltypes": [GenericDataType.STRING],
+                "coltypes": [GenericDataType.NUMERIC],
                 "rowcount": 1,
             }
         ]
@@ -2510,10 +2549,10 @@ COUNT(is_software_dev)
             {"result_format": ChartDataResultFormat.CSV, "data": ""},
             {
                 "result_format": ChartDataResultFormat.CSV,
-                "data": ",COUNT(is_software_dev)\nTotal (Sum),4.73k\n",
+                "data": ",COUNT(is_software_dev)\nTotal (Sum),4725\n",
                 "colnames": [("COUNT(is_software_dev)",)],
                 "indexnames": [("Total (Sum)",)],
-                "coltypes": [GenericDataType.STRING],
+                "coltypes": [GenericDataType.NUMERIC],
                 "rowcount": 1,
             },
         ]

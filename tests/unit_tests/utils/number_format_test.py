@@ -206,6 +206,36 @@ EXPECTED = {
         "$0.01",
         "$999.90",
     ],  # noqa: E501
+    "(,.2f": [
+        "12,345.43",
+        "0.00",
+        "4,725.00",
+        "80,679,663.00",
+        "1,234,567,890.00",
+        "(1,234.50)",
+        "0.01",
+        "999.90",
+    ],  # noqa: E501
+    "($,.2f": [
+        "$12,345.43",
+        "$0.00",
+        "$4,725.00",
+        "$80,679,663.00",
+        "$1,234,567,890.00",
+        "($1,234.50)",
+        "$0.01",
+        "$999.90",
+    ],  # noqa: E501
+    " ,.2f": [
+        " 12,345.43",
+        " 0.00",
+        " 4,725.00",
+        " 80,679,663.00",
+        " 1,234,567,890.00",
+        "−1,234.50",
+        " 0.01",
+        " 999.90",
+    ],  # noqa: E501
 }
 
 
@@ -216,3 +246,38 @@ def test_matches_frontend_d3_format(d3_format):
         assert result == expected.replace("−", "-"), (
             f"{d3_format!r} of {value}: got {result!r}, expected {expected!r}"
         )
+
+
+@pytest.mark.parametrize(
+    "d3_format,value,expected",
+    [
+        (",", 4725.0, "4,725"),
+        (",", 1000.0, "1,000"),
+        (",", 12345.432, "12,345.432"),
+        (",", 4725.5, "4,725.5"),
+        (",", 0.00005, "0.00005"),
+        (",", -1234.5, "-1,234.5"),
+        ("+,", 4725.0, "+4,725"),
+        ("+,", -1234.5, "-1,234.5"),
+    ],
+)
+def test_default_format_matches_d3_for_floats(d3_format, value, expected):
+    assert format_number_with_config(d3_format, None, value) == expected
+
+
+@pytest.mark.parametrize(
+    "d3_format,value,expected",
+    [
+        (".2f", 0.125, "0.13"),
+        ("$,.2f", 0.125, "$0.13"),
+        (".0f", 2.5, "3"),
+        (".1f", 0.25, "0.3"),
+        (".0%", 0.125, "13%"),
+        (".3s", 2.675, "2.67"),
+        (".4r", 0.12345, "0.1235"),
+        (".2f", 1.005, "1.00"),
+        (".1f", 0.35, "0.3"),
+    ],
+)
+def test_rounding_matches_d3_binary_half_up(d3_format, value, expected):
+    assert format_number_with_config(d3_format, None, value) == expected

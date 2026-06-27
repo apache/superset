@@ -22,6 +22,11 @@ Report notifications that embed a chart as text build the table in Python and
 have no access to the frontend formatters, so chart number/currency format
 configuration has to be reproduced here to render the same values an end user
 sees in the browser.
+
+Only d3-format specifiers (and the ``SMART_NUMBER`` pseudo-formats) are ported.
+Non-d3 presets such as ``DURATION``, ``DURATION_SUB`` and the ``MEMORY_*``
+formatters are not supported: they do not parse as a d3 specifier and fall back
+to the raw value, so a column using one of those renders unformatted in reports.
 """
 
 from __future__ import annotations
@@ -107,44 +112,109 @@ def format_number_with_config(
 
 
 def format_numeric(d3_format: str, value: float) -> str:
+    """
+    Format ``value`` according to a d3 number format.
+
+    Delegates to the smart-number formatter for the ``SMART_NUMBER`` and
+    ``SMART_NUMBER_SIGNED`` pseudo-formats, and to the d3 specifier parser for
+    every other format string.
+    """
     if d3_format in (SMART_NUMBER, SMART_NUMBER_SIGNED):
         return format_smart_number(value, signed=d3_format == SMART_NUMBER_SIGNED)
     return format_d3(d3_format, value)
 
 
 def format_d3(d3_format: str, value: float) -> str:
+    """
+    Format ``value`` with a d3-format specifier.
+
+    Supports the subset of the specifier grammar the Table/Pivot plugins emit:
+    the ``+ - ( space`` sign modes, the ``$`` currency prefix, the ``,`` group
+    separator, ``.precision``, the ``~`` trim flag, and the ``s`` (SI), ``r``
+    (significant), ``d`` (integer), ``f``/``e``/``g``/``%`` numeric types.
+    Returns the formatted string and raises ``ValueError`` for an unparseable
+    specifier.
+    """
     match = D3_FORMAT_RE.match(d3_format)
     if not match:
         raise ValueError(d3_format)
 
-    sign = "+" if match.group(3) == "+" else ""
+    sign_mode = match.group(3) or "-"
     currency_symbol = match.group(4) == "$"
     comma = "," if match.group(7) else ""
     precision = int(match.group(8)) if match.group(8) is not None else None
     trim = bool(match.group(9))
     type_ = (match.group(10) or "").lower()
 
+    magnitude = abs(value)
     if type_ == "s":
-        formatted = format_si(value, precision if precision is not None else 6, trim)
+        formatted = format_si(
+            magnitude, precision if precision is not None else 6, trim
+        )
     elif type_ == "r":
         formatted = format_significant(
-            value, precision if precision is not None else 6, trim, sign, comma
+            magnitude, precision if precision is not None else 6, trim, comma
         )
+    elif type_ == "" and precision is None:
+        formatted = format_default(magnitude, comma)
     else:
         if type_ == "d":
-            formatted = format(int(quantize_half_up(value, 0)), f"{sign}{comma}d")
+            formatted = format(int(quantize_half_up(magnitude, 0)), f"{comma}d")
+        elif type_ in ("f", "%") and precision is not None:
+            scaled = magnitude * 100 if type_ == "%" else magnitude
+            suffix = "%" if type_ == "%" else ""
+            rounded = quantize_half_up(scaled, precision)
+            formatted = format(rounded, f"{comma}.{precision}f") + suffix
         else:
             decimals = f".{precision}" if precision is not None else ""
-            formatted = format(value, f"{sign}{comma}{decimals}{type_}")
+            formatted = format(magnitude, f"{comma}{decimals}{type_}")
             formatted = normalize_exponent(formatted)
         formatted = trim_trailing_zeros(formatted) if trim else formatted
 
     if currency_symbol:
-        formatted = prepend_currency_symbol(formatted)
+        formatted = f"${formatted}"
+    return apply_sign(formatted, value, sign_mode)
+
+
+def apply_sign(formatted: str, value: float, sign_mode: str) -> str:
+    """
+    Decorate a formatted magnitude with the d3 sign mode.
+
+    Negative values get a leading ``-`` (or wrapping parentheses for the ``(``
+    accounting mode); positive values get a ``+`` or a leading space only for the
+    ``+`` and space modes respectively.
+    """
+    if value < 0:
+        return f"({formatted})" if sign_mode == "(" else f"-{formatted}"
+    if sign_mode == "+":
+        return f"+{formatted}"
+    if sign_mode == " ":
+        return f" {formatted}"
     return formatted
 
 
+def format_default(value: float, comma: str) -> str:
+    """
+    Format ``value`` the way d3's default (no-type) specifier does.
+
+    Mirrors JavaScript's ``Number.toString``: the shortest decimal representation
+    with optional grouping and no trailing zeros, so whole-valued floats render
+    without a spurious ``.0`` (``4725.0`` -> ``4,725``) and small values stay in
+    fixed-point notation (``0.00005`` rather than ``5e-5``).
+    """
+    formatted = format(Decimal(repr(value)), f"{comma}f")
+    return trim_trailing_zeros(formatted)
+
+
 def format_smart_number(value: float, signed: bool = False) -> str:
+    """
+    Format ``value`` the way the frontend ``SMART_NUMBER`` formatter does.
+
+    The notation is chosen by magnitude: SI prefixes (with ``G`` shown as ``B``)
+    for ``abs(value) >= 1000``, two decimals down to ``1``, four decimals down to
+    ``0.001``, a micro (``µ``) suffix down to ``1e-6``, and SI prefixes again
+    below that. When ``signed`` is set, positive values are prefixed with ``+``.
+    """
     if value == 0:
         body = "0"
     else:
@@ -164,15 +234,23 @@ def format_smart_number(value: float, signed: bool = False) -> str:
 
 
 def format_si(value: float, precision: int, trim: bool, billions: bool = False) -> str:
+    """
+    Format ``value`` with an SI prefix to ``precision`` significant digits.
+
+    Rounds to ``precision`` significant figures first, then scales into the
+    nearest power-of-1000 bracket (clamped to the ``y``..``Y`` range) and appends
+    the matching SI symbol. Rounding before the divide matches d3 and keeps
+    ``4725`` at ``4.73k`` (the inexact ``4.725`` mantissa would round to
+    ``4.72k``), and lets a value that rounds up into the next bracket pick the
+    right symbol (``999.5k`` -> ``1M``). With ``billions`` set, the ``G`` (giga)
+    symbol is rendered as ``B``.
+    """
     if value == 0:
         return format_significant(0.0, precision, trim)
 
-    exponent = max(-8, min(8, math.floor(math.log10(abs(value))) // 3))
-    mantissa = value / (10 ** (exponent * 3))
-    # rounding can push the mantissa up to the next SI bracket (e.g. 999.5k)
-    if abs(round_to_significant(mantissa, precision)) >= 1000 and exponent < 8:
-        exponent += 1
-        mantissa = value / (10 ** (exponent * 3))
+    rounded = round_to_significant(value, precision)
+    exponent = max(-8, min(8, math.floor(math.log10(abs(rounded))) // 3))
+    mantissa = rounded / (10 ** (exponent * 3))
 
     symbol = SI_PREFIXES[exponent]
     if billions and symbol == "G":
@@ -182,7 +260,7 @@ def format_si(value: float, precision: int, trim: bool, billions: bool = False) 
 
 
 def format_significant(
-    value: float, precision: int, trim: bool, sign: str = "", comma: str = ""
+    value: float, precision: int, trim: bool, comma: str = ""
 ) -> str:
     """
     Format to `precision` significant digits in fixed-point notation.
@@ -192,11 +270,18 @@ def format_significant(
     """
     rounded = round_to_significant(value, precision)
     decimals = decimals_for_significant(rounded, precision)
-    formatted = format(rounded, f"{sign}{comma}.{decimals}f")
+    formatted = format(rounded, f"{comma}.{decimals}f")
     return trim_trailing_zeros(formatted) if trim else formatted
 
 
 def round_to_significant(value: float, precision: int) -> float:
+    """
+    Round ``value`` to ``precision`` significant digits.
+
+    The number of decimal places to keep is derived from the value's order of
+    magnitude (``precision - 1 - floor(log10(abs(value)))``) and the rounding is
+    half away from zero, matching d3-format.
+    """
     if value == 0:
         return 0.0
     return float(
@@ -205,10 +290,14 @@ def round_to_significant(value: float, precision: int) -> float:
 
 
 def quantize_half_up(value: float, decimals: int) -> Decimal:
-    """Round to `decimals` places, half away from zero, matching d3-format."""
-    return Decimal(str(value)).quantize(
-        Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP
-    )
+    """
+    Round to `decimals` places, half away from zero, matching d3-format.
+
+    Quantizes the binary float value (not its decimal string) so the result
+    matches d3, which rounds the IEEE-754 value: ``2.675`` is ``2.67`` because it
+    is really ``2.67499...``, while an exact ``0.125`` rounds up to ``0.13``.
+    """
+    return Decimal(value).quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP)
 
 
 def decimals_for_significant(value: float, precision: int) -> int:
@@ -219,12 +308,6 @@ def decimals_for_significant(value: float, precision: int) -> int:
 def normalize_exponent(formatted: str) -> str:
     """Drop leading zeros in a scientific exponent (1e+07 -> 1e+7), as d3 does."""
     return re.sub(r"([eE][+-])0*(\d)", r"\1\2", formatted)
-
-
-def prepend_currency_symbol(formatted: str) -> str:
-    if formatted[:1] in "+-":
-        return f"{formatted[0]}${formatted[1:]}"
-    return f"${formatted}"
 
 
 def apply_currency(formatted: str, currency: dict[str, Any]) -> str:
