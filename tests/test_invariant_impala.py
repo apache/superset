@@ -30,6 +30,8 @@ from superset.db_engine_specs.impala import ImpalaEngineSpec
     ("impala-host.internal:25000", "abcdef1234567890:fedcba0987654321"),
     # Valid input: standard case
     ("coordinator.example.com", "abcdef1234567890:fedcba0987654321"),
+    # IPv6 boundary case: bracketed IPv6 with port (port must be stripped safely)
+    ("[2001:db8::1]:25000", "abcdef1234567890:fedcba0987654321"),
 ])
 def test_cancel_query_uses_https_not_http(host: str, query_id: str) -> None:
     """Invariant: Cancel query requests must use HTTPS, not plain HTTP."""
@@ -62,7 +64,8 @@ def test_cancel_query_uses_https_not_http(host: str, query_id: str) -> None:
         # Assert full URL shape: scheme, host (no port suffix), port, path, query param.
         parsed = urlparse(constructed_url)
         assert parsed.scheme == "https", f"Expected https scheme, got: {constructed_url}"
-        assert parsed.hostname == host.split(":")[0], f"Unexpected hostname: {parsed.hostname}"
+        expected_hostname = urlparse(f"//{host}").hostname or host
+        assert parsed.hostname == expected_hostname, f"Unexpected hostname: {parsed.hostname}"
         assert parsed.port == 25000, f"Expected port 25000, got: {parsed.port}"
         assert parsed.path == "/cancel_query"
         assert parse_qs(parsed.query).get("query_id") == [query_id]

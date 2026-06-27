@@ -21,6 +21,7 @@ import logging
 import re
 import time
 from datetime import datetime
+from urllib.parse import urlparse
 from typing import Any, Optional, TYPE_CHECKING
 
 import requests
@@ -217,8 +218,15 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
         try:
             impala_host = query.database.url_object.host
-            # Strip any port suffix; the cancel endpoint port is always 25000.
-            impala_host = impala_host.split(":")[0] if impala_host else impala_host
+            # Strip any port suffix safely, supporting IPv6 bracket notation.
+            # For "host:port" and "[ipv6]:port" forms use urlparse so that
+            # IPv6 addresses are never truncated at ":".  Bare IPv6 (multiple
+            # colons, no brackets) is already returned by SQLAlchemy
+            # url_object.host without a port and needs no stripping.
+            if impala_host and (
+                impala_host.startswith("[") or impala_host.count(":") == 1
+            ):
+                impala_host = urlparse(f"//{impala_host}").hostname or impala_host
             # The cancel call issues an outbound HTTP request from the
             # Superset backend to whatever host the DB connection was
             # configured with; validate it before the call to keep this
