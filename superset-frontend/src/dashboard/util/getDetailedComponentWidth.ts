@@ -21,6 +21,7 @@ import { GRID_MIN_COLUMN_COUNT, GRID_COLUMN_COUNT } from './constants';
 import {
   ROW_TYPE,
   COLUMN_TYPE,
+  IFRAME_TYPE,
   MARKDOWN_TYPE,
   CHART_TYPE,
   DYNAMIC_TYPE,
@@ -107,6 +108,7 @@ export default function getDetailedComponentWidth({
     });
   } else if (
     component.type === DYNAMIC_TYPE ||
+    component.type === IFRAME_TYPE ||
     component.type === MARKDOWN_TYPE ||
     component.type === CHART_TYPE
   ) {

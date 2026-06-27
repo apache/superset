@@ -29,6 +29,7 @@ import NewHeader from '../gridComponents/new/NewHeader';
 import NewRow from '../gridComponents/new/NewRow';
 import NewTabs from '../gridComponents/new/NewTabs';
 import NewMarkdown from '../gridComponents/new/NewMarkdown';
+import NewIframe from '../gridComponents/new/NewIframe';
 import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
 
 const BUILDER_PANE_WIDTH = 374;
@@ -98,6 +99,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
                 <NewColumn />
                 <NewHeader />
                 <NewMarkdown />
+                <NewIframe />
                 <NewDivider />
                 {dashboardComponents
                   .getAll()
