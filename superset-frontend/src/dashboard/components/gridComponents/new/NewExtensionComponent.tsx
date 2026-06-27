@@ -41,13 +41,31 @@ export default function NewExtensionComponent({
       ]) ||
     Icons.AppstoreOutlined;
 
+  // Seed the layout-relevant behavior onto the instance meta so the (pure)
+  // dashboard util maps can honor it without coupling to the component registry,
+  // and so it round-trips in the saved layout even if the extension is later
+  // unavailable. Only defined fields are seeded to keep meta tidy.
+  const behaviorMeta: Record<string, unknown> = {
+    extensionComponentId: definition.id,
+  };
+  if (definition.resizable !== undefined)
+    behaviorMeta.resizable = definition.resizable;
+  if (definition.isUserContent !== undefined)
+    behaviorMeta.isUserContent = definition.isUserContent;
+  if (definition.minWidth !== undefined)
+    behaviorMeta.minWidth = definition.minWidth;
+  if (definition.validParents !== undefined)
+    behaviorMeta.validParents = definition.validParents;
+  if (definition.wrapInRow !== undefined)
+    behaviorMeta.wrapInRow = definition.wrapInRow;
+
   return (
     <DraggableNewComponent
       id={`${NEW_EXTENSION_ID}-${definition.id}`}
       type={EXTENSION_TYPE}
       label={definition.name}
       IconComponent={IconComponent}
-      meta={{ extensionComponentId: definition.id, ...definition.defaultMeta }}
+      meta={{ ...behaviorMeta, ...definition.defaultMeta }}
     />
   );
 }

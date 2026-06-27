@@ -24,10 +24,17 @@ import {
   DYNAMIC_TYPE,
 } from './componentTypes';
 
-export default function componentIsResizable(entity: { type: string }) {
+export default function componentIsResizable(entity: {
+  type: string;
+  meta?: { resizable?: boolean };
+}) {
+  // Extension-contributed components opt out of resizing via their definition,
+  // seeded onto meta at creation.
+  if (entity.type === EXTENSION_TYPE) {
+    return entity.meta?.resizable !== false;
+  }
   return (
-    [COLUMN_TYPE, CHART_TYPE, EXTENSION_TYPE, MARKDOWN_TYPE, DYNAMIC_TYPE].indexOf(
-      entity.type,
-    ) > -1
+    [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE, DYNAMIC_TYPE].indexOf(entity.type) >
+    -1
   );
 }
