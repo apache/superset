@@ -190,34 +190,42 @@ function start() {
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
   });
-  return pluginsReady.then(() =>
-    getMeWithRole().then(
-      ({ result }) => {
-        // fill in some missing bootstrap data
-        // (because at pageload, we don't have any auth yet)
-        // this allows the frontend's permissions checks to work.
-        bootstrapData.user = result;
-        store.dispatch({
-          type: USER_LOADED,
-          user: result,
-        });
-        if (!root) {
-          root = createRoot(appMountPoint);
-        }
-        root.render(<EmbeddedApp />);
-      },
-      err => {
-        // something is most likely wrong with the guest token; reset the guard
-        // so a rehandshake with a valid token can retry.
-        logging.error(err);
-        showFailureMessage(
-          t(
-            'Something went wrong with embedded authentication. Check the dev console for details.',
-          ),
-        );
-        started = false;
-      },
-    ),
+  return pluginsReady.then(
+    () =>
+      getMeWithRole().then(
+        ({ result }) => {
+          // fill in some missing bootstrap data
+          // (because at pageload, we don't have any auth yet)
+          // this allows the frontend's permissions checks to work.
+          bootstrapData.user = result;
+          store.dispatch({
+            type: USER_LOADED,
+            user: result,
+          });
+          if (!root) {
+            root = createRoot(appMountPoint);
+          }
+          root.render(<EmbeddedApp />);
+        },
+        err => {
+          // something is most likely wrong with the guest token; reset the guard
+          // so a rehandshake with a valid token can retry.
+          logging.error(err);
+          showFailureMessage(
+            t(
+              'Something went wrong with embedded authentication. Check the dev console for details.',
+            ),
+          );
+          started = false;
+        },
+      ),
+    err => {
+      // setupPlugins() or setupCodeOverrides() threw while preparing plugins;
+      // reset the guard so a retry can re-run start() instead of leaving the
+      // dashboard stuck in a failed state.
+      logging.error(err);
+      started = false;
+    },
   );
 }
 
