@@ -108,7 +108,7 @@ dependencies = [
     "simplejson>=4.1.1",
     "slack_sdk>=3.19.0, <4",
     "sqlalchemy>=1.4, <2",
-    "sqlalchemy-utils>=0.38.0, <0.43", # expanding lowerbound to work with pydoris
+    "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
     "sqlglot>=30.8.0, <31",
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
