@@ -65,6 +65,9 @@ def oauth2_config_no_uri() -> OAuth2ClientConfig:
 
 
 def _mock_database(mocker: MockerFixture, host: str) -> MagicMock:
+    """
+    Build a mock database whose URL resolves to the given workspace host.
+    """
     database = mocker.MagicMock()
     database.url_object.host = host
     database.id = 1
