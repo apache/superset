@@ -207,7 +207,7 @@ class AlertCommand(BaseCommand):
                     )
                 )
 
-            _, username = get_executor(
+            executor, username = get_executor(  # pylint: disable=unused-variable
                 executors=app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._report_schedule,
             )
