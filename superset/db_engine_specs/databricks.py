@@ -17,10 +17,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Callable, TYPE_CHECKING, TypedDict, Union
+from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from flask import g
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -38,7 +39,7 @@ from superset.db_engine_specs.base import (
 )
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import OAuth2Error
 from superset.utils import json
 from superset.utils.core import get_user_agent, QuerySource
 from superset.utils.network import is_hostname_valid, is_port_open
@@ -283,81 +284,111 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         "port": "port",
     }
 
-    # OAuth2 endpoints for different cloud providers
-    _oauth2_endpoints = {
-        "aws": {
-            "authorization_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/authorize",
-            "token_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/{}/v1/token",
-        },
-        "azure": {
-            "authorization_request_uri": "https://login.microsoftonline.com/{}/oauth2/v2.0/authorize",
-            "token_request_uri": "https://login.microsoftonline.com/{}/oauth2/v2.0/token",
-        },
-        "gcp": {
-            "authorization_request_uri": "https://accounts.gcp.databricks.com/oidc/accounts/{}/v1/authorize",
-            "token_request_uri": "https://accounts.gcp.databricks.com/oidc/accounts/{}/v1/token",
-        },
-    }
+    # The Databricks SQL driver has no dedicated authentication exception, so an
+    # expired or missing token surfaces as a generic driver error. These case-
+    # insensitive substrings flag the errors that should bootstrap a re-auth.
+    oauth2_auth_failure_signals = (
+        "401",
+        "unauthorized",
+        "unauthenticated",
+        "invalid access token",
+        "invalid token",
+        "expired token",
+        "token expired",
+    )
 
     @classmethod
-    def _detect_cloud_provider(cls, database: Database) -> str:
+    def _workspace_oauth2_endpoint(cls, database: Database, path: str) -> str:
         """
-        Detect the cloud provider based on the database configuration.
+        Build a Databricks OAuth2 (U2M) endpoint from the workspace host.
 
-        Returns:
-            str: The cloud provider ('aws', 'azure', or 'gcp')
+        Databricks fronts the user-to-machine OAuth2 flow on every workspace at
+        ``https://<workspace-host>/oidc/v1/{authorize,token}`` across AWS, Azure
+        and GCP, so the endpoints derive directly from the connection host and
+        need no account or tenant identifier.
         """
-        # Check if cloud provider is explicitly configured in extra
-        if isinstance(
-            (cloud_provider := cls.get_extra_params(database).get("cloud_provider")),
-            str,
-        ):
-            provider = cloud_provider.lower()
-            if provider in cls._oauth2_endpoints:
-                return provider
-
-        # Try to detect from hostname
-        hostname = database.url_object.host or ""
-        hostname = hostname.lower()
-
-        if "azure" in hostname or "azuredatabricks" in hostname:
-            return "azure"
-        elif "gcp" in hostname or "googleusercontent" in hostname:
-            return "gcp"
-        else:
-            # Default to AWS for compatibility
-            return "aws"
+        host = database.url_object.host
+        if not host:
+            raise OAuth2Error(
+                "Databricks OAuth2 endpoint could not be resolved: the database "
+                "connection has no host."
+            )
+        return f"https://{host}/oidc/v1/{path}"
 
     @classmethod
-    def _resolve_oauth2_endpoint(
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Identify driver errors that should trigger the OAuth2 dance.
+
+        Unlike Trino (``TrinoAuthError``) or GSheets (``UnauthenticatedError``),
+        the Databricks driver raises no dedicated auth exception, so in addition
+        to the base ``isinstance`` check we match the auth signals above on the
+        error message (mirrors ``GSheetsEngineSpec.needs_oauth2``).
+        """
+        if not (g and hasattr(g, "user")):
+            return False
+        if isinstance(ex, cls.oauth2_exception):
+            return True
+        message = str(ex).lower()
+        return any(signal in message for signal in cls.oauth2_auth_failure_signals)
+
+    @classmethod
+    def get_oauth2_authorization_uri(
         cls,
-        database: Database,
-        provider: str,
-        endpoint_key: str,
+        config: "OAuth2ClientConfig",
+        state: "OAuth2State",
+        code_verifier: str | None = None,
     ) -> str:
         """
-        Build a fully-resolved OAuth2 endpoint for the detected cloud provider.
+        Return the URI for the initial OAuth2 request.
 
-        The per-provider templates carry a single ``{}`` placeholder for the
-        Databricks account id (or Azure tenant id), read from the database's
-        ``extra`` (``account_id``, or ``tenant_id`` for Azure). Raising when it
-        is absent keeps the flow from issuing a request to an unresolved
-        ``.../{}/...`` endpoint.
+        A fully-resolved ``authorization_request_uri`` from
+        ``DATABASE_OAUTH2_CLIENTS`` is preserved; otherwise the endpoint is
+        derived from the workspace host (``https://<host>/oidc/v1/authorize``),
+        which is valid on AWS, Azure and GCP.
         """
-        template = cls._oauth2_endpoints[provider][endpoint_key]
-        if "{}" not in template:
-            return template
+        if not config.get("authorization_request_uri"):
+            from superset import db
+            from superset.models.core import Database
 
-        extra = cls.get_extra_params(database)
-        account_id = extra.get("account_id") or extra.get("tenant_id")
-        if not account_id:
+            database_id = state["database_id"]
+            if database := db.session.get(Database, database_id):
+                config = cast(
+                    "OAuth2ClientConfig",
+                    dict(config)
+                    | {
+                        "authorization_request_uri": cls._workspace_oauth2_endpoint(
+                            database, "authorize"
+                        )
+                    },
+                )
+
+        return super().get_oauth2_authorization_uri(config, state, code_verifier)
+
+    @classmethod
+    def get_oauth2_token(
+        cls,
+        config: "OAuth2ClientConfig",
+        code: str,
+        code_verifier: str | None = None,
+    ) -> "OAuth2TokenResponse":
+        """
+        Exchange the authorization code for refresh/access tokens.
+
+        Token exchange runs in a separate request with no database context, so
+        the workspace host is not available to derive the endpoint here. Require
+        a configured ``token_request_uri``
+        (``https://<workspace-host>/oidc/v1/token``) and fail fast rather than
+        POST to an unresolved endpoint.
+        """
+        if not config.get("token_request_uri"):
             raise OAuth2Error(
-                "Databricks OAuth2 endpoints could not be resolved: set "
-                "`account_id` (or `tenant_id` for Azure) in the database's "
-                "engine parameters, or provide a fully-resolved "
-                f"`{endpoint_key}` in DATABASE_OAUTH2_CLIENTS."
+                "Databricks OAuth2 token endpoint is not configured: set "
+                "`token_request_uri` to https://<workspace-host>/oidc/v1/token "
+                "in DATABASE_OAUTH2_CLIENTS."
             )
-        return template.format(account_id)
+
+        return super().get_oauth2_token(config, code, code_verifier)
 
     @classmethod
     def impersonate_user(
@@ -579,73 +610,15 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     supports_dynamic_catalog = True
     supports_cross_catalog_queries = True
 
-    # OAuth 2.0 support
+    # OAuth 2.0 support. The flow (endpoint resolution from the workspace host,
+    # `needs_oauth2` detection) is shared via `DatabricksDynamicBaseEngineSpec`.
     supports_oauth2 = True
-    oauth2_exception = OAuth2RedirectError
     oauth2_scope = "sql"
 
-    # OAuth2 endpoints are determined dynamically based on cloud provider
-    oauth2_authorization_request_uri = ""  # Set dynamically
-    oauth2_token_request_uri = ""  # Set dynamically
-
-    @classmethod
-    def get_oauth2_authorization_uri(
-        cls,
-        config: "OAuth2ClientConfig",
-        state: "OAuth2State",
-        code_verifier: str | None = None,
-    ) -> str:
-        """
-        Return URI for initial OAuth2 request with dynamic endpoint detection.
-
-        A fully-resolved `authorization_request_uri` from `DATABASE_OAUTH2_CLIENTS`
-        is preserved; only fall back to the auto-detected, account-resolved
-        endpoint when none is configured.
-        """
-        if not config.get("authorization_request_uri"):
-            from superset import db
-            from superset.models.core import Database
-
-            # Get the database to detect cloud provider
-            database_id = state["database_id"]
-            if database := db.session.get(Database, database_id):
-                provider = cls._detect_cloud_provider(database)
-                from typing import cast
-
-                config = cast(
-                    "OAuth2ClientConfig",
-                    dict(config)
-                    | {
-                        "authorization_request_uri": cls._resolve_oauth2_endpoint(
-                            database, provider, "authorization_request_uri"
-                        )
-                    },
-                )
-
-        return super().get_oauth2_authorization_uri(config, state, code_verifier)
-
-    @classmethod
-    def get_oauth2_token(
-        cls,
-        config: "OAuth2ClientConfig",
-        code: str,
-        code_verifier: str | None = None,
-    ) -> "OAuth2TokenResponse":
-        """
-        Exchange authorization code for refresh/access tokens.
-
-        The token request URI is resolved when the OAuth2 config is built (see
-        `get_oauth2_config`) and already targets the correct cloud provider and
-        account. There is no database context here to auto-detect it, so fail
-        fast rather than POST to an unresolved endpoint when it is missing.
-        """
-        if not config.get("token_request_uri"):
-            raise OAuth2Error(
-                "Databricks OAuth2 token endpoint is not configured: provide a "
-                "fully-resolved `token_request_uri` in DATABASE_OAUTH2_CLIENTS."
-            )
-
-        return super().get_oauth2_token(config, code, code_verifier)
+    # Authorization endpoint is derived from the workspace host at runtime; the
+    # token endpoint must be configured (no DB context at exchange time).
+    oauth2_authorization_request_uri = ""
+    oauth2_token_request_uri = ""
 
     @classmethod
     def build_sqlalchemy_uri(  # type: ignore
@@ -858,73 +831,15 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
 
     supports_dynamic_schema = supports_catalog = supports_dynamic_catalog = True
 
-    # OAuth 2.0 support
+    # OAuth 2.0 support. The flow (endpoint resolution from the workspace host,
+    # `needs_oauth2` detection) is shared via `DatabricksDynamicBaseEngineSpec`.
     supports_oauth2 = True
-    oauth2_exception = OAuth2RedirectError
     oauth2_scope = "sql"
 
-    # OAuth2 endpoints are determined dynamically based on cloud provider
-    oauth2_authorization_request_uri = ""  # Set dynamically
-    oauth2_token_request_uri = ""  # Set dynamically
-
-    @classmethod
-    def get_oauth2_authorization_uri(
-        cls,
-        config: "OAuth2ClientConfig",
-        state: "OAuth2State",
-        code_verifier: str | None = None,
-    ) -> str:
-        """
-        Return URI for initial OAuth2 request with dynamic endpoint detection.
-
-        A fully-resolved `authorization_request_uri` from `DATABASE_OAUTH2_CLIENTS`
-        is preserved; only fall back to the auto-detected, account-resolved
-        endpoint when none is configured.
-        """
-        if not config.get("authorization_request_uri"):
-            from superset import db
-            from superset.models.core import Database
-
-            # Get the database to detect cloud provider
-            database_id = state["database_id"]
-            if database := db.session.get(Database, database_id):
-                provider = cls._detect_cloud_provider(database)
-                from typing import cast
-
-                config = cast(
-                    "OAuth2ClientConfig",
-                    dict(config)
-                    | {
-                        "authorization_request_uri": cls._resolve_oauth2_endpoint(
-                            database, provider, "authorization_request_uri"
-                        )
-                    },
-                )
-
-        return super().get_oauth2_authorization_uri(config, state, code_verifier)
-
-    @classmethod
-    def get_oauth2_token(
-        cls,
-        config: "OAuth2ClientConfig",
-        code: str,
-        code_verifier: str | None = None,
-    ) -> "OAuth2TokenResponse":
-        """
-        Exchange authorization code for refresh/access tokens.
-
-        The token request URI is resolved when the OAuth2 config is built (see
-        `get_oauth2_config`) and already targets the correct cloud provider and
-        account. There is no database context here to auto-detect it, so fail
-        fast rather than POST to an unresolved endpoint when it is missing.
-        """
-        if not config.get("token_request_uri"):
-            raise OAuth2Error(
-                "Databricks OAuth2 token endpoint is not configured: provide a "
-                "fully-resolved `token_request_uri` in DATABASE_OAUTH2_CLIENTS."
-            )
-
-        return super().get_oauth2_token(config, code, code_verifier)
+    # Authorization endpoint is derived from the workspace host at runtime; the
+    # token endpoint must be configured (no DB context at exchange time).
+    oauth2_authorization_request_uri = ""
+    oauth2_token_request_uri = ""
 
     @classmethod
     def build_sqlalchemy_uri(  # type: ignore

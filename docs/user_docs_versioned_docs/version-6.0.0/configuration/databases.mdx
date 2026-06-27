@@ -536,25 +536,20 @@ Superset supports OAuth2 authentication for Databricks, allowing users to authen
 from datetime import timedelta
 
 # OAuth2 configuration for Databricks
-# OAuth2 endpoints are automatically detected based on your Databricks cloud provider
+# The authorization endpoint is derived from your Databricks workspace host; the
+# token endpoint must be set explicitly (see notes below).
 DATABASE_OAUTH2_CLIENTS = {
     "Databricks (legacy)": {
         "id": "your-databricks-client-id",
         "secret": "your-databricks-client-secret",
         "scope": "sql",
-        # The authorization endpoint is auto-detected from the hostname; the
-        # token endpoint must be set explicitly (no DB context at exchange):
-        # AWS: "authorization_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/{account_id}/v1/authorize",
-        # Azure: "authorization_request_uri": "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/authorize",
-        # GCP: "authorization_request_uri": "https://accounts.gcp.databricks.com/oidc/accounts/{account_id}/v1/authorize",
-        # "token_request_uri": "https://<provider-token-endpoint>",
+        "token_request_uri": "https://your-workspace-host/oidc/v1/token",
     },
     "Databricks": {
         "id": "your-databricks-client-id",
         "secret": "your-databricks-client-secret",
         "scope": "sql",
-        # Authorization endpoint auto-detected from hostname; set
-        # "token_request_uri" explicitly for the token exchange.
+        "token_request_uri": "https://your-workspace-host/oidc/v1/token",
     },
 }
 
@@ -572,40 +567,21 @@ Replace the following placeholders:
 
 **Multi-Cloud Provider Support**
 
-Superset automatically detects your Databricks cloud provider and uses the appropriate OAuth2 endpoints:
+Databricks fronts the user-to-machine (U2M) OAuth2 flow on every workspace at
+`https://<workspace-host>/oidc/v1/authorize` and
+`https://<workspace-host>/oidc/v1/token`, regardless of whether the workspace
+runs on AWS, Azure, or GCP. Superset derives the **authorization** endpoint
+directly from your connection's host, so no cloud provider or account/tenant
+identifier needs to be configured.
 
-- **AWS**: Detected from hostnames containing `cloud.databricks.com`
-- **Azure**: Detected from hostnames containing `azure` or `azuredatabricks`
-- **GCP**: Detected from hostnames containing `gcp` or `googleusercontent`
+The **token** endpoint cannot be auto-derived (token exchange has no database
+context to read the host), so you must supply `token_request_uri` in
+`DATABASE_OAUTH2_CLIENTS`, set to `https://<workspace-host>/oidc/v1/token` for
+your workspace.
 
-You can also explicitly specify the cloud provider, along with the account
-identifier used to build the OAuth2 endpoints, in your database configuration
-under **Advanced** → **Other** → **ENGINE PARAMETERS**:
-
-```json
-{
-  "cloud_provider": "azure",
-  "tenant_id": "your-azure-tenant-id"
-}
-```
-
-For AWS and GCP, supply `account_id` instead:
-
-```json
-{
-  "cloud_provider": "aws",
-  "account_id": "your-databricks-account-id"
-}
-```
-
-Valid cloud provider values are: `aws`, `azure`, `gcp`. The **authorization**
-endpoint is auto-detected: Superset substitutes this identifier into the
-provider's authorization template. The **token** endpoint is not auto-resolved
-(token exchange has no database context to detect the provider), so for the
-auto-detected flow you must still supply a fully-resolved `token_request_uri`
-in `DATABASE_OAUTH2_CLIENTS`. If you supply fully-resolved
-`authorization_request_uri` and `token_request_uri` values, those take
-precedence and no `account_id`/`tenant_id` is required.
+If you supply a fully-resolved `authorization_request_uri` (and/or
+`token_request_uri`), those values take precedence over the host-derived
+defaults.
 
 ###### Usage
 

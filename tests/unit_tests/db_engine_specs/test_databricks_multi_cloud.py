@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
+from typing import Any
 from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
@@ -30,65 +31,27 @@ from superset.superset_typing import OAuth2ClientConfig
 from superset.utils.oauth2 import decode_oauth2_state
 
 # Multi-Cloud Provider Tests
+#
+# Databricks fronts the user-to-machine OAuth2 flow on every workspace at
+# `https://<workspace-host>/oidc/v1/{authorize,token}`, regardless of cloud, so
+# the authorization endpoint derives from the connection host with no per-cloud
+# account/tenant identifier.
 
+SPECS = [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec]
 
-@pytest.fixture
-def mock_database_aws(mocker: MockerFixture) -> MagicMock:
-    """
-    Mock database with AWS hostname.
-    """
-    database = mocker.MagicMock()
-    database.url_object.host = "my-cluster.cloud.databricks.com"
-    database.extra = "{}"
-    database.id = 1
-    return database
-
-
-@pytest.fixture
-def mock_database_azure(mocker: MockerFixture) -> MagicMock:
-    """
-    Mock database with Azure hostname.
-    """
-    database = mocker.MagicMock()
-    database.url_object.host = "adb-123456789.12.azuredatabricks.net"
-    database.extra = '{"tenant_id": "azure-tenant-id"}'
-    database.id = 2
-    return database
-
-
-@pytest.fixture
-def mock_database_gcp(mocker: MockerFixture) -> MagicMock:
-    """
-    Mock database with GCP hostname.
-    """
-    database = mocker.MagicMock()
-    database.url_object.host = "123456789.gcp.databricks.com"
-    database.extra = '{"account_id": "12345"}'
-    database.id = 3
-    return database
-
-
-@pytest.fixture
-def oauth2_config() -> OAuth2ClientConfig:
-    """
-    Config for Databricks OAuth2 with a fully-resolved endpoint configured.
-    """
-    return {
-        "id": "databricks-client-id",
-        "secret": "databricks-client-secret",
-        "scope": "sql",
-        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
-        "authorization_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/12345/v1/authorize",
-        "token_request_uri": "https://accounts.cloud.databricks.com/oidc/accounts/12345/v1/token",
-        "request_content_type": "json",
-    }
+# Representative workspace hosts for each cloud provider.
+CLOUD_HOSTS = [
+    "my-cluster.cloud.databricks.com",  # AWS
+    "adb-123456789.12.azuredatabricks.net",  # Azure
+    "123456789.gcp.databricks.com",  # GCP
+]
 
 
 @pytest.fixture
 def oauth2_config_no_uri() -> OAuth2ClientConfig:
     """
     Config for Databricks OAuth2 without a pre-configured endpoint, so the
-    per-provider endpoint is auto-detected and account-resolved.
+    authorization endpoint is derived from the workspace host.
     """
     return {
         "id": "databricks-client-id",
@@ -101,100 +64,30 @@ def oauth2_config_no_uri() -> OAuth2ClientConfig:
     }
 
 
-def test_cloud_provider_detection_aws(mock_database_aws: MagicMock) -> None:
-    """
-    Test cloud provider detection for AWS.
-    """
-    provider = DatabricksNativeEngineSpec._detect_cloud_provider(mock_database_aws)
-    assert provider == "aws"
-
-
-def test_cloud_provider_detection_azure(mock_database_azure: MagicMock) -> None:
-    """
-    Test cloud provider detection for Azure.
-    """
-    provider = DatabricksNativeEngineSpec._detect_cloud_provider(mock_database_azure)
-    assert provider == "azure"
-
-
-def test_cloud_provider_detection_gcp(mock_database_gcp: MagicMock) -> None:
-    """
-    Test cloud provider detection for GCP.
-    """
-    provider = DatabricksNativeEngineSpec._detect_cloud_provider(mock_database_gcp)
-    assert provider == "gcp"
-
-
-def test_cloud_provider_detection_explicit_config(mocker: MockerFixture) -> None:
-    """
-    Test cloud provider detection with explicit configuration.
-    """
+def _mock_database(mocker: MockerFixture, host: str) -> MagicMock:
     database = mocker.MagicMock()
-    database.url_object.host = "generic-host.com"
-
-    # Mock get_extra_params to return explicit cloud provider
-    mocker.patch.object(
-        DatabricksNativeEngineSpec,
-        "get_extra_params",
-        return_value={"cloud_provider": "azure"},
-    )
-
-    provider = DatabricksNativeEngineSpec._detect_cloud_provider(database)
-    assert provider == "azure"
+    database.url_object.host = host
+    database.id = 1
+    return database
 
 
-def test_cloud_provider_detection_invalid_config_falls_back_to_hostname(
+@pytest.mark.parametrize("spec", SPECS)
+@pytest.mark.parametrize("host", CLOUD_HOSTS)
+def test_get_oauth2_authorization_uri_uses_workspace_host(
     mocker: MockerFixture,
+    spec: Any,
+    host: str,
+    oauth2_config_no_uri: OAuth2ClientConfig,
 ) -> None:
     """
-    An unrecognized explicit `cloud_provider` is ignored and detection falls
-    back to the hostname rather than raising or returning the bad value.
-    """
-    database = mocker.MagicMock()
-    database.url_object.host = "adb-123456789.12.azuredatabricks.net"
-
-    mocker.patch.object(
-        DatabricksNativeEngineSpec,
-        "get_extra_params",
-        return_value={"cloud_provider": "oracle"},
-    )
-
-    provider = DatabricksNativeEngineSpec._detect_cloud_provider(database)
-    assert provider == "azure"
-
-
-def test_cloud_provider_detection_non_string_falls_back_to_hostname(
-    mocker: MockerFixture,
-) -> None:
-    """
-    A non-string `cloud_provider` (e.g. a boolean from malformed JSON) is
-    ignored without raising and detection falls back to the hostname.
-    """
-    database = mocker.MagicMock()
-    database.url_object.host = "adb-123456789.12.azuredatabricks.net"
-
-    mocker.patch.object(
-        DatabricksNativeEngineSpec,
-        "get_extra_params",
-        return_value={"cloud_provider": True},
-    )
-
-    provider = DatabricksNativeEngineSpec._detect_cloud_provider(database)
-    assert provider == "azure"
-
-
-def test_get_oauth2_authorization_uri_aws(
-    mocker: MockerFixture,
-    oauth2_config: OAuth2ClientConfig,
-    mock_database_aws: MagicMock,
-) -> None:
-    """
-    Test OAuth2 authorization URI generation for AWS provider.
+    The authorization endpoint is the workspace host on AWS, Azure, and GCP.
     """
     from superset.db_engine_specs.base import OAuth2State
 
-    # Mock the database query
-    mocker.patch("superset.extensions.db.session.get", return_value=mock_database_aws)
+    mocker.patch(
+        "superset.extensions.db.session.get",
+        return_value=_mock_database(mocker, host),
+    )
 
     state: OAuth2State = {
         "database_id": 1,
@@ -203,11 +96,10 @@ def test_get_oauth2_authorization_uri_aws(
         "tab_id": "1234",
     }
 
-    url = DatabricksNativeEngineSpec.get_oauth2_authorization_uri(oauth2_config, state)
+    url = spec.get_oauth2_authorization_uri(oauth2_config_no_uri, state)
     parsed = urlparse(url)
-    assert parsed.netloc == "accounts.cloud.databricks.com"
-    assert "/oidc/accounts/" in parsed.path
-    assert "/v1/authorize" in parsed.path
+    assert parsed.netloc == host
+    assert parsed.path == "/oidc/v1/authorize"
 
     query = parse_qs(parsed.query)
     assert query["scope"][0] == "sql"
@@ -215,113 +107,18 @@ def test_get_oauth2_authorization_uri_aws(
     assert decode_oauth2_state(encoded_state) == state
 
 
-def test_get_oauth2_authorization_uri_azure(
+@pytest.mark.parametrize("spec", SPECS)
+@pytest.mark.parametrize("host", CLOUD_HOSTS)
+def test_workspace_oauth2_endpoint_builds_token_uri(
     mocker: MockerFixture,
-    oauth2_config_no_uri: OAuth2ClientConfig,
-    mock_database_azure: MagicMock,
+    spec: Any,
+    host: str,
 ) -> None:
     """
-    Test OAuth2 authorization URI generation for Azure provider.
+    The helper builds the matching token endpoint from the same workspace host.
     """
-    from superset.db_engine_specs.base import OAuth2State
-
-    # Mock the database query
-    mocker.patch("superset.extensions.db.session.get", return_value=mock_database_azure)
-
-    state: OAuth2State = {
-        "database_id": 2,
-        "user_id": 1,
-        "default_redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
-        "tab_id": "1234",
-    }
-
-    url = DatabricksNativeEngineSpec.get_oauth2_authorization_uri(
-        oauth2_config_no_uri, state
+    database = _mock_database(mocker, host)
+    assert (
+        spec._workspace_oauth2_endpoint(database, "token")
+        == f"https://{host}/oidc/v1/token"
     )
-    parsed = urlparse(url)
-    assert parsed.netloc == "login.microsoftonline.com"
-    assert "/oauth2/v2.0/authorize" in parsed.path
-
-    query = parse_qs(parsed.query)
-    assert query["scope"][0] == "sql"
-    encoded_state = query["state"][0].replace("%2E", ".")
-    assert decode_oauth2_state(encoded_state) == state
-
-
-def test_get_oauth2_authorization_uri_gcp(
-    mocker: MockerFixture,
-    oauth2_config_no_uri: OAuth2ClientConfig,
-    mock_database_gcp: MagicMock,
-) -> None:
-    """
-    Test OAuth2 authorization URI generation for GCP provider.
-    """
-    from superset.db_engine_specs.base import OAuth2State
-
-    # Mock the database query
-    mocker.patch("superset.extensions.db.session.get", return_value=mock_database_gcp)
-
-    state: OAuth2State = {
-        "database_id": 3,
-        "user_id": 1,
-        "default_redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
-        "tab_id": "1234",
-    }
-
-    url = DatabricksNativeEngineSpec.get_oauth2_authorization_uri(
-        oauth2_config_no_uri, state
-    )
-    parsed = urlparse(url)
-    assert parsed.netloc == "accounts.gcp.databricks.com"
-    assert "/oidc/accounts/" in parsed.path
-    assert "/v1/authorize" in parsed.path
-
-    query = parse_qs(parsed.query)
-    assert query["scope"][0] == "sql"
-    encoded_state = query["state"][0].replace("%2E", ".")
-    assert decode_oauth2_state(encoded_state) == state
-
-
-def test_python_connector_cloud_provider_detection_azure(
-    mock_database_azure: MagicMock,
-) -> None:
-    """
-    Test cloud provider detection for Python Connector with Azure.
-    """
-    provider = DatabricksPythonConnectorEngineSpec._detect_cloud_provider(
-        mock_database_azure
-    )
-    assert provider == "azure"
-
-
-def test_python_connector_oauth2_authorization_uri_azure(
-    mocker: MockerFixture,
-    oauth2_config_no_uri: OAuth2ClientConfig,
-    mock_database_azure: MagicMock,
-) -> None:
-    """
-    Test OAuth2 authorization URI generation for Python Connector with Azure provider.
-    """
-    from superset.db_engine_specs.base import OAuth2State
-
-    # Mock the database query
-    mocker.patch("superset.extensions.db.session.get", return_value=mock_database_azure)
-
-    state: OAuth2State = {
-        "database_id": 2,
-        "user_id": 1,
-        "default_redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
-        "tab_id": "1234",
-    }
-
-    url = DatabricksPythonConnectorEngineSpec.get_oauth2_authorization_uri(
-        oauth2_config_no_uri, state
-    )
-    parsed = urlparse(url)
-    assert parsed.netloc == "login.microsoftonline.com"
-    assert "/oauth2/v2.0/authorize" in parsed.path
-
-    query = parse_qs(parsed.query)
-    assert query["scope"][0] == "sql"
-    encoded_state = query["state"][0].replace("%2E", ".")
-    assert decode_oauth2_state(encoded_state) == state

@@ -311,19 +311,80 @@ def test_oauth2_attributes() -> None:
     """
     # Test DatabricksNativeEngineSpec
     assert DatabricksNativeEngineSpec.supports_oauth2 is True
-    assert DatabricksNativeEngineSpec.oauth2_exception is OAuth2RedirectError
     assert DatabricksNativeEngineSpec.oauth2_scope == "sql"
-    # OAuth2 endpoints are now dynamic and set at runtime
+    # The authorization endpoint is derived from the workspace host at runtime;
+    # the token endpoint must be configured explicitly.
     assert DatabricksNativeEngineSpec.oauth2_authorization_request_uri == ""
     assert DatabricksNativeEngineSpec.oauth2_token_request_uri == ""
 
     # Test DatabricksPythonConnectorEngineSpec
     assert DatabricksPythonConnectorEngineSpec.supports_oauth2 is True
-    assert DatabricksPythonConnectorEngineSpec.oauth2_exception is OAuth2RedirectError
     assert DatabricksPythonConnectorEngineSpec.oauth2_scope == "sql"
-    # OAuth2 endpoints are now dynamic and set at runtime
     assert DatabricksPythonConnectorEngineSpec.oauth2_authorization_request_uri == ""
     assert DatabricksPythonConnectorEngineSpec.oauth2_token_request_uri == ""
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Error during request to server: HTTP 401 Unauthorized",
+        "Invalid access token",
+        "The access token expired",
+        "UNAUTHENTICATED: token is no longer valid",
+    ],
+)
+def test_needs_oauth2_detects_auth_failure_from_message(
+    mocker: MockerFixture,
+    spec: Any,
+    message: str,
+) -> None:
+    """
+    The Databricks driver has no dedicated auth exception, so `needs_oauth2`
+    matches auth-failure signals in the error message to bootstrap a re-auth.
+    """
+    g = mocker.patch("superset.db_engine_specs.databricks.g")
+    g.user = mocker.MagicMock()
+
+    assert spec.needs_oauth2(Exception(message)) is True
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+def test_needs_oauth2_ignores_unrelated_errors(
+    mocker: MockerFixture,
+    spec: Any,
+) -> None:
+    """
+    A non-auth driver error must not trigger the OAuth2 dance.
+    """
+    g = mocker.patch("superset.db_engine_specs.databricks.g")
+    g.user = mocker.MagicMock()
+
+    assert spec.needs_oauth2(Exception("Table not found")) is False
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+def test_needs_oauth2_matches_oauth2_redirect_error(
+    mocker: MockerFixture,
+    spec: Any,
+) -> None:
+    """
+    The inherited `isinstance` check against `oauth2_exception` still holds.
+    """
+    g = mocker.patch("superset.db_engine_specs.databricks.g")
+    g.user = mocker.MagicMock()
+
+    ex = OAuth2RedirectError("https://example/authorize", "tab", "redirect")
+    assert spec.needs_oauth2(ex) is True
 
 
 def test_impersonate_user_with_token(mocker: MockerFixture) -> None:
@@ -699,48 +760,33 @@ def _unresolved_oauth2_config() -> OAuth2ClientConfig:
     [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
 )
 @pytest.mark.parametrize(
-    "extra, netloc, path",
+    "host",
     [
-        (
-            {"cloud_provider": "aws", "account_id": "acct-999"},
-            "accounts.cloud.databricks.com",
-            "/oidc/accounts/acct-999/v1/authorize",
-        ),
-        (
-            {"cloud_provider": "azure", "tenant_id": "tenant-abc"},
-            "login.microsoftonline.com",
-            "/tenant-abc/oauth2/v2.0/authorize",
-        ),
-        (
-            {"cloud_provider": "gcp", "account_id": "acct-gcp"},
-            "accounts.gcp.databricks.com",
-            "/oidc/accounts/acct-gcp/v1/authorize",
-        ),
+        "dbc-abc.cloud.databricks.com",
+        "adb-123456789.12.azuredatabricks.net",
+        "123456789.gcp.databricks.com",
     ],
 )
-def test_get_oauth2_authorization_uri_autodetects_and_resolves(
+def test_get_oauth2_authorization_uri_derives_from_workspace_host(
     mocker: MockerFixture,
     spec: Any,
-    extra: dict[str, Any],
-    netloc: str,
-    path: str,
+    host: str,
 ) -> None:
     """
-    With no configured `authorization_request_uri`, the endpoint is auto-detected
-    per cloud provider and the `account_id`/`tenant_id` placeholder is resolved
-    from the database `extra`.
+    With no configured `authorization_request_uri`, the endpoint is derived from
+    the workspace host (`https://<host>/oidc/v1/authorize`) on every cloud, with
+    no account/tenant identifier required.
     """
     database = mocker.MagicMock()
-    database.extra = json.dumps(extra)
-    database.url_object.host = "dbc-abc.cloud.databricks.com"
+    database.url_object.host = host
     mocker.patch("superset.db.session.get", return_value=database)
 
     url = spec.get_oauth2_authorization_uri(
         _unresolved_oauth2_config(), _oauth2_state()
     )
     parsed = urlparse(url)
-    assert parsed.netloc == netloc
-    assert parsed.path == path
+    assert parsed.netloc == host
+    assert parsed.path == "/oidc/v1/authorize"
 
 
 @pytest.mark.parametrize(
@@ -753,7 +799,7 @@ def test_get_oauth2_authorization_uri_preserves_configured(
 ) -> None:
     """
     A fully-resolved `authorization_request_uri` is never overwritten by the
-    auto-detected template, and no database lookup is needed.
+    host-derived endpoint, and no database lookup is needed.
     """
     session_get = mocker.patch("superset.db.session.get")
     config = _unresolved_oauth2_config()
@@ -770,17 +816,16 @@ def test_get_oauth2_authorization_uri_preserves_configured(
     "spec",
     [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
 )
-def test_get_oauth2_authorization_uri_fails_without_account_id(
+def test_get_oauth2_authorization_uri_fails_without_host(
     mocker: MockerFixture,
     spec: Any,
 ) -> None:
     """
-    When the endpoint must be auto-detected but no `account_id`/`tenant_id` is
-    available, fail fast instead of emitting an unresolved `.../{}/...` URL.
+    When the endpoint must be derived but the connection has no host, fail fast
+    instead of emitting an invalid `https:///oidc/v1/authorize` URL.
     """
     database = mocker.MagicMock()
-    database.extra = json.dumps({"cloud_provider": "aws"})
-    database.url_object.host = "dbc-abc.cloud.databricks.com"
+    database.url_object.host = None
     mocker.patch("superset.db.session.get", return_value=database)
 
     with pytest.raises(OAuth2Error):
