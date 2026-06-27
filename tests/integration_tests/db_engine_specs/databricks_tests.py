@@ -16,6 +16,8 @@
 # under the License.
 from unittest import mock
 
+from sqlalchemy import Boolean, Column, false, MetaData, Table
+
 from superset.db_engine_specs import get_engine_spec
 from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -59,3 +61,56 @@ class TestDatabricksDbEngineSpec(SupersetTestCase):
         extras = DatabricksNativeEngineSpec.get_extra_params(database)
         connect_args = extras["engine_params"]["connect_args"]
         assert connect_args["ssl"] == "1"
+
+    def test_handle_boolean_in_clause(self):
+        """
+        Boolean IN clauses should expand to equality checks against boolean
+        literals (Databricks rejects integer literals like 0/1 here), with
+        coerced values de-duplicated and no usable value yielding a constant
+        FALSE.
+        """
+
+        def compiled(expr):
+            return str(expr.compile(compile_kwargs={"literal_binds": True}))
+
+        metadata = MetaData()
+        test_table = Table(
+            "test_table",
+            metadata,
+            Column("is_test_user", Boolean),
+        )
+        sqla_col = test_table.c.is_test_user
+
+        # A single boolean compares against a literal, not an IN (...) list
+        result = DatabricksNativeEngineSpec.handle_boolean_in_clause(sqla_col, [False])
+        sql = compiled(result).lower()
+        assert "is_test_user = false" in sql
+        assert " in " not in sql
+
+        # Integers coerce to booleans; duplicates collapse to one term each
+        result = DatabricksNativeEngineSpec.handle_boolean_in_clause(
+            sqla_col, [0, 1, 1, False]
+        )
+        sql = compiled(result).lower()
+        assert sql.count("is_test_user") == 2  # only True and False survive
+        assert "true" in sql
+        assert "false" in sql
+
+        # String representations are parsed into booleans
+        result = DatabricksNativeEngineSpec.handle_boolean_in_clause(
+            sqla_col, ["false", "true"]
+        )
+        sql = compiled(result).lower()
+        assert "true" in sql
+        assert "false" in sql
+
+        # Only None / unrecognized values means nothing to match -> FALSE
+        assert str(
+            DatabricksNativeEngineSpec.handle_boolean_in_clause(sqla_col, [None])
+        ) == str(false())
+        assert str(
+            DatabricksNativeEngineSpec.handle_boolean_in_clause(sqla_col, ["maybe"])
+        ) == str(false())
+        assert str(
+            DatabricksNativeEngineSpec.handle_boolean_in_clause(sqla_col, [])
+        ) == str(false())

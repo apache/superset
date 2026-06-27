@@ -3622,14 +3622,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         raise QueryObjectValidationError(
                             _("Filter value list cannot be empty")
                         )
-                    if len(eq) > len(
-                        eq_without_none := [x for x in eq if x is not None]
-                    ):
+                    # Some engines (e.g. Databricks) require boolean literals
+                    # rather than integers in IN clauses, so they may expose a
+                    # handle_boolean_in_clause hook to build the predicate.
+                    boolean_in_handler = (
+                        getattr(db_engine_spec, "handle_boolean_in_clause", None)
+                        if target_generic_type == utils.GenericDataType.BOOLEAN
+                        else None
+                    )
+                    eq_without_none = [x for x in eq if x is not None]
+                    if len(eq) > len(eq_without_none):
                         is_null_cond = sqla_col.is_(None)
-                        if eq:
-                            cond = or_(is_null_cond, sqla_col.in_(eq_without_none))
+                        if eq_without_none:
+                            in_cond = (
+                                boolean_in_handler(sqla_col, eq_without_none)
+                                if callable(boolean_in_handler)
+                                else sqla_col.in_(eq_without_none)
+                            )
+                            cond = or_(is_null_cond, in_cond)
                         else:
                             cond = is_null_cond
+                    elif callable(boolean_in_handler):
+                        cond = boolean_in_handler(sqla_col, eq)
                     else:
                         cond = sqla_col.in_(eq)
                     if op == utils.FilterOperator.NOT_IN:
