@@ -81,6 +81,9 @@ def _mock_dashboard(
     dashboard.slices = []
     dashboard.owners = []
     dashboard.tags = []
+    # dashboard_serializer reads embedded[0].uuid when truthy (added in #41195);
+    # model it as an empty list so the serializer resolves embedded_uuid to None.
+    dashboard.embedded = []
     return dashboard
 
 
