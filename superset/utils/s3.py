@@ -28,7 +28,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import boto3
 from flask import current_app
 
 logger = logging.getLogger(__name__)
@@ -36,6 +35,11 @@ logger = logging.getLogger(__name__)
 
 def _get_s3_client() -> Any:
     """Build an S3 client using operator-provided client kwargs (if any)."""
+    # boto3 is imported lazily so that importing this module (which happens at
+    # app startup via the dashboard API) does not require boto3 to be installed.
+    # The dependency is only needed when an export actually runs.
+    import boto3  # pylint: disable=import-outside-toplevel
+
     client_kwargs: dict[str, Any] = current_app.config.get(
         "EXCEL_EXPORT_S3_CLIENT_KWARGS", {}
     )

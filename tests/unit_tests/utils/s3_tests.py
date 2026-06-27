@@ -21,7 +21,7 @@ from unittest.mock import MagicMock, patch
 from superset.utils import s3
 
 
-@patch("superset.utils.s3.boto3.client")
+@patch("boto3.client")
 @patch("superset.utils.s3.current_app")
 def test_upload_file_to_s3(mock_app: MagicMock, mock_client_fn: MagicMock) -> None:
     mock_app.config = {"EXCEL_EXPORT_S3_CLIENT_KWARGS": {}}
@@ -35,7 +35,7 @@ def test_upload_file_to_s3(mock_app: MagicMock, mock_client_fn: MagicMock) -> No
     )
 
 
-@patch("superset.utils.s3.boto3.client")
+@patch("boto3.client")
 @patch("superset.utils.s3.current_app")
 def test_client_kwargs_passthrough(
     mock_app: MagicMock, mock_client_fn: MagicMock
@@ -54,7 +54,7 @@ def test_client_kwargs_passthrough(
     )
 
 
-@patch("superset.utils.s3.boto3.client")
+@patch("boto3.client")
 @patch("superset.utils.s3.current_app")
 def test_generate_presigned_url(mock_app: MagicMock, mock_client_fn: MagicMock) -> None:
     mock_app.config = {"EXCEL_EXPORT_S3_CLIENT_KWARGS": {}}
