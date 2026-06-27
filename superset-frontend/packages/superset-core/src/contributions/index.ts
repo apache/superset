@@ -28,6 +28,7 @@
 
 import { Chat } from '../chat';
 import { Command } from '../commands';
+import { DashboardComponentDefinition } from '../dashboardComponents';
 import { View } from '../views';
 import { Menu } from '../menus';
 import { Editor } from '../editors';
@@ -90,4 +91,9 @@ export interface Contributions {
    * chat at a time.
    */
   chat?: Chat;
+  /**
+   * Dashboard layout components contributed by the extension. Each becomes a
+   * first-class, draggable element in the dashboard builder palette.
+   */
+  dashboardComponents?: DashboardComponentDefinition[];
 }
