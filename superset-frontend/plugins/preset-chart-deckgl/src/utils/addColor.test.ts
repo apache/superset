@@ -71,6 +71,26 @@ test('applies the fixed color scheme to every feature', () => {
   });
 });
 
+test('assigns breakpoint colors by metric and falls back to the default', () => {
+  const features = [{ metric: 5 }, { metric: 50 }, { metric: 500 }];
+  const result = addColorToFeatures(features, {
+    ...baseFormData,
+    color_scheme_type: COLOR_SCHEME_TYPES.color_breakpoints,
+    color_breakpoints: [
+      { minValue: 0, maxValue: 10, color: { r: 1, g: 2, b: 3, a: 1 } },
+      { minValue: 11, maxValue: 100, color: { r: 4, g: 5, b: 6, a: 0.5 } },
+    ],
+    default_breakpoint_color: { r: 7, g: 8, b: 9, a: 1 },
+  } as unknown as QueryFormData);
+
+  // Metric inside the first breakpoint range
+  expect(result[0].color).toEqual([1, 2, 3, 255]);
+  // Metric inside the second breakpoint range (alpha scaled to 0-255)
+  expect(result[1].color).toEqual([4, 5, 6, 127.5]);
+  // Metric outside every range falls back to the default breakpoint color
+  expect(result[2].color).toEqual([7, 8, 9, 255]);
+});
+
 test('returns features unchanged for an unrecognized color scheme', () => {
   const features = [{ cat_color: 'A' }];
   const result = addColorToFeatures(features, {

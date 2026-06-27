@@ -26,9 +26,16 @@ import DeckMulti from './Multi';
 
 // Capture the layers handed to the DeckGL container so we can inspect the
 // per-feature colors that were resolved for each sublayer.
-const mockLayerCapture: { layers: any[] } = { layers: [] };
+interface CapturedDataPoint {
+  color: number[];
+}
+interface CapturedLayer {
+  id?: string;
+  props: { data: CapturedDataPoint[] };
+}
+const mockLayerCapture: { layers: CapturedLayer[] } = { layers: [] };
 jest.mock('../DeckGLContainer', () => ({
-  DeckGLContainerStyledWrapper: ({ layers }: any) => {
+  DeckGLContainerStyledWrapper: ({ layers }: { layers?: CapturedLayer[] }) => {
     mockLayerCapture.layers = layers || [];
     return <div data-test="deckgl-container">DeckGL Container Mock</div>;
   },
@@ -127,16 +134,16 @@ test('applies categorical scatterplot colors to sublayers in the multi chart', a
     expect(mockLayerCapture.layers.length).toBeGreaterThan(0);
   });
 
-  const scatterLayer = mockLayerCapture.layers.find((layer: any) =>
+  const scatterLayer = mockLayerCapture.layers.find((layer: CapturedLayer) =>
     layer?.id?.startsWith('scatter-layer-'),
   );
   expect(scatterLayer).toBeDefined();
 
-  const { data } = scatterLayer.props;
+  const { data } = (scatterLayer as CapturedLayer).props;
   expect(data).toHaveLength(2);
 
   // Both points must carry a resolved RGBA color...
-  data.forEach((d: any) => {
+  data.forEach((d: CapturedDataPoint) => {
     expect(Array.isArray(d.color)).toBe(true);
     expect(d.color).toHaveLength(4);
   });
