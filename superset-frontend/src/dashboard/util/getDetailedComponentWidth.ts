@@ -106,9 +106,13 @@ export default function getDetailedComponentWidth({
         );
       }
     });
+  } else if (component.type === EXTENSION_TYPE) {
+    // Extension-contributed components may declare a minimum width (grid
+    // columns) in their definition, seeded onto meta at creation.
+    const minWidth = component.meta?.minWidth as number | undefined;
+    result.minimumWidth = minWidth ?? GRID_MIN_COLUMN_COUNT;
   } else if (
     component.type === DYNAMIC_TYPE ||
-    component.type === EXTENSION_TYPE ||
     component.type === MARKDOWN_TYPE ||
     component.type === CHART_TYPE
   ) {
