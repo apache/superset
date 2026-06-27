@@ -288,7 +288,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
     # expired or missing token surfaces as a generic driver error. These case-
     # insensitive substrings flag the errors that should bootstrap a re-auth.
     oauth2_auth_failure_signals = (
-        "401",
+        "http 401",
         "unauthorized",
         "unauthenticated",
         "invalid access token",

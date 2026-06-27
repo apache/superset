@@ -356,9 +356,18 @@ def test_needs_oauth2_detects_auth_failure_from_message(
     "spec",
     [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
 )
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Table not found",
+        # A bare 401 in an unrelated position must not look like an auth failure.
+        "Query failed at line 401: syntax error",
+    ],
+)
 def test_needs_oauth2_ignores_unrelated_errors(
     mocker: MockerFixture,
     spec: Any,
+    message: str,
 ) -> None:
     """
     A non-auth driver error must not trigger the OAuth2 dance.
@@ -366,7 +375,7 @@ def test_needs_oauth2_ignores_unrelated_errors(
     g = mocker.patch("superset.db_engine_specs.databricks.g")
     g.user = mocker.MagicMock()
 
-    assert spec.needs_oauth2(Exception("Table not found")) is False
+    assert spec.needs_oauth2(Exception(message)) is False
 
 
 @pytest.mark.parametrize(
