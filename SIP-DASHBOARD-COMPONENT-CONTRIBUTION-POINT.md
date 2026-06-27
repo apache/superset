@@ -245,12 +245,18 @@ contribution-point pattern from #41000/#41205):
 - [x] Tests: registry lifecycle (register/get/replace/dispose), host-wrapper
       resolution + fallback + `updateMeta`, iframe content + CSP UX
 
+- [x] Per-component behavior policy honored by the layout engine: `resizable`,
+      `minWidth`, `isUserContent`, `validParents`, and `wrapInRow` are seeded onto
+      instance `meta` at creation and read by `componentIsResizable`,
+      `getDetailedComponentWidth`, `isDashboardEmpty`, `isValidChild`, and
+      `shouldWrapChildInRow` (the pure layout utils stay registry-free; behavior
+      round-trips in the saved layout)
+- [x] Developer docs: `extension-points/dashboard-components.md` + a
+      `contribution-types.md` section + sidebar entry, with an example extension
+
 Remaining (follow-up, not POC-blocking):
 
-- [ ] Per-component nesting policy in the global behavior maps (currently
-      `EXTENSION_TYPE` uses uniform leaf behavior; `validParents`/`wrapInRow`/
-      `minWidth` from the definition are not yet consulted by the global maps)
 - [ ] Manifest `contributions.dashboardComponents` declarative validation in the
-      Python/TS manifest schema (runtime side-effect registration works today)
+      Python/TS manifest schema (runtime side-effect registration works today,
+      matching how `chat` does it)
 - [ ] Remove the legacy `DashboardComponentsRegistry`/`DYNAMIC_TYPE` (major)
-- [ ] Developer docs + example extension
