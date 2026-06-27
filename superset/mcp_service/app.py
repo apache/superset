@@ -129,6 +129,7 @@ Dashboard Management:
 - get_dashboard_info: Get detailed dashboard information by ID
 - get_dashboard_layout: Get parsed tabs and chart positions for a dashboard (companion to get_dashboard_info when its omitted_fields hint flags position_json)
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
+- update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; editorship-checked per-instance)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 
 Annotation Layers:
@@ -694,6 +695,7 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     get_dashboard_info,
     get_dashboard_layout,
     list_dashboards,
+    update_dashboard,
 )
 from superset.mcp_service.database.tool import (  # noqa: F401, E402
     get_database_info,

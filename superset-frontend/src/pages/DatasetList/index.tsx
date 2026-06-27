@@ -611,7 +611,39 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const handleBulkDatasetExport = useCallback(
     async (datasetsToExport: Dataset[]) => {
-      const ids = datasetsToExport.map(({ id }) => id);
+      // The combined Datasources list mixes regular datasets (SqlaTable) with
+      // semantic views, which live in their own table with an independent id
+      // sequence. The dataset export endpoint looks rows up by bare numeric
+      // id against ``tables`` only — passing a semantic-view id silently
+      // returns whatever SqlaTable happens to share that id. Until a proper
+      // semantic-view export path exists, partition the selection and only
+      // ship dataset ids over to ``/api/v1/dataset/export/``.
+      const datasetRows = datasetsToExport.filter(
+        ({ kind }) => kind !== 'semantic_view',
+      );
+      const semanticViewCount = datasetsToExport.length - datasetRows.length;
+
+      if (datasetRows.length === 0) {
+        addDangerToast(
+          t(
+            'Exporting semantic views is not supported yet. ' +
+              'Deselect the semantic-view rows and try again.',
+          ),
+        );
+        return;
+      }
+
+      if (semanticViewCount > 0) {
+        addDangerToast(
+          t(
+            'Exporting semantic views is not supported yet — ' +
+              '%s semantic-view row(s) were skipped.',
+            semanticViewCount,
+          ),
+        );
+      }
+
+      const ids = datasetRows.map(({ id }) => id);
       setPreparingExport(true);
       try {
         await handleResourceExport('dataset', ids, () => {

@@ -19,6 +19,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server
 
 
@@ -383,6 +385,7 @@ def test_create_default_mcp_auth_factory_jwt_with_keys():
         "MCP_AUTH_ENABLED": True,
         "MCP_API_KEY_ENABLED": False,
         "FAB_API_KEY_ENABLED": False,
+        "MCP_JWT_AUDIENCE": "superset-mcp",
         "MCP_JWT_SECRET": "shhh",
     }.get(key, default)
 
@@ -405,6 +408,7 @@ def test_create_default_mcp_auth_factory_jwt_enabled_without_keys_returns_none()
         "MCP_AUTH_ENABLED": True,
         "MCP_API_KEY_ENABLED": False,
         "FAB_API_KEY_ENABLED": False,
+        "MCP_JWT_AUDIENCE": "superset-mcp",
     }.get(key, default)
 
     with patch("superset.mcp_service.mcp_config.logger") as mock_logger:
@@ -423,6 +427,7 @@ def test_create_default_mcp_auth_factory_jwt_build_failure_returns_none():
         "MCP_AUTH_ENABLED": True,
         "MCP_API_KEY_ENABLED": False,
         "FAB_API_KEY_ENABLED": False,
+        "MCP_JWT_AUDIENCE": "superset-mcp",
         "MCP_JWT_SECRET": "shhh",
     }.get(key, default)
 
@@ -437,3 +442,45 @@ def test_create_default_mcp_auth_factory_jwt_build_failure_returns_none():
 
     assert result is None
     mock_logger.error.assert_called_once()
+
+
+def test_create_default_mcp_auth_factory_requires_audience_when_jwt_enabled():
+    """MCP_AUTH_ENABLED=True without MCP_JWT_AUDIENCE fails closed.
+
+    A missing audience must raise MCPAuthConfigError (rather than returning a
+    permissive verifier) so the bootstrap refuses to start the service instead
+    of accepting same-issuer tokens minted for other services.
+    """
+    from superset.mcp_service.mcp_config import (
+        create_default_mcp_auth_factory,
+        MCPAuthConfigError,
+    )
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+        "MCP_JWT_SECRET": "shhh",
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError):
+        create_default_mcp_auth_factory(mock_app)
+
+
+def test_create_default_mcp_auth_factory_audience_not_required_for_api_key_only():
+    """API-key-only auth (JWT disabled) does not require MCP_JWT_AUDIENCE."""
+    from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
+    from superset.mcp_service.mcp_config import create_default_mcp_auth_factory
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": False,
+        "MCP_API_KEY_ENABLED": True,
+        "FAB_API_KEY_PREFIXES": ["sst_"],
+        "MCP_REQUIRED_SCOPES": [],
+    }.get(key, default)
+
+    result = create_default_mcp_auth_factory(mock_app)
+
+    assert isinstance(result, CompositeTokenVerifier)

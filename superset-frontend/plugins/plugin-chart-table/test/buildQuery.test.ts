@@ -236,6 +236,83 @@ describe('plugin-chart-table', () => {
         expect(queries).toHaveLength(1);
         expect(queries[0].post_processing).toEqual([]);
       });
+
+      test('should reapply contribution op to totals query in row_limit mode', () => {
+        // Regression test for #37627: with a percent metric and Show Summary
+        // (show_totals) enabled, the totals query must rename percent-metric
+        // columns (`metric` -> `%metric`) so the footer can look them up.
+        // Otherwise the totals row renders 0.000%.
+        const formData = {
+          ...baseFormDataWithPercents,
+          show_totals: true,
+        };
+
+        const { queries } = buildQuery(formData);
+
+        // row_limit mode + show_totals -> [main, totals].
+        expect(queries).toHaveLength(2);
+
+        const contributionRule = {
+          operation: 'contribution',
+          options: {
+            columns: ['sum_sales'],
+            rename_columns: ['%sum_sales'],
+          },
+        };
+
+        expect(queries[1]).toMatchObject({
+          columns: [],
+          post_processing: [contributionRule],
+        });
+      });
+
+      test('should omit time-comparison op from totals post_processing', () => {
+        // The totals query must reuse ONLY the contribution rule; the
+        // time-comparison operator from the main query must not run against
+        // the single-row totals query.
+        const formData = {
+          ...baseFormDataWithPercents,
+          show_totals: true,
+          time_compare: ['1 year ago'],
+          comparison_type: 'values',
+        };
+
+        const { queries } = buildQuery(formData);
+
+        // row_limit mode + show_totals -> [main, totals].
+        expect(queries).toHaveLength(2);
+
+        const totalsQuery = queries[1];
+
+        // Exactly one op (contribution) — the time-comparison operator from the
+        // main query must not be carried over to the single-row totals query.
+        expect(totalsQuery.post_processing).toHaveLength(1);
+        expect(totalsQuery.post_processing?.[0]).toMatchObject({
+          operation: 'contribution',
+        });
+        // The reused rule matches the main query's contribution rule verbatim.
+        expect(totalsQuery.post_processing?.[0]).toEqual(
+          queries[0].post_processing?.find(
+            op => op?.operation === 'contribution',
+          ),
+        );
+      });
+
+      test('should leave totals post_processing empty without percent metrics', () => {
+        const formData = {
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: ['count'],
+          percent_metrics: [],
+          groupby: ['category'],
+          show_totals: true,
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(2);
+        expect(queries[1].post_processing).toEqual([]);
+      });
     });
 
     describe('Testing for server pagination with search filter', () => {

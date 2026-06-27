@@ -479,3 +479,70 @@ test('empty API result shows empty state', async () => {
 
   expect(await screen.findByText(/no alerts yet/i)).toBeInTheDocument();
 });
+
+test('trigger-now action calls execute API for owned alert', async () => {
+  fetchMock.post(
+    'glob:*/api/v1/report/*/execute',
+    {
+      execution_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+      message: 'Triggered',
+    },
+    { name: 'execute-report' },
+  );
+
+  renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+
+  // Alert 1 is owned by mockUser (userId: 1) so allowEdit is true,
+  // meaning the trigger-now button is rendered.
+  const triggerButtons = screen.getAllByTestId('trigger-now-action');
+  expect(triggerButtons.length).toBeGreaterThanOrEqual(1);
+
+  fireEvent.click(triggerButtons[0]);
+
+  // Execute endpoint is called exactly once for the owned alert.
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('execute-report')).toHaveLength(1);
+  });
+  expect(fetchMock.callHistory.calls('execute-report')[0].url).toMatch(
+    /\/report\/\d+\/execute/,
+  );
+});
+
+test('trigger-now action does not duplicate in-flight requests', async () => {
+  // Slow down the response so we can fire two rapid clicks before it resolves.
+  let resolveExecute: (value: unknown) => void;
+  const pendingExecute = new Promise(resolve => {
+    resolveExecute = resolve;
+  });
+  fetchMock.post(
+    'glob:*/api/v1/report/*/execute',
+    () =>
+      pendingExecute.then(() => ({
+        execution_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+        message: 'Triggered',
+      })),
+    { name: 'execute-report-slow' },
+  );
+
+  renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+
+  const triggerButtons = screen.getAllByTestId('trigger-now-action');
+  fireEvent.click(triggerButtons[0]);
+  fireEvent.click(triggerButtons[0]); // rapid double-click
+
+  // Wait for the first (and only) request to be issued.
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('execute-report-slow')).toHaveLength(1);
+  });
+
+  // Second click must not have triggered a second request.
+  expect(fetchMock.callHistory.calls('execute-report-slow')).toHaveLength(1);
+
+  // Resolve so the test cleanup is clean.
+  resolveExecute!(undefined);
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('execute-report-slow')).toHaveLength(1);
+  });
+});

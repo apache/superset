@@ -51,19 +51,30 @@ class UpdateRLSRuleCommand(BaseCommand):
         if not self._model:
             raise RLSRuleNotFoundError()
 
-        if self._subjects:
+        # Only resolve and overwrite the relationships that are actually present
+        # in the request body. A partial update (e.g. changing only the name)
+        # must leave the rule's existing tables/subjects bindings untouched
+        # rather than replacing them with empty lists.
+        if "subjects" in self._properties:
             subjects = populate_subject_list(
                 self._subjects,
                 default_to_user=False,
             )
             self._properties["subjects"] = subjects
 
-        tables = (
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.id.in_(self._tables))  # type: ignore[attr-defined]
-            .all()
-        )
-        if len(tables) != len(self._tables):
-            raise DatasourceNotFoundValidationError()
-        raise_for_datasource_access(tables)
-        self._properties["tables"] = tables
+        if "tables" in self._properties:
+            tables = (
+                db.session.query(SqlaTable)
+                .filter(SqlaTable.id.in_(self._tables))  # type: ignore[attr-defined]
+                .all()
+            )
+            if len(tables) != len(self._tables):
+                raise DatasourceNotFoundValidationError()
+            raise_for_datasource_access(tables)
+            self._properties["tables"] = tables
+        else:
+            # A partial update that omits ``tables`` still mutates the rule, so
+            # enforce datasource access against the rule's existing tables to
+            # avoid letting a caller edit a rule bound to datasources they
+            # cannot access.
+            raise_for_datasource_access(self._model.tables)

@@ -626,12 +626,17 @@ class ChartFilter(ColumnOperator):
         "editor",
         "created_by_fk",
         "changed_by_fk",
+        "dashboards",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='chart') for "
         "available filter columns. To filter by a person, first call find_users "
         "to resolve a name to a user ID, then filter by created_by_fk or "
-        "changed_by_fk with that integer ID.",
+        "changed_by_fk with that integer ID. To find charts attached to a "
+        "specific dashboard, filter by 'dashboards' with an integer "
+        "dashboard ID using opr='eq' (other supported operators on "
+        "'dashboards': ne, in, nin, is_null, is_not_null — like/sw/gt are "
+        "rejected because they don't apply to a collection relationship).",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
