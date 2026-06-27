@@ -16,18 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { navigateTo } from './navigationUtils';
+jest.mock('./pathUtils', () => ({
+  ensureAppRoot: (url: string) => url,
+}));
 
-test('navigateTo with assign: true ignores repeated calls to the same URL', () => {
-  const assignSpy = jest.fn();
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: { assign: assignSpy, href: '' },
-  });
+let navigateTo: typeof import('./navigationUtils').navigateTo;
+let assignMock: jest.Mock;
+let locationSpy: jest.SpyInstance;
 
+beforeEach(async () => {
+  jest.resetModules();
+  jest.useFakeTimers();
+  ({ navigateTo } = await import('./navigationUtils'));
+  assignMock = jest.fn();
+  locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue({ ...window.location, assign: assignMock } as Location);
+});
+
+afterEach(() => {
+  locationSpy.mockRestore();
+  jest.useRealTimers();
+});
+
+test('ignores a repeated assign to the same URL within the dedupe window', () => {
   navigateTo('/dashboard/new', { assign: true });
   navigateTo('/dashboard/new', { assign: true });
 
-  expect(assignSpy).toHaveBeenCalledTimes(1);
-  expect(assignSpy).toHaveBeenCalledWith('/dashboard/new');
+  expect(assignMock).toHaveBeenCalledTimes(1);
+  expect(assignMock).toHaveBeenCalledWith('/dashboard/new');
+});
+
+test('assigns different URLs in quick succession', () => {
+  navigateTo('/dashboard/new', { assign: true });
+  navigateTo('/chart/add', { assign: true });
+
+  expect(assignMock).toHaveBeenCalledTimes(2);
+});
+
+test('assigns the same URL again once the dedupe window has elapsed', () => {
+  navigateTo('/dashboard/new', { assign: true });
+  jest.advanceTimersByTime(1000);
+  navigateTo('/dashboard/new', { assign: true });
+
+  expect(assignMock).toHaveBeenCalledTimes(2);
 });

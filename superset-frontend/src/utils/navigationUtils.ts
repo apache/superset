@@ -19,7 +19,9 @@
 import { sanitizeUrl } from '@braintree/sanitize-url';
 import { ensureAppRoot } from './pathUtils';
 
-let pendingAssignUrl: string | null = null;
+const DUPLICATE_NAV_WINDOW_MS = 1000;
+let lastAssignUrl: string | null = null;
+let lastAssignAt = 0;
 
 export const navigateTo = (
   url: string,
@@ -33,8 +35,15 @@ export const navigateTo = (
     );
   } else if (options?.assign) {
     const sanitized = sanitizeUrl(ensureAppRoot(url));
-    if (pendingAssignUrl === sanitized) return;
-    pendingAssignUrl = sanitized;
+    const now = Date.now();
+    if (
+      lastAssignUrl === sanitized &&
+      now - lastAssignAt < DUPLICATE_NAV_WINDOW_MS
+    ) {
+      return;
+    }
+    lastAssignUrl = sanitized;
+    lastAssignAt = now;
     window.location.assign(sanitized);
   } else {
     window.location.href = sanitizeUrl(ensureAppRoot(url));
