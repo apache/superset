@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef } from 'react';
-import { useStore } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry } from '@superset-ui/core';
@@ -35,6 +35,7 @@ import { schemaEndpoints } from 'src/hooks/apiResources';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { useDatabaseFunctionsQuery } from 'src/hooks/apiResources/databaseFunctions';
 import useEffectEvent from 'src/hooks/useEffectEvent';
+import type { SqlLabRootState } from 'src/SqlLab/types';
 
 type Params = {
   queryEditorId: string | number;
@@ -54,12 +55,25 @@ const getHelperText = (value: string) =>
   };
 
 // Names that aren't simple identifiers (spaces, punctuation, leading digits)
-// must be double-quoted to be valid SQL, with embedded quotes doubled.
+// must be quoted to be valid SQL. Most engines use ANSI double quotes, but a
+// few use dialect-specific characters: MySQL/MariaDB use backticks and SQL
+// Server uses square brackets. Embedded quote characters are escaped by
+// doubling (for brackets, only the closing bracket needs escaping).
 const SIMPLE_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
-const quoteIdentifier = (identifier: string) =>
-  SIMPLE_IDENTIFIER_RE.test(identifier)
-    ? identifier
-    : `"${identifier.replace(/"/g, '""')}"`;
+const quoteIdentifier = (identifier: string, backend?: string) => {
+  if (SIMPLE_IDENTIFIER_RE.test(identifier)) {
+    return identifier;
+  }
+  switch (backend) {
+    case 'mysql':
+    case 'mariadb':
+      return `\`${identifier.replace(/`/g, '``')}\``;
+    case 'mssql':
+      return `[${identifier.replace(/]/g, ']]')}]`;
+    default:
+      return `"${identifier.replace(/"/g, '""')}"`;
+  }
+};
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -105,6 +119,11 @@ export function useKeywords(
 
   const store = useStore();
   const apiState = store.getState()[api.reducerPath];
+
+  // Active database engine, used to pick dialect-specific identifier quoting.
+  const backend = useSelector<SqlLabRootState, string | undefined>(
+    ({ sqlLab }) => sqlLab?.databases?.[dbId ?? '']?.backend,
+  );
 
   // Normalize catalog for comparison (null/undefined both mean "no catalog")
   const normalizedCatalog = catalog ?? null;
@@ -205,7 +224,7 @@ export function useKeywords(
     () =>
       allCachedTables.map(({ value, label, schema: tableSchema }) => ({
         name: label,
-        value: quoteIdentifier(value),
+        value: quoteIdentifier(value, backend),
         schema: tableSchema,
         score: TABLE_AUTOCOMPLETE_SCORE,
         meta: 'table',
@@ -214,7 +233,7 @@ export function useKeywords(
         },
         ...getHelperText(value),
       })),
-    [allCachedTables, insertMatch],
+    [allCachedTables, backend, insertMatch],
   );
 
   const columnKeywords = useMemo(

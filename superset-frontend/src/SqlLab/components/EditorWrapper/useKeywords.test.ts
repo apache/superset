@@ -210,6 +210,74 @@ test('quotes table identifiers that require quoting in the inserted value', asyn
   );
 });
 
+test.each([
+  ['mysql', '`COVID Vaccines`'],
+  ['mariadb', '`COVID Vaccines`'],
+  ['mssql', '[COVID Vaccines]'],
+  ['postgresql', '"COVID Vaccines"'],
+])(
+  'quotes table identifiers using dialect-specific characters for %s',
+  async (backend, expectedValue) => {
+    const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
+    fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
+
+    const storeWithBackend = createStore(
+      {
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          databases: { [expectDbId]: { backend } },
+        },
+      },
+      reducers,
+    );
+
+    act(() => {
+      storeWithBackend.dispatch(
+        tableApiUtil.upsertQueryData(
+          'tables',
+          { dbId: expectDbId, schema: expectSchema },
+          {
+            options: [
+              {
+                value: 'COVID Vaccines',
+                label: 'COVID Vaccines',
+                type: 'table',
+              },
+            ],
+            hasMore: false,
+          },
+        ),
+      );
+    });
+
+    const { result } = renderHook(
+      () =>
+        useKeywords({
+          queryEditorId: 'testqueryid',
+          dbId: expectDbId,
+          schema: expectSchema,
+        }),
+      {
+        wrapper: createWrapper({
+          useRedux: true,
+          store: storeWithBackend,
+        }),
+      },
+    );
+
+    await waitFor(() =>
+      expect(result.current).toContainEqual(
+        expect.objectContaining({
+          name: 'COVID Vaccines',
+          value: expectedValue,
+          meta: 'table',
+        }),
+      ),
+    );
+  },
+);
+
 test('skip fetching if autocomplete skipped', () => {
   const { result } = renderHook(
     () =>
