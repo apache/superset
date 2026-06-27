@@ -30,9 +30,17 @@ const USER_CONTENT_COMPONENT_TYPE: string[] = [
   DYNAMIC_TYPE,
 ];
 export default function isDashboardEmpty(layout: any): boolean {
-  // has at least one chart or markdown component
+  // has at least one chart, markdown, or contributed user-content component
   return !Object.values(layout).some(
-    ({ type }: { type?: string }) =>
-      type && USER_CONTENT_COMPONENT_TYPE.includes(type),
+    ({ type, meta }: { type?: string; meta?: { isUserContent?: boolean } }) => {
+      if (!type || !USER_CONTENT_COMPONENT_TYPE.includes(type)) {
+        return false;
+      }
+      // Extension components may opt out of counting as user content.
+      if (type === EXTENSION_TYPE && meta?.isUserContent === false) {
+        return false;
+      }
+      return true;
+    },
   );
 }

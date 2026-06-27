@@ -280,6 +280,10 @@ export type LayoutItemMeta = {
   url?: string;
   /** Background style value for columns and rows */
   background?: string;
+  /** Extension-contributed components opt out of resizing via this flag */
+  resizable?: boolean;
+  /** Extension-contributed components opt out of default row-wrapping via this flag */
+  wrapInRow?: boolean;
   /** Allow additional meta properties used by different component types */
   [key: string]: unknown;
 };
