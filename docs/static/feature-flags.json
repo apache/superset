@@ -22,6 +22,12 @@
         "description": "Enables experimental chart plugins"
       },
       {
+        "name": "CSP_RUNTIME_ALLOWLIST",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Allow users with the \"can write on CSPAllowlist\" permission (Admins by default) to punch holes in the Content Security Policy at runtime, e.g. to allow a new domain to be embedded in a dashboard iframe component. When disabled, the CSP is purely static/deploy-time and the allowlist is ignored."
+      },
+      {
         "name": "CSV_UPLOAD_PYARROW_ENGINE",
         "default": false,
         "lifecycle": "development",

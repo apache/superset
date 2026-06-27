@@ -16,18 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  COLUMN_TYPE,
-  CHART_TYPE,
-  IFRAME_TYPE,
-  MARKDOWN_TYPE,
-  DYNAMIC_TYPE,
-} from './componentTypes';
+import { t } from '@apache-superset/core/translation';
 
-export default function componentIsResizable(entity: { type: string }) {
+import { Icons } from '@superset-ui/core/components';
+import { IFRAME_TYPE } from '../../../util/componentTypes';
+import { NEW_IFRAME_ID } from '../../../util/constants';
+import DraggableNewComponent from './DraggableNewComponent';
+
+export default function DraggableNewIframe() {
   return (
-    [COLUMN_TYPE, CHART_TYPE, IFRAME_TYPE, MARKDOWN_TYPE, DYNAMIC_TYPE].indexOf(
-      entity.type,
-    ) > -1
+    <DraggableNewComponent
+      id={NEW_IFRAME_ID}
+      type={IFRAME_TYPE}
+      label={t('Embed / Iframe')}
+      IconComponent={Icons.LinkOutlined}
+    />
   );
 }
