@@ -2626,7 +2626,12 @@ def _normalize_df_datasource(column: object) -> MagicMock:
     datasource.enforce_numerical_metrics = False
     datasource.columns = [column]
     datasource.get_column = lambda name: {"ts": column}.get(name)
-    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
         setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
     return datasource
 
@@ -2750,7 +2755,12 @@ def test_normalize_df_without_get_column_is_a_noop() -> None:
         columns: list[object] = []
 
     datasource = _NoGetColumnDatasource()
-    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
         setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
 
     df = pd.DataFrame({"ts": [1577836800, 1609459200]})
@@ -2847,6 +2857,108 @@ def test_normalize_df_normalizes_legacy_time_column() -> None:
 
     assert is_datetime64_any_dtype(result[DTTM_ALIAS])
     assert result[DTTM_ALIAS][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_applies_offset_to_all_temporal_columns() -> None:
+    """Regression test for issue #23167: the dataset HOURS OFFSET must be applied
+    to every temporal column a query returns, not only the selected time column.
+    Two native-datetime temporal columns (neither declaring a
+    ``python_date_format``) must both be shifted by the dataset offset."""
+    import pandas as pd
+
+    from superset.models.helpers import ExploreMixin
+
+    created = MagicMock(
+        column_name="created",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    expired = MagicMock(
+        column_name="expired",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    columns = {"created": created, "expired": expired}
+
+    datasource = MagicMock()
+    datasource.offset = 4
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = list(columns.values())
+    datasource.get_column = lambda name: columns.get(name)
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    query_object = MagicMock()
+    query_object.columns = ["created", "expired"]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame(
+        {
+            "created": pd.to_datetime(["2020-01-01 00:00:00", "2020-01-02 00:00:00"]),
+            "expired": pd.to_datetime(["2020-06-01 12:00:00", "2020-06-02 12:00:00"]),
+        }
+    )
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert (
+        result["created"].tolist()
+        == pd.to_datetime(["2020-01-01 04:00:00", "2020-01-02 04:00:00"]).tolist()
+    )
+    assert (
+        result["expired"].tolist()
+        == pd.to_datetime(["2020-06-01 16:00:00", "2020-06-02 16:00:00"]).tolist()
+    )
+
+
+def test_normalize_df_offset_skips_unconfigured_integer_temporal_columns() -> None:
+    """The offset extension for native-datetime temporal columns must not touch a
+    temporal column whose values arrive as plain integers with no declared
+    format: such a column cannot be safely interpreted as a datetime, so it is
+    left untouched rather than reinterpreted as nanoseconds (see issue #23167)."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.models.helpers import ExploreMixin
+
+    int_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    datasource = MagicMock()
+    datasource.offset = 4
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = [int_col]
+    datasource.get_column = lambda name: {"ts": int_col}.get(name)
+    for method in (
+        "_python_date_format",
+        "_collect_dttm_labels",
+        "_offset_only_dttm_cols",
+        "normalize_df",
+    ):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200, 1640995200]
 
 
 def test_adhoc_column_to_sqla_returns_type_from_column_metadata(
