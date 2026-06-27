@@ -642,6 +642,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables experimental chart plugins
     # @lifecycle: development
     "CHART_PLUGINS_EXPERIMENTAL": False,
+    # Allow users with the "can write on CSPAllowlist" permission (Admins by
+    # default) to punch holes in the Content Security Policy at runtime, e.g. to
+    # allow a new domain to be embedded in a dashboard iframe component. When
+    # disabled, the CSP is purely static/deploy-time and the allowlist is ignored.
+    # @lifecycle: development
+    "CSP_RUNTIME_ALLOWLIST": False,
     # Experimental PyArrow engine for CSV parsing (may have issues with dates/nulls)
     # @lifecycle: development
     "CSV_UPLOAD_PYARROW_ENGINE": False,
@@ -2418,6 +2424,16 @@ CONTENT_SECURITY_POLICY_WARNING = True
 # the bootstrap payload so it takes effect at runtime, including in pre-built
 # images where the webpack build-time flag of the same name cannot be changed.
 SCARF_ANALYTICS = utils.cast_to_boolean(os.environ.get("SCARF_ANALYTICS", True))
+
+# When the CSP_RUNTIME_ALLOWLIST feature flag is enabled, runtime allowlist
+# entries are merged into the response CSP header. To avoid a metadata DB hit on
+# every response, the allowlist is cached in-process for this many seconds. A
+# write through the REST API invalidates the cache in the worker that handled the
+# write; other workers pick up the change once their cached copy expires. Lower
+# this for faster cross-worker propagation, raise it to reduce DB load.
+CSP_RUNTIME_ALLOWLIST_CACHE_TTL = int(
+    os.environ.get("CSP_RUNTIME_ALLOWLIST_CACHE_TTL", 30)
+)
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
