@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -6237,6 +6237,12 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Sarakkeen määritykset"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
+msgid "Column Formatting"
+msgstr "Sarakkeen muotoilu"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -10696,6 +10702,12 @@ msgstr "Syötä ensisijaiset tunnistetiedot"
 msgid "Enter a name for this sheet"
 msgstr "Syötä tälle taulukolle nimi"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
+msgid "Enter a new title for the tab"
+msgstr "Syötä välilehdelle uusi otsikko"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -11390,17 +11402,6 @@ msgstr "Vie alkuperäiseen .CSV-tiedostoon"
 msgid "Export to pivoted .CSV"
 msgstr "Vie pivot-muotoiseen .CSV-tiedostoon"
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -11592,11 +11593,6 @@ msgstr "Raportin luominen epäonnistui"
 #, fuzzy, python-format
 msgid "Failed to execute %(query)s"
 msgstr "%(query)s:n suorittaminen epäonnistui"
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -12340,9 +12336,6 @@ msgstr "Pakottaa valitun aikarakeisuuden X-akselin otsikoiden enimmäisväliksi"
 msgid "Forecast periods"
 msgstr "Ennustejaksot"
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -12422,6 +12415,12 @@ msgstr ""
 #, fuzzy
 msgid "Formatted CSV attached in email"
 msgstr "Muotoiltu CSV liitetty sähköpostiin"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
+msgid "Formatted date"
+msgstr "Muotoiltu päivämäärä"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -17236,12 +17235,6 @@ msgstr "Avaa tietolähde-välilehti"
 msgid "Open SQL Lab in a new tab"
 msgstr "Avaa SQL Lab uuteen välilehteen"
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -18313,13 +18306,6 @@ msgstr "Määritä tietojoukon tunnus ``%(name)s``-mittarille Jinja-makrossa."
 #, fuzzy
 msgid "Please use 3 different metric labels"
 msgstr "Käytä 3 eri mittaritunnistetta"
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -22208,9 +22194,6 @@ msgstr ""
 "Näytä Y-akseli pikaviivakaaviossa. Näyttää manuaalisesti asetetut min"
 "/maks-arvot, jos asetettu, muutoin tietojen min/maks-arvot."
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -22282,9 +22265,6 @@ msgstr "Näytä tyhjät sarakkeet"
 #, fuzzy
 msgid "Show entries per page"
 msgstr "Näytä merkintöjä sivulla"
-
-msgid "Show full range for time shift"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -24178,15 +24158,7 @@ msgstr ""
 "Lähdesolmujen luokka, jota käytetään värien määrittämiseen. Jos solmu "
 "liittyy useampaan kuin yhteen luokkaan, käytetään vain ensimmäistä."
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -27579,10 +27551,6 @@ msgstr "Kyseistä juhlapäivää ei löydy: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Koontinäytön lataaminen epäonnistui"
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 #, fuzzy
@@ -29794,9 +29762,6 @@ msgstr "Y-akseli"
 msgid "Y-axis bounds"
 msgstr "Y-akselin rajat"
 
-msgid "Y-axis range slider"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -30253,12 +30218,6 @@ msgstr "Sinun täytyy valita nimi uudelle kojelaudalle"
 #, fuzzy
 msgid "You must run the query successfully first"
 msgstr "Sinun täytyy ensin suorittaa kysely onnistuneesti"
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
-msgstr ""
 
 msgid "You need to"
 msgstr ""

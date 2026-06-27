@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -3625,6 +3625,9 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Configuració de Columna"
 
+msgid "Column Formatting"
+msgstr "Format de Columna"
+
 msgid "Column Settings"
 msgstr "Configuració de Columna"
 
@@ -6132,6 +6135,9 @@ msgstr "Introdueix Credencials Primàries"
 msgid "Enter a name for this sheet"
 msgstr "Introdueix un nom per aquest full"
 
+msgid "Enter a new title for the tab"
+msgstr "Introdueix un nou títol per a la pestanya"
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Si omplir els objectes"
@@ -6528,17 +6534,6 @@ msgstr "Exportar a .CSV original"
 msgid "Export to pivoted .CSV"
 msgstr "Exportar a .CSV pivotat"
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 msgid "Expose database in SQL Lab"
 msgstr "Exposar base de dades al SQL Lab"
 
@@ -6648,11 +6643,6 @@ msgstr "Ha fallat en crear informe"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Ha fallat en executar %(query)s"
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
-msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -7070,9 +7060,6 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Períodes de pronòstic"
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 msgid "Foreign key"
 msgstr "Clau forana"
 
@@ -7123,6 +7110,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV formatat adjunt al correu electrònic"
+
+msgid "Formatted date"
+msgstr "Data formatada"
 
 msgid "Formatted value"
 msgstr "Valor formatat"
@@ -9771,12 +9761,6 @@ msgstr "Obrir pestanya de Font de Dades"
 msgid "Open SQL Lab in a new tab"
 msgstr "Executar consulta en una nova pestanya"
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr "Obrir al SQL Lab"
 
@@ -10390,13 +10374,6 @@ msgstr ""
 
 msgid "Please use 3 different metric labels"
 msgstr "Si us plau usa 3 etiquetes de mètrica diferents"
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
-msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Dibuixa la distància (com rutes de vol) entre origen i destinació."
@@ -12552,9 +12529,6 @@ msgstr ""
 "Mostrar eix Y a la línia de tendència. Mostrarà el min/max establert "
 "manualment si està establert o els valors min/max de les dades altrament."
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 msgid "Show all columns"
 msgstr "Mostrar totes les columnes"
 
@@ -12593,9 +12567,6 @@ msgstr "Mostrar columnes buides"
 
 msgid "Show entries per page"
 msgstr "Mostrar entrades per pàgina"
-
-msgid "Show full range for time shift"
-msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13689,15 +13660,7 @@ msgstr ""
 "La categoria de nodes font usada per assignar colors. Si un node està "
 "associat amb més d'una categoria, només la primera s'usarà."
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15811,10 +15774,6 @@ msgstr "No es pot trobar aquesta festivitat: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "No es pot carregar dashboard"
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -17075,9 +17034,6 @@ msgstr "Eix Y"
 msgid "Y-axis bounds"
 msgstr "Límits de l'eix Y"
 
-msgid "Y-axis range slider"
-msgstr ""
-
 msgid "Y-scale interval"
 msgstr "Interval d'Escala Y"
 
@@ -17364,12 +17320,6 @@ msgstr "Has de triar un nom per al nou dashboard"
 
 msgid "You must run the query successfully first"
 msgstr "Primer has d'executar la consulta amb èxit"
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
-msgstr ""
 
 msgid "You need to"
 msgstr ""

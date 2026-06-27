@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -204,16 +204,16 @@ msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" est maintenant le thème par défaut du système"
 
 #, python-format
-msgid "% calculation"
-msgstr ""
+msgid "%% calculation"
+msgstr "%% calcul"
 
 #, python-format
-msgid "% of parent"
-msgstr ""
+msgid "%% of parent"
+msgstr "%% du parent"
 
 #, python-format
-msgid "% of total"
-msgstr ""
+msgid "%% of total"
+msgstr "%% du total"
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -3616,6 +3616,9 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Configuration des colonnes"
 
+msgid "Column Formatting"
+msgstr "Formatage de colonne"
+
 msgid "Column Settings"
 msgstr "Paramètres de colonne"
 
@@ -6148,6 +6151,9 @@ msgstr "Saisir les informations de connexion"
 msgid "Enter a name for this sheet"
 msgstr "Saisir un nom pour cette feuille"
 
+msgid "Enter a new title for the tab"
+msgstr "Saisir un nouveau titre pour l'onglet"
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Remplissage ou non des objets"
@@ -6552,17 +6558,6 @@ msgstr "Exporter vers .CSV original"
 msgid "Export to pivoted .CSV"
 msgstr "Exporter vers .CSV pivoté"
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 msgid "Expose database in SQL Lab"
 msgstr "Exposer la base de données dans SQL Lab"
 
@@ -6676,11 +6671,6 @@ msgstr "Échec de la création du rapport"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Échec de l’exécution de %(query)s"
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
-msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -7122,9 +7112,6 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Périodes de prévision"
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 msgid "Foreign key"
 msgstr "Clé étrangère"
 
@@ -7177,6 +7164,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV formatté attaché dans le courriel"
+
+msgid "Formatted date"
+msgstr "Date formatée"
 
 msgid "Formatted value"
 msgstr "Valeur formatée"
@@ -9923,12 +9913,6 @@ msgstr "Ouvrir l'onglet Source de données"
 msgid "Open SQL Lab in a new tab"
 msgstr "Exécuter la requête dans une nouvelle fenêtre"
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr "Ouvrir dans SQL Lab"
 
@@ -10562,13 +10546,6 @@ msgstr ""
 
 msgid "Please use 3 different metric labels"
 msgstr "Utilisez 3 libellés de mesure différents"
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
-msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr ""
@@ -12816,9 +12793,6 @@ msgstr ""
 "min/max définies manuellement s’afficheront si elles sont définies ou "
 "autrement min/max dans les données."
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 msgid "Show all columns"
 msgstr "Afficher toutes les colonnes"
 
@@ -12858,9 +12832,6 @@ msgstr "Afficher les colonnes vides"
 
 msgid "Show entries per page"
 msgstr "Afficher le nombre d'lééments par page"
-
-msgid "Show full range for time shift"
-msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13973,15 +13944,7 @@ msgstr ""
 "La catégorie de nœuds sources utilisée pour attribuer des couleurs. Si un"
 " nœud est associé à plus d’une catégorie, seul le premier sera utilisé."
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -16218,10 +16181,6 @@ msgstr "Impossible de trouver un tel congé : [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Ajouté à 1 tableau de bord"
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -17577,9 +17536,6 @@ msgstr "Axe des ordonnées"
 msgid "Y-axis bounds"
 msgstr "Limites de l’axe des ordonnées"
 
-msgid "Y-axis range slider"
-msgstr ""
-
 msgid "Y-scale interval"
 msgstr "Intervalle d'échelle Y"
 
@@ -17881,12 +17837,6 @@ msgstr "Vous devez entrer un nom pour le nouveau tableau de Bord"
 
 msgid "You must run the query successfully first"
 msgstr "Vous devez d'abord exécuter la requête avec succès"
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
-msgstr ""
 
 msgid "You need to"
 msgstr ""
@@ -18555,16 +18505,16 @@ msgid ""
 msgstr ""
 "est liée à %s graphiques qui apparaissent sur %s tableaux de bord et les "
 "utilisateurs ont %s onglets SQL Lab ouverts qui utilisent cette base de "
-"données. Êtes-vous sûr de vouloir continuer ? La suppression de la base "
-"de données brisera ces objets."
+"données. Êtes-vous sûr de vouloir continuer ? La suppression de la base de"
+" données brisera ces objets."
 
 #, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards. Are you sure you "
 "want to continue? Deleting the dataset will break those objects."
 msgstr ""
-"est lié à %s graphiques qui apparaissent sur %s tableaux de bord. Êtes-"
-"vous sûr de vouloir continuer ? La suppression de l'ensemble de données "
+"est lié à %s graphiques qui apparaissent sur %s tableaux de bord. Êtes-vous"
+" sûr de vouloir continuer ? La suppression de l'ensemble de données "
 "brisera ces objets."
 
 msgid "is not"

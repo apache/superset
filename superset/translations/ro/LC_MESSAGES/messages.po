@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -3552,6 +3552,9 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Configurare Coloană"
 
+msgid "Column Formatting"
+msgstr "Formatare Coloană"
+
 msgid "Column Settings"
 msgstr "Setări Coloană"
 
@@ -5997,6 +6000,9 @@ msgstr "Introduceți Credențiale Primare"
 msgid "Enter a name for this sheet"
 msgstr "Introduceți un nume pentru această foaie"
 
+msgid "Enter a new title for the tab"
+msgstr "Introduceți un titlu nou pentru filă"
+
 msgid "Enter a part of the object name"
 msgstr ""
 
@@ -6368,17 +6374,6 @@ msgstr "Exportă în .CSV original"
 msgid "Export to pivoted .CSV"
 msgstr "Exportă în .CSV pivotat"
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 msgid "Expose database in SQL Lab"
 msgstr "Expune baza de date în SQL Lab"
 
@@ -6483,11 +6478,6 @@ msgstr "Eșuat la crearea raportului"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Eșuat la executarea %(query)s"
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
-msgstr ""
 
 msgid "Failed to fetch API keys"
 msgstr ""
@@ -6893,9 +6883,6 @@ msgstr "Forțează Time Grain-ul selectat ca interval maxim pentru Etichetele Ax
 msgid "Forecast periods"
 msgstr "Perioade prognoză"
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 msgid "Foreign key"
 msgstr "Cheie străină"
 
@@ -6939,6 +6926,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV formatat atașat în email"
+
+msgid "Formatted date"
+msgstr "Dată formatată"
 
 msgid "Formatted value"
 msgstr "Valoare formatată"
@@ -9490,12 +9480,6 @@ msgstr "Deschide fila Sursă de Date"
 msgid "Open SQL Lab in a new tab"
 msgstr "Deschide SQL Lab într-o filă nouă"
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr "Deschide în SQL Lab"
 
@@ -10094,13 +10078,6 @@ msgstr ""
 
 msgid "Please use 3 different metric labels"
 msgstr "Vă rugăm să folosiți 3 etichete de indicator diferite"
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
-msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Trasează distanța (ca traseele de zbor) între origine și destinație."
@@ -12167,9 +12144,6 @@ msgstr ""
 "Afișează axa Y pe graficul sparkline. Va afișa min/max setat manual dacă "
 "este setat sau valorile min/max din date în caz contrar."
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 msgid "Show all columns"
 msgstr "Afișează toate coloanele"
 
@@ -12205,9 +12179,6 @@ msgstr "Afișează coloane goale"
 
 msgid "Show entries per page"
 msgstr "Afișează intrări pe pagină"
-
-msgid "Show full range for time shift"
-msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13257,15 +13228,7 @@ msgstr ""
 "Categoria nodurilor sursă folosite pentru atribuirea culorilor. Dacă un "
 "nod este asociat cu mai mult de o categorie, doar prima va fi folosită."
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15332,10 +15295,6 @@ msgstr "Nu se poate găsi un astfel de sărbătoare: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr ""
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -16614,9 +16573,6 @@ msgstr "axă Y"
 msgid "Y-axis bounds"
 msgstr "limite axă Y"
 
-msgid "Y-axis range slider"
-msgstr ""
-
 msgid "Y-scale interval"
 msgstr "interval scală Y"
 
@@ -16895,12 +16851,6 @@ msgstr "Trebuie să alegeți un nume pentru panoul de control"
 
 msgid "You must run the query successfully first"
 msgstr "Trebuie să executați mai întâi interogarea cu succes"
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
-msgstr ""
 
 msgid "You need to"
 msgstr ""

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen \n"
 "Language: zh\n"
@@ -3546,6 +3546,10 @@ msgid "Column Configuration"
 msgstr "列配置"
 
 #, fuzzy
+msgid "Column Formatting"
+msgstr "列格式"
+
+#, fuzzy
 msgid "Column Settings"
 msgstr "多边形设置"
 
@@ -6050,6 +6054,9 @@ msgstr "上传主凭据"
 msgid "Enter a name for this sheet"
 msgstr "输入此工作表的名称"
 
+msgid "Enter a new title for the tab"
+msgstr "输入选项卡的新标题"
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "是否填充对象"
@@ -6467,17 +6474,6 @@ msgstr "导出原始CSV"
 msgid "Export to pivoted .CSV"
 msgstr "导出为透视表形式的CSV"
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 msgid "Expose database in SQL Lab"
 msgstr "在SQL工具箱中展示数据库"
 
@@ -6586,11 +6582,6 @@ msgstr "创建报告发生错误"
 
 #, python-format
 msgid "Failed to execute %(query)s"
-msgstr ""
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
 msgstr ""
 
 #, fuzzy
@@ -7011,9 +7002,6 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "预测期"
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 msgid "Foreign key"
 msgstr "外键"
 
@@ -7059,6 +7047,10 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "邮件中附上格式化好的CSV"
+
+#, fuzzy
+msgid "Formatted date"
+msgstr "格式日期"
 
 #, fuzzy
 msgid "Formatted value"
@@ -9785,12 +9777,6 @@ msgstr "打开数据源tab"
 msgid "Open SQL Lab in a new tab"
 msgstr "在新选项卡中运行查询"
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr "在 SQL 工具箱中打开"
 
@@ -10383,13 +10369,6 @@ msgstr ""
 
 msgid "Please use 3 different metric labels"
 msgstr "请在左右轴上选择不同的指标"
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
-msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr ""
@@ -12593,9 +12572,6 @@ msgid ""
 "set or min/max values in the data otherwise."
 msgstr "在迷你图上显示Y轴。如果设置了手动设置的最小/最大值，则显示之，否则显示数据中的最小/最大值。"
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 msgid "Show all columns"
 msgstr "显示所有列"
 
@@ -12639,9 +12615,6 @@ msgstr "显示空列"
 #, fuzzy
 msgid "Show entries per page"
 msgstr "显示指标"
-
-msgid "Show full range for time shift"
-msgstr ""
 
 #, fuzzy
 msgid ""
@@ -13719,15 +13692,7 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr "用于分配颜色的源节点类别。如果一个节点与多个类别关联，则只使用第一个类别"
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15655,10 +15620,6 @@ msgstr "找不到这样的假期：[%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "添加到看板"
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -16891,9 +16852,6 @@ msgstr "Y 轴"
 msgid "Y-axis bounds"
 msgstr "Y 轴界限"
 
-msgid "Y-axis range slider"
-msgstr ""
-
 msgid "Y-scale interval"
 msgstr "Y 轴比例尺间隔"
 
@@ -17150,12 +17108,6 @@ msgstr "您必须为新的看板选择一个名称"
 
 msgid "You must run the query successfully first"
 msgstr "必须先成功运行查询"
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
-msgstr ""
 
 msgid "You need to"
 msgstr ""

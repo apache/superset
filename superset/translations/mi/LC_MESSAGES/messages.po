@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -3565,6 +3565,9 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Whirihora Tīwae"
 
+msgid "Column Formatting"
+msgstr "Hōputu Tīwae"
+
 msgid "Column Settings"
 msgstr "Tautuhinga Tīwae"
 
@@ -6059,6 +6062,9 @@ msgstr "Tāuru Taipitopito Matua"
 msgid "Enter a name for this sheet"
 msgstr "Tāuru ingoa mō tēnei hīti"
 
+msgid "Enter a new title for the tab"
+msgstr "Tāuru taitara hou mō te ripa"
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Mēnā ka whakakī i ngā ahanoa"
@@ -6451,17 +6457,6 @@ msgstr "Kaweatu ki .CSV taketake"
 msgid "Export to pivoted .CSV"
 msgstr "Kaweatu ki .CSV hurihuri"
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 msgid "Expose database in SQL Lab"
 msgstr "Whakaaturia te pātengi raraunga i SQL Lab"
 
@@ -6571,11 +6566,6 @@ msgstr "I rahua te hanga i te pūrongo"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "I rahua te whakatutuki i %(query)s"
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
-msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -6995,9 +6985,6 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Wā matapae"
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 msgid "Foreign key"
 msgstr "Kī tāwāhi"
 
@@ -7048,6 +7035,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "CSV kua hōputuhia kua tāpiritia ki te īmēra"
+
+msgid "Formatted date"
+msgstr "Rā kua hōputuhia"
 
 msgid "Formatted value"
 msgstr "Uara kua hōputuhia"
@@ -9689,12 +9679,6 @@ msgstr "Huaki ripa Puna Raraunga"
 msgid "Open SQL Lab in a new tab"
 msgstr "Whakahaere pātai i tētahi ripa hou"
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr "Huaki i SQL Lab"
 
@@ -10298,13 +10282,6 @@ msgstr "Tēnā tohua te ID Rārangi Raraunga mō te ine ``%(name)s`` i te macro 
 
 msgid "Please use 3 different metric labels"
 msgstr "Tēnā whakamahia ngā tapanga ine rerekē e 3"
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
-msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr ""
@@ -12463,9 +12440,6 @@ msgstr ""
 "tautuhia ā-ringa mēnā kua tautuhia, i ngā uara iti/rahi i ngā raraunga "
 "rānei."
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 msgid "Show all columns"
 msgstr "Whakaatu tīwae katoa"
 
@@ -12504,9 +12478,6 @@ msgstr "Whakaatu tīwae kau"
 
 msgid "Show entries per page"
 msgstr "Whakaatu urunga ia whārangi"
-
-msgid "Show full range for time shift"
-msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13596,15 +13567,7 @@ msgstr ""
 "hāngai ana tētahi pona ki te nui atu i te kotahi kāwai, ko te tuatahi "
 "anake ka whakamahia."
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15692,10 +15655,6 @@ msgstr "Kāore e taea te kimi i tētahi hararei pēnei: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Kāore e taea te uta i te papatohu"
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -16992,9 +16951,6 @@ msgstr "Tukutuku-y"
 msgid "Y-axis bounds"
 msgstr "Rohe tukutuku-y"
 
-msgid "Y-axis range slider"
-msgstr ""
-
 msgid "Y-scale interval"
 msgstr "Wā tauine-Y"
 
@@ -17285,12 +17241,6 @@ msgstr "Me kōwhiri koe i tētahi ingoa mō te papatohu hou"
 
 msgid "You must run the query successfully first"
 msgstr "Me whakahaere angitu koe i te pātai i te tuatahi"
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
-msgstr ""
 
 msgid "You need to"
 msgstr ""

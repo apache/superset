@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -3485,6 +3485,10 @@ msgid "Column Configuration"
 msgstr ""
 
 #, fuzzy
+msgid "Column Formatting"
+msgstr "주석"
+
+#, fuzzy
 msgid "Column Settings"
 msgstr "Query 공유"
 
@@ -5955,6 +5959,9 @@ msgstr "엑셀 업로드"
 msgid "Enter a name for this sheet"
 msgstr ""
 
+msgid "Enter a new title for the tab"
+msgstr ""
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "차트 유형"
@@ -6364,17 +6371,6 @@ msgstr ""
 msgid "Export to pivoted .CSV"
 msgstr ""
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 msgid "Expose database in SQL Lab"
 msgstr ""
 
@@ -6477,11 +6473,6 @@ msgstr ""
 
 #, python-format
 msgid "Failed to execute %(query)s"
-msgstr ""
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
 msgstr ""
 
 #, fuzzy
@@ -6892,9 +6883,6 @@ msgstr ""
 msgid "Forecast periods"
 msgstr ""
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 msgid "Foreign key"
 msgstr ""
 
@@ -6938,6 +6926,10 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr ""
+
+#, fuzzy
+msgid "Formatted date"
+msgstr "데이터베이스 선택"
 
 #, fuzzy
 msgid "Formatted value"
@@ -9602,12 +9594,6 @@ msgstr "데이터소스 명"
 msgid "Open SQL Lab in a new tab"
 msgstr "새로운 탭에서 Query실행"
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr "SQL Lab"
 
@@ -10188,13 +10174,6 @@ msgid ""
 msgstr ""
 
 msgid "Please use 3 different metric labels"
-msgstr ""
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
 msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
@@ -12379,9 +12358,6 @@ msgid ""
 "set or min/max values in the data otherwise."
 msgstr ""
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 #, fuzzy
 msgid "Show all columns"
 msgstr "컬럼 보기"
@@ -12427,9 +12403,6 @@ msgstr "컬럼 수정"
 #, fuzzy
 msgid "Show entries per page"
 msgstr "메트릭 보기"
-
-msgid "Show full range for time shift"
-msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13500,15 +13473,7 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr ""
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15383,10 +15348,6 @@ msgstr ""
 msgid "Unable to generate download payload"
 msgstr "대시보드 추가"
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -16569,9 +16530,6 @@ msgstr ""
 msgid "Y-axis bounds"
 msgstr ""
 
-msgid "Y-axis range slider"
-msgstr ""
-
 #, fuzzy
 msgid "Y-scale interval"
 msgstr "새로고침 간격"
@@ -16810,12 +16768,6 @@ msgid "You must pick a name for the new dashboard"
 msgstr ""
 
 msgid "You must run the query successfully first"
-msgstr ""
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
 msgstr ""
 
 msgid "You need to"

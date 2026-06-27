@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -3630,6 +3630,9 @@ msgstr ""
 msgid "Column Configuration"
 msgstr "Kolom Configuratie"
 
+msgid "Column Formatting"
+msgstr "Kolom Opmaak"
+
 #, fuzzy
 msgid "Column Settings"
 msgstr "Polygoon Instellingen"
@@ -6179,6 +6182,9 @@ msgstr "Voer primaire aanmeldgegevens in"
 msgid "Enter a name for this sheet"
 msgstr "Voer een naam in voor dit blad"
 
+msgid "Enter a new title for the tab"
+msgstr "Voer een nieuwe titel in voor het tabblad"
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Of de objecten moeten worden gevuld"
@@ -6590,17 +6596,6 @@ msgstr "Exporteren naar origineel .CSV bestand"
 msgid "Export to pivoted .CSV"
 msgstr "Exporteren naar pivoted .CSV"
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 msgid "Expose database in SQL Lab"
 msgstr "Database weergeven in SQL Lab"
 
@@ -6713,11 +6708,6 @@ msgstr "Aanmaken rapport mislukt"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Uitvoeren van %(query)s is mislukt"
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
-msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -7145,9 +7135,6 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Voorspel periodes"
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 msgid "Foreign key"
 msgstr "Foreign key"
 
@@ -7195,6 +7182,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Opgemaakte CSV gekoppeld aan e-mail"
+
+msgid "Formatted date"
+msgstr "Opgemaakte datum"
 
 msgid "Formatted value"
 msgstr "Opgemaakte waarde"
@@ -9876,12 +9866,6 @@ msgstr "Open Gegevensbron Tabblad"
 msgid "Open SQL Lab in a new tab"
 msgstr "Query uitvoeren in een nieuw tabblad"
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr "Openen in SQL Lab"
 
@@ -10497,13 +10481,6 @@ msgstr ""
 
 msgid "Please use 3 different metric labels"
 msgstr "Gelieve 3 verschillende metrische labels te gebruiken"
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
-msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Teken de afstand (zoals vluchtpaden) tussen oorsprong en bestemming."
@@ -12689,9 +12666,6 @@ msgstr ""
 "Laat de Y-as zien op de sparkline. Dit zal de handmatige instelling "
 "min/max waardes weergeven anders of min/max waarden in de gegevens."
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 msgid "Show all columns"
 msgstr "Toon alle kolommen"
 
@@ -12732,9 +12706,6 @@ msgstr "Toon lege kolommen"
 #, fuzzy
 msgid "Show entries per page"
 msgstr "Toon metriek"
-
-msgid "Show full range for time shift"
-msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13821,15 +13792,7 @@ msgstr ""
 "Als een knooppunt is gekoppeld met meer dan één categorie, zal alleen de "
 "eerste worden gebruikt."
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15944,10 +15907,6 @@ msgstr "Niet in staat om zo’n holiday te vinden: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Toegevoegd aan het dashboard"
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -17269,9 +17228,6 @@ msgstr "Y-as"
 msgid "Y-axis bounds"
 msgstr "Y-as grenzen"
 
-msgid "Y-axis range slider"
-msgstr ""
-
 msgid "Y-scale interval"
 msgstr "YSchaal Interval"
 
@@ -17553,12 +17509,6 @@ msgstr "U moet een naam kiezen voor het nieuwe dashboard"
 
 msgid "You must run the query successfully first"
 msgstr "U moet de query eerst succesvol uitvoeren"
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
-msgstr ""
 
 msgid "You need to"
 msgstr ""

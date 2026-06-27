@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2024-10-05 23:46+0200\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -3621,6 +3621,9 @@ msgstr "Stolpec \"%(column)s\" ni numeričen ali ne obstaja v rezultatu poizvedb
 msgid "Column Configuration"
 msgstr "Konfiguracija stolpca"
 
+msgid "Column Formatting"
+msgstr "Oblikovanje stolpca"
+
 #, fuzzy
 msgid "Column Settings"
 msgstr "Nastavitve poligonov"
@@ -6151,6 +6154,9 @@ msgstr "Vnesite primarne vpisne podatke"
 msgid "Enter a name for this sheet"
 msgstr "Vnesite ime te preglednice"
 
+msgid "Enter a new title for the tab"
+msgstr "Vnesite novo naslov zavihka"
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Če želite zapolniti objekte"
@@ -6551,17 +6557,6 @@ msgstr "Izvozi v izvorni .CSV"
 msgid "Export to pivoted .CSV"
 msgstr "Izvozi v vrtilni .CSV"
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 msgid "Expose database in SQL Lab"
 msgstr "Prikaži podatkovno bazo v SQL laboratoriju"
 
@@ -6673,11 +6668,6 @@ msgstr "Ustvarjanje poročila nesupešno"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Neuspešno izvajanje %(query)s"
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
-msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -7095,9 +7085,6 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "Periode napovedi"
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 msgid "Foreign key"
 msgstr "Tuji ključ"
 
@@ -7148,6 +7135,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Oblikovan CSV pripet e-pošti"
+
+msgid "Formatted date"
+msgstr "Oblikovan datum"
 
 msgid "Formatted value"
 msgstr "Oblikovana vrednost"
@@ -9800,12 +9790,6 @@ msgstr "Odpri zavihek s podatkovnim virom"
 msgid "Open SQL Lab in a new tab"
 msgstr "Zaženi poizvedbo v novem zavihku"
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr "Odpri v SQL laboratoriju"
 
@@ -10420,13 +10404,6 @@ msgstr "Podajte ID podatkovnega seta za mero ``%(name)s`` v Jinja kodi."
 
 msgid "Please use 3 different metric labels"
 msgstr "Uporabite 3 različne nazive mer"
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
-msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Izriši razdalje (kot letalske koridorje) med izhodiščem in ciljem."
@@ -12574,9 +12551,6 @@ msgstr ""
 "Prikaz Y-osi na hitrem grafikonu. Če je nastavljena vrednost min/max, "
 "pokaže to, drugače pa glede na podatke."
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 msgid "Show all columns"
 msgstr "Prikaži vse stolpce"
 
@@ -12616,9 +12590,6 @@ msgstr "Prikaži prazne stolpce"
 #, fuzzy
 msgid "Show entries per page"
 msgstr "Prikaži %s vnosov"
-
-msgid "Show full range for time shift"
-msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13701,15 +13672,7 @@ msgstr ""
 "Kategorija izvornih vozlišč, na podlagi katere je določena barva. Če je "
 "vozlišče povezano z več kot eno kategorijo, bo uporabljena samo prva."
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15780,10 +15743,6 @@ msgstr "Ni mogoče najti takšnega praznika: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Nadzorne plošče ni mogoče naložiti"
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -17062,9 +17021,6 @@ msgstr "Y-os"
 msgid "Y-axis bounds"
 msgstr "Meje Y-osi"
 
-msgid "Y-axis range slider"
-msgstr ""
-
 msgid "Y-scale interval"
 msgstr "Interval Y-osi"
 
@@ -17339,12 +17295,6 @@ msgstr "Izbrati morate ime nove nadzorne plošče"
 
 msgid "You must run the query successfully first"
 msgstr "Najprej morate uspešno izvesti poizvedbo"
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
-msgstr ""
 
 msgid "You need to"
 msgstr ""

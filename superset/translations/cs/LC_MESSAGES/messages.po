@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -3602,6 +3602,9 @@ msgstr "Sloupec „%(column)s“ není číselný nebo neexistuje ve výsledcíc
 msgid "Column Configuration"
 msgstr "Konfigurace sloupce"
 
+msgid "Column Formatting"
+msgstr "Formátování sloupce"
+
 msgid "Column Settings"
 msgstr "Nastavení sloupce"
 
@@ -6126,6 +6129,9 @@ msgstr "Zadejte primární pověření"
 msgid "Enter a name for this sheet"
 msgstr "Zadejte název pro tento list"
 
+msgid "Enter a new title for the tab"
+msgstr "Zadejte nový název pro kartu"
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Zadejte část názvu objektu"
@@ -6518,17 +6524,6 @@ msgstr "Exportovat do původního .CSV"
 msgid "Export to pivoted .CSV"
 msgstr "Exportovat do kontingenčního .CSV"
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 msgid "Expose database in SQL Lab"
 msgstr "Zpřístupnit databázi v SQL Labu"
 
@@ -6638,11 +6633,6 @@ msgstr "Nepodařilo se vytvořit report"
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Nepodařilo se provést %(query)s"
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
-msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -7060,9 +7050,6 @@ msgstr "Vynutí vybranou časovou úroveň jako maximální interval pro jmenovk
 msgid "Forecast periods"
 msgstr "Období předpovědi"
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 msgid "Foreign key"
 msgstr "Cizí klíč"
 
@@ -7113,6 +7100,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Formátované CSV přiloženo v e-mailu"
+
+msgid "Formatted date"
+msgstr "Formátované datum"
 
 msgid "Formatted value"
 msgstr "Formátovaná hodnota"
@@ -9747,12 +9737,6 @@ msgstr "Otevřít kartu Zdroje dat"
 msgid "Open SQL Lab in a new tab"
 msgstr "Otevřít SQL Lab v novém okně"
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr "Otevřít v SQL Labu"
 
@@ -10362,13 +10346,6 @@ msgstr "Zadejte prosím ID sady dat pro metriku ``%(name)s`` v makru Jinja."
 
 msgid "Please use 3 different metric labels"
 msgstr "Použijte prosím 3 různé popisky metrik"
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
-msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr "Vykreslete vzdálenost (jako letové dráhy) mezi počátkem a cílem."
@@ -12520,9 +12497,6 @@ msgstr ""
 "Zobrazit osu Y na minigrafu. Zobrazí ručně nastavené min/max, pokud je "
 "nastaveno, jinak min/max hodnoty v datech."
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 msgid "Show all columns"
 msgstr "Zobrazit všechny sloupce"
 
@@ -12560,9 +12534,6 @@ msgstr "Zobrazit prázdné sloupce"
 
 msgid "Show entries per page"
 msgstr "Zobrazit položek na stránku"
-
-msgid "Show full range for time shift"
-msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -13646,15 +13617,7 @@ msgstr ""
 "Kategorie zdrojových uzlů použitá k přiřazení barev. Pokud je uzel spojen"
 " s více než jednou kategorií, použije se pouze první."
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15739,10 +15702,6 @@ msgstr "Nelze najít takový svátek: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Nelze načíst nástěnku"
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -17021,9 +16980,6 @@ msgstr "Osa Y"
 msgid "Y-axis bounds"
 msgstr "Hranice osy Y"
 
-msgid "Y-axis range slider"
-msgstr ""
-
 msgid "Y-scale interval"
 msgstr "Interval stupnice Y"
 
@@ -17306,12 +17262,6 @@ msgstr "Musíte vybrat název pro novou nástěnku"
 
 msgid "You must run the query successfully first"
 msgstr "Nejprve musíte úspěšně spustit dotaz"
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
-msgstr ""
 
 msgid "You need to"
 msgstr ""

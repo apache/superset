@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -3249,6 +3249,9 @@ msgstr ""
 msgid "Column Configuration"
 msgstr ""
 
+msgid "Column Formatting"
+msgstr ""
+
 msgid "Column Settings"
 msgstr ""
 
@@ -5533,6 +5536,9 @@ msgstr ""
 msgid "Enter a name for this sheet"
 msgstr ""
 
+msgid "Enter a new title for the tab"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr ""
 
@@ -5898,17 +5904,6 @@ msgstr ""
 msgid "Export to pivoted .CSV"
 msgstr ""
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 msgid "Expose database in SQL Lab"
 msgstr ""
 
@@ -6005,11 +6000,6 @@ msgstr ""
 
 #, python-format
 msgid "Failed to execute %(query)s"
-msgstr ""
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
 msgstr ""
 
 msgid "Failed to fetch API keys"
@@ -6389,9 +6379,6 @@ msgstr ""
 msgid "Forecast periods"
 msgstr ""
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 msgid "Foreign key"
 msgstr ""
 
@@ -6431,6 +6418,9 @@ msgid ""
 msgstr ""
 
 msgid "Formatted CSV attached in email"
+msgstr ""
+
+msgid "Formatted date"
 msgstr ""
 
 msgid "Formatted value"
@@ -8874,12 +8864,6 @@ msgstr ""
 msgid "Open SQL Lab in a new tab"
 msgstr ""
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr ""
 
@@ -9420,13 +9404,6 @@ msgid ""
 msgstr ""
 
 msgid "Please use 3 different metric labels"
-msgstr ""
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
 msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
@@ -11397,9 +11374,6 @@ msgid ""
 "set or min/max values in the data otherwise."
 msgstr ""
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 msgid "Show all columns"
 msgstr ""
 
@@ -11434,9 +11408,6 @@ msgid "Show empty columns"
 msgstr ""
 
 msgid "Show entries per page"
-msgstr ""
-
-msgid "Show full range for time shift"
 msgstr ""
 
 msgid ""
@@ -12419,15 +12390,7 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr ""
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -14215,10 +14178,6 @@ msgstr ""
 msgid "Unable to generate download payload"
 msgstr ""
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -15346,9 +15305,6 @@ msgstr ""
 msgid "Y-axis bounds"
 msgstr ""
 
-msgid "Y-axis range slider"
-msgstr ""
-
 msgid "Y-scale interval"
 msgstr ""
 
@@ -15584,12 +15540,6 @@ msgid "You must pick a name for the new dashboard"
 msgstr ""
 
 msgid "You must run the query successfully first"
-msgstr ""
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
 msgstr ""
 
 msgid "You need to"

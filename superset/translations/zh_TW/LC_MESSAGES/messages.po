@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-06-26 10:30+0900\n"
+"POT-Creation-Date: 2026-06-26 10:18+0900\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -3548,6 +3548,10 @@ msgid "Column Configuration"
 msgstr "列配置"
 
 #, fuzzy
+msgid "Column Formatting"
+msgstr "列格式"
+
+#, fuzzy
 msgid "Column Settings"
 msgstr "多邊形設定"
 
@@ -6054,6 +6058,9 @@ msgstr "上傳主憑證"
 msgid "Enter a name for this sheet"
 msgstr "输入此工作表的名稱"
 
+msgid "Enter a new title for the tab"
+msgstr "输入選項卡的新標題"
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "是否填充對象"
@@ -6471,17 +6478,6 @@ msgstr "導出原始 CSV"
 msgid "Export to pivoted .CSV"
 msgstr "導出為透視表形式的 CSV"
 
-#, python-format
-msgid ""
-"Exporting semantic views is not supported yet — %s semantic-view row(s) "
-"were skipped."
-msgstr ""
-
-msgid ""
-"Exporting semantic views is not supported yet. Deselect the semantic-view"
-" rows and try again."
-msgstr ""
-
 msgid "Expose database in SQL Lab"
 msgstr "在 SQL 工具箱中展示資料庫"
 
@@ -6590,11 +6586,6 @@ msgstr "創建報告發生錯誤"
 
 #, python-format
 msgid "Failed to execute %(query)s"
-msgstr ""
-
-msgid ""
-"Failed to export chart data. Please try again or contact your "
-"administrator."
 msgstr ""
 
 #, fuzzy
@@ -7015,9 +7006,6 @@ msgstr ""
 msgid "Forecast periods"
 msgstr "預测期"
 
-msgid "Forecast requires at least 2 data points"
-msgstr ""
-
 msgid "Foreign key"
 msgstr "外鍵"
 
@@ -7063,6 +7051,10 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "郵件中附上格式化好的CSV"
+
+#, fuzzy
+msgid "Formatted date"
+msgstr "格式日期"
 
 #, fuzzy
 msgid "Formatted value"
@@ -9791,12 +9783,6 @@ msgstr "打開數據源 tab"
 msgid "Open SQL Lab in a new tab"
 msgstr "在新選項卡中運行查詢"
 
-msgid "Open chart in new tab"
-msgstr ""
-
-msgid "Open dashboard in new tab"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr "在 SQL 工具箱中打開"
 
@@ -10391,13 +10377,6 @@ msgstr ""
 
 msgid "Please use 3 different metric labels"
 msgstr "請在左右軸上選擇不同的指標"
-
-msgid ""
-"Plot each time-shifted series across its full time range instead of "
-"truncating it to the main series. Useful for comparing a partial current "
-"period (e.g. today so far) against complete prior periods (e.g. all of "
-"yesterday)."
-msgstr ""
 
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr ""
@@ -12606,9 +12585,6 @@ msgid ""
 "set or min/max values in the data otherwise."
 msgstr "在迷你圖上顯示Y軸。如果設定了手動設定的最小/最大值，则顯示之，否則顯示數據中的最小/最大值。"
 
-msgid "Show a draggable slider to control the visible range of the Y-axis."
-msgstr ""
-
 msgid "Show all columns"
 msgstr "顯示所有列"
 
@@ -12652,9 +12628,6 @@ msgstr "顯示空列"
 #, fuzzy
 msgid "Show entries per page"
 msgstr "顯示指標"
-
-msgid "Show full range for time shift"
-msgstr ""
 
 #, fuzzy
 msgid ""
@@ -13732,15 +13705,7 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr "用於分配颜色的源節點類别。如果一個節點與多個類别關聯，则只使用第一個類别"
 
-msgid ""
-"The chart data is too large to download. Please try reducing the date "
-"range, limiting rows, or using fewer columns."
-msgstr ""
-
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
-
-msgid "The chat failed to load."
 msgstr ""
 
 msgid ""
@@ -15668,10 +15633,6 @@ msgstr "找不到這樣的假期：[%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "增加到看板"
 
-#, python-format
-msgid "Unable to generate forecast: %(error)s"
-msgstr ""
-
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -16904,9 +16865,6 @@ msgstr "Y 軸"
 msgid "Y-axis bounds"
 msgstr "Y 軸界限"
 
-msgid "Y-axis range slider"
-msgstr ""
-
 msgid "Y-scale interval"
 msgstr "Y 軸比例尺間隔"
 
@@ -17163,12 +17121,6 @@ msgstr "您必須為新的看板選擇一個名稱"
 
 msgid "You must run the query successfully first"
 msgstr "必須先成功運行查詢"
-
-#, python-format
-msgid ""
-"You need access to the following tables: %(tables)s, "
-"'all_database_access' or 'all_datasource_access' permission"
-msgstr ""
 
 msgid "You need to"
 msgstr ""
