@@ -220,13 +220,37 @@ schema, `@api` decorator) and the existing functional-registry utilities.
 
 ## Implementation Status (POC)
 
-- [ ] `DashboardComponentContribution` + `DashboardComponentProps` contract types
-- [ ] `dashboardComponents` contribution point + `registerDashboardComponent` +
-      `window.superset` namespace + `ExtensionsLoader` wiring
-- [ ] Shared host component-chrome wrapper (Draggable/Resizable/HoverMenu)
-- [ ] Registry-driven `componentLookup` + seven behavior maps; seed built-ins
-- [ ] Unknown-type graceful fallback (placeholder + meta preservation)
-- [ ] Deprecate `DashboardComponentsRegistry` / `DYNAMIC_TYPE` (shim + notices)
-- [ ] Reference extension: iframe UI as a contributed dashboard component
-      (backend CSP API/permission remain in core per the companion SIP)
-- [ ] Tests: contract conformance, registry resolution, fallback, lifecycle
+Implemented on the POC branch (`@apache-superset/core` mirrors the `chat`
+contribution-point pattern from #41000/#41205):
+
+- [x] `DashboardComponentDefinition` + `DashboardComponentProps` contract types
+      (`packages/superset-core/src/dashboardComponents`), added to the
+      `Contributions` interface and the package's subpath exports
+- [x] `dashboardComponents` contribution point: host `DashboardComponentsProvider`
+      registry + public `registerDashboardComponent`/`getDashboardComponents` API
+      (`src/core/dashboardComponents`), exposed on `window.superset` via
+      `ExtensionsStartup` + `Namespaces`
+- [x] Shared host component-chrome wrapper `DashboardExtensionComponent`
+      (owns Draggable/Resizable/HoverMenu/Delete; reads `resizable` from the
+      definition) behind the new `EXTENSION_TYPE`
+- [x] `componentLookup` + builder palette resolve the registry; the seven
+      behavior maps carry `EXTENSION_TYPE` leaf behavior
+- [x] Unknown-type graceful fallback (placeholder + meta preserved on save)
+- [x] Deprecation notices on `DashboardComponentsRegistry` / `DYNAMIC_TYPE`
+      (legacy path still functions)
+- [x] Reference component: the built-in iframe is now delivered **through** the
+      contribution point (`src/dashboard/extensions/iframe`), registered at
+      startup exactly as a third-party extension would; its CSP backend remains
+      in core per the companion SIP
+- [x] Tests: registry lifecycle (register/get/replace/dispose), host-wrapper
+      resolution + fallback + `updateMeta`, iframe content + CSP UX
+
+Remaining (follow-up, not POC-blocking):
+
+- [ ] Per-component nesting policy in the global behavior maps (currently
+      `EXTENSION_TYPE` uses uniform leaf behavior; `validParents`/`wrapInRow`/
+      `minWidth` from the definition are not yet consulted by the global maps)
+- [ ] Manifest `contributions.dashboardComponents` declarative validation in the
+      Python/TS manifest schema (runtime side-effect registration works today)
+- [ ] Remove the legacy `DashboardComponentsRegistry`/`DYNAMIC_TYPE` (major)
+- [ ] Developer docs + example extension
