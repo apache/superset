@@ -156,7 +156,10 @@ class TestCacheOnlyOnSuccess:
         assert cached_value["image"] is not None
 
     def test_cache_error_status_when_screenshot_returns_empty_bytes(
-        self, mocker: MockerFixture, screenshot_obj: BaseScreenshot, mock_user: MagicMock
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
     ) -> None:
         """Empty bytes from get_screenshot must set ERROR, not leave COMPUTING."""
         mocker.patch(DISTRIBUTED_LOCK_PATH)

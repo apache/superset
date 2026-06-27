@@ -991,17 +991,13 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
     }
 
-    def _make_pw_mocks(self, mock_sync_playwright):
-        mock_playwright_instance = MagicMock()
+    def _make_pw_mocks(self, mock_browser_manager):
         mock_browser = MagicMock()
         mock_context = MagicMock()
         mock_page = MagicMock()
         mock_element = MagicMock()
 
-        mock_sync_playwright.return_value.__enter__.return_value = (
-            mock_playwright_instance
-        )
-        mock_playwright_instance.chromium.launch.return_value = mock_browser
+        mock_browser_manager.get_browser.return_value = mock_browser
         mock_browser.new_context.return_value = mock_context
         mock_context.new_page.return_value = mock_page
         mock_page.locator.return_value = mock_element
@@ -1009,17 +1005,17 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         return mock_context, mock_page
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
-    @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.app")
     def test_animation_wait_after_spinner_wait_tiled_disabled(
-        self, mock_app, mock_sync_playwright
+        self, mock_app, mock_browser_manager
     ):
         """Non-tiled path: animation wait runs after spinner wait_for_function."""
         mock_user = MagicMock()
         mock_user.username = "test_user"
         mock_app.config = {**self._base_config, "SCREENSHOT_TILED_ENABLED": False}
 
-        mock_context, mock_page = self._make_pw_mocks(mock_sync_playwright)
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
 
         call_order: list[str] = []
 
@@ -1047,10 +1043,10 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
-    @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.app")
     def test_animation_wait_after_spinner_wait_tiled_enabled_small_dashboard(
-        self, mock_app, mock_sync_playwright
+        self, mock_app, mock_browser_manager
     ):
         """Non-tiled path (tiled on, small dashboard): animation after spinner."""
         mock_user = MagicMock()
@@ -1063,7 +1059,7 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
         }
 
-        mock_context, mock_page = self._make_pw_mocks(mock_sync_playwright)
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
 
         # Small dashboard: 3 charts, 1000px height — below both thresholds
         mock_page.evaluate.side_effect = [3, 1000]
@@ -1090,11 +1086,11 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         assert call_order.index("spinner_wait") < call_order.index("animation_wait")
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
-    @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.take_tiled_screenshot")
     @patch("superset.utils.webdriver.app")
     def test_tiled_path_passes_animation_wait_per_tile_no_global_wait(
-        self, mock_app, mock_take_tiled, mock_sync_playwright
+        self, mock_app, mock_take_tiled, mock_browser_manager
     ):
         """Tiled path delegates animation_wait to take_tiled_screenshot; no global."""
         mock_user = MagicMock()
@@ -1107,7 +1103,7 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
         }
 
-        mock_context, mock_page = self._make_pw_mocks(mock_sync_playwright)
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
 
         # Large dashboard: 25 charts, 6000px height
         mock_page.evaluate.side_effect = [25, 6000]
@@ -1138,11 +1134,11 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
-    @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.take_tiled_screenshot")
     @patch("superset.utils.webdriver.app")
     def test_tiled_fallback_triggered_on_empty_bytes(
-        self, mock_app, mock_take_tiled, mock_sync_playwright
+        self, mock_app, mock_take_tiled, mock_browser_manager
     ):
         """Tiled fallback fires when take_tiled_screenshot returns b"" (not None)."""
         mock_user = MagicMock()
@@ -1155,7 +1151,7 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
         }
 
-        mock_context, mock_page = self._make_pw_mocks(mock_sync_playwright)
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
         mock_page.evaluate.side_effect = [25, 6000]
         # Empty bytes — falsy but not None; was silently passed through before the fix
         mock_take_tiled.return_value = b""
@@ -1175,9 +1171,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         mock_page.screenshot.assert_called_with(full_page=True)
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
-    @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.app")
-    def test_animation_wait_skipped_when_zero(self, mock_app, mock_sync_playwright):
+    def test_animation_wait_skipped_when_zero(self, mock_app, mock_browser_manager):
         """No extra wait_for_timeout call when SCREENSHOT_SELENIUM_ANIMATION_WAIT=0."""
         mock_user = MagicMock()
         mock_user.username = "test_user"
@@ -1187,7 +1183,7 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             "SCREENSHOT_TILED_ENABLED": False,
         }
 
-        mock_context, mock_page = self._make_pw_mocks(mock_sync_playwright)
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
 
         with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
             WebDriverPlaywright("chrome").get_screenshot(
