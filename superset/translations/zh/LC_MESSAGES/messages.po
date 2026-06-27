@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-06-26 10:18+0900\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen \n"
 "Language: zh\n"
@@ -796,9 +796,6 @@ msgstr "已存在同名的数据库。"
 msgid "A date is required when using custom date shift"
 msgstr ""
 
-msgid "A description for your dashboard"
-msgstr ""
-
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -843,11 +840,6 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "用于颜色的指标"
-
-msgid ""
-"A multiplier applied to the point radius. Use this to uniformly scale all"
-" points."
-msgstr ""
 
 #, fuzzy
 msgid "A new chart and dashboard will be created."
@@ -1743,9 +1735,17 @@ msgstr "获取结构信息时出错：%s"
 msgid "An error occurred while fetching tab state"
 msgstr "获取选项卡状态时出错"
 
+msgid "An error occurred while fetching table metadata"
+msgstr "获取表格元数据时发生错误"
+
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "获取表格元数据时发生错误"
+
+msgid ""
+"An error occurred while fetching table metadata. Please contact your "
+"administrator."
+msgstr "获取表格元数据时发生错误。请与管理员联系。"
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1782,11 +1782,6 @@ msgstr "创建数据源时发生错误"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "导入时出错 %s: %s"
-
-msgid ""
-"An error occurred while loading SQL Lab. This may be caused by a "
-"corrupted query state."
-msgstr ""
 
 #, fuzzy
 msgid "An error occurred while loading dashboard information."
@@ -3686,9 +3681,6 @@ msgid ""
 "4-5. Last number should match the value provided for MAX."
 msgstr "逗号分隔的区间界限，例如0-2、2-4和4-5区间的2、4、5。最后一个数字应与为Max提供的值匹配。"
 
-msgid "Common (unit per pixel at zoom 0)"
-msgstr ""
-
 msgid "Comparator option"
 msgstr "比较器选项"
 
@@ -3987,9 +3979,6 @@ msgstr "无法获取所有保存的图表"
 
 msgid "Could not find viz object"
 msgstr "找不到可视化对象"
-
-msgid "Could not load SQL Lab"
-msgstr ""
 
 msgid "Could not load database driver"
 msgstr "无法加载数据库驱动程序"
@@ -7474,10 +7463,8 @@ msgstr "使用邮箱发送图片(PNG)"
 msgid "Image download failed, please refresh and try again."
 msgstr "图片发送失败，请刷新或重试"
 
-msgid ""
-"Impersonate logged in user (Presto, Trino, Drill, Hive, Snowflake and "
-"Google Sheets)"
-msgstr ""
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
+msgstr "模拟登录用户 (Presto, Trino, Drill & Hive)"
 
 msgid "Import"
 msgstr "导入"
@@ -7978,6 +7965,9 @@ msgstr "键盘快捷键"
 
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
+
+msgid "Keys for table"
+msgstr "表的键"
 
 #, fuzzy
 msgid "Kilometers"
@@ -9858,6 +9848,9 @@ msgstr "树的方向"
 msgid "Original"
 msgstr "起点"
 
+msgid "Original table column order"
+msgstr "原始表列顺序"
+
 msgid "Original value"
 msgstr "原始值"
 
@@ -10031,10 +10024,6 @@ msgstr "密码"
 #, fuzzy
 msgid "Password is required"
 msgstr "类型是必需的"
-
-#, python-format
-msgid "Password must be at least %(min_length)s characters long."
-msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10399,9 +10388,6 @@ msgstr "点半径比例尺"
 
 msgid "Point Radius Unit"
 msgstr "点半径单位"
-
-msgid "Point Radius Units"
-msgstr ""
 
 #, fuzzy
 msgid "Point Size"
@@ -10874,9 +10860,6 @@ msgstr "相对量"
 msgid "Reload"
 msgstr "重新加载"
 
-msgid "Reload SQL Lab"
-msgstr ""
-
 msgid "Remove"
 msgstr "删除"
 
@@ -10904,6 +10887,9 @@ msgstr "删除项"
 
 msgid "Remove query from log"
 msgstr "从日志中删除查询"
+
+msgid "Remove table preview"
+msgstr "删除表格预览"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -10994,9 +10980,6 @@ msgstr "激活邮件报告"
 msgid "Report name"
 msgstr "报告名称"
 
-msgid "Report not yet run"
-msgstr ""
-
 #, fuzzy
 msgid "Report schedule client error"
 msgstr "报告计划任务客户端错误"
@@ -11052,10 +11035,6 @@ msgstr "必需的控件值已被移除"
 
 msgid "Resample"
 msgstr "重新采样"
-
-#, python-format
-msgid "Resample method '%(method)s' is not supported."
-msgstr ""
 
 #, fuzzy
 msgid "Resample method should be in "
@@ -13195,9 +13174,6 @@ msgstr "街道"
 msgid "Streets (Carto)"
 msgstr "树状图"
 
-msgid "Streets (OSM)"
-msgstr ""
-
 msgid "Strength to pull the graph toward center"
 msgstr "将图形拉向中心"
 
@@ -13650,9 +13626,6 @@ msgid ""
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
-msgstr ""
-
-msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
 
 msgid ""
@@ -14206,11 +14179,6 @@ msgid ""
 " cluster"
 msgstr "单个点的半径（不在聚合群中的点）。一个数值列或“AUTO”，它根据最大的聚合群来缩放点。"
 
-msgid ""
-"The radius of point features, in the units specified below. The final "
-"rendered size is this value multiplied by Point Radius Scale."
-msgstr ""
-
 msgid "The report has been created"
 msgstr "报告已创建"
 
@@ -14386,11 +14354,6 @@ msgid "The unit for icon size"
 msgstr "气泡尺寸"
 
 msgid "The unit for label size"
-msgstr ""
-
-msgid ""
-"The unit for point radius. Use \"pixels\" for consistent screen-space "
-"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -15012,9 +14975,6 @@ msgid ""
 " is not the case."
 msgstr ""
 
-msgid "This password is too common; please choose a less guessable one."
-msgstr ""
-
 #, fuzzy
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -15334,18 +15294,6 @@ msgid "To get a readable URL for your dashboard"
 msgstr "为看板生成一个可读的 URL"
 
 msgid "Token Request URI"
-msgstr ""
-
-#, python-format
-msgid ""
-"Too many sub-slices requested. The maximum allowed is %(max)s, but "
-"%(count)s were requested."
-msgstr ""
-
-#, python-format
-msgid ""
-"Too many time comparisons requested. The maximum allowed is %(max)s, but "
-"%(count)s were requested."
 msgstr ""
 
 #, fuzzy
@@ -16160,6 +16108,10 @@ msgstr "查看样例"
 
 msgid "View in SQL Lab"
 msgstr "在 SQL 工具箱中公开"
+
+#, python-format
+msgid "View keys & indexes (%s)"
+msgstr "查看键和索引（%s）"
 
 msgid "View query"
 msgstr "查看查询语句"
@@ -17004,9 +16956,6 @@ msgstr "您没有编辑此看板的权限。"
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "您没有编辑此图表的权限"
 
-msgid "You don't have access to one or more of the referenced datasources."
-msgstr ""
-
 #, fuzzy
 msgid "You don't have access to this chart."
 msgstr "您没有访问此图表的权限。"
@@ -17100,9 +17049,6 @@ msgid ""
 "dataset owner to request modifications or edit access."
 msgstr ""
 
-msgid "You must change your password before continuing."
-msgstr ""
-
 msgid "You must pick a name for the new dashboard"
 msgstr "您必须为新的看板选择一个名称"
 
@@ -17174,9 +17120,6 @@ msgstr "您的查询已更新"
 
 msgid "Your report could not be deleted"
 msgstr "这个报告无法被删除"
-
-msgid "Your session has ended. Please sign in again."
-msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -17278,9 +17221,6 @@ msgstr "`行偏移量` 必须大于或等于0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`宽度` 必须大于或等于0"
 
-msgid "`window` must be between 1 and 10000"
-msgstr ""
-
 #, fuzzy
 msgid "a few seconds"
 msgstr "5秒"
@@ -17314,9 +17254,6 @@ msgstr "注释"
 msgid "annotation_layer"
 msgstr "注释层"
 
-msgid "apple"
-msgstr ""
-
 msgid "asfreq"
 msgstr ""
 
@@ -17333,9 +17270,6 @@ msgstr "背景"
 #, fuzzy
 msgid "background color"
 msgstr "背景"
-
-msgid "banana"
-msgstr ""
 
 #, fuzzy
 msgid "basis"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:18+0900\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -780,9 +780,6 @@ msgstr "같은 이름의 데이터베이스가 이미 존재합니다"
 msgid "A date is required when using custom date shift"
 msgstr ""
 
-msgid "A description for your dashboard"
-msgstr ""
-
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -824,11 +821,6 @@ msgid ""
 msgstr ""
 
 msgid "A metric to use for color"
-msgstr ""
-
-msgid ""
-"A multiplier applied to the point radius. Use this to uniformly scale all"
-" points."
 msgstr ""
 
 #, fuzzy
@@ -1720,9 +1712,17 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "An error occurred while fetching tab state"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
+msgid "An error occurred while fetching table metadata"
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+msgid ""
+"An error occurred while fetching table metadata. Please contact your "
+"administrator."
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1759,11 +1759,6 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 #, fuzzy, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
-
-msgid ""
-"An error occurred while loading SQL Lab. This may be caused by a "
-"corrupted query state."
-msgstr ""
 
 #, fuzzy
 msgid "An error occurred while loading dashboard information."
@@ -3623,9 +3618,6 @@ msgid ""
 "4-5. Last number should match the value provided for MAX."
 msgstr ""
 
-msgid "Common (unit per pixel at zoom 0)"
-msgstr ""
-
 msgid "Comparator option"
 msgstr ""
 
@@ -3925,9 +3917,6 @@ msgid "Could not fetch all saved charts"
 msgstr ""
 
 msgid "Could not find viz object"
-msgstr ""
-
-msgid "Could not load SQL Lab"
 msgstr ""
 
 msgid "Could not load database driver"
@@ -7337,9 +7326,7 @@ msgstr ""
 msgid "Image download failed, please refresh and try again."
 msgstr ""
 
-msgid ""
-"Impersonate logged in user (Presto, Trino, Drill, Hive, Snowflake and "
-"Google Sheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 
 msgid "Import"
@@ -7830,6 +7817,9 @@ msgid "Keyboard shortcuts"
 msgstr ""
 
 msgid "Keys are shown only once at creation. Store them securely."
+msgstr ""
+
+msgid "Keys for table"
 msgstr ""
 
 #, fuzzy
@@ -9675,6 +9665,9 @@ msgstr ""
 msgid "Original"
 msgstr "원본 값"
 
+msgid "Original table column order"
+msgstr ""
+
 msgid "Original value"
 msgstr "원본 값"
 
@@ -9844,10 +9837,6 @@ msgstr "비밀번호"
 #, fuzzy
 msgid "Password is required"
 msgstr "데이터소스"
-
-#, python-format
-msgid "Password must be at least %(min_length)s characters long."
-msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10201,9 +10190,6 @@ msgid "Point Radius Scale"
 msgstr ""
 
 msgid "Point Radius Unit"
-msgstr ""
-
-msgid "Point Radius Units"
 msgstr ""
 
 msgid "Point Size"
@@ -10681,9 +10667,6 @@ msgstr ""
 msgid "Reload"
 msgstr "생성자"
 
-msgid "Reload SQL Lab"
-msgstr ""
-
 msgid "Remove"
 msgstr ""
 
@@ -10710,6 +10693,9 @@ msgstr ""
 
 msgid "Remove query from log"
 msgstr "Query 로그 삭제"
+
+msgid "Remove table preview"
+msgstr ""
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -10801,9 +10787,6 @@ msgstr "차트 유형"
 msgid "Report name"
 msgstr "차트 유형"
 
-msgid "Report not yet run"
-msgstr ""
-
 msgid "Report schedule client error"
 msgstr ""
 
@@ -10856,10 +10839,6 @@ msgid "Required control values have been removed"
 msgstr ""
 
 msgid "Resample"
-msgstr ""
-
-#, python-format
-msgid "Resample method '%(method)s' is not supported."
 msgstr ""
 
 msgid "Resample method should be in "
@@ -12973,9 +12952,6 @@ msgstr ""
 msgid "Streets (Carto)"
 msgstr "차트 이동"
 
-msgid "Streets (OSM)"
-msgstr ""
-
 msgid "Strength to pull the graph toward center"
 msgstr ""
 
@@ -13429,9 +13405,6 @@ msgid ""
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
-msgstr ""
-
-msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
 
 msgid ""
@@ -13963,11 +13936,6 @@ msgid ""
 " cluster"
 msgstr ""
 
-msgid ""
-"The radius of point features, in the units specified below. The final "
-"rendered size is this value multiplied by Point Radius Scale."
-msgstr ""
-
 msgid "The report has been created"
 msgstr ""
 
@@ -14133,11 +14101,6 @@ msgid "The unit for icon size"
 msgstr ""
 
 msgid "The unit for label size"
-msgstr ""
-
-msgid ""
-"The unit for point radius. Use \"pixels\" for consistent screen-space "
-"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -14740,9 +14703,6 @@ msgid ""
 " is not the case."
 msgstr ""
 
-msgid "This password is too common; please choose a less guessable one."
-msgstr ""
-
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -15065,18 +15025,6 @@ msgid "To get a readable URL for your dashboard"
 msgstr ""
 
 msgid "Token Request URI"
-msgstr ""
-
-#, python-format
-msgid ""
-"Too many sub-slices requested. The maximum allowed is %(max)s, but "
-"%(count)s were requested."
-msgstr ""
-
-#, python-format
-msgid ""
-"Too many time comparisons requested. The maximum allowed is %(max)s, but "
-"%(count)s were requested."
 msgstr ""
 
 msgid "Tool Panel"
@@ -15881,6 +15829,10 @@ msgstr "탭 닫기"
 msgid "View in SQL Lab"
 msgstr "SQL Lab"
 
+#, python-format
+msgid "View keys & indexes (%s)"
+msgstr ""
+
 msgid "View query"
 msgstr "Query 공유"
 
@@ -16677,9 +16629,6 @@ msgstr ""
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr ""
 
-msgid "You don't have access to one or more of the referenced datasources."
-msgstr ""
-
 msgid "You don't have access to this chart."
 msgstr ""
 
@@ -16761,9 +16710,6 @@ msgid ""
 "dataset owner to request modifications or edit access."
 msgstr ""
 
-msgid "You must change your password before continuing."
-msgstr ""
-
 msgid "You must pick a name for the new dashboard"
 msgstr ""
 
@@ -16834,9 +16780,6 @@ msgstr ""
 #, fuzzy
 msgid "Your report could not be deleted"
 msgstr "차트를 삭제할 수 없습니다."
-
-msgid "Your session has ended. Please sign in again."
-msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -16934,9 +16877,6 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
-msgid "`window` must be between 1 and 10000"
-msgstr ""
-
 #, fuzzy
 msgid "a few seconds"
 msgstr "30초"
@@ -16969,9 +16909,6 @@ msgstr "주석"
 msgid "annotation_layer"
 msgstr "주석 레이어"
 
-msgid "apple"
-msgstr ""
-
 msgid "asfreq"
 msgstr ""
 
@@ -16988,9 +16925,6 @@ msgstr ""
 #, fuzzy
 msgid "background color"
 msgstr "컬럼 수정"
-
-msgid "banana"
-msgstr ""
 
 msgid "basis"
 msgstr ""

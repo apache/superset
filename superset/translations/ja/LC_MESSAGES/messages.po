@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:18+0900\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -795,9 +795,6 @@ msgstr "同じ名前のデータベースが既に存在します。"
 msgid "A date is required when using custom date shift"
 msgstr "カスタム日付シフトを使用する場合は、日付の指定が必要です"
 
-msgid "A description for your dashboard"
-msgstr ""
-
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -842,11 +839,6 @@ msgstr "緯度・経度座標に、半径が可変の円をレンダリングす
 
 msgid "A metric to use for color"
 msgstr "色に使用するメトリック"
-
-msgid ""
-"A multiplier applied to the point radius. Use this to uniformly scale all"
-" points."
-msgstr ""
 
 msgid "A new chart and dashboard will be created."
 msgstr "新しいチャートとダッシュボードが作成されます。"
@@ -1686,9 +1678,17 @@ msgstr "スキーマの値を取得中にエラーが発生しました: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "タブの状態を取得中にエラーが発生しました"
 
+msgid "An error occurred while fetching table metadata"
+msgstr "テーブルのメタデータを取得中にエラーが発生しました"
+
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "テーブルのメタデータを取得中にエラーが発生しました"
+
+msgid ""
+"An error occurred while fetching table metadata. Please contact your "
+"administrator."
+msgstr "テーブルのメタデータを取得中にエラーが発生しました。管理者に連絡してください。"
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1723,11 +1723,6 @@ msgstr "SQLの整形中にエラーが発生しました"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "%s のインポート中にエラーが発生しました: %s"
-
-msgid ""
-"An error occurred while loading SQL Lab. This may be caused by a "
-"corrupted query state."
-msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "ダッシュボード情報の読み込み中にエラーが発生しました。"
@@ -3455,9 +3450,6 @@ msgstr ""
 "カンマ区切りの間隔境界(例: 2,4,5 は 0-2, 2-4, 4-5 の間隔を指します)。最後の数値は最大値 (MAX) "
 "に指定した値と一致させる必要があります。"
 
-msgid "Common (unit per pixel at zoom 0)"
-msgstr ""
-
 msgid "Comparator option"
 msgstr "比較オプション"
 
@@ -3735,9 +3727,6 @@ msgstr "保存済みチャートをすべて取得できませんでした"
 
 msgid "Could not find viz object"
 msgstr "視覚化(Viz)オブジェクトが見つかりませんでした"
-
-msgid "Could not load SQL Lab"
-msgstr ""
 
 msgid "Could not load database driver"
 msgstr "データベースドライバーを読み込めませんでした"
@@ -6921,10 +6910,8 @@ msgstr "メール内に画像 (PNG) を埋め込み"
 msgid "Image download failed, please refresh and try again."
 msgstr "画像のダウンロードに失敗しました。ページを更新して再試行してください。"
 
-msgid ""
-"Impersonate logged in user (Presto, Trino, Drill, Hive, Snowflake and "
-"Google Sheets)"
-msgstr ""
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
+msgstr "ログインユーザーになりすます (Presto, Trino, Drill, Hive, Googleスプレッドシート)"
 
 msgid "Import"
 msgstr "インポート"
@@ -7383,6 +7370,9 @@ msgstr "キーボードショートカット"
 
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
+
+msgid "Keys for table"
+msgstr "テーブルのキー"
 
 msgid "Kilometers"
 msgstr "キロメートル"
@@ -9096,6 +9086,9 @@ msgstr "ツリーの向き"
 msgid "Original"
 msgstr "オリジナル"
 
+msgid "Original table column order"
+msgstr "基テーブルの列順を維持"
+
 msgid "Original value"
 msgstr "元の値"
 
@@ -9259,10 +9252,6 @@ msgstr "パスワード"
 
 msgid "Password is required"
 msgstr "パスワードは必須です"
-
-#, python-format
-msgid "Password must be at least %(min_length)s characters long."
-msgstr ""
 
 msgid "Password:"
 msgstr "パスワード:"
@@ -9597,9 +9586,6 @@ msgstr "ポイントの半径スケール"
 
 msgid "Point Radius Unit"
 msgstr "ポイントの半径単位"
-
-msgid "Point Radius Units"
-msgstr ""
 
 msgid "Point Size"
 msgstr "ポイントのサイズ"
@@ -10035,9 +10021,6 @@ msgstr "相対量"
 msgid "Reload"
 msgstr "再読み込み"
 
-msgid "Reload SQL Lab"
-msgstr ""
-
 msgid "Remove"
 msgstr "削除"
 
@@ -10063,6 +10046,9 @@ msgstr "項目を削除"
 
 msgid "Remove query from log"
 msgstr "ログからクエリを削除"
+
+msgid "Remove table preview"
+msgstr "テーブルのプレビューを解除"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -10149,9 +10135,6 @@ msgstr "レポートは有効です"
 msgid "Report name"
 msgstr "レポート名"
 
-msgid "Report not yet run"
-msgstr ""
-
 msgid "Report schedule client error"
 msgstr "レポートスケジュールのクライアントエラー"
 
@@ -10203,10 +10186,6 @@ msgstr "必須の制御値が削除されました"
 
 msgid "Resample"
 msgstr "リサンプリング"
-
-#, python-format
-msgid "Resample method '%(method)s' is not supported."
-msgstr ""
 
 msgid "Resample method should be in "
 msgstr "リサンプリング方法は以下の通りです "
@@ -12160,9 +12139,6 @@ msgstr "ストリート"
 msgid "Streets (Carto)"
 msgstr "ツリーチャート"
 
-msgid "Streets (OSM)"
-msgstr ""
-
 msgid "Strength to pull the graph toward center"
 msgstr "グラフを中心へ引き寄せる強さ"
 
@@ -12594,9 +12570,6 @@ msgid ""
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
-msgstr ""
-
-msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
 
 msgid ""
@@ -13134,11 +13107,6 @@ msgid ""
 " cluster"
 msgstr "個々のポイント(クラスターに含まれないもの)の半径。数値列を指定するか、「自動」を選択して最大クラスターに基づいたスケーリングを適用します"
 
-msgid ""
-"The radius of point features, in the units specified below. The final "
-"rendered size is this value multiplied by Point Radius Scale."
-msgstr ""
-
 msgid "The report has been created"
 msgstr "レポートを作成しました"
 
@@ -13307,11 +13275,6 @@ msgstr "アイコンサイズの単位"
 
 msgid "The unit for label size"
 msgstr "ラベルサイズの単位"
-
-msgid ""
-"The unit for point radius. Use \"pixels\" for consistent screen-space "
-"sizing regardless of zoom level."
-msgstr ""
 
 msgid "The unit of measure for the specified point radius"
 msgstr "指定されたポイント半径の測定単位"
@@ -13901,9 +13864,6 @@ msgid ""
 " is not the case."
 msgstr "このページは iframe 内への埋め込みを想定していますが、現在はその状態ではないようです。"
 
-msgid "This password is too common; please choose a less guessable one."
-msgstr ""
-
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -14213,18 +14173,6 @@ msgstr "ダッシュボードのわかりやすい URL を取得するには"
 
 msgid "Token Request URI"
 msgstr "トークンリクエスト URI"
-
-#, python-format
-msgid ""
-"Too many sub-slices requested. The maximum allowed is %(max)s, but "
-"%(count)s were requested."
-msgstr ""
-
-#, python-format
-msgid ""
-"Too many time comparisons requested. The maximum allowed is %(max)s, but "
-"%(count)s were requested."
-msgstr ""
 
 msgid "Tool Panel"
 msgstr "ツールパネル"
@@ -14981,6 +14929,10 @@ msgstr "テーブルとして表示"
 
 msgid "View in SQL Lab"
 msgstr "SQL Lab で表示"
+
+#, python-format
+msgid "View keys & indexes (%s)"
+msgstr "キーとインデックスを表示 (%s)"
 
 msgid "View query"
 msgstr "クエリを表示"
@@ -15781,9 +15733,6 @@ msgstr "このダッシュボードを編集する権限がありません。"
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "チャートを編集するための十分な権限がありません"
 
-msgid "You don't have access to one or more of the referenced datasources."
-msgstr ""
-
 msgid "You don't have access to this chart."
 msgstr "このチャートへのアクセス権がありません。"
 
@@ -15871,9 +15820,6 @@ msgid ""
 "dataset owner to request modifications or edit access."
 msgstr "編集するにはデータセットの所有者である必要があります。所有者に変更リクエストを送るか、編集権限を依頼してください。"
 
-msgid "You must change your password before continuing."
-msgstr ""
-
 msgid "You must pick a name for the new dashboard"
 msgstr "新しいダッシュボードの名前を指定してください"
 
@@ -15943,9 +15889,6 @@ msgstr "クエリを更新しました"
 
 msgid "Your report could not be deleted"
 msgstr "レポートを削除できませんでした"
-
-msgid "Your session has ended. Please sign in again."
-msgstr ""
 
 msgid "Your user information"
 msgstr "ユーザー情報"
@@ -16045,9 +15988,6 @@ msgstr "`row_offset` は 0 以上である必要があります"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` は 0 以上である必要があります"
 
-msgid "`window` must be between 1 and 10000"
-msgstr ""
-
 #, fuzzy
 msgid "a few seconds"
 msgstr "5秒"
@@ -16079,9 +16019,6 @@ msgstr "注釈"
 msgid "annotation_layer"
 msgstr "注釈レイヤー"
 
-msgid "apple"
-msgstr ""
-
 msgid "asfreq"
 msgstr "アス周波数"
 
@@ -16097,9 +16034,6 @@ msgstr "背景"
 #, fuzzy
 msgid "background color"
 msgstr "背景色"
-
-msgid "banana"
-msgstr ""
 
 msgid "basis"
 msgstr "基準"

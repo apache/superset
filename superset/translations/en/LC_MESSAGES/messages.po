@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-26 10:18+0900\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -764,9 +764,6 @@ msgstr ""
 msgid "A date is required when using custom date shift"
 msgstr ""
 
-msgid "A description for your dashboard"
-msgstr ""
-
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -808,11 +805,6 @@ msgid ""
 msgstr ""
 
 msgid "A metric to use for color"
-msgstr ""
-
-msgid ""
-"A multiplier applied to the point radius. Use this to uniformly scale all"
-" points."
 msgstr ""
 
 msgid "A new chart and dashboard will be created."
@@ -1630,8 +1622,16 @@ msgstr ""
 msgid "An error occurred while fetching tab state"
 msgstr ""
 
+msgid "An error occurred while fetching table metadata"
+msgstr ""
+
 #, python-format
 msgid "An error occurred while fetching table metadata for %s"
+msgstr ""
+
+msgid ""
+"An error occurred while fetching table metadata. Please contact your "
+"administrator."
 msgstr ""
 
 msgid "An error occurred while fetching the configuration schema"
@@ -1662,11 +1662,6 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while importing %s: %s"
-msgstr ""
-
-msgid ""
-"An error occurred while loading SQL Lab. This may be caused by a "
-"corrupted query state."
 msgstr ""
 
 msgid "An error occurred while loading dashboard information."
@@ -3374,9 +3369,6 @@ msgid ""
 "4-5. Last number should match the value provided for MAX."
 msgstr ""
 
-msgid "Common (unit per pixel at zoom 0)"
-msgstr ""
-
 msgid "Comparator option"
 msgstr ""
 
@@ -3651,9 +3643,6 @@ msgid "Could not fetch all saved charts"
 msgstr ""
 
 msgid "Could not find viz object"
-msgstr ""
-
-msgid "Could not load SQL Lab"
 msgstr ""
 
 msgid "Could not load database driver"
@@ -6794,9 +6783,7 @@ msgstr ""
 msgid "Image download failed, please refresh and try again."
 msgstr ""
 
-msgid ""
-"Impersonate logged in user (Presto, Trino, Drill, Hive, Snowflake and "
-"Google Sheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 
 msgid "Import"
@@ -7245,6 +7232,9 @@ msgid "Keyboard shortcuts"
 msgstr ""
 
 msgid "Keys are shown only once at creation. Store them securely."
+msgstr ""
+
+msgid "Keys for table"
 msgstr ""
 
 msgid "Kilometers"
@@ -8938,6 +8928,9 @@ msgstr ""
 msgid "Original"
 msgstr ""
 
+msgid "Original table column order"
+msgstr ""
+
 msgid "Original value"
 msgstr ""
 
@@ -9099,10 +9092,6 @@ msgid "Password"
 msgstr ""
 
 msgid "Password is required"
-msgstr ""
-
-#, python-format
-msgid "Password must be at least %(min_length)s characters long."
 msgstr ""
 
 msgid "Password:"
@@ -9431,9 +9420,6 @@ msgid "Point Radius Scale"
 msgstr ""
 
 msgid "Point Radius Unit"
-msgstr ""
-
-msgid "Point Radius Units"
 msgstr ""
 
 msgid "Point Size"
@@ -9864,9 +9850,6 @@ msgstr ""
 msgid "Reload"
 msgstr ""
 
-msgid "Reload SQL Lab"
-msgstr ""
-
 msgid "Remove"
 msgstr ""
 
@@ -9889,6 +9872,9 @@ msgid "Remove item"
 msgstr ""
 
 msgid "Remove query from log"
+msgstr ""
+
+msgid "Remove table preview"
 msgstr ""
 
 #, python-format
@@ -9977,9 +9963,6 @@ msgstr ""
 msgid "Report name"
 msgstr ""
 
-msgid "Report not yet run"
-msgstr ""
-
 msgid "Report schedule client error"
 msgstr ""
 
@@ -10030,10 +10013,6 @@ msgid "Required control values have been removed"
 msgstr ""
 
 msgid "Resample"
-msgstr ""
-
-#, python-format
-msgid "Resample method '%(method)s' is not supported."
 msgstr ""
 
 msgid "Resample method should be in "
@@ -11931,9 +11910,6 @@ msgstr ""
 msgid "Streets (Carto)"
 msgstr ""
 
-msgid "Streets (OSM)"
-msgstr ""
-
 msgid "Strength to pull the graph toward center"
 msgstr ""
 
@@ -12349,9 +12325,6 @@ msgid ""
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
-msgstr ""
-
-msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
 
 msgid ""
@@ -12868,11 +12841,6 @@ msgid ""
 " cluster"
 msgstr ""
 
-msgid ""
-"The radius of point features, in the units specified below. The final "
-"rendered size is this value multiplied by Point Radius Scale."
-msgstr ""
-
 msgid "The report has been created"
 msgstr ""
 
@@ -13033,11 +13001,6 @@ msgid "The unit for icon size"
 msgstr ""
 
 msgid "The unit for label size"
-msgstr ""
-
-msgid ""
-"The unit for point radius. Use \"pixels\" for consistent screen-space "
-"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -13608,9 +13571,6 @@ msgid ""
 " is not the case."
 msgstr ""
 
-msgid "This password is too common; please choose a less guessable one."
-msgstr ""
-
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -13915,18 +13875,6 @@ msgid "To get a readable URL for your dashboard"
 msgstr ""
 
 msgid "Token Request URI"
-msgstr ""
-
-#, python-format
-msgid ""
-"Too many sub-slices requested. The maximum allowed is %(max)s, but "
-"%(count)s were requested."
-msgstr ""
-
-#, python-format
-msgid ""
-"Too many time comparisons requested. The maximum allowed is %(max)s, but "
-"%(count)s were requested."
 msgstr ""
 
 msgid "Tool Panel"
@@ -14663,6 +14611,10 @@ msgid "View as table"
 msgstr ""
 
 msgid "View in SQL Lab"
+msgstr ""
+
+#, python-format
+msgid "View keys & indexes (%s)"
 msgstr ""
 
 msgid "View query"
@@ -15450,9 +15402,6 @@ msgstr ""
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr ""
 
-msgid "You don't have access to one or more of the referenced datasources."
-msgstr ""
-
 msgid "You don't have access to this chart."
 msgstr ""
 
@@ -15533,9 +15482,6 @@ msgid ""
 "dataset owner to request modifications or edit access."
 msgstr ""
 
-msgid "You must change your password before continuing."
-msgstr ""
-
 msgid "You must pick a name for the new dashboard"
 msgstr ""
 
@@ -15604,9 +15550,6 @@ msgid "Your query was updated"
 msgstr ""
 
 msgid "Your report could not be deleted"
-msgstr ""
-
-msgid "Your session has ended. Please sign in again."
 msgstr ""
 
 msgid "Your user information"
@@ -15702,9 +15645,6 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
-msgid "`window` must be between 1 and 10000"
-msgstr ""
-
 msgid "a few seconds"
 msgstr ""
 
@@ -15735,9 +15675,6 @@ msgstr ""
 msgid "annotation_layer"
 msgstr ""
 
-msgid "apple"
-msgstr ""
-
 msgid "asfreq"
 msgstr ""
 
@@ -15751,9 +15688,6 @@ msgid "background"
 msgstr ""
 
 msgid "background color"
-msgstr ""
-
-msgid "banana"
 msgstr ""
 
 msgid "basis"
