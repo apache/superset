@@ -21,6 +21,7 @@ import tinycolor from 'tinycolor2';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { t } from '@apache-superset/core/translation';
 import { css, SupersetTheme } from '@apache-superset/core/theme';
+import { useDashboardComponents } from 'src/core';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
 import NewColumn from '../gridComponents/new/NewColumn';
@@ -29,6 +30,7 @@ import NewHeader from '../gridComponents/new/NewHeader';
 import NewRow from '../gridComponents/new/NewRow';
 import NewTabs from '../gridComponents/new/NewTabs';
 import NewMarkdown from '../gridComponents/new/NewMarkdown';
+import NewExtensionComponent from '../gridComponents/new/NewExtensionComponent';
 import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
 
 const BUILDER_PANE_WIDTH = 374;
@@ -38,7 +40,9 @@ const TABS_KEYS = {
   LAYOUT_ELEMENTS: 'LAYOUT_ELEMENTS',
 };
 
-const BuilderComponentPane = ({ topOffset = 0 }) => (
+const BuilderComponentPane = ({ topOffset = 0 }) => {
+  const extensionComponents = useDashboardComponents();
+  return (
   <div
     data-test="dashboard-builder-sidepane"
     css={css`
@@ -99,6 +103,14 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
                 <NewHeader />
                 <NewMarkdown />
                 <NewDivider />
+                {/* Extensions-contributed dashboard components */}
+                {extensionComponents.map(({ definition }) => (
+                  <NewExtensionComponent
+                    key={definition.id}
+                    definition={definition}
+                  />
+                ))}
+                {/* @deprecated legacy DashboardComponentsRegistry path */}
                 {dashboardComponents
                   .getAll()
                   .map(({ key: componentKey, metadata }) => (
@@ -115,6 +127,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
       />
     </div>
   </div>
-);
+  );
+};
 
 export default BuilderComponentPane;

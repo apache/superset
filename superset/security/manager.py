@@ -733,6 +733,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ADMIN_ONLY_VIEW_MENUS = {
         "Access Requests",
         "Action Logs",
+        # Runtime CSP allowlist: punching holes in the Content Security Policy is
+        # a trusted, security-sensitive operation reserved for Admins.
+        "CSPAllowlist",
         "Extensions",
         "Log",
         "List Users",

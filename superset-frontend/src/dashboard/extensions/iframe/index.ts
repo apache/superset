@@ -16,25 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  COLUMN_TYPE,
-  CHART_TYPE,
-  EXTENSION_TYPE,
-  MARKDOWN_TYPE,
-  DYNAMIC_TYPE,
-} from './componentTypes';
+import { t } from '@apache-superset/core/translation';
+import { dashboardComponents } from 'src/core';
+import IframeContent from './IframeContent';
 
-export default function componentIsResizable(entity: {
-  type: string;
-  meta?: { resizable?: boolean };
-}) {
-  // Extension-contributed components opt out of resizing via their definition,
-  // seeded onto meta at creation.
-  if (entity.type === EXTENSION_TYPE) {
-    return entity.meta?.resizable !== false;
-  }
-  return (
-    [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE, DYNAMIC_TYPE].indexOf(entity.type) >
-    -1
+export const IFRAME_COMPONENT_ID = 'superset.iframe';
+
+/**
+ * Registers the built-in iframe as a first-class dashboard component through the
+ * Extensions `dashboardComponents` contribution point. Core registers it the
+ * same way a third-party extension would, demonstrating the contract end to end.
+ */
+export default function registerIframeComponent() {
+  dashboardComponents.registerDashboardComponent(
+    {
+      id: IFRAME_COMPONENT_ID,
+      name: t('Embed / Iframe'),
+      description: t('Embed external content via a URL'),
+      icon: 'LinkOutlined',
+      resizable: true,
+      defaultMeta: { width: 4, height: 50, url: '' },
+    },
+    IframeContent,
   );
 }
