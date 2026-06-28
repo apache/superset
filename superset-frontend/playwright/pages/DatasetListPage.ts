@@ -19,7 +19,8 @@
 
 import { Page, Locator } from '@playwright/test';
 import { Button, Table } from '../components/core';
-import { BulkSelect } from '../components/ListView';
+import { BulkSelect, BulkSelectActionKey } from '../components/ListView';
+import { gotoWithRetry } from '../helpers/navigation';
 import { URL } from '../utils/urls';
 
 /**
@@ -35,13 +36,14 @@ export class DatasetListPage {
   } as const;
 
   /**
-   * Action button names for getByRole('button', { name })
+   * Stable data-test keys for the row action buttons in DatasetList
+   * (shared with the semantic-view rendering since only one renders per row).
    */
-  private static readonly ACTION_BUTTONS = {
-    DELETE: 'delete',
-    EDIT: 'edit',
-    EXPORT: 'upload', // Export button uses upload icon
-    DUPLICATE: 'copy',
+  private static readonly ACTION_TEST_IDS = {
+    DELETE: 'dataset-row-delete',
+    EDIT: 'dataset-row-edit',
+    EXPORT: 'dataset-row-export',
+    DUPLICATE: 'dataset-row-duplicate',
   } as const;
 
   constructor(page: Page) {
@@ -54,7 +56,7 @@ export class DatasetListPage {
    * Navigate to the dataset list page
    */
   async goto(): Promise<void> {
-    await this.page.goto(URL.DATASET_LIST);
+    await gotoWithRetry(this.page, URL.DATASET_LIST);
   }
 
   /**
@@ -96,9 +98,7 @@ export class DatasetListPage {
    */
   async clickDeleteAction(datasetName: string): Promise<void> {
     const row = this.table.getRow(datasetName);
-    await row
-      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.DELETE })
-      .click();
+    await row.getByTestId(DatasetListPage.ACTION_TEST_IDS.DELETE).click();
   }
 
   /**
@@ -107,9 +107,7 @@ export class DatasetListPage {
    */
   async clickEditAction(datasetName: string): Promise<void> {
     const row = this.table.getRow(datasetName);
-    await row
-      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.EDIT })
-      .click();
+    await row.getByTestId(DatasetListPage.ACTION_TEST_IDS.EDIT).click();
   }
 
   /**
@@ -118,9 +116,7 @@ export class DatasetListPage {
    */
   async clickExportAction(datasetName: string): Promise<void> {
     const row = this.table.getRow(datasetName);
-    await row
-      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.EXPORT })
-      .click();
+    await row.getByTestId(DatasetListPage.ACTION_TEST_IDS.EXPORT).click();
   }
 
   /**
@@ -129,9 +125,7 @@ export class DatasetListPage {
    */
   async clickDuplicateAction(datasetName: string): Promise<void> {
     const row = this.table.getRow(datasetName);
-    await row
-      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.DUPLICATE })
-      .click();
+    await row.getByTestId(DatasetListPage.ACTION_TEST_IDS.DUPLICATE).click();
   }
 
   /**
@@ -150,11 +144,11 @@ export class DatasetListPage {
   }
 
   /**
-   * Clicks a bulk action button by name (e.g., "Export", "Delete")
-   * @param actionName - The name of the bulk action to click
+   * Clicks a bulk action button by its stable action key (e.g., "delete", "export").
+   * @param actionKey - The stable key of the bulk action to click
    */
-  async clickBulkAction(actionName: string): Promise<void> {
-    await this.bulkSelect.clickAction(actionName);
+  async clickBulkAction(actionKey: BulkSelectActionKey): Promise<void> {
+    await this.bulkSelect.clickAction(actionKey);
   }
 
   /**

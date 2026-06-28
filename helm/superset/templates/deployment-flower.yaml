@@ -57,6 +57,9 @@ spec:
           {{- toYaml .Values.supersetCeleryFlower.podLabels | nindent 8 }}
         {{- end }}
     spec:
+      {{- if .Values.supersetCeleryFlower.deploymentAdditionalPodSpec }}
+      {{- tpl (toYaml .Values.supersetCeleryFlower.deploymentAdditionalPodSpec) . | nindent 6 }}
+      {{- end }}
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
@@ -121,7 +124,7 @@ spec:
               {{- toYaml .Values.resources | nindent 12 }}
             {{- end }}
         {{- if .Values.supersetCeleryFlower.extraContainers }}
-            {{- toYaml .Values.supersetCeleryFlower.extraContainers | nindent 8 }}
+            {{- tpl (toYaml .Values.supersetCeleryFlower.extraContainers) . | nindent 8 }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}

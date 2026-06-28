@@ -344,6 +344,16 @@ export default function transformProps(
     data2,
     currencyCodeColumn,
   );
+  const getAxisFormatterConfig = (axisIndex?: number) =>
+    axisIndex === 1
+      ? {
+          customFormatters: customFormattersSecondary,
+          formatter: formatterSecondary,
+        }
+      : {
+          customFormatters,
+          formatter,
+        };
 
   const primarySeries = new Set<string>();
   const secondarySeries = new Set<string>();
@@ -422,6 +432,8 @@ export default function transformProps(
   let [minSecondary, maxSecondary] = (yAxisBoundsSecondary || []).map(
     parseAxisBound,
   );
+  const getAxisMax = (axisIndex?: number) =>
+    axisIndex === 1 ? maxSecondary : yAxisMax;
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
@@ -445,10 +457,11 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
     }
+    const axisFormatterConfig = getAxisFormatterConfig(yAxisIndex);
 
     const seriesFormatter = getFormatter(
-      customFormatters,
-      formatter,
+      axisFormatterConfig.customFormatters,
+      axisFormatterConfig.formatter,
       metrics,
       labelMap?.[seriesName]?.[0],
       !!contributionMode,
@@ -480,7 +493,7 @@ export default function transformProps(
         formatter:
           seriesType === EchartsTimeseriesSeriesType.Bar
             ? getOverMaxHiddenFormatter({
-                max: yAxisMax,
+                max: getAxisMax(yAxisIndex),
                 formatter: seriesFormatter,
               })
             : seriesFormatter,
@@ -518,10 +531,11 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
     }
+    const axisFormatterConfig = getAxisFormatterConfig(yAxisIndexB);
 
     const seriesFormatter = getFormatter(
-      customFormattersSecondary,
-      formatterSecondary,
+      axisFormatterConfig.customFormatters,
+      axisFormatterConfig.formatter,
       metricsB,
       labelMapB?.[seriesName]?.[0],
       !!contributionMode,
@@ -554,7 +568,7 @@ export default function transformProps(
         formatter:
           seriesTypeB === EchartsTimeseriesSeriesType.Bar
             ? getOverMaxHiddenFormatter({
-                max: maxSecondary,
+                max: getAxisMax(yAxisIndexB),
                 formatter: seriesFormatter,
               })
             : seriesFormatter,
@@ -589,7 +603,8 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
       : String;
 
-  const showMaxLabel = xAxisType === AxisType.Time && xAxisLabelRotation === 0;
+  const showMaxLabel =
+    xAxisType === AxisType.Time && xAxisLabelRotation === 0 && !!timeGrainSqla;
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;

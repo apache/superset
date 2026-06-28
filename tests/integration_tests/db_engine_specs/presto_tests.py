@@ -29,6 +29,7 @@ from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql.parse import Table
 from superset.utils.database import get_example_database
+from tests.common.assert_utils import assert_called_once_with_text
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -81,8 +82,8 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
     def verify_presto_column(self, column, expected_results):
         inspector = mock.Mock()
         preparer = inspector.engine.dialect.identifier_preparer
-        preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
-            lambda x: f'"{x}"'
+        preparer.quote_identifier = preparer.quote = preparer.quote_schema = lambda x: (
+            f'"{x}"'
         )
         row = mock.Mock()
         row.Column, row.Type, row.Null = column
@@ -827,8 +828,8 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
     def test_show_columns(self):
         inspector = mock.MagicMock()
         preparer = inspector.engine.dialect.identifier_preparer
-        preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
-            lambda x: f'"{x}"'
+        preparer.quote_identifier = preparer.quote = preparer.quote_schema = lambda x: (
+            f'"{x}"'
         )
         inspector.bind.execute.return_value.fetchall = mock.MagicMock(
             return_value=["a", "b"]
@@ -836,15 +837,16 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         table_name = "table_name"
         result = PrestoEngineSpec._show_columns(inspector, Table(table_name))
         assert result == ["a", "b"]
-        inspector.bind.execute.assert_called_once_with(
-            f'SHOW COLUMNS FROM "{table_name}"'
+        assert_called_once_with_text(
+            inspector.bind.execute,
+            f'SHOW COLUMNS FROM "{table_name}"',
         )
 
     def test_show_columns_with_schema(self):
         inspector = mock.MagicMock()
         preparer = inspector.engine.dialect.identifier_preparer
-        preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
-            lambda x: f'"{x}"'
+        preparer.quote_identifier = preparer.quote = preparer.quote_schema = lambda x: (
+            f'"{x}"'
         )
         inspector.bind.execute.return_value.fetchall = mock.MagicMock(
             return_value=["a", "b"]
@@ -853,8 +855,8 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         schema = "schema"
         result = PrestoEngineSpec._show_columns(inspector, Table(table_name, schema))
         assert result == ["a", "b"]
-        inspector.bind.execute.assert_called_once_with(
-            f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
+        assert_called_once_with_text(
+            inspector.bind.execute, f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
         )
 
     def test_is_column_name_quoted(self):

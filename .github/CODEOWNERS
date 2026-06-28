@@ -38,7 +38,7 @@
 
 # Notify translation maintainers of changes to translations
 
-/superset/translations/ @sfirke
+/superset/translations/ @sfirke @rusackas @villebro @sadpandajoe @hainenber
 
 # Notify PMC members of changes to extension-related files
 

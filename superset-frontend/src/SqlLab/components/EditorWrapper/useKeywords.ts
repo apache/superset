@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef } from 'react';
-import { useDispatch, useStore } from 'react-redux';
+import { useStore } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry } from '@superset-ui/core';
 
@@ -52,6 +53,14 @@ const getHelperText = (value: string) =>
     detail: value,
   };
 
+// Names that aren't simple identifiers (spaces, punctuation, leading digits)
+// must be double-quoted to be valid SQL, with embedded quotes doubled.
+const SIMPLE_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const quoteIdentifier = (identifier: string) =>
+  SIMPLE_IDENTIFIER_RE.test(identifier)
+    ? identifier
+    : `"${identifier.replace(/"/g, '""')}"`;
+
 const extensionsRegistry = getExtensionsRegistry();
 
 export function useKeywords(
@@ -68,7 +77,7 @@ export function useKeywords(
     catalog,
     schema,
   });
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const hasFetchedKeywords = useRef(false);
   // skipFetch is used to prevent re-evaluating memoized keywords
   // due to updated api results by skip flag
@@ -196,7 +205,7 @@ export function useKeywords(
     () =>
       allCachedTables.map(({ value, label, schema: tableSchema }) => ({
         name: label,
-        value,
+        value: quoteIdentifier(value),
         schema: tableSchema,
         score: TABLE_AUTOCOMPLETE_SCORE,
         meta: 'table',

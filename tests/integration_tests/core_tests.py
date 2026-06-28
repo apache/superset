@@ -23,12 +23,13 @@ import logging
 import random
 import unittest
 from unittest import mock
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, urlsplit
 
 import pandas as pd
 import pytest
 import pytz
 import sqlalchemy as sqla
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -332,6 +333,21 @@ class TestCore(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         assert "Charts" in self.get_resp("/chart/list/")
         assert "Dashboards" in self.get_resp("/dashboard/list/")
+
+    def test_security_fab_views_have_valid_list_template(self) -> None:
+        # Regression test for #36130: the FAB permission views pointed at a custom
+        # list template (superset/fab_overrides/list.html) that was deleted during a
+        # cleanup, so they 500'd with TemplateNotFound. Ensure each view's list
+        # widget template still resolves in the Jinja environment.
+        from superset.security.manager import (
+            PermissionModelView,
+            PermissionViewModelView,
+        )
+
+        for view_cls in (PermissionModelView, PermissionViewModelView):
+            template = view_cls.list_widget.template
+            # Raises TemplateNotFound if the template is missing (the #36130 bug).
+            current_app.jinja_env.get_template(template)
 
     def test_templated_sql_json(self):
         if superset.utils.database.get_example_database().backend == "presto":
@@ -908,6 +924,34 @@ class TestCore(SupersetTestCase):
 
         assert resp.headers["Location"] == expected_url
         assert resp.status_code == 302
+
+    @mock.patch("superset.views.core.request")
+    @mock.patch(
+        "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run"
+    )
+    def test_dashboard_permalink_native_filters_encoded(
+        self, get_dashboard_permalink_mock, request_mock
+    ):
+        # A native_filters value containing reserved characters must be
+        # percent-encoded in the redirect target so it cannot inject extra
+        # query parameters into the Location header.
+        request_mock.query_string = b""
+        native_filters_value = "value&injected=evil#frag"
+        get_dashboard_permalink_mock.return_value = {
+            "dashboardId": 1,
+            "state": {"urlParams": [["native_filters", native_filters_value]]},
+        }
+        self.login(ADMIN_USERNAME)
+        resp = self.client.get("superset/dashboard/p/123/")
+
+        location = resp.headers["Location"]
+        assert resp.status_code == 302
+        # The reserved characters are encoded, so no extra params/anchors leak in.
+        assert "native_filters=value%26injected%3Devil%23frag" in location
+        assert "injected=evil" not in location
+        # Round-trips back to the original value when decoded.
+        parsed = parse_qs(urlsplit(location).query)
+        assert parsed["native_filters"] == [native_filters_value]
 
 
 class TestLocalePatch(SupersetTestCase):

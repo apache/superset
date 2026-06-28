@@ -270,13 +270,14 @@ class ReportSchedulePostSchema(Schema):
         },
         allow_none=True,
         required=False,
-        default=None,
+        dump_default=None,
     )
 
     @validates("custom_width")
     def validate_custom_width(
         self,
         value: Optional[int],
+        **kwargs: Any,
     ) -> None:
         if value is None:
             return
@@ -303,6 +304,30 @@ class ReportSchedulePostSchema(Schema):
                 raise ValidationError(
                     {"database": ["Database reference is not allowed on a report"]}
                 )
+
+
+class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
+    """Schema for creating a chart/dashboard subscription.
+
+    ``recipients`` and ``creation_method`` are excluded — both are set
+    server-side: recipients are locked to the authenticated user's email,
+    and creation_method is derived from the presence of ``chart`` or
+    ``dashboard`` in the payload.
+
+    ``type`` is restricted to ``Report`` — alert schedules cannot be
+    created through the subscribe endpoint.
+    """
+
+    type = fields.String(
+        metadata={"description": type_description},
+        allow_none=False,
+        required=True,
+        validate=validate.OneOf(choices=[ReportScheduleType.REPORT.value]),
+    )
+
+    class Meta:
+        exclude = ("recipients", "creation_method", "owners")
+        unknown = EXCLUDE
 
 
 class ReportSchedulePutSchema(Schema):
@@ -408,13 +433,14 @@ class ReportSchedulePutSchema(Schema):
         },
         allow_none=True,
         required=False,
-        default=None,
+        dump_default=None,
     )
 
     @validates("custom_width")
     def validate_custom_width(
         self,
         value: Optional[int],
+        **kwargs: Any,
     ) -> None:
         if value is None:
             return
@@ -443,3 +469,15 @@ class SlackChannelSchema(Schema):
     name = fields.String()
     is_member = fields.Boolean()
     is_private = fields.Boolean()
+
+
+class ReportScheduleExecuteResponseSchema(Schema):
+    """Schema for the response when executing a report schedule immediately."""
+
+    class Meta:
+        unknown = EXCLUDE
+
+    execution_id = fields.UUID(
+        metadata={"description": _("UUID to track the execution status")}
+    )
+    message = fields.String(metadata={"description": _("Success message")})

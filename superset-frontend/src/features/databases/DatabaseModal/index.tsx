@@ -167,6 +167,7 @@ export enum ActionType {
   ExtraEditorChange,
   ExtraInputChange,
   EncryptedExtraInputChange,
+  ClearEncryptedExtraKey,
   Fetched,
   InputChange,
   ParametersChange,
@@ -199,6 +200,7 @@ export type DBReducerActionType =
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
         | ActionType.EncryptedExtraInputChange
+        | ActionType.ClearEncryptedExtraKey
         | ActionType.TextChange
         | ActionType.QueryChange
         | ActionType.InputChange
@@ -285,14 +287,57 @@ export function dbReducer(
           [action.payload.name]: actionPayloadJson,
         }),
       };
-    case ActionType.EncryptedExtraInputChange:
+    case ActionType.EncryptedExtraInputChange: {
+      // `masked_encrypted_extra` can arrive as the literal string "null" or
+      // malformed JSON from older payloads — defend the parse so a single
+      // bad value can't crash the reducer.
+      let parsedUnknown: unknown;
+      try {
+        parsedUnknown = JSON.parse(trimmedState.masked_encrypted_extra || '{}');
+      } catch (e) {
+        if (!(e instanceof SyntaxError)) throw e;
+        parsedUnknown = {};
+      }
+      const parsed: Record<string, unknown> =
+        parsedUnknown &&
+        typeof parsedUnknown === 'object' &&
+        !Array.isArray(parsedUnknown)
+          ? (parsedUnknown as Record<string, unknown>)
+          : {};
+      // Generic input change: store the value as-is (including empty string).
+      // Use `ClearEncryptedExtraKey` if the intent is to remove the key.
       return {
         ...trimmedState,
         masked_encrypted_extra: JSON.stringify({
-          ...JSON.parse(trimmedState.masked_encrypted_extra || '{}'),
+          ...parsed,
           [action.payload.name]: action.payload.value,
         }),
       };
+    }
+    case ActionType.ClearEncryptedExtraKey: {
+      // Same defensive parse as EncryptedExtraInputChange — see comment above.
+      let parsedUnknown: unknown;
+      try {
+        parsedUnknown = JSON.parse(trimmedState.masked_encrypted_extra || '{}');
+      } catch (e) {
+        if (!(e instanceof SyntaxError)) throw e;
+        parsedUnknown = {};
+      }
+      const parsed: Record<string, unknown> =
+        parsedUnknown &&
+        typeof parsedUnknown === 'object' &&
+        !Array.isArray(parsedUnknown)
+          ? (parsedUnknown as Record<string, unknown>)
+          : {};
+      // Explicit key removal — used by the gsheets public/private toggle to
+      // drop previously stored service_account_info / oauth2_client_info so
+      // the save-time merge in this modal doesn't carry them forward.
+      delete parsed[action.payload.name as string];
+      return {
+        ...trimmedState,
+        masked_encrypted_extra: JSON.stringify(parsed),
+      };
+    }
     case ActionType.ExtraInputChange:
       if (
         action.payload.name === 'schema_cache_timeout' ||
@@ -546,6 +591,10 @@ export function dbReducer(
             catalog: payloadCatalog,
           },
           // eslint-disable-next-line camelcase
+          engine_information:
+            action.payload.engine_information ||
+            trimmedState.engine_information,
+          // eslint-disable-next-line camelcase
           query_input,
         };
       }
@@ -556,6 +605,9 @@ export function dbReducer(
         configuration_method: action.payload.configuration_method,
         parameters: action.payload.parameters || trimmedState.parameters,
         ssh_tunnel: action.payload.ssh_tunnel || trimmedState.ssh_tunnel,
+        // eslint-disable-next-line camelcase
+        engine_information:
+          action.payload.engine_information || trimmedState.engine_information,
         // eslint-disable-next-line camelcase
         query_input,
       };
@@ -888,7 +940,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       const errors = await getValidation(dbToUpdate, true);
-      if (!isEmpty(validationErrors) || errors?.length) {
+      if (!isEmpty(validationErrors) || !isEmpty(errors)) {
         addDangerToast(
           t('Connection failed, please check your connection settings.'),
         );
@@ -1156,9 +1208,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           // For all other options, sort alphabetically
           return String(a.label).localeCompare(String(b.label));
         }}
-        getPopupContainer={triggerNode =>
-          triggerNode.parentElement || document.body
-        }
+        getPopupContainer={() => document.body}
         dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
       />
       <Alert
@@ -1864,6 +1914,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           handleChangeWithValidation(ActionType.EncryptedExtraInputChange, {
             name: target.name,
             value: target.value,
+          })
+        }
+        onClearEncryptedExtraKey={(name: string) =>
+          handleChangeWithValidation(ActionType.ClearEncryptedExtraKey, {
+            name,
           })
         }
         onRemoveTableCatalog={(idx: number) => {
