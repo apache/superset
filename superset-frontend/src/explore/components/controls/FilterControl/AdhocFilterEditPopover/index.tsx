@@ -170,7 +170,7 @@ function AdhocFilterEditPopover({
             .filter((item: { sliceIndex: number }) => item.sliceIndex !== -1)
             .map(
               ({
-                sliceIndex,
+                sliceIndex: _sliceIndex,
                 ...item
               }: {
                 sliceIndex: number;

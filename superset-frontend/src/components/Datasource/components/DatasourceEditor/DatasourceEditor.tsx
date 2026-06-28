@@ -2588,7 +2588,6 @@ function DatasourceEditor({
       isEditMode,
       datasource,
       setColumns,
-      onDatasourceChange,
       metadataLoading,
       calculatedColumns,
       columnSearchTerm,
