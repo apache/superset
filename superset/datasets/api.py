@@ -308,6 +308,52 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     list_outer_default_load = True
     show_outer_default_load = True
 
+    def get_list_headless(self, **kwargs: Any) -> Response:
+        response = super().get_list_headless(**kwargs)
+        # TODO: Double-serialization note: `response.json` deserializes the
+        # response body back from bytes (produced by
+        # `super().get_list_headless()`), and then `self.response(200, **payload)`
+        # re-serializes it. For large dataset lists this is noticeable overhead.
+        # A follow-up improvement: override `_get_list_response_object` (or the
+        # equivalent Flask-AppBuilder hook) instead of `get_list_headless`, so the
+        # RLS data can be injected *before* the response is built rather than
+        # after. The current approach is functional; this TODO is an
+        # optimization to revisit.
+        if response.status_code == 200:
+            try:
+                payload = response.json
+                if payload and API_RESULT_RES_KEY in payload:
+                    dataset_ids = [
+                        item["id"]
+                        for item in payload[API_RESULT_RES_KEY]
+                        if "id" in item
+                    ]
+                    rls_map = DatasetDAO.get_rls_filters_for_datasets(dataset_ids)
+                    can_read_rls = security_manager.can_access(
+                        "can_read", "RowLevelSecurity"
+                    )
+                    for item in payload[API_RESULT_RES_KEY]:
+                        filters = rls_map.get(item.get("id"), [])
+                        if can_read_rls:
+                            item["rls_filters"] = filters
+                        else:
+                            item["rls_filters"] = [
+                                {
+                                    "id": f["id"],
+                                    "name": f["name"],
+                                    "filter_type": f["filter_type"],
+                                    "group_key": f.get("group_key"),
+                                }
+                                for f in filters
+                            ]
+                    response = self.response(200, **payload)
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Failed to annotate dataset list with RLS info",
+                    exc_info=True,
+                )
+        return response
+
     @expose("/", methods=("POST",))
     @protect()
     @safe
@@ -1301,6 +1347,20 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 )
             except SupersetTemplateException as ex:
                 return self.response(ex.status, message=str(ex))
+
+        detailed_rls = DatasetDAO.get_rls_filters_for_dataset(table.id)
+        if security_manager.can_access("can_read", "RowLevelSecurity"):
+            response[API_RESULT_RES_KEY]["rls_filters"] = detailed_rls
+        else:
+            response[API_RESULT_RES_KEY]["rls_filters"] = [
+                {
+                    "id": f["id"],
+                    "name": f["name"],
+                    "filter_type": f["filter_type"],
+                    "group_key": f.get("group_key"),
+                }
+                for f in detailed_rls
+            ]
 
         return self.response(200, **response)
 

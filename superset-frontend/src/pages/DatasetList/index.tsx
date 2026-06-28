@@ -55,6 +55,8 @@ import {
   DatasetTypeLabel,
   Loading,
   List,
+  RlsBadge,
+  type RlsFilterSummary,
 } from '@superset-ui/core/components';
 import {
   DatasourceModal,
@@ -172,6 +174,7 @@ type Dataset = {
   cache_timeout?: number | null;
   extra?: string | DatasetExtra | null;
   sql?: string | null;
+  rls_filters?: RlsFilterSummary[];
 };
 
 interface VirtualDataset extends Dataset {
@@ -701,6 +704,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               table_name: datasetTitle,
               description,
               explore_url: exploreURL,
+              rls_filters: rlsFilters,
             },
           },
         }: CellProps<Dataset>) => {
@@ -737,6 +741,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     warningMarkdown={parsedExtra.warning_markdown}
                     size="l"
                   />
+                )}
+                {rlsFilters && rlsFilters.length > 0 && (
+                  <RlsBadge rlsFilters={rlsFilters} size="l" />
                 )}
                 {titleLink}
                 {description && <InfoTooltip tooltip={description} />}

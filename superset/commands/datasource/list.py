@@ -22,9 +22,11 @@ import logging
 from typing import Any, cast
 
 from sqlalchemy import union_all
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.datasource.schemas import DatasetListSchema, SemanticViewListSchema
 from superset.semantic_layers.models import SemanticView
@@ -150,6 +152,27 @@ class GetCombinedDatasourceListCommand(BaseCommand):
                 sv_obj = cast(SemanticView | None, sv_map.get(row.item_id))
                 if sv_obj:
                     result.append(_semantic_view_schema.dump(sv_obj))
+
+        # Inject RLS summaries for dataset entries so the combined list
+        # includes the same `rls_filters` summary shape available on
+        # the standalone dataset list endpoint.
+        dataset_ids = [
+            item["id"] for item in result if item.get("source_type") == "database"
+        ]
+        if dataset_ids:
+            try:
+                rls_map = DatasetDAO.get_rls_filters_for_datasets(dataset_ids)
+                for item in result:
+                    if item.get("source_type") == "database":
+                        item_id = item.get("id")
+                        if isinstance(item_id, int):
+                            item["rls_filters"] = rls_map.get(item_id, [])
+                        else:
+                            item["rls_filters"] = []
+            except SQLAlchemyError:
+                logger.exception(
+                    "Failed to inject RLS summaries into combined datasource list"
+                )
 
         return result
 
