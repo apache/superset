@@ -353,6 +353,7 @@ export class ChartCreation extends PureComponent<
                   optionFilterProps={['id', 'table_name']}
                   placeholder={t('Choose a %s', datasetLabelLower())}
                   showSearch
+                  oneLine
                   value={this.state.datasource}
                 />
                 {datasetHelpText}

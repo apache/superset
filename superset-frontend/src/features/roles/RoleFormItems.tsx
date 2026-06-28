@@ -60,7 +60,10 @@ export const PermissionsField = ({
         placeholder={t('Select permissions')}
         options={options}
         loading={loading}
-        getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
+        getPopupContainer={trigger =>
+          trigger.closest('.ant-modal-content') || document.body
+        }
+        dropdownStyle={{ minWidth: 480 }}
         data-test="permissions-select"
       />
     </FormItem>
