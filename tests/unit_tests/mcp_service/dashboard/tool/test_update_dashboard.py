@@ -81,6 +81,11 @@ def _mock_dashboard(
     dashboard.slices = []
     dashboard.owners = []
     dashboard.tags = []
+    # Real dashboards expose ``embedded`` as a (possibly empty) list; the
+    # shared dashboard_serializer reads ``dashboard.embedded[0].uuid`` behind
+    # an ``if dashboard.embedded`` guard. Without this, Mock returns a truthy
+    # auto-Mock that passes the guard and then fails to subscript.
+    dashboard.embedded = []
     return dashboard
 
 
