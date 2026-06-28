@@ -41,7 +41,7 @@ export const ActionButton = ({
     <span
       role="button"
       tabIndex={0}
-      aria-label={label}
+      aria-label={typeof tooltip === 'string' ? tooltip : label}
       css={css`
         cursor: pointer;
         color: ${theme.colorIcon};
