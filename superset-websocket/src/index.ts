@@ -19,11 +19,11 @@
 import * as http from 'http';
 import * as net from 'net';
 import { inspect } from 'util';
-import WebSocket, { WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import jwt, { Algorithm } from 'jsonwebtoken';
 import { parse } from 'cookie';
-import Redis, { RedisOptions } from 'ioredis';
+import { Redis, RedisOptions } from 'ioredis';
 import StatsD from 'hot-shots';
 
 import { createLogger } from './logger';
@@ -161,6 +161,67 @@ let lastFirehoseId: string = DEFAULT_STREAM_LAST_ID;
 
 export const setLastFirehoseId = (id: string): void => {
   lastFirehoseId = id;
+};
+
+// WebSocket close code used when a connection is refused because a configured
+// connection limit has been reached (1013 = "Try Again Later").
+const CONNECTION_LIMIT_CLOSE_CODE = 1013;
+
+/**
+ * Returns whether the socket with the given id is currently active, i.e. it is
+ * still registered and its underlying connection is in an active readyState.
+ *
+ * Closed sockets are only removed from the registries asynchronously (via the
+ * `checkSockets`/`cleanChannel` GC routines), so connection-limit checks must
+ * filter on live socket state rather than trusting the raw registry sizes.
+ */
+export const isSocketActive = (socketId: string): boolean => {
+  const socketInstance = sockets[socketId];
+  return (
+    !!socketInstance &&
+    SOCKET_ACTIVE_STATES.includes(socketInstance.ws.readyState)
+  );
+};
+
+/**
+ * Counts the sockets in the global registry that are still active.
+ */
+export const activeSocketCount = (): number =>
+  Object.keys(sockets).filter(isSocketActive).length;
+
+/**
+ * Counts the active sockets currently registered on the given channel.
+ */
+export const activeChannelSocketCount = (channel: string): number =>
+  channels[channel]?.sockets.filter(isSocketActive).length ?? 0;
+
+/**
+ * Determines whether accepting a new connection on the given channel would
+ * exceed a configured connection limit. Returns a human-readable reason when a
+ * limit is reached, or `null` when the connection is within limits.
+ *
+ * Both limits are opt-in: a value of `0` (the default) disables the check.
+ *
+ * Counts are derived from active socket state rather than raw registry sizes:
+ * recently closed sockets linger in the registries until the next GC pass, so
+ * counting them would spuriously reject new connections even when no active
+ * connection is consuming capacity.
+ */
+export const connectionLimitReason = (channel: string): string | null => {
+  const { maxTotalConnections, maxConnectionsPerChannel } = opts;
+
+  if (maxTotalConnections > 0 && activeSocketCount() >= maxTotalConnections) {
+    return `total connection limit (${maxTotalConnections}) reached`;
+  }
+
+  if (
+    maxConnectionsPerChannel > 0 &&
+    activeChannelSocketCount(channel) >= maxConnectionsPerChannel
+  ) {
+    return `per-channel connection limit (${maxConnectionsPerChannel}) reached`;
+  }
+
+  return null;
 };
 
 /**
@@ -379,6 +440,17 @@ export const incrementId = (id: string): string => {
  */
 export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
   const channel: string = readChannelId(request);
+
+  // Refuse the connection if a configured connection limit has been reached,
+  // before tracking it against the internal registries.
+  const limitReason = connectionLimitReason(channel);
+  if (limitReason) {
+    statsd.increment('ws_connection_rejected');
+    logger.warn(`Refusing connection on channel ${channel}: ${limitReason}`);
+    ws.close(CONNECTION_LIMIT_CLOSE_CODE, limitReason);
+    return;
+  }
+
   const socketInstance: SocketInstance = { ws, channel, pongTs: Date.now() };
 
   // add this ws instance to the internal registry

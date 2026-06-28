@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2406,6 +2406,9 @@ msgstr ""
 msgid "COPY QUERY"
 msgstr ""
 
+msgid "Copy query"
+msgstr ""
+
 msgid "CREATE TABLE AS"
 msgstr ""
 
@@ -4203,6 +4206,9 @@ msgstr ""
 msgid "Database type does not support file uploads."
 msgstr ""
 
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
+
 msgid "Database upload file failed"
 msgstr ""
 
@@ -5944,6 +5950,9 @@ msgid "FEB"
 msgstr ""
 
 msgid "FIT DATA"
+msgstr ""
+
+msgid "Fit data"
 msgstr ""
 
 msgid "FRI"
@@ -15597,6 +15606,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr ""
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr ""
 
@@ -16416,9 +16429,6 @@ msgid "value ascending"
 msgstr ""
 
 msgid "value descending"
-msgstr ""
-
-msgid "valuename"
 msgstr ""
 
 msgid "var"

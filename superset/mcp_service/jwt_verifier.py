@@ -25,21 +25,18 @@ Provides step-by-step JWT validation with tiered server-side logging:
 HTTP responses always return generic errors per RFC 6750 Section 3.1.
 """
 
+import asyncio
 import base64
 import html as html_module
 import logging
+import math
 import time
 from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
 import httpx
-from authlib.jose.errors import (
-    BadSignatureError,
-    DecodeError,
-    ExpiredTokenError,
-    JoseError,
-)
+from authlib.jose.errors import JoseError
 from fastmcp.server.auth.auth import AccessToken
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from mcp.server.auth.middleware.auth_context import AuthContextMiddleware
@@ -57,6 +54,41 @@ from superset.mcp_service.utils.error_sanitization import (
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+# Algorithms that are never acceptable for bearer-token verification.
+# "none" (unsigned tokens) must never be honored — accepting it would let any
+# caller forge claims. Comparison is case-insensitive to catch "None"/"NONE".
+_FORBIDDEN_ALGORITHMS = frozenset({"none"})
+
+
+def _warn_on_weak_jwt_config(
+    audience: Any,
+    algorithm: Any,
+) -> None:
+    """Emit startup warnings when a JWT verifier is configured permissively.
+
+    These are config-gated soft warnings, not hard failures: a verifier is only
+    ever constructed when ``MCP_AUTH_ENABLED`` is True and JWT keys are present
+    (see ``create_default_mcp_auth_factory``). We warn — rather than refuse to
+    start — so existing single-service deployments that intentionally omit an
+    audience or rely on JWKS-advertised algorithms keep working. Operators who
+    want strict enforcement should set ``MCP_JWT_AUDIENCE`` and
+    ``MCP_JWT_ALGORITHM``.
+    """
+    if not audience:
+        logger.warning(
+            "MCP JWT verifier configured without an audience "
+            "(MCP_JWT_AUDIENCE unset): audience validation is DISABLED. "
+            "Tokens minted for other services may be accepted. Set "
+            "MCP_JWT_AUDIENCE to bind tokens to this service."
+        )
+    if not algorithm:
+        logger.warning(
+            "MCP JWT verifier configured without a pinned signing algorithm "
+            "(MCP_JWT_ALGORITHM unset): the algorithm header is not pinned. "
+            "Set MCP_JWT_ALGORITHM to the algorithm your IdP uses. Unsigned "
+            "('none') tokens are always rejected regardless of this setting."
+        )
 
 
 # Thread-safe storage for the specific JWT failure reason.
@@ -355,6 +387,33 @@ class MCPJWTVerifier(JWTVerifier):
     page is active regardless of which verifier variant is configured.
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        # Capture the explicit algorithm kwarg before super().__init__() can
+        # coerce it (the factory defaults it to "RS256" when MCP_JWT_ALGORITHM
+        # is unset, so self.algorithm is always truthy post-construction).
+        explicit_algorithm = kwargs.get("algorithm")
+        super().__init__(*args, **kwargs)
+        # Surface permissive auth configuration at startup. Config-gated:
+        # a verifier is only built when auth is enabled (see mcp_config).
+        # Prefer the raw MCP_JWT_ALGORITHM config value over the constructor
+        # kwarg because the factory always supplies a non-None algorithm
+        # default; falling back to the kwarg lets unit tests that construct
+        # verifiers directly (without an app context) also get the warning
+        # when no algorithm is pinned.
+        from flask import current_app
+
+        try:
+            config_algorithm = current_app.config.get("MCP_JWT_ALGORITHM")
+        except RuntimeError:
+            # No Flask application context (e.g. unit tests constructing the
+            # verifier directly). Fall back to the explicit constructor arg.
+            config_algorithm = None
+
+        _warn_on_weak_jwt_config(
+            audience=getattr(self, "audience", None),
+            algorithm=config_algorithm or explicit_algorithm,
+        )
+
     def get_middleware(self) -> list[Any]:
         return [
             Middleware(
@@ -428,14 +487,37 @@ class DetailedJWTVerifier(MCPJWTVerifier):
             # Step 1: Decode header and check algorithm
             try:
                 header = self._decode_token_header(token)
-            except (ValueError, DecodeError) as e:
+            except ValueError as e:
                 reason = "Malformed token header"
                 _jwt_failure_reason.set(reason)
                 logger.debug("Malformed token header: %s", e)
                 return None
 
             token_alg = header.get("alg")
-            if self.algorithm and token_alg != self.algorithm:
+            # Always reject unsigned ("none") tokens, even when no algorithm
+            # is pinned. An unsigned token has no integrity guarantee, so its
+            # claims (sub, scopes, ...) are fully attacker-controlled.
+            if isinstance(token_alg, str) and token_alg.lower() in (
+                _FORBIDDEN_ALGORITHMS
+            ):
+                reason = "Algorithm not allowed"
+                _jwt_failure_reason.set(reason)
+                logger.debug(
+                    "Rejected forbidden algorithm: token uses '%s'",
+                    _sanitize_for_log(token_alg),
+                )
+                return None
+            # Require a pinned signing algorithm. Without one, the accepted
+            # algorithm family would be whatever the verification key or the
+            # underlying library permits; refuse rather than validating against
+            # an unconstrained algorithm set. The production factory always
+            # pins an algorithm, so this guards the directly-constructed case.
+            if not self.algorithm:
+                reason = "No signing algorithm pinned"
+                _jwt_failure_reason.set(reason)
+                logger.debug("Rejected token: verifier has no pinned signing algorithm")
+                return None
+            if token_alg != self.algorithm:
                 reason = "Algorithm mismatch"
                 _jwt_failure_reason.set(reason)
                 logger.debug(
@@ -445,13 +527,32 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 )
                 return None
 
-            # Step 2: Get verification key (static or JWKS)
+            # Step 2: Get verification key (static or JWKS).
+            #
+            # For remote JWKS the upstream verifier performs a network fetch and
+            # is expected to normalize transport failures (timeouts, connection
+            # errors, non-200 responses, SSRF blocks) into ValueError. We do not
+            # rely on that normalization alone: any retrieval failure — including
+            # a raw httpx error, an asyncio timeout, or an OS-level connection
+            # error that escapes the upstream conversion — must fail CLOSED and
+            # reject the token, never fall through to "skip verification" or a
+            # 500. Catching these here guarantees a fetch failure can never be
+            # treated as a successful (or skipped) signature check.
             try:
                 verification_key = await self._get_verification_key(token)
-            except (httpx.HTTPError, OSError, TimeoutError) as e:
-                # Transient failure reaching or reading the JWKS endpoint.
+            except (
+                httpx.HTTPError,
+                asyncio.TimeoutError,
+                ConnectionError,
+                OSError,
+            ) as e:
+                # Transient failure reaching or reading the JWKS endpoint
+                # (timeouts, connection errors, non-200 responses, SSRF blocks).
                 # Treat it as an authentication failure (return None) instead of
                 # letting the network error propagate as an unexpected exception.
+                # ConnectionError is a subclass of OSError and asyncio.TimeoutError
+                # aliases TimeoutError; they are listed explicitly to make the
+                # fail-closed contract for raw transport errors unambiguous.
                 reason = "JWKS verification key unavailable"
                 _jwt_failure_reason.set(reason)
                 # WARNING carries only the generic category (per the module's
@@ -463,24 +564,24 @@ class DetailedJWTVerifier(MCPJWTVerifier):
             except ValueError as e:
                 reason = "Failed to get verification key"
                 _jwt_failure_reason.set(reason)
-                logger.debug("Failed to get verification key: %s", e)
+                logger.debug(
+                    "Failed to get verification key (%s): %s", type(e).__name__, e
+                )
                 return None
 
             # Step 3: Decode and verify signature
             try:
                 claims = self.jwt.decode(token, verification_key)
-            except BadSignatureError:
-                reason = "Signature verification failed"
-                _jwt_failure_reason.set(reason)
-                return None
-            except ExpiredTokenError:
-                reason = "Token has expired (detected during decode)"
-                _jwt_failure_reason.set(reason)
-                return None
             except JoseError as e:
-                reason = "Token decode failed"
+                error_code = getattr(e, "error", None)
+                if error_code == "bad_signature":
+                    reason = "Signature verification failed"
+                elif error_code == "expired_token":
+                    reason = "Token has expired (detected during decode)"
+                else:
+                    reason = "Token decode failed"
+                    logger.debug("Token decode failed: %s", e)
                 _jwt_failure_reason.set(reason)
-                logger.debug("Token decode failed: %s", e)
                 return None
 
             # Extract client ID for logging
@@ -502,11 +603,44 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                     _sanitize_for_log(client_id),
                 )
                 return None
+            # ``exp`` must be a finite real number. A non-numeric value would
+            # raise ``TypeError`` on the comparison below, and a non-finite
+            # float (e.g. ``inf`` parsed from a JSON ``1e309``) would overflow
+            # the ``int(exp)`` cast later, raising ``OverflowError``. Both are
+            # rejected here with a precise reason rather than escaping as a
+            # generic failure (or, for the overflow, an uncaught 500).
+            if (
+                not isinstance(exp, (int, float))
+                or isinstance(exp, bool)
+                or not math.isfinite(exp)
+            ):
+                reason = "Token has invalid expiration"
+                _jwt_failure_reason.set(reason)
+                logger.debug(
+                    "Token exp claim is not a finite number for client '%s'",
+                    _sanitize_for_log(client_id),
+                )
+                return None
             if exp < time.time():
                 reason = "Token expired"
                 _jwt_failure_reason.set(reason)
                 logger.debug(
                     "Token expired for client '%s'", _sanitize_for_log(client_id)
+                )
+                return None
+
+            # Step 4b: Check not-before (RFC 7519 Section 4.1.5). ``decode``
+            # alone does not validate temporal claims here (claims are read
+            # individually rather than via ``JWTClaims.validate``), so a token
+            # whose ``nbf`` is in the future must be rejected explicitly, just
+            # like ``exp`` above.
+            nbf = claims.get("nbf")
+            if nbf is not None and nbf > time.time():
+                reason = "Token not yet valid"
+                _jwt_failure_reason.set(reason)
+                logger.debug(
+                    "Token not yet valid for client '%s': nbf is in the future",
+                    _sanitize_for_log(client_id),
                 )
                 return None
 
@@ -591,7 +725,14 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 claims=dict(claims),
             )
 
-        except (ValueError, JoseError, KeyError, AttributeError, TypeError) as e:
+        except (
+            ValueError,
+            JoseError,
+            KeyError,
+            AttributeError,
+            TypeError,
+            OverflowError,
+        ) as e:
             reason = "Token validation failed"
             _jwt_failure_reason.set(reason)
             logger.debug("Token validation failed: %s", e)

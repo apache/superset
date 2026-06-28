@@ -144,7 +144,11 @@ export const processEvents = async (events: AsyncEvent[]) => {
   events.forEach((asyncEvent: AsyncEvent) => {
     const jobId = asyncEvent.job_id;
     const listener = listenersByJobId.get(jobId);
-    if (listener) {
+    // `jobId` originates from server/WebSocket payloads, so the listener is
+    // resolved exclusively through a Map (never plain-object property access,
+    // which would expose the prototype chain), and we confirm the retrieved
+    // value is a registered function before dispatching the event to it.
+    if (typeof listener === 'function') {
       listener(asyncEvent);
       retriesByJobId.delete(jobId);
     } else {

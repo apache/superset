@@ -17,11 +17,13 @@
 
 """Tests for DetailedJWTVerifier and related middleware."""
 
+import asyncio
 import base64
 import logging
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from authlib.jose.errors import BadSignatureError, DecodeError, ExpiredTokenError
 
@@ -79,6 +81,31 @@ async def test_algorithm_mismatch(hs256_verifier):
     # Claim values must not leak into the contextvar reason
     assert "RS256" not in reason
     assert "HS256" not in reason
+
+
+@pytest.mark.asyncio
+async def test_unpinned_algorithm_is_rejected(
+    hs256_verifier: DetailedJWTVerifier,
+) -> None:
+    """A verifier with no pinned algorithm must reject signed tokens.
+
+    The upstream JWTVerifier currently always defaults the algorithm to RS256,
+    so this state is not reachable through normal construction. This asserts the
+    fail-closed guard so the verifier does not silently rely on that upstream
+    default: if the pinned algorithm is ever absent, tokens are rejected rather
+    than validated against an unconstrained algorithm family.
+    """
+    # Simulate an unpinned verifier (e.g. a future upstream default change).
+    hs256_verifier.algorithm = None
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+
+    result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "No signing algorithm pinned"
 
 
 @pytest.mark.asyncio
@@ -164,6 +191,29 @@ async def test_expired_token(hs256_verifier):
     assert result is None
     reason = _jwt_failure_reason.get()
     assert reason == "Token expired"
+    # Claim values must not leak into the contextvar reason
+    assert "user1" not in reason
+
+
+@pytest.mark.asyncio
+async def test_token_with_future_nbf_rejected(hs256_verifier):
+    """Token whose nbf is in the future should report not-yet-valid."""
+    future_nbf = int(time.time()) + 3600
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": int(time.time()) + 7200,
+        "nbf": future_nbf,
+    }
+    token = _make_token({"alg": "HS256", "typ": "JWT"}, claims)
+
+    with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+        result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    reason = _jwt_failure_reason.get()
+    assert reason == "Token not yet valid"
     # Claim values must not leak into the contextvar reason
     assert "user1" not in reason
 
@@ -383,6 +433,58 @@ async def test_token_without_expiration_rejected(hs256_verifier):
 
 
 @pytest.mark.asyncio
+async def test_non_finite_expiration_rejected(hs256_verifier):
+    """An infinite exp must be rejected cleanly, not crash on int() overflow.
+
+    A JSON ``1e309`` decodes to ``float('inf')``, which passes the
+    ``exp < time.time()`` expiry check and would later raise ``OverflowError``
+    on ``int(exp)`` — surfacing as a 500 instead of a 401. The finite-number
+    guard rejects it with a precise reason before that can happen.
+    """
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": float("inf"),
+    }
+
+    with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+        result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Token has invalid expiration"
+
+
+@pytest.mark.asyncio
+async def test_non_numeric_expiration_rejected(hs256_verifier):
+    """A non-numeric exp must be rejected with the invalid-expiration reason.
+
+    Without the finite-number guard, ``exp < time.time()`` would raise
+    ``TypeError`` and degrade to the generic "Token validation failed" reason.
+    """
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": "2026-01-01",
+    }
+
+    with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+        result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Token has invalid expiration"
+
+
+@pytest.mark.asyncio
 async def test_decode_error(hs256_verifier):
     """Token that fails to decode should report decode failure."""
     token = _make_token(
@@ -422,6 +524,64 @@ async def test_verification_key_failure(hs256_verifier):
     assert reason == "Failed to get verification key"
     # Exception details must not leak into the contextvar reason
     assert "JWKS endpoint unreachable" not in reason
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "network_error",
+    [
+        httpx.ConnectError("connection refused"),
+        httpx.ConnectTimeout("connect timed out"),
+        httpx.ReadTimeout("read timed out"),
+        httpx.HTTPStatusError(
+            "500 Server Error",
+            request=httpx.Request("GET", "https://idp.example/jwks"),
+            response=httpx.Response(500),
+        ),
+        asyncio.TimeoutError("overall timeout"),
+        ConnectionError("connection reset"),
+        OSError("dns failure"),
+    ],
+    ids=[
+        "connect_error",
+        "connect_timeout",
+        "read_timeout",
+        "http_500",
+        "asyncio_timeout",
+        "connection_error",
+        "os_error",
+    ],
+)
+async def test_jwks_network_error_fails_closed(hs256_verifier, network_error):
+    """A network failure while fetching the JWKS must reject the token.
+
+    Remote JWKS verification performs a network call. If that call times out,
+    is refused, or returns a non-200, verification cannot complete — the token
+    must be rejected (fail CLOSED), never accepted and never surfaced as an
+    unhandled 500. This covers raw transport exceptions that could escape the
+    upstream conversion to ValueError.
+    """
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT", "kid": "key-1"},
+        {"sub": "user1"},
+    )
+
+    with patch.object(
+        hs256_verifier,
+        "_get_verification_key",
+        side_effect=network_error,
+    ):
+        # Must NOT raise — must resolve to a clean auth failure.
+        result = await hs256_verifier.load_access_token(token)
+
+    # Fail closed: no access token granted.
+    assert result is None
+    # Generic, non-leaking failure reason recorded for the 401 path. Raw
+    # transport errors are categorized as a JWKS retrieval failure.
+    reason = _jwt_failure_reason.get()
+    assert reason == "JWKS verification key unavailable"
+    # Underlying error detail must not leak into the reason surfaced to clients.
+    assert str(network_error) not in (reason or "")
 
 
 @pytest.mark.asyncio
@@ -865,3 +1025,137 @@ def test_sanitize_for_log_escapes_newlines():
     assert _sanitize_for_log("a\rb\tc") == "a\\rb\\tc"
     # Backslashes are escaped first so escapes are unambiguous
     assert _sanitize_for_log("a\\nb") == "a\\\\nb"
+
+
+# -- Strict-mode hardening: algorithm and audience config enforcement --
+
+
+@pytest.mark.asyncio
+async def test_algorithm_none_rejected(hs256_verifier):
+    """Unsigned ('none') tokens must always be rejected, even though the
+    verifier pins HS256 — defense in depth against alg confusion."""
+    token = _make_token(
+        {"alg": "none", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+
+    result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Algorithm not allowed"
+
+
+@pytest.mark.asyncio
+async def test_algorithm_none_rejected_when_no_algorithm_pinned():
+    """When no algorithm is pinned, a 'none' token is still rejected."""
+    verifier = DetailedJWTVerifier(
+        public_key="test-secret-key-for-hs256-tokens",
+        issuer="test-issuer",
+        audience="test-audience",
+        required_scopes=[],
+    )
+    # Header alg is case-insensitively matched against the forbidden set.
+    token = _make_token(
+        {"alg": "NONE", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+
+    result = await verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Algorithm not allowed"
+
+
+@pytest.mark.asyncio
+async def test_algorithm_null_rejected(hs256_verifier):
+    """A header with ``"alg": null`` (JSON null -> Python ``None``) bypasses the
+    forbidden-set check (which is ``str``-typed), but the algorithm-mismatch
+    guard still rejects it because the verifier pins a concrete algorithm."""
+    claims = {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"}
+    token = _make_token({"alg": None, "typ": "JWT"}, claims)
+
+    result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Algorithm mismatch"
+
+
+def test_algorithm_invariant_is_pinned_after_construction():
+    """The mismatch defense (and thus the ``alg: null`` rejection above) relies
+    on ``self.algorithm`` always being truthy post-construction. Pin that
+    invariant: the factory defaults the algorithm to ``RS256`` when
+    ``MCP_JWT_ALGORITHM`` is unset, so a constructed verifier never has a falsy
+    algorithm."""
+    verifier = DetailedJWTVerifier(
+        public_key="test-secret-key-for-hs256-tokens",
+        issuer="test-issuer",
+        audience="test-audience",
+        algorithm="HS256",
+        required_scopes=[],
+    )
+    assert verifier.algorithm is not None
+    assert verifier.algorithm
+
+
+def test_warns_when_audience_not_configured(caplog):
+    """Constructing a verifier without an audience logs a clear WARNING that
+    audience validation is disabled (config-gated, not a hard failure)."""
+    with caplog.at_level(logging.WARNING):
+        DetailedJWTVerifier(
+            public_key="test-secret-key-for-hs256-tokens",
+            issuer="test-issuer",
+            audience=None,
+            algorithm="HS256",
+            required_scopes=[],
+        )
+
+    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("audience validation is DISABLED" in m for m in warnings)
+
+
+def test_warns_when_algorithm_not_configured(caplog):
+    """A verifier with a falsy algorithm logs a WARNING that the algorithm is
+    not pinned. (fastmcp's JWTVerifier coerces ``algorithm=None`` to a default,
+    so we exercise the helper directly with an empty algorithm.)"""
+    from superset.mcp_service.jwt_verifier import _warn_on_weak_jwt_config
+
+    with caplog.at_level(logging.WARNING):
+        _warn_on_weak_jwt_config(audience="test-audience", algorithm=None)
+
+    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("without a pinned signing algorithm" in m for m in warnings)
+
+
+def test_warns_when_algorithm_not_configured_via_constructor(caplog):
+    """Constructing a verifier with no pinned algorithm (no app context, so the
+    constructor falls back to the explicit ``algorithm`` kwarg) must still emit
+    the weak-config WARNING. This exercises the ``config_algorithm or
+    explicit_algorithm`` fallback path in ``__init__``, not just the helper."""
+    with caplog.at_level(logging.WARNING):
+        DetailedJWTVerifier(
+            public_key="test-secret-key-for-hs256-tokens",
+            issuer="test-issuer",
+            audience="test-audience",
+            algorithm=None,
+            required_scopes=[],
+        )
+
+    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("without a pinned signing algorithm" in m for m in warnings)
+
+
+def test_no_weak_config_warning_when_fully_configured(caplog):
+    """A fully configured verifier (audience + algorithm) emits no weak-config
+    warnings."""
+    with caplog.at_level(logging.WARNING):
+        DetailedJWTVerifier(
+            public_key="test-secret-key-for-hs256-tokens",
+            issuer="test-issuer",
+            audience="test-audience",
+            algorithm="HS256",
+            required_scopes=[],
+        )
+
+    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert not any("audience validation is DISABLED" in m for m in warnings)
+    assert not any("without a pinned signing algorithm" in m for m in warnings)
