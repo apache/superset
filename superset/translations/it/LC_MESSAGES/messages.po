@@ -406,6 +406,7 @@ msgstr[1] "%s record..."
 msgid "%s record..."
 msgid_plural "%s records..."
 msgstr[0] "%s record..."
+msgstr[1] "%s record..."
 
 #, python-format
 msgid "%s row"
