@@ -41,6 +41,7 @@ export const ActionButton = ({
     <span
       role="button"
       tabIndex={0}
+      aria-label={label}
       css={css`
         cursor: pointer;
         color: ${theme.colorIcon};
