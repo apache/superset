@@ -24,6 +24,12 @@ import {
   CategoricalD3,
   CategoricalGoogle,
   CategoricalLyft,
+  CategoricalModernSunset,
+  CategoricalColorsOfRainbow,
+  CategoricalBlueToGreen,
+  CategoricalRedToYellow,
+  CategoricalWavesOfBlue,
+  CategoricalPresetSuperset,
   SequentialCommon,
   SequentialD3,
   CategoricalScheme,
@@ -41,21 +47,58 @@ describe('Color Schemes', () => {
         CategoricalLyft,
         CategoricalSuperset,
         CategoricalPreset,
+        CategoricalModernSunset,
+        CategoricalColorsOfRainbow,
+        CategoricalBlueToGreen,
+        CategoricalRedToYellow,
+        CategoricalWavesOfBlue,
+        CategoricalPresetSuperset,
       ].forEach(group => {
         expect(group).toBeInstanceOf(Array);
+        expect(group.length).toBeGreaterThan(0);
         group.forEach(scheme =>
           expect(scheme).toBeInstanceOf(CategoricalScheme),
         );
       });
     });
+
+    test('each scheme has a non-empty id and at least one color', () => {
+      [
+        ...CategoricalAirbnb,
+        ...CategoricalD3,
+        ...CategoricalEcharts,
+        ...CategoricalGoogle,
+        ...CategoricalLyft,
+        ...CategoricalPreset,
+        ...CategoricalSuperset,
+        ...CategoricalPresetSuperset,
+        ...CategoricalModernSunset,
+        ...CategoricalColorsOfRainbow,
+        ...CategoricalBlueToGreen,
+        ...CategoricalRedToYellow,
+        ...CategoricalWavesOfBlue,
+      ].forEach(scheme => {
+        expect(scheme.id).toBeTruthy();
+        expect(scheme.colors.length).toBeGreaterThan(0);
+      });
+    });
   });
+
   describe('sequential', () => {
     test('returns an array of SequentialScheme', () => {
       [SequentialCommon, SequentialD3].forEach(group => {
         expect(group).toBeInstanceOf(Array);
+        expect(group.length).toBeGreaterThan(0);
         group.forEach(scheme =>
           expect(scheme).toBeInstanceOf(SequentialScheme),
         );
+      });
+    });
+
+    test('each scheme has a non-empty id and at least two colors', () => {
+      [...SequentialCommon, ...SequentialD3].forEach(scheme => {
+        expect(scheme.id).toBeTruthy();
+        expect(scheme.colors.length).toBeGreaterThanOrEqual(2);
       });
     });
   });

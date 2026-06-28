@@ -16,25 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { common as coreType } from '@apache-superset/core';
-import { Disposable } from './models';
-
-const { GenericDataType } = coreType;
-
-export const core: typeof coreType = {
-  GenericDataType,
-  Disposable,
-};
-
-export * from './authentication';
-export * from './chat';
-export * from './commands';
-export * from './editors';
-export * from './extensions';
-export * from './menus';
-export * from './models';
-export * from './navigation';
-export * from './sqlLab';
-export * from './theme';
-export * from './utils';
-export * from './views';
+export * from './colors';
