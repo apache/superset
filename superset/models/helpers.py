@@ -2602,7 +2602,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             ):
                 value = db_engine_spec.convert_dttm(
                     target_type=target_native_type,
-                    dttm=datetime.utcfromtimestamp(value / 1000),
+                    dttm=datetime.fromtimestamp(value / 1000, timezone.utc).replace(
+                        tzinfo=None
+                    ),
                     db_extra=db_extra,
                 )
                 value = literal_column(value)
