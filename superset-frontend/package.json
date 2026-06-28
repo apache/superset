@@ -76,6 +76,7 @@
     "playwright:debug": "playwright test --debug",
     "playwright:report": "playwright show-report",
     "docs:screenshots": "playwright test --config=playwright/generators/playwright.config.ts docs/",
+    "postinstall": "patch-package",
     "prettier": "npm run _prettier -- --write",
     "prettier-check": "npm run _prettier -- --check",
     "prod": "npm run build",
@@ -242,22 +243,20 @@
     "yargs": "^18.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.29.7",
-    "@babel/compat-data": "^7.28.4",
-    "@babel/core": "^7.29.7",
-    "@babel/eslint-parser": "^7.29.7",
-    "@babel/node": "^7.29.7",
-    "@babel/plugin-syntax-dynamic-import": "^7.8.3",
-    "@babel/plugin-transform-export-namespace-from": "^7.29.7",
-    "@babel/plugin-transform-modules-commonjs": "^7.29.7",
-    "@babel/plugin-transform-runtime": "^7.29.7",
-    "@babel/preset-env": "^7.29.7",
-    "@babel/preset-react": "^7.29.7",
-    "@babel/preset-typescript": "^7.29.7",
-    "@babel/register": "^7.29.7",
-    "@babel/runtime": "^7.29.7",
-    "@babel/runtime-corejs3": "^7.29.7",
-    "@babel/types": "^7.29.7",
+    "@babel/cli": "^8.0.1",
+    "@babel/compat-data": "^8.0.0",
+    "@babel/core": "^8.0.1",
+    "@babel/eslint-parser": "^8.0.1",
+    "@babel/node": "^8.0.1",
+    "@babel/plugin-transform-export-namespace-from": "^8.0.1",
+    "@babel/plugin-transform-runtime": "^8.0.1",
+    "@babel/preset-env": "^8.0.2",
+    "@babel/preset-react": "^8.0.1",
+    "@babel/preset-typescript": "^8.0.1",
+    "@babel/register": "^8.0.1",
+    "@babel/runtime": "^8.0.0",
+    "@babel/runtime-corejs3": "^8.0.0",
+    "@babel/types": "^8.0.0",
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/jest": "^11.14.2",
     "@formatjs/intl-durationformat": "^0.10.15",
@@ -302,7 +301,7 @@
     "babel-loader": "^10.1.1",
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
-    "babel-plugin-lodash": "^3.3.4",
+    "babel-plugin-polyfill-corejs3": "^1.0.0",
     "baseline-browser-mapping": "^2.10.38",
     "cheerio": "1.2.0",
     "concurrently": "^10.0.3",
@@ -344,6 +343,7 @@
     "mini-css-extract-plugin": "^2.10.2",
     "open-cli": "^9.0.0",
     "oxlint": "^1.70.0",
+    "patch-package": "^8.0.1",
     "po2json": "^0.4.5",
     "prettier": "3.8.4",
     "prettier-plugin-packagejson": "^3.0.2",
@@ -427,6 +427,57 @@
     },
     "eslint-plugin-jest-dom": {
       "eslint": "$eslint"
+    },
+    "babel-plugin-jsx-remove-data-test-id": {
+      "@babel/core": "$@babel/core"
+    },
+    "ts-jest": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-async-generators": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-bigint": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-class-properties": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-class-static-block": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-import-attributes": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-import-meta": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-json-strings": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-logical-assignment-operators": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-nullish-coalescing-operator": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-numeric-separator": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-object-rest-spread": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-optional-catch-binding": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-optional-chaining": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-private-property-in-object": {
+      "@babel/core": "$@babel/core"
+    },
+    "@babel/plugin-syntax-top-level-await": {
+      "@babel/core": "$@babel/core"
     }
   },
   "readme": "ERROR: No README data found!",

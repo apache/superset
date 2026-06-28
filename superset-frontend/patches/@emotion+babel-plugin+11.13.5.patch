@@ -1,0 +1,26 @@
+diff --git a/node_modules/@emotion/babel-plugin/dist/emotion-babel-plugin.cjs.js b/node_modules/@emotion/babel-plugin/dist/emotion-babel-plugin.cjs.js
+index c97c6b4..3837543 100644
+--- a/node_modules/@emotion/babel-plugin/dist/emotion-babel-plugin.cjs.js
++++ b/node_modules/@emotion/babel-plugin/dist/emotion-babel-plugin.cjs.js
+@@ -1083,7 +1083,7 @@ annotateAsPure?: boolean
+
+   if (node) {
+     path.replaceWith(node);
+-    path.hoist();
++    if (typeof path.hoist === "function") path.hoist();
+   } else if (annotateAsPure && path.isCallExpression()) {
+     path.addComment('leading', '#__PURE__');
+   }
+diff --git a/node_modules/@emotion/babel-plugin/dist/emotion-babel-plugin.esm.js b/node_modules/@emotion/babel-plugin/dist/emotion-babel-plugin.esm.js
+index fbe8ce1..b6f43d8 100644
+--- a/node_modules/@emotion/babel-plugin/dist/emotion-babel-plugin.esm.js
++++ b/node_modules/@emotion/babel-plugin/dist/emotion-babel-plugin.esm.js
+@@ -1070,7 +1070,7 @@ annotateAsPure?: boolean
+
+   if (node) {
+     path.replaceWith(node);
+-    path.hoist();
++    if (typeof path.hoist === "function") path.hoist();
+   } else if (annotateAsPure && path.isCallExpression()) {
+     path.addComment('leading', '#__PURE__');
+   }

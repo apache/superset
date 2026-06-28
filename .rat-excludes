@@ -80,6 +80,9 @@ erd.svg
 intro_header.txt
 TODO.md
 
+# patch-package patches (unified diffs cannot carry license headers)
+*.patch
+
 # for LLMs
 llm-context.md
 llms.txt
