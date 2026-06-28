@@ -19,7 +19,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _handlebars_chart_what,
@@ -37,7 +38,7 @@ class HandlebarsChartPlugin(BaseChartPlugin):
 
     chart_type = "handlebars"
     display_name = "Handlebars (Custom Template)"
-    native_viz_types = {
+    native_viz_types: ClassVar[Mapping[str, str]] = {
         "handlebars": "Custom Template Chart",
     }
 
@@ -158,18 +159,18 @@ class HandlebarsChartPlugin(BaseChartPlugin):
             if config_dict.get(key):
                 for col in config_dict[key]:
                     if col.get("saved_metric"):
-                        col["name"] = DatasetValidator._get_canonical_metric_name(
+                        col["name"] = DatasetValidator.get_canonical_metric_name(
                             col["name"], dataset_context
                         )
                     elif not col.get("sql_expression"):
-                        col["name"] = DatasetValidator._get_canonical_column_name(
+                        col["name"] = DatasetValidator.get_canonical_column_name(
                             col["name"], dataset_context
                         )
 
         _norm_list("columns")
         _norm_list("metrics")
         _norm_list("groupby")
-        DatasetValidator._normalize_filters(config_dict, dataset_context)
+        DatasetValidator.normalize_filters(config_dict, dataset_context)
         return HandlebarsChartConfig.model_validate(config_dict)
 
     def schema_error_hint(self) -> ChartGenerationError | None:

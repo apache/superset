@@ -58,13 +58,13 @@ def mock_dataset_context() -> DatasetContext:
 
 
 class TestGetCanonicalColumnName:
-    """Test _get_canonical_column_name static method."""
+    """Test get_canonical_column_name static method."""
 
     def test_exact_match_returns_same_name(
         self, mock_dataset_context: DatasetContext
     ) -> None:
         """Test that exact match returns the same column name."""
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "OrderDate", mock_dataset_context
         )
         assert result == "OrderDate"
@@ -73,7 +73,7 @@ class TestGetCanonicalColumnName:
         self, mock_dataset_context: DatasetContext
     ) -> None:
         """Test that lowercase input returns the canonical (dataset) column name."""
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "orderdate", mock_dataset_context
         )
         assert result == "OrderDate"
@@ -84,7 +84,7 @@ class TestGetCanonicalColumnName:
         """Test that snake_case input returns the canonical column name."""
         # 'order_date' won't match 'OrderDate' directly, but would match if
         # the dataset had 'order_date'. This test verifies case-insensitive matching.
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "productline", mock_dataset_context
         )
         assert result == "ProductLine"
@@ -93,7 +93,7 @@ class TestGetCanonicalColumnName:
         self, mock_dataset_context: DatasetContext
     ) -> None:
         """Test that uppercase input returns the canonical column name."""
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "SALES", mock_dataset_context
         )
         assert result == "Sales"
@@ -102,7 +102,7 @@ class TestGetCanonicalColumnName:
         self, mock_dataset_context: DatasetContext
     ) -> None:
         """Test that metric names are also normalized."""
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "totalrevenue", mock_dataset_context
         )
         assert result == "TotalRevenue"
@@ -111,14 +111,14 @@ class TestGetCanonicalColumnName:
         self, mock_dataset_context: DatasetContext
     ) -> None:
         """Test that unknown columns return the original name."""
-        result = DatasetValidator._get_canonical_column_name(
+        result = DatasetValidator.get_canonical_column_name(
             "unknown_column", mock_dataset_context
         )
         assert result == "unknown_column"
 
 
 class TestNormalizeFilters:
-    """Test _normalize_filters static method."""
+    """Test normalize_filters static method."""
 
     def test_normalize_filter_columns(
         self, mock_dataset_context: DatasetContext
@@ -131,7 +131,7 @@ class TestNormalizeFilters:
             ],
         }
 
-        DatasetValidator._normalize_filters(config_dict, mock_dataset_context)
+        DatasetValidator.normalize_filters(config_dict, mock_dataset_context)
 
         assert config_dict["filters"][0]["column"] == "ProductLine"
         assert config_dict["filters"][1]["column"] == "OrderDate"
@@ -201,7 +201,7 @@ class TestNormalizeColumnNames:
                 ColumnRef(sql_expression="SUM(sales)/COUNT(*)", label="Avg Sale"),
             ],
         )
-        # Must not raise — _get_canonical_column_name(None, ...) crashes without guard.
+        # Must not raise — get_canonical_column_name(None, ...) crashes without guard.
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
         assert normalized.columns[0].name == "OrderDate"
@@ -720,16 +720,16 @@ class TestValidateSavedMetrics:
 
 
 class TestGetCanonicalMetricName:
-    """Tests for _get_canonical_metric_name — metrics-only lookup."""
+    """Tests for get_canonical_metric_name — metrics-only lookup."""
 
     def test_exact_match(self, mock_dataset_context: DatasetContext) -> None:
-        result = DatasetValidator._get_canonical_metric_name(
+        result = DatasetValidator.get_canonical_metric_name(
             "TotalRevenue", mock_dataset_context
         )
         assert result == "TotalRevenue"
 
     def test_case_insensitive_match(self, mock_dataset_context: DatasetContext) -> None:
-        result = DatasetValidator._get_canonical_metric_name(
+        result = DatasetValidator.get_canonical_metric_name(
             "totalrevenue", mock_dataset_context
         )
         assert result == "TotalRevenue"
@@ -737,7 +737,7 @@ class TestGetCanonicalMetricName:
     def test_unknown_metric_returns_original(
         self, mock_dataset_context: DatasetContext
     ) -> None:
-        result = DatasetValidator._get_canonical_metric_name(
+        result = DatasetValidator.get_canonical_metric_name(
             "no_such_metric", mock_dataset_context
         )
         assert result == "no_such_metric"
@@ -746,7 +746,7 @@ class TestGetCanonicalMetricName:
         self, mock_dataset_context: DatasetContext
     ) -> None:
         """A name that matches a column but not a metric returns the original."""
-        result = DatasetValidator._get_canonical_metric_name(
+        result = DatasetValidator.get_canonical_metric_name(
             "Sales", mock_dataset_context
         )
         assert result == "Sales"
@@ -778,7 +778,7 @@ class TestSavedMetricNormalizationCorrectness:
     """Saved metrics must resolve against available_metrics, not available_columns.
 
     When a column and a metric share the same case-insensitive name but have
-    different casing, _get_canonical_column_name (columns-first) returns the
+    different casing, get_canonical_column_name (columns-first) returns the
     column's casing.  For saved_metric=True refs this is wrong — downstream
     metric resolution is exact-name based and expects the metric's casing.
     """

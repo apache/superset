@@ -19,7 +19,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
@@ -37,7 +38,7 @@ class TableChartPlugin(BaseChartPlugin):
 
     chart_type = "table"
     display_name = "Table"
-    native_viz_types = {
+    native_viz_types: ClassVar[Mapping[str, str]] = {
         "table": "Table",
         "ag-grid-table": "Interactive Table",
     }
@@ -104,8 +105,8 @@ class TableChartPlugin(BaseChartPlugin):
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         config_dict = config.model_dump()
-        get_canonical = DatasetValidator._get_canonical_column_name
-        get_canonical_metric = DatasetValidator._get_canonical_metric_name
+        get_canonical = DatasetValidator.get_canonical_column_name
+        get_canonical_metric = DatasetValidator.get_canonical_metric_name
 
         for col in config_dict.get("columns") or []:
             if col.get("saved_metric"):
@@ -113,7 +114,7 @@ class TableChartPlugin(BaseChartPlugin):
             elif not col.get("sql_expression"):
                 col["name"] = get_canonical(col["name"], dataset_context)
 
-        DatasetValidator._normalize_filters(config_dict, dataset_context)
+        DatasetValidator.normalize_filters(config_dict, dataset_context)
         return TableChartConfig.model_validate(config_dict)
 
     def schema_error_hint(self) -> ChartGenerationError | None:

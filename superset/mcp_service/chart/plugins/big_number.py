@@ -19,7 +19,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _big_number_chart_what,
@@ -38,7 +39,7 @@ class BigNumberChartPlugin(BaseChartPlugin):
 
     chart_type = "big_number"
     display_name = "Big Number"
-    native_viz_types = {
+    native_viz_types: ClassVar[Mapping[str, str]] = {
         "big_number": "Big Number with Trendline",
         "big_number_total": "Big Number",
     }
@@ -212,23 +213,21 @@ class BigNumberChartPlugin(BaseChartPlugin):
                 pass
             elif config_dict["metric"].get("saved_metric"):
                 config_dict["metric"]["name"] = (
-                    DatasetValidator._get_canonical_metric_name(
+                    DatasetValidator.get_canonical_metric_name(
                         config_dict["metric"]["name"], dataset_context
                     )
                 )
             else:
                 config_dict["metric"]["name"] = (
-                    DatasetValidator._get_canonical_column_name(
+                    DatasetValidator.get_canonical_column_name(
                         config_dict["metric"]["name"], dataset_context
                     )
                 )
         if config_dict.get("temporal_column"):
-            config_dict["temporal_column"] = (
-                DatasetValidator._get_canonical_column_name(
-                    config_dict["temporal_column"], dataset_context
-                )
+            config_dict["temporal_column"] = DatasetValidator.get_canonical_column_name(
+                config_dict["temporal_column"], dataset_context
             )
-        DatasetValidator._normalize_filters(config_dict, dataset_context)
+        DatasetValidator.normalize_filters(config_dict, dataset_context)
         return BigNumberChartConfig.model_validate(config_dict)
 
     def schema_error_hint(self) -> ChartGenerationError | None:

@@ -19,7 +19,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _pie_chart_what,
@@ -37,7 +38,7 @@ class PieChartPlugin(BaseChartPlugin):
 
     chart_type = "pie"
     display_name = "Pie / Donut Chart"
-    native_viz_types = {
+    native_viz_types: ClassVar[Mapping[str, str]] = {
         "pie": "Pie Chart",
     }
 
@@ -100,7 +101,7 @@ class PieChartPlugin(BaseChartPlugin):
         if config_dict.get("dimension"):
             dim = config_dict["dimension"]
             if not dim.get("sql_expression") and not dim.get("saved_metric"):
-                dim["name"] = DatasetValidator._get_canonical_column_name(
+                dim["name"] = DatasetValidator.get_canonical_column_name(
                     dim["name"], dataset_context
                 )
         if config_dict.get("metric"):
@@ -108,17 +109,17 @@ class PieChartPlugin(BaseChartPlugin):
                 pass
             elif config_dict["metric"].get("saved_metric"):
                 config_dict["metric"]["name"] = (
-                    DatasetValidator._get_canonical_metric_name(
+                    DatasetValidator.get_canonical_metric_name(
                         config_dict["metric"]["name"], dataset_context
                     )
                 )
             else:
                 config_dict["metric"]["name"] = (
-                    DatasetValidator._get_canonical_column_name(
+                    DatasetValidator.get_canonical_column_name(
                         config_dict["metric"]["name"], dataset_context
                     )
                 )
-        DatasetValidator._normalize_filters(config_dict, dataset_context)
+        DatasetValidator.normalize_filters(config_dict, dataset_context)
         return PieChartConfig.model_validate(config_dict)
 
     def schema_error_hint(self) -> ChartGenerationError | None:

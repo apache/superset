@@ -19,7 +19,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _pivot_table_what,
@@ -37,7 +38,7 @@ class PivotTableChartPlugin(BaseChartPlugin):
 
     chart_type = "pivot_table"
     display_name = "Pivot Table"
-    native_viz_types = {
+    native_viz_types: ClassVar[Mapping[str, str]] = {
         "pivot_table_v2": "Pivot Table",
     }
 
@@ -129,18 +130,18 @@ class PivotTableChartPlugin(BaseChartPlugin):
                     if col.get("sql_expression"):
                         continue
                     if col.get("saved_metric"):
-                        col["name"] = DatasetValidator._get_canonical_metric_name(
+                        col["name"] = DatasetValidator.get_canonical_metric_name(
                             col["name"], dataset_context
                         )
                     else:
-                        col["name"] = DatasetValidator._get_canonical_column_name(
+                        col["name"] = DatasetValidator.get_canonical_column_name(
                             col["name"], dataset_context
                         )
 
         _norm_col_list("rows")
         _norm_col_list("metrics")
         _norm_col_list("columns")
-        DatasetValidator._normalize_filters(config_dict, dataset_context)
+        DatasetValidator.normalize_filters(config_dict, dataset_context)
         return PivotTableChartConfig.model_validate(config_dict)
 
     def schema_error_hint(self) -> ChartGenerationError | None:

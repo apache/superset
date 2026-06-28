@@ -19,7 +19,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _mixed_timeseries_what,
@@ -37,7 +38,7 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
 
     chart_type = "mixed_timeseries"
     display_name = "Mixed Timeseries"
-    native_viz_types = {
+    native_viz_types: ClassVar[Mapping[str, str]] = {
         "mixed_timeseries": "Mixed Timeseries Chart",
     }
 
@@ -125,7 +126,7 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
 
         def _norm_single(key: str) -> None:
             if config_dict.get(key):
-                config_dict[key]["name"] = DatasetValidator._get_canonical_column_name(
+                config_dict[key]["name"] = DatasetValidator.get_canonical_column_name(
                     config_dict[key]["name"], dataset_context
                 )
 
@@ -135,11 +136,11 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
                     if col.get("sql_expression"):
                         continue
                     if col.get("saved_metric"):
-                        col["name"] = DatasetValidator._get_canonical_metric_name(
+                        col["name"] = DatasetValidator.get_canonical_metric_name(
                             col["name"], dataset_context
                         )
                     else:
-                        col["name"] = DatasetValidator._get_canonical_column_name(
+                        col["name"] = DatasetValidator.get_canonical_column_name(
                             col["name"], dataset_context
                         )
 
@@ -148,7 +149,7 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
         _norm_list("y_secondary")
         _norm_list("group_by")
         _norm_list("group_by_secondary")
-        DatasetValidator._normalize_filters(config_dict, dataset_context)
+        DatasetValidator.normalize_filters(config_dict, dataset_context)
         return MixedTimeseriesChartConfig.model_validate(config_dict)
 
     def schema_error_hint(self) -> ChartGenerationError | None:

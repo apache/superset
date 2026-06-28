@@ -20,7 +20,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _xy_chart_context,
@@ -46,7 +47,7 @@ class XYChartPlugin(BaseChartPlugin):
 
     chart_type = "xy"
     display_name = "Line / Bar / Area / Scatter Chart"
-    native_viz_types = {
+    native_viz_types: ClassVar[Mapping[str, str]] = {
         "echarts_timeseries_line": "Line Chart",
         "echarts_timeseries_bar": "Bar Chart",
         "echarts_area": "Area Chart",
@@ -111,8 +112,8 @@ class XYChartPlugin(BaseChartPlugin):
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         config_dict = config.model_dump()
-        get_canonical = DatasetValidator._get_canonical_column_name
-        get_canonical_metric = DatasetValidator._get_canonical_metric_name
+        get_canonical = DatasetValidator.get_canonical_column_name
+        get_canonical_metric = DatasetValidator.get_canonical_metric_name
 
         if config_dict.get("x"):
             config_dict["x"]["name"] = get_canonical(
@@ -128,7 +129,7 @@ class XYChartPlugin(BaseChartPlugin):
         for gb_col in config_dict.get("group_by") or []:
             gb_col["name"] = get_canonical(gb_col["name"], dataset_context)
 
-        DatasetValidator._normalize_filters(config_dict, dataset_context)
+        DatasetValidator.normalize_filters(config_dict, dataset_context)
         return XYChartConfig.model_validate(config_dict)
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:

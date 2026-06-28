@@ -27,7 +27,8 @@ type was added.
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+from collections.abc import Mapping
+from typing import Any, ClassVar, Protocol, runtime_checkable
 
 from superset.mcp_service.chart.schemas import ColumnRef
 from superset.mcp_service.common.error_schemas import ChartGenerationError
@@ -53,7 +54,7 @@ class ChartTypePlugin(Protocol):
     #: user-facing display name, e.g. {"echarts_timeseries_line": "Line Chart"}.
     #: Used by the registry to resolve display names for existing charts without
     #: needing a separate JSON mapping file.
-    native_viz_types: dict[str, str]
+    native_viz_types: ClassVar[Mapping[str, str]]
 
     def pre_validate(
         self,
@@ -196,10 +197,8 @@ class BaseChartPlugin:
 
     chart_type: str = ""
     display_name: str = ""
-    # Class-level dict shared across all subclasses that don't override it.
-    # Subclasses MUST override this as a class attribute (not mutate in place)
-    # to avoid corrupting the shared empty-dict default for other plugins.
-    native_viz_types: dict[str, str] = {}
+    # Subclasses must override this with their own class attribute.
+    native_viz_types: ClassVar[Mapping[str, str]] = {}
 
     def pre_validate(
         self,

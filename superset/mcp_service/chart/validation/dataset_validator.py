@@ -38,6 +38,49 @@ _C = TypeVar("_C", bound=ChartConfig)
 
 logger = logging.getLogger(__name__)
 
+
+def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
+    """Construct a :class:`DatasetContext` from an already-fetched ORM dataset.
+
+    Callers that already have the ORM object (e.g. after permission checks)
+    should use this to avoid a redundant ``DatasetDAO.find_by_id`` round trip.
+    """
+    if dataset is None:
+        return None
+
+    columns: List[Dict[str, Any]] = []
+    for col in getattr(dataset, "columns", []) or []:
+        columns.append(
+            {
+                "name": col.column_name,
+                "type": str(col.type) if col.type else "UNKNOWN",
+                "is_temporal": getattr(col, "is_temporal", False),
+                "is_numeric": getattr(col, "is_numeric", False),
+            }
+        )
+
+    metrics: List[Dict[str, Any]] = []
+    for metric in getattr(dataset, "metrics", []) or []:
+        metrics.append(
+            {
+                "name": metric.metric_name,
+                "expression": metric.expression,
+                "description": metric.description,
+            }
+        )
+
+    database = getattr(dataset, "database", None)
+    database_name = getattr(database, "database_name", None) or ""
+    return DatasetContext(
+        id=dataset.id,
+        table_name=dataset.table_name,
+        schema=dataset.schema,
+        database_name=database_name,
+        available_columns=columns,
+        available_metrics=metrics,
+    )
+
+
 # Exceptions that can occur during column name normalization.
 # Shared by the validation pipeline and tool-level normalization calls.
 NORMALIZATION_EXCEPTIONS = (
@@ -204,61 +247,18 @@ class DatasetValidator:
 
     @staticmethod
     def _get_dataset_context(dataset_id: int | str) -> DatasetContext | None:
-        """Get dataset context with column information."""
+        """Fetch the ORM dataset by ID/UUID and build a :class:`DatasetContext`."""
         try:
             from superset.daos.dataset import DatasetDAO
 
-            # Find dataset
             if isinstance(dataset_id, int) or (
                 isinstance(dataset_id, str) and dataset_id.isdigit()
             ):
                 dataset = DatasetDAO.find_by_id(int(dataset_id))
             else:
-                # Try UUID lookup
                 dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
 
-            if not dataset:
-                return None
-
-            # Build context
-            columns = []
-            metrics = []
-
-            # Add table columns
-            for col in dataset.columns:
-                columns.append(
-                    {
-                        "name": col.column_name,
-                        "type": str(col.type) if col.type else "UNKNOWN",
-                        "is_temporal": col.is_temporal
-                        if hasattr(col, "is_temporal")
-                        else False,
-                        "is_numeric": col.is_numeric
-                        if hasattr(col, "is_numeric")
-                        else False,
-                    }
-                )
-
-            # Add metrics
-            for metric in dataset.metrics:
-                metrics.append(
-                    {
-                        "name": metric.metric_name,
-                        "expression": metric.expression,
-                        "description": metric.description,
-                    }
-                )
-
-            return DatasetContext(
-                id=dataset.id,
-                table_name=dataset.table_name,
-                schema=dataset.schema,
-                database_name=dataset.database.database_name
-                if dataset.database
-                else None,
-                available_columns=columns,
-                available_metrics=metrics,
-            )
+            return build_dataset_context_from_orm(dataset)
 
         except Exception as e:
             logger.error("Error getting dataset context for %s: %s", dataset_id, e)
@@ -309,7 +309,7 @@ class DatasetValidator:
         return False
 
     @staticmethod
-    def _get_canonical_column_name(
+    def get_canonical_column_name(
         column_name: str, dataset_context: DatasetContext
     ) -> str:
         """
@@ -343,12 +343,12 @@ class DatasetValidator:
         return column_name
 
     @staticmethod
-    def _get_canonical_metric_name(
+    def get_canonical_metric_name(
         metric_name: str, dataset_context: DatasetContext
     ) -> str:
         """Return the canonical saved-metric name from available_metrics.
 
-        Unlike _get_canonical_column_name, this only searches available_metrics
+        Unlike get_canonical_column_name, this only searches available_metrics
         so that a same-named column with different casing cannot shadow the
         metric's canonical name.  Use this whenever saved_metric=True.
 
@@ -362,7 +362,7 @@ class DatasetValidator:
         return metric_name
 
     @staticmethod
-    def _normalize_filters(
+    def normalize_filters(
         config_dict: Dict[str, Any], dataset_context: DatasetContext
     ) -> None:
         """Normalize filter column names in a config dict in place."""
@@ -370,7 +370,7 @@ class DatasetValidator:
             for filter_config in config_dict["filters"]:
                 if filter_config and "column" in filter_config:
                     filter_config["column"] = (
-                        DatasetValidator._get_canonical_column_name(
+                        DatasetValidator.get_canonical_column_name(
                             filter_config["column"], dataset_context
                         )
                     )
