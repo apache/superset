@@ -470,11 +470,15 @@ const AsyncSelect = forwardRef(
       onSearch?.(searchValue);
     }, Constants.FAST_DEBOUNCE);
 
+    const memoizedHandleOnSearch = useMemo(
+      () => handleOnSearch,
+      [handleOnSearch],
+    );
     useEffect(() => {
-      if (handleOnSearch?.cancel) {
-        handleOnSearch.cancel();
+      if (memoizedHandleOnSearch?.cancel) {
+        memoizedHandleOnSearch.cancel();
       }
-    }, [handleOnSearch]);
+    }, [memoizedHandleOnSearch]);
 
     const handlePagination = (e: UIEvent<HTMLElement>) => {
       const vScroll = e.currentTarget;
