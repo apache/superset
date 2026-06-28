@@ -29,6 +29,7 @@ import pandas as pd
 import pytest
 import pytz
 import sqlalchemy as sqla
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -332,6 +333,21 @@ class TestCore(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         assert "Charts" in self.get_resp("/chart/list/")
         assert "Dashboards" in self.get_resp("/dashboard/list/")
+
+    def test_security_fab_views_have_valid_list_template(self) -> None:
+        # Regression test for #36130: the FAB permission views pointed at a custom
+        # list template (superset/fab_overrides/list.html) that was deleted during a
+        # cleanup, so they 500'd with TemplateNotFound. Ensure each view's list
+        # widget template still resolves in the Jinja environment.
+        from superset.security.manager import (
+            PermissionModelView,
+            PermissionViewModelView,
+        )
+
+        for view_cls in (PermissionModelView, PermissionViewModelView):
+            template = view_cls.list_widget.template
+            # Raises TemplateNotFound if the template is missing (the #36130 bug).
+            current_app.jinja_env.get_template(template)
 
     def test_templated_sql_json(self):
         if superset.utils.database.get_example_database().backend == "presto":
