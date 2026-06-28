@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -35,6 +36,34 @@ test('renders with custom copy node', () => {
   const copyNode = <a href="/">Custom node</a>;
   render(<CopyToClipboard copyNode={copyNode} />, { useRedux: true });
   expect(screen.getByRole('link')).toBeInTheDocument();
+});
+
+// Regression guard: passing a non-element copyNode (string or number) used to
+// crash because cloneElement only accepts React elements. The render path now
+// gates the cloneElement call behind isValidElement and falls back to a span
+// wrapper, so plain primitives should render without throwing.
+test('renders with string copyNode without crashing', () => {
+  render(<CopyToClipboard copyNode="just text" />, { useRedux: true });
+  expect(screen.getByRole('button')).toHaveTextContent('just text');
+});
+
+test('renders with number copyNode without crashing', () => {
+  render(<CopyToClipboard copyNode={42} />, { useRedux: true });
+  expect(screen.getByRole('button')).toHaveTextContent('42');
+});
+
+test('non-element copyNode wrapper is keyboard-activatable', async () => {
+  const onCopyEnd = jest.fn();
+  render(<CopyToClipboard copyNode="copy me" onCopyEnd={onCopyEnd} />, {
+    useRedux: true,
+  });
+  const button = screen.getByRole('button');
+  expect(button).toHaveAttribute('tabIndex', '0');
+  button.focus();
+  // user-event v12 (pinned in this repo) doesn't expose .keyboard(); use
+  // fireEvent to dispatch the Enter keydown directly to the focused button.
+  fireEvent.keyDown(button, { key: 'Enter' });
+  await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
 });
 
 test('renders without text showing', () => {

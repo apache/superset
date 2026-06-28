@@ -2342,6 +2342,13 @@ DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
 
+# Superset uses Scarf (https://about.scarf.sh/) to collect anonymous, aggregated
+# telemetry via a pixel rendered in the UI. Set the SCARF_ANALYTICS environment
+# variable to "false" to opt out. This value is exposed to the frontend through
+# the bootstrap payload so it takes effect at runtime, including in pre-built
+# images where the webpack build-time flag of the same name cannot be changed.
+SCARF_ANALYTICS = utils.cast_to_boolean(os.environ.get("SCARF_ANALYTICS", True))
+
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
 

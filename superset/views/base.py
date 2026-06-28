@@ -125,6 +125,7 @@ FRONTEND_CONF_KEYS = (
     "MAPBOX_API_KEY",
     "DEFAULT_MAP_RENDERER",
     "CSV_STREAMING_ROW_THRESHOLD",
+    "SCARF_ANALYTICS",
 )
 
 logger = logging.getLogger(__name__)
