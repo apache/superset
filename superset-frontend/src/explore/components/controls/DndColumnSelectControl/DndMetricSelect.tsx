@@ -30,7 +30,9 @@ import {
 import { tn } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import AdhocMetric, {
+  dedupeAdhocMetricOptionName,
+} from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger';
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
 import {
@@ -72,22 +74,8 @@ export const coerceMetrics = (
   );
 
   // Metrics are identified by optionName when editing; regenerate any that
-  // collide so each keeps a unique identity and editing one never overwrites
-  // another (a saved chart can carry duplicate optionNames, e.g. from a
-  // duplicated metric).
+  // collide so each keeps a unique identity (see dedupeAdhocMetricOptionName).
   const seenOptionNames = new Set<string>();
-  const dedupeOptionName = (metric: AdhocMetric) => {
-    if (!seenOptionNames.has(metric.optionName)) {
-      seenOptionNames.add(metric.optionName);
-      return metric;
-    }
-    const deduped = new AdhocMetric({
-      ...(metric as unknown as Record<string, unknown>),
-      optionName: undefined,
-    });
-    seenOptionNames.add(deduped.optionName);
-    return deduped;
-  };
 
   return metricsCompatibleWithDataset.map(metric => {
     if (
@@ -112,17 +100,19 @@ export const coerceMetrics = (
       );
       if (column) {
         // Cast entire config object to handle type mismatch between @superset-ui/core and local types
-        return dedupeOptionName(
+        return dedupeAdhocMetricOptionName(
           new AdhocMetric({
             ...(metric as unknown as Record<string, unknown>),
             column,
           } as Record<string, unknown>),
+          seenOptionNames,
         );
       }
     }
     // Cast to unknown first to handle type mismatch between @superset-ui/core and local AdhocMetric
-    return dedupeOptionName(
+    return dedupeAdhocMetricOptionName(
       new AdhocMetric(metric as unknown as Record<string, unknown>),
+      seenOptionNames,
     );
   });
 };

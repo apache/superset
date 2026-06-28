@@ -29,7 +29,7 @@ import {
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
 import MetricDefinitionValue from './MetricDefinitionValue';
-import AdhocMetric from './AdhocMetric';
+import AdhocMetric, { dedupeAdhocMetricOptionName } from './AdhocMetric';
 import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,19 +67,12 @@ function coerceAdhocMetrics(value: any) {
     return [value];
   }
   // Metrics are identified by optionName when editing; regenerate any that
-  // collide so each keeps a unique identity and editing one never overwrites
-  // another (a saved chart can carry duplicate optionNames, e.g. from a
-  // duplicated metric).
+  // collide so each keeps a unique identity (see dedupeAdhocMetricOptionName).
   const seenOptionNames = new Set<string>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return value.map((val: any) => {
     if (isDictionaryForAdhocMetric(val)) {
-      const metric =
-        val.optionName && seenOptionNames.has(val.optionName)
-          ? new AdhocMetric({ ...val, optionName: undefined })
-          : new AdhocMetric(val);
-      seenOptionNames.add(metric.optionName);
-      return metric;
+      return dedupeAdhocMetricOptionName(new AdhocMetric(val), seenOptionNames);
     }
     return val;
   });
