@@ -188,6 +188,7 @@ export const DataTablesPane = ({
     queryForce,
     ownState,
     isRequest: isRequest.results,
+    setForceQuery,
     canDownload,
   }).map((pane, idx) => {
     const tabKey =
