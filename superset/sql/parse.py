@@ -1123,14 +1123,17 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Check if the statement has a subquery.
 
+        Covers explicit subqueries, set operations (``UNION``/``INTERSECT``/
+        ``EXCEPT``), and any nested ``SELECT`` regardless of the top-level node
+        type (e.g. when wrapped in parentheses or a set operation).
+
         :return: True if the statement has a subquery.
         """
-        return bool(self._parsed.find(exp.Subquery)) or (
-            isinstance(self._parsed, exp.Select)
-            and any(
-                isinstance(expression, exp.Select)
-                for expression in self._parsed.walk()
-                if expression != self._parsed
+        return (
+            self.is_set_operation()
+            or bool(self._parsed.find(exp.Subquery))
+            or any(
+                select != self._parsed for select in self._parsed.find_all(exp.Select)
             )
         )
 
