@@ -323,11 +323,18 @@ function AdhocFilterControl({
 
   const moveLabel = useCallback((dragIndex: number, hoverIndex: number) => {
     setValues(prevValues => {
+      if (
+        dragIndex === hoverIndex ||
+        dragIndex < 0 ||
+        hoverIndex < 0 ||
+        dragIndex >= prevValues.length ||
+        hoverIndex >= prevValues.length
+      ) {
+        return prevValues;
+      }
       const newValues = [...prevValues];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
+      const [moved] = newValues.splice(dragIndex, 1);
+      newValues.splice(hoverIndex, 0, moved);
       return newValues;
     });
   }, []);
