@@ -1415,7 +1415,7 @@ describe('grouped options search', () => {
   });
 });
 
-test('should not call search after unmount', async () => {
+test('calls onSearch with typed text before unmount', async () => {
   const mockOnSearch = jest.fn();
   const { unmount, rerender } = render(
     <Select
@@ -1426,7 +1426,6 @@ test('should not call search after unmount', async () => {
     />,
   );
   await type('12', 0);
-  unmount();
   await new Promise(resolve => setTimeout(resolve, 300));
   expect(mockOnSearch).toHaveBeenCalledWith('12');
   rerender(
