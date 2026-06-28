@@ -134,6 +134,7 @@ const RightMenu = ({
     EXCEL_EXTENSIONS,
     ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
+    SCARF_ANALYTICS,
   } = useSelector<any, ExtensionConfigs>(state => state.common.conf);
   const [showDatabaseModal, setShowDatabaseModal] = useState<boolean>(false);
   const [showCSVUploadModal, setShowCSVUploadModal] = useState<boolean>(false);
@@ -781,6 +782,7 @@ const RightMenu = ({
         // segments in the Scarf pixel URL.
         sha={navbarRight.version_sha || undefined}
         build={navbarRight.build_number || undefined}
+        enabled={SCARF_ANALYTICS !== false}
       />
     </StyledDiv>
   );
