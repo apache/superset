@@ -49,6 +49,7 @@ import { Switch } from '@superset-ui/core/components/Switch';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { TableTab } from 'src/views/CRUD/types';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
+import { VisuallyHidden } from 'src/components/Accessibility';
 import { userHasPermission } from 'src/dashboard/util/permissionUtils';
 import { WelcomePageLastTab } from 'src/features/home/types';
 import ActivityTable from 'src/features/home/ActivityTable';
@@ -350,6 +351,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         <SubMenu {...menuData} />
       )}
       <WelcomeContainer>
+        <VisuallyHidden as="h1">{t('Home')}</VisuallyHidden>
         {WelcomeMessageExtension && <WelcomeMessageExtension />}
         {WelcomeTopExtension && <WelcomeTopExtension />}
         {WelcomeMainExtension && <WelcomeMainExtension />}

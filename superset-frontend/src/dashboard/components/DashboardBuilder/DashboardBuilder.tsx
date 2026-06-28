@@ -25,6 +25,7 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
+import { VisuallyHidden } from 'src/components/Accessibility';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -357,6 +358,7 @@ const StyledDashboardContent = styled.div<{
   `}
 `;
 
+
 const ELEMENT_ON_SCREEN_OPTIONS = {
   threshold: [1],
 };
@@ -515,10 +517,13 @@ const DashboardBuilder = () => {
         {!hideDashboardHeader && <DashboardHeader />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
-            <FilterBar
-              orientation={FilterBarOrientation.Horizontal}
-              hidden={isReport}
-            />
+            <>
+              <VisuallyHidden as="h2">{t('Filters')}</VisuallyHidden>
+              <FilterBar
+                orientation={FilterBarOrientation.Horizontal}
+                hidden={isReport}
+              />
+            </>
           )}
       </>
     ),
@@ -587,6 +592,7 @@ const DashboardBuilder = () => {
           hidden={isReport}
           data-test="dashboard-filters-panel"
         >
+          <VisuallyHidden as="h2">{t('Filters')}</VisuallyHidden>
           <StickyPanel ref={containerRef} width={filterBarWidth}>
             <ErrorBoundary>
               <FilterBar
@@ -655,6 +661,7 @@ const DashboardBuilder = () => {
           {renderDraggableContent}
         </Droppable>
       </StyledHeader>
+      <VisuallyHidden as="h2">{t('Dashboard content')}</VisuallyHidden>
       <StyledContent fullSizeChartId={fullSizeChartId}>
         {!editMode &&
           !topLevelTabs &&

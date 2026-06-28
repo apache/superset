@@ -88,8 +88,12 @@ const StyledContainer = styled.div`
     padding-right: ${theme.padding}px;
     padding-bottom: ${theme.padding}px;
 
-    h3 {
+    h1 {
       padding-bottom: ${theme.paddingSM}px;
+      font-size: ${theme.fontSizeXL}px;
+      font-weight: ${theme.fontWeightStrong};
+      line-height: ${theme.lineHeightHeading2};
+      margin: 0;
     }
 
     & .dataset {
@@ -333,7 +337,7 @@ export class ChartCreation extends PureComponent<
 
     return (
       <StyledContainer>
-        <h3>{t('Create a new chart')}</h3>
+        <h1>{t('Create a new chart')}</h1>
         <Steps direction="vertical" size="small">
           <Steps.Step
             title={
