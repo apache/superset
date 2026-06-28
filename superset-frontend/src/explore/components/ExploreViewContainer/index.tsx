@@ -36,6 +36,7 @@ import {
   JsonObject,
   MatrixifyFormData,
   DatasourceType,
+  ensureIsArray,
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
@@ -65,6 +66,7 @@ import {
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from 'src/logger/LogUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
@@ -396,7 +398,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
-      document.title = props.sliceName;
+      document.title = sanitizeDocumentTitle(props.sliceName);
     }
   }, [props.sliceName]);
 
@@ -412,8 +414,53 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
   );
 
+  // M3 + M4: fire compatibility check on mount and whenever the metric /
+  // dimension selection changes.  Only semantic views use the endpoint;
+  // SQL datasets short-circuit to null inside fetchCompatibility.
+  const selectedMetrics = useMemo(
+    () =>
+      ensureIsArray(props.form_data.metrics).filter(
+        (m): m is string => typeof m === 'string',
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(props.form_data.metrics)],
+  );
+  const selectedDimensions = useMemo(
+    () =>
+      [
+        ...ensureIsArray(props.form_data.groupby),
+        ...ensureIsArray(props.form_data.columns),
+        ...(typeof props.form_data.x_axis === 'string'
+          ? [props.form_data.x_axis]
+          : []),
+      ].filter((d): d is string => typeof d === 'string'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      JSON.stringify(props.form_data.groupby),
+      JSON.stringify(props.form_data.columns),
+      props.form_data.x_axis,
+    ],
+  );
+  useEffect(() => {
+    props.actions.fetchCompatibility(
+      props.datasource.type,
+      props.datasource.id as number,
+      selectedMetrics,
+      selectedDimensions,
+    );
+    // props.datasource.id covers the saved-chart-loading case (M4)
+  }, [
+    props.datasource.id,
+    props.datasource.type,
+    selectedMetrics,
+    selectedDimensions,
+  ]);
+
   const addHistory = useCallback(
-    async ({ isReplace = false, title } = {}) => {
+    async ({
+      isReplace = false,
+      title,
+    }: { isReplace?: boolean; title?: string } = {}) => {
       const formData = props.dashboardId
         ? {
             ...props.form_data,

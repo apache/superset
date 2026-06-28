@@ -36,6 +36,42 @@ const versionsConfig = JSON.parse(fs.readFileSync(versionsConfigPath, 'utf8'));
 // Build plugins array dynamically based on disabled flags
 const dynamicPlugins = [];
 
+// Add user_docs (formerly the preset-classic default docs instance) as an
+// explicit plugin instance, so its versioned dirs follow the same
+// `<id>_versioned_docs` / `<id>_versioned_sidebars` / `<id>_versions.json`
+// naming as the other sections instead of the bare `versioned_*` prefix
+// Docusaurus uses for the default plugin id.
+if (!versionsConfig.user_docs.disabled) {
+  dynamicPlugins.push([
+    '@docusaurus/plugin-content-docs',
+    {
+      id: 'user_docs',
+      path: 'docs',
+      routeBasePath: 'user-docs',
+      sidebarPath: require.resolve('./sidebars.js'),
+      editUrl: ({ versionDocsDirPath, docPath }: { versionDocsDirPath: string; docPath: string }) => {
+        if (docPath === 'intro.md') {
+          return 'https://github.com/apache/superset/edit/master/README.md';
+        }
+        return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
+      },
+      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
+      admonitions: {
+        keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+        extendDefaults: true,
+      },
+      docItemComponent: '@theme/DocItem',
+      includeCurrentVersion: versionsConfig.user_docs.includeCurrentVersion,
+      lastVersion: versionsConfig.user_docs.lastVersion,
+      onlyIncludeVersions: versionsConfig.user_docs.onlyIncludeVersions,
+      versions: versionsConfig.user_docs.versions,
+      disableVersioning: false,
+      showLastUpdateAuthor: true,
+      showLastUpdateTime: true,
+    },
+  ]);
+}
+
 // Add components plugin if not disabled
 if (!versionsConfig.components.disabled) {
   dynamicPlugins.push([
@@ -178,7 +214,7 @@ if (!versionsConfig.admin_docs.disabled) {
       },
       {
         label: 'Security',
-        to: '/admin-docs/security/security',
+        to: '/admin-docs/security/',
         activeBaseRegex: '^/admin-docs/security/',
       },
     ],
@@ -227,41 +263,34 @@ if (!versionsConfig.developer_docs.disabled && !versionsConfig.developer_docs.hi
   });
 }
 
-// Docusaurus Faster: Rspack bundler, SWC transpilation, and other build
-// optimizations. Only enabled for local development — CI runners (GitHub
-// Actions, Netlify) have ~8GB RAM and these features push memory usage over
-// the limit. See https://docusaurus.io/blog/releases/3.6#docusaurus-faster
-const isCI = process.env.CI === 'true';
 
 const config: Config = {
-  ...(!isCI && {
-    future: {
-      v4: {
-        removeLegacyPostBuildHeadAttribute: true,
-        // Disabled: CSS cascade layers change specificity and cause antd
-        // styles (from Storybook component pages) to override theme styles
-        useCssCascadeLayers: false,
-      },
-      experimental_faster: {
-        swcJsLoader: true,
-        swcJsMinimizer: true,
-        swcHtmlMinimizer: true,
-        lightningCssMinimizer: true,
-        rspackBundler: true,
-        mdxCrossCompilerCache: true,
-        rspackPersistentCache: true,
-        // SSG worker threads spawn parallel Node processes, each consuming
-        // significant memory. Disabled to keep total usage reasonable.
-        ssgWorkerThreads: false,
-      },
+  future: {
+    v4: {
+      removeLegacyPostBuildHeadAttribute: true,
+      // Disabled: CSS cascade layers change specificity and cause antd
+      // styles (from Storybook component pages) to override theme styles
+      useCssCascadeLayers: false,
     },
-  }),
+    faster: {
+      swcJsLoader: false,
+      swcJsMinimizer: true,
+      swcHtmlMinimizer: true,
+      lightningCssMinimizer: true,
+      rspackBundler: true,
+      mdxCrossCompilerCache: true,
+      rspackPersistentCache: true,
+      // SSG worker threads spawn parallel Node processes, each consuming
+      // significant memory. Disabled to keep total usage reasonable.
+      ssgWorkerThreads: false,
+    },
+  },
   title: 'Superset',
   tagline:
     'Apache Superset is a modern data exploration and visualization platform',
   url: 'https://superset.apache.org',
   baseUrl: '/',
-  onBrokenLinks: 'warn',
+  onBrokenLinks: 'throw',
   markdown: {
     mermaid: true,
     hooks: {
@@ -710,29 +739,12 @@ const config: Config = {
     [
       '@docusaurus/preset-classic',
       {
-        docs: {
-          routeBasePath: 'user-docs',
-          sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: ({ versionDocsDirPath, docPath }) => {
-            if (docPath === 'intro.md') {
-              return 'https://github.com/apache/superset/edit/master/README.md';
-            }
-            return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
-          },
-          remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
-          admonitions: {
-            keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
-            extendDefaults: true,
-          },
-          includeCurrentVersion: versionsConfig.docs.includeCurrentVersion,
-          lastVersion: versionsConfig.docs.lastVersion,  // Make 'next' the default
-          onlyIncludeVersions: versionsConfig.docs.onlyIncludeVersions,
-          versions: versionsConfig.docs.versions,
-          disableVersioning: false,
-          showLastUpdateAuthor: true,
-          showLastUpdateTime: true,
-          docItemComponent: '@theme/DocItem',
-        },
+        // The user-docs section is configured as an explicit plugin
+        // instance above (id: 'user_docs') rather than the preset's
+        // default docs slot, so that all four sections use parallel
+        // `<id>_versioned_docs` / `<id>_versioned_sidebars` /
+        // `<id>_versions.json` naming on disk.
+        docs: false,
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
@@ -892,10 +904,8 @@ const config: Config = {
           ],
         },
         {
-          href: '/user-docs/',
+          type: 'custom-getStartedSplit',
           position: 'right',
-          className: 'default-button-theme get-started-button',
-          label: 'Get Started',
         },
         {
           href: 'https://github.com/apache/superset',
@@ -907,6 +917,23 @@ const config: Config = {
     footer: {
       links: [],
       copyright: `
+          <div class="footer__social-links">
+            <a href="https://bit.ly/join-superset-slack" target="_blank" rel="noopener noreferrer" title="Join us on Slack" aria-label="Slack">
+              <img src="/img/community/slack-symbol.svg" alt="Slack" />
+            </a>
+            <a href="https://x.com/apachesuperset" target="_blank" rel="noopener noreferrer" title="Follow us on X" aria-label="X">
+              <img src="/img/community/x-symbol.svg" alt="X" />
+            </a>
+            <a href="https://www.linkedin.com/company/apache-superset" target="_blank" rel="noopener noreferrer" title="Follow us on LinkedIn" aria-label="LinkedIn">
+              <img src="/img/community/linkedin-symbol.svg" alt="LinkedIn" />
+            </a>
+            <a href="https://bsky.app/profile/apachesuperset.bsky.social" target="_blank" rel="noopener noreferrer" title="Follow us on Bluesky" aria-label="Bluesky">
+              <img src="/img/community/bluesky-symbol.svg" alt="Bluesky" />
+            </a>
+            <a href="https://reddit.com/r/apache-superset" target="_blank" rel="noopener noreferrer" title="Follow us on Reddit" aria-label="Reddit">
+              <img src="/img/community/reddit-symbol.svg" alt="Reddit" />
+            </a>
+          </div>
           <div class="footer__ci-services">
             <span>CI powered by</span>
             <a href="https://www.netlify.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/netlify.png" alt="Netlify" title="Netlify - Deploy Previews" /></a>

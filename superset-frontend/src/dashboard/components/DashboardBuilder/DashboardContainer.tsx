@@ -20,6 +20,7 @@
 // when its container size changes, due to e.g., builder side panel opening
 import {
   FC,
+  FocusEvent as ReactFocusEvent,
   memo,
   useCallback,
   useEffect,
@@ -37,7 +38,7 @@ import {
   NativeFilterType,
   getLabelsColorMap,
 } from '@superset-ui/core';
-import { ParentSize } from '@visx/responsive';
+import { useParentSize } from '@visx/responsive';
 import Tabs from '@superset-ui/core/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
@@ -328,7 +329,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [onBeforeUnload]);
 
   const renderTabBar = useCallback(() => <></>, []);
-  const handleFocus = useCallback(e => {
+  const handleFocus = useCallback((e: ReactFocusEvent<HTMLElement>) => {
     if (
       // prevent scrolling when tabbing to the tab pane
       e.target.classList.contains('ant-tabs-tabpane') &&
@@ -342,7 +343,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, []);
 
   const renderParentSizeChildren = useCallback(
-    ({ width }) => {
+    ({ width }: { width: number }) => {
       const tabItems = childIds.map((id, index) => ({
         key: index === 0 ? DASHBOARD_GRID_ID : index.toString(),
         label: null,
@@ -373,9 +374,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     [activeKey, childIds, dashboardLayout, handleFocus, renderTabBar, tabIndex],
   );
 
+  // Hook form, not <ParentSize>: @visx 4.0.0's component clips content taller
+  // than the viewport, which breaks dashboard page scrolling.
+  const { parentRef, width } = useParentSize();
+
   return (
-    <div className="grid-container" data-test="grid-container">
-      <ParentSize>{renderParentSizeChildren}</ParentSize>
+    <div className="grid-container" data-test="grid-container" ref={parentRef}>
+      {renderParentSizeChildren({ width })}
     </div>
   );
 };

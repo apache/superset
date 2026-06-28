@@ -20,6 +20,7 @@ import {
   AnnotationSourceType,
   AnnotationStyle,
   AnnotationType,
+  AxisType,
   ComparisonType,
   DataRecord,
   EventAnnotationLayer,
@@ -1443,7 +1444,7 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   const chartProps = createTestChartProps({
     formData: {
       granularity_sqla: 'ds',
-      time_grain_sqla: TimeGranularity.YEAR,
+      timeGrainSqla: TimeGranularity.YEAR,
       xAxisTimeFormat: '%Y',
     },
     queriesData: [
@@ -1470,6 +1471,146 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   expect(label2).toBe('2004');
   expect(label3).toBe('2005');
   expect(label4).toBe('');
+});
+
+test('x-axis does not force showMaxLabel when no time grain is set', () => {
+  const data = [
+    { __timestamp: Date.UTC(2003, 0, 6), sales: 100 },
+    { __timestamp: Date.UTC(2004, 5, 15), sales: 200 },
+    { __timestamp: Date.UTC(2005, 4, 31), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: undefined,
+    },
+    queriesData: [
+      createTestQueryData(data, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const xAxisResult = transformProps(chartProps).echartOptions.xAxis as any;
+  expect(xAxisResult.axisLabel.showMaxLabel).not.toBe(true);
+});
+
+test('numeric x coltype routes through the number formatter (not the time formatter)', () => {
+  // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation.
+  // When the query reports a Numeric x-axis coltype (including epoch-ms-like
+  // values), Timeseries transformProps must pick the Value axis and run the
+  // label through getNumberFormatter, not the time formatter. If this ever
+  // changes, epoch-ms values that arrive as Numeric would suddenly be treated
+  // as Date instances and could render "NaN" — the symptom that prompted this
+  // investigation.
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: number) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Value);
+  const label = xAxis.axisLabel.formatter(ts1);
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
+});
+
+test('xAxisForceCategorical forces Category axis regardless of Numeric coltype', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+      xAxisForceCategorical: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    triggerEvent?: boolean;
+    type: string;
+  };
+
+  expect(xAxis.type).toBe(AxisType.Category);
+  expect(xAxis.triggerEvent).toBe(true);
+});
+
+test('temporal x coltype wires the time formatter and Time axis', () => {
+  // Regression guard: the happy path for time-series charts. Ensures that
+  // Temporal coltype keeps routing through the TimeFormatter so a refactor
+  // does not accidentally drop Date handling (the feared regression that
+  // sparked this investigation).
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: Date) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Time);
+  const label = xAxis.axisLabel.formatter(new Date(ts1));
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
+  expect(label).not.toBe(String(ts1));
 });
 
 test('should assign distinct dash patterns for multiple time offsets consistently', () => {
@@ -1519,4 +1660,101 @@ test('should assign distinct dash patterns for multiple time offsets consistentl
 
   // must be different patterns
   expect(symbol1).not.toEqual(symbol2);
+});
+
+describe('Tooltip with long labels', () => {
+  test('should use axisValue for tooltip when available (richTooltip)', () => {
+    const longLabelData: ChartDataResponseResult[] = [
+      createTestQueryData([
+        {
+          'This is a very long category name that would normally be truncated': 100,
+          __timestamp: 599616000000,
+        },
+        {
+          'Another extremely long category name for testing purposes': 200,
+          __timestamp: 599916000000,
+        },
+      ]),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: true,
+      },
+      queriesData: longLabelData,
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    // Get the tooltip formatter function
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // Simulate params from ECharts with axisValue containing full label
+    // Use distinct values for axisValue and seriesName to verify axisValue is used
+    const mockParams = [
+      {
+        axisValue:
+          'This is a very long category name that would normally be truncated',
+        value: [599616000000, 100],
+        seriesName: 'Some Series Name',
+      },
+    ];
+
+    // Call the formatter and check it uses the full label from axisValue
+    const result = tooltipFormatter(mockParams);
+    expect(result).toContain(
+      'This is a very long category name that would normally be truncated',
+    );
+  });
+
+  test('should fallback to value when axisValue is not available', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: true,
+      },
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // Simulate params without axisValue
+    const mockParams = [
+      {
+        value: [599616000000, 1],
+        seriesName: 'San Francisco',
+      },
+    ];
+
+    // Should fall back to the x-value (value[xIndex]) and render it in the title
+    const result = tooltipFormatter(mockParams);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('599616000000');
+  });
+
+  test('should handle item tooltips correctly', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        richTooltip: false,
+      },
+    });
+
+    const transformedProps = transformProps(chartProps);
+
+    const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+      .formatter;
+
+    // For item tooltips, params is a single object
+    const mockParams = {
+      value: [599616000000, 1],
+      seriesName: 'San Francisco',
+    };
+
+    // The item-tooltip x-value (value[xIndex]) should appear in the title
+    const result = tooltipFormatter(mockParams);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('599616000000');
+  });
 });

@@ -24,6 +24,7 @@ import {
   screen,
 } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   OPEN_FILTER_BAR_WIDTH,
   CLOSED_FILTER_BAR_WIDTH,
@@ -139,6 +140,7 @@ describe('DashboardBuilder', () => {
         ...overrideState,
       }),
       useDnd: true,
+      useRouter: true,
       useTheme: true,
     });
   }
@@ -161,6 +163,62 @@ describe('DashboardBuilder', () => {
     const { queryByTestId } = setup();
     const header = queryByTestId('dashboard-header-container');
     expect(header).toBeInTheDocument();
+  });
+
+  test('should hide DashboardHeader when standalone mode hides nav and title (?standalone=2)', () => {
+    // React-level equivalent of the legacy `cy.get('#app-menu').should('not.exist')`
+    // Cypress assertion. The `#app-menu` node lives in Flask's spa.html template,
+    // gated by `{% if standalone_mode %}`, so RTL cannot reach it directly.
+    // `?standalone=2` maps to DashboardStandaloneMode.HideNavAndTitle, which the
+    // DashboardBuilder honours by suppressing the React-side DashboardHeader.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=2');
+    try {
+      const { queryByTestId } = setup();
+      expect(
+        queryByTestId('dashboard-header-container'),
+      ).not.toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('should keep the DashboardHeader when standalone mode only hides nav (?standalone=1)', () => {
+    // `?standalone=1` maps to DashboardStandaloneMode.HideNav, which only hides the
+    // Flask-rendered global app menu (#app-menu) — it must NOT suppress the React-side
+    // DashboardHeader. This pins the boundary against HideNavAndTitle (?standalone=2).
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=1');
+    try {
+      const { queryByTestId } = setup();
+      expect(queryByTestId('dashboard-header-container')).toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('should keep the header hidden in standalone mode (?standalone=2) while editMode is active', () => {
+    // Orthogonality analogue of the legacy `?edit=true&standalone=true` Cypress mount.
+    // editMode is sourced from Redux (state.dashboardState.editMode), not the URL —
+    // DashboardBuilder only reads URL_PARAMS.standalone — so the legacy `edit=true`
+    // param is inert here and is intentionally omitted. Contract under test:
+    // standalone=2 (HideNavAndTitle) suppresses DashboardHeader even while editMode
+    // drives the `dashboard--editing` class on the wrapper.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=2');
+    try {
+      const { getByTestId, queryByTestId } = setup({
+        dashboardState: { ...mockState.dashboardState, editMode: true },
+      });
+      expect(getByTestId('dashboard-content-wrapper')).toHaveClass(
+        'dashboard dashboard--editing',
+      );
+      expect(
+        queryByTestId('dashboard-header-container'),
+      ).not.toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
   });
 
   test('should render a Sticky top-level Tabs if the dashboard has tabs', async () => {
@@ -473,6 +531,7 @@ test('should render ParentSize wrapper with height 100% for tabs', async () => {
       dashboardLayout: undoableDashboardLayoutWithTabs,
     }),
     useDnd: true,
+    useRouter: true,
     useTheme: true,
   });
 
@@ -485,6 +544,48 @@ test('should render ParentSize wrapper with height 100% for tabs', async () => {
   expect(gridContainer).toBeInTheDocument();
   expect(parentSizeWrapper).toBeInTheDocument();
   expect(tabPanels.length).toBeGreaterThan(0);
+});
+
+test('should apply min-height to the top-level tab drop target so tabs can be dropped on dashboards with content', () => {
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+  const { getByTestId } = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardLayout: undoableDashboardLayout,
+      dashboardState: { ...mockState.dashboardState, editMode: true },
+    }),
+    useDnd: true,
+    useTheme: true,
+    useRouter: true,
+  });
+
+  const headerWrapper = getByTestId('dashboard-header-wrapper');
+
+  // The Droppable inside the header should have the empty-droptarget class
+  // when there are no top-level tabs and edit mode is active. Without this
+  // class (and its associated min-height CSS rule), the drop target has zero
+  // height and users cannot drag tabs onto dashboards that already have
+  // content.
+  const droptarget = headerWrapper.querySelector('.empty-droptarget');
+  expect(droptarget).toBeInTheDocument();
+
+  // Verify the StyledHeader CSS defines a non-zero min-height for
+  // .empty-droptarget, derived from theme.sizeUnit * 4 to stay in sync
+  // with the source rule in DashboardBuilder.tsx.
+  expect(headerWrapper).toHaveStyleRule(
+    'min-height',
+    `${supersetTheme.sizeUnit * 4}px`,
+    {
+      target: '.empty-droptarget',
+    },
+  );
 });
 
 test('should maintain layout when switching between tabs', async () => {
@@ -506,6 +607,7 @@ test('should maintain layout when switching between tabs', async () => {
       dashboardLayout: undoableDashboardLayoutWithTabs,
     }),
     useDnd: true,
+    useRouter: true,
     useTheme: true,
   });
 

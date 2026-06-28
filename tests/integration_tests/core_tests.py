@@ -23,12 +23,13 @@ import logging
 import random
 import unittest
 from unittest import mock
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, urlsplit
 
 import pandas as pd
 import pytest
 import pytz
 import sqlalchemy as sqla
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -41,7 +42,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2RedirectError, SupersetException
 from superset.extensions import cache_manager
 from superset.models import core as models
 from superset.models.dashboard import Dashboard
@@ -333,6 +334,21 @@ class TestCore(SupersetTestCase):
         assert "Charts" in self.get_resp("/chart/list/")
         assert "Dashboards" in self.get_resp("/dashboard/list/")
 
+    def test_security_fab_views_have_valid_list_template(self) -> None:
+        # Regression test for #36130: the FAB permission views pointed at a custom
+        # list template (superset/fab_overrides/list.html) that was deleted during a
+        # cleanup, so they 500'd with TemplateNotFound. Ensure each view's list
+        # widget template still resolves in the Jinja environment.
+        from superset.security.manager import (
+            PermissionModelView,
+            PermissionViewModelView,
+        )
+
+        for view_cls in (PermissionModelView, PermissionViewModelView):
+            template = view_cls.list_widget.template
+            # Raises TemplateNotFound if the template is missing (the #36130 bug).
+            current_app.jinja_env.get_template(template)
+
     def test_templated_sql_json(self):
         if superset.utils.database.get_example_database().backend == "presto":
             # TODO: make it work for presto
@@ -457,6 +473,59 @@ class TestCore(SupersetTestCase):
 
         assert rv.status_code == 404
         assert data["error"] == "Cached data not found"
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch("superset.viz.BaseViz.get_df")
+    def test_explore_json_propagates_oauth2_redirect_error(
+        self, mock_get_df: mock.Mock
+    ) -> None:
+        """
+        SupersetErrorException exceptions bubble up properly.
+        """
+        mock_get_df.side_effect = OAuth2RedirectError(
+            url="https://accounts.example.com/o/oauth2/v2/auth?...",
+            tab_id="tab-123",
+            redirect_uri="https://superset.example.com/oauth2/redirect",
+        )
+
+        self.login(ADMIN_USERNAME)
+        slc = self.get_slice("Life Expectancy VS Rural %")
+        rv = self.client.post(
+            f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
+            data={"form_data": json.dumps(slc.form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert "errors" in data, data
+        assert data["errors"][0]["error_type"] == "OAUTH2_REDIRECT"
+        assert data["errors"][0]["extra"] == {
+            "url": "https://accounts.example.com/o/oauth2/v2/auth?...",
+            "tab_id": "tab-123",
+            "redirect_uri": "https://superset.example.com/oauth2/redirect",
+        }
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch("superset.viz.BaseViz.get_df")
+    def test_explore_json_generic_exception_still_returns_viz_get_df_error(
+        self, mock_get_df: mock.Mock
+    ) -> None:
+        """
+        Non-Superset exceptions raised by ``get_df`` are reported as the
+        generic ``VIZ_GET_DF_ERROR``.
+        """
+        mock_get_df.side_effect = RuntimeError("boom")
+
+        self.login(ADMIN_USERNAME)
+        slc = self.get_slice("Life Expectancy VS Rural %")
+        rv = self.client.post(
+            f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
+            data={"form_data": json.dumps(slc.form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert "errors" in data, data
+        assert data["errors"][0]["error_type"] == "VIZ_GET_DF_ERROR"
+        assert data["errors"][0]["message"] == "boom"
 
     def test_results_default_deserialization(self):
         use_new_deserialization = False
@@ -855,6 +924,34 @@ class TestCore(SupersetTestCase):
 
         assert resp.headers["Location"] == expected_url
         assert resp.status_code == 302
+
+    @mock.patch("superset.views.core.request")
+    @mock.patch(
+        "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run"
+    )
+    def test_dashboard_permalink_native_filters_encoded(
+        self, get_dashboard_permalink_mock, request_mock
+    ):
+        # A native_filters value containing reserved characters must be
+        # percent-encoded in the redirect target so it cannot inject extra
+        # query parameters into the Location header.
+        request_mock.query_string = b""
+        native_filters_value = "value&injected=evil#frag"
+        get_dashboard_permalink_mock.return_value = {
+            "dashboardId": 1,
+            "state": {"urlParams": [["native_filters", native_filters_value]]},
+        }
+        self.login(ADMIN_USERNAME)
+        resp = self.client.get("superset/dashboard/p/123/")
+
+        location = resp.headers["Location"]
+        assert resp.status_code == 302
+        # The reserved characters are encoded, so no extra params/anchors leak in.
+        assert "native_filters=value%26injected%3Devil%23frag" in location
+        assert "injected=evil" not in location
+        # Round-trips back to the original value when decoded.
+        parsed = parse_qs(urlsplit(location).query)
+        assert parsed["native_filters"] == [native_filters_value]
 
 
 class TestLocalePatch(SupersetTestCase):

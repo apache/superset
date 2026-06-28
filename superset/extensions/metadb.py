@@ -82,7 +82,7 @@ class SupersetAPSWDialect(APSWDialect):
 
         >>> engine = create_engine('superset://')
         >>> conn = engine.connect()
-        >>> results = conn.execute('SELECT * FROM "examples.birth_names"')
+        >>> results = conn.execute(text('SELECT * FROM "examples.birth_names"'))
 
     Queries can also join data across different Superset databases.
 
@@ -305,9 +305,16 @@ class SupersetShillelaghAdapter(Adapter):
             raise ProgrammingError(f"Database not found: {self.database}")
         self._allow_dml = database.allow_dml
 
-        # verify permissions
+        # verify permissions. MetaDB returns row data through a regular
+        # query path, so the strict scoping used by SQL Lab applies here
+        # too: the referenced table must resolve to a Superset dataset the
+        # user has datasource_access on (or owns).
         table = Table(self.table, self.schema, self.catalog)
-        security_manager.raise_for_access(database=database, table=table)
+        security_manager.raise_for_access(
+            database=database,
+            table=table,
+            force_dataset_match=True,
+        )
 
         # store this callable for later whenever we need an engine
         self.engine_context = partial(
@@ -361,7 +368,7 @@ class SupersetShillelaghAdapter(Adapter):
         """
         Build SQLAlchemy query object.
         """
-        query = select([self._table])
+        query = select(self._table)
 
         for column_name, filter_ in bounds.items():
             column = self._table.c[column_name]
@@ -445,7 +452,7 @@ class SupersetShillelaghAdapter(Adapter):
             if self._rowid:
                 return result.inserted_primary_key[0]
 
-            query = select([func.count()]).select_from(self._table)
+            query = select(func.count()).select_from(self._table)
             return connection.execute(query).scalar()
 
     @check_dml

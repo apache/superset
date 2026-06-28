@@ -24,7 +24,6 @@ import traceback
 from datetime import datetime
 from typing import Any, Callable, cast
 
-from babel import Locale
 from flask import (
     abort,
     current_app as app,
@@ -53,6 +52,7 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
+from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
 from superset.db_engine_specs import get_available_engine_specs
@@ -67,7 +67,7 @@ from superset.themes.utils import (
 )
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
-from superset.utils.version import get_version_metadata
+from superset.utils.version import get_version_metadata, visible_version_metadata
 from superset.views.error_handling import json_error_response
 
 from .utils import bootstrap_user_data, get_config_value
@@ -123,7 +123,9 @@ FRONTEND_CONF_KEYS = (
     "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
     "TABLE_VIZ_MAX_ROW_SERVER",
     "MAPBOX_API_KEY",
+    "DEFAULT_MAP_RENDERER",
     "CSV_STREAMING_ROW_THRESHOLD",
+    "SCARF_ANALYTICS",
 )
 
 logger = logging.getLogger(__name__)
@@ -142,7 +144,9 @@ def get_error_msg() -> str:
 
 
 def json_success(json_msg: str, status: int = 200) -> FlaskResponse:
-    return Response(json_msg, status=status, mimetype="application/json")
+    return Response(
+        json_msg, status=status, content_type="application/json; charset=utf-8"
+    )
 
 
 def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskResponse:
@@ -215,7 +219,7 @@ class BaseSupersetView(BaseView):
         return Response(
             json.dumps(obj, default=json.json_int_dttm_ser, ignore_nan=True),
             status=status,
-            mimetype="application/json",
+            content_type="application/json; charset=utf-8",
         )
 
     def render_app_template(
@@ -277,8 +281,16 @@ def menu_data(user: User) -> dict[str, Any]:
     if callable(brand_text := app.config["LOGO_RIGHT_TEXT"]):
         brand_text = brand_text()
 
-    # Get centralized version metadata
-    version_metadata = get_version_metadata()
+    # Get centralized version metadata. Precise build details (git SHA and
+    # build number) let a viewer map the deployment to a specific commit/build,
+    # so expose them only to admins unless the deployment opts in via
+    # EXPOSE_BUILD_DETAILS_TO_USERS. The release version string is always shown.
+    expose_build_details = (
+        app.config["EXPOSE_BUILD_DETAILS_TO_USERS"] or security_manager.is_admin()
+    )
+    version_metadata = visible_version_metadata(
+        get_version_metadata(), expose_build_details
+    )
 
     return {
         "menu": appbuilder.menu.get_data(),
@@ -373,9 +385,18 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     # Check if UI theme administration is enabled
     enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False)
 
-    # Get config themes to use as fallback
+    # Get config themes, deep-merging partial user overrides with built-in defaults
+    # so that unspecified token fields fall back gracefully.
     config_theme_default = get_config_value("THEME_DEFAULT")
+    if config_theme_default:
+        config_theme_default = _merge_theme_dicts(
+            dict(_THEME_DEFAULT_BASE), dict(config_theme_default)
+        )
     config_theme_dark = get_config_value("THEME_DARK")
+    if config_theme_dark:
+        config_theme_dark = _merge_theme_dicts(
+            dict(_THEME_DARK_BASE), dict(config_theme_dark)
+        )
 
     if enable_ui_admin:
         # Try to load themes from database
@@ -409,37 +430,39 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
 
 def get_default_spinner_svg() -> str | None:
     """
-    Load and cache the default spinner SVG content from frontend assets.
+    Load and cache the default spinner SVG content from backend templates.
 
     Returns:
         str | None: SVG content as string, or None if file not found
     """
-    try:
-        # Path to frontend source SVG file (used by both frontend and backend)
-        svg_path = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            "superset-frontend",
-            "packages",
-            "superset-ui-core",
-            "src",
-            "components",
-            "assets",
-            "images",
-            "loading.svg",
-        )
+    # Path to backend templates SVG file
+    svg_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "templates",
+        "superset",
+        "loading.svg",
+    )
 
+    try:
         with open(svg_path, "r", encoding="utf-8") as f:
             return f.read().strip()
-    except (FileNotFoundError, OSError, UnicodeDecodeError) as e:
+    except (OSError, UnicodeDecodeError) as e:
         logger.warning("Could not load default spinner SVG: %s", e)
         return None
 
 
+def _get_frontend_config_value(key: str) -> Any:
+    """Get frontend config value, converting sets to lists for JSON compatibility."""
+    val = app.config.get(key)
+    if isinstance(val, set):
+        return list(val)
+    return val
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
-    user_id: int | None, locale: Locale | None
+    user_id: int | None, locale: str | None
 ) -> dict[str, Any]:
     """Common data always sent to the client
 
@@ -448,14 +471,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     """
 
     # should not expose API TOKEN to frontend
-    frontend_config = {
-        k: (
-            list(app.config.get(k))
-            if isinstance(app.config.get(k), set)
-            else app.config.get(k)
-        )
-        for k in FRONTEND_CONF_KEYS
-    }
+    frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
 
     if app.config.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
@@ -477,10 +493,16 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         and bool(available_specs[GSheetsEngineSpec])
     )
 
-    if isinstance(locale, Locale):
-        language = locale.language
-    elif isinstance(locale, str):
-        language = locale
+    if isinstance(locale, str):
+        normalized = locale.replace("-", "_")
+        languages = app.config.get("LANGUAGES") or {}
+        # Preserve region-specific locales (e.g. zh_TW, pt_BR) when they are
+        # configured as distinct language packs; otherwise fall back to the
+        # base language code.
+        if normalized in languages:
+            language = normalized
+        else:
+            language = normalized.split("_")[0]
     else:
         language = app.config.get("BABEL_DEFAULT_LOCALE", "en")
     auth_type = app.config["AUTH_TYPE"]
@@ -544,7 +566,10 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
 
 def common_bootstrap_payload() -> dict[str, Any]:
-    return cached_common_bootstrap_data(utils.get_user_id(), get_locale())
+    locale = get_locale()
+    # Convert locale to string for proper cache key hashing
+    locale_str = str(locale) if locale else None
+    return cached_common_bootstrap_data(utils.get_user_id(), locale_str)
 
 
 def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -724,11 +749,20 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
 class CsvResponse(Response):
     """
-    Override Response to take into account csv encoding from config.py
+    Response that encodes its body with the configured CSV_EXPORT encoding.
+
+    Werkzeug 3.0 removed ``Response.charset``, which this class relied on,
+    so the configured encoding (e.g. the default "utf-8-sig") was silently
+    ignored and bodies were always plain utf-8.
     """
 
-    charset = app.config["CSV_EXPORT"].get("encoding", "utf-8")
     default_mimetype = "text/csv"
+
+    def __init__(self, response: Any = None, *args: Any, **kwargs: Any) -> None:
+        if isinstance(response, str):
+            encoding = app.config["CSV_EXPORT"].get("encoding", "utf-8")
+            response = response.encode(encoding)
+        super().__init__(response, *args, **kwargs)
 
 
 class XlsxResponse(Response):

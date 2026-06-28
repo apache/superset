@@ -32,9 +32,11 @@ from sqlglot import exp
 from sqlglot.dialects.dialect import (
     Dialect,
     Dialects,
+    DialectType,
 )
 from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import ParseError
+from sqlglot.generator import Generator
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
 )
@@ -45,7 +47,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot
+from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot, Vertica
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -113,8 +115,10 @@ SQLGLOT_DIALECTS = {
     # "taosws": ???
     "teradatasql": Dialects.TERADATA,
     "trino": Dialects.TRINO,
-    "vertica": Dialects.POSTGRES,
-    "yql": Dialects.CLICKHOUSE,
+    "vertica": Vertica,
+    # "ydb" is a plugin dialect (ydb-sqlglot-plugin) auto-discovered via entry_points,
+    # hence a string name rather than a class reference like the built-in dialects.
+    "yql": "ydb",
 }
 
 
@@ -133,6 +137,32 @@ class LimitMethod(enum.Enum):
 class CTASMethod(enum.Enum):
     TABLE = enum.auto()
     VIEW = enum.auto()
+
+
+def _normalized_generator(
+    dialect_name: DialectType,
+    *,
+    pretty: bool,
+    comments: bool,
+) -> Generator:
+    """
+    Generator that preserves multi-argument DISTINCT expressions.
+
+    Build a sqlglot generator that preserves user-written multi-argument
+    DISTINCT expressions verbatim. Postgres, Presto, Trino, and DuckDB
+    set ``MULTI_ARG_DISTINCT = False`` to emulate the unsupported
+    ``COUNT(DISTINCT a, b)`` idiom via a ``CASE WHEN`` row-expression, which
+    silently corrupts user-defined aggregates that natively accept multiple
+    arguments. Superset's sanitize / format paths normalize user SQL — they
+    do not transpile — so the emulation is undesirable here.
+    """
+    dialect = Dialect.get_or_raise(dialect_name)
+    normalized_cls = type(
+        f"Normalized{dialect.generator_class.__name__}",
+        (dialect.generator_class,),
+        {"MULTI_ARG_DISTINCT": True},
+    )
+    return normalized_cls(dialect=dialect, pretty=pretty, comments=comments)
 
 
 class RLSMethod(enum.Enum):
@@ -323,6 +353,34 @@ class Table:
         )
 
 
+@dataclass(eq=True, frozen=True)
+class Partition:
+    """
+    Partition object, with two attribute keys:
+    is_partitioned_table and partition_column,
+    used to provide partition information
+    Here is an example of an object:
+    Partition(is_partitioned_table=True, partition_column=("month", "day"))
+    """
+
+    is_partitioned_table: bool
+    partition_column: tuple[str, ...] | None = None
+
+    def __str__(self) -> str:
+        """
+        Return a string representation of the Partition object.
+        """
+        partition_column_str = (
+            ", ".join(map(str, self.partition_column))
+            if self.partition_column
+            else "None"
+        )
+        return (
+            f"Partition(is_partitioned_table={self.is_partitioned_table}, "
+            f"partition_column=[{partition_column_str}])"
+        )
+
+
 # To avoid unnecessary parsing/formatting of queries, the statement has the concept of
 # an "internal representation", which is the AST of the SQL statement. For most of the
 # engines supported by Superset this is `sqlglot.exp.Expression`, but there is a special
@@ -436,6 +494,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         Check if the statement mutates data (DDL/DML).
 
         :return: True if the statement mutates data.
+        """
+        raise NotImplementedError()
+
+    def is_destructive(self) -> bool:
+        """
+        Check if the statement is destructive DDL (DROP, TRUNCATE, ALTER).
+
+        :return: True if the statement is destructive DDL.
         """
         raise NotImplementedError()
 
@@ -554,6 +620,84 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     This class is used for all engines with dialects that can be parsed using sqlglot.
     """
 
+    # Function names that mutate server-side state but appear in the AST as
+    # plain function calls inside a non-mutating wrapper. Used by
+    # ``is_mutating()`` to classify e.g. PostgreSQL large-object writers.
+    # Names are uppercased for comparison.
+    _MUTATING_FUNCTION_NAMES: frozenset[str] = frozenset(
+        {
+            "LO_FROM_BYTEA",
+            "LO_EXPORT",
+            "LO_IMPORT",
+            "LO_PUT",
+            "LO_CREATE",
+            "LOWRITE",
+            "LO_UNLINK",
+            # PostgreSQL sequence mutators. `SELECT setval('seq', N)` and
+            # `SELECT nextval('seq')` look like reads but change sequence state
+            # for every subsequent caller. (`currval` only reads the session's
+            # last value, so it is intentionally not listed.)
+            "SETVAL",
+            "NEXTVAL",
+        }
+    )
+
+    # PostgreSQL constructs that sqlglot represents as an opaque ``exp.Command``
+    # (no structured AST). Each can mutate server state or wrap a DML body that
+    # would otherwise be detected by node-type matching. Used by
+    # ``is_mutating()``.
+    _POSTGRES_MUTATING_COMMAND_NAMES: frozenset[str] = frozenset(
+        {
+            "DO",  # PL/pgSQL anonymous block
+            "PREPARE",  # PREPARE u AS UPDATE ... ; EXECUTE u
+            "EXECUTE",  # body is the prepared DML
+            "CALL",  # procedure body may mutate
+            "COPY",  # server-side file ingest into a table
+            "GRANT",
+            "REVOKE",
+            # Only the command-fallback forms (e.g. SET ROLE / SET SESSION
+            # AUTHORIZATION, which change the effective user) reach here as an
+            # exp.Command. Structured `SET search_path = ...` /
+            # `SET statement_timeout = ...` parse as exp.Set and are NOT matched
+            # by this command-name path.
+            "SET",
+            "RESET",  # RESET ROLE / RESET ALL reverts SET; same class as SET
+            "REFRESH",  # REFRESH MATERIALIZED VIEW
+            "REINDEX",
+            "VACUUM",
+            # DDL head-tokens that sqlglot falls back to exp.Command for
+            # whenever the body uses syntax it does not model
+            # (CREATE EXTENSION/FUNCTION...LANGUAGE C/PUBLICATION/etc.,
+            # ALTER ROLE/SYSTEM/..., DROP EXTENSION/RULE/...). Well-formed
+            # CREATE TABLE/ALTER TABLE/DROP TABLE are already caught by the
+            # node-type tuple; these entries close the fallback path.
+            "CREATE",
+            "ALTER",
+            "DROP",
+            "LOAD",  # LOAD '/path/lib.so' dlopens a shared library on the PG host
+            # NOTE: `SHOW` is intentionally NOT included. It is a read (mutates
+            # nothing), so classifying it as mutating would be wrong for every
+            # is_mutating()/has_mutation() consumer (the commit decision, the
+            # "only SELECT allowed" validators, limit handling), not just the
+            # read-only gate. Gating information-disclosure reads such as
+            # `SHOW server_version` belongs in a denylist (DISALLOWED_SQL_FUNCTIONS
+            # already blocks version()/pg_read_file), not in the mutation check.
+        }
+    )
+
+    # Dialects where `SELECT ... INTO target` is CTAS (creates a table, and so
+    # mutates schema). Elsewhere the same syntax assigns into a variable and is
+    # a read: Oracle PL/SQL `SELECT ... INTO v` and MySQL `SELECT ... INTO @v`
+    # parse into an identical `exp.Select` with an `into` arg, so the dialect is
+    # the only signal that distinguishes the mutating form from the read form.
+    _SELECT_INTO_CTAS_DIALECTS: frozenset[Dialects] = frozenset(
+        {
+            Dialects.POSTGRES,
+            Dialects.REDSHIFT,
+            Dialects.TSQL,
+        }
+    )
+
     def __init__(
         self,
         statement: str | None = None,
@@ -581,6 +725,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # and the script contains backticks, retry with MySQL dialect which
             # supports backtick-quoted identifiers
             if (dialect is None or dialect == Dialects.DIALECT) and "`" in script:
+                logger.warning(
+                    "Parsing with base dialect failed for engine %r; "
+                    "script contains backticks, falling back to MySQL dialect",
+                    engine,
+                )
                 try:
                     statements = sqlglot.parse(script, dialect=Dialects.MYSQL)
                 except sqlglot.errors.ParseError:
@@ -682,25 +831,67 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             exp.Drop,
             exp.TruncateTable,
             exp.Alter,
+            # sqlglot has structured nodes for these DML/DCL forms in
+            # PostgreSQL and other dialects; without them an opaque exp.Command
+            # check would still miss the structured-parse path.
+            exp.Copy,  # COPY <table> FROM/TO (server-side file ingest)
+            exp.Grant,
+            exp.Revoke,
+            # COMMENT ON TABLE/COLUMN/etc. writes to system catalog pg_description.
+            exp.Comment,
         )
 
-        for node_type in mutating_nodes:
-            if self._parsed.find(node_type):
-                return True
+        if self._parsed.find(*mutating_nodes):
+            return True
+
+        # `SELECT ... INTO new_table FROM ...` parses as `exp.Select` with an
+        # `into` arg (Postgres-style CTAS variant). It creates a new table and
+        # therefore mutates schema. Only treat it as mutating for dialects where
+        # the syntax is CTAS; elsewhere it assigns into a variable (a read).
+        if (
+            self._dialect in self._SELECT_INTO_CTAS_DIALECTS
+            and isinstance(self._parsed, exp.Select)
+            and self._parsed.args.get("into")
+        ):
+            return True
+
+        # Function calls that mutate server-side state without an enclosing
+        # mutating AST node. Notable example: PostgreSQL large-object writers
+        # (`lo_export` writes to the server filesystem, `lo_from_bytea`/
+        # `lo_create`/`lo_put`/`lo_import`/`lowrite` mutate the pg_largeobject
+        # catalog). These appear as plain function calls inside an `exp.Select`
+        # and would otherwise pass the read-only gate. Every name in
+        # _MUTATING_FUNCTION_NAMES is PostgreSQL-specific, so the walk is gated
+        # on the dialect: other engines may expose read-only functions/UDFs with
+        # the same names, and flagging those would wrongly block read-only
+        # queries. Each parses as an `exp.Anonymous`, whose `.name` is the bare
+        # function identifier. The walk is restricted to `exp.Anonymous` rather
+        # than the broader `exp.Func`, because for built-in function nodes (e.g.
+        # `exp.Upper`) `.name` returns the first argument's text, not the
+        # function name, so `SELECT upper('lo_export')` would otherwise be
+        # misclassified as mutating.
+        if self._dialect == Dialects.POSTGRES and any(
+            function.name.upper() in self._MUTATING_FUNCTION_NAMES
+            for function in self._parsed.find_all(exp.Anonymous)
+        ):
+            return True
 
         # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
         # command, not an expression - check at root level
         if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
             return True  # pragma: no cover
 
+        # PostgreSQL constructs that sqlglot represents as an opaque
+        # `exp.Command` rather than a structured AST. Each of these can mutate
+        # state or wrap a DML body that would otherwise be detected. The
+        # `.name` attribute on `exp.Command` preserves the source-case of the
+        # head keyword (so `create extension ...` would yield `'create'`),
+        # which means the set lookup must be case-insensitive.
         if (
             self._dialect == Dialects.POSTGRES
             and isinstance(self._parsed, exp.Command)
-            and self._parsed.name == "DO"
+            and self._parsed.name.upper() in self._POSTGRES_MUTATING_COMMAND_NAMES
         ):
-            # anonymous blocks can be written in many different languages (the default
-            # is PL/pgSQL), so parsing them it out of scope of this class; we just
-            # assume the anonymous block is mutating
             return True
 
         # Postgres runs DMLs prefixed by `EXPLAIN ANALYZE`, see
@@ -719,16 +910,40 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return False
 
+    def is_destructive(self) -> bool:
+        """
+        Check if the statement is destructive DDL (DROP, TRUNCATE, ALTER).
+
+        Unlike ``is_mutating()``, this excludes non-destructive DML
+        (INSERT, UPDATE, DELETE, MERGE) and CREATE.
+
+        :return: True if the statement is destructive DDL.
+        """
+        destructive_nodes = (
+            exp.Drop,
+            exp.TruncateTable,
+            exp.Alter,
+        )
+
+        for node_type in destructive_nodes:
+            if self._parsed.find(node_type):
+                return True
+
+        # Handle ALTER parsed as Command (Oracle, MS SQL dialects)
+        if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
+            return True  # pragma: no cover
+
+        return False
+
     def format(self, comments: bool = True) -> str:
         """
         Pretty-format the SQL statement.
         """
-        return Dialect.get_or_raise(self._dialect).generate(
-            self._parsed,
-            copy=True,
-            comments=comments,
+        return _normalized_generator(
+            self._dialect,
             pretty=True,
-        )
+            comments=comments,
+        ).generate(self._parsed, copy=True)
 
     def get_settings(self) -> dict[str, str | bool]:
         """
@@ -767,14 +982,42 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param functions: List of functions to check for
         :return: True if any of the functions are present
         """
-        present = {
-            (
-                function.sql_name()
-                if function.sql_name() != "ANONYMOUS"
-                else function.name.upper()
-            )
-            for function in self._parsed.find_all(exp.Func)
-        }
+        # Build the set of SQL-level function names present in the AST. For
+        # Anonymous nodes the name is stored directly; for named Func nodes we
+        # use sql_name(). We also add dialect parser aliases so that functions
+        # that are normalised by a dialect (e.g. VERSION() -> CurrentVersion in
+        # Postgres, sql_name = CURRENT_VERSION) can still be matched by their
+        # original SQL name.
+        dialect_cls = Dialect.get_or_raise(self._dialect) if self._dialect else None
+        parser_cls = getattr(dialect_cls, "parser_class", None) if dialect_cls else None
+        parser_functions: dict[str, Any] = (
+            getattr(parser_cls, "FUNCTIONS", {}) if parser_cls is not None else {}
+        )
+
+        present: set[str] = set()
+        for function in self._parsed.find_all(exp.Func):
+            sql_name = function.sql_name()
+            if sql_name != "ANONYMOUS":
+                present.add(sql_name)
+                # Add any dialect-level aliases that resolve to the same class
+                # (e.g. 'VERSION' -> CurrentVersion when dialect is Postgres).
+                func_type = type(function)
+                for key, builder in parser_functions.items():
+                    try:
+                        if builder.__self__ is func_type:
+                            present.add(key)
+                    except AttributeError:
+                        pass
+            else:
+                present.add(function.name.upper())
+
+        # MySQL `@@<name>` syntax (also Oracle/SQL-Server `@@name`) parses as
+        # `exp.SessionParameter`, which is *not* a subclass of `exp.Func`, so
+        # the walk above misses it. Include those names so denylist entries
+        # like `version` or `hostname` match `SELECT @@version`.
+        for param in self._parsed.find_all(exp.SessionParameter):
+            present.add(param.name.upper())
+
         return any(function.upper() in present for function in functions)
 
     def check_tables_present(self, tables: set[str]) -> bool:
@@ -862,9 +1105,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: A new SQLStatement with the create table statement.
         """
         table_expr = exp.Table(
-            this=exp.Identifier(this=table.table),
-            db=exp.Identifier(this=table.schema) if table.schema else None,
-            catalog=exp.Identifier(this=table.catalog) if table.catalog else None,
+            this=exp.Identifier(this=table.table, quoted=True),
+            db=exp.Identifier(this=table.schema, quoted=True) if table.schema else None,
+            catalog=exp.Identifier(this=table.catalog, quoted=True)
+            if table.catalog
+            else None,
         )
         create_table = exp.Create(
             this=table_expr,
@@ -878,16 +1123,25 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Check if the statement has a subquery.
 
+        Covers explicit subqueries, set operations (``UNION``/``INTERSECT``/
+        ``EXCEPT``), and any nested ``SELECT`` regardless of the top-level node
+        type (e.g. when wrapped in parentheses or a set operation).
+
         :return: True if the statement has a subquery.
         """
-        return bool(self._parsed.find(exp.Subquery)) or (
-            isinstance(self._parsed, exp.Select)
-            and any(
-                isinstance(expression, exp.Select)
-                for expression in self._parsed.walk()
-                if expression != self._parsed
+        return (
+            self.is_set_operation()
+            or bool(self._parsed.find(exp.Subquery))
+            or any(
+                select != self._parsed for select in self._parsed.find_all(exp.Select)
             )
         )
+
+    def is_set_operation(self) -> bool:
+        """
+        Check if the statement is a top-level set operation (UNION/INTERSECT/EXCEPT).
+        """
+        return isinstance(self._parsed, exp.SetOperation)
 
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """
@@ -1175,6 +1429,18 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return self._parsed.startswith(".") and not self._parsed.startswith(".show")
 
+    def is_destructive(self) -> bool:
+        """
+        Check if the statement is destructive DDL.
+
+        Kusto KQL uses dot-commands for management operations. Destructive
+        operations start with ``.drop`` or ``.alter``.
+
+        :return: True if the statement is destructive DDL.
+        """
+        lower = self._parsed.lower()
+        return lower.startswith(".drop") or lower.startswith(".alter")
+
     def optimize(self) -> KustoKQLStatement:
         """
         Return optimized statement.
@@ -1298,6 +1564,28 @@ class SQLScript:
         """
         return ";\n".join(statement.format(comments) for statement in self.statements)
 
+    @property
+    def has_unparseable_statement(self) -> bool:
+        """
+        True if any statement in the script cannot be fully modeled as an
+        AST whose table references Superset can enumerate. This covers two
+        cases that must both fail closed under strict scoping:
+
+        * SQLGlot ``exp.Command`` nodes: statements sqlglot recognises but
+          cannot fully parse (e.g. dynamic SQL inside a stored-procedure
+          call); ``extract_tables_from_statement`` cannot see the tables.
+        * Non-sqlglot engines (e.g. Kusto KQL): the statement class does
+          not produce a sqlglot AST at all and its
+          ``_extract_tables_from_statement`` returns an empty set, so the
+          per-table check would have nothing to enforce against.
+        """
+        for statement in self.statements:
+            if not isinstance(statement, SQLStatement):
+                return True
+            if isinstance(statement._parsed, exp.Command):  # noqa: SLF001
+                return True
+        return False
+
     def get_settings(self) -> dict[str, str | bool]:
         """
         Return the settings for the SQL script.
@@ -1320,6 +1608,14 @@ class SQLScript:
         :return: True if the script contains mutating statements
         """
         return any(statement.is_mutating() for statement in self.statements)
+
+    def has_destructive(self) -> bool:
+        """
+        Check if the script contains destructive DDL (DROP, TRUNCATE, ALTER).
+
+        :return: True if any statement is destructive DDL.
+        """
+        return any(statement.is_destructive() for statement in self.statements)
 
     def optimize(self) -> SQLScript:
         """
@@ -1551,14 +1847,13 @@ def sanitize_clause(clause: str, engine: str) -> str:
     """
     try:
         statement = SQLStatement(clause, engine)
-        dialect = SQLGLOT_DIALECTS.get(engine)
-        from sqlglot.dialects.dialect import Dialect
-
-        return Dialect.get_or_raise(dialect).generate(
+        return _normalized_generator(
+            SQLGLOT_DIALECTS.get(engine),
+            pretty=False,
+            comments=True,
+        ).generate(
             statement._parsed,  # pylint: disable=protected-access
             copy=True,
-            comments=True,
-            pretty=False,
         )
     except SupersetParseError as ex:
         raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex
@@ -1568,6 +1863,7 @@ def transpile_to_dialect(
     sql: str,
     target_engine: str,
     source_engine: str | None = None,
+    identify: bool = False,
 ) -> str:
     """
     Transpile SQL from one database dialect to another using SQLGlot.
@@ -1576,6 +1872,7 @@ def transpile_to_dialect(
         sql: The SQL query to transpile
         target_engine: The target database engine (e.g., "mysql", "postgresql")
         source_engine: The source database engine. If None, uses generic SQL dialect.
+        identify: If True, quote all identifiers per the target dialect.
 
     Returns:
         The transpiled SQL string
@@ -1598,6 +1895,7 @@ def transpile_to_dialect(
             copy=True,
             comments=False,
             pretty=False,
+            identify=identify,
         )
     except ParseError as ex:
         raise QueryClauseValidationException(f"Cannot parse SQL clause: {sql}") from ex

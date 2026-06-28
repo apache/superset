@@ -30,7 +30,7 @@ export default function buildQuery(formData: WordCloudFormData) {
   if (sort_by_metric && metric) {
     orderby.push([metric, false]);
   }
-  if (sort_by_series && series) {
+  if (sort_by_series !== false && series) {
     orderby.push([series, true]);
   }
 

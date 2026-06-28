@@ -31,6 +31,7 @@ import {
   mockRelatedCharts,
   mockRelatedDashboards,
   mockHandleResourceExport,
+  mockDatasetListEndpoints,
   API_ENDPOINTS,
 } from './DatasetList.testHelpers';
 
@@ -98,7 +99,7 @@ test('typing in search triggers debounced API call with search filter', async ()
 
   // Record initial API calls
   const initialCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASETS,
+    API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
   // Type search query and submit with Enter to trigger the debounced fetch
@@ -107,14 +108,16 @@ test('typing in search triggers debounced API call with search filter', async ()
   // Wait for debounced API call
   await waitFor(
     () => {
-      const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+      const calls = fetchMock.callHistory.calls(
+        API_ENDPOINTS.DATASOURCE_COMBINED,
+      );
       expect(calls.length).toBeGreaterThan(initialCallCount);
     },
     { timeout: 5000 },
   );
 
   // Verify the latest API call includes search filter in URL
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
   const latestCall = calls[calls.length - 1];
   const { url } = latestCall;
 
@@ -136,8 +139,7 @@ test('typing in search triggers debounced API call with search filter', async ()
 test('500 error triggers danger toast with error message', async () => {
   const addDangerToast = jest.fn();
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     status: 500,
     body: { message: 'Internal Server Error' },
   });
@@ -173,8 +175,7 @@ test('500 error triggers danger toast with error message', async () => {
 test('network timeout triggers danger toast', async () => {
   const addDangerToast = jest.fn();
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     throws: new Error('Network timeout'),
   });
 
@@ -213,8 +214,7 @@ test('clicking delete opens modal with related objects count', async () => {
   // Set up delete mocks
   setupDeleteMocks(datasetToDelete.id);
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [datasetToDelete],
     count: 1,
   });
@@ -254,8 +254,7 @@ test('clicking delete opens modal with related objects count', async () => {
 test('clicking export calls handleResourceExport with dataset ID', async () => {
   const datasetToExport = mockDatasets[0];
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [datasetToExport],
     count: 1,
   });
@@ -282,14 +281,148 @@ test('clicking export calls handleResourceExport with dataset ID', async () => {
   });
 });
 
+test('bulk export of only semantic-view rows shows danger toast and skips export', async () => {
+  const semanticView = {
+    ...mockDatasets[0],
+    id: 100,
+    table_name: 'sl_only_view',
+    kind: 'semantic_view',
+  };
+  const addDangerToast = jest.fn();
+
+  mockDatasetListEndpoints({ result: [semanticView], count: 1 });
+
+  renderDatasetList(mockAdminUser, {
+    addDangerToast,
+    addSuccessToast: jest.fn(),
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText(semanticView.table_name)).toBeInTheDocument();
+  });
+
+  const bulkSelectButton = screen.getByRole('button', {
+    name: /bulk select/i,
+  });
+  await userEvent.click(bulkSelectButton);
+
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
+
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
+
+  const row = (await within(table).findByText(semanticView.table_name)).closest(
+    'tr',
+  );
+  expect(row).toBeInTheDocument();
+  await userEvent.click(within(row!).getByRole('checkbox'));
+
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
+  });
+
+  const bulkExportButton = await within(bulkSelectControls).findByRole(
+    'button',
+    { name: /^export$/i },
+  );
+  await userEvent.click(bulkExportButton);
+
+  await waitFor(() => {
+    expect(addDangerToast).toHaveBeenCalled();
+  });
+  expect(String(addDangerToast.mock.calls[0][0])).toMatch(/semantic view/i);
+  expect(mockHandleResourceExport).not.toHaveBeenCalled();
+});
+
+test('bulk export of mixed datasets and semantic views warns and exports only datasets', async () => {
+  const physicalDataset = {
+    ...mockDatasets[0],
+    id: 1,
+    table_name: 'physical_table',
+    kind: 'physical',
+  };
+  const semanticView = {
+    ...mockDatasets[1],
+    id: 100,
+    table_name: 'sl_mixed_view',
+    kind: 'semantic_view',
+  };
+  const addDangerToast = jest.fn();
+
+  mockDatasetListEndpoints({
+    result: [physicalDataset, semanticView],
+    count: 2,
+  });
+
+  renderDatasetList(mockAdminUser, {
+    addDangerToast,
+    addSuccessToast: jest.fn(),
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText(physicalDataset.table_name)).toBeInTheDocument();
+    expect(screen.getByText(semanticView.table_name)).toBeInTheDocument();
+  });
+
+  const bulkSelectButton = screen.getByRole('button', {
+    name: /bulk select/i,
+  });
+  await userEvent.click(bulkSelectButton);
+
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
+
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
+
+  const physicalRow = (
+    await within(table).findByText(physicalDataset.table_name)
+  ).closest('tr');
+  await userEvent.click(within(physicalRow!).getByRole('checkbox'));
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
+  });
+
+  const semanticRow = (
+    await within(table).findByText(semanticView.table_name)
+  ).closest('tr');
+  await userEvent.click(within(semanticRow!).getByRole('checkbox'));
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /2 Selected/i,
+    );
+  });
+
+  const bulkExportButton = await within(bulkSelectControls).findByRole(
+    'button',
+    { name: /^export$/i },
+  );
+  await userEvent.click(bulkExportButton);
+
+  await waitFor(() => {
+    expect(addDangerToast).toHaveBeenCalled();
+  });
+  expect(String(addDangerToast.mock.calls[0][0])).toMatch(/skipped/i);
+
+  await waitFor(() => {
+    expect(mockHandleResourceExport).toHaveBeenCalledWith(
+      'dataset',
+      [physicalDataset.id],
+      expect.any(Function),
+    );
+  });
+});
+
 test('clicking duplicate opens modal and submits duplicate request', async () => {
   const datasetToDuplicate = {
     ...mockDatasets[1],
     kind: 'virtual',
   };
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [datasetToDuplicate],
     count: 1,
   });
@@ -312,7 +445,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
 
   // Track initial dataset list API calls BEFORE duplicate action
   const initialDatasetCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASETS,
+    API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
   const row = screen.getByText(datasetToDuplicate.table_name).closest('tr');
@@ -355,7 +488,9 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
   // Verify refreshData() is called (observable via new dataset list API call)
   await waitFor(
     () => {
-      const datasetCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+      const datasetCalls = fetchMock.callHistory.calls(
+        API_ENDPOINTS.DATASOURCE_COMBINED,
+      );
       expect(datasetCalls.length).toBeGreaterThan(initialDatasetCallCount);
     },
     { timeout: 3000 },
@@ -376,8 +511,7 @@ test('certified dataset shows badge and tooltip with certification details', asy
     }),
   };
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [certifiedDataset],
     count: 1,
   });
@@ -417,8 +551,7 @@ test('dataset with warning shows icon and tooltip with markdown content', async 
     }),
   };
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: [datasetWithWarning],
     count: 1,
   });
@@ -452,8 +585,7 @@ test('dataset with warning shows icon and tooltip with markdown content', async 
 test('dataset name links to Explore with correct URL and accessible label', async () => {
   const dataset = mockDatasets[0];
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
   renderDatasetList(mockAdminUser);
 

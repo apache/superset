@@ -2,6 +2,7 @@ name: 🎪 Superset Showtime
 
 # Ultra-simple: just sync on any PR state change
 on:
+  # zizmor: ignore[dangerous-triggers] - required to react to PR label changes; this workflow does not check out or execute PR-provided code
   pull_request_target:
     types: [labeled, unlabeled, synchronize, closed]
 
@@ -9,11 +10,11 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'PR number to sync'
+        description: "PR number to sync"
         required: true
         type: number
       sha:
-        description: 'Specific SHA to deploy (optional, defaults to latest)'
+        description: "Specific SHA to deploy (optional, defaults to latest)"
         required: false
         type: string
 
@@ -102,7 +103,7 @@ jobs:
       - name: Install Superset Showtime
         if: steps.auth.outputs.authorized == 'true'
         run: |
-          echo "::notice::Maintainer ${{ github.actor }} triggered deploy for PR ${PULL_REQUEST_NUMBER}"
+          echo "::notice::Maintainer $GITHUB_ACTOR triggered deploy for PR ${PULL_REQUEST_NUMBER}"
           pip install --upgrade superset-showtime
           showtime version
 
@@ -151,7 +152,7 @@ jobs:
 
       - name: Checkout PR code (only if build needed)
         if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ steps.check.outputs.target_sha }}
           persist-credentials: false
@@ -173,9 +174,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          CHECK_PR_NUMBER: ${{ steps.check.outputs.pr_number }}
+          CHECK_TARGET_SHA: ${{ steps.check.outputs.target_sha }}
         run: |
-          PR_NUM="${{ steps.check.outputs.pr_number }}"
-          TARGET_SHA="${{ steps.check.outputs.target_sha }}"
+          PR_NUM="$CHECK_PR_NUMBER"
+          TARGET_SHA="$CHECK_TARGET_SHA"
           if [[ -n "$TARGET_SHA" ]]; then
             python -m showtime sync $PR_NUM --sha "$TARGET_SHA"
           else
