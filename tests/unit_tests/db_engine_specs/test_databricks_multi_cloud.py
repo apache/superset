@@ -88,7 +88,7 @@ def test_get_oauth2_authorization_uri_uses_workspace_host(
     from superset.db_engine_specs.base import OAuth2State
 
     mocker.patch(
-        "superset.extensions.db.session.get",
+        "superset.db.session.get",
         return_value=_mock_database(mocker, host),
     )
 
