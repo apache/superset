@@ -57,11 +57,6 @@ export const Pill = styled.div`
   `}
 `;
 
-export const SectionName = styled.span`
-  ${({ theme }) => css`
-    font-weight: ${theme.fontWeightStrong};
-  `}
-`;
 export const FilterName = styled.span`
   ${({ theme }) => css`
     padding-right: ${theme.sizeUnit}px;
@@ -101,37 +96,8 @@ export const FilterItem = styled.button`
   `}
 `;
 
-export const FiltersContainer = styled.div`
-  ${({ theme }) => css`
-    max-height: 60vh;
-    margin-top: ${theme.sizeUnit}px;
-    &:not(:last-child) {
-      padding-bottom: ${theme.sizeUnit * 3}px;
-    }
-  `}
-`;
-
-export const FiltersDetailsContainer = styled.div`
-  ${({ theme }) => css`
-    min-width: 200px;
-    max-width: 300px;
-    overflow-x: hidden;
-
-    color: ${theme.colorText};
-  `}
-`;
-
 export const FilterValue = styled.span`
   max-width: 100%;
   flex-grow: 1;
   overflow: auto;
-`;
-
-export const Separator = styled.div`
-  ${({ theme }) => css`
-    width: 100%;
-    height: 1px;
-    background-color: ${theme.colorBorderSecondary};
-    margin: ${theme.sizeUnit * 4}px 0;
-  `}
 `;
