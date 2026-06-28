@@ -194,9 +194,9 @@ def should_use_v2_api() -> bool:
     except SlackApiError:
         # use the v1 api but warn with a deprecation message
         logger.warning(
-            """Your current Slack scopes are missing `channels:read`. Please add
-            this to your Slack app in order to continue using the v1 API. Support
-            for the old Slack API will be removed in Superset version 6.0.0."""
+            "Your current Slack scopes are missing `channels:read`. Please add "
+            "this to your Slack app in order to continue using the v1 API. Support "
+            "for the old Slack API will be removed in Superset version 6.0.0."
         )
         return False
 

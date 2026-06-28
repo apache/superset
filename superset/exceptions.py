@@ -441,6 +441,14 @@ class AcquireDistributedLockFailedException(Exception):  # noqa: N818
     """
 
 
+class LockAlreadyHeldException(AcquireDistributedLockFailedException):  # noqa: N818
+    """
+    Raised when a distributed lock is already held by another process (lock contention).
+    Subclass of AcquireDistributedLockFailedException so existing callers that catch
+    the base exception continue to work unchanged.
+    """
+
+
 class ReleaseDistributedLockFailedException(Exception):  # noqa: N818
     """
     Exception to signalize failure to release lock.

@@ -5698,10 +5698,10 @@ base64-js@^1.3.1, base64-js@^1.5.1:
   resolved "https://registry.npmjs.org/base64-js/-/base64-js-1.5.1.tgz"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
-baseline-browser-mapping@^2.10.37, baseline-browser-mapping@^2.9.0, baseline-browser-mapping@^2.9.19:
-  version "2.10.37"
-  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.10.37.tgz#3e636475b6b293244e2b23e2c71a2ab9d9e6ba7d"
-  integrity sha512-girxaJ7WZssDOFhzCGZTDKoTa1gk6A1TbflaYTpykLJ4UU9Fz9kx1aREM8JCuoVHbL8X8T/mJg7w2oYSq72Oig==
+baseline-browser-mapping@^2.10.38, baseline-browser-mapping@^2.9.0, baseline-browser-mapping@^2.9.19:
+  version "2.10.38"
+  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.10.38.tgz#c84d093c4bf7325c5053c279d90f153c66526042"
+  integrity sha512-31/02mVB4yuQU6adKk5SlY6m+mxDwUq5KZkyYgnLrrKl7TEm1+3PyDtDBz2kOv/wxZz41GHsvV1A/u6RmiyBvw==
 
 batch@0.6.1:
   version "0.6.1"
@@ -15246,15 +15246,10 @@ write-file-atomic@^3.0.3:
     signal-exit "^3.0.2"
     typedarray-to-buffer "^3.1.5"
 
-ws@^7.3.1:
-  version "7.5.10"
-  resolved "https://registry.npmjs.org/ws/-/ws-7.5.10.tgz"
-  integrity sha512-+dbF1tHwZpXcbOJdVOkzLDxZP1ailvSxM6ZweXTegylPny803bFhA+vqBYw4s31NSAk4S2Qz+AKXK9a4wkdjcQ==
-
-ws@^8.18.0, ws@^8.2.3:
-  version "8.20.1"
-  resolved "https://registry.npmjs.org/ws/-/ws-8.20.1.tgz"
-  integrity sha512-It4dO0K5v//JtTXuPkfEOaI3uUN87iYPnqo/ZzqCoG3g8uhA66QUMs/SrM0YK7/NAu+r4LMh/9dq2A7k+rHs+w==
+ws@^7.3.1, ws@^8.18.0, ws@^8.2.3, ws@^8.21.0:
+  version "8.21.0"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-8.21.0.tgz#012e413fc07429945121b0c153158c4343086951"
+  integrity sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==
 
 wsl-utils@^0.1.0:
   version "0.1.0"

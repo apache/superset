@@ -42,6 +42,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import {
@@ -337,7 +338,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   // Update document title when dashboard title changes
   useEffect(() => {
     if (pageTitle) {
-      document.title = pageTitle;
+      document.title = sanitizeDocumentTitle(pageTitle);
     }
   }, [pageTitle]);
 
