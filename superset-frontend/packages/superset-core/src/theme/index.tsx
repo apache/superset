@@ -88,3 +88,17 @@ export type {
 // Export theme utility functions
 export * from './utils/themeUtils';
 export * from './utils';
+
+// Color scheme API — types, enum, and declare-function bridge for extensions.
+// The host app provides the runtime implementations on window.superset.theme.
+export type {
+  ColorSchemeConfig,
+  SequentialSchemeConfig,
+  CategoricalScheme,
+  CategoricalSchemeRegistryLike,
+} from './colors';
+export {
+  ColorSchemeGroup,
+  getCategoricalSchemeNames,
+  getSchemeColors,
+} from './colors';
