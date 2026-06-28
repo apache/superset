@@ -7180,7 +7180,7 @@ msgstr ""
 
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "Id schede non validi: %s(tab_ids)s"
+msgstr "Id schede non validi: %(tab_ids)s"
 
 msgid "Invalid username or password"
 msgstr ""
@@ -13041,57 +13041,6 @@ msgid ""
 msgstr ""
 
 msgid "The schema of the submitted payload is invalid."
-msgstr ""
-
-msgid "The schema was deleted or renamed in the database."
-msgstr ""
-
-msgid "The screenshot could not be downloaded. Please, try again later."
-msgstr ""
-
-msgid "The screenshot has been downloaded."
-msgstr "Lo screeenshot è stato scaricato."
-
-msgid "The screenshot is being generated. Please, do not leave the page."
-msgstr ""
-
-msgid "The service url of the layer"
-msgstr "URL del servizio del livello"
-
-msgid "The size of each cell in meters"
-msgstr "Dimensione di ogni cella in metri"
-
-msgid "The size of the point icons"
-msgstr "Dimensione delle icone del punto"
-
-msgid "The size of the square cell, in pixels"
-msgstr ""
-
-msgid "The slope to compute all sizes from. \"LINEAR\" only"
-msgstr ""
-
-msgid "The submitted payload failed validation."
-msgstr ""
-
-msgid "The submitted payload has the incorrect format."
-msgstr ""
-
-msgid "The submitted payload has the incorrect schema."
-msgstr ""
-
-#, python-format
-msgid ""
-"The table \"%(table)s\" does not exist. A valid table must be used to run"
-" this query."
-msgstr ""
-
-#, python-format
-msgid ""
-"The table \"%(table_name)s\" does not exist. A valid table must be used "
-"to run this query."
-msgstr ""
-
-msgid "The schema of the submitted payload is invalid."
 msgstr "Lo schema del payload inviato non è valido."
 
 msgid "The schema was deleted or renamed in the database."
@@ -15158,15 +15107,6 @@ msgstr ""
 msgid "Whether the progress bar overlaps when there are multiple groups of data"
 msgstr ""
 
-msgid ""
-"Whether the progress bar overlaps when there are multiple groups of data"
-msgstr ""
-
-msgid ""
-"Whether to align background charts with both positive and negative values at "
-"0"
-msgstr ""
-
 msgid "Whether to align positive and negative values in cell bar chart at 0"
 msgstr ""
 
@@ -15540,12 +15480,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"You are importing one or more saved queries that already exist. "
-"Overwriting might cause you to lose some of your work. Are you sure you "
-"want to overwrite?"
-msgstr ""
-
-msgid ""
 "You are importing one or more themes that already exist. Overwriting "
 "might cause you to lose some of your work. Are you sure you want to "
 "overwrite?"
@@ -15695,6 +15629,7 @@ msgstr ""
 msgid ""
 "You must be a %s owner in order to edit. Please reach out to a %s owner "
 "to request modifications or edit access."
+msgstr ""
 
 msgid ""
 "You must be a dataset owner in order to edit. Please reach out to a dataset "
@@ -16644,9 +16579,6 @@ msgstr "annulla"
 
 msgid "unknown type icon"
 msgstr "icona tipo sconosciuto"
-
-msgid "unset"
-msgstr ""
 
 msgid "unset"
 msgstr "reimposta"
