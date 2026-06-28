@@ -470,7 +470,11 @@ const AsyncSelect = forwardRef(
       onSearch?.(searchValue);
     }, Constants.FAST_DEBOUNCE);
 
-    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+    useEffect(() => {
+      if (handleOnSearch?.cancel) {
+        handleOnSearch.cancel();
+      }
+    }, [handleOnSearch]);
 
     const handlePagination = (e: UIEvent<HTMLElement>) => {
       const vScroll = e.currentTarget;
