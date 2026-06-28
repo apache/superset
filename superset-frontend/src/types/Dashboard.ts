@@ -36,6 +36,7 @@ export interface Dashboard {
   owners: Owner[];
   extra_owners?: Owner[];
   roles: Role[];
+  is_managed_externally?: boolean;
   theme?: {
     id: number;
     theme_name: string;
