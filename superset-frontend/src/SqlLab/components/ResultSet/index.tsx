@@ -381,7 +381,7 @@ const ResultSet = ({
             onConfirm: () => {
               window.location.href = sanitizeUrl(getExportCsvUrl(query.id));
             },
-            confirmText: t('OK'),
+            confirmText: t('Confirm'),
             cancelText: t('Close'),
           });
         }
