@@ -82,18 +82,21 @@ def compute_thumbnails(
         query = db.session.query(model_cls)
         if model_ids:
             query = query.filter(model_cls.id.in_(model_ids))
-        dashboards = query.all()
-        count = len(dashboards)
-        for i, model in enumerate(dashboards):
-            if asynchronous:
-                func = compute_func.delay
-                action = "Triggering"
-            else:
-                func = compute_func
-                action = "Processing"
-            msg = f'{action} {friendly_type} "{model}" ({i + 1}/{count})'
+        # Materialize the id and label up front. Computing a thumbnail below can
+        # close/expire the session, which detaches the ORM instances and makes
+        # str(model) raise DetachedInstanceError on subsequent iterations.
+        items = [(model.id, str(model)) for model in query.all()]
+        count = len(items)
+        if asynchronous:
+            func = compute_func.delay
+            action = "Triggering"
+        else:
+            func = compute_func
+            action = "Processing"
+        for i, (model_pk, label) in enumerate(items):
+            msg = f'{action} {friendly_type} "{label}" ({i + 1}/{count})'
             click.secho(msg, fg="green")
-            func(None, model.id, force=force)
+            func(None, model_pk, force=force)
 
     if not charts_only:
         compute_generic_thumbnail(
