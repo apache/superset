@@ -753,6 +753,36 @@ def test_get_sqla_engine_registers_prequery_event_listener(
     mock_cursor.close.assert_called_once()
 
 
+def test_get_sqla_engine_registers_prequery_listener_once_per_engine(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the prequery connect listener is registered only once per engine.
+
+    Engines are cached and shared across threads, so the listener must not be
+    added/removed on every request. Repeatedly mutating a shared engine's
+    listener collection while another thread iterates it (when opening a
+    connection) raises "deque mutated during iteration".
+    """
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = ['SET search_path = "my_schema"']
+    event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+    event_remove = mocker.patch("superset.models.core.sqla.event.remove")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    # The same (cached) engine is used across multiple requests.
+    for _ in range(3):
+        with database.get_sqla_engine(catalog="my_catalog", schema="my_schema"):
+            pass
+
+    # Listener registered exactly once, never removed.
+    event_listen.assert_called_once_with(mock_engine, "connect", mocker.ANY)
+    event_remove.assert_not_called()
+
+
 def test_get_sqla_engine_prequery_cursor_closed_on_exception(
     app_context: None,
     mocker: MockerFixture,

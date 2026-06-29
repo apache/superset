@@ -61,6 +61,7 @@ export default function EchartsTimeseries({
   emitCrossFilters,
   coltypeMapping,
   onLegendScroll,
+  onDrillDown,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -244,6 +245,92 @@ export default function EchartsTimeseries({
 
   const eventHandlers: EventHandlers = {
     click: props => {
+      // Drill-down takes priority over cross-filter when a hierarchy is configured.
+      // The DrillDownHost provides onDrillDown only when a hierarchy exists.
+      const hasDrillHierarchy = !!onDrillDown;
+
+      if (hasDrillHierarchy) {
+        if (clickTimer.current) {
+          clearTimeout(clickTimer.current);
+        }
+        clickTimer.current = setTimeout(() => {
+          const { seriesName: name } = props;
+          const drillFilters: BinaryQueryObjectFilterClause[] = [];
+          if (hasDimensions) {
+            const values = labelMap[name] ?? [];
+            groupby.forEach((dimension, i) => {
+              drillFilters.push({
+                col: dimension,
+                op: '==',
+                val: values[i],
+                formattedVal: String(values[i]),
+              });
+            });
+            // Also emit cross-filter so other charts in the dashboard filter too
+            if (emitCrossFilters) {
+              // Use direct setDataMask (not handleChange which toggles)
+              setDataMask({
+                extraFormData: {
+                  filters: groupby.map((col, idx) => ({
+                    col,
+                    op: 'IN' as const,
+                    val: [values[idx]] as (string | number | boolean)[],
+                  })),
+                },
+                filterState: {
+                  value: [values],
+                  selectedValues: [name],
+                },
+              });
+            }
+          } else if (
+            xAxis.type === AxisType.Category &&
+            props.data?.[0] != null
+          ) {
+            // Bar chart with x_axis only (no groupby dimensions)
+            drillFilters.push({
+              col: xAxis.label,
+              op: '==',
+              val: props.data[0],
+              formattedVal: String(props.data[0]),
+            });
+            // Also emit cross-filter by x-axis value
+            if (emitCrossFilters) {
+              setDataMask({
+                extraFormData: {
+                  filters: [
+                    {
+                      col: xAxis.label,
+                      op: 'IN' as const,
+                      val: [props.data[0]] as (string | number | boolean)[],
+                    },
+                  ],
+                },
+                filterState: {
+                  value: [String(props.data[0])],
+                  selectedValues: [String(props.data[0])],
+                },
+              });
+            }
+          } else if (props.name) {
+            // Fallback: use the event name (typically the x-axis label)
+            drillFilters.push({
+              col: xAxis.label,
+              op: '==',
+              val: props.name,
+              formattedVal: String(props.name),
+            });
+          }
+          if (drillFilters.length > 0) {
+            const label = drillFilters
+              .map(f => f.formattedVal ?? String(f.val))
+              .join(', ');
+            onDrillDown(drillFilters, label);
+          }
+        }, TIMER_DURATION);
+        return;
+      }
+
       // Allow cross-filter by dimensions OR by categorical X-axis (issue #25334)
       if (!hasDimensions && !canCrossFilterByXAxis) {
         return;

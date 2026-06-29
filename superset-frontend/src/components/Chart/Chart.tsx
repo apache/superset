@@ -45,6 +45,7 @@ import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { Dispatch } from 'redux';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
+import { DrillDownHost } from './DrillDown/DrillDownHost';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
 export type ChartErrorType = Partial<ClientErrorObject>;
@@ -355,7 +356,8 @@ function Chart({
     () => (
       <div className="slice_container" data-test="slice-container">
         {shouldRenderChart() ? (
-          <ChartRenderer
+          <DrillDownHost
+            ChartRendererComponent={ChartRenderer}
             annotationData={annotationData}
             actions={actions}
             chartId={chartId}
