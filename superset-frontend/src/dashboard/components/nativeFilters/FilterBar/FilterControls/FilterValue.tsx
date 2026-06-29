@@ -42,6 +42,7 @@ import {
   isChartCustomization,
 } from '@superset-ui/core';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
+import { logging } from '@apache-superset/core/utils';
 import { useTheme } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
@@ -54,6 +55,7 @@ import {
   onFiltersRefreshSuccess,
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
+import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import {
   setHoveredChartCustomization,
   unsetHoveredChartCustomization,
@@ -113,6 +115,20 @@ export const applyTimeGrainAllowlist = (
     };
   });
 };
+
+/**
+ * Resolve the granularity_sqla a filter should send. A filter's own
+ * granularity_sqla always wins. Otherwise, when a Date Range parent filter is
+ * cascading a time_range down, fall back to the datasource's main_dttm_col so
+ * the temporal WHERE clause can be applied.
+ */
+export const resolveGranularitySqla = (
+  granularitySqla: string | undefined,
+  hasTimeRangeDependency: boolean,
+  datasourceMainDttmCol: string | undefined,
+): string | undefined =>
+  granularitySqla ||
+  (hasTimeRangeDependency ? datasourceMainDttmCol : undefined);
 
 const useShouldFilterRefresh = () => {
   const isDashboardRefreshing = useSelector<RootState, boolean>(
@@ -187,6 +203,35 @@ const FilterValue: FC<FilterValueProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const dispatch = useDispatch();
 
+  // When a Date Range parent filter is active, the child filter needs
+  // granularity_sqla to apply the temporal WHERE clause. Read main_dttm_col
+  // from the Redux datasource cache as a fallback.
+  //
+  // The dashboard datasets API (/api/v1/dashboard/:id/datasets) only returns
+  // datasets used by chart slices, so native-filter-only datasets are never
+  // in state.datasources. Dispatch fetchDatasourceMetadata at mount time to
+  // populate the cache explicitly for those datasets.
+  const datasourceMainDttmCol = useSelector<RootState, string | undefined>(
+    state =>
+      datasetId != null
+        ? state.datasources?.[`${datasetId}__table`]?.main_dttm_col
+        : undefined,
+  );
+
+  useEffect(() => {
+    if (datasetId != null) {
+      // Best-effort prime of the datasource cache for the granularity_sqla
+      // fallback. A failure here is non-fatal — the filter still works, just
+      // without the time-range cascade fallback — so handle the rejection
+      // explicitly to avoid an unhandled promise rejection.
+      Promise.resolve(
+        dispatch(fetchDatasourceMetadata(`${datasetId}__table`)),
+      ).catch(error =>
+        logging.warn('Failed to fetch filter datasource metadata', error),
+      );
+    }
+  }, [datasetId, dispatch]);
+
   const { outlinedFilterId, lastUpdated } = useFilterOutlined();
 
   const handleFilterLoadFinish = useCallback(() => {
@@ -218,7 +263,11 @@ const FilterValue: FC<FilterValueProps> = ({
       groupby,
       adhoc_filters: adhocFilters,
       time_range: timeRange,
-      granularity_sqla: granularitySqla,
+      granularity_sqla: resolveGranularitySqla(
+        granularitySqla,
+        Boolean(dependencies.time_range),
+        datasourceMainDttmCol,
+      ),
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
@@ -349,6 +398,7 @@ const FilterValue: FC<FilterValueProps> = ({
     dataMaskSelected,
     setHasDepsFilterValue,
     transitiveParentIds,
+    datasourceMainDttmCol,
   ]);
 
   useEffect(() => {

@@ -52,6 +52,8 @@ export function setDatasource(datasource: Datasource, key: string) {
   };
 }
 
+const inFlightDatasourceRequests = new Map<string, Promise<unknown>>();
+
 export function fetchDatasourceMetadata(key: string) {
   return (dispatch: Dispatch, getState: () => RootState) => {
     const { datasources } = getState();
@@ -61,8 +63,24 @@ export function fetchDatasourceMetadata(key: string) {
       return dispatch(setDatasource(datasource, key));
     }
 
-    return SupersetClient.get({
+    // Share a single in-flight promise per key across concurrent callers, so
+    // request deduplication preserves the thunk contract: every awaiter (e.g.
+    // a Promise.all over multiple dispatches) observes the same completion or
+    // rejection instead of resolving early on an undefined return.
+    const inFlight = inFlightDatasourceRequests.get(key);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const request = SupersetClient.get({
       endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${key}`,
-    }).then(({ json }) => dispatch(setDatasource(json as Datasource, key)));
+    })
+      .then(({ json }) => dispatch(setDatasource(json as Datasource, key)))
+      .finally(() => {
+        inFlightDatasourceRequests.delete(key);
+      });
+
+    inFlightDatasourceRequests.set(key, request);
+    return request;
   };
 }
