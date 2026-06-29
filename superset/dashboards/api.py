@@ -577,9 +577,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         }
 
         # Get upstream (charts, datasets, databases) information
-        charts = []
-        dataset_map = {}
-        database_map = {}
+        charts: list[dict[str, Any]] = []
+        dataset_map: dict[int, dict[str, Any]] = {}
+        database_map: dict[int, dict[str, Any]] = {}
 
         for chart in dash.slices:
             charts.append(

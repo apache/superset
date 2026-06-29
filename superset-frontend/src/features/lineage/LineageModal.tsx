@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { ModalTrigger } from '@superset-ui/core/components';
 import {
@@ -37,12 +37,22 @@ const LineageModal: FC<LineageModalProps> = ({
   entityId,
   triggerNode,
 }) => {
+  // Defer the lineage fetch until the modal is actually opened so that simply
+  // rendering the trigger (e.g. inside an actions dropdown) does not hit the
+  // lineage endpoint.
+  const [opened, setOpened] = useState(false);
+
   const datasetLineage = useDatasetLineage(
     entityType === 'dataset' ? entityId : '',
+    !opened,
   );
-  const chartLineage = useChartLineage(entityType === 'chart' ? entityId : '');
+  const chartLineage = useChartLineage(
+    entityType === 'chart' ? entityId : '',
+    !opened,
+  );
   const dashboardLineage = useDashboardLineage(
     entityType === 'dashboard' ? entityId : '',
+    !opened,
   );
 
   const lineageResource =
@@ -62,6 +72,7 @@ const LineageModal: FC<LineageModalProps> = ({
   return (
     <ModalTrigger
       triggerNode={triggerNode}
+      beforeOpen={() => setOpened(true)}
       modalTitle={title}
       modalBody={
         <LineageView
