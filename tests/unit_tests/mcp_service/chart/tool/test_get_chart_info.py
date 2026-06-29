@@ -584,7 +584,7 @@ class TestGetChartInfoPrivacy:
 
 def test_apply_unsaved_state_override_updates_display_name_for_new_viz_type() -> None:
     """Stale display name is recomputed when viz_type is overridden from form_data."""
-    import superset.mcp_service.chart.tool.get_chart_info as module
+    module = get_chart_info_module
 
     result = ChartInfo(
         id=1,
