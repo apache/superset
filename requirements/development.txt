@@ -220,7 +220,7 @@ docstring-parser==0.17.0
     # via cyclopts
 docutils==0.22.2
     # via rich-rst
-duckdb==1.5.3
+duckdb==1.5.4
     # via
     #   apache-superset
     #   duckdb-engine
@@ -976,7 +976,7 @@ sqlalchemy==1.4.54
     #   sqlalchemy-utils
 sqlalchemy-bigquery==1.17.0
     # via apache-superset
-sqlalchemy-utils==0.42.0
+sqlalchemy-utils==0.42.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

@@ -20,15 +20,15 @@
 import {
   DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY,
   IFRAME_COMMS_MESSAGE_TYPE,
-} from './const';
+} from "./const";
 
 // We can swap this out for the actual switchboard package once it gets published
-import { Switchboard } from '@superset-ui/switchboard';
+import { Switchboard } from "@superset-ui/switchboard";
 import {
   getGuestTokenRefreshTiming,
   DEFAULT_TOKEN_REFRESH_RETRY_MS,
-} from './guestTokenRefresh';
-import { withTimeout } from './withTimeout';
+} from "./guestTokenRefresh";
+import { withTimeout } from "./withTimeout";
 
 /**
  * The function to fetch a guest token from your Host App's backend server.
@@ -97,7 +97,7 @@ export type ObserveDataMaskCallbackFn = (
     nativeFiltersChanged: boolean;
   },
 ) => void;
-export type ThemeMode = 'default' | 'dark' | 'system';
+export type ThemeMode = "default" | "dark" | "system";
 
 /**
  * Callback to resolve permalink URLs.
@@ -113,12 +113,12 @@ export type EmbeddedDashboard = {
   unmount: () => void;
   getDashboardPermalink: (anchor: string) => Promise<string>;
   getActiveTabs: () => Promise<string[]>;
-  observeDataMask: (
-    callbackFn: ObserveDataMaskCallbackFn,
-  ) => void;
+  observeDataMask: (callbackFn: ObserveDataMaskCallbackFn) => void;
   getDataMask: () => Promise<Record<string, any>>;
   getChartStates: () => Promise<Record<string, any>>;
-  getChartDataPayloads: (params?: { chartId?: number }) => Promise<Record<string, any>>;
+  getChartDataPayloads: (params?: {
+    chartId?: number;
+  }) => Promise<Record<string, any>>;
   setThemeConfig: (themeConfig: Record<string, any>) => void;
   setThemeMode: (mode: ThemeMode) => void;
 };
@@ -133,7 +133,7 @@ export async function embedDashboard({
   fetchGuestToken,
   dashboardUiConfig,
   debug = false,
-  iframeTitle = 'Embedded Dashboard',
+  iframeTitle = "Embedded Dashboard",
   iframeSandboxExtras = [],
   iframeAllowExtras = [],
   referrerPolicy,
@@ -152,13 +152,13 @@ export async function embedDashboard({
     return withTimeout(
       fetchGuestToken(),
       guestTokenFetchTimeoutMs,
-      'fetchGuestToken',
+      "fetchGuestToken",
     );
   }
 
-  log('embedding');
+  log("embedding");
 
-  if (supersetDomain.endsWith('/')) {
+  if (supersetDomain.endsWith("/")) {
     supersetDomain = supersetDomain.slice(0, -1);
   }
 
@@ -185,15 +185,15 @@ export async function embedDashboard({
   }
 
   async function mountIframe(): Promise<Switchboard> {
-    return new Promise(resolve => {
-      const iframe = document.createElement('iframe');
+    return new Promise((resolve) => {
+      const iframe = document.createElement("iframe");
       const dashboardConfigUrlParams = dashboardUiConfig
         ? { uiConfig: `${calculateConfig()}` }
         : undefined;
       const filterConfig = dashboardUiConfig?.filters || {};
       const filterConfigKeys = Object.keys(filterConfig);
       const filterConfigUrlParams = Object.fromEntries(
-        filterConfigKeys.map(key => [
+        filterConfigKeys.map((key) => [
           DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY[key],
           filterConfig[key],
         ]),
@@ -206,16 +206,16 @@ export async function embedDashboard({
         ...dashboardUiConfig?.urlParams,
       };
       const urlParamsString = Object.keys(urlParams).length
-        ? '?' + new URLSearchParams(urlParams).toString()
-        : '';
+        ? "?" + new URLSearchParams(urlParams).toString()
+        : "";
 
       // set up the iframe's sandbox configuration
-      iframe.sandbox.add('allow-same-origin'); // needed for postMessage to work
-      iframe.sandbox.add('allow-scripts'); // obviously the iframe needs scripts
-      iframe.sandbox.add('allow-presentation'); // for fullscreen charts
-      iframe.sandbox.add('allow-downloads'); // for downloading charts as image
-      iframe.sandbox.add('allow-forms'); // for forms to submit
-      iframe.sandbox.add('allow-popups'); // for exporting charts as csv
+      iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
+      iframe.sandbox.add("allow-scripts"); // obviously the iframe needs scripts
+      iframe.sandbox.add("allow-presentation"); // for fullscreen charts
+      iframe.sandbox.add("allow-downloads"); // for downloading charts as image
+      iframe.sandbox.add("allow-forms"); // for forms to submit
+      iframe.sandbox.add("allow-popups"); // for exporting charts as csv
       // additional sandbox props
       iframeSandboxExtras.forEach((key: string) => {
         iframe.sandbox.add(key);
@@ -226,7 +226,7 @@ export async function embedDashboard({
       }
 
       // add the event listener before setting src, to be 100% sure that we capture the load event
-      iframe.addEventListener('load', () => {
+      iframe.addEventListener("load", () => {
         // MessageChannel allows us to send and receive messages smoothly between our window and the iframe
         // See https://developer.mozilla.org/en-US/docs/Web/API/Channel_Messaging_API
         const commsChannel = new MessageChannel();
@@ -237,35 +237,35 @@ export async function embedDashboard({
         // See https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
         // we know the content window isn't null because we are in the load event handler.
         iframe.contentWindow!.postMessage(
-          { type: IFRAME_COMMS_MESSAGE_TYPE, handshake: 'port transfer' },
+          { type: IFRAME_COMMS_MESSAGE_TYPE, handshake: "port transfer" },
           supersetDomain,
           [theirPort],
         );
-        log('sent message channel to the iframe');
+        log("sent message channel to the iframe");
 
         // return our port from the promise
         resolve(
           new Switchboard({
             port: ourPort,
-            name: 'superset-embedded-sdk',
+            name: "superset-embedded-sdk",
             debug,
           }),
         );
       });
       iframe.src = `${supersetDomain}/embedded/${id}${urlParamsString}`;
       iframe.title = iframeTitle;
-      iframe.style.background = 'transparent';
+      iframe.style.background = "transparent";
       // Permissions Policy features the embedded dashboard relies on. Modern
       // browsers gate these APIs on the iframe's `allow` attribute regardless
       // of sandbox flags, so we include them by default. Host apps can extend
       // the list via `iframeAllowExtras`.
       const allowFeatures = Array.from(
-        new Set(['fullscreen', 'clipboard-write', ...iframeAllowExtras]),
+        new Set(["fullscreen", "clipboard-write", ...iframeAllowExtras]),
       );
-      iframe.setAttribute('allow', allowFeatures.join('; '));
+      iframe.setAttribute("allow", allowFeatures.join("; "));
       //@ts-ignore
       mountPoint.replaceChildren(iframe);
-      log('placed the iframe');
+      log("placed the iframe");
     });
   }
 
@@ -285,8 +285,8 @@ export async function embedDashboard({
     throw err;
   }
 
-  ourPort.emit('guestToken', { guestToken });
-  log('sent guest token');
+  ourPort.emit("guestToken", { guestToken });
+  log("sent guest token");
 
   // Track the pending refresh timer so it can be cancelled on unmount, and
   // stop the cycle once unmounted so it cannot leak across mount/unmount cycles.
@@ -298,7 +298,7 @@ export async function embedDashboard({
     try {
       const newGuestToken = await fetchGuestTokenWithTimeout();
       if (unmounted) return;
-      ourPort.emit('guestToken', { guestToken: newGuestToken });
+      ourPort.emit("guestToken", { guestToken: newGuestToken });
       refreshTimer = setTimeout(
         refreshGuestToken,
         getGuestTokenRefreshTiming(newGuestToken),
@@ -307,7 +307,7 @@ export async function embedDashboard({
       // A transient fetch failure or timeout must not permanently stop the
       // refresh cycle. Log it and retry so the session can recover once the
       // host callback succeeds again.
-      log('failed to refresh guest token, will retry:', err);
+      log("failed to refresh guest token, will retry:", err);
       if (unmounted) return;
       refreshTimer = setTimeout(
         refreshGuestToken,
@@ -325,7 +325,7 @@ export async function embedDashboard({
   // Returns null if no callback provided or on error, allowing iframe to use default URL
   ourPort.start();
   ourPort.defineMethod(
-    'resolvePermalinkUrl',
+    "resolvePermalinkUrl",
     async ({ key }: { key: string }): Promise<string | null> => {
       if (!resolvePermalinkUrl) {
         return null;
@@ -333,14 +333,14 @@ export async function embedDashboard({
       try {
         return await resolvePermalinkUrl({ key });
       } catch (error) {
-        log('Error in resolvePermalinkUrl callback:', error);
+        log("Error in resolvePermalinkUrl callback:", error);
         return null;
       }
     },
   );
 
   function unmount() {
-    log('unmounting');
+    log("unmounting");
     unmounted = true;
     if (refreshTimer !== undefined) {
       clearTimeout(refreshTimer);
@@ -350,24 +350,25 @@ export async function embedDashboard({
     mountPoint.replaceChildren();
   }
 
-  const getScrollSize = () => ourPort.get<Size>('getScrollSize');
+  const getScrollSize = () => ourPort.get<Size>("getScrollSize");
   const getDashboardPermalink = (anchor: string) =>
-    ourPort.get<string>('getDashboardPermalink', { anchor });
-  const getActiveTabs = () => ourPort.get<string[]>('getActiveTabs');
-  const getDataMask = () => ourPort.get<Record<string, any>>('getDataMask');
-  const getChartStates = () => ourPort.get<Record<string, any>>('getChartStates');
+    ourPort.get<string>("getDashboardPermalink", { anchor });
+  const getActiveTabs = () => ourPort.get<string[]>("getActiveTabs");
+  const getDataMask = () => ourPort.get<Record<string, any>>("getDataMask");
+  const getChartStates = () =>
+    ourPort.get<Record<string, any>>("getChartStates");
   const getChartDataPayloads = (params?: { chartId?: number }) =>
-    ourPort.get<Record<string, any>>('getChartDataPayloads', params);
-  const observeDataMask = (
-    callbackFn: ObserveDataMaskCallbackFn,
-  ) => {
-    ourPort.defineMethod('observeDataMask', callbackFn);
+    ourPort.get<Record<string, any>>("getChartDataPayloads", params);
+  const observeDataMask = (callbackFn: ObserveDataMaskCallbackFn) => {
+    ourPort.defineMethod("observeDataMask", callbackFn);
   };
   // TODO: Add proper types once theming branch is merged
-  const setThemeConfig = async (themeConfig: Record<string, any>): Promise<void> => {
+  const setThemeConfig = async (
+    themeConfig: Record<string, any>,
+  ): Promise<void> => {
     try {
-      ourPort.emit('setThemeConfig', { themeConfig });
-      log('Theme config sent successfully (or at least message dispatched)');
+      ourPort.emit("setThemeConfig", { themeConfig });
+      log("Theme config sent successfully (or at least message dispatched)");
     } catch (error) {
       log(
         'Error sending theme config. Ensure the iframe side implements the "setThemeConfig" method.',
@@ -378,7 +379,7 @@ export async function embedDashboard({
 
   const setThemeMode = (mode: ThemeMode): void => {
     try {
-      ourPort.emit('setThemeMode', { mode });
+      ourPort.emit("setThemeMode", { mode });
       log(`Theme mode set to: ${mode}`);
     } catch (error) {
       log(
