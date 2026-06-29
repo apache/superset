@@ -100,8 +100,7 @@ Component selector labels - for matchLabels with component
 Usage: {{ include "superset.componentSelectorLabels" (dict "component" "web" "root" .) }}
 */}}
 {{- define "superset.componentSelectorLabels" -}}
-app.kubernetes.io/name: {{ include "superset.name" .root }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+{{ include "superset.selectorLabels" .root }}
 app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 

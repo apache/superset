@@ -305,28 +305,58 @@ tests:
 
   # =============================================================================
   # Selector Label Consistency
+  #
+  # These use value assertions (not isNotNull) on purpose: a missing/misscoped
+  # release name renders as the string "<no value>", which is non-null and would
+  # silently pass isNotNull. Asserting the concrete value catches that class of
+  # bug, and asserting the pod template labels equal the selector guards the
+  # immutable spec.selector.matchLabels <-> pod label invariant.
   # =============================================================================
-  - it: should have matching selector labels between deployment and service
+  - it: should set selector matchLabels to concrete values on main deployment
     template: deployment.yaml
     asserts:
-      - isNotNull:
+      - equal:
           path: spec.selector.matchLabels["app.kubernetes.io/name"]
-      - isNotNull:
+          value: superset
+      - equal:
           path: spec.selector.matchLabels["app.kubernetes.io/instance"]
-      - isNotNull:
+          value: RELEASE-NAME
+      - equal:
           path: spec.selector.matchLabels["app.kubernetes.io/component"]
+          value: web
 
-  - it: should have component in pod template labels for main deployment
+  - it: should match pod template labels to the selector on main deployment
     template: deployment.yaml
     asserts:
-      - isNotNull:
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
+          value: superset
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
           path: spec.template.metadata.labels["app.kubernetes.io/component"]
+          value: web
 
-  - it: should have component in pod template labels for worker deployment
+  - it: should set selector matchLabels to concrete values on worker deployment
     template: deployment-worker.yaml
     asserts:
-      - isNotNull:
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/component"]
+          value: worker
+
+  - it: should match pod template labels to the selector on worker deployment
+    template: deployment-worker.yaml
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
           path: spec.template.metadata.labels["app.kubernetes.io/component"]
+          value: worker
 
   # =============================================================================
   # Extra Labels Support

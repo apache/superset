@@ -40,6 +40,19 @@ When the MCP service has JWT auth enabled (`MCP_AUTH_ENABLED = True`), an audien
 
 The git SHA and build number surfaced in the "About" section, the bootstrap payload, and the public `/version` endpoint are now only included for admin users by default; the release version string is still shown to everyone. To expose the build details to all users (the previous behavior), set the `SUPERSET_EXPOSE_BUILD_DETAILS` environment variable (or `EXPOSE_BUILD_DETAILS_TO_USERS = True` in `superset_config.py`).
 
+### Helm chart adopts Kubernetes recommended labels (breaking upgrade)
+
+The Helm chart now labels and selects workloads using the [Kubernetes recommended labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/) (`app.kubernetes.io/*`) instead of the legacy `app`/`release` labels. Because a Deployment's `spec.selector.matchLabels` is immutable, `helm upgrade` against an existing release will fail with a `field is immutable` error.
+
+To upgrade, delete the affected workloads (which selector labels changed) before upgrading, then run the upgrade so they are recreated with the new labels:
+
+```bash
+kubectl delete deployment,statefulset -l release=<release-name> -n <namespace>
+helm upgrade <release-name> superset/superset
+```
+
+Alternatively, perform a fresh install. This is a one-time migration; subsequent upgrades are unaffected.
+
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.

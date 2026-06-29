@@ -46,6 +46,21 @@ It should be a long random bytes or str.
 
 On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverrides.secrets`
 
+## Upgrade Notes
+
+### Kubernetes recommended labels (breaking)
+
+This chart labels and selects workloads using the [Kubernetes recommended labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/) (`app.kubernetes.io/*`) instead of the legacy `app`/`release` labels. A Deployment's `spec.selector.matchLabels` is immutable, so `helm upgrade` against a release created before this change fails with a `field is immutable` error.
+
+To upgrade an existing release, delete the affected workloads first (their selector labels changed), then upgrade so they are recreated:
+
+```console
+kubectl delete deployment,statefulset -l release=<release-name> -n <namespace>
+helm upgrade <release-name> superset/superset
+```
+
+Alternatively, perform a fresh install. This is a one-time migration; subsequent upgrades are unaffected.
+
 ## Requirements
 
 | Repository | Name | Version |
