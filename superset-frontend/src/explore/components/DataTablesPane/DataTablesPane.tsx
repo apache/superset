@@ -201,6 +201,22 @@ export const DataTablesPane = ({
     };
   });
 
+  useEffect(() => {
+    // A mixed chart can be reconfigured to return fewer result panes than
+    // before (e.g. dropping a query). If the selected results tab no longer
+    // exists, fall back to the first results tab so the data panel never
+    // renders blank with a stale active key.
+    if (
+      activeTabKey.startsWith(ResultTypes.Results) &&
+      !queryResultsPanes.some(({ key }) => key === activeTabKey)
+    ) {
+      setActiveTabKey(ResultTypes.Results);
+    }
+    // queryResultsPanes is rebuilt every render; its length is the only input
+    // that can invalidate the active results key.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTabKey, queryResultsPanes.length]);
+
   const tabItems = [
     ...queryResultsPanes,
     {
