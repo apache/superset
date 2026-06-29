@@ -531,11 +531,11 @@ def _convert_query_object_filter(
     dimension = all_dimensions[col]
 
     val_str = filter_["val"]
-    value: FilterValues | tuple[FilterValues, ...]
+    value: FilterValues | frozenset[FilterValues]
     if val_str is None:
         value = None
     elif isinstance(val_str, (list, tuple)):
-        value = tuple(val_str)
+        value = frozenset(val_str)
     else:
         value = val_str
 
@@ -612,11 +612,11 @@ def _convert_query_object_filter(
 
 
 def _coerce_filter_value(
-    value: FilterValues | tuple[FilterValues, ...],
+    value: FilterValues | frozenset[FilterValues],
     dimension: Dimension,
-) -> FilterValues | tuple[FilterValues, ...]:
-    if isinstance(value, tuple):
-        return tuple(_coerce_scalar_filter_value(v, dimension) for v in value)
+) -> FilterValues | frozenset[FilterValues]:
+    if isinstance(value, frozenset):
+        return frozenset(_coerce_scalar_filter_value(v, dimension) for v in value)
     return _coerce_scalar_filter_value(value, dimension)
 
 
