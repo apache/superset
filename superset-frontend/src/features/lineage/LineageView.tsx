@@ -17,6 +17,7 @@
  * under the License.
  */
 import { FC, useMemo, useState, useCallback } from 'react';
+import { useResizeDetector } from 'react-resize-detector';
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { Empty, Loading } from '@superset-ui/core/components';
@@ -162,6 +163,8 @@ type LineageViewProps = {
 const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
   const theme = useTheme();
   const [selectedNode, setSelectedNode] = useState<NodeDetails | null>(null);
+  const { width: chartWidth = 800, ref: chartContainerRef } =
+    useResizeDetector();
 
   // Create a mapping of node names to their details
   const nodeDetailsMap = useMemo(() => {
@@ -454,13 +457,21 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
           addNode(dashKey, dashboard.title, theme.colorWarning, 'right');
 
           // Link from charts to dashboards using chart_ids
+          let linked = false;
           if (dashboard.chart_ids && dashboard.chart_ids.length > 0) {
             dashboard.chart_ids.forEach(chartId => {
               const chartKey = chartKeys.get(chartId);
               if (chartKey) {
                 addLink(chartKey, dashKey);
+                linked = true;
               }
             });
+          }
+          // Fall back to a direct dataset -> dashboard edge so the dashboard
+          // still renders when none of its charts resolve to visible nodes
+          // (e.g. after permission filtering); Sankey omits orphaned nodes.
+          if (!linked) {
+            addLink(datasetKey, dashKey);
           }
         });
       }
@@ -592,24 +603,24 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
   const legendItems: { label: string; color: string }[] = useMemo(() => {
     if (entityType === 'dataset') {
       return [
-        { label: 'Database (Upstream)', color: theme.colorInfo },
-        { label: 'Dataset (Current)', color: theme.colorPrimary },
-        { label: 'Chart (Downstream)', color: theme.colorSuccess },
-        { label: 'Dashboard (Downstream)', color: theme.colorWarning },
+        { label: t('Database (Upstream)'), color: theme.colorInfo },
+        { label: t('Dataset (Current)'), color: theme.colorPrimary },
+        { label: t('Chart (Downstream)'), color: theme.colorSuccess },
+        { label: t('Dashboard (Downstream)'), color: theme.colorWarning },
       ];
     } else if (entityType === 'chart') {
       return [
-        { label: 'Database (Upstream)', color: theme.colorWarning },
-        { label: 'Dataset (Upstream)', color: theme.colorInfo },
-        { label: 'Chart (Current)', color: theme.colorPrimary },
-        { label: 'Dashboard (Downstream)', color: theme.colorSuccess },
+        { label: t('Database (Upstream)'), color: theme.colorWarning },
+        { label: t('Dataset (Upstream)'), color: theme.colorInfo },
+        { label: t('Chart (Current)'), color: theme.colorPrimary },
+        { label: t('Dashboard (Downstream)'), color: theme.colorSuccess },
       ];
     } else if (entityType === 'dashboard') {
       return [
-        { label: 'Database (Upstream)', color: theme.colorWarning },
-        { label: 'Dataset (Upstream)', color: theme.colorSuccess },
-        { label: 'Chart (Upstream)', color: theme.colorInfo },
-        { label: 'Dashboard (Current)', color: theme.colorPrimary },
+        { label: t('Database (Upstream)'), color: theme.colorWarning },
+        { label: t('Dataset (Upstream)'), color: theme.colorSuccess },
+        { label: t('Chart (Upstream)'), color: theme.colorInfo },
+        { label: t('Dashboard (Current)'), color: theme.colorPrimary },
       ];
     }
     return [];
@@ -653,16 +664,18 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
           </LegendItem>
         ))}
       </Legend>
-      <Echart
-        refs={{}}
-        height={selectedNode ? 450 : 600}
-        width={800}
-        echartOptions={echartOptions}
-        vizType="sankey"
-        eventHandlers={{
-          click: handleNodeClick,
-        }}
-      />
+      <div ref={chartContainerRef} style={{ width: '100%' }}>
+        <Echart
+          refs={{}}
+          height={selectedNode ? 450 : 600}
+          width={chartWidth}
+          echartOptions={echartOptions}
+          vizType="sankey"
+          eventHandlers={{
+            click: handleNodeClick,
+          }}
+        />
+      </div>
       {selectedNode && (
         <DetailsPanel>
           <DetailsPanelHeader>
