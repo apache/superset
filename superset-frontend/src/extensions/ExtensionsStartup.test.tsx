@@ -292,7 +292,7 @@ test('renders children and surfaces a warning toast when init fails', async () =
   // The failure must reach the user as a warning toast rather than being
   // swallowed silently.
   await waitFor(() => {
-    const { messageToasts } = store.getState() as {
+    const { messageToasts } = store.getState() as unknown as {
       messageToasts: { text: string }[];
     };
     expect(
