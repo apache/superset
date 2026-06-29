@@ -72,8 +72,10 @@ const SSHTunnelForm = ({
               {t('SSH Host')}
             </FormLabel>
             <Input
+              id="server_address"
               name="server_address"
               type="text"
+              autoComplete="off"
               placeholder={t('e.g. 127.0.0.1')}
               value={db?.ssh_tunnel?.server_address || ''}
               onChange={onSSHTunnelParametersChange}
@@ -87,9 +89,11 @@ const SSHTunnelForm = ({
               {t('SSH Port')}
             </FormLabel>
             <Input
+              id="server_port"
               name="server_port"
               placeholder={t('22')}
               type="number"
+              autoComplete="off"
               value={db?.ssh_tunnel?.server_port}
               onChange={onSSHTunnelParametersChange}
               data-test="ssh-tunnel-server_port-input"
@@ -104,8 +108,10 @@ const SSHTunnelForm = ({
               {t('Username')}
             </FormLabel>
             <Input
+              id="username"
               name="username"
               type="text"
+              autoComplete="off"
               placeholder={t('e.g. Analytics')}
               value={db?.ssh_tunnel?.username || ''}
               onChange={onSSHTunnelParametersChange}
@@ -152,7 +158,9 @@ const SSHTunnelForm = ({
                 {t('SSH Password')}
               </FormLabel>
               <StyledInputPassword
+                id="password"
                 name="password"
+                autoComplete="off"
                 placeholder={t('e.g. ********')}
                 value={db?.ssh_tunnel?.password || ''}
                 onChange={onSSHTunnelParametersChange}
@@ -183,7 +191,9 @@ const SSHTunnelForm = ({
                   {t('Private Key')}
                 </FormLabel>
                 <Input.TextArea
+                  id="private_key"
                   name="private_key"
+                  autoComplete="off"
                   placeholder={t('Paste Private Key here')}
                   value={db?.ssh_tunnel?.private_key || ''}
                   onChange={onSSHTunnelParametersChange}
@@ -200,7 +210,9 @@ const SSHTunnelForm = ({
                   {t('Private Key Password')}
                 </FormLabel>
                 <StyledInputPassword
+                  id="private_key_password"
                   name="private_key_password"
+                  autoComplete="off"
                   placeholder={t('e.g. ********')}
                   value={db?.ssh_tunnel?.private_key_password || ''}
                   onChange={onSSHTunnelParametersChange}
