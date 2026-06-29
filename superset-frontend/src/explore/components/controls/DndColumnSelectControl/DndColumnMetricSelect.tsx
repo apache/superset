@@ -29,7 +29,7 @@ import {
 } from '@superset-ui/core';
 import { tn } from '@apache-superset/core/translation';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
-import { isString } from 'lodash';
+import { isString } from 'lodash-es';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';

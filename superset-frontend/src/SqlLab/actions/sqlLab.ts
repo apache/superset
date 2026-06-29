@@ -29,7 +29,7 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { invert, mapKeys } from 'lodash';
+import { invert, mapKeys } from 'lodash-es';
 
 import { now } from '@superset-ui/core/utils/dates';
 import {

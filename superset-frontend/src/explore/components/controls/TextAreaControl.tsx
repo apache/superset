@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef, useMemo } from 'react';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import {
   Input,
   Tooltip,
