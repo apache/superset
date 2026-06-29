@@ -391,12 +391,14 @@ def _get_filters_from_query_object(
     filters.update(extras_filters)
 
     # 4. Add all other filters from query_object.filter
+    # ``TEMPORAL_RANGE`` filters are skipped when a time axis can be inferred —
+    # ``_get_time_filter`` is responsible for emitting the bounds and (when a
+    # ``time_offset`` is set) shifting them. Without this skip, the offset
+    # query would carry the original literal bounds via the TEMPORAL_RANGE
+    # pass-through and end up identical to the main query.
+    has_time_axis = _get_time_axis_column(query_object, all_dimensions) is not None
     for filter_ in query_object.filter:
-        # Skip temporal range filters - we're using inner bounds instead
-        if (
-            filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value
-            and query_object.granularity
-        ):
+        if filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value and has_time_axis:
             continue
 
         if converted_filters := _convert_query_object_filter(filter_, all_dimensions):
@@ -449,6 +451,55 @@ def _get_filters_from_extras(extras: dict[str, Any]) -> set[Filter]:
     return filters
 
 
+def _get_time_axis_column(
+    query_object: ValidatedQueryObject,
+    all_dimensions: dict[str, Dimension],
+) -> str | None:
+    """
+    Determine which selected column is the time-axis (the one a time offset
+    applies to).
+
+    Legacy time-series charts encode this as ``query_object.granularity``.
+    Modern x-axis charts leave that empty and put the temporal column in
+    ``query_object.columns`` instead. Aggregate-only charts that just use a
+    ``TEMPORAL_RANGE`` adhoc filter (e.g. for time comparisons) carry the
+    temporal column only in ``query_object.filter``; we fall back to that so
+    the offset-aware filter path can still find a column to shift.
+    """
+    if query_object.granularity:
+        return query_object.granularity
+
+    dimension_names = set(all_dimensions.keys())
+
+    def is_temporal(name: str) -> bool:
+        dim = all_dimensions.get(name)
+        return dim is not None and (
+            pa.types.is_timestamp(dim.type)
+            or pa.types.is_date(dim.type)
+            or pa.types.is_time(dim.type)
+        )
+
+    for column in query_object.columns or []:
+        try:
+            name = _normalize_column(column, dimension_names)
+        except ValueError:
+            continue
+        if is_temporal(name):
+            return name
+
+    # Last resort: a TEMPORAL_RANGE filter (the shape produced by adhoc
+    # time-range filters on aggregate-only charts) carries the temporal
+    # column name in its ``col`` field.
+    for filter_ in query_object.filter or []:
+        if filter_.get("op") != FilterOperator.TEMPORAL_RANGE.value:
+            continue
+        col = filter_.get("col")
+        if isinstance(col, str) and is_temporal(col):
+            return col
+
+    return None
+
+
 def _get_time_filter(
     query_object: ValidatedQueryObject,
     time_offset: str | None,
@@ -460,13 +511,18 @@ def _get_time_filter(
     This handles both regular queries and time offset queries, simplifying the
     complexity of from_dttm/to_dttm/inner_from_dttm/inner_to_dttm by using the
     same time bounds for both the main query and series limit subqueries.
+
+    The time column is resolved via ``_get_time_axis_column`` so that
+    aggregate-only charts that only reference the temporal column inside a
+    ``TEMPORAL_RANGE`` adhoc filter still get offset-aware bounds applied.
     """
     filters: set[Filter] = set()
 
-    if not query_object.granularity:
+    time_axis_column = _get_time_axis_column(query_object, all_dimensions)
+    if not time_axis_column:
         return filters
 
-    time_dimension = all_dimensions.get(query_object.granularity)
+    time_dimension = all_dimensions.get(time_axis_column)
     if not time_dimension:
         return filters
 
