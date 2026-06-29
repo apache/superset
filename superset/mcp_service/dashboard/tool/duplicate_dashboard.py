@@ -63,7 +63,7 @@ def _positions_reference_charts(positions: dict[str, Any]) -> bool:
 
 def _build_copy_payload(
     source: Any, dashboard_title: str, duplicate_slices: bool
-) -> tuple[dict[str, Any], bool]:
+) -> tuple[dict[str, Any], bool, str | None]:
     """Build the data payload expected by ``CopyDashboardCommand``.
 
     Mirrors what the frontend "Save as" flow sends to the
@@ -74,15 +74,32 @@ def _build_copy_payload(
     ``positions`` from it to remap chart IDs when ``duplicate_slices``
     is enabled.
 
-    Returns the payload and a flag indicating whether the layout maps any
-    chart, so the caller can refuse to produce a silently empty copy.
+    Returns the payload, a flag indicating whether the layout maps any
+    chart (so the caller can refuse to produce a silently empty copy),
+    and an optional warning string when ``json_metadata`` could not be
+    decoded. The caller surfaces the warning rather than hard-failing:
+    metadata loss degrades aesthetic settings (colors, native filters)
+    but does not corrupt the copy's chart content.
     """
+    metadata_warning: str | None = None
     try:
         metadata = json.loads(source.json_metadata or "{}")
     except (json.JSONDecodeError, TypeError):
         metadata = {}
+        metadata_warning = (
+            "Source dashboard's stored settings (json_metadata) could not "
+            "be decoded and were not copied. The duplicate uses default "
+            "settings for colors, native filters, and other metadata. "
+            "Open and re-save the source dashboard to repair its settings."
+        )
     if not isinstance(metadata, dict):
         metadata = {}
+        if metadata_warning is None:
+            metadata_warning = (
+                "Source dashboard's stored settings (json_metadata) were not "
+                "a valid JSON object and were not copied. The duplicate uses "
+                "default settings for colors, native filters, and other metadata."
+            )
 
     try:
         positions = json.loads(source.position_json or "{}")
@@ -99,7 +116,7 @@ def _build_copy_payload(
         "duplicate_slices": duplicate_slices,
         "json_metadata": json.dumps(metadata),
     }
-    return payload, _positions_reference_charts(positions)
+    return payload, _positions_reference_charts(positions), metadata_warning
 
 
 def _serialize_new_dashboard(dashboard: Any) -> tuple[DashboardInfo, str]:
@@ -304,7 +321,7 @@ async def duplicate_dashboard(
         if error_response is not None:
             return error_response
 
-        data, layout_has_charts = _build_copy_payload(
+        data, layout_has_charts, metadata_warning = _build_copy_payload(
             source, request.dashboard_title, request.duplicate_slices
         )
 
@@ -337,11 +354,15 @@ async def duplicate_dashboard(
             request.duplicate_slices,
         )
 
+        warnings = list(request.sanitization_warnings)
+        if metadata_warning:
+            warnings.append(metadata_warning)
+
         return DuplicateDashboardResponse(
             dashboard=info,
             dashboard_url=dashboard_url,
             duplicated_slices=request.duplicate_slices,
-            warnings=list(request.sanitization_warnings),
+            warnings=warnings,
         )
 
     except DashboardForbiddenError:

@@ -517,6 +517,47 @@ async def test_lookup_db_error_returns_structured_error(
     assert "secret_table" not in error
 
 
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@patch("superset.commands.dashboard.copy.CopyDashboardCommand")
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_malformed_json_metadata_warns_not_fails(
+    mock_get_by_id_or_slug: Mock,
+    mock_copy_cmd_cls: Mock,
+    mock_find_by_id: Mock,
+    mcp_server: object,
+) -> None:
+    """Malformed source json_metadata surfaces a warning, not a hard failure.
+
+    The copy proceeds with default metadata settings (colors, native filters,
+    etc. are reset to defaults), and the response's ``warnings`` list contains
+    a description of the loss. Chart content is determined by position_json, so
+    the malformed metadata does not corrupt the copy's chart set.
+    """
+    source = _mock_dashboard(
+        id=1, slices=[_mock_chart(id=10)], json_metadata="not-valid-json"
+    )
+    new_dashboard = _mock_dashboard(id=2, title="Copy", slices=[_mock_chart(id=10)])
+
+    mock_get_by_id_or_slug.return_value = source
+    mock_copy_cmd_cls.return_value.run.return_value = new_dashboard
+    mock_find_by_id.return_value = new_dashboard
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "duplicate_dashboard",
+            {"request": {"dashboard_id": 1, "dashboard_title": "Copy"}},
+        )
+
+    content = result.structured_content
+    assert content["error"] is None
+    assert content["dashboard"]["id"] == 2
+    assert content["warnings"], "expected a metadata warning"
+    assert "metadata" in content["warnings"][0].lower()
+    # Copy command must still be called — the copy proceeds despite bad metadata.
+    mock_copy_cmd_cls.assert_called_once()
+
+
 def test_title_xss_only_rejected_by_schema() -> None:
     """A title that sanitizes to nothing is rejected with a clear error."""
     from pydantic import ValidationError
