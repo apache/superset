@@ -306,6 +306,10 @@ class BaseScreenshot:
         if image:
             with event_logger.log_context(f"screenshot.cache.{self.thumbnail_type}"):
                 cache_payload.update(image)
+        elif cache_payload.status != StatusValues.ERROR:
+            # Only call error() if not already set — avoids overwriting
+            # the timestamp recorded when the actual failure occurred above.
+            cache_payload.error()
 
         logger.info("Caching thumbnail: %s", cache_key)
         self.cache.set(cache_key, cache_payload.to_dict())

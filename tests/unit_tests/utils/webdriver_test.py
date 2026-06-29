@@ -894,3 +894,75 @@ class TestWebDriverPlaywrightErrorHandling:
             "dashboard",
             "http://example.com",
         )
+
+
+class TestWebDriverPlaywrightTiledEmptyBytesFallback:
+    """Regression: a tiled screenshot returning empty bytes must fall back.
+
+    Ported from apache/superset #41097. That PR's suite targets master's
+    persistent ``_browser_manager`` architecture, which is not on this branch;
+    6.0 acquires the browser via ``sync_playwright`` directly, so the mock
+    scaffolding is adapted accordingly. Only the test covering the actual
+    empty-bytes fix is carried over; the bundled animation-wait-order tests are
+    intentionally not ported.
+    """
+
+    _config = {
+        "WEBDRIVER_OPTION_ARGS": [],
+        "WEBDRIVER_WINDOW": {"pixel_density": 1},
+        "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+        "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+        "SCREENSHOT_SELENIUM_HEADSTART": 0,
+        "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 2,
+        "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+        "SCREENSHOT_LOCATE_WAIT": 10,
+        "SCREENSHOT_LOAD_WAIT": 30,
+        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
+        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
+        "SCREENSHOT_TILED_ENABLED": True,
+        "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
+        "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 5000,
+        "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
+    }
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver.take_tiled_screenshot")
+    @patch("superset.utils.webdriver.app")
+    def test_tiled_fallback_triggered_on_empty_bytes(
+        self, mock_app, mock_take_tiled, mock_sync_playwright
+    ):
+        """Tiled fallback fires when take_tiled_screenshot returns b"" (not None)."""
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = self._config
+
+        # 6.0 uses sync_playwright directly (no persistent _browser_manager).
+        mock_playwright_instance = MagicMock()
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+
+        mock_sync_playwright.return_value.__enter__.return_value = (
+            mock_playwright_instance
+        )
+        mock_playwright_instance.chromium.launch.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+
+        # Large dashboard: 25 charts, 6000px height — triggers the tiled path.
+        mock_page.evaluate.side_effect = [25, 6000]
+        # Empty bytes — falsy but not None; silently passed through before the fix.
+        mock_take_tiled.return_value = b""
+        # _get_screenshot("standalone") calls page.screenshot(full_page=True).
+        mock_page.screenshot.return_value = b"fallback"
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            result = WebDriverPlaywright("chrome").get_screenshot(
+                "http://example.com", "standalone", mock_user
+            )
+
+        assert result == b"fallback"
+        # Tiled path was taken, then the empty result triggered the standard fallback.
+        mock_take_tiled.assert_called_once()
+        mock_page.screenshot.assert_called_with(full_page=True)
