@@ -47,7 +47,6 @@ export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
   const borderColorHover = onClick ? baseColor.borderHover : borderColor;
 
   const labelStyles = css`
-    // NOTE: && bumps specificity to beat antd Tag defaults
     && {
       transition: background-color ${theme.motionDurationMid};
       white-space: nowrap;

@@ -127,7 +127,7 @@ InteractiveButton.argTypes = {
   },
   styleConfig: {
     description:
-      'Optional visual overrides (controlHeight, paddingInline, fontSize, fontWeight, ctaMinWidth, ctaMinHeight, iconGap).',
+      'Optional visual overrides (controlHeight, paddingInline, fontSize, fontWeight, borderRadius, ctaMinWidth, ctaMinHeight, iconGap).',
     control: { type: 'object' },
   },
   target: {

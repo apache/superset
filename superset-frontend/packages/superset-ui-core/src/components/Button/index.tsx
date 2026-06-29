@@ -121,15 +121,12 @@ function ButtonInner(props: ButtonProps, ref: Ref<HTMLElement>) {
   const { fontWeightStrong } = theme;
   const btnFontSize = theme.buttonFontSize ?? theme.fontSizeSM;
 
-  const themeExt = theme as typeof theme & {
-    buttonStyleMap?: Partial<Record<ButtonStyle, Partial<ButtonStyleMapping>>>;
-  };
   const resolvedStyleMap: Record<ButtonStyle, ButtonStyleMapping> =
-    themeExt.buttonStyleMap
+    theme.buttonStyleMap
       ? (Object.fromEntries(
           Object.entries(BUTTON_STYLE_MAP).map(([key, value]) => [
             key,
-            { ...value, ...themeExt.buttonStyleMap?.[key as ButtonStyle] },
+            { ...value, ...theme.buttonStyleMap?.[key as ButtonStyle] },
           ]),
         ) as Record<ButtonStyle, ButtonStyleMapping>)
       : BUTTON_STYLE_MAP;

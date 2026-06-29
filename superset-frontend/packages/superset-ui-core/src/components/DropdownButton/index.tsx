@@ -58,9 +58,13 @@ export const DropdownButton = ({
         defaultBtnCss,
         css`
           .ant-btn {
-            height: ${styleConfig?.controlHeight ?? 30}px;
+            height: ${styleConfig?.controlHeight ??
+            theme.buttonControlHeightSM ??
+            30}px;
             box-shadow: ${styleConfig?.boxShadow ?? 'none'};
-            font-size: ${styleConfig?.fontSize ?? theme.fontSizeSM}px;
+            font-size: ${styleConfig?.fontSize ??
+            theme.buttonFontSize ??
+            theme.fontSizeSM}px;
             font-weight: ${styleConfig?.fontWeight ?? theme.fontWeightStrong};
           }
         `,

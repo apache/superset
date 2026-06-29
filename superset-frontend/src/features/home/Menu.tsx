@@ -384,7 +384,7 @@ export function Menu({
               {renderBrand()}
             </Tooltip>
           )}
-          {brand.text && !brand.hide_logo && (
+          {!brand.hide_logo && brand.text && (
             <StyledBrandText>
               <span>{brand.text}</span>
             </StyledBrandText>
