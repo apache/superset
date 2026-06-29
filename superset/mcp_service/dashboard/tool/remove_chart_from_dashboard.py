@@ -146,6 +146,57 @@ def _remove_id_from_list(values: Any, chart_id: int) -> tuple[Any, bool]:
     return filtered, len(filtered) != len(values)
 
 
+def _clean_filter_scopes(filter_scopes: Dict[str, Any], chart_id: int) -> bool:
+    """Remove *chart_id* from filter_scopes and prune per-column immune lists.
+
+    Mutates *filter_scopes* in place. Returns True if anything changed.
+    """
+    chart_key = str(chart_id)
+    changed = False
+    if chart_key in filter_scopes:
+        del filter_scopes[chart_key]
+        changed = True
+    for column_scopes in filter_scopes.values():
+        if not isinstance(column_scopes, dict):
+            continue
+        for column_config in column_scopes.values():
+            if not isinstance(column_config, dict):
+                continue
+            immune, immune_changed = _remove_id_from_list(
+                column_config.get("immune"), chart_id
+            )
+            if immune_changed:
+                column_config["immune"] = immune
+                changed = True
+    return changed
+
+
+def _clean_default_filters(metadata: Dict[str, Any], chart_key: str) -> bool:
+    """Remove *chart_key* from ``default_filters`` and re-serialize to a JSON string.
+
+    ``default_filters`` is normally a JSON-encoded string; this function also
+    tolerates the case where it has already been decoded to a dict.  Returns
+    True if anything changed.
+    """
+    default_filters_raw = metadata.get("default_filters")
+    if isinstance(default_filters_raw, str):
+        try:
+            default_filters = json.loads(default_filters_raw)
+            if isinstance(default_filters, dict) and chart_key in default_filters:
+                del default_filters[chart_key]
+                metadata["default_filters"] = json.dumps(default_filters)
+                return True
+        except (json.JSONDecodeError, TypeError):
+            pass
+    elif isinstance(default_filters_raw, dict) and chart_key in default_filters_raw:
+        del default_filters_raw[chart_key]
+        # Re-serialize so downstream readers that call json.loads on this field
+        # continue to receive a string rather than a Python dict.
+        metadata["default_filters"] = json.dumps(default_filters_raw)
+        return True
+    return False
+
+
 def _clean_json_metadata(metadata: Dict[str, Any], chart_id: int) -> bool:
     """Remove stale references to *chart_id* from a json_metadata dict.
 
@@ -172,36 +223,9 @@ def _clean_json_metadata(metadata: Dict[str, Any], chart_id: int) -> bool:
 
     filter_scopes = metadata.get("filter_scopes")
     if isinstance(filter_scopes, dict):
-        if chart_key in filter_scopes:
-            del filter_scopes[chart_key]
-            changed = True
-        for column_scopes in filter_scopes.values():
-            if not isinstance(column_scopes, dict):
-                continue
-            for column_config in column_scopes.values():
-                if not isinstance(column_config, dict):
-                    continue
-                immune, immune_changed = _remove_id_from_list(
-                    column_config.get("immune"), chart_id
-                )
-                if immune_changed:
-                    column_config["immune"] = immune
-                    changed = True
+        changed |= _clean_filter_scopes(filter_scopes, chart_id)
 
-    # default_filters is stored as a JSON-encoded string within json_metadata,
-    # with chart IDs as string keys (mirrors DashboardDAO.set_dash_metadata).
-    default_filters_raw = metadata.get("default_filters")
-    if isinstance(default_filters_raw, str):
-        try:
-            default_filters = json.loads(default_filters_raw)
-            if isinstance(default_filters, dict) and chart_key in default_filters:
-                del default_filters[chart_key]
-                metadata["default_filters"] = json.dumps(default_filters)
-                changed = True
-        except (json.JSONDecodeError, TypeError):
-            pass
-    elif isinstance(default_filters_raw, dict) and chart_key in default_filters_raw:
-        del default_filters_raw[chart_key]
+    if _clean_default_filters(metadata, chart_key):
         changed = True
 
     return changed
@@ -288,7 +312,15 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
             try:
                 current_layout = json.loads(dashboard.position_json or "{}")
             except (json.JSONDecodeError, TypeError):
-                current_layout = {}
+                return RemoveChartFromDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    error=(
+                        f"Dashboard {request.dashboard_id} has a malformed layout "
+                        "(position_json could not be parsed); cannot safely remove "
+                        "a chart from it."
+                    ),
+                )
             if not isinstance(current_layout, dict):
                 current_layout = {}
 

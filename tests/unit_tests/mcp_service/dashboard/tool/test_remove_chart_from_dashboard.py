@@ -654,3 +654,40 @@ def test_clean_json_metadata_handles_malformed_sections() -> None:
     assert _clean_json_metadata(metadata, 10) is True  # filter_scopes["10"] removed
     assert "10" not in metadata["filter_scopes"]
     assert metadata["expanded_slices"] == "not-a-dict"
+
+
+def test_clean_json_metadata_reserializes_dict_default_filters() -> None:
+    """When default_filters is already a dict it is cleaned and re-serialized to a string."""
+    metadata: dict[str, Any] = {
+        "default_filters": {"10": {"col": ["v"]}, "20": {"col": ["v2"]}},
+    }
+    assert _clean_json_metadata(metadata, 10) is True
+    # Must come back as a JSON-encoded string, not a dict
+    assert isinstance(metadata["default_filters"], str)
+    remaining = json.loads(metadata["default_filters"])
+    assert "10" not in remaining
+    assert "20" in remaining
+
+
+@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_malformed_position_json_returns_error(
+    mock_find_by_id: Mock,
+    mock_raise_for_ownership: Mock,
+    mcp_server: object,
+) -> None:
+    """A dashboard with unparseable position_json returns an error instead of wiping the layout."""
+    chart_10 = _mock_chart(id=10)
+    dashboard = _mock_dashboard(
+        slices=[chart_10],
+        position_json="INVALID JSON {{{",
+    )
+    mock_find_by_id.return_value = dashboard
+    mock_raise_for_ownership.return_value = None
+
+    content = await _call_remove(mcp_server, chart_id=10)
+
+    assert content["error"] is not None
+    assert "malformed" in content["error"].lower()
+    assert content["dashboard"] is None
