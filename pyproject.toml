@@ -185,7 +185,7 @@ ocient = [
     "shapely",
     "geojson",
 ]
-oracle = ["oracledb>=2.0.0, <5"]
+oracle = ["oracledb>=4.0.1, <5"]
 parseable = ["sqlalchemy-parseable>=0.1.3,<0.2.0"]
 pinot = ["pinotdb>=5.0.0, <10.0.0"]
 playwright = ["playwright>=1.60.0, <2"]
