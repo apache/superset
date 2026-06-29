@@ -370,12 +370,19 @@ class DatabendEngineSpec(BasicParametersMixin, DatabendBaseEngineSpec):
         return f"{label}_{hash_from_str(label)[:6]}"
 
 
-# Backwards-compatible alias. Previously there were two separate specs
-# (a legacy ``DatabendEngineSpec`` without parameter support and a
-# ``DatabendConnectEngineSpec`` with it), both registered under the
-# ``databend`` engine. Because neither declared distinct ``drivers``,
-# ``get_engine_spec`` resolved to the first-defined (legacy) spec, which
-# lacks ``parameters_schema``/``build_sqlalchemy_uri`` and broke the
-# "configure via individual parameters" flow. They are now merged into a
-# single spec; this alias keeps existing imports working.
-DatabendConnectEngineSpec: type[DatabendEngineSpec] = DatabendEngineSpec
+def __getattr__(name: str) -> Any:
+    # Backwards-compatible alias. Previously there were two separate specs
+    # (a legacy ``DatabendEngineSpec`` without parameter support and a
+    # ``DatabendConnectEngineSpec`` with it), both registered under the
+    # ``databend`` engine. Because neither declared distinct ``drivers``,
+    # ``get_engine_spec`` resolved to the first-defined (legacy) spec, which
+    # lacks ``parameters_schema``/``build_sqlalchemy_uri`` and broke the
+    # "configure via individual parameters" flow. They are now merged into a
+    # single spec.
+    #
+    # The alias is exposed via module-level ``__getattr__`` (PEP 562) rather
+    # than a class binding so that ``load_engine_specs`` -- which iterates
+    # ``module.__dict__`` -- does not collect the same spec twice.
+    if name == "DatabendConnectEngineSpec":
+        return DatabendEngineSpec
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
