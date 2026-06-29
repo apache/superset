@@ -67,7 +67,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
 from pydantic import (
@@ -134,7 +134,11 @@ class DashboardError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DashboardError":
         """Create a standardized DashboardError with timestamp."""
-        return cls(error=error, error_type=error_type, timestamp=datetime.now())
+        return cls(
+            error=error,
+            error_type=error_type,
+            timestamp=datetime.now(timezone.utc),
+        )
 
 
 def serialize_tag_object(tag: Any) -> TagInfo | None:
