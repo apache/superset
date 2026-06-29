@@ -479,7 +479,12 @@ class TestUpdateDashboard:
         )
         assert UpdateDashboardRequest(identifier=1, slug="").slug == ""
         assert UpdateDashboardRequest(identifier=1).slug is None
-        # A slug that normalizes to empty (only special chars) is rejected rather
-        # than silently clearing the slug.
-        with pytest.raises(PydanticValidationError, match="normalizes to an empty"):
+        # Whitespace-only normalizes to empty string (clears slug), matching REST.
+        assert UpdateDashboardRequest(identifier=1, slug="   ").slug == ""
+        # A slug containing only non-word characters is rejected (can't be
+        # silently cleared when the intent is to set a slug).
+        with pytest.raises(
+            PydanticValidationError,
+            match="characters that are removed during normalization",
+        ):
             UpdateDashboardRequest(identifier=1, slug="!!!")

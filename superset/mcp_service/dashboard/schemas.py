@@ -911,12 +911,16 @@ class UpdateDashboardRequest(BaseModel):
         hyphens, and drop characters outside ``[\\w-]`` so the tool cannot
         persist slugs the REST update path would have cleaned.
 
-        Raises ``ValueError`` when a non-empty input normalizes to an empty
-        string (e.g. ``"!!!"``) to prevent silently clearing the slug.
+        Whitespace-only inputs normalize to ``""`` (clears the slug), matching
+        REST schema behavior. Raises ``ValueError`` when a non-whitespace input
+        normalizes to empty (e.g. ``"!!!"``), preventing accidental slug clearing.
         """
         if not v:
             return v
-        normalized = re.sub(r"[^\w\-]+", "", v.strip().replace(" ", "-"))
+        stripped = v.strip()
+        if not stripped:
+            return ""  # whitespace-only → same as empty string (clears slug)
+        normalized = re.sub(r"[^\w\-]+", "", stripped.replace(" ", "-"))
         if not normalized:
             raise ValueError(
                 "slug contains only characters that are removed during "
