@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -6351,6 +6351,9 @@ msgstr "Bu veritabanı için ayrıntılı bir özellik için matkapları ayırt 
 msgid "Discard"
 msgstr "Discard"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Ekran Adı"
 
@@ -7816,6 +7819,9 @@ msgstr "Grafik verileri yüklemek için başarısız oldu."
 msgid "Failed to load columns for %s %s"
 msgstr "%s %s için sütunlar yüklenemedi"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7886,6 +7892,9 @@ msgstr "Cross-filter scoping kurtarmak için başarısız oldu"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Çapraz filtrelemeyi etkinleştir"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Yerel temayı kurmak için başarısız oldu: Invalid JSON yapılandırma"
@@ -11003,6 +11012,9 @@ msgid "No saved metrics found"
 msgstr "Bullanmamış ölçümler bulunamadı"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -15135,9 +15147,6 @@ msgstr "Bir şey yanlış gitti."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Üzgünüm veritabanı bilgileri getiriyor:   %s "
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Üzgünüm, kaydedilen grafikler getiren bir hata vardı:"
-
 msgid "Sorry, An error occurred"
 msgstr "Üzgünüm, Bir hata oluştu"
 
@@ -15152,6 +15161,9 @@ msgstr "Üzgünüm, bir şey yanlış gitti. Gömülülık devre dışı bırak�
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Üzgünüm, bir şey yanlış gitti. Lütfen tekrar deneyin."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Üzgünüm, bir şey yanlış gitti. Daha sonra tekrar deneyin."
@@ -20486,6 +20498,9 @@ msgstr ""
 "Kontrol panelindeki değerleri güncellediniz, ancak grafik otomatik olarak"
 " güncellenmedi. \"Güncel grafikler\" düğmesine tıklayarak sorguyu "
 "çalıştırın veya"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

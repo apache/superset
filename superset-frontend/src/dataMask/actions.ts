@@ -18,7 +18,7 @@
  */
 import { DataMask, Filters } from '@superset-ui/core';
 import { SaveFilterChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
-import { getInitialDataMask } from './reducer';
+import { getInitialDataMask, useDataMaskStore } from './useDataMaskStore';
 
 export const CLEAR_DATA_MASK_STATE = 'CLEAR_DATA_MASK_STATE';
 export interface ClearDataMaskState {
@@ -58,6 +58,13 @@ export function setDataMaskForFilterChangesComplete(
   filters?: Filters,
   isCustomizationChanges?: boolean,
 ): SetDataMaskForFilterChangesComplete {
+  useDataMaskStore
+    .getState()
+    .setDataMaskForFilterChanges(
+      filterChanges,
+      filters,
+      isCustomizationChanges,
+    );
   return {
     type: SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE,
     filterChanges,
@@ -70,6 +77,7 @@ export function updateDataMask(
   filterId: string | number,
   dataMask: DataMask,
 ): UpdateDataMask {
+  useDataMaskStore.getState().updateDataMask(filterId, dataMask);
   return {
     type: UPDATE_DATA_MASK,
     filterId,
@@ -82,6 +90,7 @@ export function clearDataMask(filterId: string | number) {
 }
 
 export function removeDataMask(filterId: string | number): RemoveDataMask {
+  useDataMaskStore.getState().removeDataMask(filterId);
   return {
     type: REMOVE_DATA_MASK,
     filterId,
@@ -89,6 +98,7 @@ export function removeDataMask(filterId: string | number): RemoveDataMask {
 }
 
 export function clearDataMaskState(): ClearDataMaskState {
+  useDataMaskStore.getState().clearDataMask();
   return {
     type: CLEAR_DATA_MASK_STATE,
   };

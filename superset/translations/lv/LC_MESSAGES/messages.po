@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -6120,6 +6120,9 @@ msgstr "Atspējo iedziļināšanās detaļās funkciju šai datubāzei."
 msgid "Discard"
 msgstr "Atmest"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Attēlojamais nosaukums"
 
@@ -7485,6 +7488,9 @@ msgstr "Neizdevās ielādēt diagrammas datus."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7552,6 +7558,9 @@ msgstr "Neizdevās saglabāt krusteniskā filtra tvērumu"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Neizdevās saglabāt krustfiltru iestatījumus"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Neizdevās iestatīt vietējo motīvu: nederīga JSON konfigurācija"
@@ -10515,6 +10524,9 @@ msgid "No saved metrics found"
 msgstr "Nav atrasti saglabāti rādītāji"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -14456,9 +14468,6 @@ msgstr "Kaut kas nogāja greizi."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Diemžēl, ielādējot datubāzes informāciju, radās kļūda: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Diemžēl, ielādējot saglabātās diagrammas, radās kļūda: "
-
 msgid "Sorry, An error occurred"
 msgstr "Diemžēl, radās kļūda"
 
@@ -14473,6 +14482,9 @@ msgstr "Diemžēl, kaut kas nogāja greizi. Iegulšanu nevarēja deaktivizēt."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Diemžēl, kaut kas nogāja greizi. Lūdzu, mēģiniet vēlreiz."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Diemžēl, kaut kas nogāja greizi. Mēģiniet vēlāk."
@@ -19651,6 +19663,9 @@ msgstr ""
 "Jūs atjauninājāt vērtības vadības panelī, bet diagramma netika "
 "atjaunināta automātiski. Izpildiet vaicājumu, noklikšķinot uz pogas "
 "\"Atjaunināt diagrammu\" vai"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

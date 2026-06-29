@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -6566,6 +6566,9 @@ msgstr "Er zijn geen voorbeelden gevonden voor deze dataset"
 msgid "Discard"
 msgstr "Negeren"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Toon naam"
 
@@ -8086,6 +8089,9 @@ msgstr "Laden van grafiekgegevens mislukt."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8159,6 +8165,9 @@ msgstr "Opslaan van cross-filter scope mislukt"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Opslaan van cross-filter scope mislukt"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11422,6 +11431,9 @@ msgid "No saved metrics found"
 msgstr "Geen opgeslagen metrieken gevonden"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -15682,9 +15694,6 @@ msgstr ""
 "Sorry er is een fout opgetreden bij het ophalen van database informatie: "
 "%s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Sorry er was een fout bij het ophalen van de opgeslagen grafieken: "
-
 msgid "Sorry, An error occurred"
 msgstr "Sorry, er is een fout opgetreden"
 
@@ -15699,6 +15708,9 @@ msgstr "Sorry, er ging iets mis. Embedding kon niet worden gedeactiveerd."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Er is iets fout gegaan. Probeer het opnieuw."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Sorry, er ging iets mis. Probeer het later nog eens."
@@ -21353,6 +21365,9 @@ msgstr ""
 "Je hebt de waarden in het bedieningspaneel bijgewerkt, maar de grafiek is"
 " niet automatisch bijgewerkt. Voer de query uit door op de knop 'Grafiek "
 "bijwerken' te klikken of"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

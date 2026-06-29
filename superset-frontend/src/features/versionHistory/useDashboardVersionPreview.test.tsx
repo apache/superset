@@ -29,6 +29,12 @@ import {
   type HydrateDashboardData,
 } from 'src/dashboard/actions/hydrate';
 import { CLEAR_DATA_MASK_STATE } from 'src/dataMask/actions';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import {
+  useDashboardInfoStore,
+  useDashboardStateStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import { CHART_TYPE, MARKDOWN_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   fetchDashboardHydrationData,
@@ -274,15 +280,35 @@ interface TestState {
 /** Minimal recording store: dispatched actions are captured, never reduced,
  * so tests assert exactly what the hook dispatches and control state
  * transitions explicitly via setState. */
+// The hook reads dashboardInfo (id, last_modified_time) and the live dataMask
+// from Zustand, so mirror those slices into the Zustand stores whenever the
+// recording store is seeded or updated. versionHistory stays in Redux.
+function syncZustandDashboardSlices(partial: Partial<TestState>) {
+  if (partial.dashboardInfo) {
+    useDashboardInfoStore.setState({
+      dashboardInfo: partial.dashboardInfo as unknown as DashboardInfo,
+    });
+  }
+  if (partial.dataMask) {
+    useDataMaskStore.setState({ dataMask: partial.dataMask });
+  }
+}
+
 function makeTestStore(initial: TestState) {
   let state = initial;
   const actions: AnyAction[] = [];
   const listeners = new Set<() => void>();
+  // dashboardState.lastModifiedTime is not part of TestState; pin it so the
+  // save signal is driven solely by dashboardInfo.last_modified_time, matching
+  // the pre-migration Redux behavior.
+  useDashboardStateStore.setState({ lastModifiedTime: 0 });
+  syncZustandDashboardSlices(initial);
   return {
     actions,
     getState: () => state,
     setState(partial: Partial<TestState>) {
       state = { ...state, ...partial };
+      syncZustandDashboardSlices(partial);
       listeners.forEach(listener => listener());
     },
     dispatch(action: AnyAction) {

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -6331,6 +6331,9 @@ msgstr "Deshabilita la función de desglose a detalle para esta base de datos."
 msgid "Discard"
 msgstr "Descartar"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Nombre a mostrar"
 
@@ -7783,6 +7786,9 @@ msgstr "No se han podido cargar los datos del gráfico."
 msgid "Failed to load columns for %s %s"
 msgstr "No se han podido cargar las columnas de %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7855,6 +7861,9 @@ msgstr "No se ha podido guardar el alcance del filtro cruzado"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "No se ha podido guardar el alcance del filtro cruzado"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -10989,6 +10998,9 @@ msgid "No saved metrics found"
 msgstr "No se han encontrado métricas guardadas"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -15113,11 +15125,6 @@ msgstr ""
 "Lo sentimos, se ha producido un error al recuperar la información de la "
 "base de datos: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr ""
-"Lo sentimos, se ha producido un error al recuperar los gráficos "
-"guardados: "
-
 msgid "Sorry, An error occurred"
 msgstr "Lo sentimos, se ha producido un error"
 
@@ -15134,6 +15141,9 @@ msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Lo sentimos, se ha producido un error. Inténtalo de nuevo."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Lo sentimos, se ha producido un error. Inténtalo de nuevo más tarde."
@@ -20621,6 +20631,9 @@ msgstr ""
 "Has actualizado los valores en el panel de control, pero el gráfico no se"
 " actualizó automáticamente. Ejecuta la consulta haciendo clic en el botón"
 " «Actualizar gráfico» o"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

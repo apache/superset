@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -6193,6 +6193,9 @@ msgstr "Za to podatkovno bazo onemogočite vrtanje v podrobnosti."
 msgid "Discard"
 msgstr "Zavrzi"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Ime za prikaz"
 
@@ -7592,6 +7595,9 @@ msgstr "Neuspešno nalaganje podatkov grafikona."
 msgid "Failed to load columns for %s %s"
 msgstr "Nalaganje stolpcev za %s %s ni uspelo"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7662,6 +7668,9 @@ msgstr "Shranjevanje dosega medsebojnega filtra ni uspelo"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Nastavitev navzkrižnih filtrov ni bilo mogoče shraniti"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10668,6 +10677,9 @@ msgid "No saved metrics found"
 msgstr "Shranjene mere niso najdene"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -14621,9 +14633,6 @@ msgstr "Nekaj je šlo narobe."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Pri pridobivanju informacij o podatkovni bazi je prišlo do napake: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Prišlo je do napake pri pridobivanju shranjenih grafikonov: "
-
 msgid "Sorry, An error occurred"
 msgstr "Prišlo je do napake"
 
@@ -14638,6 +14647,9 @@ msgstr "Nekaj je šlo narobe. Vgrajevanja ni mogoče deaktivirati."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Nekaj je šlo narobe. Poskusite ponovno."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Nekaj je šlo narobe. Poskusite ponovno kasneje."
@@ -19878,6 +19890,9 @@ msgstr ""
 "Posodobili ste vrednosti v kontrolni plošči, vendar se grafikon ni "
 "samodejno posodobil. Zaženite poizvedbo z gumbom \"Posodobi grafikon\" "
 "ali"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

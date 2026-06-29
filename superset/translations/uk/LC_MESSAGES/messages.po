@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -6134,6 +6134,9 @@ msgstr "Вимикає функцію деталізації для цієї б�
 msgid "Discard"
 msgstr "Відкинути"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Імʼя на загал"
 
@@ -7498,6 +7501,9 @@ msgstr "Не вдалося завантажити дані діаграми."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7565,6 +7571,9 @@ msgstr "Не вдалося зберегти межі перехресного �
 
 msgid "Failed to save cross-filters setting"
 msgstr "Не вдалося зберегти налаштування перехресних фільтрів"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Не вдалося вказати місцеву тему: неправильні налаштування JSON"
@@ -10516,6 +10525,9 @@ msgid "No saved metrics found"
 msgstr "Не знайдено жодного збереженого показника"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -14462,9 +14474,6 @@ msgstr "Щось не так."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "На жаль, трапилась помилка одержання інформації про базу даних: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "На жаль, трапилась помилка одержання збережених діаграм: "
-
 msgid "Sorry, An error occurred"
 msgstr "На жаль, трапилась помилка"
 
@@ -14479,6 +14488,9 @@ msgstr "Отакої, щось не так. Вбудовування немож�
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Отакої, щось не так. Спробуйте ще раз."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Отакої, щось не так. Спробуйте ще раз пізніше."
@@ -19655,6 +19667,9 @@ msgid ""
 msgstr ""
 "Ви оновили значення в панелі керування, але діаграма не оновився "
 "автоматично. Запустіть запит, натиснувши кнопку «Оновити діаграму», або"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

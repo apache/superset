@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -9849,6 +9849,9 @@ msgstr "ปิดใช้งานคุณสมบัติการเจา
 msgid "Discard"
 msgstr "ละทิ้ง"
 
+msgid "Discard changes?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -12189,6 +12192,9 @@ msgstr "ไม่สามารถโหลดข้อมูลแผนภู
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -12280,6 +12286,9 @@ msgstr "ไม่สามารถบันทึกขอบเขตของ
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "ไม่สามารถบันทึกการตั้งค่าตัวกรองข้ามได้"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -17378,6 +17387,9 @@ msgid "No saved metrics found"
 msgstr "ไม่พบเมตริกที่บันทึกไว้"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -23976,12 +23988,6 @@ msgid "Sorry there was an error fetching database information: %s"
 msgstr "ขออภัย เกิดข้อผิดพลาดในการดึงข้อมูลฐานข้อมูล: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "ขออภัย เกิดข้อผิดพลาดในการดึงกราฟที่บันทึกไว้: "
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid "Sorry, An error occurred"
@@ -24010,6 +24016,9 @@ msgstr "ขออภัย เกิดข้อผิดพลาด ไม่�
 #, fuzzy
 msgid "Sorry, something went wrong. Please try again."
 msgstr "ขออภัย เกิดข้อผิดพลาด โปรดลองอีกครั้ง"
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -32021,6 +32030,9 @@ msgid ""
 msgstr ""
 "คุณอัปเดตค่าในแผงควบคุมแล้ว แต่แผนภูมิไม่ได้อัปเดตโดยอัตโนมัติ "
 "รันคิวรีโดยคลิกที่ปุ่ม \"อัปเดตแผนภูมิ\" หรือ"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

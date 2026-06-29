@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -6091,6 +6091,9 @@ msgstr "Deaktiviert die Drill-to-Detail-Funktion für diese Datenbank."
 msgid "Discard"
 msgstr "Verwerfen"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Anzeigename"
 
@@ -7449,6 +7452,9 @@ msgstr "Diagrammdaten konnten nicht geladen werden."
 msgid "Failed to load columns for %s %s"
 msgstr "Die Spalte für %s %s konnte nicht geladen werden"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7515,6 +7521,9 @@ msgstr "Cross-Filter-Scoping konnte nicht gespeichert werden"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Das Speichern der Einstellungen für Kreuzfilter ist fehlgeschlagen"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr ""
@@ -10448,6 +10457,9 @@ msgid "No saved metrics found"
 msgstr "Keine gespeicherten Metriken gefunden"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -14359,9 +14371,6 @@ msgstr ""
 "Beim Abrufen von Datenbankinformationen ist leider ein Fehler "
 "aufgetreten: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Beim Abrufen gespeicherter Diagramme ist leider ein Fehler aufgetreten: "
-
 msgid "Sorry, An error occurred"
 msgstr "Leider ist ein Fehler aufgetreten"
 
@@ -14380,6 +14389,9 @@ msgid "Sorry, something went wrong. Please try again."
 msgstr ""
 "Entschuldigung, da ist etwas schief gelaufen. Bitte versuchen Sie es "
 "erneut."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Entschuldigung, etwas ist schief gegangen. Versuchen Sie es später erneut."
@@ -19647,6 +19659,9 @@ msgstr ""
 "Diagramm wurde nicht automatisch aktualisiert. Führen Sie die Abfrage "
 "aus, indem Sie auf die Schaltfläche \"Diagramm aktualisieren\" klicken "
 "oder"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 #, python-format
 msgid ""

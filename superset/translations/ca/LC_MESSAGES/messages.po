@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -6406,6 +6406,9 @@ msgstr ""
 msgid "Discard"
 msgstr "Descartar"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Nom a Mostrar"
 
@@ -7874,6 +7877,9 @@ msgstr "Ha fallat en carregar dades del gràfic."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7949,6 +7955,9 @@ msgstr "Ha fallat en desar l'àmbit del filtre creuat"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Ha fallat en desar l'àmbit del filtre creuat"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11101,6 +11110,9 @@ msgid "No saved metrics found"
 msgstr "Cap mètrica desada trobada"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -15252,9 +15264,6 @@ msgstr ""
 "Ho sentim, hi ha hagut un error obtenint informació de la base de dades: "
 "%s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Ho sentim, hi ha hagut un error obtenint gràfics desats: "
-
 msgid "Sorry, An error occurred"
 msgstr "Ho sentim, s'ha produït un error"
 
@@ -15271,6 +15280,9 @@ msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Ho sentim, alguna cosa va anar malament. Si us plau torna-ho a provar."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Ho sentim, alguna cosa va anar malament. Prova-ho de nou més tard."
@@ -20744,6 +20756,9 @@ msgstr ""
 "Has actualitzat els valors al panell de control, però el gràfic no s'ha "
 "actualitzat automàticament. Executa la consulta clicant al botó "
 "\"Actualitzar gràfic\" o"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

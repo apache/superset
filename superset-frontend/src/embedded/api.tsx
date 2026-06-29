@@ -19,7 +19,12 @@
 import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { batch } from 'react-redux';
+import {
+  useDashboardStateStore,
+  useDashboardSlicesStore,
+  useDashboardInfoStore,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { store } from '../views/store';
 import {
   DASHBOARD_GRID_CLASS,
@@ -30,7 +35,6 @@ import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/url
 import { DashboardChartStates } from '../dashboard/types/chartState';
 import { hasStatefulCharts } from '../dashboard/util/chartStateConverter';
 import { getChartDataPayloads as getChartDataPayloadsUtil } from './utils';
-import { updateDataMask } from '../dataMask/actions';
 
 const bootstrapData = getBootstrapData();
 
@@ -51,7 +55,8 @@ type EmbeddedSupersetApi = {
   setDataMask: ({ dataMask }: { dataMask: DataMaskStateWithId }) => void;
 };
 
-const isDashboardHydrated = () => Boolean(store?.getState()?.dashboardInfo?.id);
+const isDashboardHydrated = () =>
+  Boolean(useDashboardInfoStore.getState().dashboardInfo?.id);
 
 // Hosts size the iframe from this value, so it has to describe the content and
 // not the frame the host already set. Lift the fill-the-frame constraints, read,
@@ -111,15 +116,13 @@ const getDashboardPermalink = async ({
 }: {
   anchor: string;
 }): Promise<string> => {
-  const state = store?.getState();
-  const { dashboardId, dataMask, activeTabs, chartStates, sliceEntities } = {
-    dashboardId:
-      state?.dashboardInfo?.id || bootstrapData?.embedded!.dashboard_id,
-    dataMask: state?.dataMask,
-    activeTabs: state.dashboardState?.activeTabs,
-    chartStates: state.dashboardState?.chartStates,
-    sliceEntities: state?.sliceEntities?.slices,
-  };
+  const dashboardStateStore = useDashboardStateStore.getState();
+  const dashboardId =
+    useDashboardInfoStore.getState().dashboardInfo?.id ||
+    bootstrapData?.embedded!.dashboard_id;
+  const { dataMask } = useDataMaskStore.getState();
+  const { activeTabs, chartStates } = dashboardStateStore;
+  const sliceEntities = useDashboardSlicesStore.getState().slices;
 
   const includeChartState =
     hasStatefulCharts(sliceEntities) &&
@@ -138,9 +141,9 @@ const getDashboardPermalink = async ({
   return url;
 };
 
-const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
+const getActiveTabs = () => useDashboardStateStore.getState().activeTabs || [];
 
-const getDataMask = () => store?.getState()?.dataMask || {};
+const getDataMask = () => useDataMaskStore.getState().dataMask || {};
 
 const applyDataMask = (dataMask: DataMaskStateWithId) => {
   // The dashboard's own data mask holds an entry for every native filter and
@@ -161,10 +164,8 @@ const applyDataMask = (dataMask: DataMaskStateWithId) => {
     );
   }
 
-  batch(() => {
-    applicable.forEach(([filterId, mask]) => {
-      store?.dispatch(updateDataMask(filterId, mask));
-    });
+  applicable.forEach(([filterId, mask]) => {
+    useDataMaskStore.getState().updateDataMask(filterId, mask);
   });
 };
 
@@ -182,7 +183,7 @@ const setDataMask = ({ dataMask }: { dataMask: DataMaskStateWithId }) => {
   }
 
   queuedDataMask = { ...queuedDataMask, ...dataMask };
-  unsubscribeFromHydration ??= store?.subscribe(() => {
+  unsubscribeFromHydration ??= useDashboardInfoStore.subscribe(() => {
     if (!isDashboardHydrated()) return;
     unsubscribeFromHydration?.();
     unsubscribeFromHydration = undefined;
@@ -193,7 +194,7 @@ const setDataMask = ({ dataMask }: { dataMask: DataMaskStateWithId }) => {
 };
 
 const getChartStates = () =>
-  store?.getState()?.dashboardState?.chartStates || {};
+  useDashboardStateStore.getState().chartStates || {};
 
 const getChartDataPayloads = async (params?: {
   chartId?: number;

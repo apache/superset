@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -5614,6 +5614,9 @@ msgstr "このデータベースの詳細表示(ドリルスルー)機能を無�
 msgid "Discard"
 msgstr "破棄"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "表示名"
 
@@ -6903,6 +6906,9 @@ msgstr "チャートデータの読み込みに失敗しました。"
 msgid "Failed to load columns for %s %s"
 msgstr "%s %s の列情報の読み込みに失敗しました"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -6969,6 +6975,9 @@ msgstr "クロスフィルターの適用範囲保存に失敗しました"
 
 msgid "Failed to save cross-filters setting"
 msgstr "クロスフィルター設定の保存に失敗しました"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "ローカルテーマの設定に失敗しました: JSON設定が無効です"
@@ -9760,6 +9769,9 @@ msgid "No saved metrics found"
 msgstr "保存済みメトリックが見つかりません"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -13407,9 +13419,6 @@ msgstr "問題が発生しました。"
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "申し訳ありません、データベース情報の取得中にエラーが発生しました: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "申し訳ありません、保存済みチャートの取得中にエラーが発生しました:"
-
 msgid "Sorry, An error occurred"
 msgstr "申し訳ありません、エラーが発生しました"
 
@@ -13424,6 +13433,9 @@ msgstr "申し訳ありません、問題が発生しました。埋め込みを
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "申し訳ありません、問題が発生しました。もう一度試してください。"
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "申し訳ありません、問題が発生しました。後でもう一度試してください。"
@@ -18042,6 +18054,9 @@ msgid ""
 "updated automatically. Run the query by clicking on the \"Update chart\" "
 "button or"
 msgstr "コントロールパネルの値を更新しましたが、チャートには自動反映されていません。「チャートを更新」ボタンをクリックするか、以下を実行してください"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 #, python-format
 msgid ""

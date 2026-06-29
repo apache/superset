@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -7428,6 +7428,9 @@ msgstr "Onemogućava funkciju prelaska na detalje za ovu bazu podataka."
 msgid "Discard"
 msgstr "Odbaci"
 
+msgid "Discard changes?"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Display Name"
 msgstr "Naziv za prikaz"
@@ -9108,6 +9111,9 @@ msgstr "Neuspelo učitavanje podataka grafikona."
 msgid "Failed to load columns for %s %s"
 msgstr "Neuspelo učitavanje kolona za %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -9182,6 +9188,9 @@ msgstr "Neuspelo čuvanje opsega ukrštenog filtera"
 # uk]
 msgid "Failed to save cross-filters setting"
 msgstr "Neuspelo čuvanje podešavanja ukrštenih filtera"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Failed to set local theme: Invalid JSON configuration"
@@ -12806,6 +12815,9 @@ msgid "No saved metrics found"
 msgstr "Nisu pronađene sačuvane metrike"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -17561,10 +17573,6 @@ msgstr ""
 "Žao nam je, došlo je do greške prilikom preuzimanja informacija o bazi "
 "podataka: %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, ru, sk, sl, uk, zh, zh_TW]
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Žao nam je, došlo je do greške prilikom preuzimanja sačuvanih grafikona: "
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, An error occurred"
 msgstr "Žao nam je, došlo je do greške"
@@ -17584,6 +17592,9 @@ msgstr "Žao nam je, došlo je do greške. Ugrađivanje nije moglo biti deaktivi
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Žao nam je, došlo je do greške. Pokušajte ponovo."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, something went wrong. Try again later."
@@ -23709,6 +23720,9 @@ msgid ""
 msgstr ""
 "Ažurirali ste vrednosti na kontrolnoj tabli, ali grafikon nije automatski"
 " ažuriran. Pokrenite upit klikom na dugme „Ažuriraj grafikon” ili"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 #, python-format
 msgid ""

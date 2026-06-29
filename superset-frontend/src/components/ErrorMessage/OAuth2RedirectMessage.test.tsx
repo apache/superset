@@ -27,6 +27,8 @@ import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
 import { UNSAVED_CHART_ID } from 'src/explore/constants';
 import { api } from 'src/hooks/apiResources/queryApi';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import { OAuth2RedirectMessage } from '.';
 
 jest.mock('src/hooks/apiResources/queryApi', () => ({
@@ -102,6 +104,9 @@ beforeEach(() => {
   (global as any).BroadcastChannel = jest
     .fn()
     .mockImplementation(() => capturedChannel);
+  useDashboardInfoStore.setState({
+    dashboardInfo: { id: 'dashboard-id' } as unknown as DashboardInfo,
+  });
 });
 
 function simulateBroadcastMessage(data: any) {

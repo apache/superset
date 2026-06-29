@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -6410,6 +6410,9 @@ msgstr "این ویژگی جستجوی جزئیات برای این پایگاه
 msgid "Discard"
 msgstr "رد کنید"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "نام نمایشی"
 
@@ -7910,6 +7913,9 @@ msgstr "بارگذاری داده‌های نمودار ناموفق بود."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7983,6 +7989,9 @@ msgstr "خطا در ذخیره‌سازی دامنه فیلتر متقاطع"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "خطا در ذخیره‌سازی دامنه فیلتر متقاطع"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11181,6 +11190,9 @@ msgid "No saved metrics found"
 msgstr "هیچ متریک ذخیره‌شده‌ای پیدا نشد"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -15347,9 +15359,6 @@ msgstr "چیزی اشتباه پیش رفت."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "متأسفیم، در بازیابی اطلاعات پایگاه داده خطایی رخ داده است: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "متأسفم، خطایی در بارگذاری نمودارهای ذخیره شده وجود داشت:"
-
 msgid "Sorry, An error occurred"
 msgstr "متاسفم، یک خطا رخ داده است"
 
@@ -15364,6 +15373,9 @@ msgstr "متأسفم، مشکلی پیش آمد. غیر فعال کردن جاس
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "متأسفم، مشکلی پیش آمده است. لطفاً دوباره تلاش کنید."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "متأسفم، مشکلی پیش آمده است. بعداً تلاش کنید."
@@ -20843,6 +20855,9 @@ msgstr ""
 "شما مقادیر را در پنل کنترل به‌روزرسانی کردید، اما نمودار به‌طور خودکار "
 "به‌روزرسانی نشد. با کلیک بر روی دکمه \"به‌روزرسانی نمودار\" query را اجرا"
 " کنید یا"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

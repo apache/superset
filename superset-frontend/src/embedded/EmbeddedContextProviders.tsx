@@ -17,6 +17,7 @@
  * under the License.
  */
 import { getExtensionsRegistry } from '@superset-ui/core';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
@@ -28,6 +29,7 @@ import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import { type ThemeStorage } from '@apache-superset/core/theme';
 import { store } from 'src/views/store';
+import { queryClient } from 'src/queries/queryClient';
 import querystring from 'query-string';
 import { getInitialThemeMode } from './getInitialThemeMode';
 
@@ -68,32 +70,34 @@ export const EmbeddedContextProviders: React.FC<{
   );
 
   return (
-    <SupersetThemeProvider themeController={themeController}>
-      <ReduxProvider store={store}>
-        {/* @ts-expect-error react-dnd types not updated for React 18 */}
-        <DndProvider backend={HTML5Backend}>
-          <EmbeddedUiConfigProvider>
-            <DynamicPluginProvider>
-              <QueryParamProvider
-                adapter={ReactRouter5Adapter}
-                options={{
-                  searchStringToObject: querystring.parse,
-                  objectToSearchString: (object: Record<string, any>) =>
-                    querystring.stringify(object, { encode: false }),
-                }}
-              >
-                {RootContextProviderExtension ? (
-                  <RootContextProviderExtension>
-                    {children}
-                  </RootContextProviderExtension>
-                ) : (
-                  children
-                )}
-              </QueryParamProvider>
-            </DynamicPluginProvider>
-          </EmbeddedUiConfigProvider>
-        </DndProvider>
-      </ReduxProvider>
-    </SupersetThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <SupersetThemeProvider themeController={themeController}>
+        <ReduxProvider store={store}>
+          {/* @ts-expect-error react-dnd types not updated for React 18 */}
+          <DndProvider backend={HTML5Backend}>
+            <EmbeddedUiConfigProvider>
+              <DynamicPluginProvider>
+                <QueryParamProvider
+                  adapter={ReactRouter5Adapter}
+                  options={{
+                    searchStringToObject: querystring.parse,
+                    objectToSearchString: (object: Record<string, any>) =>
+                      querystring.stringify(object, { encode: false }),
+                  }}
+                >
+                  {RootContextProviderExtension ? (
+                    <RootContextProviderExtension>
+                      {children}
+                    </RootContextProviderExtension>
+                  ) : (
+                    children
+                  )}
+                </QueryParamProvider>
+              </DynamicPluginProvider>
+            </EmbeddedUiConfigProvider>
+          </DndProvider>
+        </ReduxProvider>
+      </SupersetThemeProvider>
+    </QueryClientProvider>
   );
 };

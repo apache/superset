@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -8823,6 +8823,9 @@ msgstr "이 데이터베이스의 세부 정보 드릴 기능을 비활성화합
 msgid "Discard"
 msgstr "대시보드"
 
+msgid "Discard changes?"
+msgstr ""
+
 #, fuzzy
 msgid "Display Name"
 msgstr "필터"
@@ -10980,6 +10983,9 @@ msgstr "차트 데이터를 로드하지 못했습니다."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -11061,6 +11067,9 @@ msgstr "필터"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "필터"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -15790,6 +15799,9 @@ msgid "No saved metrics found"
 msgstr "저장된 Query"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -21790,13 +21802,6 @@ msgid "Sorry there was an error fetching database information: %s"
 msgstr "데이터베이스 정보를 가져오는 중 오류가 발생했습니다: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
-# zh, zh_TW]
-#, fuzzy
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "저장된 차트를 가져오는 중 오류가 발생했습니다: "
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
 #, fuzzy
@@ -21826,6 +21831,9 @@ msgstr "죄송합니다, 오류가 발생했습니다. 임베딩을 비활성화
 #, fuzzy
 msgid "Sorry, something went wrong. Please try again."
 msgstr "죄송합니다, 오류가 발생했습니다. 다시 시도해 주세요."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -29512,6 +29520,9 @@ msgid ""
 "updated automatically. Run the query by clicking on the \"Update chart\" "
 "button or"
 msgstr "컨트롤 패널의 값을 업데이트했지만 차트가 자동으로 업데이트되지 않았습니다. \"차트 업데이트\" 버튼을 클릭하여 쿼리를 실행하거나"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
