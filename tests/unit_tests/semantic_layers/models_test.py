@@ -653,8 +653,10 @@ def test_semantic_view_data(
         assert data["table_name"] == "Orders View"
         assert data["datasource_name"] == "Orders View"
         assert data["offset"] == 0
-        # Semantic views don't model raw rows, so samples aren't available.
+        # Semantic views don't model raw rows, so neither samples nor
+        # drill-to-detail are available.
         assert data["supports_samples"] is False
+        assert data["supports_drill_to_detail"] is False
 
 
 def test_semantic_view_supports_samples_is_false() -> None:
@@ -772,6 +774,11 @@ def test_semantic_view_data_populates_time_grain_sqla(
     # ``time_grain_sqla`` in ExplorableData is ``(duration, name)`` tuples.
     grain_durations = sorted(entry[0] for entry in data["time_grain_sqla"])
     assert grain_durations == sorted(["PT1H", "P1D", "P1M"])
+
+
+def test_semantic_view_supports_drill_to_detail_is_false() -> None:
+    """The class-level flag opts SemanticView out of Drill to detail."""
+    assert SemanticView.supports_drill_to_detail is False
 
 
 def test_semantic_view_get_query_result(
