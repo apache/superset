@@ -25,7 +25,7 @@ translating high-level operations into the ``deleted`` / ``modified`` /
 
 import copy
 import logging
-from typing import Any, cast
+from typing import Any
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -270,13 +270,10 @@ def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
         if name is not None
         else None,
         filter_type=escape_llm_context_delimiters(conf.get("filterType")),
-        targets=cast(
-            list[dict[str, Any]],
-            sanitize_for_llm_context(
-                targets,
-                field_path=("targets",),
-                excluded_field_names=frozenset(),
-            ),
+        targets=sanitize_for_llm_context(
+            targets,
+            field_path=("targets",),
+            excluded_field_names=frozenset(),
         ),
     )
 
