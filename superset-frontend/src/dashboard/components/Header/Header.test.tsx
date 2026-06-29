@@ -547,6 +547,34 @@ test('should save', () => {
   expect(onSave).toHaveBeenCalledTimes(1);
 });
 
+test('should block saving and surface the size, limit, and config key when the layout exceeds the limit', () => {
+  const oversizedState = {
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      hasUnsavedChanges: true,
+    },
+    dashboardInfo: {
+      ...editableState.dashboardInfo,
+      common: {
+        conf: {
+          ...editableState.dashboardInfo.common.conf,
+          // any non-empty layout serializes to more than 1 byte
+          SUPERSET_DASHBOARD_POSITION_DATA_LIMIT: 1,
+        },
+      },
+    },
+  };
+  setup(oversizedState);
+  userEvent.click(screen.getByText('Save'));
+  expect(onSave).not.toHaveBeenCalled();
+  expect(addDangerToast).toHaveBeenCalledTimes(1);
+  const message = addDangerToast.mock.calls[0][0];
+  expect(message).toContain('too large to save');
+  expect(message).toContain('the limit is 1 bytes');
+  expect(message).toContain('SUPERSET_DASHBOARD_POSITION_DATA_LIMIT');
+});
+
 test('should NOT render the "Draft" status', () => {
   const publishedState = {
     ...initialState,
