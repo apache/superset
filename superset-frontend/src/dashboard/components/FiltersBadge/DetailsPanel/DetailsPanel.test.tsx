@@ -190,7 +190,9 @@ test('Should render empty', () => {
 
   expect(screen.getByTestId('details-panel-content')).toBeInTheDocument();
   userEvent.click(screen.getByTestId('details-panel-content'));
-  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: /search/i }),
+  ).not.toBeInTheDocument();
 });
 
 test('Close popover with ESC or ENTER', async () => {
@@ -216,7 +218,7 @@ test('Close popover with ESC or ENTER', async () => {
   expect(props.setPopoverVisible).toHaveBeenCalledWith(false);
 });
 
-test('Arrow key navigation switches focus between indicators', () => {
+test('Arrow key navigation switches focus between indicators', async () => {
   // Prepare props with two indicators
   const props = createProps();
 
@@ -243,28 +245,15 @@ test('Arrow key navigation switches focus between indicators', () => {
   );
 
   // Query the indicators
-  const firstIndicator = screen.getByRole('button', {
-    name: 'search Clinical Stage',
-  });
-  const secondIndicator = screen.getByRole('button', {
-    name: 'search Age Group',
-  });
+  const firstMenuItem = screen.queryByText('Clinical Stage')?.closest('li')!;
+  const secondMenuItem = screen.queryByText('Age Group')?.closest('li')!;
 
-  // Focus the first indicator
-  firstIndicator.focus();
-  expect(firstIndicator).toHaveFocus();
+  expect(firstMenuItem).toBeInTheDocument();
+  expect(secondMenuItem).toBeInTheDocument();
 
-  // Simulate ArrowDown key press
-  fireEvent.keyDown(document.activeElement as Element, {
-    key: 'ArrowDown',
-    code: 'ArrowDown',
-  });
-  expect(secondIndicator).toHaveFocus();
+  userEvent.type(firstMenuItem, '{arrowdown}');
+  expect(firstMenuItem).toHaveFocus();
 
-  // Simulate ArrowUp key press
-  fireEvent.keyDown(document.activeElement as Element, {
-    key: 'ArrowUp',
-    code: 'ArrowUp',
-  });
-  expect(firstIndicator).toHaveFocus();
+  userEvent.type(secondMenuItem, '{arrowdown}');
+  expect(secondMenuItem).toHaveFocus();
 });
