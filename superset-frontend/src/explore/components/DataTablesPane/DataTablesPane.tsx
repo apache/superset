@@ -249,6 +249,16 @@ export const DataTablesPane = ({
   // datasources from older backends that don't send the flag still show the
   // tab and preserve current behavior.
   const showSamplesTab = datasource?.supports_samples !== false;
+
+  // If the datasource swaps to one that doesn't support samples while the
+  // Samples tab is active (e.g. the user picks a semantic view), the tab
+  // disappears from ``tabItems`` and ``activeTabKey`` is orphaned. Fall back
+  // to Results so the panel keeps rendering content.
+  useEffect(() => {
+    if (!showSamplesTab && activeTabKey === ResultTypes.Samples) {
+      setActiveTabKey(ResultTypes.Results);
+    }
+  }, [showSamplesTab, activeTabKey]);
   const tabItems = [
     ...queryResultsPanes,
     ...(showSamplesTab
