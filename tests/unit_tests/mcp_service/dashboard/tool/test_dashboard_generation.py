@@ -2006,7 +2006,7 @@ class TestDashboardSerializationEagerLoading:
             dash = data["dashboard"]
             assert dash["id"] == 10
             assert dash["dashboard_title"] == "Rollback Test"
-            assert "/superset/dashboard/10/" in data["dashboard_url"]
+            assert "/superset/dashboard/test-dashboard-10/" in data["dashboard_url"]
             # Access-list fields should not be returned.
             assert "editors" not in dash
             assert dash["tags"] == []

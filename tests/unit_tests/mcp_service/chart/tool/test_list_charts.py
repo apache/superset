@@ -202,7 +202,7 @@ class TestListChartsRequestSchema:
             ValueError,
             match=(
                 "Input should be 'slice_name', 'viz_type', 'datasource_name', "
-                "'created_by_fk', 'changed_by_fk' or 'dashboards'"
+                "'editor', 'created_by_fk', 'changed_by_fk' or 'dashboards'"
             ),
         ):
             ChartFilter(col="nonexistent_column", opr="eq", value=1)
