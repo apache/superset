@@ -18,6 +18,7 @@
  */
 
 import { AdhocFilter, DataMask } from '@superset-ui/core';
+import { DatasourceType } from './Datasource';
 
 export interface ColumnOption {
   label: string;
@@ -38,7 +39,7 @@ export interface NativeFilterScope {
 export interface NativeFilterTarget {
   datasetId: number;
   column: NativeFilterColumn;
-  datasourceType?: string;
+  datasourceType?: DatasourceType;
 
   // maybe someday support this?
   // show values from these columns in the filter options selector
