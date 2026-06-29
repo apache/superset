@@ -31,7 +31,7 @@ Covers:
 - Chart inside a COLUMN (sibling survives; lone chart prunes COLUMN + ROW)
 - Tabbed layout where the chart appears under multiple tabs
 - json_metadata cleanup (expanded_slices, timed_refresh_immune_slices,
-  filter_scopes)
+  filter_scopes, default_filters)
 """
 
 import logging
@@ -524,6 +524,7 @@ async def test_json_metadata_cleanup(
             "10": {"col": {"scope": ["ROOT_ID"], "immune": []}},
             "30": {"region": {"scope": ["ROOT_ID"], "immune": [10, 20]}},
         },
+        "default_filters": json.dumps({"10": {"col": ["val"]}, "20": {"col": ["v2"]}}),
         "refresh_frequency": 300,
     }
     dashboard = _mock_dashboard(
@@ -553,6 +554,10 @@ async def test_json_metadata_cleanup(
     assert new_metadata["timed_refresh_immune_slices"] == [20]
     assert "10" not in new_metadata["filter_scopes"]
     assert new_metadata["filter_scopes"]["30"]["region"]["immune"] == [20]
+    # default_filters entry for chart 10 is removed; entry for 20 survives
+    new_default_filters = json.loads(new_metadata["default_filters"])
+    assert "10" not in new_default_filters
+    assert "20" in new_default_filters
     # Unrelated keys are preserved
     assert new_metadata["refresh_frequency"] == 300
     # "positions" is never injected into json_metadata.
@@ -623,6 +628,17 @@ def test_clean_json_metadata_handles_string_ids_in_lists() -> None:
     metadata = {"timed_refresh_immune_slices": ["10", 20]}
     assert _clean_json_metadata(metadata, 10) is True
     assert metadata["timed_refresh_immune_slices"] == [20]
+
+
+def test_clean_json_metadata_cleans_default_filters() -> None:
+    """default_filters entries for the removed chart are pruned."""
+    metadata = {
+        "default_filters": json.dumps({"10": {"col": ["v"]}, "20": {"col": ["v2"]}}),
+    }
+    assert _clean_json_metadata(metadata, 10) is True
+    remaining = json.loads(metadata["default_filters"])
+    assert "10" not in remaining
+    assert "20" in remaining
 
 
 def test_clean_json_metadata_handles_malformed_sections() -> None:

@@ -23,7 +23,7 @@ add_chart_to_existing_dashboard: it deletes the chart's CHART component(s)
 from position_json (pruning ROW/COLUMN containers that become empty),
 removes the chart from the dashboard's slices relationship, and cleans
 stale references to the chart from json_metadata (expanded_slices,
-timed_refresh_immune_slices, filter_scopes).
+timed_refresh_immune_slices, filter_scopes, default_filters).
 """
 
 import logging
@@ -151,8 +151,9 @@ def _clean_json_metadata(metadata: Dict[str, Any], chart_id: int) -> bool:
 
     Cleans ``expanded_slices`` (dict keyed by chart ID), ``filter_scopes``
     (dict keyed by filter chart ID, with per-column ``immune`` ID lists),
-    and ``timed_refresh_immune_slices`` (list of chart IDs). Mutates
-    *metadata* in place and returns True when anything changed.
+    ``timed_refresh_immune_slices`` (list of chart IDs), and
+    ``default_filters`` (a JSON-encoded string whose keys are chart IDs).
+    Mutates *metadata* in place and returns True when anything changed.
     """
     changed = False
     chart_key = str(chart_id)
@@ -186,6 +187,22 @@ def _clean_json_metadata(metadata: Dict[str, Any], chart_id: int) -> bool:
                 if immune_changed:
                     column_config["immune"] = immune
                     changed = True
+
+    # default_filters is stored as a JSON-encoded string within json_metadata,
+    # with chart IDs as string keys (mirrors DashboardDAO.set_dash_metadata).
+    default_filters_raw = metadata.get("default_filters")
+    if isinstance(default_filters_raw, str):
+        try:
+            default_filters = json.loads(default_filters_raw)
+            if isinstance(default_filters, dict) and chart_key in default_filters:
+                del default_filters[chart_key]
+                metadata["default_filters"] = json.dumps(default_filters)
+                changed = True
+        except (json.JSONDecodeError, TypeError):
+            pass
+    elif isinstance(default_filters_raw, dict) and chart_key in default_filters_raw:
+        del default_filters_raw[chart_key]
+        changed = True
 
     return changed
 
@@ -251,8 +268,8 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
     occurrences, including under tabs), prunes rows/columns left empty by
     the removal, detaches the chart from the dashboard, and cleans stale
     chart references from dashboard metadata (expanded_slices,
-    timed_refresh_immune_slices, filter_scopes). The chart itself is NOT
-    deleted and remains available to other dashboards.
+    timed_refresh_immune_slices, filter_scopes, default_filters). The chart
+    itself is NOT deleted and remains available to other dashboards.
     """
     try:
         from superset import db
@@ -377,11 +394,30 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
         # Write cleaned metadata directly, bypassing UpdateDashboardCommand's
         # json_metadata path which triggers set_dash_metadata's positions
         # branch and overwrites slices from layout data.
+        # This is a best-effort secondary write: the chart has already been
+        # removed from layout and slices (committed above). If this commit
+        # fails, log a warning but return success — stale metadata is
+        # preferable to reporting failure after a successful removal.
         if metadata_changed and isinstance(metadata, dict):
             from superset import db
 
-            updated_dashboard.json_metadata = json.dumps(metadata)
-            db.session.commit()  # pylint: disable=consider-using-transaction
+            try:
+                updated_dashboard.json_metadata = json.dumps(metadata)
+                db.session.commit()  # pylint: disable=consider-using-transaction
+            except SQLAlchemyError:
+                logger.warning(
+                    "json_metadata cleanup commit failed for dashboard %s after "
+                    "removing chart %s; chart removal succeeded",
+                    request.dashboard_id,
+                    request.chart_id,
+                    exc_info=True,
+                )
+                try:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Rollback failed during json_metadata cleanup", exc_info=True
+                    )
 
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (
