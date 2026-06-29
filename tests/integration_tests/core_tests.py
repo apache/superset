@@ -144,10 +144,14 @@ class TestCore(SupersetTestCase):
         assert cache_key_with_groupby == viz.cache_key(qobj)
 
     def test_admin_only_menu_views(self):
+        from flask import current_app
+
         def assert_admin_view_menus_in(role_name, assert_func):
             role = security_manager.find_role(role_name)
             view_menus = [p.view_menu.name for p in role.permissions]
-            assert_func("ResetPasswordView", view_menus)
+            # ResetPasswordView only present when legacy FAB password views enabled
+            if current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
+                assert_func("ResetPasswordView", view_menus)
             assert_func("RoleRestAPI", view_menus)
             assert_func("Security", view_menus)
             assert_func("SQL Lab", view_menus)
@@ -155,6 +159,14 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Admin", self.assertIn)
         assert_admin_view_menus_in("Alpha", self.assertNotIn)
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
+
+    def test_legacy_fab_password_views_are_not_registered(self):
+        from flask import current_app
+
+        endpoints = {rule.endpoint for rule in current_app.url_map.iter_rules()}
+
+        assert "ResetPasswordView.this_form_get" not in endpoints
+        assert "ResetMyPasswordView.this_form_get" not in endpoints
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
