@@ -18,16 +18,12 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import {
-  SupersetClient,
-  isFeatureEnabled,
-  FeatureFlag,
-} from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled } from '@apache-superset/core/theme';
 import { Select, Switch } from '@superset-ui/core/components';
 import { EditorHost } from 'src/core/editors';
-import rison from 'rison';
+import { useCssTemplates } from 'src/dashboard/queries';
 import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import { ModalFormField } from 'src/components/Modal';
 
@@ -72,11 +68,6 @@ interface Theme {
   json_data?: string;
 }
 
-interface CssTemplate {
-  template_name: string;
-  css: string;
-}
-
 interface StylingSectionProps {
   themes: Theme[];
   selectedThemeId: number | null;
@@ -107,37 +98,23 @@ const StylingSection = ({
   onShowChartTimestampsChange,
   addDangerToast,
 }: StylingSectionProps) => {
-  const [cssTemplates, setCssTemplates] = useState<CssTemplate[]>([]);
-  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [originalTemplateContent, setOriginalTemplateContent] =
     useState<string>('');
 
-  // Fetch CSS templates
-  const fetchCssTemplates = useCallback(async () => {
-    if (!isFeatureEnabled(FeatureFlag.CssTemplates)) return;
-
-    setIsLoadingTemplates(true);
-    try {
-      const query = rison.encode({ columns: ['template_name', 'css'] });
-      const response = await SupersetClient.get({
-        endpoint: `/api/v1/css_template/?q=${query}`,
-      });
-      setCssTemplates(response.json.result || []);
-    } catch (error) {
-      if (addDangerToast) {
-        addDangerToast(
-          t('An error occurred while fetching available CSS templates'),
-        );
-      }
-    } finally {
-      setIsLoadingTemplates(false);
-    }
-  }, [addDangerToast]);
+  const {
+    data: cssTemplates = [],
+    isFetching: isLoadingTemplates,
+    error: cssTemplatesError,
+  } = useCssTemplates();
 
   useEffect(() => {
-    fetchCssTemplates();
-  }, [fetchCssTemplates]);
+    if (cssTemplatesError && addDangerToast) {
+      addDangerToast(
+        t('An error occurred while fetching available CSS templates'),
+      );
+    }
+  }, [cssTemplatesError, addDangerToast]);
 
   // Handle CSS template selection
   const handleTemplateSelect = useCallback(

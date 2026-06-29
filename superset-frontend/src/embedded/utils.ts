@@ -32,6 +32,14 @@ import {
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
+import {
+  useDashboardStateStore,
+  useDashboardSlicesStore,
+  useNativeFiltersStore,
+  useDashboardInfoStore,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import type { Filters } from '@superset-ui/core';
 import { RootState } from 'src/views/store';
 
 export const getDataMaskChangeTrigger = (
@@ -82,20 +90,24 @@ export const getChartDataPayloads = async (
 ): Promise<Record<string, JsonObject>> => {
   const { chartId } = params || {};
 
+  // charts is still Redux; the rest live in Zustand.
   const charts = state.charts || {};
-  const sliceEntities = state.sliceEntities?.slices || {};
-  const dataMask = state.dataMask || {};
-  const chartStates = state.dashboardState?.chartStates || {};
   const chartConfiguration =
-    state.dashboardInfo?.metadata?.chart_configuration || {};
-  const nativeFilters = state.nativeFilters?.filters || {};
-  const allSliceIds = state.dashboardState?.sliceIds || [];
-  const colorScheme = state.dashboardState?.colorScheme;
-  const colorNamespace = state.dashboardState?.colorNamespace;
+    useDashboardInfoStore.getState().dashboardInfo?.metadata
+      ?.chart_configuration || {};
+  const dashboardStateStore = useDashboardStateStore.getState();
+  const sliceEntities = useDashboardSlicesStore.getState().slices || {};
+  const dataMask = useDataMaskStore.getState().dataMask || {};
+  const chartStates = dashboardStateStore.chartStates || {};
+  const nativeFilters = (useNativeFiltersStore.getState().filters ||
+    {}) as Filters;
+  const allSliceIds = dashboardStateStore.sliceIds || [];
+  const { colorScheme } = dashboardStateStore;
+  const { colorNamespace } = dashboardStateStore;
 
   const chartEntries = Object.entries(charts).filter(([id]) => {
     const numericId = Number(id);
-    const slice = sliceEntities[id];
+    const slice = sliceEntities[numericId];
 
     if (!slice || !hasChartStateConverter(slice.viz_type)) {
       return false;
@@ -110,7 +122,7 @@ export const getChartDataPayloads = async (
 
   const payloadPromises = chartEntries.map(async ([id, chart]) => {
     const numericId = Number(id);
-    const slice = sliceEntities[id];
+    const slice = sliceEntities[numericId];
 
     try {
       if (!chart || typeof chart !== 'object' || !('form_data' in chart)) {
