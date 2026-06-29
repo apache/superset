@@ -40,7 +40,10 @@ from superset.mcp_service.dashboard.schemas import (
     NativeFilterSummary,
     NativeFilterUpdateSpec,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -255,15 +258,18 @@ def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
     real dataset/column targets. The user-controlled ``name`` and ``targets``
     come from dashboard metadata and are wrapped as untrusted content before
     being exposed to LLM context (mirroring the get_dashboard_info read path).
+    The operational ``id`` and ``filter_type`` fields are delimiter-escaped
+    (not wrapped) so the LLM can pass them back verbatim in subsequent calls
+    while any embedded delimiter tokens are neutralized.
     """
     name = conf.get("name")
     targets = [t for t in (conf.get("targets") or []) if t]
     return NativeFilterSummary(
-        id=conf.get("id"),
+        id=escape_llm_context_delimiters(conf.get("id")),
         name=sanitize_for_llm_context(name, field_path=("name",))
         if name is not None
         else None,
-        filter_type=conf.get("filterType"),
+        filter_type=escape_llm_context_delimiters(conf.get("filterType")),
         targets=cast(
             list[dict[str, Any]],
             sanitize_for_llm_context(
