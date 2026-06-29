@@ -177,10 +177,15 @@ export function fetchFaveStar(id: number) {
           );
         }
       })
-      .catch(() => {
-        // Only show error if this is still the current dashboard
-        // This prevents error toasts from appearing for dashboards the user
-        // has already navigated away from (e.g., deleted dashboards)
+      .catch(error => {
+        // A 404 means the favorite status isn't available to this user (a
+        // non-owner viewing a draft dashboard, or a dashboard deleted after
+        // navigation) — swallow it silently instead of alarming them.
+        if (error instanceof Response && error.status === 404) {
+          return;
+        }
+        // Only show the error if this is still the current dashboard (prevents
+        // toasts for dashboards the user already navigated away from).
         const currentId = getState().dashboardInfo?.id;
         if (currentId === id) {
           dispatch(
