@@ -85,7 +85,7 @@
     "@types/seedrandom": "^3.0.8",
     "fetch-mock": "^12.6.0",
     "resize-observer-polyfill": "1.5.1",
-    "timezone-mock": "^1.4.2"
+    "timezone-mock": "^1.4.3"
   },
   "peerDependencies": {
     "@emotion/cache": "^11.4.0",
