@@ -18,7 +18,9 @@
  */
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { resolveAsyncMode, selectAsyncModeOverride } from './asyncMode';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
+import { getAsyncModeOverride, resolveAsyncMode } from './asyncMode';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -68,16 +70,23 @@ test('defaults to async when the deployment default is unset', () => {
   expect(resolveAsyncMode()).toBe(true);
 });
 
-test('reads the per-dashboard override off dashboard state', () => {
-  expect(
-    selectAsyncModeOverride({
-      dashboardInfo: { metadata: { async_mode: 'force_off' } },
-    }),
-  ).toBe('force_off');
-  // Outside a dashboard, or with no override set, resolution falls back to the
-  // deployment default.
-  expect(selectAsyncModeOverride({})).toBeUndefined();
-  expect(selectAsyncModeOverride({ dashboardInfo: {} })).toBeUndefined();
+test('reads the per-dashboard override off the dashboard info store', () => {
+  const seed = (dashboardInfo: object) =>
+    useDashboardInfoStore.setState({
+      dashboardInfo: dashboardInfo as DashboardInfo,
+    });
+  try {
+    seed({ metadata: { async_mode: 'force_off' } });
+    expect(getAsyncModeOverride()).toBe('force_off');
+    // Outside a dashboard, or with no override set, resolution falls back to
+    // the deployment default.
+    seed({});
+    expect(getAsyncModeOverride()).toBeUndefined();
+    seed({ metadata: {} });
+    expect(getAsyncModeOverride()).toBeUndefined();
+  } finally {
+    useDashboardInfoStore.setState(useDashboardInfoStore.getInitialState());
+  }
 });
 
 test('per-dashboard override wins over the default', () => {

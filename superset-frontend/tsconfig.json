@@ -68,6 +68,7 @@
     "./src/**/*",
     "./custom-lint-rules/**/*",
     "./spec/**/*",
+    "./__mocks__/**/*",
     "./plugins/**/*",
     "./packages/**/*",
     "./scripts/**/*",

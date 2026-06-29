@@ -32,6 +32,14 @@ import {
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import type { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
+import {
+  useDashboardInfoStore,
+  useDashboardLayoutStore,
+  useNativeFiltersStore,
+  type FilterEntry,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import FilterBar from '.';
 import type { HorizontalBarProps } from './types';
 
@@ -95,6 +103,34 @@ test.each([
       { status, body: { result: [mockControl], message: 'FORBIDDEN' } },
       { name: 'display-control-save' },
     );
+    // dashboardInfo, the filter entries and dataMask live in Zustand; the
+    // Redux store keeps the user and the toasts the save reports into.
+    useDashboardInfoStore.setState({
+      dashboardInfo: {
+        ...stateWithoutNativeFilters.dashboardInfo,
+        id: 1,
+        dash_edit_perm: canEdit,
+        is_managed_externally: isManagedExternally,
+        metadata: {
+          ...stateWithoutNativeFilters.dashboardInfo.metadata,
+          chart_customization_config: [mockControl],
+          native_filter_configuration: [],
+        },
+        pendingChartCustomizations: { [mockControl.id]: mockControl },
+      } as unknown as DashboardInfo,
+    });
+    useNativeFiltersStore.setState({
+      filters: { [mockControl.id]: mockControl } as unknown as Record<
+        string,
+        FilterEntry
+      >,
+    });
+    useDataMaskStore.setState({ dataMask: {} });
+    // Display controls are scoped to the charts present in the layout.
+    useDashboardLayoutStore.setState({
+      layout: stateWithoutNativeFilters.dashboardLayout
+        .present as unknown as DashboardLayout,
+    });
     const store = createStore(
       {
         ...stateWithoutNativeFilters,
@@ -103,23 +139,6 @@ test.each([
           ...stateWithoutNativeFilters.user,
           userId: withoutUserId ? undefined : 1,
         },
-        dashboardInfo: {
-          ...stateWithoutNativeFilters.dashboardInfo,
-          id: 1,
-          dash_edit_perm: canEdit,
-          is_managed_externally: isManagedExternally,
-          metadata: {
-            ...stateWithoutNativeFilters.dashboardInfo.metadata,
-            chart_customization_config: [mockControl],
-            native_filter_configuration: [],
-          },
-          pendingChartCustomizations: { [mockControl.id]: mockControl },
-        },
-        nativeFilters: {
-          filters: { [mockControl.id]: mockControl },
-          filtersState: {},
-        },
-        dataMask: {},
       },
       reducerIndex,
     );
@@ -139,9 +158,17 @@ test.each([
     await act(async () => {
       fireEvent.click(screen.getByTestId('filter-bar__apply-button'));
     });
-    expect(fetchMock.callHistory.calls(saveUrl)).toHaveLength(canSave ? 1 : 0);
-    expect(getState().dataMask[mockControl.id]).toMatchObject(mockSelection);
-    expect(getState().dashboardInfo.pendingChartCustomizations).toEqual({});
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(saveUrl)).toHaveLength(
+        canSave ? 1 : 0,
+      ),
+    );
+    expect(useDataMaskStore.getState().dataMask[mockControl.id]).toMatchObject(
+      mockSelection,
+    );
+    expect(
+      useDashboardInfoStore.getState().dashboardInfo.pendingChartCustomizations,
+    ).toEqual({});
     await waitFor(() =>
       expect(getState().messageToasts).toHaveLength(status === 403 ? 1 : 0),
     );
@@ -151,8 +178,14 @@ test.each([
     await act(async () => {
       fireEvent.click(screen.getByTestId('filter-bar__apply-button'));
     });
-    expect(fetchMock.callHistory.calls(saveUrl)).toHaveLength(canSave ? 2 : 0);
-    expect(getState().dataMask[mockControl.id]).toBeUndefined();
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(saveUrl)).toHaveLength(
+        canSave ? 2 : 0,
+      ),
+    );
+    expect(
+      useDataMaskStore.getState().dataMask[mockControl.id],
+    ).toBeUndefined();
     if (status === 403) {
       await waitFor(() =>
         expect(getState().messageToasts).toEqual([

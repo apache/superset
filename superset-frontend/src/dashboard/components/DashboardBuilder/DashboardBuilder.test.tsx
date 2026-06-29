@@ -35,15 +35,17 @@ import {
   OPEN_FILTER_BAR_WIDTH,
   CLOSED_FILTER_BAR_WIDTH,
 } from 'src/dashboard/constants';
+import '@emotion/jest';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import { useIsMobile } from 'src/hooks/useIsMobile';
-import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
-  fetchFaveStar,
-  setActiveTab,
-  setEditMode,
-  setDirectPathToChild,
-} from 'src/dashboard/actions/dashboardState';
+  useDashboardStateStore,
+  useDashboardLayoutStore,
+  useDashboardInfoStore,
+  type DashboardStateStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
+import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
   dashboardLayout as undoableDashboardLayout,
   dashboardLayoutWithTabs as undoableDashboardLayoutWithTabs,
@@ -81,11 +83,11 @@ fetchMock.post('glob:*/log/?*', {});
 // Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
 jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
-jest.mock('src/dashboard/actions/dashboardState', () => ({
-  ...jest.requireActual('src/dashboard/actions/dashboardState'),
-  fetchFaveStar: jest.fn(),
-  setActiveTab: jest.fn(),
-  setDirectPathToChild: jest.fn(),
+// The Header fetches the favorite status via useFavoriteStatus on mount; mock
+// the queries module so it doesn't make a request during the test.
+jest.mock('src/dashboard/queries', () => ({
+  ...jest.requireActual('src/dashboard/queries'),
+  useFavoriteStatus: jest.fn(() => ({ data: undefined })),
 }));
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 
@@ -212,17 +214,7 @@ jest.mock('src/dashboard/util/isEmbedded', () => ({
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardBuilder', () => {
-  let favStarStub: jest.Mock;
-  let activeTabsStub: jest.Mock;
-
   beforeAll(() => {
-    // this is invoked on mount, so we stub it instead of making a request
-    favStarStub = (fetchFaveStar as jest.Mock).mockReturnValue({
-      type: 'mock-action',
-    });
-    activeTabsStub = (setActiveTab as jest.Mock).mockReturnValue({
-      type: 'mock-action',
-    });
     (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
       100,
       jest.fn(),
@@ -230,12 +222,21 @@ describe('DashboardBuilder', () => {
   });
 
   afterAll(() => {
-    favStarStub.mockReset();
-    activeTabsStub.mockReset();
     (useStoredSidebarWidth as jest.Mock).mockReset();
   });
 
-  function setup(overrideState = {}) {
+  function setup(overrideState: Record<string, any> = {}) {
+    const mergedState = { ...mockState, ...overrideState };
+    if (mergedState.dashboardState) {
+      useDashboardStateStore.setState(
+        mergedState.dashboardState as unknown as Partial<DashboardStateStore>,
+      );
+    }
+    const dashboardLayout =
+      overrideState.dashboardLayout ?? undoableDashboardLayout;
+    useDashboardLayoutStore.setState({
+      layout: dashboardLayout.present,
+    });
     return render(<DashboardBuilder />, {
       useRedux: true,
       store: storeWithState({
@@ -649,24 +650,19 @@ describe('DashboardBuilder', () => {
     expect(builderComponents.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('should change redux state if a top-level Tab is clicked', async () => {
-    (setDirectPathToChild as jest.Mock).mockImplementation(arg0 => ({
-      type: 'type',
-      arg0,
-    }));
+  test('should update directPathToChild if a top-level Tab is clicked', async () => {
     const { findByRole } = setup({
       dashboardLayout: undoableDashboardLayoutWithTabs,
     });
     const tabList = await findByRole('tablist');
     const tabs = within(tabList).getAllByRole('tab');
-    expect(setDirectPathToChild).toHaveBeenCalledTimes(0);
+    useDashboardStateStore.setState({ directPathToChild: [] });
     fireEvent.click(tabs[1]);
-    expect(setDirectPathToChild).toHaveBeenCalledWith([
+    expect(useDashboardStateStore.getState().directPathToChild).toEqual([
       'ROOT_ID',
       'TABS_ID',
       'TAB_ID2',
     ]);
-    (setDirectPathToChild as jest.Mock).mockReset();
   });
 
   test('should not display a loading spinner when saving is not in progress', () => {
@@ -970,9 +966,11 @@ test('should render ParentSize wrapper with height 100% for tabs', async () => {
     100,
     jest.fn(),
   ]);
-  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
 
+  useDashboardLayoutStore.setState({
+    layout:
+      undoableDashboardLayoutWithTabs.present as unknown as DashboardLayout,
+  });
   const { findByTestId } = render(<DashboardBuilder />, {
     useRedux: true,
     store: storeWithState({
@@ -1000,9 +998,15 @@ test('should apply min-height to the top-level tab drop target so tabs can be dr
     100,
     jest.fn(),
   ]);
-  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
 
+  // editMode and layout drive the empty-droptarget; both are read from the
+  // Zustand stores, so seed them rather than relying on the Redux store alone.
+  useDashboardStateStore.setState({
+    editMode: true,
+  } as unknown as Partial<DashboardStateStore>);
+  useDashboardLayoutStore.setState({
+    layout: undoableDashboardLayout.present as unknown as DashboardLayout,
+  });
   const { getByTestId } = render(<DashboardBuilder />, {
     useRedux: true,
     store: storeWithState({
@@ -1042,8 +1046,6 @@ test('should render chart tiles with a theme-driven border at rest, see https://
     100,
     jest.fn(),
   ]);
-  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
 
   const { container } = render(<DashboardBuilder />, {
     useRedux: true,
@@ -1086,13 +1088,11 @@ test('should maintain layout when switching between tabs', async () => {
     100,
     jest.fn(),
   ]);
-  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setDirectPathToChild as jest.Mock).mockImplementation(arg0 => ({
-    type: 'type',
-    arg0,
-  }));
 
+  useDashboardLayoutStore.setState({
+    layout:
+      undoableDashboardLayoutWithTabs.present as unknown as DashboardLayout,
+  });
   const { findByTestId } = render(<DashboardBuilder />, {
     useRedux: true,
     store: storeWithState({
@@ -1138,8 +1138,6 @@ test('gates the dashboard grid while a version preview is active', async () => {
     100,
     jest.fn(),
   ]);
-  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
 
   const { findByTestId } = render(<DashboardBuilder />, {
     useRedux: true,
@@ -1168,8 +1166,6 @@ test('does not gate the dashboard grid without an active preview', async () => {
     100,
     jest.fn(),
   ]);
-  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
 
   const { findByTestId } = render(<DashboardBuilder />, {
     useRedux: true,
@@ -1195,8 +1191,6 @@ test('lets a keyboard user scroll a gated preview but not activate it', async ()
     100,
     jest.fn(),
   ]);
-  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
 
   const { findByTestId } = render(<DashboardBuilder />, {
     useRedux: true,
@@ -1247,8 +1241,18 @@ const renderEmptyDashboard = (
     100,
     jest.fn(),
   ]);
-  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+  // The builder reads these from Zustand, not the Redux store below.
+  useDashboardInfoStore.setState({
+    dashboardInfo: {
+      ...mockState.dashboardInfo,
+      dash_edit_perm: true,
+    } as unknown as DashboardInfo,
+  });
+  useDashboardLayoutStore.setState({
+    layout: emptyDashboardLayout.present as unknown as DashboardLayout,
+  });
+  useDashboardStateStore.setState({ editMode: false });
 
   return render(<DashboardBuilder />, {
     useRedux: true,
@@ -1294,8 +1298,6 @@ const renderForEmbedChecks = () => {
     100,
     jest.fn(),
   ]);
-  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
   return render(<DashboardBuilder />, {
     useRedux: true,
     store: storeWithState({
@@ -1377,15 +1379,22 @@ const renderHorizontalFilterBarPreview = () => {
     100,
     jest.fn(),
   ]);
-  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
-  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  useDashboardLayoutStore.setState({
+    layout: undoableDashboardLayout.present as unknown as DashboardLayout,
+  });
+  useDashboardStateStore.setState({ editMode: false });
   const view = render(<DashboardBuilder />, {
     useRedux: true,
+    // storeWithState mirrors dashboardInfo into the Zustand store; the
+    // orientation is read from its metadata.
     store: storeWithState({
       ...mockState,
       dashboardInfo: {
         ...mockState.dashboardInfo,
-        filterBarOrientation: FilterBarOrientation.Horizontal,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          filter_bar_orientation: FilterBarOrientation.Horizontal,
+        },
       },
       dashboardLayout: undoableDashboardLayout,
       versionHistory: dashboardPreviewState,
@@ -1458,13 +1467,10 @@ test('entering edit mode closes history and allows reopening after editing', asy
         .default,
     );
   jest.mocked(useStoredSidebarWidth).mockReturnValue([100, jest.fn()]);
-  jest.mocked(fetchFaveStar).mockReturnValue(async () => {});
-  jest.mocked(setActiveTab).mockReturnValue(() => ({
-    type: 'SET_ACTIVE_TAB',
-    prevTabId: undefined,
-    activeTabs: [],
-    inactiveTabs: [],
-  }));
+  useDashboardLayoutStore.setState({
+    layout: undoableDashboardLayout.present as unknown as DashboardLayout,
+  });
+  useDashboardStateStore.setState({ editMode: false });
   const store = storeWithState({
     ...mockState,
     dashboardLayout: undoableDashboardLayout,
@@ -1479,7 +1485,7 @@ test('entering edit mode closes history and allows reopening after editing', asy
   try {
     expect(await screen.findByTestId('mock-history-panel')).toBeInTheDocument();
     act(() => {
-      store.dispatch(setEditMode(true));
+      useDashboardStateStore.getState().setEditMode(true);
     });
     expect(
       screen.getByTestId('mock-builder-component-pane'),
@@ -1490,7 +1496,7 @@ test('entering edit mode closes history and allows reopening after editing', asy
     expect(screen.queryByTestId('mock-history-panel')).not.toBeInTheDocument();
     expect(store.getState().versionHistory.isPanelOpen).toBe(false);
     act(() => {
-      store.dispatch(setEditMode(false));
+      useDashboardStateStore.getState().setEditMode(false);
     });
     expect(
       screen.getByTestId('dashboard-version-history-column'),
@@ -1539,13 +1545,10 @@ test('restored dashboard hydration survives entering edit mode', async () => {
       }),
   );
   jest.mocked(useStoredSidebarWidth).mockReturnValue([100, jest.fn()]);
-  jest.mocked(fetchFaveStar).mockReturnValue(async () => {});
-  jest.mocked(setActiveTab).mockReturnValue(() => ({
-    type: 'SET_ACTIVE_TAB',
-    prevTabId: undefined,
-    activeTabs: [],
-    inactiveTabs: [],
-  }));
+  useDashboardLayoutStore.setState({
+    layout: undoableDashboardLayout.present as unknown as DashboardLayout,
+  });
+  useDashboardStateStore.setState({ editMode: false });
   const store = storeWithState({
     ...mockState,
     dashboardInfo: { ...mockState.dashboardInfo, uuid: 'dashboard-uuid' },
@@ -1565,7 +1568,7 @@ test('restored dashboard hydration survives entering edit mode', async () => {
     await waitFor(() =>
       expect(fetchDashboardHydrationData).toHaveBeenCalledWith(1234),
     );
-    act(() => store.dispatch(setEditMode(true)));
+    act(() => useDashboardStateStore.getState().setEditMode(true));
     await act(async () =>
       finishHydration({
         dashboard: {

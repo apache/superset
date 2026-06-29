@@ -19,14 +19,20 @@
 import { ChartCustomizationPlugins } from 'src/constants';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import reducerIndex from 'spec/helpers/reducerIndex';
-import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import { act, createStore, render } from 'spec/helpers/testing-library';
 import { DatasourceType, TimeGranularity, VizType } from '@superset-ui/core';
-import { useAppSelector } from 'src/views/store';
 import {
   replaceDashboardSemanticDatasets,
   updateDashboardSemanticDataset,
-} from 'src/dashboard/actions/dashboardInfo';
+  useDashboardInfoStore,
+  useDashboardSlicesStore,
+  useDashboardStateStore,
+  useNativeFiltersStore,
+  useSemanticDatasets,
+  type FilterEntry,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import type { DashboardInfo, Slice } from 'src/dashboard/types';
 import {
   postChartFormData,
   triggerQuery,
@@ -84,7 +90,7 @@ function setupMetadataChart(
   // Dashboard form-data caching is keyed by chart ID; isolate saved charts.
   const chartId = nextChartId;
   nextChartId += 1;
-  const initialState = {
+  const reduxState = {
     charts: {
       ...chartQueries,
       [chartId]: {
@@ -96,38 +102,38 @@ function setupMetadataChart(
         queriesResponse: null,
       },
     },
-    sliceEntities: {
-      ...sliceEntities,
-      slices: {
-        [chartId]: {
-          ...sliceEntities.slices[queryId],
-          viz_type: formData.viz_type,
-        },
-      },
-    },
     datasources: mockDatasource,
-    dashboardState: {
-      editMode: Boolean(sourceRequestKey),
-      expandedSlices: {},
-      datasetsStatus,
+  };
+  // The dashboard slices live in Zustand rather than the Redux initialState.
+  useDashboardSlicesStore.getState().setSlices({
+    [chartId]: {
+      ...sliceEntities.slices[queryId],
+      viz_type: formData.viz_type,
     },
-    nativeFilters: {
-      filters: customizationGrain
-        ? {
-            'CHART_CUSTOMIZATION-grain': {
-              id: 'CHART_CUSTOMIZATION-grain',
-              type: 'CHART_CUSTOMIZATION',
-              filterType: ChartCustomizationPlugins.TimeGrain,
-              name: 'Time grain',
-              chartsInScope: [chartId],
-              scope: { rootPath: [], excluded: [] },
-              targets: [],
-              defaultDataMask: {},
-              controlValues: {},
-            },
-          }
-        : {},
-    },
+  } as unknown as Record<number, Slice>);
+  useDashboardStateStore.setState({
+    editMode: Boolean(sourceRequestKey),
+    expandedSlices: {},
+    datasetsStatus,
+  });
+  useNativeFiltersStore.setState({
+    filters: (customizationGrain
+      ? {
+          'CHART_CUSTOMIZATION-grain': {
+            id: 'CHART_CUSTOMIZATION-grain',
+            type: 'CHART_CUSTOMIZATION',
+            filterType: ChartCustomizationPlugins.TimeGrain,
+            name: 'Time grain',
+            chartsInScope: [chartId],
+            scope: { rootPath: [], excluded: [] },
+            targets: [],
+            defaultDataMask: {},
+            controlValues: {},
+          },
+        }
+      : {}) as unknown as Record<string, FilterEntry>,
+  });
+  useDataMaskStore.setState({
     dataMask: customizationGrain
       ? {
           'CHART_CUSTOMIZATION-grain': {
@@ -138,15 +144,16 @@ function setupMetadataChart(
           },
         }
       : {},
+  });
+  useDashboardInfoStore.setState({
     dashboardInfo: {
       id: dashboardId,
       semanticDatasets: initialMetadata,
       common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
-    },
-    dashboardLayout: { present: {}, past: [], future: [] },
-  };
+    } as unknown as DashboardInfo,
+  });
   function StoredMetadataChart() {
-    const value = useAppSelector(state => state.dashboardInfo.semanticDatasets);
+    const value = useSemanticDatasets();
     return (
       <DashboardDatasetsContext.Provider value={value ?? null}>
         <Chart {...props} id={chartId} />
@@ -161,16 +168,14 @@ function setupMetadataChart(
         <Chart {...props} id={chartId} />
       </DashboardDatasetsContext.Provider>
     );
-  const store = createStore(initialState, reducerIndex);
+  const store = createStore(reduxState, reducerIndex);
   if (sourceRequestKey) {
-    store.dispatch(
-      updateDashboardSemanticDataset(
-        dashboardId,
-        sourceRequestKey,
-        null,
-        'source-request',
-        true,
-      ),
+    updateDashboardSemanticDataset(
+      dashboardId,
+      sourceRequestKey,
+      null,
+      'source-request',
+      true,
     );
   }
   const { rerender } = render(renderChart(initialMetadata), {
@@ -184,38 +189,34 @@ function setupMetadataChart(
       requestId = 'source-request',
     ) =>
       act(() => {
-        store.dispatch(
-          updateDashboardSemanticDataset(
-            dashboardId,
-            sourceRequestKey ?? formData.datasource,
-            dataset,
-            requestId,
-          ),
+        updateDashboardSemanticDataset(
+          dashboardId,
+          sourceRequestKey ?? formData.datasource,
+          dataset,
+          requestId,
         );
       }),
     startRefresh: () =>
       act(() => {
-        store.dispatch(
-          replaceDashboardSemanticDatasets(
-            dashboardId,
-            null,
-            'save-request',
-            true,
-          ),
+        replaceDashboardSemanticDatasets(
+          dashboardId,
+          null,
+          'save-request',
+          true,
         );
         store.dispatch(triggerQuery(true, chartId));
       }),
     settleFailedRefresh: () =>
       act(() => {
-        store.dispatch(
-          replaceDashboardSemanticDatasets(dashboardId, [], 'save-request'),
-        );
+        replaceDashboardSemanticDatasets(dashboardId, [], 'save-request');
       }),
     publishMetadata: (metadata: DashboardDatasetsContextValue) =>
       act(() => rerender(renderChart(metadata))),
     failMetadata: () =>
       act(() => {
-        store.dispatch(setDatasetsStatus(ResourceStatus.Error));
+        useDashboardStateStore
+          .getState()
+          .setDatasetsStatus(ResourceStatus.Error);
       }),
   };
 }

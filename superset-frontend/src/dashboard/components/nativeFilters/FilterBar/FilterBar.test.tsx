@@ -19,7 +19,6 @@
 
 import {
   act,
-  createStore,
   fireEvent,
   render,
   screen,
@@ -27,7 +26,6 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
-import reducerIndex from 'spec/helpers/reducerIndex';
 import { testWithId } from 'src/utils/testUtils';
 import {
   Preset,
@@ -35,14 +33,24 @@ import {
   fetchTimeRange,
   DatasourceType,
 } from '@superset-ui/core';
+import type { DataMaskStateWithId } from '@superset-ui/core';
 import {
   TimeFilterPlugin,
   SelectFilterPlugin,
   RangeFilterPlugin,
 } from 'src/filters/components';
 import fetchMock from 'fetch-mock';
-import type { Store } from 'redux';
-import { FilterBarOrientation, RootState } from 'src/dashboard/types';
+import { FilterBarOrientation } from 'src/dashboard/types';
+import type { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
+import {
+  useDashboardStateStore,
+  useDashboardLayoutStore,
+  useNativeFiltersStore,
+  useDashboardInfoStore,
+  selectCrossFiltersEnabled,
+  type FilterEntry,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { ChartCustomizationPlugins } from 'src/constants';
 import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
@@ -274,6 +282,20 @@ function renderFilterBar(
   props: { filtersOpen: boolean; toggleFiltersBar: jest.Mock },
   state?: object,
 ) {
+  const typedState = state as
+    | {
+        dataMask?: DataMaskStateWithId;
+        nativeFilters?: { filters?: Record<string, FilterEntry> };
+        dashboardInfo?: DashboardInfo;
+      }
+    | undefined;
+  useDataMaskStore.setState({ dataMask: typedState?.dataMask ?? {} });
+  useNativeFiltersStore.setState({
+    filters: typedState?.nativeFilters?.filters ?? {},
+  });
+  useDashboardInfoStore.setState({
+    dashboardInfo: (typedState?.dashboardInfo ?? {}) as DashboardInfo,
+  });
   return render(
     <FilterBar
       orientation={FilterBarOrientation.Vertical}
@@ -368,17 +390,23 @@ test('a hidden semantic display control does not populate the filter bar', async
 
 test('a hidden semantic display control leaves the horizontal bar empty', async () => {
   const customization = hiddenSemanticCustomization();
-  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
-    initialState: {
-      ...stateWithoutNativeFilters,
-      dashboardInfo: {
-        ...stateWithoutNativeFilters.dashboardInfo,
-        metadata: {
-          ...stateWithoutNativeFilters.dashboardInfo.metadata,
-          chart_customization_config: [customization],
-        },
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      ...stateWithoutNativeFilters.dashboardInfo,
+      metadata: {
+        ...stateWithoutNativeFilters.dashboardInfo.metadata,
+        chart_customization_config: [customization],
       },
     },
+  };
+  useDataMaskStore.setState({ dataMask: {} });
+  useNativeFiltersStore.setState({ filters: {} });
+  useDashboardInfoStore.setState({
+    dashboardInfo: state.dashboardInfo as unknown as DashboardInfo,
+  });
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    initialState: state,
     useDnd: true,
     useRedux: true,
     useRouter: true,
@@ -652,9 +680,15 @@ test('Clear All stages filter_select clear without dispatching until Apply', asy
       activeTabs: ['ROOT_ID'],
     },
     dataMask: {
-      [filterId]: createDataMask(filterId, ['East'], {
-        filters: [{ col: 'region', op: 'IN', val: ['East'] }],
-      }),
+      // filterState carries a display `label` — Clear All must drop it,
+      // otherwise the filter indicator badge stays stale after Apply.
+      [filterId]: {
+        id: filterId,
+        filterState: { value: ['East'], label: 'East' },
+        extraFormData: {
+          filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+        },
+      },
     },
     nativeFilters: {
       filters: { [filterId]: selectFilter },
@@ -683,9 +717,15 @@ test('Clear All stages filter_select clear without dispatching until Apply', asy
   await act(async () => {
     await userEvent.click(applyBtn);
   });
+  // value AND label cleared (toHaveBeenCalledWith is exact — a retained
+  // `label: 'East'` would fail this).
   expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
     id: filterId,
-    filterState: { value: null, validateStatus: undefined },
+    filterState: {
+      value: null,
+      label: undefined,
+      validateStatus: undefined,
+    },
     extraFormData: {},
   });
   updateDataMaskSpy.mockRestore();
@@ -891,6 +931,19 @@ test('Clear All in horizontal bar does not re-apply default values', async () =>
       filtersState: {},
     },
   };
+
+  // The bar reads these from Zustand, not the Redux initialState.
+  useDataMaskStore.setState({ dataMask: stateHorizontal.dataMask });
+  useNativeFiltersStore.setState({
+    filters: stateHorizontal.nativeFilters.filters as Record<
+      string,
+      FilterEntry
+    >,
+  });
+  useDashboardInfoStore.setState({
+    dashboardInfo: stateHorizontal.dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState({ activeTabs: ['ROOT_ID'] });
 
   render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
     initialState: stateHorizontal,
@@ -1165,6 +1218,11 @@ test.each([false, true])(
       },
     };
 
+    useDashboardStateStore.setState({ activeTabs: ['TAB-active'] });
+    useDashboardLayoutStore.setState({
+      layout: dashboardLayoutWithTabs as unknown as DashboardLayout,
+    });
+
     const props = createOpenedBarProps();
     renderFilterBar(props, stateWithTabsAndFilters);
 
@@ -1348,6 +1406,15 @@ test('FilterBar with orientation=Horizontal routes to Horizontal layout instead 
   const state = createStateWithFilter(filter, dataMask, {
     filterBarOrientation: FilterBarOrientation.Horizontal,
   });
+  // The bar reads these from Zustand, not the Redux initialState.
+  useDataMaskStore.setState({ dataMask: state.dataMask });
+  useNativeFiltersStore.setState({
+    filters: state.nativeFilters.filters as Record<string, FilterEntry>,
+  });
+  useDashboardInfoStore.setState({
+    dashboardInfo: state.dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState({ activeTabs: ['ROOT_ID'] });
 
   render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
     initialState: state,
@@ -1380,7 +1447,7 @@ test('FilterBar with orientation=Horizontal and no filters shows empty state alo
       dash_edit_perm: true,
       metadata: {
         native_filter_configuration: [],
-        filterBarOrientation: FilterBarOrientation.Horizontal,
+        filter_bar_orientation: FilterBarOrientation.Horizontal,
       },
     },
     dashboardState: {
@@ -1389,6 +1456,13 @@ test('FilterBar with orientation=Horizontal and no filters shows empty state alo
     },
     nativeFilters: { filters: {}, filtersState: {} },
   };
+  // The bar reads these from Zustand, not the Redux initialState.
+  useDataMaskStore.setState({ dataMask: {} });
+  useNativeFiltersStore.setState({ filters: {} });
+  useDashboardInfoStore.setState({
+    dashboardInfo: state.dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState({ activeTabs: ['ROOT_ID'] });
 
   render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
     initialState: state,
@@ -1739,19 +1813,27 @@ function renderTimeFilterBar(
     }),
     dataMask,
   };
-  const store: Store = createStore(state, reducerIndex);
+  useDataMaskStore.setState({
+    dataMask: state.dataMask as DataMaskStateWithId,
+  });
+  useNativeFiltersStore.setState({
+    filters: state.nativeFilters.filters as Record<string, FilterEntry>,
+  });
+  useDashboardInfoStore.setState({
+    dashboardInfo: state.dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState({ activeTabs: ['ROOT_ID'] });
 
   render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
-    store,
+    initialState: state,
     useDnd: true,
+    useRedux: true,
     useRouter: true,
   });
-
-  return store;
 }
 
-const getAppliedTimeMask = (store: Store) =>
-  (store.getState() as RootState).dataMask[TIME_FILTER_ID];
+const getAppliedTimeMask = () =>
+  useDataMaskStore.getState().dataMask[TIME_FILTER_ID];
 
 async function selectCurrentMonth(currentLabel: string) {
   await userEvent.click(screen.getByText(currentLabel));
@@ -1763,7 +1845,7 @@ async function selectCurrentMonth(currentLabel: string) {
   );
 }
 
-async function applyAndClearCurrentMonth(store: Store) {
+async function applyAndClearCurrentMonth() {
   const applyButton = screen.getByTestId(getTestId('apply-button'));
 
   await selectCurrentMonth('No filter');
@@ -1777,7 +1859,7 @@ async function applyAndClearCurrentMonth(store: Store) {
     jest.advanceTimersByTime(1000);
   });
 
-  expect(getAppliedTimeMask(store)).toEqual(
+  expect(getAppliedTimeMask()).toEqual(
     expect.objectContaining({
       filterState: expect.objectContaining({ value: 'Current month' }),
       extraFormData: { time_range: 'Current month' },
@@ -1802,13 +1884,13 @@ async function applyAndClearCurrentMonth(store: Store) {
     jest.advanceTimersByTime(1000);
   });
 
-  expect(getAppliedTimeMask(store)?.extraFormData).toEqual({});
+  expect(getAppliedTimeMask()?.extraFormData).toEqual({});
   expect(screen.getByText('No filter')).toBeInTheDocument();
 }
 
 test('FilterBar applies a time range selected from an empty applied entry and keeps its label', async () => {
   mockTimeRangeRequests();
-  const store = renderTimeFilterBar({
+  renderTimeFilterBar({
     [TIME_FILTER_ID]: {
       id: TIME_FILTER_ID,
       filterState: {},
@@ -1824,12 +1906,12 @@ test('FilterBar applies a time range selected from an empty applied entry and ke
   expect(screen.getByText('No filter')).toBeInTheDocument();
   expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
-  await applyAndClearCurrentMonth(store);
+  await applyAndClearCurrentMonth();
 });
 
 test('FilterBar applies a time range selected for a filter without an applied entry', async () => {
   mockTimeRangeRequests();
-  const store = renderTimeFilterBar({});
+  renderTimeFilterBar({});
 
   await act(async () => {
     jest.advanceTimersByTime(1000);
@@ -1837,7 +1919,7 @@ test('FilterBar applies a time range selected for a filter without an applied en
 
   expect(screen.getByText('No filter')).toBeInTheDocument();
 
-  await applyAndClearCurrentMonth(store);
+  await applyAndClearCurrentMonth();
 });
 
 test('FilterBar drops the selected time range when cross-filtering is disabled', async () => {
@@ -1851,7 +1933,7 @@ test('FilterBar drops the selected time range when cross-filtering is disabled',
     }),
   );
   mockedMakeApi.mockReturnValue(updateDashboardApi);
-  const store = renderTimeFilterBar(
+  renderTimeFilterBar(
     {
       [TIME_FILTER_ID]: createDataMask(TIME_FILTER_ID, 'Last week', {
         time_range: 'Last week',
@@ -1877,10 +1959,10 @@ test('FilterBar drops the selected time range when cross-filtering is disabled',
   expect(updateDashboardApi).toHaveBeenCalledWith({
     json_metadata: expect.stringContaining('"cross_filters_enabled":false'),
   });
-  expect(
-    (store.getState() as RootState).dashboardInfo.crossFiltersEnabled,
-  ).toBe(false);
-  expect(getAppliedTimeMask(store)).toBeUndefined();
+  expect(selectCrossFiltersEnabled(useDashboardInfoStore.getState())).toBe(
+    false,
+  );
+  expect(getAppliedTimeMask()).toBeUndefined();
   // The time filter is still configured and rendered; only its stale
   // selection is gone.
   expect(screen.getByText('Time range')).toBeInTheDocument();
@@ -1951,6 +2033,7 @@ test('FilterBar keeps the link key while a fallback hold is active, then writes 
     },
   };
 
+  useDashboardStateStore.setState({ activeTabs: ['ROOT_ID'] });
   renderFilterBar(createOpenedBarProps(), stateWithSelect);
   await act(async () => {
     jest.advanceTimersByTime(2000);
@@ -2078,10 +2161,22 @@ test.each([
       semantic_selection_sources: sources,
       filters: [{ col: 'test_column', op: 'IN', val: ['West'] }],
     });
-    const store = createStore(state, reducerIndex);
-    // createStore's object-typed reducer map loses the supplied reducer state.
-    const selectedMask = () =>
-      (store.getState() as unknown as Pick<RootState, 'dataMask'>).dataMask[id];
+    // The bar reads dataMask, filters and dashboardInfo from Zustand, and a
+    // remount must see the applied state, so seed the stores once here.
+    useDataMaskStore.setState({
+      dataMask: state.dataMask as unknown as DataMaskStateWithId,
+    });
+    useNativeFiltersStore.setState({
+      filters: state.nativeFilters.filters as unknown as Record<
+        string,
+        FilterEntry
+      >,
+    });
+    useDashboardInfoStore.setState({
+      dashboardInfo: state.dashboardInfo as unknown as DashboardInfo,
+    });
+    useDashboardStateStore.setState({ activeTabs: ['ROOT_ID'] });
+    const selectedMask = () => useDataMaskStore.getState().dataMask[id];
     const mount = () =>
       render(
         <FilterBar
@@ -2093,7 +2188,7 @@ test.each([
             ...createOpenedBarProps(),
           }}
         />,
-        { store, useDnd: true, useRedux: true, useRouter: true },
+        { initialState: state, useDnd: true, useRedux: true, useRouter: true },
       );
     const view = mount();
     await act(async () => {

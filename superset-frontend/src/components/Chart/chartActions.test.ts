@@ -201,9 +201,7 @@ describe('chart actions', () => {
       .mockResolvedValue([{ data: [{ stale: true }] }]);
     const updateDataMaskSpy = jest
       .spyOn(dataMaskActions, 'updateDataMask')
-      .mockReturnValue({ type: 'UPDATE_DATA_MASK' } as ReturnType<
-        typeof dataMaskActions.updateDataMask
-      >);
+      .mockImplementation(() => undefined);
     const getQuerySettingsStub = jest
       .spyOn(exploreUtils, 'getQuerySettings')
       .mockReturnValue([false, () => {}] as unknown as ReturnType<
@@ -273,9 +271,7 @@ describe('chart actions', () => {
       .mockResolvedValue([]);
     const updateDataMaskSpy = jest
       .spyOn(dataMaskActions, 'updateDataMask')
-      .mockReturnValue({ type: 'UPDATE_DATA_MASK' } as ReturnType<
-        typeof dataMaskActions.updateDataMask
-      >);
+      .mockImplementation(() => undefined);
     const getQuerySettingsStub = jest
       .spyOn(exploreUtils, 'getQuerySettings')
       .mockReturnValue([false, () => {}] as unknown as ReturnType<

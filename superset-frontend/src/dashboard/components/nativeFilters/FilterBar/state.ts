@@ -33,12 +33,14 @@ import {
   LEGACY_GROUPBY_PREFIX,
   isNativeFilter,
 } from '../FiltersConfigModal/utils';
+import { usePreselectNativeFilters } from 'src/dashboard/stores';
+import { useDataMask } from 'src/dataMask/hooks';
 import { useFilterConfiguration } from '../state';
 
 export const useFilters = () => {
-  const preselectedNativeFilters = useSelector<any, Filters>(
-    state => state.dashboardState?.preselectNativeFilters,
-  );
+  const preselectedNativeFilters = usePreselectNativeFilters() as
+    | Filters
+    | undefined;
   const filterConfiguration = useFilterConfiguration();
 
   return useMemo(
@@ -58,9 +60,7 @@ export const useFilters = () => {
 };
 
 export const useNativeFiltersDataMask = () => {
-  const dataMask = useSelector<RootState, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
+  const dataMask = useDataMask();
 
   const filteredMask = useMemo(
     () =>
@@ -77,9 +77,7 @@ export const useNativeFiltersDataMask = () => {
 };
 
 export const useAllAppliedDataMask = () => {
-  const dataMask = useSelector<RootState, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
+  const dataMask = useDataMask();
 
   const allAppliedMask = useMemo(
     () =>

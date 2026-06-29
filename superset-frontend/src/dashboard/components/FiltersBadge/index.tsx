@@ -27,22 +27,21 @@ import {
   memo,
 } from 'react';
 
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
 import { selectChartDatasources } from 'src/dashboard/util/charts/getIgnoredDashboardFilterIds';
 import { isEqual, uniqWith } from 'lodash-es';
 import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
-import {
-  DataMaskStateWithId,
-  DatasourceType,
-  Filters,
-  JsonObject,
-  usePrevious,
-} from '@superset-ui/core';
+import { DatasourceType, usePrevious } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
+import {
+  setDirectPathToChild,
+  useChartConfiguration,
+  useFilterEntries,
+} from 'src/dashboard/stores';
+import { useDataMask } from 'src/dataMask/hooks';
 import { Badge } from '@superset-ui/core/components';
 import DetailsPanelPopover from './DetailsPanel';
 import {
@@ -112,7 +111,6 @@ const sortByStatus = (indicators: Indicator[]): Indicator[] => {
 const indicatorsInitialState: Indicator[] = [];
 
 export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
-  const dispatch = useDispatch();
   const isAutoRefreshing = useIsAutoRefreshing();
   const datasources = useSelector<RootState, RootState['datasources']>(
     state => state.datasources,
@@ -121,21 +119,15 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     RootState,
     RootState['dashboardFilters']
   >(state => state.dashboardFilters);
-  const nativeFilters = useSelector<RootState, Filters>(
-    state => state.nativeFilters?.filters,
-  );
-  const chartConfiguration = useSelector<RootState, JsonObject>(
-    state => state.dashboardInfo.metadata?.chart_configuration,
-  );
+  const nativeFilters = useFilterEntries();
+  const chartConfiguration = useChartConfiguration();
   const sourceDatasources = useAppSelector(
     selectChartDatasources,
     shallowEqual,
   );
   const chart = useSelector<RootState, Chart>(state => state.charts[chartId]);
   const chartLayoutItems = useChartLayoutItems();
-  const dataMask = useSelector<RootState, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
+  const dataMask = useDataMask();
 
   const [nativeIndicators, setNativeIndicators] = useState<Indicator[]>(
     indicatorsInitialState,
@@ -147,12 +139,9 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const popoverContentRef = useRef<HTMLDivElement>(null);
   const popoverTriggerRef = useRef<HTMLButtonElement>(null);
 
-  const onHighlightFilterSource = useCallback(
-    (path: string[]) => {
-      dispatch(setDirectPathToChild(path));
-    },
-    [dispatch],
-  );
+  const onHighlightFilterSource = useCallback((path: string[]) => {
+    setDirectPathToChild(path);
+  }, []);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Enter') {

@@ -17,6 +17,8 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 
 const defaultProps = {
@@ -33,13 +35,17 @@ const defaultProps = {
 const setup = (
   props: Partial<typeof defaultProps> = {},
   refreshLimitConf: Record<string, unknown> = {},
-) =>
-  render(<RefreshIntervalModal {...defaultProps} {...props} />, {
-    useRedux: true,
-    initialState: {
-      dashboardInfo: { common: { conf: refreshLimitConf } },
-    },
+) => {
+  // The refresh limit is read from the dashboardInfo store, not Redux.
+  useDashboardInfoStore.setState({
+    dashboardInfo: {
+      common: { conf: refreshLimitConf },
+    } as unknown as DashboardInfo,
   });
+  return render(<RefreshIntervalModal {...defaultProps} {...props} />, {
+    useRedux: true,
+  });
+};
 
 beforeEach(() => {
   jest.clearAllMocks();

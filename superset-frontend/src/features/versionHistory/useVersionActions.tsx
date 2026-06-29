@@ -19,6 +19,7 @@
 import { ReactElement, useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useAppDispatch } from 'src/views/store';
+import { useHasUnsavedChanges } from 'src/dashboard/stores';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from '@superset-ui/core';
@@ -105,16 +106,14 @@ export function useVersionActions(
   // exactly the unsaved control changes the panel shows under "Current
   // version". Read here rather than passed in, so no call site (panel kebab,
   // preview banner) can forget it.
-  const hasUnsavedChanges = useSelector<
-    VersionHistoryRootState & {
-      dashboardState?: { hasUnsavedChanges?: boolean };
-    },
-    boolean
-  >(state =>
-    entityType === 'dashboard'
-      ? !!state.dashboardState?.hasUnsavedChanges
-      : selectVersionSessionLog(state).length > 0,
+  const dashboardHasUnsavedChanges = useHasUnsavedChanges();
+  const sessionLogLength = useSelector<VersionHistoryRootState, number>(
+    state => selectVersionSessionLog(state).length,
   );
+  const hasUnsavedChanges =
+    entityType === 'dashboard'
+      ? dashboardHasUnsavedChanges
+      : sessionLogLength > 0;
 
   // A pending confirmation names a version of the entity it was opened for.
   // If the page's entity changes underneath it (an in-place slice swap), the

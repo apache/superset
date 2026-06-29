@@ -32,6 +32,11 @@ import {
 } from '@superset-ui/core';
 import type { DataMask, Filter } from '@superset-ui/core';
 import { mergeExtraFormData, withNativeFilterProvenance } from '../../utils';
+import {
+  useDashboardInfoStore,
+  useNativeFiltersStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import FilterValue from './FilterValue';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 
@@ -144,6 +149,15 @@ function renderFilterValue(
   stateOverrides: Record<string, unknown> = {},
 ) {
   const state = { ...getDefaultStoreState(), ...stateOverrides };
+  // Native filters are read from the Zustand store; mirror the mock Redux state.
+  useNativeFiltersStore.setState({
+    filters:
+      (state.nativeFilters as { filters?: Record<string, unknown> })?.filters ??
+      {},
+  } as never);
+  useDashboardInfoStore.setState({
+    dashboardInfo: (state.dashboardInfo ?? {}) as DashboardInfo,
+  });
   const store = mockStore(state);
   const mergedProps = { ...defaultProps, ...propOverrides };
   return render(

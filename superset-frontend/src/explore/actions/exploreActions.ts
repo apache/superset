@@ -33,7 +33,7 @@ import { CompatibilityResult, SaveActionType } from 'src/explore/types';
 export const RESET_SEMANTIC_SELECTIONS = 'RESET_SEMANTIC_SELECTIONS';
 export function resetSemanticSelections(sliceId?: number) {
   return (dispatch: Dispatch) => {
-    if (sliceId !== undefined) dispatch(clearDataMask(sliceId));
+    if (sliceId !== undefined) clearDataMask(sliceId);
     dispatch({ type: RESET_SEMANTIC_SELECTIONS });
   };
 }

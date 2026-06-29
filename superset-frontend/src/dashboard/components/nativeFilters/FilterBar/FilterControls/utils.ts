@@ -17,46 +17,36 @@
  * under the License.
  */
 import { debounce } from 'lodash-es';
-import { Dispatch } from 'react';
 import {
-  setFocusedNativeFilter,
-  unsetFocusedNativeFilter,
-  setHoveredNativeFilter,
-  unsetHoveredNativeFilter,
+  setHoveredFilter,
+  unsetHoveredFilter,
+  setFocusedFilter,
+  unsetFocusedFilter,
   setHoveredChartCustomization,
   unsetHoveredChartCustomization,
-} from 'src/dashboard/actions/nativeFilters';
+} from 'src/dashboard/stores';
 import { Constants } from '@superset-ui/core/components';
 
-export const dispatchHoverAction = debounce(
-  (dispatch: Dispatch<any>, id?: string) => {
-    if (id) {
-      dispatch(setHoveredNativeFilter(id));
-    } else {
-      dispatch(unsetHoveredNativeFilter());
-    }
-  },
-  Constants.FAST_DEBOUNCE,
-);
+export const dispatchHoverAction = debounce((id?: string) => {
+  if (id) {
+    setHoveredFilter(id);
+  } else {
+    unsetHoveredFilter();
+  }
+}, Constants.FAST_DEBOUNCE);
 
-export const dispatchFocusAction = debounce(
-  (dispatch: Dispatch<any>, id?: string) => {
-    if (id) {
-      dispatch(setFocusedNativeFilter(id));
-    } else {
-      dispatch(unsetFocusedNativeFilter());
-    }
-  },
-  Constants.FAST_DEBOUNCE,
-);
+export const dispatchFocusAction = debounce((id?: string) => {
+  if (id) {
+    setFocusedFilter(id);
+  } else {
+    unsetFocusedFilter();
+  }
+}, Constants.FAST_DEBOUNCE);
 
-export const dispatchChartCustomizationHoverAction = debounce(
-  (dispatch: Dispatch<any>, id?: string) => {
-    if (id) {
-      dispatch(setHoveredChartCustomization(id));
-    } else {
-      dispatch(unsetHoveredChartCustomization());
-    }
-  },
-  Constants.FAST_DEBOUNCE,
-);
+export const dispatchChartCustomizationHoverAction = debounce((id?: string) => {
+  if (id) {
+    setHoveredChartCustomization(id);
+  } else {
+    unsetHoveredChartCustomization();
+  }
+}, Constants.FAST_DEBOUNCE);

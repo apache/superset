@@ -29,7 +29,13 @@ import {
   type HydrateChartData,
   type HydrateDashboardData,
 } from 'src/dashboard/actions/hydrate';
-import { CLEAR_DATA_MASK_STATE } from 'src/dataMask/actions';
+import * as dataMaskActions from 'src/dataMask/actions';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import {
+  useDashboardInfoStore,
+  useDashboardStateStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import { CHART_TYPE, MARKDOWN_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   fetchDashboardHydrationData,
@@ -45,6 +51,7 @@ import {
 jest.mock('src/dashboard/actions/hydrate', () => ({
   hydrateDashboard: jest.fn(),
 }));
+const clearDataMaskState = jest.spyOn(dataMaskActions, 'clearDataMaskState');
 const mockAddDangerToast = jest.fn();
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   // Stable across renders, as the real hook is: a fresh fn per render would
@@ -312,15 +319,35 @@ interface TestState {
 /** Minimal recording store: dispatched actions are captured, never reduced,
  * so tests assert exactly what the hook dispatches and control state
  * transitions explicitly via setState. */
+// The hook reads dashboardInfo (id, last_modified_time) and the live dataMask
+// from Zustand, so mirror those slices into the Zustand stores whenever the
+// recording store is seeded or updated. versionHistory stays in Redux.
+function syncZustandDashboardSlices(partial: Partial<TestState>) {
+  if (partial.dashboardInfo) {
+    useDashboardInfoStore.setState({
+      dashboardInfo: partial.dashboardInfo as unknown as DashboardInfo,
+    });
+  }
+  if (partial.dataMask) {
+    useDataMaskStore.setState({ dataMask: partial.dataMask });
+  }
+}
+
 function makeTestStore(initial: TestState) {
   let state = initial;
   const actions: AnyAction[] = [];
   const listeners = new Set<() => void>();
+  // dashboardState.lastModifiedTime is not part of TestState; pin it so the
+  // save signal is driven solely by dashboardInfo.last_modified_time, matching
+  // the pre-migration Redux behavior.
+  useDashboardStateStore.setState({ lastModifiedTime: 0 });
+  syncZustandDashboardSlices(initial);
   return {
     actions,
     getState: () => state,
     setState(partial: Partial<TestState>) {
       state = { ...state, ...partial };
+      syncZustandDashboardSlices(partial);
       listeners.forEach(listener => listener());
     },
     dispatch(action: AnyAction) {
@@ -366,6 +393,7 @@ beforeEach(() => {
     charts: [],
   });
   mockedFetchSnapshot.mockResolvedValue(snapshot);
+  clearDataMaskState.mockClear();
 });
 
 test('previewing a version resets the dataMask and hydrates with snapshot defaults', async () => {
@@ -381,10 +409,10 @@ test('previewing a version resets the dataMask and hydrates with snapshot defaul
   await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(1));
   // The snapshot renders with its own filter defaults, not live selections.
   expect(hydrateMaskArg(0)).toEqual({});
-  const types = store.actions.map(action => action.type);
-  const clearIndex = types.indexOf(CLEAR_DATA_MASK_STATE);
-  expect(clearIndex).toBeGreaterThanOrEqual(0);
-  expect(clearIndex).toBeLessThan(types.indexOf(HYDRATE_TEST));
+  expect(clearDataMaskState).toHaveBeenCalledTimes(1);
+  expect(clearDataMaskState.mock.invocationCallOrder[0]).toBeLessThan(
+    mockedHydrateDashboard.mock.invocationCallOrder[0],
+  );
 });
 
 test('previewing applies every scalar the snapshot carries, not just the title', async () => {
@@ -502,8 +530,7 @@ test('closing the preview restores the dataMask captured before previewing', asy
 
   await waitFor(() => expect(mockedHydrateDashboard).toHaveBeenCalledTimes(2));
   expect(hydrateMaskArg(1)).toEqual(liveMask);
-  const types = store.actions.map(action => action.type);
-  expect(types.filter(type => type === CLEAR_DATA_MASK_STATE)).toHaveLength(2);
+  expect(clearDataMaskState).toHaveBeenCalledTimes(2);
 });
 
 test('a save landing after exit-preview invalidates the cached live copy', async () => {

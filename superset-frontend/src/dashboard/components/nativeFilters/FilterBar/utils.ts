@@ -25,12 +25,13 @@ import {
   NativeFilterTarget,
 } from '@superset-ui/core';
 import { isEqual } from 'lodash-es';
+import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { createSelector } from '@reduxjs/toolkit';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { RootState } from 'src/dashboard/types';
 import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
+import { useSlices } from 'src/dashboard/stores';
 import { FilterElement } from './FilterControls/types';
 
 export const getOnlyExtraFormData = (
@@ -147,30 +148,26 @@ export const checkIsApplyDisabled = (
   return hasMissingRequiredFilter;
 };
 
-const chartsVerboseMapSelector = createSelector(
-  [
-    (state: RootState) => state.sliceEntities.slices,
-    (state: RootState) => state.datasources,
-  ],
-  (slices, datasources) =>
-    Object.keys(slices).reduce((chartsVerboseMaps, chartId) => {
-      const numericChartId = Number(chartId);
-      const chartDatasource = slices[numericChartId]?.form_data?.datasource
-        ? datasources[slices[numericChartId].form_data.datasource]
-        : undefined;
-      return {
-        ...chartsVerboseMaps,
-        [chartId]: chartDatasource
+export const useChartsVerboseMaps = () => {
+  const slices = useSlices();
+  const datasources = useSelector((state: RootState) => state.datasources);
+  return useMemo(
+    () =>
+      Object.keys(slices).reduce<{
+        [chartId: string]: Record<string, string>;
+      }>((chartsVerboseMaps, chartId) => {
+        const numericChartId = Number(chartId);
+        const chartDatasource = slices[numericChartId]?.form_data?.datasource
+          ? datasources[slices[numericChartId].form_data.datasource]
+          : undefined;
+        chartsVerboseMaps[chartId] = chartDatasource
           ? withChartDisplayLabels(chartDatasource, chartId).verbose_map
-          : {},
-      };
-    }, {}),
-);
-
-export const useChartsVerboseMaps = () =>
-  useSelector<RootState, { [chartId: string]: Record<string, string> }>(
-    chartsVerboseMapSelector,
+          : {};
+        return chartsVerboseMaps;
+      }, {}),
+    [slices, datasources],
   );
+};
 
 const hasFilterValue = (value: unknown): boolean =>
   value !== undefined && value !== null;

@@ -26,17 +26,25 @@ import {
   ChartCustomizationType,
   NativeFilterType,
   CategoricalColorNamespace,
+  type ChartCustomization,
 } from '@superset-ui/core';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import { ChartCustomizationPlugins } from 'src/constants';
 import { applyDashboardLabelsColorOnLoad } from 'src/dashboard/actions/dashboardState';
-import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
-import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
+import {
+  useDashboardStateStore,
+  useDashboardLayoutStore,
+  useDashboardInfoStore,
+  useNativeFiltersStore,
+  setDashboardInfo,
+  type FilterEntry,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import type { DashboardLayout } from 'src/dashboard/types';
 import { CHART_TYPE } from '../../util/componentTypes';
 import DashboardContainer from './DashboardContainer';
-import * as nativeFiltersActions from '../../actions/nativeFilters';
-import * as chartCustomizationActions from '../../actions/chartCustomizationActions';
+import * as inScopeStatus from '../../util/inScopeStatus';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 fetchMock.put('glob:*/api/v1/dashboard/*/colors*', {});
@@ -131,16 +139,17 @@ function createTestState(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function setup(overrideState = {}) {
+function setupWithStore(overrideState: Record<string, unknown> = {}) {
   const initialState = createTestState(overrideState);
-  return render(<DashboardContainer />, {
-    useRedux: true,
-    store: storeWithState(initialState),
+  const sliceIds =
+    (initialState.dashboardState as { sliceIds?: number[] })?.sliceIds ?? [];
+  useDashboardStateStore.setState({ sliceIds });
+  useDashboardLayoutStore.setState({
+    layout: initialState.dashboardLayout.present as unknown as DashboardLayout,
   });
-}
-
-function setupWithStore(overrideState = {}) {
-  const initialState = createTestState(overrideState);
+  // The component reads dashboardInfo from Zustand, so hydration-gated tests
+  // need it seeded there too, not only into Redux.
+  setDashboardInfo(initialState.dashboardInfo as Record<string, unknown>);
   const store = storeWithState(initialState);
   const renderResult = render(<DashboardContainer />, {
     useRedux: true,
@@ -149,14 +158,14 @@ function setupWithStore(overrideState = {}) {
   return { store, ...renderResult };
 }
 
+const setup = (overrideState: Record<string, unknown> = {}) =>
+  setupWithStore(overrideState);
+
 let setInScopeStatusMock: jest.SpyInstance;
-const originalSetInScopeStatus = nativeFiltersActions.setInScopeStatusOfFilters;
+const originalSetInScopeStatus = inScopeStatus.setInScopeStatusOfFilters;
 
 beforeEach(() => {
-  setInScopeStatusMock = jest.spyOn(
-    nativeFiltersActions,
-    'setInScopeStatusOfFilters',
-  );
+  setInScopeStatusMock = jest.spyOn(inScopeStatus, 'setInScopeStatusOfFilters');
   setInScopeStatusMock.mockImplementation(args => {
     const thunk = originalSetInScopeStatus(args);
     return thunk;
@@ -188,39 +197,6 @@ test('calculates chartsInScope correctly for filters', async () => {
       }),
     ]),
   );
-});
-
-test('preserves chartsInScope when filter non-scope properties change', async () => {
-  const { store } = setupWithStore();
-
-  await waitFor(() => {
-    expect(setInScopeStatusMock).toHaveBeenCalled();
-  });
-
-  const stateBeforeUpdate = store.getState();
-  const filterBeforeUpdate =
-    stateBeforeUpdate.nativeFilters.filters['FILTER-1'];
-
-  expect(filterBeforeUpdate.chartsInScope).toEqual([sliceId]);
-
-  store.dispatch({
-    type: 'SET_NATIVE_FILTERS_CONFIG_COMPLETE',
-    filterChanges: [
-      {
-        ...filterBeforeUpdate,
-        controlValues: {
-          ...filterBeforeUpdate.controlValues,
-          sortAscending: false,
-        },
-      },
-    ],
-  });
-
-  const stateAfterUpdate = store.getState();
-  const filterAfterUpdate = stateAfterUpdate.nativeFilters.filters['FILTER-1'];
-
-  expect(filterAfterUpdate.chartsInScope).toEqual([sliceId]);
-  expect(filterAfterUpdate.controlValues?.sortAscending).toBe(false);
 });
 
 test('handles multiple filters with different scopes', async () => {
@@ -358,7 +334,7 @@ test('keeps the last scope for a duplicate filter id without redispatching', asy
       ? originalSetInScopeStatus(args)
       : () => undefined,
   );
-  const { store } = setupWithStore({
+  setupWithStore({
     dashboardInfo: {
       ...mockState.dashboardInfo,
       metadata: {
@@ -369,12 +345,12 @@ test('keeps the last scope for a duplicate filter id without redispatching', asy
   });
 
   await waitFor(() => {
-    expect(store.getState().nativeFilters.filters[lastFilter.id]).toMatchObject(
-      {
-        chartsInScope: [],
-        tabsInScope: [],
-      },
-    );
+    expect(
+      useNativeFiltersStore.getState().filters[lastFilter.id],
+    ).toMatchObject({
+      chartsInScope: [],
+      tabsInScope: [],
+    });
   });
   expect(setInScopeStatusMock).toHaveBeenCalledTimes(1);
 });
@@ -390,9 +366,9 @@ test.each([false, true])(
       defaultDataMask: {},
       scope: { rootPath: ['ROOT_ID'], excluded: [sliceId] },
     };
-    const original = chartCustomizationActions.setInScopeStatusOfCustomizations;
+    const original = inScopeStatus.setInScopeStatusOfCustomizations;
     const customizationSpy = jest.spyOn(
-      chartCustomizationActions,
+      inScopeStatus,
       'setInScopeStatusOfCustomizations',
     );
     // Bound both writers so a regression fails without entering an update loop.
@@ -407,7 +383,7 @@ test.each([false, true])(
         : () => undefined,
     );
     try {
-      const { store, rerender } = setupWithStore({
+      const { rerender } = setupWithStore({
         dashboardInfo: {
           ...mockState.dashboardInfo,
           metadata: {
@@ -423,15 +399,15 @@ test.each([false, true])(
         },
       });
       await waitFor(() => {
-        expect(store.getState().nativeFilters.filters[filter.id]).toMatchObject(
-          {
-            type: storedAsCustomization
-              ? ChartCustomizationType.ChartCustomization
-              : NativeFilterType.NativeFilter,
-            chartsInScope: storedAsCustomization ? [] : [sliceId],
-            tabsInScope: [],
-          },
-        );
+        expect(
+          useNativeFiltersStore.getState().filters[filter.id],
+        ).toMatchObject({
+          type: storedAsCustomization
+            ? ChartCustomizationType.ChartCustomization
+            : NativeFilterType.NativeFilter,
+          chartsInScope: storedAsCustomization ? [] : [sliceId],
+          tabsInScope: [],
+        });
       });
       expect(setInScopeStatusMock).toHaveBeenCalledTimes(
         storedAsCustomization ? 1 : 2,
@@ -521,46 +497,46 @@ test.each([
     });
 
     await waitFor(() => {
-      expect(store.getState().nativeFilters.filters[filter.id]).toMatchObject({
-        chartsInScope: [sliceId],
-        tabsInScope: ['TAB-A'],
-      });
+      expect(useNativeFiltersStore.getState().filters[filter.id]).toMatchObject(
+        {
+          chartsInScope: [sliceId],
+          tabsInScope: ['TAB-A'],
+        },
+      );
     });
-    const hydratedState = store.getState();
     setInScopeStatusMock.mockClear();
 
     act(() => {
-      store.dispatch({
-        type: HYDRATE_DASHBOARD,
-        data: {
-          ...hydratedState,
-          dashboardInfo: {
-            ...hydratedState.dashboardInfo,
-            metadata: {
-              ...hydratedState.dashboardInfo.metadata,
-              native_filter_configuration: [{ ...filter, ...staleScopes }],
-            },
-          },
-          nativeFilters: {
-            filters: { [filter.id]: { ...filter, ...staleScopes } },
-          },
+      setDashboardInfo({
+        metadata: {
+          ...useDashboardInfoStore.getState().dashboardInfo.metadata,
+          native_filter_configuration: [{ ...filter, ...staleScopes }],
+        },
+      });
+      useNativeFiltersStore.setState({
+        filters: {
+          [filter.id]: { ...filter, ...staleScopes } as unknown as FilterEntry,
         },
       });
     });
 
     await waitFor(() => {
-      expect(store.getState().nativeFilters.filters[filter.id]).toMatchObject({
-        chartsInScope: [sliceId],
-        tabsInScope: ['TAB-A'],
-      });
+      expect(useNativeFiltersStore.getState().filters[filter.id]).toMatchObject(
+        {
+          chartsInScope: [sliceId],
+          tabsInScope: ['TAB-A'],
+        },
+      );
     });
     const state = store.getState();
-    expect(state.dataMask[filter.id]).toMatchObject(selectedMask);
+    expect(useDataMaskStore.getState().dataMask[filter.id]).toMatchObject(
+      selectedMask,
+    );
     const queryArgs = {
       chartConfiguration: {},
       filters: {},
-      nativeFilters: state.nativeFilters.filters,
-      dataMask: state.dataMask,
+      nativeFilters: useNativeFiltersStore.getState().filters,
+      dataMask: useDataMaskStore.getState().dataMask,
       extraControls: {},
       allSliceIds: [sliceId, otherChartId],
     };
@@ -740,17 +716,14 @@ test('keeps the last scope for a duplicate customization id without redispatchin
     ...customization,
     scope: { rootPath: ['ROOT_ID'], excluded: [sliceId] },
   };
-  const original = chartCustomizationActions.setInScopeStatusOfCustomizations;
-  const spy = jest.spyOn(
-    chartCustomizationActions,
-    'setInScopeStatusOfCustomizations',
-  );
+  const original = inScopeStatus.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(inScopeStatus, 'setInScopeStatusOfCustomizations');
   // Bound a regression so the test fails without entering an update loop.
   spy.mockImplementation(args =>
     spy.mock.calls.length <= 3 ? original(args) : () => undefined,
   );
   try {
-    const { store } = setupWithStore({
+    setupWithStore({
       dashboardInfo: {
         ...mockState.dashboardInfo,
         metadata: {
@@ -765,7 +738,7 @@ test('keeps the last scope for a duplicate customization id without redispatchin
     });
     await waitFor(() => {
       expect(
-        store.getState().nativeFilters.filters[customization.id],
+        useNativeFiltersStore.getState().filters[customization.id],
       ).toMatchObject({
         chartsInScope: [],
         tabsInScope: [],
@@ -779,11 +752,8 @@ test('keeps the last scope for a duplicate customization id without redispatchin
 
 test('calculates chartsInScope correctly for new-format chart customizations', async () => {
   const customizationId = 'CHART_CUSTOMIZATION-1';
-  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
-  const spy = jest.spyOn(
-    chartCustomizationActions,
-    'setInScopeStatusOfCustomizations',
-  );
+  const originalFn = inScopeStatus.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(inScopeStatus, 'setInScopeStatusOfCustomizations');
   spy.mockImplementation(args => originalFn(args));
 
   try {
@@ -851,10 +821,7 @@ test.each([
     filterState: { value: 'P1Y' },
     extraFormData: { time_grain_sqla: 'P1Y' },
   };
-  const spy = jest.spyOn(
-    chartCustomizationActions,
-    'setInScopeStatusOfCustomizations',
-  );
+  const spy = jest.spyOn(inScopeStatus, 'setInScopeStatusOfCustomizations');
   try {
     const { store } = setupWithStore({
       dashboardInfo: {
@@ -870,56 +837,53 @@ test.each([
     });
     await waitFor(() => {
       expect(
-        store.getState().nativeFilters.filters[customization.id],
+        useNativeFiltersStore.getState().filters[customization.id],
       ).toMatchObject({
         chartsInScope: [sliceId],
         tabsInScope: [],
       });
     });
-    const hydratedState = store.getState();
     spy.mockClear();
     act(() => {
-      store.dispatch({
-        type: HYDRATE_DASHBOARD,
-        data: {
-          ...hydratedState,
-          nativeFilters: {
-            filters: {
-              [customization.id]: { ...customization, ...staleScopes },
-            },
-          },
-          dashboardInfo: {
-            ...hydratedState.dashboardInfo,
-            metadata: {
-              ...hydratedState.dashboardInfo.metadata,
-              chart_customization_config: [
-                { ...customization, ...staleScopes },
-              ],
-            },
-          },
+      useNativeFiltersStore.setState({
+        filters: {
+          [customization.id]: {
+            ...customization,
+            ...staleScopes,
+          } as unknown as FilterEntry,
+        },
+      });
+      setDashboardInfo({
+        metadata: {
+          ...useDashboardInfoStore.getState().dashboardInfo.metadata,
+          chart_customization_config: [
+            { ...customization, ...staleScopes },
+          ] as unknown as ChartCustomization[],
         },
       });
     });
     await waitFor(() => {
       expect(
-        store.getState().nativeFilters.filters[customization.id],
+        useNativeFiltersStore.getState().filters[customization.id],
       ).toMatchObject({
         chartsInScope: [sliceId],
         tabsInScope: [],
       });
     });
     const state = store.getState();
-    expect(state.dataMask[customization.id]).toMatchObject(selectedMask);
+    expect(
+      useDataMaskStore.getState().dataMask[customization.id],
+    ).toMatchObject(selectedMask);
     expect(
       getFormDataWithExtraFilters({
         chartConfiguration: {},
-        chartCustomizationItems:
-          state.dashboardInfo.metadata.chart_customization_config,
+        chartCustomizationItems: useDashboardInfoStore.getState().dashboardInfo
+          .metadata.chart_customization_config as ChartCustomization[],
         chart: state.charts[sliceId],
         sliceId,
         filters: {},
-        nativeFilters: state.nativeFilters.filters,
-        dataMask: state.dataMask,
+        nativeFilters: useNativeFiltersStore.getState().filters,
+        dataMask: useDataMaskStore.getState().dataMask,
         extraControls: {},
         allSliceIds: [sliceId],
       }),
@@ -932,11 +896,8 @@ test.each([
 
 test('migrates legacy-format customizations before scope calculation for scope-less items', async () => {
   const legacyCustomizationId = 'CHART_CUSTOMIZATION-legacy-1';
-  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
-  const spy = jest.spyOn(
-    chartCustomizationActions,
-    'setInScopeStatusOfCustomizations',
-  );
+  const originalFn = inScopeStatus.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(inScopeStatus, 'setInScopeStatusOfCustomizations');
   spy.mockImplementation(args => originalFn(args));
 
   try {
@@ -987,11 +948,8 @@ test('migrates legacy-format customizations before scope calculation for scope-l
 
 test('preserves legacy chart-specific customizations during scope calculation', async () => {
   const legacyCustomizationId = 'CHART_CUSTOMIZATION-legacy-chart-1';
-  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
-  const spy = jest.spyOn(
-    chartCustomizationActions,
-    'setInScopeStatusOfCustomizations',
-  );
+  const originalFn = inScopeStatus.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(inScopeStatus, 'setInScopeStatusOfCustomizations');
   spy.mockImplementation(args => originalFn(args));
 
   const baseDashboardLayout = mockState.dashboardLayout.present;
@@ -1069,11 +1027,8 @@ test('preserves legacy chart-specific customizations during scope calculation', 
 
 test('returns empty scope data for chart customization dividers', async () => {
   const dividerId = 'CHART_CUSTOMIZATION_DIVIDER-1';
-  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
-  const spy = jest.spyOn(
-    chartCustomizationActions,
-    'setInScopeStatusOfCustomizations',
-  );
+  const originalFn = inScopeStatus.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(inScopeStatus, 'setInScopeStatusOfCustomizations');
   spy.mockImplementation(args => originalFn(args));
 
   try {
@@ -1122,11 +1077,8 @@ test('returns empty scope data for chart customization dividers', async () => {
 
 test('does not crash when chart_customization_config contains a legacy item with customization: null', async () => {
   const nullCustomizationId = 'CHART_CUSTOMIZATION-null-1';
-  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
-  const spy = jest.spyOn(
-    chartCustomizationActions,
-    'setInScopeStatusOfCustomizations',
-  );
+  const originalFn = inScopeStatus.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(inScopeStatus, 'setInScopeStatusOfCustomizations');
   spy.mockImplementation(args => originalFn(args));
 
   try {
@@ -1193,11 +1145,8 @@ test('does not crash when chart_customization_config contains an undefined entry
 
 test('does not crash when chart_customization_config mixes null and new-format items', async () => {
   const customizationId = 'CHART_CUSTOMIZATION-new-format-1';
-  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
-  const spy = jest.spyOn(
-    chartCustomizationActions,
-    'setInScopeStatusOfCustomizations',
-  );
+  const originalFn = inScopeStatus.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(inScopeStatus, 'setInScopeStatusOfCustomizations');
   spy.mockImplementation(args => originalFn(args));
 
   try {
@@ -1251,10 +1200,7 @@ test('does not crash when chart_customization_config mixes null and new-format i
 });
 
 test('does not dispatch setInScopeStatusOfCustomizations when chart_customization_config is empty', async () => {
-  const spy = jest.spyOn(
-    chartCustomizationActions,
-    'setInScopeStatusOfCustomizations',
-  );
+  const spy = jest.spyOn(inScopeStatus, 'setInScopeStatusOfCustomizations');
 
   try {
     const state = {
@@ -1356,7 +1302,7 @@ test.each([false, true])(
       color_scheme: '',
       label_colors: { '20_Passed': '#008000' },
     };
-    const { store, unmount } = setupWithStore({
+    const { unmount } = setupWithStore({
       dashboardInfo: { ...mockState.dashboardInfo, metadata },
     });
     expect(screen.getByTestId('cached-chart')).toHaveAttribute(
@@ -1366,17 +1312,15 @@ test.each([false, true])(
 
     chartNamespace = newNamespace ? 'next-dashboard-colors' : namespace;
     act(() => {
-      store.dispatch(
-        dashboardInfoChanged({
-          id: mockState.dashboardInfo.id + 1,
-          metadata: {
-            ...store.getState().dashboardInfo.metadata,
-            ...metadata,
-            color_namespace: chartNamespace,
-            label_colors: { '20_Passed': '#ff0000' },
-          },
-        }),
-      );
+      setDashboardInfo({
+        id: mockState.dashboardInfo.id + 1,
+        metadata: {
+          ...useDashboardInfoStore.getState().dashboardInfo.metadata,
+          ...metadata,
+          color_namespace: chartNamespace,
+          label_colors: { '20_Passed': '#ff0000' },
+        },
+      });
     });
 
     expect(screen.getByTestId('cached-chart')).toHaveAttribute(
@@ -1391,12 +1335,12 @@ test.each([false, true])(
 
 test('waits for dashboard hydration before mounting cached charts', () => {
   jest.mocked(applyDashboardLabelsColorOnLoad).mockClear();
-  const { store } = setupWithStore({ dashboardInfo: {} });
+  setupWithStore({ dashboardInfo: {} });
   expect(screen.queryByTestId('mock-dashboard-grid')).not.toBeInTheDocument();
   expect(applyDashboardLabelsColorOnLoad).not.toHaveBeenCalled();
 
   act(() => {
-    store.dispatch(dashboardInfoChanged({ id: mockState.dashboardInfo.id }));
+    setDashboardInfo({ id: mockState.dashboardInfo.id });
   });
 
   expect(applyDashboardLabelsColorOnLoad).toHaveBeenCalled();

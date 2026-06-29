@@ -19,6 +19,9 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { ChartCustomizationPlugins } from 'src/constants';
+import { useNativeFiltersStore, type FilterEntry } from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import type { DataMaskStateWithId } from '@superset-ui/core';
 import { CustomizationsBadge } from '.';
 
 const customization = {
@@ -30,9 +33,21 @@ const customization = {
   scope: { rootPath: [], excluded: [] },
 };
 
+// The badge reads the control entries and dataMask from the Zustand stores.
+const seedStores = (filters: object, dataMask: object) => {
+  useNativeFiltersStore.setState({
+    filters: filters as Record<string, FilterEntry>,
+  });
+  useDataMaskStore.setState({ dataMask: dataMask as DataMaskStateWithId });
+};
+
 test.each(['7__semantic_view', '7__table'])(
   'hidden semantic control has no badge on %s',
   datasource => {
+    seedStores(
+      { [customization.id]: customization },
+      { [customization.id]: { filterState: { value: ['status'] } } },
+    );
     render(<CustomizationsBadge chartId={18} />, {
       useRedux: true,
       initialState: {
@@ -59,6 +74,15 @@ test.each([
   ['7__table', true],
   ['7__semantic_view', false],
 ])('ordinary control matches datasource type on %s', (datasource, visible) => {
+  seedStores(
+    {
+      [customization.id]: {
+        ...customization,
+        targets: [{ datasetId: 7, datasourceType: 'table' }],
+      },
+    },
+    { [customization.id]: { filterState: { value: ['status'] } } },
+  );
   render(<CustomizationsBadge chartId={18} />, {
     useRedux: true,
     initialState: {

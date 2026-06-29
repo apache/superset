@@ -19,6 +19,7 @@
 import { useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Tooltip, PublishedLabel, Modal } from '@superset-ui/core/components';
+import { usePublishDashboard } from 'src/dashboard/queries';
 import { HeaderProps, HeaderDropdownProps } from '../Header/types';
 
 export type DashboardPublishedStatusType = {
@@ -26,7 +27,6 @@ export type DashboardPublishedStatusType = {
   userCanEdit: HeaderDropdownProps['userCanEdit'];
   userCanSave: HeaderDropdownProps['userCanSave'];
   isPublished: HeaderProps['isPublished'];
-  savePublished: HeaderProps['savePublished'];
 };
 
 const draftButtonTooltip = t(
@@ -48,8 +48,8 @@ export default function PublishedStatus({
   userCanEdit,
   userCanSave,
   isPublished,
-  savePublished,
 }: DashboardPublishedStatusType) {
+  const { mutate: publish } = usePublishDashboard(dashboardId);
   const togglePublished = useCallback(() => {
     if (isPublished) {
       Modal.confirm({
@@ -59,12 +59,12 @@ export default function PublishedStatus({
         ),
         okText: t('Make draft'),
         cancelText: t('Cancel'),
-        onOk: () => savePublished(dashboardId, false),
+        onOk: () => publish(false),
       });
     } else {
-      savePublished(dashboardId, true);
+      publish(true);
     }
-  }, [dashboardId, isPublished, savePublished]);
+  }, [isPublished, publish]);
 
   // Show everybody the draft badge
   if (!isPublished) {
