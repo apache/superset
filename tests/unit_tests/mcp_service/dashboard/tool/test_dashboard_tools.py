@@ -21,19 +21,16 @@ Unit tests for MCP dashboard tools (list_dashboards, get_dashboard_info)
 
 import logging
 from importlib import import_module
-from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
 from flask import g
-from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
     ListDashboardsRequest,
-    serialize_role_object,
 )
 from superset.mcp_service.dashboard.tool.get_dashboard_info import (
     _refresh_request_user_for_permalink_access,
@@ -135,109 +132,6 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
         assert "changed_on_humanized" in data["columns_requested"]
         assert "url" in data["columns_loaded"]
         assert "slug" in data["columns_loaded"]
-
-
-def test_dashboard_role_serializer_serializes_permission_view_names() -> None:
-    permission_view = SimpleNamespace(
-        permission=SimpleNamespace(name="can_read"),
-        view_menu=SimpleNamespace(name="Dashboard"),
-    )
-    role = SimpleNamespace(id=1, name="Gamma", permissions=[permission_view])
-
-    role_info = serialize_role_object(role)
-
-    assert role_info is not None
-    assert role_info.model_dump() == {
-        "id": 1,
-        "name": "Gamma",
-        "permissions": ["can_read on Dashboard"],
-    }
-
-
-def test_dashboard_role_serializer_skips_bad_permission_items() -> None:
-    class DetachedPermission:
-        @property
-        def name(self) -> str:
-            raise DetachedInstanceError("detached permission")
-
-    permission_view = SimpleNamespace(
-        permission=SimpleNamespace(name="can_read"),
-        view_menu=SimpleNamespace(name="Dashboard"),
-    )
-    role = SimpleNamespace(
-        id=1,
-        name="Gamma",
-        permissions=[
-            permission_view,
-            DetachedPermission(),
-            SimpleNamespace(name="can_write"),
-        ],
-    )
-
-    role_info = serialize_role_object(role)
-
-    assert role_info is not None
-    assert role_info.permissions == ["can_read on Dashboard", "can_write"]
-
-
-def test_dashboard_role_serializer_handles_detached_permissions() -> None:
-    class DetachedRole:
-        id = 1
-        name = "Gamma"
-
-        @property
-        def permissions(self) -> list[object]:
-            raise DetachedInstanceError("detached permissions")
-
-    role_info = serialize_role_object(DetachedRole())
-
-    assert role_info is not None
-    assert role_info.permissions is None
-
-
-def test_dashboard_role_serializer_handles_non_iterable_permissions() -> None:
-    role = SimpleNamespace(id=1, name="Gamma", permissions=object())
-
-    role_info = serialize_role_object(role)
-
-    assert role_info is not None
-    assert role_info.permissions == []
-
-
-def test_dashboard_role_serializer_stops_on_detached_permission_iterator() -> None:
-    class DetachedPermissionIterator:
-        def __iter__(self) -> "DetachedPermissionIterator":
-            return self
-
-        def __next__(self) -> object:
-            raise DetachedInstanceError("detached permission iterator")
-
-    role = SimpleNamespace(
-        id=1,
-        name="Gamma",
-        permissions=DetachedPermissionIterator(),
-    )
-
-    role_info = serialize_role_object(role)
-
-    assert role_info is not None
-    assert role_info.permissions == []
-
-
-def test_dashboard_role_serializer_skips_unnamed_permission_items() -> None:
-    role = SimpleNamespace(
-        id=1,
-        name="Gamma",
-        permissions=[
-            SimpleNamespace(permission=SimpleNamespace(name="can_read")),
-            SimpleNamespace(view_menu=SimpleNamespace(name="Dashboard")),
-        ],
-    )
-
-    role_info = serialize_role_object(role)
-
-    assert role_info is not None
-    assert role_info.permissions == []
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")

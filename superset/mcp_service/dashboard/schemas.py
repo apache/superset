@@ -79,7 +79,6 @@ from pydantic import (
     model_validator,
     PositiveInt,
 )
-from sqlalchemy.orm.exc import DetachedInstanceError
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
@@ -153,56 +152,13 @@ def serialize_role_object(role: Any) -> RoleInfo | None:
     if not role:
         return None
 
-    try:
-        raw_permissions = getattr(role, "permissions", None)
-    except DetachedInstanceError:
-        raw_permissions = None
-
-    permissions: list[str] | None = None
-    if raw_permissions is not None:
-        permissions = []
-        try:
-            permission_iterator = iter(raw_permissions)
-        except TypeError:
-            permission_iterator = iter(())
-
-        while True:
-            try:
-                permission = next(permission_iterator)
-            except StopIteration:
-                break
-            except (DetachedInstanceError, TypeError):
-                break
-
-            try:
-                permission_name = _serialize_permission_name(permission)
-            except (DetachedInstanceError, TypeError):
-                continue
-
-            if permission_name is not None:
-                permissions.append(permission_name)
-
     return RoleInfo(
         id=getattr(role, "id", None),
         name=getattr(role, "name", None),
-        permissions=permissions,
+        permissions=[perm.name for perm in getattr(role, "permissions", [])]
+        if hasattr(role, "permissions")
+        else None,
     )
-
-
-def _serialize_permission_name(permission: Any) -> str | None:
-    """Return direct permission names or FAB permission/view pairs.
-
-    Returns None when neither representation is available.
-    """
-    if (name := getattr(permission, "name", None)) is not None:
-        return str(name)
-
-    permission_name = getattr(getattr(permission, "permission", None), "name", None)
-    view_menu_name = getattr(getattr(permission, "view_menu", None), "name", None)
-    if permission_name and view_menu_name:
-        return f"{permission_name} on {view_menu_name}"
-
-    return None
 
 
 class DashboardFilter(ColumnOperator):
