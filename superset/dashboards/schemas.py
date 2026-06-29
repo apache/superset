@@ -673,7 +673,7 @@ class DashboardExportXlsxResponseSchema(Schema):
 class DashboardLineageDashboardSchema(Schema):
     id = fields.Integer()
     title = fields.String()
-    slug = fields.String()
+    slug = fields.String(allow_none=True)
     published = fields.Boolean()
 
 
