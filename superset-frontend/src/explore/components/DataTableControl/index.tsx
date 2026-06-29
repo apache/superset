@@ -20,7 +20,7 @@ import { useMemo, useEffect, useRef, RefObject } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { Constants, Button, Icons, Input } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import {

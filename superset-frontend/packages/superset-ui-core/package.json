@@ -66,7 +66,8 @@
     "reselect": "^5.2.0",
     "rison": "^0.1.1",
     "seedrandom": "^3.0.5",
-    "xss": "^1.0.15"
+    "xss": "^1.0.15",
+    "lodash-es": "^4.17.21"
   },
   "devDependencies": {
     "@emotion/styled": "^11.14.1",

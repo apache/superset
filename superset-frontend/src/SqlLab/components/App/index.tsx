@@ -22,7 +22,7 @@ import { Redirect } from 'react-router-dom';
 import Mousetrap from 'mousetrap';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import { throttle } from 'lodash';
+import { throttle } from 'lodash-es';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
   LOCALSTORAGE_WARNING_THRESHOLD,
