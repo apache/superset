@@ -131,6 +131,7 @@ Dashboard Management:
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
 - update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; ownership-checked per-instance)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
+- delete_dashboard: Permanently delete a dashboard by ID; requires confirm=true (requires write access)
 
 Annotation Layers:
 - list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
@@ -691,6 +692,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    delete_dashboard,
     generate_dashboard,
     get_dashboard_info,
     get_dashboard_layout,
