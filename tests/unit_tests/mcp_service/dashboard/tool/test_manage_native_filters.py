@@ -29,7 +29,7 @@ Covers:
 - Updating a filter (merge produces a FULL config, not a delta)
 - Update validation (duplicate update IDs, update+remove conflict)
 - Removing a filter
-- Reordering filters (including incomplete-reorder validation)
+- Reordering filters (including incomplete-reorder and duplicate-ID validation)
 - Invalid dataset / column errors
 - LLM-context sanitization of user-controlled filter names / targets
 - Delimiter-escaping of operational id / filter_type fields
@@ -579,6 +579,25 @@ async def test_reorder_must_include_all_filters(mcp_server):
 
     assert "every remaining filter" in data["error"]
     assert "NATIVE_FILTER-existing1" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_reorder_duplicate_filter_ids_rejected(mcp_server):
+    dashboard = _mock_dashboard(filters=[EXISTING_SELECT_FILTER, EXISTING_TIME_FILTER])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "reorder": [
+                    "NATIVE_FILTER-existing1",
+                    "NATIVE_FILTER-existing1",
+                ],
+            },
+        )
+
+    assert "duplicate filter IDs" in data["error"]
 
 
 @pytest.mark.asyncio
