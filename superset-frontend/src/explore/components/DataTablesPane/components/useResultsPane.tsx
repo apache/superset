@@ -30,6 +30,7 @@ import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls, ROW_LIMIT_OPTIONS } from './DataTableControls';
+import { transformTableData } from '../utils';
 
 const Error = styled.pre`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
@@ -105,11 +106,13 @@ export const useResultsPane = ({
         formData: cappedFormData,
         force: queryForce,
         resultFormat: 'json',
-        resultType: 'results',
+        resultType: 'full',
         ownState,
       })
         .then(({ json }) => {
-          setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
+          const responseArray = ensureIsArray<any>(json.result);
+          const transformedResponseArray = transformTableData(responseArray);
+          setResultResp(transformedResponseArray);
           setResponseError('');
           cache.set(cappedFormData, json.result);
           if (queryForce) {
