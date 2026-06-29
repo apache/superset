@@ -36,7 +36,26 @@ export default function getBootstrapData(): BootstrapData {
 const normalizePathWithFallback = (
   path: string | undefined,
   fallback: string,
-): string => (path ?? fallback).replace(/\/$/, '');
+): string => {
+  const normalize = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    // Only allow root-relative paths. Reject absolute/protocol-relative URLs.
+    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed) || trimmed.startsWith('//')) {
+      return null;
+    }
+    const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    const collapsed = withLeadingSlash.replace(/\/{2,}/g, '/');
+    if (collapsed === '/') {
+      return '/';
+    }
+    return collapsed.replace(/\/$/, '');
+  };
+
+  return normalize(path ?? '') ?? normalize(fallback) ?? '/';
+};
 
 /**
  * Matches a plain absolute path prefix (e.g. "" for root deployments or
