@@ -150,7 +150,7 @@ def _collect_metadata_overrides(request: UpdateDashboardRequest) -> dict[str, An
             "Conflicting metadata for "
             + ", ".join(clashes)
             + ": set via both a typed field and json_metadata_overrides. "
-            "Pass each key only once."
+            + "Pass each key only once."
         )
     overrides.update(typed)
     return overrides
@@ -256,6 +256,12 @@ def _validate_update_request(
             return DashboardError(error=str(ex), error_type="TagForbidden")
         except TagNotFoundValidationError as ex:
             return DashboardError(error=str(ex), error_type="TagNotFound")
+        except SQLAlchemyError:
+            logger.warning("Database error during tag validation", exc_info=True)
+            return DashboardError(
+                error="Failed to validate tags due to a database error.",
+                error_type="DatabaseError",
+            )
 
     return None
 

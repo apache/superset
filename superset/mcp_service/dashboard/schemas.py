@@ -910,11 +910,19 @@ class UpdateDashboardRequest(BaseModel):
         Mirrors ``BaseDashboardSchema.post_load``: strip, replace spaces with
         hyphens, and drop characters outside ``[\\w-]`` so the tool cannot
         persist slugs the REST update path would have cleaned.
+
+        Raises ``ValueError`` when a non-empty input normalizes to an empty
+        string (e.g. ``"!!!"``) to prevent silently clearing the slug.
         """
         if not v:
             return v
-        v = v.strip().replace(" ", "-")
-        return re.sub(r"[^\w\-]+", "", v)
+        normalized = re.sub(r"[^\w\-]+", "", v.strip().replace(" ", "-"))
+        if not normalized:
+            raise ValueError(
+                "slug contains only characters that are removed during "
+                "normalization; use letters, digits, underscores, or hyphens"
+            )
+        return normalized
 
 
 class UpdateDashboardResponse(BaseModel):
