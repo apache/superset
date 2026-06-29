@@ -197,13 +197,11 @@ jest.mock('@superset-ui/core/components', () => {
   };
 });
 
-jest.mock('../AlertReportModal', () => {
-  return {
-    StyledInputContainer: ({ children }: { children: ReactNode }) => (
-      <div>{children}</div>
-    ),
-  };
-});
+jest.mock('../AlertReportModal', () => ({
+  StyledInputContainer: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+}));
 
 const mockOnUpdate = jest.fn();
 const mockOnRemove = jest.fn();
