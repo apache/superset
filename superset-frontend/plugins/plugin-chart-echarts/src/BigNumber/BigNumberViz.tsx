@@ -189,8 +189,10 @@ function BigNumberVis({
       text = t('No data');
     } else if (typeof bigNumber === 'number') {
       text = headerFormatter(bigNumber);
+    } else if (typeof bigNumber === 'string') {
+      text = bigNumber;
     } else {
-      // For string/boolean/Date values, convert to number if possible, else show as string
+      // For boolean/Date values, convert to number if possible, else show as string
       const numValue = Number(bigNumber);
       text = Number.isNaN(numValue)
         ? String(bigNumber)
@@ -204,11 +206,8 @@ function BigNumberVis({
     let numberColor;
     if (hasThresholdColorFormatter) {
       colorThresholdFormatters!.forEach(formatter => {
-        const formatterResult = bigNumber
-          ? formatter.getColorFromValue(bigNumber as number)
-          : false;
-        if (formatterResult) {
-          numberColor = formatterResult;
+        if (typeof bigNumber === 'number' && !isNaN(bigNumber)) {
+          numberColor = formatter.getColorFromValue(bigNumber);
         }
       });
     } else {

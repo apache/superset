@@ -24,7 +24,7 @@ from unittest import mock
 from unittest.mock import patch, MagicMock
 from zipfile import is_zipfile
 
-import prison
+import rison
 import pytest
 
 from unittest.mock import Mock
@@ -226,7 +226,7 @@ class TestDatabaseApi(SupersetTestCase):
             "page": 0,
             "page_size": -1,
         }
-        uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/database/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -334,6 +334,77 @@ class TestDatabaseApi(SupersetTestCase):
         assert model_ssh_tunnel.database_id == response.get("id")
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    @with_feature_flags(SSH_TUNNELING=True)
+    @mock.patch(
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
+    )
+    @mock.patch("superset.models.core.Database.get_all_catalog_names")
+    @mock.patch("superset.models.core.Database.get_all_schema_names")
+    def test_get_database_ssh_tunnel_credentials_are_masked(
+        self,
+        mock_get_all_schema_names,
+        mock_get_all_catalog_names,
+        mock_test_connection_database_command_run,
+    ):
+        """
+        Database API: SSH tunnel credentials are masked on the read paths
+        (GET /<pk> and GET /<pk>/connection), consistently with create/update.
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        ssh_tunnel_properties = {
+            "server_address": "123.132.123.1",
+            "server_port": 8080,
+            "username": "foo",
+            "password": "bar",
+            "private_key": "secret-key-material",
+            "private_key_password": "secret-key-password",
+        }
+        database_data = {
+            "database_name": "test-db-with-ssh-tunnel-read-masking",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+        rv = self.client.post("api/v1/database/", json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 201
+        database_id = response.get("id")
+
+        masked_fields = ("password", "private_key", "private_key_password")
+
+        # GET /<pk>/connection
+        rv = self.client.get(f"api/v1/database/{database_id}/connection")
+        assert rv.status_code == 200
+        connection_tunnel = json.loads(rv.data.decode("utf-8"))["result"]["ssh_tunnel"]
+        for field in masked_fields:
+            assert connection_tunnel[field] == "XXXXXXXXXX"  # noqa: S105
+
+        # GET /<pk>
+        rv = self.client.get(f"api/v1/database/{database_id}")
+        assert rv.status_code == 200
+        get_tunnel = json.loads(rv.data.decode("utf-8"))["result"]["ssh_tunnel"]
+        for field in masked_fields:
+            assert get_tunnel[field] == "XXXXXXXXXX"  # noqa: S105
+
+        # The stored credentials remain intact (only the response is masked).
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == database_id)
+            .one()
+        )
+        assert model_ssh_tunnel.password == "bar"  # noqa: S105
+        assert model_ssh_tunnel.private_key == "secret-key-material"  # noqa: S105
+        assert (
+            model_ssh_tunnel.private_key_password == "secret-key-password"  # noqa: S105
+        )
+
+        # Cleanup
+        model = db.session.query(Database).get(database_id)
         db.session.delete(model)
         db.session.commit()
 
@@ -1581,7 +1652,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/database/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/database/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1761,7 +1832,7 @@ class TestDatabaseApi(SupersetTestCase):
                     }
                 ],
             }
-            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/database/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             assert data["count"] == 1
@@ -1802,7 +1873,7 @@ class TestDatabaseApi(SupersetTestCase):
                     }
                 ],
             }
-            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/database/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             assert data["count"] == 0
@@ -1843,7 +1914,7 @@ class TestDatabaseApi(SupersetTestCase):
                     }
                 ],
             }
-            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/database/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             assert data["count"] == 0
@@ -1883,7 +1954,7 @@ class TestDatabaseApi(SupersetTestCase):
                     }
                 ],
             }
-            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/database/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             assert data["count"] == 0
@@ -1916,7 +1987,7 @@ class TestDatabaseApi(SupersetTestCase):
                     }
                 ],
             }
-            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/database/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             assert data["count"] == 0
@@ -1960,7 +2031,7 @@ class TestDatabaseApi(SupersetTestCase):
                     }
                 ],
             }
-            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/database/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             assert data["count"] == 1
@@ -2000,7 +2071,7 @@ class TestDatabaseApi(SupersetTestCase):
                     }
                 ],
             }
-            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/database/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             assert data["count"] == 0
@@ -2040,7 +2111,7 @@ class TestDatabaseApi(SupersetTestCase):
                     }
                 ],
             }
-            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/database/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             assert data["count"] == 1
@@ -2064,7 +2135,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert schemas == set(response["result"])
 
         rv = self.client.get(
-            f"api/v1/database/{database.id}/schemas/?q={prison.dumps({'force': True})}"
+            f"api/v1/database/{database.id}/schemas/?q={rison.dumps({'force': True})}"
         )
         response = json.loads(rv.data.decode("utf-8"))
         assert schemas == set(response["result"])
@@ -2086,7 +2157,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         database = db.session.query(Database).first()
         rv = self.client.get(
-            f"api/v1/database/{database.id}/schemas/?q={prison.dumps({'force': 'nop'})}"
+            f"api/v1/database/{database.id}/schemas/?q={rison.dumps({'force': 'nop'})}"
         )
         assert rv.status_code == 400
 
@@ -2119,7 +2190,7 @@ class TestDatabaseApi(SupersetTestCase):
                 database, "get_all_schema_names", return_value=mock_schemas
             )
             arguments = {"upload_allowed": True}
-            uri = f"api/v1/database/{database.id}/schemas/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/database/{database.id}/schemas/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             assert data["result"] == mock_schemas
@@ -2156,7 +2227,7 @@ class TestDatabaseApi(SupersetTestCase):
                 return_value=["schema_1", "schema_2", "schema_3"],
             )
             arguments = {"upload_allowed": True}
-            uri = f"api/v1/database/{database.id}/schemas/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/database/{database.id}/schemas/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
             assert data["result"] == ["schema_2"]
@@ -2171,7 +2242,7 @@ class TestDatabaseApi(SupersetTestCase):
         database = db.session.query(Database).filter_by(database_name="examples").one()
         self.login(ADMIN_USERNAME)
         arguments = {"upload_allowed": True}
-        uri = f"api/v1/database/{database.id}/schemas/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/database/{database.id}/schemas/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -2186,7 +2257,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         schema_name = self.default_schema_backend_map[database.backend]
         rv = self.client.get(
-            f"api/v1/database/{database.id}/tables/?q={prison.dumps({'schema_name': schema_name})}"  # noqa: E501
+            f"api/v1/database/{database.id}/tables/?q={rison.dumps({'schema_name': schema_name})}"  # noqa: E501
         )
 
         assert rv.status_code == 200
@@ -2211,7 +2282,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(GAMMA_USERNAME)
         example_db = get_example_database()
-        uri = f"api/v1/database/{example_db.id}/tables/?q={prison.dumps({'schema_name': 'non_existent'})}"  # noqa: E501
+        uri = f"api/v1/database/{example_db.id}/tables/?q={rison.dumps({'schema_name': 'non_existent'})}"  # noqa: E501
         rv = self.client.get(uri)
         assert rv.status_code == 404
         logger_mock.warning.assert_called_once_with(
@@ -2225,7 +2296,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         database = db.session.query(Database).first()
         rv = self.client.get(
-            f"api/v1/database/{database.id}/tables/?q={prison.dumps({'force': 'nop'})}"
+            f"api/v1/database/{database.id}/tables/?q={rison.dumps({'force': 'nop'})}"
         )
         assert rv.status_code == 400
 
@@ -2243,7 +2314,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_can_access_database.side_effect = Exception("Test Error")
 
         rv = self.client.get(
-            f"api/v1/database/{database.id}/tables/?q={prison.dumps({'schema_name': 'main'})}"  # noqa: E501
+            f"api/v1/database/{database.id}/tables/?q={rison.dumps({'schema_name': 'main'})}"  # noqa: E501
         )
         assert rv.status_code == 422
         logger_mock.warning.assert_called_once_with("Test Error", exc_info=True)
@@ -2487,7 +2558,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         database = get_example_database()
         argument = [database.id]
-        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/database/export/?q={rison.dumps(argument)}"
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 200
 
@@ -2501,7 +2572,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         database = get_example_database()
         argument = [database.id]
-        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/database/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 403
 
@@ -2515,7 +2586,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         argument = [invalid_id]
-        uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/database/export/?q={rison.dumps(argument)}"
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
 
@@ -3427,6 +3498,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_schemas": True,
                     },
                     "supports_oauth2": False,
                 },
@@ -3455,6 +3527,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": True,
                         "supports_oauth2": False,
+                        "supports_schemas": True,
                     },
                     "supports_oauth2": False,
                 },
@@ -3513,6 +3586,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_schemas": True,
                     },
                     "supports_oauth2": False,
                 },
@@ -3558,6 +3632,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": True,
                         "supports_oauth2": True,
+                        "supports_schemas": True,
                     },
                     "supports_oauth2": True,
                 },
@@ -3616,6 +3691,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_schemas": True,
                     },
                     "supports_oauth2": False,
                 },
@@ -3630,6 +3706,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_schemas": True,
                     },
                     "supports_oauth2": False,
                 },
@@ -3664,6 +3741,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_schemas": True,
                     },
                     "supports_oauth2": False,
                 },
@@ -3678,6 +3756,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
+                        "supports_schemas": True,
                     },
                     "supports_oauth2": False,
                 },

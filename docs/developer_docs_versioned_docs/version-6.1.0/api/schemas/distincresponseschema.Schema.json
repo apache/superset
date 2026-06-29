@@ -1,0 +1,1 @@
+{"schema":{"properties":{"count":{"description":"The total number of distinct values","type":"integer"},"result":{"items":{"properties":{"text":{"description":"The distinct item","type":"string"}},"type":"object","title":"DistinctResultResponse"},"type":"array"}},"type":"object","title":"DistincResponseSchema"},"schemaType":"response"}

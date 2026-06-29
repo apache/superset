@@ -102,7 +102,6 @@ export type ChartCustomization = {
   defaultDataMask: DataMask;
   controlValues: {
     sortAscending?: boolean;
-    sortMetric?: string;
     [key: string]: any;
   };
   description?: string;

@@ -50,7 +50,7 @@ const TIME_GRAIN_TUPLES: [string, string][] = [
 // "state update on unmounted component" warnings. Scoped fake timers let us
 // clear pending work deterministically during teardown for this test only.
 beforeEach(() => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
 });
 
 afterEach(() => {

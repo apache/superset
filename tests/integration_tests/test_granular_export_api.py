@@ -23,8 +23,8 @@ SQL Lab export endpoints (can_export_data).
 
 from unittest.mock import patch
 
-import prison
 import pytest
+import rison
 
 from superset.security import SupersetSecurityManager
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -64,7 +64,7 @@ class TestGranularExportChartAPI(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         chart = self.get_slice("Girls")
         uri = f"api/v1/chart/{chart.id}/cache_screenshot/"
-        rison_params = prison.dumps({"force": False})
+        rison_params = rison.dumps({"force": False})
         rv = self.client.get(f"{uri}?q={rison_params}")
         assert rv.status_code == 403
 
@@ -113,7 +113,7 @@ class TestGranularExportChartAPI(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         chart = self.get_slice("Girls")
         uri = f"api/v1/chart/{chart.id}/cache_screenshot/"
-        rison_params = prison.dumps({"force": False})
+        rison_params = rison.dumps({"force": False})
         rv = self.client.get(f"{uri}?q={rison_params}")
         assert rv.status_code != 403
 
@@ -153,7 +153,7 @@ class TestGranularExportDashboardAPI(SupersetTestCase):
             "birth_names"
         )
         uri = f"api/v1/dashboard/{dashboard.id}/cache_dashboard_screenshot/"
-        rison_params = prison.dumps({"force": False})
+        rison_params = rison.dumps({"force": False})
         rv = self.client.post(
             f"{uri}?q={rison_params}",
             json={},
@@ -205,7 +205,7 @@ class TestGranularExportDashboardAPI(SupersetTestCase):
             "birth_names"
         )
         uri = f"api/v1/dashboard/{dashboard.id}/cache_dashboard_screenshot/"
-        rison_params = prison.dumps({"force": False})
+        rison_params = rison.dumps({"force": False})
         rv = self.client.post(f"{uri}?q={rison_params}", json={})
         assert rv.status_code == 202
 

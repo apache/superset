@@ -162,7 +162,7 @@ const ConditionalFormattingControl = ({
               onChange={(newConfig: ConditionalFormattingConfig) =>
                 onEdit(newConfig, index)
               }
-              destroyTooltipOnHide
+              destroyOnHidden
               extraColorChoices={extraColorChoices}
               allColumns={allColumns}
             >
@@ -179,7 +179,7 @@ const ConditionalFormattingControl = ({
           title={t('Add new formatter')}
           columns={columnOptions}
           onChange={onSave}
-          destroyTooltipOnHide
+          destroyOnHidden
           extraColorChoices={extraColorChoices}
           allColumns={allColumns}
         >

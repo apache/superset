@@ -21,7 +21,7 @@ from unittest import mock
 
 import pytest
 from flask import g
-import prison
+import rison
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
@@ -592,7 +592,7 @@ class TestRowLevelSecurityDeleteAPI(SupersetTestCase):
     def test_invalid_id_failure(self):
         self.login(ADMIN_USERNAME)
 
-        ids_to_delete = prison.dumps([10000, 10001, 100002])
+        ids_to_delete = rison.dumps([10000, 10001, 100002])
         rv = self.client.delete(f"/api/v1/rowlevelsecurity/?q={ids_to_delete}")
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
 
@@ -624,7 +624,7 @@ class TestRowLevelSecurityDeleteAPI(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
 
-        ids_to_delete = prison.dumps([rls_1.id, rls_2.id])
+        ids_to_delete = rison.dumps([rls_1.id, rls_2.id])
         rv = self.client.delete(f"/api/v1/rowlevelsecurity/?q={ids_to_delete}")
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
 
@@ -638,7 +638,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
     def test_rls_tables_related_api(self):
         self.login(ADMIN_USERNAME)
 
-        params = prison.dumps({"page": 0, "page_size": 100})
+        params = rison.dumps({"page": 0, "page_size": 100})
 
         rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
         assert rv.status_code == 200
@@ -657,7 +657,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
     def test_rls_tables_related_api_with_filter_matching_birth(self):
         self.login(ADMIN_USERNAME)
         # Test with filter that should match 'birth_names'
-        params = prison.dumps({"filter": "birth", "page": 0, "page_size": 100})
+        params = rison.dumps({"filter": "birth", "page": 0, "page_size": 100})
         rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -670,7 +670,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
     def test_rls_tables_related_api_with_filter_no_matches(self):
         self.login(ADMIN_USERNAME)
         # Test with filter that should match nothing
-        params = prison.dumps({"filter": "nonexistent", "page": 0, "page_size": 100})
+        params = rison.dumps({"filter": "nonexistent", "page": 0, "page_size": 100})
         rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -680,7 +680,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
 
     def test_rls_roles_related_api(self):
         self.login(ADMIN_USERNAME)
-        params = prison.dumps({"page": 0, "page_size": 100})
+        params = rison.dumps({"page": 0, "page_size": 100})
 
         rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles?q={params}")
         assert rv.status_code == 200
@@ -703,7 +703,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
     def test_table_related_filter(self):
         self.login(ADMIN_USERNAME)
 
-        params = prison.dumps({"page": 0, "page_size": 10})
+        params = rison.dumps({"page": 0, "page_size": 10})
 
         rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
         assert rv.status_code == 200

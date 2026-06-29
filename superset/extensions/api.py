@@ -225,4 +225,9 @@ class ExtensionsRestApi(BaseApi):
         if not mimetype:
             mimetype = "application/octet-stream"
 
-        return send_file(BytesIO(chunk), mimetype=mimetype)
+        response = send_file(BytesIO(chunk), mimetype=mimetype)
+        # Chunk filenames include a content hash, so they are immutable.
+        response.cache_control.max_age = 31536000
+        response.cache_control.public = True
+        response.cache_control.immutable = True
+        return response

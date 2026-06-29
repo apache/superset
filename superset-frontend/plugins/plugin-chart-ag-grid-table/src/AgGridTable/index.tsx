@@ -50,7 +50,7 @@ import {
   JsonObject,
 } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
-import { debounce, isEqual } from 'lodash';
+import { debounce, isEqual } from 'lodash-es';
 import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
@@ -247,7 +247,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       [serverPagination, debouncedSearch, searchId],
     );
 
-    const handleColSort = (colId: string, sortDir: string) => {
+    const handleColSort = (colId: string, sortDir: string | null) => {
       const isSortable = shouldSort({
         colId,
         sortDir,
@@ -301,10 +301,12 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     };
 
     const handleColumnHeaderClick = useCallback(
-      params => {
+      (params: { column?: { colId?: string; sort?: string | null } }) => {
         const colId = params?.column?.colId;
         const sortDir = params?.column?.sort;
-        handleColSort(colId, sortDir);
+        if (colId && sortDir !== undefined) {
+          handleColSort(colId, sortDir);
+        }
       },
       [serverPagination, gridInitialState, percentMetrics, onSortChange],
     );

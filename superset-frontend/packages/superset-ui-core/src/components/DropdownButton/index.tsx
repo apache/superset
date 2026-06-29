@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Dropdown } from 'antd';
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'lodash-es';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '../Tooltip';
 import type { DropdownButtonProps } from './types';
@@ -75,7 +75,10 @@ export const DropdownButton = ({
         id={`${kebabCase(tooltip)}-tooltip`}
         title={tooltip}
       >
-        {button}
+        {/* antd Dropdown.Button is a plain function component without
+            forwardRef; wrap in a span so the Tooltip can attach a ref to a
+            real DOM node and skip the findDOMNode fallback. */}
+        <span>{button}</span>
       </Tooltip>
     );
   }

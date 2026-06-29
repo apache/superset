@@ -24,7 +24,7 @@ import {
   useCallback,
   useMemo,
 } from 'react';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
@@ -116,7 +116,7 @@ export const useDrillDetailMenuItems = ({
   );
 
   const openModal = useCallback(
-    (filters, event) => {
+    (filters: BinaryQueryObjectFilterClause[], event: MouseEvent) => {
       onClick(event);
       onSelection();
       setFilters(filters);

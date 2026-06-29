@@ -18,8 +18,8 @@
  */
 import 'src/public-path';
 
-import { lazy, Suspense } from 'react';
-import ReactDOM from 'react-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { Global } from '@emotion/react';
 import { t } from '@apache-superset/core/translation';
@@ -32,8 +32,8 @@ import {
 } from '@apache-superset/core/theme';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
+import initPreamble from 'src/preamble';
 import setupClient from 'src/setup/setupClient';
-import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { store, USER_LOADED } from 'src/views/store';
 import { Loading } from '@superset-ui/core/components';
@@ -41,16 +41,35 @@ import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import {
   EmbeddedContextProviders,
   getThemeController,
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
+import { validateMessageEvent } from './originValidation';
 
-setupPlugins();
-setupCodeOverrides({ embedded: true });
+// Defer plugin setup until after the language pack loads to prevent t() calls in
+// plugin control panel configs from being cached in English before translations are ready.
+// Dynamic imports (webpackMode: "eager") keep modules in the same bundle chunk but defer
+// their evaluation until after initPreamble() resolves, so module-level t() calls in plugin
+// control panels and setup code run only after translations are available.
+const pluginsReady = initPreamble()
+  .catch(err => {
+    logging.warn(
+      'Preamble initialization failed, loading plugins without translations.',
+      err,
+    );
+  })
+  .then(async () => {
+    const [{ default: setupPlugins }, { default: setupCodeOverrides }] =
+      await Promise.all([
+        import(/* webpackMode: "eager" */ 'src/setup/setupPlugins'),
+        import(/* webpackMode: "eager" */ 'src/setup/setupCodeOverrides'),
+      ]);
+    setupPlugins();
+    setupCodeOverrides({ embedded: true });
+  });
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 const bootstrapData = getBootstrapData();
@@ -66,20 +85,21 @@ const LazyDashboardPage = lazy(
     ),
 );
 
-const EmbededLazyDashboardPage = () => {
+const EmbeddedLazyDashboardPage = () => {
   const uiConfig = useUiConfig();
+  const emitDataMasks = uiConfig?.emitDataMasks;
 
-  // Emit data mask changes to the parent window
-  if (uiConfig?.emitDataMasks) {
+  // Emit data mask changes to the parent window. Subscribing inside an effect
+  // (rather than during render) ensures the unsubscribe runs on unmount,
+  // including StrictMode's dev-mode double-mount cycle.
+  useEffect(() => {
+    if (!emitDataMasks) return undefined;
     log('setting up Switchboard event emitter');
 
     let previousDataMask = store.getState().dataMask;
 
-    store.subscribe(() => {
-      const currentState = store.getState();
-      const currentDataMask = currentState.dataMask;
-
-      // Only emit if the dataMask has changed
+    return store.subscribe(() => {
+      const currentDataMask = store.getState().dataMask;
       if (previousDataMask !== currentDataMask) {
         Switchboard.emit('observeDataMask', {
           ...currentDataMask,
@@ -88,7 +108,7 @@ const EmbededLazyDashboardPage = () => {
         previousDataMask = currentDataMask;
       }
     });
-  }
+  }, [emitDataMasks]);
 
   return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
 };
@@ -107,7 +127,7 @@ const EmbeddedRoute = () => (
     />
     <Suspense fallback={<Loading />}>
       <ErrorBoundary>
-        <EmbededLazyDashboardPage />
+        <EmbeddedLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
     </Suspense>
@@ -124,8 +144,6 @@ const EmbeddedApp = () => (
 
 const appMountPoint = document.getElementById('app')!;
 
-const MESSAGE_TYPE = '__embedded_comms__';
-
 function showFailureMessage(message: string) {
   appMountPoint.innerHTML = message;
 }
@@ -138,18 +156,9 @@ if (!window.parent || window.parent === window) {
   );
 }
 
-// if the page is embedded in an origin that hasn't
-// been authorized by the curator, we forbid access entirely.
-// todo: check the referrer on the route serving this page instead
-// const ALLOW_ORIGINS = ['http://127.0.0.1:9001', 'http://localhost:9001'];
-// const parentOrigin = new URL(document.referrer).origin;
-// if (!ALLOW_ORIGINS.includes(parentOrigin)) {
-//   throw new Error(
-//     `[superset] iframe parent ${parentOrigin} is not in the list of allowed origins`,
-//   );
-// }
-
 let displayedUnauthorizedToast = false;
+let root: Root | null = null;
+let started = false;
 
 /**
  * If there is a problem with the guest token, we will start getting
@@ -175,31 +184,40 @@ function guestUnauthorizedHandler() {
 }
 
 function start() {
+  if (started) return undefined;
+  started = true;
   const getMeWithRole = makeApi<void, { result: UserWithPermissionsAndRoles }>({
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
   });
-  return getMeWithRole().then(
-    ({ result }) => {
-      // fill in some missing bootstrap data
-      // (because at pageload, we don't have any auth yet)
-      // this allows the frontend's permissions checks to work.
-      bootstrapData.user = result;
-      store.dispatch({
-        type: USER_LOADED,
-        user: result,
-      });
-      ReactDOM.render(<EmbeddedApp />, appMountPoint);
-    },
-    err => {
-      // something is most likely wrong with the guest token
-      logging.error(err);
-      showFailureMessage(
-        t(
-          'Something went wrong with embedded authentication. Check the dev console for details.',
-        ),
-      );
-    },
+  return pluginsReady.then(() =>
+    getMeWithRole().then(
+      ({ result }) => {
+        // fill in some missing bootstrap data
+        // (because at pageload, we don't have any auth yet)
+        // this allows the frontend's permissions checks to work.
+        bootstrapData.user = result;
+        store.dispatch({
+          type: USER_LOADED,
+          user: result,
+        });
+        if (!root) {
+          root = createRoot(appMountPoint);
+        }
+        root.render(<EmbeddedApp />);
+      },
+      err => {
+        // something is most likely wrong with the guest token; reset the guard
+        // so a rehandshake with a valid token can retry.
+        logging.error(err);
+        showFailureMessage(
+          t(
+            'Something went wrong with embedded authentication. Check the dev console for details.',
+          ),
+        );
+        started = false;
+      },
+    ),
   );
 }
 
@@ -215,21 +233,9 @@ function setupGuestClient(guestToken: string) {
   });
 }
 
-function validateMessageEvent(event: MessageEvent) {
-  // if (!ALLOW_ORIGINS.includes(event.origin)) {
-  //   throw new Error('Message origin is not in the allowed list');
-  // }
-
-  if (typeof event.data !== 'object' || event.data.type !== MESSAGE_TYPE) {
-    throw new Error(`Message type does not match type used for embedded comms`);
-  }
-}
-
 window.addEventListener('message', function embeddedPageInitializer(event) {
-  try {
-    validateMessageEvent(event);
-  } catch (err) {
-    log('ignoring message unrelated to embedded comms', err, event);
+  if (!validateMessageEvent(event, bootstrapData.embedded?.allowed_domains)) {
+    log('ignoring message unrelated to embedded comms', event);
     return;
   }
 
@@ -243,16 +249,11 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       debug: debugMode,
     });
 
-    let started = false;
-
     Switchboard.defineMethod(
       'guestToken',
       ({ guestToken }: { guestToken: string }) => {
         setupGuestClient(guestToken);
-        if (!started) {
-          start();
-          started = true;
-        }
+        start();
       },
     );
 
@@ -322,7 +323,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
   }
 });
 
-// Clean up theme controller on page unload
+// Clean up theme controller and unmount React root on page unload
 window.addEventListener('beforeunload', () => {
   try {
     const controller = getThemeController();
@@ -332,6 +333,10 @@ window.addEventListener('beforeunload', () => {
     }
   } catch (error) {
     logging.warn('Failed to destroy theme controller:', error);
+  }
+  if (root) {
+    root.unmount();
+    root = null;
   }
 });
 

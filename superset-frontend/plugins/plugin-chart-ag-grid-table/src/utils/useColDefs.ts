@@ -17,9 +17,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
-import { DataRecord, DataRecordValue } from '@superset-ui/core';
+import { DataRecord, DataRecordValue, JsonObject } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useTheme } from '@apache-superset/core/theme';
 import { ColorFormatters } from '@superset-ui/chart-controls';
@@ -32,13 +33,16 @@ import {
 } from '../types';
 import getCellClass from './getCellClass';
 import filterValueGetter from './filterValueGetter';
+import htmlTextFilterValueGetter, {
+  htmlTextComparator,
+} from './htmlTextFilterValueGetter';
 import dateFilterComparator from './dateFilterComparator';
 import DateWithFormatter from './DateWithFormatter';
 import { getAggFunc } from './getAggFunc';
 import { TextCellRenderer } from '../renderers/TextCellRenderer';
 import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
 import CustomHeader from '../AgGridTable/components/CustomHeader';
-import { NOOP_FILTER_COMPARATOR } from '../consts';
+import { NOOP_FILTER_COMPARATOR, ROW_NUMBER_COL_ID } from '../consts';
 import { valueFormatter, valueGetter } from './formatValue';
 import getCellStyle from './getCellStyle';
 
@@ -50,6 +54,9 @@ type UseColDefsProps = {
   columns: InputColumn[];
   data: InputData[];
   serverPagination: boolean;
+  serverPaginationData: JsonObject;
+  serverPageLength: number;
+  showNumberedColumn: boolean;
   isRawRecords: boolean;
   defaultAlignPN: boolean;
   showCellBars: boolean;
@@ -213,6 +220,9 @@ export const useColDefs = ({
   columns,
   data,
   serverPagination,
+  serverPaginationData,
+  serverPageLength,
+  showNumberedColumn,
   isRawRecords,
   defaultAlignPN,
   showCellBars,
@@ -318,6 +328,24 @@ export const useColDefs = ({
         ...(isPercentMetric && {
           filterValueGetter,
         }),
+        ...(dataType === GenericDataType.String &&
+          !serverPagination && {
+            // HTML cells (e.g. anchor markup) are rendered by TextCellRenderer
+            // via dangerouslySetInnerHTML; without these the filter and sort
+            // operate on raw HTML so the URL inside the markup dictates order
+            // and the "Contains" filter matches against the raw HTML string.
+            //
+            // Gated on !serverPagination: in server-pagination mode sort and
+            // filter are both delegated to the backend (which sees raw HTML
+            // in the database), so applying the visible-text getter only on
+            // the client would create a mismatch where the typed filter
+            // value is stripped client-side but the server query still
+            // operates on the raw HTML. Server-paginated tables with HTML
+            // columns are out of scope for this fix and would require
+            // server-side handling.
+            filterValueGetter: htmlTextFilterValueGetter,
+            comparator: htmlTextComparator,
+          }),
         ...(dataType === GenericDataType.Temporal && {
           // Use dateFilterValueGetter so AG Grid correctly identifies null dates for blank filter
           filterValueGetter: dateFilterValueGetter,
@@ -439,5 +467,61 @@ export const useColDefs = ({
     }, []);
   }, [stringifiedCols, getCommonColProps]);
 
-  return colDefs;
+  const rawPageSize = serverPaginationData?.pageSize ?? serverPageLength;
+  const pageSize = rawPageSize && rawPageSize > 0 ? rawPageSize : data.length;
+  const currentPage = serverPaginationData?.currentPage ?? 0;
+  const maxVisibleRowNumber = serverPagination
+    ? currentPage * pageSize + data.length
+    : data.length;
+  const rowIndexLength = `${Math.max(maxVisibleRowNumber, 1)}`.length;
+  const rowNumberCol = useMemo<ColDef>(
+    () => ({
+      headerName: t('№'),
+      headerClass: 'ag-header-center',
+      field: ROW_NUMBER_COL_ID,
+      valueGetter: params => {
+        if (params.node?.rowPinned != null) return '';
+        if (serverPagination && serverPaginationData) {
+          return currentPage * pageSize + (params.node?.rowIndex ?? 0) + 1;
+        }
+        return (params.node?.rowIndex ?? 0) + 1;
+      },
+      headerStyle: {
+        backgroundColor: theme.colorFillTertiary,
+        fontSize: '1em',
+        color: theme.colorTextTertiary,
+      },
+      width: 30 + rowIndexLength * 6,
+      minWidth: 30 + rowIndexLength * 6,
+      sortable: false,
+      filter: false,
+      pinned: 'left' as const,
+      lockPosition: true,
+      suppressNavigable: true,
+      resizable: false,
+      suppressMovable: true,
+      suppressSizeToFit: true,
+      cellStyle: {
+        backgroundColor: theme.colorFillTertiary,
+        padding: '0',
+        textAlign: 'center',
+        fontSize: '0.9em',
+        color: theme.colorTextTertiary,
+      },
+    }),
+    [
+      currentPage,
+      pageSize,
+      rowIndexLength,
+      serverPagination,
+      serverPaginationData,
+      theme.colorFillTertiary,
+      theme.colorTextTertiary,
+    ],
+  );
+
+  return useMemo(
+    () => (showNumberedColumn ? [rowNumberCol, ...colDefs] : colDefs),
+    [showNumberedColumn, rowNumberCol, colDefs],
+  );
 };

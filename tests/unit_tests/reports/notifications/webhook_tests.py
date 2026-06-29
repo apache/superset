@@ -18,9 +18,11 @@
 
 import pandas as pd
 import pytest
+from freezegun import freeze_time
 
 from superset.reports.notifications.exceptions import (
     NotificationParamException,
+    NotificationUnprocessableException,
 )
 from superset.reports.notifications.webhook import WebhookNotification
 from superset.utils.core import HeaderDataType
@@ -223,3 +225,202 @@ def test_send_http_only_https_check(monkeypatch, mock_header_data) -> None:
 
     with pytest.raises(NotificationParamException, match="HTTPS is required by config"):
         webhook_notification.send()
+
+
+def test_send_treats_redirect_as_failure(monkeypatch, mock_header_data) -> None:
+    """
+    A 3xx response is a failure: redirects are not followed
+    (allow_redirects=False), so the request never reached the final target and
+    must not be reported as success.
+    """
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    content = NotificationContent(
+        name="test alert", header_data=mock_header_data, description="Test description"
+    )
+    webhook_notification = WebhookNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.WEBHOOK,
+            recipient_config_json='{"target": "https://example.com/webhook"}',
+        ),
+        content=content,
+    )
+
+    class MockCurrentApp:
+        config = {
+            "ALERT_REPORTS_WEBHOOK_HTTPS_ONLY": True,
+            "ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS": True,
+        }
+
+    class MockResponse:
+        status_code = 302
+        text = ""
+
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.current_app", MockCurrentApp
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        lambda flag: True,
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.requests.post",
+        lambda *args, **kwargs: MockResponse(),
+    )
+
+    with pytest.raises(NotificationParamException, match="redirect"):
+        webhook_notification.send()
+
+
+def _make_webhook(mock_header_data) -> WebhookNotification:
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    content = NotificationContent(
+        name="test alert", header_data=mock_header_data, description="Test description"
+    )
+    return WebhookNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.WEBHOOK,
+            recipient_config_json='{"target": "https://example.com/webhook"}',
+        ),
+        content=content,
+    )
+
+
+class _MockServerErrorResponse:
+    status_code = 500
+    text = ""
+
+
+def _allow_internal_app() -> type:
+    class MockCurrentApp:
+        config = {
+            "ALERT_REPORTS_WEBHOOK_HTTPS_ONLY": True,
+            "ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS": True,
+        }
+
+    return MockCurrentApp
+
+
+def test_send_backoff_bounded_by_max_time(monkeypatch, mock_header_data) -> None:
+    """
+    A persistently failing (500) target gives up on wall-time (``max_time``),
+    not just ``max_tries``. ``freeze_time(auto_tick_seconds=30)`` advances the
+    clock on every time access (backoff measures elapsed via ``datetime.now``,
+    which freezegun freezes and ticks), so cumulative elapsed crosses ``max_time=120``
+    before ``max_tries=5`` is exhausted. We assert the discriminating *property*
+    — gave up on wall-time strictly before exhausting ``max_tries`` — rather than
+    a pinned count, because freezegun's per-call tick count is an opaque
+    implementation detail. If ``max_time`` is removed this rises to the full 5
+    (RED); the flat-clock companion test below anchors that 5 is the ceiling.
+    The terminal exception type is unchanged on giveup.
+    """
+    webhook_notification = _make_webhook(mock_header_data)
+    post_calls: list[int] = []
+
+    def fake_post(*args, **kwargs) -> _MockServerErrorResponse:
+        post_calls.append(1)
+        return _MockServerErrorResponse()
+
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.current_app", _allow_internal_app()
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        lambda flag: True,
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.requests.post", fake_post
+    )
+    monkeypatch.setattr("time.sleep", lambda *a, **k: None)
+
+    with freeze_time("2020-01-01", auto_tick_seconds=30):
+        with pytest.raises(NotificationUnprocessableException):
+            webhook_notification.send()
+
+    # 1 < count < max_tries(5): wall-time bound fired before tries exhausted.
+    assert 1 < len(post_calls) < 5
+
+
+def test_send_flat_clock_falls_back_to_max_tries(monkeypatch, mock_header_data) -> None:
+    """
+    Characterization (NOT a RED discriminator): with the clock held flat,
+    ``max_time`` can never fire, so ``max_tries=5`` governs and exactly 5 POSTs
+    happen. Passes on both buggy and fixed code; its job is to prove the 3-vs-5
+    delta in ``test_send_backoff_bounded_by_max_time`` is attributable to
+    wall-time, not to ``max_tries``.
+    """
+    webhook_notification = _make_webhook(mock_header_data)
+    post_calls: list[int] = []
+
+    def fake_post(*args, **kwargs) -> _MockServerErrorResponse:
+        post_calls.append(1)
+        return _MockServerErrorResponse()
+
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.current_app", _allow_internal_app()
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        lambda flag: True,
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.requests.post", fake_post
+    )
+    monkeypatch.setattr("time.sleep", lambda *a, **k: None)
+
+    with freeze_time("2020-01-01"):
+        with pytest.raises(NotificationUnprocessableException):
+            webhook_notification.send()
+
+    assert len(post_calls) == 5
+
+
+def test_send_max_time_does_not_abandon_recovering_target(
+    monkeypatch, mock_header_data
+) -> None:
+    """
+    No-regression guard: a target that fails twice (500) then succeeds on the
+    3rd attempt still succeeds, and ``max_time=120`` is not set so low it
+    abandons recovery. The clock advances a small +5s per access so ``max_time``
+    is genuinely engaged (cumulative elapsed across 3 attempts stays comfortably
+    under 120), unlike a flat clock which would pin elapsed at 0 and let the test
+    pass at any ``max_time`` — including a misconfigured ``max_time=1``. Lower
+    ``max_time`` enough and this test correctly fails.
+    """
+    webhook_notification = _make_webhook(mock_header_data)
+    post_calls: list[int] = []
+
+    class _OkResponse:
+        status_code = 200
+        text = ""
+
+    def fake_post(*args, **kwargs):
+        post_calls.append(1)
+        if len(post_calls) < 3:
+            return _MockServerErrorResponse()
+        return _OkResponse()
+
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.current_app", _allow_internal_app()
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        lambda flag: True,
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.requests.post", fake_post
+    )
+    monkeypatch.setattr("time.sleep", lambda *a, **k: None)
+
+    with freeze_time("2020-01-01", auto_tick_seconds=5):
+        webhook_notification.send()
+
+    # The clock advances (+5s/access) so ``max_time`` is genuinely engaged, yet
+    # cumulative elapsed across 3 attempts stays well under 120: the recovering
+    # target (``fake_post`` succeeds on the 3rd) is not abandoned. A flat clock
+    # would pin elapsed at 0 and pass at any ``max_time``, including a broken
+    # ``max_time=1`` — this non-zero tick keeps the guard real.
+    assert len(post_calls) == 3

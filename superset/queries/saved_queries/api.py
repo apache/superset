@@ -21,7 +21,7 @@ from typing import Any
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, request, Response, send_file
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
@@ -54,6 +54,7 @@ from superset.queries.saved_queries.schemas import (
     openapi_spec_methods_override,
 )
 from superset.utils import json
+from superset.utils.core import sanitize_cookie_token
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -182,10 +183,12 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     related_field_filters = {
         "database": "database_name",
         "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
     base_related_field_filters = {
         "database": [["id", DatabaseFilter, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     allowed_rel_fields = {"database", "changed_by", "created_by"}
     allowed_distinct_fields = {"catalog", "schema"}
@@ -200,7 +203,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete saved queries.
         ---
@@ -252,7 +255,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     def export(self, **kwargs: Any) -> Response:
         """Download multiple saved queries as YAML files.
         ---
@@ -305,7 +308,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 

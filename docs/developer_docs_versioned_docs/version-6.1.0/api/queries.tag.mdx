@@ -1,0 +1,28 @@
+---
+id: queries
+title: "Queries"
+description: "Queries"
+custom_edit_url: null
+---
+
+View and manage SQL Lab query history.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `GET` | [Get a list of queries](./get-a-list-of-queries) | `/api/v1/query/` |
+| `GET` | [Get query detail information](./get-query-detail-information) | `/api/v1/query/{pk}` |
+| `GET` | [Get distinct values from field data (query-distinct-column-name)](./get-distinct-values-from-field-data-query-distinct-column-name) | `/api/v1/query/distinct/{column_name}` |
+| `GET` | [Get related fields data (query-related-column-name)](./get-related-fields-data-query-related-column-name) | `/api/v1/query/related/{column_name}` |
+| `POST` | [Manually stop a query with client_id](./manually-stop-a-query-with-client-id) | `/api/v1/query/stop` |
+| `GET` | [Get a list of queries that changed after last_updated_ms](./get-a-list-of-queries-that-changed-after-last-updated-ms) | `/api/v1/query/updated_since` |
+| `DELETE` | [Bulk delete saved queries](./bulk-delete-saved-queries) | `/api/v1/saved_query/` |
+| `GET` | [Get a list of saved queries](./get-a-list-of-saved-queries) | `/api/v1/saved_query/` |
+| `POST` | [Create a saved query](./create-a-saved-query) | `/api/v1/saved_query/` |
+| `GET` | [Get metadata information about this API resource (saved-query--info)](./get-metadata-information-about-this-api-resource-saved-query-info) | `/api/v1/saved_query/_info` |
+| `DELETE` | [Delete a saved query](./delete-a-saved-query) | `/api/v1/saved_query/{pk}` |
+| `GET` | [Get a saved query](./get-a-saved-query) | `/api/v1/saved_query/{pk}` |
+| `PUT` | [Update a saved query](./update-a-saved-query) | `/api/v1/saved_query/{pk}` |
+| `GET` | [Get distinct values from field data (saved-query-distinct-column-name)](./get-distinct-values-from-field-data-saved-query-distinct-column-name) | `/api/v1/saved_query/distinct/{column_name}` |
+| `GET` | [Download multiple saved queries as YAML files](./download-multiple-saved-queries-as-yaml-files) | `/api/v1/saved_query/export/` |
+| `POST` | [Import saved queries with associated databases](./import-saved-queries-with-associated-databases) | `/api/v1/saved_query/import/` |
+| `GET` | [Get related fields data (saved-query-related-column-name)](./get-related-fields-data-saved-query-related-column-name) | `/api/v1/saved_query/related/{column_name}` |
