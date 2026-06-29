@@ -2009,7 +2009,7 @@ class ChartLineageDatasetSchema(Schema):
     id = fields.Integer()
     name = fields.String()
     database_id = fields.Integer()
-    database_name = fields.String()
+    database_name = fields.String(allow_none=True)
     schema = fields.String(allow_none=True)
     table_name = fields.String()
 
@@ -2023,7 +2023,7 @@ class ChartLineageDatabaseSchema(Schema):
 class ChartLineageDashboardSchema(Schema):
     id = fields.Integer()
     title = fields.String()
-    slug = fields.String()
+    slug = fields.String(allow_none=True)
 
 
 class ChartLineageUpstreamSchema(Schema):

@@ -1231,7 +1231,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         if not dataset:
             return self.response_404()
 
-        dataset_info = {
+        dataset_info: dict[str, Any] = {
             "id": dataset.id,
             "name": dataset.name,
             "database_id": dataset.database_id,
@@ -1254,7 +1254,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             upstream["database"] = None
 
         # Get downstream (charts and dashboards) information
-        related_data = DatasetDAO.get_related_objects(dataset.id)
+        related_data: dict[str, Any] = DatasetDAO.get_related_objects(dataset.id)
 
         # Build chart information with dashboard IDs, filtering both the charts
         # and their linked dashboards by the current user's permissions so
@@ -1263,7 +1263,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         for chart in related_data["charts"]:
             if not security_manager.can_access_chart(chart):
                 continue
-            dashboard_ids = [
+            dashboard_ids: list[int] = [
                 d.id
                 for d in chart.dashboards
                 if security_manager.can_access_dashboard(d)
@@ -1282,7 +1282,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         for dashboard in related_data["dashboards"]:
             if not security_manager.can_access_dashboard(dashboard):
                 continue
-            chart_ids = [
+            chart_ids: list[int] = [
                 chart.id
                 for chart in dashboard.slices
                 if chart.datasource_id == dataset.id
@@ -1297,7 +1297,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 }
             )
 
-        downstream = {
+        downstream: dict[str, Any] = {
             "charts": {
                 "count": len(charts),
                 "result": charts,
@@ -1308,7 +1308,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             },
         }
 
-        result = {
+        result: dict[str, Any] = {
             "dataset": dataset_info,
             "upstream": upstream,
             "downstream": downstream,
