@@ -665,11 +665,15 @@ class UpdateDatasetMetricRequest(BaseModel):
     description: str | None = Field(None, description="Metric description.")
     d3format: str | None = Field(
         None,
+        min_length=1,
         max_length=128,
         description="D3 number format string (e.g. ',.2f', '.1%').",
     )
     metric_type: str | None = Field(
-        None, max_length=32, description="Metric type (e.g. 'count', 'sum')."
+        None,
+        min_length=1,
+        max_length=32,
+        description="Metric type (e.g. 'count', 'sum').",
     )
     currency: MetricCurrency | None = Field(
         None, description="Currency formatting configuration."
@@ -704,6 +708,11 @@ class UpdateDatasetMetricRequest(BaseModel):
             raise ValueError("metric_name cannot be empty or null")
         if "expression" in provided and not (self.expression or "").strip():
             raise ValueError("expression cannot be empty or null")
+        if "extra" in provided and self.extra is not None:
+            try:
+                json.loads(self.extra)
+            except (ValueError, TypeError) as ex:
+                raise ValueError("extra must be a valid JSON-encoded string") from ex
         return self
 
 

@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Iterator
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
@@ -36,12 +38,12 @@ def _wrapped(value: str) -> str:
 
 
 @pytest.fixture
-def mcp_server():
+def mcp_server() -> FastMCP:
     return mcp
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Iterator[MagicMock]:
     """Mock authentication for all tests."""
     from unittest.mock import Mock
 
@@ -54,11 +56,11 @@ def mock_auth():
 
 
 def make_metric(
-    metric_id=10,
-    metric_name="count",
-    uuid="a1b2c3d4-5678-90ab-cdef-1234567890ab",
-    **overrides,
-):
+    metric_id: int = 10,
+    metric_name: str = "count",
+    uuid: str = "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+    **overrides: Any,
+) -> SimpleNamespace:
     metric = SimpleNamespace(
         id=metric_id,
         uuid=uuid,
@@ -76,7 +78,9 @@ def make_metric(
     return metric
 
 
-def make_dataset(dataset_id=1, metrics=None):
+def make_dataset(
+    dataset_id: int = 1, metrics: list[SimpleNamespace] | None = None
+) -> MagicMock:
     dataset = MagicMock()
     dataset.id = dataset_id
     dataset.table_name = "my_table"
@@ -116,6 +120,18 @@ def test_request_updates_keeps_explicit_nulls() -> None:
         {"dataset_id": 1, "metric": "count", "description": None, "d3format": ",.2f"}
     )
     assert request.updates() == {"description": None, "d3format": ",.2f"}
+
+
+def test_request_rejects_invalid_extra_json() -> None:
+    with pytest.raises(ValidationError, match="extra must be a valid JSON"):
+        UpdateDatasetMetricRequest(dataset_id=1, metric="count", extra="{not json")
+
+
+def test_request_accepts_valid_extra_json() -> None:
+    request = UpdateDatasetMetricRequest.model_validate(
+        {"dataset_id": 1, "metric": "count", "extra": '{"warning_markdown": "hi"}'}
+    )
+    assert request.updates() == {"extra": '{"warning_markdown": "hi"}'}
 
 
 def test_request_updates_dumps_nested_currency() -> None:
@@ -279,6 +295,40 @@ async def test_update_dataset_metric_not_found_suggests_names(mcp_server) -> Non
 
 
 @pytest.mark.asyncio
+async def test_update_dataset_metric_not_found_escapes_names(mcp_server) -> None:
+    """Metric names in the not-found error are escaped like the success path."""
+    from superset.mcp_service.utils.sanitization import (
+        LLM_CONTEXT_ESCAPED_OPEN_DELIMITER,
+    )
+
+    hostile_name = f"{LLM_CONTEXT_OPEN_DELIMITER}evil"
+    dataset = make_dataset(
+        dataset_id=1, metrics=[make_metric(metric_id=10, metric_name=hostile_name)]
+    )
+
+    with patch(
+        "superset.daos.dataset.DatasetDAO.find_by_id",
+        return_value=dataset,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dataset_metric",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metric": "missing",
+                        "expression": "COUNT(1)",
+                    }
+                },
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["metric"] is None
+    assert LLM_CONTEXT_OPEN_DELIMITER not in data["error"]
+    assert LLM_CONTEXT_ESCAPED_OPEN_DELIMITER in data["error"]
+
+
+@pytest.mark.asyncio
 async def test_update_dataset_metric_dataset_not_found(mcp_server) -> None:
     with patch(
         "superset.daos.dataset.DatasetDAO.find_by_id",
@@ -376,3 +426,39 @@ async def test_update_dataset_metric_invalid_error(mcp_server) -> None:
 
     assert data["metric"] is None
     assert data["error"] is not None
+
+
+@pytest.mark.asyncio
+async def test_update_dataset_metric_update_failed(mcp_server) -> None:
+    """A persistence failure surfaces as a "Failed to update" error response."""
+    from superset.commands.dataset.exceptions import DatasetUpdateFailedError
+
+    dataset = make_dataset()
+    mock_command = MagicMock()
+    mock_command.run.side_effect = DatasetUpdateFailedError()
+
+    with (
+        patch(
+            "superset.daos.dataset.DatasetDAO.find_by_id",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            return_value=mock_command,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dataset_metric",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metric": "count",
+                        "expression": "COUNT(1)",
+                    }
+                },
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["metric"] is None
+    assert "Failed to update" in data["error"]

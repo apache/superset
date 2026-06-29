@@ -60,14 +60,20 @@ def _find_metric(metrics: list[Any], identifier: int | str) -> Any | None:
 
 
 def _metric_not_found_message(metrics: list[Any], identifier: int | str) -> str:
+    """Build a "metric not found" error, escaping caller- and stored-supplied
+    text so it can't break out of the LLM context delimiters (same treatment as
+    the success path in ``_serialize_metric``)."""
     names = [m.metric_name for m in metrics]
-    msg = f"Metric '{identifier}' not found on this dataset."
+    safe_identifier = escape_llm_context_delimiters(str(identifier))
+    msg = f"Metric '{safe_identifier}' not found on this dataset."
     if not names:
         return f"{msg} This dataset has no saved metrics."
     suggestions = difflib.get_close_matches(str(identifier), names, n=3, cutoff=0.6)
     if suggestions:
-        return f"{msg} Did you mean: {', '.join(suggestions)}?"
-    return f"{msg} Available metrics: {', '.join(sorted(names))}."
+        safe_suggestions = [escape_llm_context_delimiters(n) for n in suggestions]
+        return f"{msg} Did you mean: {', '.join(safe_suggestions)}?"
+    safe_names = [escape_llm_context_delimiters(n) for n in sorted(names)]
+    return f"{msg} Available metrics: {', '.join(safe_names)}."
 
 
 def _serialize_metric(metric: Any) -> DatasetMetricDetail:
@@ -107,7 +113,9 @@ def _serialize_metric(metric: Any) -> DatasetMetricDetail:
     annotations=ToolAnnotations(
         title="Update dataset metric",
         readOnlyHint=False,
-        destructiveHint=False,
+        # Overwrites an existing metric's definition and affects every chart
+        # that uses it — non-additive, like update_chart.
+        destructiveHint=True,
     ),
 )
 async def update_dataset_metric(
