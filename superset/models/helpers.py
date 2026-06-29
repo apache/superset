@@ -2778,7 +2778,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 condition = condition_factory(expr.name, expr)
 
                 # Create CASE expression: condition true -> original, else "Others"
-                case_expr = sa.case([(condition, expr)], else_=sa.literal("Others"))
+                case_expr = sa.case((condition, expr), else_=sa.literal("Others"))
                 case_expr = self.make_sqla_column_compatible(case_expr, expr.name)
                 modified_select_exprs.append(case_expr)
             else:
@@ -2793,7 +2793,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 # Create CASE expression for groupby
                 case_expr = sa.case(
-                    [(condition, gby_expr)],
+                    (condition, gby_expr),
                     else_=sa.literal("Others"),
                 )
                 # Don't apply make_sqla_column_compatible to GROUP BY expressions.
