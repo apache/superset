@@ -65,6 +65,11 @@ const HandlebarsTemplateControl = (
         'Formats a number using a Superset d3 format or locale. Example: {{formatNumber value format=",.2f"}}.',
     },
     {
+      key: 'formatCurrency',
+      descKey:
+        'Formats a number as currency using a row currency code or ISO code. Example: {{formatCurrency value format=",.2f" code=currency_code_col}}.',
+    },
+    {
       key: 'parseJson',
       descKey: 'Parses a JSON string into a JavaScript object.',
     },

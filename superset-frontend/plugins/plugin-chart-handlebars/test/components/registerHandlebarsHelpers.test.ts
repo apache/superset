@@ -59,6 +59,39 @@ describe('registerHandlebarsHelpers', () => {
     expect(template({ value: 1234567 })).toBe('1,234,567');
   });
 
+  test('formatCurrency helper formats values with an explicit currency code', () => {
+    const template = Handlebars.compile(
+      '{{formatCurrency value format=",.2f" code="EUR"}}',
+    );
+    expect(template({ value: 1000 })).toContain('€');
+    expect(template({ value: 1000 })).toContain('1,000.00');
+  });
+
+  test('formatCurrency helper reads currency code from row context', () => {
+    const template = Handlebars.compile(
+      '{{#with row}}{{formatCurrency amount format=",.2f" code=currency_code}}{{/with}}',
+    );
+    const result = template({ row: { amount: 1000, currency_code: 'EUR' } });
+    expect(result).toContain('€');
+    expect(result).toContain('1,000.00');
+  });
+
+  test('formatCurrency helper auto-detects currency from a row column', () => {
+    const template = Handlebars.compile(
+      '{{#with row}}{{formatCurrency amount format=",.2f" currencyColumn="currency_code"}}{{/with}}',
+    );
+    const result = template({ row: { amount: 750, currency_code: 'GBP' } });
+    expect(result).toContain('£');
+    expect(result).toContain('750.00');
+  });
+
+  test('formatCurrency helper falls back to number formatting without currency', () => {
+    const template = Handlebars.compile(
+      '{{formatCurrency value format=",.2f"}}',
+    );
+    expect(template({ value: 1000 })).toBe('1,000.00');
+  });
+
   test('tn helper returns a string for pluralized keys', () => {
     const { configure } = jest.requireActual(
       '@apache-superset/core/translation',

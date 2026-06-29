@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t, tn } from '@apache-superset/core/translation';
-import { getNumberFormatter } from '@superset-ui/core';
+import {
+  AUTO_CURRENCY_SYMBOL,
+  CurrencyFormatter,
+  getNumberFormatter,
+} from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import Handlebars, { HelperOptions } from 'handlebars';
 import { isPlainObject } from 'lodash';
@@ -42,12 +46,37 @@ function getPositionalArgs(args: unknown[]): unknown[] {
   return isHandlebarsOptions(lastArg) ? args.slice(0, -1) : args;
 }
 
+function parseNumericValue(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isNaN(num) ? null : num;
+}
+
+function getRowData(
+  context: unknown,
+): Record<string, string | number | boolean | null | undefined> | undefined {
+  if (typeof context === 'object' && context !== null) {
+    return context as Record<
+      string,
+      string | number | boolean | null | undefined
+    >;
+  }
+  return undefined;
+}
+
 export function registerHandlebarsHelpers(): void {
   if (helpersRegistered) {
     return;
   }
   helpersRegistered = true;
 
+  Helpers.registerHelpers(Handlebars);
+  HandlebarsGroupBy.register(Handlebars);
+
+  // Register Superset helpers after third-party helpers to avoid overrides.
   // usage: {{ dateFormat my_date format="MMMM YYYY" }}
   Handlebars.registerHelper('dateFormat', function (context, block) {
     const f = block.hash.format || 'YYYY-MM-DD';
@@ -66,13 +95,11 @@ export function registerHandlebarsHelpers(): void {
   Handlebars.registerHelper(
     'formatNumber',
     function (number: unknown, block: HelperOptions) {
-      if (number === null || number === undefined || number === '') {
-        return '';
-      }
-
-      const num = typeof number === 'number' ? number : Number(number);
-      if (Number.isNaN(num)) {
-        return String(number);
+      const num = parseNumericValue(number);
+      if (num === null) {
+        return number === null || number === undefined || number === ''
+          ? ''
+          : String(number);
       }
 
       const format = block.hash.format as string | undefined;
@@ -87,6 +114,53 @@ export function registerHandlebarsHelpers(): void {
       }
 
       return String(getNumberFormatter()(num));
+    },
+  );
+
+  // usage: {{formatCurrency value format=",.2f" code=currency_code_col}}
+  // usage: {{formatCurrency value currencyColumn="currency_code_col"}}
+  Handlebars.registerHelper(
+    'formatCurrency',
+    function (
+      this: Record<string, string | number | boolean | null | undefined>,
+      value: unknown,
+      block: HelperOptions,
+    ) {
+      const num = parseNumericValue(value);
+      if (num === null) {
+        return '';
+      }
+
+      const format = (block.hash.format as string) || ',.2f';
+      const position =
+        (block.hash.position as 'prefix' | 'suffix' | undefined) || 'prefix';
+      const rowData = getRowData(this);
+      const currencyColumn = block.hash.currencyColumn as string | undefined;
+      const code = block.hash.code as string | undefined;
+
+      if (currencyColumn && rowData) {
+        const formatter = new CurrencyFormatter({
+          d3Format: format,
+          currency: {
+            symbol: AUTO_CURRENCY_SYMBOL,
+            symbolPosition: position,
+          },
+        });
+        return formatter(num, rowData, currencyColumn);
+      }
+
+      if (code) {
+        const formatter = new CurrencyFormatter({
+          d3Format: format,
+          currency: {
+            symbol: code,
+            symbolPosition: position,
+          },
+        });
+        return formatter(num);
+      }
+
+      return String(getNumberFormatter(format)(num));
     },
   );
 
@@ -122,9 +196,6 @@ export function registerHandlebarsHelpers(): void {
     }
     return tn(String(key), ...positional.slice(1));
   });
-
-  Helpers.registerHelpers(Handlebars);
-  HandlebarsGroupBy.register(Handlebars);
 }
 
 /** Reset registration state for tests. */
