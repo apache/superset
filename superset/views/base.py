@@ -423,7 +423,9 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
         "theme": {
             "default": default_theme,
             "dark": dark_theme,
-            "defaultMode": app.config["THEME_DEFAULT_MODE"],
+            "defaultMode": app.config["THEME_DEFAULT_MODE"]
+            if app.config["THEME_DEFAULT_MODE"] in ("default", "dark", "system")
+            else "default",
             "enableUiThemeAdministration": enable_ui_admin,
         }
     }

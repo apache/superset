@@ -708,7 +708,10 @@ export class ThemeController {
       system: ThemeMode.SYSTEM,
     };
     const bootstrapDefaultMode: ThemeMode =
-      (defaultMode && modeMap[defaultMode]) || ThemeMode.SYSTEM;
+      (defaultMode &&
+        Object.hasOwn(modeMap, defaultMode) &&
+        modeMap[defaultMode]) ||
+      ThemeMode.SYSTEM;
 
     return {
       bootstrapDefaultTheme: hasCustomDefault ? defaultTheme : null,
