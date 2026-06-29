@@ -100,7 +100,7 @@ describe('apiResource hooks', () => {
 
     test('skips the fetch and stays loading when skip is true', async () => {
       const fetchMock = jest.fn().mockResolvedValue(fakeApiResult);
-      (makeApi as any).mockReturnValue(fetchMock);
+      (makeApi as jest.Mock).mockReturnValue(fetchMock);
       const { result } = renderHook(() =>
         useApiResourceFullBody('/test/endpoint', true),
       );
@@ -117,7 +117,7 @@ describe('apiResource hooks', () => {
 
     test('re-enables the fetch when skip toggles from true to false', async () => {
       const fetchMock = jest.fn().mockResolvedValue(fakeApiResult);
-      (makeApi as any).mockReturnValue(fetchMock);
+      (makeApi as jest.Mock).mockReturnValue(fetchMock);
       const { result, rerender } = renderHook(
         ({ skip }) => useApiResourceFullBody('/test/endpoint', skip),
         { initialProps: { skip: true } },

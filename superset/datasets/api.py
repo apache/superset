@@ -926,7 +926,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         # Build chart information with dashboard IDs, filtering both the charts
         # and their linked dashboards by the current user's permissions so
         # lineage never exposes assets the user cannot access.
-        charts = []
+        charts: list[dict[str, Any]] = []
         for chart in related_data["charts"]:
             if not security_manager.can_access_chart(chart):
                 continue
@@ -945,7 +945,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
 
         # Build dashboard information with chart IDs
-        dashboards = []
+        dashboards: list[dict[str, Any]] = []
         for dashboard in related_data["dashboards"]:
             if not security_manager.can_access_dashboard(dashboard):
                 continue
@@ -953,6 +953,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 chart.id
                 for chart in dashboard.slices
                 if chart.datasource_id == dataset.id
+                and security_manager.can_access_chart(chart)
             ]
             dashboards.append(
                 {
