@@ -94,7 +94,7 @@ export class ThemeController {
 
   private devThemeOverride: AnyThemeConfig | null = null;
 
-  private bootstrapDefaultMode!: ThemeMode;
+  private bootstrapDefaultMode: ThemeMode = ThemeMode.DEFAULT;
 
   // Dashboard themes managed by controller
   private dashboardThemes: Map<string, Theme> = new Map();
