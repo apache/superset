@@ -641,15 +641,14 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
     return <Empty description={t('No lineage data available')} />;
   }
 
-  // Helper function to get the URL for an entity
+  // Helper function to get the URL for an entity. Datasets have no standalone
+  // detail page, so only dashboards and charts expose an "Open" action.
   const getEntityUrl = (nodeDetails: NodeDetails): string => {
     switch (nodeDetails.type) {
       case 'dashboard':
         return `/superset/dashboard/${nodeDetails.id}/`;
       case 'chart':
         return `/explore/?slice_id=${nodeDetails.id}`;
-      case 'dataset':
-        return `/dataset/${nodeDetails.id}`;
       default:
         return '#';
     }
