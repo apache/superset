@@ -3355,9 +3355,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # with a dotted ``column_name`` such as ``a.b.c``) are quoted per
                 # segment, matching the chart/groupby selection path above.
                 # Routing these through ``quote()`` + sqlglot normalization below
-                # can collapse the dotted path into a single quoted identifier
-                # (e.g. ```a.b`.`c```), which breaks drill to detail / samples
-                # queries on nested columns (SC-111745).
+                # can instead quote the whole dotted path as one identifier
+                # (e.g. ``a.b.c`` becomes a single quoted name rather than the
+                # correct per-segment form), which breaks drill to detail /
+                # samples queries on nested columns (SC-111745).
                 if isinstance(selected, str) and selected in columns_by_name:
                     select_exprs.append(
                         self.convert_tbl_column_to_sqla_col(
