@@ -17,7 +17,10 @@
  * under the License.
  */
 
-import { customTimeRangeEncode } from 'src/explore/components/controls/DateFilterControl/utils';
+import {
+  customTimeRangeEncode,
+  guessFrame,
+} from 'src/explore/components/controls/DateFilterControl/utils';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Custom TimeRange', () => {
@@ -184,4 +187,19 @@ describe('Custom TimeRange', () => {
       );
     });
   });
+});
+
+test('guessFrame returns Common for sub-hour presets', () => {
+  expect(guessFrame('Last 5 minutes')).toBe('Common');
+  expect(guessFrame('Last 15 minutes')).toBe('Common');
+  expect(guessFrame('Last 30 minutes')).toBe('Common');
+  expect(guessFrame('Last 1 hour')).toBe('Common');
+});
+
+test('guessFrame still returns Common for existing day/week/month presets', () => {
+  expect(guessFrame('Last day')).toBe('Common');
+  expect(guessFrame('Last week')).toBe('Common');
+  expect(guessFrame('Last month')).toBe('Common');
+  expect(guessFrame('Last quarter')).toBe('Common');
+  expect(guessFrame('Last year')).toBe('Common');
 });

@@ -760,3 +760,27 @@ def test_datetime_eval_does_not_emit_parsedatetime_debug_logs(
         "flood production logs. Records: "
         + repr([(r.levelname, r.getMessage()) for r in parsedatetime_records])
     )
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_get_since_until_sub_hour_presets() -> None:
+    """Verify that sub-hour presets ('Last 5 minutes', 'Last 15 minutes',
+    'Last 30 minutes', 'Last 1 hour') resolve to the expected datetime pairs
+    when relative_end='now'."""
+    result: tuple
+
+    result = get_since_until("Last 5 minutes", relative_end="now")
+    expected = datetime(2016, 11, 7, 9, 25, 10), datetime(2016, 11, 7, 9, 30, 10)
+    assert result == expected
+
+    result = get_since_until("Last 15 minutes", relative_end="now")
+    expected = datetime(2016, 11, 7, 9, 15, 10), datetime(2016, 11, 7, 9, 30, 10)
+    assert result == expected
+
+    result = get_since_until("Last 30 minutes", relative_end="now")
+    expected = datetime(2016, 11, 7, 9, 0, 10), datetime(2016, 11, 7, 9, 30, 10)
+    assert result == expected
+
+    result = get_since_until("Last 1 hour", relative_end="now")
+    expected = datetime(2016, 11, 7, 8, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
+    assert result == expected

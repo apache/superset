@@ -72,6 +72,10 @@ export type CustomRangeDecodeType = {
 };
 
 export type CommonRangeType =
+  | 'Last 5 minutes'
+  | 'Last 15 minutes'
+  | 'Last 30 minutes'
+  | 'Last 1 hour'
   | 'Last day'
   | 'Last week'
   | 'Last month'
