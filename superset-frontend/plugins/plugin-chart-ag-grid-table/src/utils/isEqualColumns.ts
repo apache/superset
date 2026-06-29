@@ -25,6 +25,8 @@ const getDescriptions = (props: TableChartProps) => {
   const metrics = props.rawDatasource?.metrics || [];
 
   return colnames.map((key: string) => {
+    // Internal names of metrics expressed as percentages have a "%" prefix,
+    // however, their storage locations are defined in rawDatasource.metrics using the original names.
     const metricLookupKey = key.startsWith('%') ? key.slice(1) : key;
     return (
       columns.find((item: { column_name: string }) => item.column_name === key)

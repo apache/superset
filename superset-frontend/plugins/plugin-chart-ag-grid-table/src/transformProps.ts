@@ -385,6 +385,8 @@ const processColumns = memoizeOne(function processColumns(
         ? config.currencyFormat
         : savedCurrency;
 
+      // Internal names of metrics expressed as percentages have a "%" prefix,
+      // however, their storage locations are defined in rawDatasource.metrics using the original names.
       const metricLookupKey = key.startsWith('%') ? key.slice(1) : key;
       const description =
         rawDatasource.columns?.find(
