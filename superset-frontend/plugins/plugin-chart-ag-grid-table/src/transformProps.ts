@@ -102,8 +102,8 @@ const processComparisonTotals = (
   totals.map((totalRecord: DataRecord) =>
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
-        transformedTotals[`Main ${key}`] =
-          parseInt(transformedTotals[`Main ${key}`]?.toString() || '0', 10) +
+        transformedTotals[`${t('Main')} ${key}`] =
+          parseInt(transformedTotals[`${t('Main')} ${key}`]?.toString() || '0', 10) +
           parseInt(totalRecord[key]?.toString() || '0', 10);
         transformedTotals[`# ${key}`] =
           parseInt(transformedTotals[`# ${key}`]?.toString() || '0', 10) +
@@ -112,7 +112,7 @@ const processComparisonTotals = (
             10,
           );
         const { valueDifference, percentDifferenceNum } = calculateDifferences(
-          transformedTotals[`Main ${key}`] as number,
+          transformedTotals[`${t('Main')} ${key}`] as number,
           transformedTotals[`# ${key}`] as number,
         );
         transformedTotals[`△ ${key}`] = valueDifference;
@@ -192,7 +192,7 @@ const processComparisonDataRecords = memoizeOne(
               comparisonValue as number,
             );
 
-          transformedItem[`Main ${origCol.key}`] = originalValue;
+          transformedItem[`${t('Main')} ${origCol.key}`] = originalValue;
           transformedItem[`# ${origCol.key}`] = comparisonValue;
           transformedItem[`△ ${origCol.key}`] = valueDifference;
           transformedItem[`% ${origCol.key}`] = percentDifferenceNum;
