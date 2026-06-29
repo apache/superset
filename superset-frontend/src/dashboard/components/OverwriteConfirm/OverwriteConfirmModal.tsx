@@ -24,9 +24,10 @@ import { useInView } from 'react-intersection-observer';
 import { Button, Modal } from '@superset-ui/core/components';
 import { DashboardState } from 'src/dashboard/types';
 import {
-  saveDashboardRequest,
-  setOverrideConfirm,
-} from 'src/dashboard/actions/dashboardState';
+  setOverwriteConfirmMetadata,
+  useDashboardIsSaving,
+} from 'src/dashboard/stores';
+import { saveDashboardRequest } from 'src/dashboard/actions/dashboardState';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { SAVE_TYPE_OVERWRITE_CONFIRMED } from 'src/dashboard/util/constants';
@@ -92,10 +93,8 @@ type Props = {
 const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
   const [bottomRef, hasReviewed] = useInView({ triggerOnce: true });
   const dispatch = useDispatch();
-  const onHide = useCallback(
-    () => dispatch(setOverrideConfirm(undefined)),
-    [dispatch],
-  );
+  const dashboardIsSaving = useDashboardIsSaving();
+  const onHide = useCallback(() => setOverwriteConfirmMetadata(undefined), []);
   const anchors = useMemo<RefObject<HTMLDivElement>[]>(
     () =>
       overwriteConfirmMetadata
@@ -112,16 +111,22 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
     [anchors],
   );
   const onConfirmOverwrite = useCallback(() => {
-    if (overwriteConfirmMetadata) {
-      dispatch(
-        saveDashboardRequest(
-          overwriteConfirmMetadata.data,
-          overwriteConfirmMetadata.dashboardId,
-          SAVE_TYPE_OVERWRITE_CONFIRMED,
+    // Ignore repeat clicks while a save is already in flight (duplicate PUTs).
+    if (overwriteConfirmMetadata && !dashboardIsSaving) {
+      // The thunk rejects on a failed PUT (so the Save mutation can see it), but
+      // this path dispatches it directly; onError already shows the toast, so
+      // swallow the rejection to avoid an unhandled promise rejection.
+      Promise.resolve(
+        dispatch(
+          saveDashboardRequest(
+            overwriteConfirmMetadata.data,
+            overwriteConfirmMetadata.dashboardId,
+            SAVE_TYPE_OVERWRITE_CONFIRMED,
+          ),
         ),
-      );
+      ).catch(() => {});
     }
-  }, [dispatch, overwriteConfirmMetadata]);
+  }, [dispatch, overwriteConfirmMetadata, dashboardIsSaving]);
 
   return (
     <Modal
@@ -149,7 +154,8 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
             cta
             buttonStyle="primary"
             onClick={onConfirmOverwrite}
-            disabled={!hasReviewed}
+            disabled={!hasReviewed || dashboardIsSaving}
+            loading={dashboardIsSaving}
           >
             {t('Yes, overwrite changes')}
           </Button>
@@ -197,6 +203,8 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
                 cta
                 buttonStyle="primary"
                 onClick={onConfirmOverwrite}
+                disabled={dashboardIsSaving}
+                loading={dashboardIsSaving}
               >
                 {t('Yes, overwrite changes')}
               </Button>

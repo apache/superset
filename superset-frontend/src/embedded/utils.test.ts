@@ -18,6 +18,12 @@
  */
 import { DataMaskStateWithId } from '@superset-ui/core';
 import { cloneDeep } from 'lodash-es';
+import {
+  useDashboardStateStore,
+  useDashboardSlicesStore,
+  useNativeFiltersStore,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { getDataMaskChangeTrigger, getChartDataPayloads } from './utils';
 import { RootState } from 'src/views/store';
 import * as chartStateConverter from 'src/dashboard/util/chartStateConverter';
@@ -146,8 +152,32 @@ const mockState: Partial<RootState> = {
   },
 } as Partial<RootState>;
 
+// getChartDataPayloads reads sliceEntities / dataMask / dashboardState /
+// nativeFilters from the Zustand stores (only charts + dashboardInfo come
+// from the Redux `state` arg) — seed those stores from the mock data.
+const seedZustandStores = () => {
+  useDashboardSlicesStore
+    .getState()
+    .setSlices(
+      (mockState.sliceEntities?.slices ?? {}) as Parameters<
+        ReturnType<typeof useDashboardSlicesStore.getState>['setSlices']
+      >[0],
+    );
+  useDataMaskStore.setState({ dataMask: mockState.dataMask ?? {} });
+  useDashboardStateStore.setState({
+    chartStates: mockState.dashboardState?.chartStates ?? {},
+    sliceIds: mockState.dashboardState?.sliceIds ?? [],
+    colorScheme: mockState.dashboardState?.colorScheme,
+    colorNamespace: mockState.dashboardState?.colorNamespace,
+  });
+  useNativeFiltersStore.setState({
+    filters: mockState.nativeFilters?.filters ?? {},
+  });
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
+  seedZustandStores();
   (getFormDataWithExtraFilters as jest.Mock).mockImplementation(
     ({ chart }: any) => chart.form_data,
   );

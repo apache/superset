@@ -18,9 +18,10 @@
  */
 
 import { useCallback, useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { saveChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
+import {
+  useSaveFilterConfiguration,
+  useSaveChartCustomization,
+} from 'src/dashboard/queries';
 import { SaveChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
 import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
@@ -43,7 +44,8 @@ export const useFilterConfigModal = ({
   dashboardId,
   initialFilterId,
 }: UseFilterConfigModalProps): UseFilterConfigModalReturn => {
-  const dispatch = useDispatch();
+  const { mutateAsync: saveFilterConfiguration } = useSaveFilterConfiguration();
+  const { mutateAsync: saveChartCustomization } = useSaveChartCustomization();
   const [isFilterConfigModalOpen, setIsFilterConfigModalOpen] = useState(false);
 
   const openFilterConfigModal = useCallback(() => {
@@ -58,26 +60,24 @@ export const useFilterConfigModal = ({
     async (changes: SaveChangesType) => {
       try {
         if (changes.filterChanges) {
-          dispatch(setFilterConfiguration(changes.filterChanges));
+          await saveFilterConfiguration(changes.filterChanges);
         }
         if (changes.customizationChanges) {
           // Await so the delete commits before the modal closes, otherwise a
           // quick "Apply filters" can re-persist the still-present control.
-          await dispatch(
-            saveChartCustomization(
-              changes.customizationChanges.modified,
-              changes.customizationChanges.deleted,
-              changes.customizationChanges.reordered,
-              true,
-            ),
-          );
+          await saveChartCustomization({
+            modifiedCustomizations: changes.customizationChanges.modified,
+            deletedIds: changes.customizationChanges.deleted,
+            reorderedIds: changes.customizationChanges.reordered,
+            resetDataMask: true,
+          });
         }
         closeFilterConfigModal();
       } catch (error) {
-        // Error toast already shown in action, prevent modal close
+        // Error toast already shown in hook; keep the modal open so edits aren't lost.
       }
     },
-    [dispatch, closeFilterConfigModal],
+    [saveFilterConfiguration, saveChartCustomization, closeFilterConfigModal],
   );
 
   const FilterConfigModalComponent = isFilterConfigModalOpen ? (

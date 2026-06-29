@@ -146,6 +146,8 @@
     "@superset-ui/plugin-chart-world-map": "file:./plugins/plugin-chart-world-map",
     "@superset-ui/preset-chart-deckgl": "file:./plugins/preset-chart-deckgl",
     "@superset-ui/switchboard": "file:./packages/superset-ui-switchboard",
+    "@tanstack/react-query": "^5.100.10",
+    "@tanstack/react-query-devtools": "^5.100.10",
     "@types/d3-format": "^3.0.1",
     "@types/d3-selection": "^3.0.11",
     "@types/d3-time-format": "^4.0.3",
@@ -232,7 +234,9 @@
     "use-query-params": "^2.2.2",
     "uuid": "^14.0.2",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "yargs": "^18.1.0"
+    "yargs": "^18.1.0",
+    "zundo": "^2.3.0",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@babel/cli": "^7.29.7",

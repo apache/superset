@@ -71,6 +71,8 @@ export const DynamicEditableTitle = memo(
     title,
     placeholder,
     onSave,
+    onChange,
+    onEditingChange,
     canEdit,
     label,
   }: DynamicEditableTitleProps) => {
@@ -128,19 +130,18 @@ export const DynamicEditableTitle = memo(
       }
     }, [currentTitle, placeholder]);
 
-    // Webfont metrics differ from the fallback font's, so a measurement
-    // taken before fonts finish loading under- or over-sizes the input.
-    // Re-measure once all fonts are ready.
+    // Re-measure on sizer reflow (font load, zoom, theme swap), not just on
+    // text change, so the input never clips the title.
     useEffect(() => {
-      let cancelled = false;
-      document.fonts?.ready?.then(() => {
-        if (!cancelled && sizerRef.current) {
-          setInputWidth(sizerRef.current.offsetWidth);
-        }
-      });
-      return () => {
-        cancelled = true;
-      };
+      const sizer = sizerRef.current;
+      if (!sizer || typeof ResizeObserver === 'undefined') {
+        return undefined;
+      }
+      const observer = new ResizeObserver(() =>
+        setInputWidth(sizer.offsetWidth),
+      );
+      observer.observe(sizer);
+      return () => observer.disconnect();
     }, []);
 
     useEffect(() => {
@@ -160,7 +161,8 @@ export const DynamicEditableTitle = memo(
         return;
       }
       setIsEditing(true);
-    }, [canEdit, isEditing]);
+      onEditingChange?.(true);
+    }, [canEdit, isEditing, onEditingChange]);
 
     const handleBlur = useCallback(() => {
       if (!canEdit) {
@@ -181,7 +183,8 @@ export const DynamicEditableTitle = memo(
       }
       dirtyRef.current = false;
       setIsEditing(false);
-    }, [canEdit, currentTitle, onSave, title]);
+      onEditingChange?.(false);
+    }, [canEdit, currentTitle, onSave, title, onEditingChange]);
 
     const handleChange = useCallback(
       (ev: ChangeEvent<HTMLInputElement>) => {
@@ -195,11 +198,13 @@ export const DynamicEditableTitle = memo(
         // controlled input would revert to the previous value.
         if (!isEditing) {
           setIsEditing(true);
+          onEditingChange?.(true);
         }
         dirtyRef.current = true;
         setCurrentTitle(ev.target.value);
+        onChange?.(ev.target.value);
       },
-      [canEdit, isEditing],
+      [canEdit, isEditing, onChange, onEditingChange],
     );
 
     const handleKeyPress = useCallback(
