@@ -378,4 +378,4 @@ class DatabendEngineSpec(BasicParametersMixin, DatabendBaseEngineSpec):
 # lacks ``parameters_schema``/``build_sqlalchemy_uri`` and broke the
 # "configure via individual parameters" flow. They are now merged into a
 # single spec; this alias keeps existing imports working.
-DatabendConnectEngineSpec = DatabendEngineSpec
+DatabendConnectEngineSpec: type[DatabendEngineSpec] = DatabendEngineSpec
