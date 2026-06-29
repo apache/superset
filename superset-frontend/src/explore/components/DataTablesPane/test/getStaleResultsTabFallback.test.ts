@@ -16,13 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEmpty, isNaN, isNil, isString, trim } from 'lodash-es';
+import { getStaleResultsTabFallback } from '../DataTablesPane';
+import { ResultTypes } from '../types';
 
-/**
- * Checks if a value is null, undefined, NaN, or a whitespace-only string.
- */
-export default function isBlank(value: unknown): boolean {
-  return (
-    isNil(value) || isNaN(value) || (isString(value) && isEmpty(trim(value)))
+test('keeps the active tab when it still exists', () => {
+  expect(
+    getStaleResultsTabFallback('results 2', ['results', 'results 2']),
+  ).toBeUndefined();
+});
+
+test('keeps the first results tab as-is', () => {
+  expect(getStaleResultsTabFallback('results', ['results'])).toBeUndefined();
+});
+
+test('falls back to the first results tab when the active one disappears', () => {
+  // A mixed chart dropped from two query results to one, removing "results 2"
+  expect(getStaleResultsTabFallback('results 2', ['results'])).toBe(
+    ResultTypes.Results,
   );
-}
+});
+
+test('never redirects the Samples tab', () => {
+  expect(
+    getStaleResultsTabFallback(ResultTypes.Samples, ['results']),
+  ).toBeUndefined();
+});
