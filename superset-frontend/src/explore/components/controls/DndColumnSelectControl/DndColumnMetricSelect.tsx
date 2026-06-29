@@ -130,12 +130,14 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
     formData,
   } = props;
 
-  // Semantic views do not support arbitrary SQL expressions as dimensions.
-  // Merge 'sqlExpression' into disabledTabs so the Custom SQL tab is hidden.
+  // Semantic-view dimensions and metrics are pre-defined items in the
+  // semantic model; ad-hoc construction from a physical column (Simple) or
+  // an arbitrary SQL expression (Custom SQL) doesn't apply. Hide both tabs
+  // so only "Saved" is offered.
   const effectiveDisabledTabs = useMemo(
     () =>
       String(datasource?.type) === 'semantic_view'
-        ? new Set([...(disabledTabs ?? []), 'sqlExpression'])
+        ? new Set([...(disabledTabs ?? []), 'simple', 'sqlExpression'])
         : disabledTabs,
     [datasource?.type, disabledTabs],
   );

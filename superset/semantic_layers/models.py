@@ -315,6 +315,11 @@ class SemanticView(AuditMixinNullable, Model):
 
     @property
     def columns(self) -> list[ColumnMetadata]:
+        # ``expression`` is set to ``dimension.definition`` so the explore
+        # column picker routes SV dimensions to the "Saved" tab, mirroring
+        # how SV metrics land in their "Saved" tab. The metaphor is "pick
+        # from the semantic layer's pre-defined items" — SV exposes neither
+        # arbitrary physical columns (Simple) nor ad-hoc SQL (Custom SQL).
         return [
             ColumnMetadata(
                 column_name=dimension.name,
@@ -350,6 +355,10 @@ class SemanticView(AuditMixinNullable, Model):
                     "certified_by": None,
                     "column_name": dimension.name,
                     "description": dimension.description,
+                    # See ``columns`` property: ``expression`` carries
+                    # ``dimension.definition`` so SV dimensions land in the
+                    # "Saved" tab of the explore column picker, matching
+                    # how SV metrics already behave.
                     "expression": dimension.definition,
                     "filterable": True,
                     "groupby": True,

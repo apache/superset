@@ -53,14 +53,18 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     disabledTabs,
   } = props;
 
-  // Semantic views do not support arbitrary SQL expressions as dimensions.
+  // Semantic-view dimensions are pre-defined items in the semantic model;
+  // there is no notion of a physical column to wrap (Simple) or an ad-hoc
+  // SQL expression (Custom SQL), so both of those popover tabs are
+  // disabled. Only the "Saved" tab — which lists the SV's dimensions —
+  // is offered, mirroring how SV metrics behave.
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource?.type,
   );
   const effectiveDisabledTabs = useMemo(
     () =>
       datasourceType === 'semantic_view'
-        ? new Set([...(disabledTabs ?? []), 'sqlExpression'])
+        ? new Set([...(disabledTabs ?? []), 'simple', 'sqlExpression'])
         : disabledTabs,
     [datasourceType, disabledTabs],
   );
