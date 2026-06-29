@@ -363,11 +363,20 @@ class TestExecuteSql:
         self, mock_db, mock_security_manager, mcp_server
     ):
         """Test error when user lacks database access."""
+        from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+        from superset.exceptions import SupersetSecurityException
+
         mock_database = _mock_database()
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = False
+        mock_security_manager.raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                message="Access denied to database test_db",
+                error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
 
         request = {
             "database_id": 1,
