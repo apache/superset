@@ -63,6 +63,7 @@ import {
   Col,
   Divider,
   EditableTitle,
+  Empty,
   Flex,
   FormLabel,
   Icons,
@@ -461,7 +462,11 @@ const StyledTableTabWrapper = styled.div`
 function DatasetLineageTab({ datasourceId }: { datasourceId?: number }) {
   const lineageResource = useDatasetLineage(datasourceId ?? '');
   if (!datasourceId) {
-    return <Loading />;
+    return (
+      <Empty
+        description={t('Lineage is available after the dataset is saved')}
+      />
+    );
   }
   return <LineageView lineageResource={lineageResource} entityType="dataset" />;
 }
