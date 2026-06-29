@@ -134,3 +134,129 @@ def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
         "errors": ["http://localhost/dash/boom"],
     }
     driver.destroy.assert_called_once_with()
+
+
+def test_native_filter_options_strategy_returns_tasks_for_eligible_filters() -> None:
+    """Eligible native filters are converted into cache warm-up tasks."""
+    from superset.tasks.cache import NativeFilterOptionsStrategy
+
+    dashboard = mock.MagicMock()
+    dashboard.id = 10
+    filter_configs = [{"id": "filter-1"}, {"id": "filter-2"}]
+    form_data = [{"groupby": ["country"]}, {"groupby": ["state"]}]
+    query_contexts = [mock.MagicMock(), mock.MagicMock()]
+
+    with (
+        mock.patch(
+            "superset.tasks.cache.DashboardDAO.find_by_id",
+            return_value=dashboard,
+        ),
+        mock.patch(
+            "superset.tasks.cache.get_eligible_native_filters",
+            return_value=filter_configs,
+        ),
+        mock.patch(
+            "superset.tasks.cache.build_native_filter_option_form_data",
+            side_effect=form_data,
+        ) as mock_build_form_data,
+        mock.patch(
+            "superset.tasks.cache.build_native_filter_option_query_context",
+            side_effect=query_contexts,
+        ) as mock_build_query_context,
+    ):
+        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+
+    assert len(tasks) == 2
+    assert [task.query_context for task in tasks] == query_contexts
+    assert [task.dashboard_id for task in tasks] == [10, 10]
+    assert [task.native_filter_id for task in tasks] == ["filter-1", "filter-2"]
+    assert mock_build_form_data.call_count == 2
+    assert mock_build_query_context.call_count == 2
+
+
+def test_native_filter_options_strategy_skips_missing_dashboard() -> None:
+    """Missing dashboards are skipped without raising."""
+    from superset.tasks.cache import NativeFilterOptionsStrategy
+
+    with (
+        mock.patch(
+            "superset.tasks.cache.DashboardDAO.find_by_id",
+            return_value=None,
+        ),
+        mock.patch("superset.tasks.cache.get_eligible_native_filters") as mock_filters,
+    ):
+        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+
+    assert tasks == []
+    mock_filters.assert_not_called()
+
+
+def test_native_filter_options_strategy_skips_when_form_data_is_none() -> None:
+    """Filters without form data are skipped without raising."""
+    from superset.tasks.cache import NativeFilterOptionsStrategy
+
+    dashboard = mock.MagicMock()
+    dashboard.id = 10
+    filter_configs = [{"id": "filter-1"}, {"id": "filter-2"}]
+    query_context = mock.MagicMock()
+
+    with (
+        mock.patch(
+            "superset.tasks.cache.DashboardDAO.find_by_id",
+            return_value=dashboard,
+        ),
+        mock.patch(
+            "superset.tasks.cache.get_eligible_native_filters",
+            return_value=filter_configs,
+        ),
+        mock.patch(
+            "superset.tasks.cache.build_native_filter_option_form_data",
+            side_effect=[None, {"groupby": ["country"]}],
+        ),
+        mock.patch(
+            "superset.tasks.cache.build_native_filter_option_query_context",
+            return_value=query_context,
+        ) as mock_build_query_context,
+    ):
+        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+
+    assert len(tasks) == 1
+    assert tasks[0].query_context == query_context
+    mock_build_query_context.assert_called_once_with({"groupby": ["country"]})
+
+
+def test_native_filter_options_strategy_skips_when_query_context_is_none() -> None:
+    """Filters without a query context are skipped without raising."""
+    from superset.tasks.cache import NativeFilterOptionsStrategy
+
+    dashboard = mock.MagicMock()
+    dashboard.id = 10
+
+    with (
+        mock.patch(
+            "superset.tasks.cache.DashboardDAO.find_by_id",
+            return_value=dashboard,
+        ),
+        mock.patch(
+            "superset.tasks.cache.get_eligible_native_filters",
+            return_value=[{"id": "filter-1"}],
+        ),
+        mock.patch(
+            "superset.tasks.cache.build_native_filter_option_form_data",
+            return_value={"groupby": ["country"]},
+        ),
+        mock.patch(
+            "superset.tasks.cache.build_native_filter_option_query_context",
+            return_value=None,
+        ),
+    ):
+        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+
+    assert tasks == []
+
+
+def test_native_filter_options_strategy_registered() -> None:
+    """The native filter options strategy is registered by name."""
+    from superset.tasks.cache import NativeFilterOptionsStrategy, strategy_registry
+
+    assert strategy_registry["native_filter_options"] is NativeFilterOptionsStrategy

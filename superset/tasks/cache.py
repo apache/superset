@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 from typing import Any, Optional, Union
 
@@ -25,15 +26,31 @@ from sqlalchemy import and_, func
 from sqlalchemy.orm import selectinload
 
 from superset import db, security_manager
+from superset.common.query_context import QueryContext
+from superset.daos.dashboard import DashboardDAO
 from superset.extensions import celery_app
 from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.tags.models import Tag, TaggedObject
+from superset.tasks.native_filter_cache import (
+    build_native_filter_option_form_data,
+    build_native_filter_option_query_context,
+    get_eligible_native_filters,
+)
 from superset.utils.date_parser import parse_human_datetime
 from superset.utils.webdriver import WebDriverSelenium
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
+
+
+@dataclass(frozen=True)
+class CacheWarmupTask:
+    """A chart data query to execute for cache warm-up."""
+
+    query_context: QueryContext
+    dashboard_id: int
+    native_filter_id: str | None = None
 
 
 def get_dash_url(dashboard: Dashboard) -> str:
@@ -54,8 +71,8 @@ class Strategy:  # pylint: disable=too-few-public-methods
     """
     A cache warm up strategy.
 
-    Each strategy defines a `get_urls` method that returns a list of dashboard URLs to
-    warm up using WebDriver.
+    WebDriver strategies define a `get_urls` method that returns a list of
+    dashboard URLs to warm up. Query task strategies define `get_tasks`.
 
     Strategies can be configured in `superset/config.py`:
 
@@ -73,11 +90,17 @@ class Strategy:  # pylint: disable=too-few-public-methods
 
     """
 
+    name = ""
+    uses_webdriver = True
+
     def __init__(self) -> None:
         pass
 
     def get_urls(self) -> list[str]:
         raise NotImplementedError("Subclasses must implement get_urls!")
+
+    def get_tasks(self) -> list[CacheWarmupTask]:
+        return []
 
 
 class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
@@ -201,7 +224,101 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         return urls
 
 
-strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
+class NativeFilterOptionsStrategy(Strategy):  # pylint: disable=too-few-public-methods
+    """
+    Build chart data query tasks for native filter option cache warm-up.
+    """
+
+    name = "native_filter_options"
+    uses_webdriver = False
+
+    def __init__(self, dashboard_ids: list[int]) -> None:
+        super().__init__()
+        self.dashboard_ids = dashboard_ids
+
+    def get_urls(self) -> list[str]:
+        return []
+
+    def get_tasks(self) -> list[CacheWarmupTask]:
+        tasks: list[CacheWarmupTask] = []
+
+        for dashboard_id in self.dashboard_ids:
+            skipped = 0
+            built = 0
+
+            try:
+                dashboard = DashboardDAO.find_by_id(dashboard_id)
+                if dashboard is None:
+                    logger.warning(
+                        "Dashboard %s not found; skipping native filter option "
+                        "cache warm-up",
+                        dashboard_id,
+                    )
+                    continue
+
+                filter_configs = get_eligible_native_filters(dashboard)
+
+                for filter_config in filter_configs:
+                    try:
+                        form_data = build_native_filter_option_form_data(
+                            dashboard,
+                            filter_config,
+                        )
+                        if form_data is None:
+                            skipped += 1
+                            continue
+
+                        query_context = build_native_filter_option_query_context(
+                            form_data
+                        )
+                        if query_context is None:
+                            skipped += 1
+                            continue
+
+                        tasks.append(
+                            CacheWarmupTask(
+                                query_context=query_context,
+                                dashboard_id=dashboard.id,
+                                native_filter_id=filter_config.get("id"),
+                            )
+                        )
+                        built += 1
+                    except Exception:  # noqa: BLE001
+                        skipped += 1
+                        logger.exception(
+                            "Error building native filter option cache warm-up "
+                            "task for dashboard %s filter %s",
+                            dashboard_id,
+                            filter_config.get("id"),
+                        )
+
+                logger.info(
+                    "Dashboard %s native filter option cache warm-up: %s filters "
+                    "found, %s tasks built, %s skipped",
+                    dashboard_id,
+                    len(filter_configs),
+                    built,
+                    skipped,
+                )
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "Error building native filter option cache warm-up tasks for "
+                    "dashboard %s",
+                    dashboard_id,
+                )
+
+        return tasks
+
+
+strategies = [
+    DummyStrategy,
+    TopNDashboardsStrategy,
+    DashboardTagsStrategy,
+    NativeFilterOptionsStrategy,
+]
+strategy_registry: dict[str, type[Strategy]] = {
+    strategy.name: strategy for strategy in strategies
+}
 
 
 @celery_app.task(name="cache-warmup")
@@ -215,11 +332,8 @@ def cache_warmup(
 
     """
     logger.info("Loading strategy")
-    class_ = None
-    for class_ in strategies:
-        if class_.name == strategy_name:  # type: ignore
-            break
-    else:
+    class_ = strategy_registry.get(strategy_name)
+    if class_ is None:
         message = "No strategy %s found!" % strategy_name
         logger.error(message, exc_info=True)
         return message
@@ -252,6 +366,30 @@ def cache_warmup(
         )
         logger.error(message)
         return message
+
+    if not strategy.uses_webdriver:
+        # pylint: disable=import-outside-toplevel
+        from superset.commands.chart.data.get_data_command import ChartDataCommand
+        from superset.utils.core import override_user
+
+        with override_user(user, force=False):
+            tasks = strategy.get_tasks()
+            for task in tasks:
+                task_name = (
+                    f"dashboard:{task.dashboard_id}:"
+                    f"native_filter:{task.native_filter_id}"
+                )
+                try:
+                    logger.info("Warming up cache for %s", task_name)
+                    command = ChartDataCommand(task.query_context)
+                    command.validate()
+                    command.run(cache=True)
+                    results["success"].append(task_name)
+                except Exception:  # noqa: BLE001
+                    logger.exception("Error warming up cache for %s", task_name)
+                    results["errors"].append(task_name)
+
+        return results
 
     wd = WebDriverSelenium(current_app.config["WEBDRIVER_TYPE"], user=user)
 
