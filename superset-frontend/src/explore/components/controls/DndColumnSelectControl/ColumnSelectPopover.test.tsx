@@ -128,6 +128,40 @@ test('open with Saved tab selected when there is a saved column selected', () =>
   expect(getByText('Custom SQL')).toHaveAttribute('aria-selected', 'false');
 });
 
+test('shows Simple and Custom SQL as disabled when disabledTabs requests it', () => {
+  // Semantic-view contexts disable both Simple and Custom SQL so only
+  // "Saved" is offered, matching how SV metrics behave in the metric
+  // popover. The disabled tabs stay visible (greyed out) so users see all
+  // the options that could exist in another context.
+  const store = mockStore({
+    explore: { datasource: { type: 'semantic_view' } },
+  });
+  const { getByText } = render(
+    <ColumnSelectPopover
+      columns={[{ column_name: 'year', expression: 'year' } as any]}
+      editedColumn={undefined}
+      getCurrentTab={jest.fn()}
+      onChange={jest.fn()}
+      hasCustomLabel
+      isTemporal={false}
+      label="Custom Label"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={jest.fn()}
+      disabledTabs={new Set(['simple', 'sqlExpression'])}
+    />,
+    { store },
+  );
+
+  expect(getByText('Saved')).toHaveAttribute('aria-selected', 'true');
+  // Simple and Custom SQL stay rendered but are marked disabled by Antd and
+  // are not the initially selected tab.
+  expect(getByText('Simple')).toHaveAttribute('aria-disabled', 'true');
+  expect(getByText('Simple')).toHaveAttribute('aria-selected', 'false');
+  expect(getByText('Custom SQL')).toHaveAttribute('aria-disabled', 'true');
+  expect(getByText('Custom SQL')).toHaveAttribute('aria-selected', 'false');
+});
+
 test('open with Custom SQL tab selected when there is a custom SQL selected', () => {
   const { getByText } = renderPopover({
     columns: [{ column_name: 'year' }],
