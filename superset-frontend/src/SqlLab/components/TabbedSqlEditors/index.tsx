@@ -154,7 +154,7 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
     ];
   }, [open, onAddSqlEditor]);
 
-  const activate = () => {
+  const activate = useCallback(() => {
     const primaryItems =
       menus.getMenu(ViewLocations.sqllab.newTab)?.primary ?? [];
     if (primaryItems.length === 0) {
@@ -162,25 +162,33 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
     } else {
       setOpen(prev => !prev);
     }
-  };
+  }, [onAddSqlEditor]);
 
-  const handleClick = (e: React.MouseEvent) => {
-    // Antd's Tabs wraps addIcon in its own <button onClick={() => onEdit('add')}>.
-    // Stop propagation so antd doesn't also call newQueryEditor() while we handle it.
-    e.stopPropagation();
-    activate();
-  };
+  const anchorRef = useRef<HTMLSpanElement>(null);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // The same wrapper button activates on Enter/Space; intercept those keys so
-    // keyboard users reach the extension new-tab dropdown rather than antd's
-    // default add-tab path.
-    if (e.key === 'Enter' || e.key === ' ') {
+  useEffect(() => {
+    // Antd's Tabs wraps addIcon in its own <button onClick={() => onEdit('add')}>,
+    // and that button is the element that actually receives focus and activation.
+    // Intercept on the button itself in the capture phase so the extension
+    // dropdown is reached before antd's default add-tab path runs. A native button
+    // synthesizes a click for both mouse and keyboard (Enter/Space) activation, so
+    // a single capture-phase click listener keeps keyboard and mouse behavior in
+    // sync — a handler on the inner span only fires when the span is the event
+    // target and is bypassed when the button is activated via the keyboard.
+    const button = anchorRef.current?.closest('button');
+    if (!button) {
+      return undefined;
+    }
+    const handleActivate = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
       activate();
-    }
-  };
+    };
+    button.addEventListener('click', handleActivate, true);
+    return () => {
+      button.removeEventListener('click', handleActivate, true);
+    };
+  }, [activate]);
 
   return (
     <Tooltip id="add-tab" placement="left" title={newTabTooltip}>
@@ -190,14 +198,7 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
         menu={{ items: dropdownItems }}
         trigger={[]}
       >
-        <span
-          role="button"
-          tabIndex={0}
-          onClick={handleClick}
-          onKeyDown={handleKeyDown}
-        >
-          {PlusIcon}
-        </span>
+        <span ref={anchorRef}>{PlusIcon}</span>
       </Dropdown>
     </Tooltip>
   );
