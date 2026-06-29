@@ -568,9 +568,19 @@ def _convert_query_object_filter(
     value = _coerce_filter_value(value, dimension)
 
     # Map QueryObject operators to semantic layer operators. The Operator enum
-    # exposes only LIKE, so ILIKE collapses to LIKE here; case-insensitivity is
-    # delegated to the semantic-view backend (e.g. via collation), matching the
-    # spec where pattern matching semantics are implementation-defined.
+    # exposes only LIKE (case-sensitive), so case-insensitive variants are
+    # rejected up front rather than silently collapsed: doing so leaves the
+    # actual case handling at the mercy of the semantic backend's collation
+    # and silently diverges from the operator the dashboard author chose.
+    if operator_str in {
+        FilterOperator.ILIKE.value,
+        FilterOperator.NOT_ILIKE.value,
+    }:
+        raise ValueError(
+            f"Operator {operator_str} (case-insensitive match) is not supported "
+            "by Semantic Views; use the case-sensitive LIKE/NOT_LIKE instead."
+        )
+
     operator_mapping = {
         FilterOperator.EQUALS.value: Operator.EQUALS,
         FilterOperator.NOT_EQUALS.value: Operator.NOT_EQUALS,
@@ -580,8 +590,6 @@ def _convert_query_object_filter(
         FilterOperator.LESS_THAN_OR_EQUALS.value: Operator.LESS_THAN_OR_EQUAL,
         FilterOperator.IN.value: Operator.IN,
         FilterOperator.NOT_IN.value: Operator.NOT_IN,
-        FilterOperator.ILIKE.value: Operator.LIKE,
-        FilterOperator.NOT_ILIKE.value: Operator.NOT_LIKE,
         FilterOperator.LIKE.value: Operator.LIKE,
         FilterOperator.NOT_LIKE.value: Operator.NOT_LIKE,
         FilterOperator.IS_NULL.value: Operator.IS_NULL,

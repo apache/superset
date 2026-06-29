@@ -125,6 +125,7 @@ export function ColumnSelect({
                 const mappedType = mapSemanticTypeToGenericDataType(dim.type);
                 return {
                   column_name: dim.name,
+                  type: dim.type,
                   is_dttm: mappedType === GenericDataType.Temporal,
                   type_generic: mappedType,
                   filterable: true,
