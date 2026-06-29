@@ -541,7 +541,7 @@ marshmallow-sqlalchemy==1.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
-marshmallow-union==0.1.15
+marshmallow-union==0.1.15.post1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
