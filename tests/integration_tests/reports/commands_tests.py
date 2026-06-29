@@ -105,6 +105,10 @@ pytestmark = pytest.mark.usefixtures(
     "load_world_bank_dashboard_with_slices_module_scope"
 )
 
+# The default CSV_EXPORT encoding is "utf-8-sig", so report CSV attachments are
+# prefixed with a UTF-8 BOM to ensure correct rendering in spreadsheet software.
+CSV_FILE_WITH_BOM = b"\xef\xbb\xbf" + CSV_FILE
+
 
 def get_target_from_report_schedule(report_schedule: ReportSchedule) -> list[str]:
     return [
@@ -971,9 +975,9 @@ def test_email_chart_report_schedule_with_csv(
         )
         # Assert the email smtp address
         assert email_mock.call_args[0][0] == notification_targets[0]
-        # Assert the email csv file
+        # Assert the email csv file (BOM-prefixed for utf-8-sig encoding)
         smtp_images = email_mock.call_args[1]["data"]
-        assert smtp_images[list(smtp_images.keys())[0]] == CSV_FILE
+        assert smtp_images[list(smtp_images.keys())[0]] == CSV_FILE_WITH_BOM
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
 
@@ -1637,7 +1641,7 @@ def test_slack_chart_report_schedule_with_csv(
         )
         assert (
             slack_client_mock_class.return_value.files_upload.call_args[1]["file"]
-            == CSV_FILE
+            == CSV_FILE_WITH_BOM
         )
 
         # Assert logs are correct
