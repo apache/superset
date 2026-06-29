@@ -399,17 +399,18 @@ async def duplicate_dashboard(
         return DuplicateDashboardResponse(
             error=f"Failed to duplicate dashboard: {exc}",
         )
-    except (ValueError, TypeError) as exc:
+    except (ValueError, TypeError, KeyError) as exc:
         # Malformed stored metadata surfaces as a parse error from
         # _build_copy_payload (invalid json_metadata) or from
         # CopyDashboardCommand (invalid params/json_metadata re-read via
         # set_dash_metadata). The transaction handler only wraps
-        # SQLAlchemyError, so these escape as ValueError/TypeError.
+        # SQLAlchemyError, so ValueError/TypeError/KeyError escape unhandled.
         # Return a structured response instead of a hard tool failure.
         _safe_rollback("dashboard duplication")
         await ctx.error(
-            "Dashboard duplication failed parsing source metadata: %s: %s"
-            % (type(exc).__name__, str(exc))
+            "Dashboard duplication failed parsing source metadata for "
+            "dashboard_id=%s: %s: %s"
+            % (request.dashboard_id, type(exc).__name__, str(exc))
         )
         return DuplicateDashboardResponse(
             error=(

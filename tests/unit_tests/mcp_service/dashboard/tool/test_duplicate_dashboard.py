@@ -484,6 +484,38 @@ async def test_malformed_metadata_returns_structured_error(
     assert "metadata is invalid" in (content["error"] or "")
 
 
+@patch("superset.commands.dashboard.copy.CopyDashboardCommand")
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_key_error_in_copy_command_returns_structured_error(
+    mock_get_by_id_or_slug: Mock,
+    mock_copy_cmd_cls: Mock,
+    mcp_server: object,
+) -> None:
+    """A KeyError raised inside CopyDashboardCommand produces a structured error.
+
+    ``set_dash_metadata`` may do direct dict access on position nodes (e.g.
+    ``node['meta']['chartId']``) and can raise ``KeyError`` for malformed
+    layout nodes.  That exception escapes the ``@transaction`` handler (which
+    only wraps SQLAlchemyError), so the tool must catch it and return a
+    structured response rather than letting it escape as a hard tool failure.
+    """
+    source = _mock_dashboard(id=1, slices=[_mock_chart(id=10)])
+    mock_get_by_id_or_slug.return_value = source
+    mock_copy_cmd_cls.return_value.run.side_effect = KeyError("chartId")
+
+    with patch("superset.db.session"):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "duplicate_dashboard",
+                {"request": {"dashboard_id": 1, "dashboard_title": "Copy"}},
+            )
+
+    content = result.structured_content
+    assert content["dashboard"] is None
+    assert "metadata is invalid" in (content["error"] or "")
+
+
 @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
 @pytest.mark.asyncio
 async def test_lookup_db_error_returns_structured_error(
