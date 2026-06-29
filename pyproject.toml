@@ -375,6 +375,7 @@ select = [
 
 ignore = [
     "S101",
+    "PT001",  # pytest-fixture-incorrect-parentheses-style: different ruff versions disagree
     "PT006",
     "T201",
     "N999",
