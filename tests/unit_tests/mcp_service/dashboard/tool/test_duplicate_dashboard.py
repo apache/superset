@@ -517,31 +517,24 @@ async def test_lookup_db_error_returns_structured_error(
     assert "secret_table" not in error
 
 
-@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @patch("superset.commands.dashboard.copy.CopyDashboardCommand")
 @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
 @pytest.mark.asyncio
-async def test_malformed_json_metadata_warns_not_fails(
+async def test_malformed_json_metadata_in_source_returns_structured_error(
     mock_get_by_id_or_slug: Mock,
     mock_copy_cmd_cls: Mock,
-    mock_find_by_id: Mock,
     mcp_server: object,
 ) -> None:
-    """Malformed source json_metadata surfaces a warning, not a hard failure.
+    """Malformed source json_metadata fails fast with a structured error.
 
-    The copy proceeds with default metadata settings (colors, native filters,
-    etc. are reset to defaults), and the response's ``warnings`` list contains
-    a description of the loss. Chart content is determined by position_json, so
-    the malformed metadata does not corrupt the copy's chart set.
+    Proceeding with ``{}`` would silently lose the source's filter config,
+    color scheme, and other dashboard settings, so the tool fails fast and
+    directs the user to repair the source dashboard before retrying.
     """
     source = _mock_dashboard(
         id=1, slices=[_mock_chart(id=10)], json_metadata="not-valid-json"
     )
-    new_dashboard = _mock_dashboard(id=2, title="Copy", slices=[_mock_chart(id=10)])
-
     mock_get_by_id_or_slug.return_value = source
-    mock_copy_cmd_cls.return_value.run.return_value = new_dashboard
-    mock_find_by_id.return_value = new_dashboard
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
@@ -550,12 +543,52 @@ async def test_malformed_json_metadata_warns_not_fails(
         )
 
     content = result.structured_content
-    assert content["error"] is None
-    assert content["dashboard"]["id"] == 2
-    assert content["warnings"], "expected a metadata warning"
-    assert "metadata" in content["warnings"][0].lower()
-    # Copy command must still be called — the copy proceeds despite bad metadata.
-    mock_copy_cmd_cls.assert_called_once()
+    assert content["dashboard"] is None
+    assert "metadata is invalid" in (content["error"] or "")
+    mock_copy_cmd_cls.assert_not_called()
+
+
+@patch("superset.commands.dashboard.copy.CopyDashboardCommand")
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_stale_layout_chart_ids_returns_structured_error(
+    mock_get_by_id_or_slug: Mock,
+    mock_copy_cmd_cls: Mock,
+    mcp_server: object,
+) -> None:
+    """Layout with chart IDs that don't match source slices fails fast.
+
+    ``set_dash_metadata`` rebuilds slices from layout chart IDs; if those
+    IDs don't correspond to any slice on the source, the copy silently ends
+    up with no charts.  The tool detects this and returns a structured error
+    instead of calling the copy command.
+    """
+    stale_positions = {
+        "CHART-999": {
+            "children": [],
+            "id": "CHART-999",
+            "meta": {"chartId": 999, "height": 50, "width": 4},
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "type": "CHART",
+        },
+    }
+    source = _mock_dashboard(
+        id=1,
+        slices=[_mock_chart(id=10)],
+        position_json=json.dumps(stale_positions),
+    )
+    mock_get_by_id_or_slug.return_value = source
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "duplicate_dashboard",
+            {"request": {"dashboard_id": 1, "dashboard_title": "Copy"}},
+        )
+
+    content = result.structured_content
+    assert content["dashboard"] is None
+    assert "layout" in (content["error"] or "").lower()
+    mock_copy_cmd_cls.assert_not_called()
 
 
 def test_title_xss_only_rejected_by_schema() -> None:

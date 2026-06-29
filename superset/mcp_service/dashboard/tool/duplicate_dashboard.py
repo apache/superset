@@ -45,25 +45,27 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def _positions_reference_charts(positions: dict[str, Any]) -> bool:
-    """Return whether a layout maps any chart into the dashboard.
+def _get_layout_chart_ids(positions: dict[str, Any]) -> frozenset[int]:
+    """Return the set of chart IDs referenced in the layout.
 
     ``DashboardDAO.set_dash_metadata`` rebuilds the new dashboard's slice
-    list solely from the chart IDs found in ``positions``, so a layout
-    with no ``CHART`` entries yields an empty dashboard regardless of the
-    source's ``slices`` relationship.
+    list solely from the chart IDs found in ``positions``.  If no IDs appear,
+    or if all IDs are stale (not present in the source dashboard's slices),
+    the copy will have no charts regardless of the source's ``slices``
+    relationship.
     """
-    return any(
-        isinstance(value, dict)
+    return frozenset(
+        value["meta"]["chartId"]
+        for value in positions.values()
+        if isinstance(value, dict)
         and value.get("type") == "CHART"
         and value.get("meta", {}).get("chartId")
-        for value in positions.values()
     )
 
 
 def _build_copy_payload(
     source: Any, dashboard_title: str, duplicate_slices: bool
-) -> tuple[dict[str, Any], bool, str | None]:
+) -> tuple[dict[str, Any], frozenset[int]]:
     """Build the data payload expected by ``CopyDashboardCommand``.
 
     Mirrors what the frontend "Save as" flow sends to the
@@ -74,32 +76,23 @@ def _build_copy_payload(
     ``positions`` from it to remap chart IDs when ``duplicate_slices``
     is enabled.
 
-    Returns the payload, a flag indicating whether the layout maps any
-    chart (so the caller can refuse to produce a silently empty copy),
-    and an optional warning string when ``json_metadata`` could not be
-    decoded. The caller surfaces the warning rather than hard-failing:
-    metadata loss degrades aesthetic settings (colors, native filters)
-    but does not corrupt the copy's chart content.
+    Returns the payload and the set of chart IDs in the layout, so the
+    caller can detect an empty or stale layout before committing to the copy.
+
+    Raises ``ValueError`` / ``json.JSONDecodeError`` if ``json_metadata``
+    cannot be decoded — callers should surface this as a structured error.
+    Silently proceeding with ``{}`` would produce a copy that loses the
+    source's filter config, color scheme, and other dashboard settings.
     """
-    metadata_warning: str | None = None
-    try:
-        metadata = json.loads(source.json_metadata or "{}")
-    except (json.JSONDecodeError, TypeError):
-        metadata = {}
-        metadata_warning = (
-            "Source dashboard's stored settings (json_metadata) could not "
-            "be decoded and were not copied. The duplicate uses default "
-            "settings for colors, native filters, and other metadata. "
-            "Open and re-save the source dashboard to repair its settings."
-        )
+    # Let JSONDecodeError (a ValueError subclass) propagate: a dashboard with
+    # unparseable json_metadata would silently lose all its filter/color
+    # configuration in the copy, which is worse than a clear fail-fast error.
+    metadata = json.loads(source.json_metadata or "{}")
     if not isinstance(metadata, dict):
-        metadata = {}
-        if metadata_warning is None:
-            metadata_warning = (
-                "Source dashboard's stored settings (json_metadata) were not "
-                "a valid JSON object and were not copied. The duplicate uses "
-                "default settings for colors, native filters, and other metadata."
-            )
+        raise ValueError(
+            "Dashboard json_metadata is not a JSON object; "
+            "open and re-save the source dashboard to repair it."
+        )
 
     try:
         positions = json.loads(source.position_json or "{}")
@@ -116,7 +109,7 @@ def _build_copy_payload(
         "duplicate_slices": duplicate_slices,
         "json_metadata": json.dumps(metadata),
     }
-    return payload, _positions_reference_charts(positions), metadata_warning
+    return payload, _get_layout_chart_ids(positions)
 
 
 def _serialize_new_dashboard(dashboard: Any) -> tuple[DashboardInfo, str]:
@@ -321,11 +314,13 @@ async def duplicate_dashboard(
         if error_response is not None:
             return error_response
 
-        data, layout_has_charts, metadata_warning = _build_copy_payload(
+        data, layout_chart_ids = _build_copy_payload(
             source, request.dashboard_title, request.duplicate_slices
         )
 
-        if getattr(source, "slices", None) and not layout_has_charts:
+        source_slice_ids = {s.id for s in getattr(source, "slices", []) or []}
+
+        if source_slice_ids and not layout_chart_ids:
             await ctx.warning(
                 "Source layout maps no charts; refusing to duplicate to "
                 "avoid an empty copy: dashboard_id=%s" % (request.dashboard_id,)
@@ -337,6 +332,26 @@ async def duplicate_dashboard(
                     "would produce a dashboard with no charts. Open and "
                     "re-save the source dashboard to repair its layout, then "
                     "try again."
+                ),
+            )
+
+        if (
+            source_slice_ids
+            and layout_chart_ids
+            and not layout_chart_ids & source_slice_ids
+        ):
+            await ctx.warning(
+                "Source layout references chart IDs that don't match any "
+                "source slice; refusing to duplicate to avoid an empty copy: "
+                "dashboard_id=%s" % (request.dashboard_id,)
+            )
+            return DuplicateDashboardResponse(
+                error=(
+                    f"Dashboard '{request.dashboard_id}' has charts but its "
+                    "saved layout references chart IDs that don't match any "
+                    "of its actual charts. The layout appears corrupted. Open "
+                    "and re-save the source dashboard to repair its layout, "
+                    "then try again."
                 ),
             )
 
@@ -354,15 +369,11 @@ async def duplicate_dashboard(
             request.duplicate_slices,
         )
 
-        warnings = list(request.sanitization_warnings)
-        if metadata_warning:
-            warnings.append(metadata_warning)
-
         return DuplicateDashboardResponse(
             dashboard=info,
             dashboard_url=dashboard_url,
             duplicated_slices=request.duplicate_slices,
-            warnings=warnings,
+            warnings=list(request.sanitization_warnings),
         )
 
     except DashboardForbiddenError:
@@ -389,11 +400,12 @@ async def duplicate_dashboard(
             error=f"Failed to duplicate dashboard: {exc}",
         )
     except (ValueError, TypeError) as exc:
-        # Malformed stored metadata on the source (e.g. invalid json_metadata
-        # or params) surfaces as a JSON/parse error from CopyDashboardCommand
-        # rather than a DashboardCopyError, because the transaction handler
-        # only wraps SQLAlchemyError. Return a structured response instead of
-        # letting it escape as a hard tool failure.
+        # Malformed stored metadata surfaces as a parse error from
+        # _build_copy_payload (invalid json_metadata) or from
+        # CopyDashboardCommand (invalid params/json_metadata re-read via
+        # set_dash_metadata). The transaction handler only wraps
+        # SQLAlchemyError, so these escape as ValueError/TypeError.
+        # Return a structured response instead of a hard tool failure.
         _safe_rollback("dashboard duplication")
         await ctx.error(
             "Dashboard duplication failed parsing source metadata: %s: %s"
