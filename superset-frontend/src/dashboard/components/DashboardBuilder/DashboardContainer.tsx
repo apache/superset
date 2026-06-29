@@ -32,6 +32,12 @@ import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { isEqual } from 'lodash-es';
 import {
+  useDashboardLayout,
+  useDirectPathToChild,
+  useDashboardInfo,
+  useChartCustomizationConfig,
+} from 'src/dashboard/stores';
+import {
   ChartCustomizationConfiguration,
   ChartCustomizationType,
   LabelsColorMapSource,
@@ -41,19 +47,16 @@ import {
 import { useParentSize } from '@visx/responsive';
 import Tabs from '@superset-ui/core/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
-import {
-  DashboardInfo,
-  DashboardLayout,
-  LayoutItem,
-  RootState,
-} from 'src/dashboard/types';
+import { LayoutItem, RootState } from 'src/dashboard/types';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
-import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
-import { setInScopeStatusOfCustomizations } from 'src/dashboard/actions/chartCustomizationActions';
+import {
+  setInScopeStatusOfFilters,
+  setInScopeStatusOfCustomizations,
+} from 'src/dashboard/util/inScopeStatus';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import {
   applyDashboardLabelsColorOnLoad,
@@ -70,7 +73,7 @@ import {
 } from 'src/dashboard/util/migrateChartCustomization';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
-import { selectFilterConfiguration } from '../nativeFilters/state';
+import { useFilterConfiguration } from '../nativeFilters/state';
 import { getRootLevelTabsComponent } from './utils';
 
 type DashboardContainerProps = {
@@ -140,26 +143,18 @@ const useRenderedChartIds = () => {
 
 const TOP_OF_PAGE_RANGE = 220;
 
+// Stable reference so the Zustand selector doesn't return a fresh array.
+const EMPTY_CUSTOMIZATIONS: ChartCustomizationConfiguration = [];
+
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dispatch = useDispatch();
 
-  const dashboardLayout = useSelector<RootState, DashboardLayout>(
-    state => state.dashboardLayout.present,
-  );
-  const dashboardInfo = useSelector<RootState, DashboardInfo>(
-    state => state.dashboardInfo,
-  );
-  const filterItems = useSelector(selectFilterConfiguration);
-  const chartCustomizations = useSelector<
-    RootState,
-    ChartCustomizationConfiguration
-  >(
-    state => state.dashboardInfo?.metadata?.chart_customization_config || [],
-    shallowEqual,
-  );
-  const directPathToChild = useSelector<RootState, string[]>(
-    state => state.dashboardState.directPathToChild,
-  );
+  const dashboardLayout = useDashboardLayout();
+  const dashboardInfo = useDashboardInfo();
+  const filterItems = useFilterConfiguration();
+  const chartCustomizations =
+    useChartCustomizationConfig() || EMPTY_CUSTOMIZATIONS;
+  const directPathToChild = useDirectPathToChild();
   const chartIds = useChartIds();
 
   const renderedChartIds = useRenderedChartIds();
@@ -221,7 +216,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
     if (!isEqual(scopes, prevFilterScopesRef.current)) {
       prevFilterScopesRef.current = scopes;
-      dispatch(setInScopeStatusOfFilters(scopes));
+      setInScopeStatusOfFilters(scopes);
     }
   }, [chartIds, filterItems, chartLayoutItems, dispatch]);
 
@@ -249,7 +244,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
     if (!isEqual(scopes, prevCustomizationScopesRef.current)) {
       prevCustomizationScopesRef.current = scopes;
-      dispatch(setInScopeStatusOfCustomizations(scopes));
+      setInScopeStatusOfCustomizations(scopes);
     }
   }, [chartIds, chartCustomizations, chartLayoutItems, dispatch]);
 

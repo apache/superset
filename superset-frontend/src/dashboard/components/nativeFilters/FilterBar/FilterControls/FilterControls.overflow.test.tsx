@@ -24,6 +24,15 @@ import type {
 } from '@superset-ui/core/components/DropdownContainer';
 import { SelectFilterPlugin } from 'src/filters/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import type { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
+import {
+  useDashboardInfoStore,
+  useDashboardLayoutStore,
+  useDashboardStateStore,
+  useNativeFiltersStore,
+  type FilterEntry,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { act, render, waitFor, within } from 'spec/helpers/testing-library';
 import { createSelectNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import FilterControls from './FilterControls';
@@ -101,9 +110,9 @@ const buildHorizontalState = (
   dashboardInfo: {
     id: 1,
     dash_edit_perm: true,
-    filterBarOrientation: FilterBarOrientation.Horizontal,
     metadata: {
       native_filter_configuration: filters,
+      filter_bar_orientation: FilterBarOrientation.Horizontal,
     },
   },
   dashboardLayout: {
@@ -151,8 +160,24 @@ const buildDataMaskSelected = (
 const renderHorizontal = (
   filters: ReturnType<typeof createSelectNativeFilter>[],
   dataMaskSelected: DataMaskStateWithId,
-) =>
-  render(
+) => {
+  const state = buildHorizontalState(filters);
+  // FilterControls reads these from Zustand, not the Redux initialState.
+  useDashboardInfoStore.setState({
+    dashboardInfo: state.dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState({ activeTabs: ['ROOT_ID'] });
+  useDashboardLayoutStore.setState({
+    layout: state.dashboardLayout.present as unknown as DashboardLayout,
+  });
+  useNativeFiltersStore.setState({
+    filters: state.nativeFilters.filters as unknown as Record<
+      string,
+      FilterEntry
+    >,
+  });
+  useDataMaskStore.setState({ dataMask: {} });
+  return render(
     <FilterControls
       dataMaskSelected={dataMaskSelected}
       onFilterSelectionChange={jest.fn()}
@@ -162,9 +187,10 @@ const renderHorizontal = (
     {
       useRedux: true,
       useRouter: true,
-      initialState: buildHorizontalState(filters),
+      initialState: state,
     },
   );
+};
 
 const latestProps = () =>
   dropdownContainerProps[dropdownContainerProps.length - 1];

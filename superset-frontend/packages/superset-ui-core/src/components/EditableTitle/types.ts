@@ -23,6 +23,7 @@ export interface EditableTitleProps {
   extraClasses?: Array<string> | string;
   noPermitTooltip?: string;
   onSaveTitle: (arg0: string) => void;
+  onChange?: (value: string) => void;
   showTooltip?: boolean;
   style?: object;
   title?: string;

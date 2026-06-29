@@ -29,6 +29,8 @@ import {
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import DrillDetailPane from './DrillDetailPane';
 
 const chart = chartQueries[sliceId];
@@ -220,8 +222,11 @@ test('should render the error', async () => {
 });
 
 describe('download actions', () => {
-  const renderWithDownloadPermission = () =>
-    render(
+  const renderWithDownloadPermission = () => {
+    useDashboardInfoStore.setState({
+      dashboardInfo: { id: 123 } as DashboardInfo,
+    });
+    return render(
       <DrillDetailPane
         initialFilters={[]}
         formData={chart.form_data as unknown as QueryFormData}
@@ -235,6 +240,7 @@ describe('download actions', () => {
         },
       },
     );
+  };
 
   const clickDownloadItem = async (label: string) => {
     await userEvent.click(

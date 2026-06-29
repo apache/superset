@@ -63,10 +63,7 @@ import {
   ExplorePageInitialData,
 } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import {
-  removeChartState,
-  updateChartState,
-} from 'src/dashboard/actions/dashboardState';
+import { useDashboardStateStore } from 'src/dashboard/stores';
 import { Dashboard } from 'src/types/Dashboard';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { TabNode, TabTreeNode } from '../types';
@@ -492,7 +489,9 @@ const SaveModal = ({
       const sliceId = slice?.slice_id;
       const vizType = form_data?.viz_type;
       if (sliceId && vizType && tableState) {
-        dispatch(updateChartState(sliceId, vizType, tableState));
+        useDashboardStateStore
+          .getState()
+          .updateChartState(sliceId, vizType, tableState);
       }
 
       //  Create or retrieve dashboard
@@ -620,7 +619,7 @@ const SaveModal = ({
           if (selectedTab?.value && selectedTab.value !== 'OUT_OF_TAB') {
             url += `#${selectedTab.value}`;
           }
-          dispatch(removeChartState(value.id));
+          useDashboardStateStore.getState().removeChartState(value.id);
           history.push(url);
           return;
         }

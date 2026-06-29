@@ -26,8 +26,13 @@ import {
 } from 'spec/helpers/testing-library';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import { EditableTitle } from '@superset-ui/core/components';
-import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
+import { onRefresh } from 'src/dashboard/actions/dashboardState';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
+import {
+  useDashboardStateStore,
+  useDashboardInfoStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 
 import type { FC } from 'react';
 import ActualTab from './Tab';
@@ -95,9 +100,6 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   }),
 }));
 jest.mock('src/dashboard/actions/dashboardState', () => ({
-  setEditMode: jest.fn(() => ({
-    type: 'SET_EDIT_MODE',
-  })),
   onRefresh: jest.fn(() => ({
     type: 'ON_REFRESH',
   })),
@@ -377,6 +379,9 @@ test('Render tab content with no children', () => {
 test('Render tab content with no children, canEdit: true', () => {
   const props = createProps();
   props.component.children = [];
+  useDashboardInfoStore.setState({
+    dashboardInfo: { dash_edit_perm: true } as DashboardInfo,
+  });
   render(<Tab {...props} />, {
     useRedux: true,
     useDnd: true,
@@ -388,7 +393,7 @@ test('Render tab content with no children, canEdit: true', () => {
   });
   expect(screen.getByText('edit mode')).toBeVisible();
   userEvent.click(screen.getByRole('button', { name: 'edit mode' }));
-  expect(setEditMode).toHaveBeenCalled();
+  expect(useDashboardStateStore.getState().editMode).toBe(true);
 });
 
 test('Render tab (with content) editMode:true', () => {
@@ -467,6 +472,9 @@ test('Render tab content with no children, editMode: true, canEdit: true', () =>
   props.editMode = true;
   // props.canEdit = true;
   props.component.children = [];
+  useDashboardInfoStore.setState({
+    dashboardInfo: { dash_edit_perm: true } as DashboardInfo,
+  });
   render(<Tab {...props} />, {
     useRedux: true,
     useDnd: true,
@@ -503,6 +511,9 @@ test('empty-tab "create a new chart" link is single-prefixed under subdirectory 
     const props = createProps();
     props.editMode = true;
     props.component.children = [];
+    useDashboardInfoStore.setState({
+      dashboardInfo: { dash_edit_perm: true } as DashboardInfo,
+    });
     render(<Tab {...props} />, {
       useRedux: true,
       useDnd: true,
@@ -621,6 +632,10 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
       dash_edit_perm: true,
     },
   };
+  useDashboardStateStore.setState(initialState.dashboardState);
+  useDashboardInfoStore.setState({
+    dashboardInfo: initialState.dashboardInfo as DashboardInfo,
+  });
 
   const { rerender } = render(<Tab {...props} />, {
     useRedux: true,
@@ -674,6 +689,7 @@ test('Should not refresh charts when tab becomes active if no dashboard refresh 
       dash_edit_perm: true,
     },
   };
+  useDashboardStateStore.setState(initialState.dashboardState);
 
   const { rerender } = render(<Tab {...props} />, {
     useRedux: true,
@@ -712,6 +728,7 @@ test('Should not cause infinite refresh loop with nested tabs - regression test'
       dash_edit_perm: true,
     },
   };
+  useDashboardStateStore.setState(initialState.dashboardState);
 
   const { rerender } = render(<Tab {...props} />, {
     useRedux: true,
@@ -767,6 +784,10 @@ test('Should use isLazyLoad flag for tab refreshes', async () => {
       dash_edit_perm: true,
     },
   };
+  useDashboardStateStore.setState(initialState.dashboardState);
+  useDashboardInfoStore.setState({
+    dashboardInfo: initialState.dashboardInfo as DashboardInfo,
+  });
 
   render(<Tab {...props} />, {
     useRedux: true,

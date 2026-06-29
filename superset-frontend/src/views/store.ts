@@ -32,15 +32,9 @@ import thunk, { type ThunkDispatch } from 'redux-thunk';
 import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import charts from 'src/components/Chart/chartReducer';
-import dataMask from 'src/dataMask/reducer';
 import reports from 'src/features/reports/ReportModal/reducer';
-import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';
-import dashboardState from 'src/dashboard/reducers/dashboardState';
 import dashboardFilters from 'src/dashboard/reducers/dashboardFilters';
-import nativeFilters from 'src/dashboard/reducers/nativeFilters';
 import dashboardDatasources from 'src/dashboard/reducers/datasources';
-import sliceEntities from 'src/dashboard/reducers/sliceEntities';
-import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
 import logger from 'src/middleware/loggerMiddleware';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
@@ -138,13 +132,7 @@ const reducers = {
   impressionId: noopReducer(nanoid()),
   charts,
   datasources: CombinedDatasourceReducers,
-  dashboardInfo,
   dashboardFilters,
-  dataMask,
-  nativeFilters,
-  dashboardState,
-  dashboardLayout,
-  sliceEntities,
   reports,
   saveModal,
   explore,
