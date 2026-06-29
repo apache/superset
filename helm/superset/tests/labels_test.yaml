@@ -26,6 +26,14 @@ templates:
   - service-flower.yaml
   - init-job.yaml
   - ingress.yaml
+  - configmap-superset.yaml
+  - secret-superset-config.yaml
+  - secret-ws.yaml
+  - pdb.yaml
+  - pdb-worker.yaml
+  - pdb-beat.yaml
+  - pdb-flower.yaml
+  - pdb-ws.yaml
 
 # These tests validate that Kubernetes recommended labels are consistently applied
 # across all chart resources per https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
@@ -384,3 +392,129 @@ tests:
       - equal:
           path: metadata.labels.custom-label
           value: custom-value
+
+  # =============================================================================
+  # ConfigMap / Secret Labels
+  # =============================================================================
+  - it: should have recommended labels on extra-config configmap
+    template: configmap-superset.yaml
+    set:
+      extraConfigs:
+        custom.py: "FOO = 1"
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/managed-by"]
+      - equal:
+          path: metadata.labels["app.kubernetes.io/part-of"]
+          value: superset
+
+  - it: should have recommended labels on superset config secret
+    template: secret-superset-config.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
+          path: metadata.labels["app.kubernetes.io/part-of"]
+          value: superset
+
+  - it: should have recommended labels on websocket config secret
+    template: secret-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+    asserts:
+      - isNotNull:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+
+  # =============================================================================
+  # PodDisruptionBudget Labels (metadata must match the selector)
+  # =============================================================================
+  - it: should have recommended labels and matching selector on main pdb
+    template: pdb.yaml
+    set:
+      supersetNode.podDisruptionBudget.enabled: true
+      supersetNode.podDisruptionBudget.maxUnavailable: null
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: web
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/component"]
+          value: web
+
+  - it: should set correct component on worker pdb
+    template: pdb-worker.yaml
+    set:
+      supersetWorker.podDisruptionBudget.enabled: true
+      supersetWorker.podDisruptionBudget.maxUnavailable: null
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: worker
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/component"]
+          value: worker
+
+  - it: should set correct component on celerybeat pdb
+    template: pdb-beat.yaml
+    set:
+      supersetCeleryBeat.podDisruptionBudget.enabled: true
+      supersetCeleryBeat.podDisruptionBudget.maxUnavailable: null
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: celerybeat
+
+  - it: should set correct component on flower pdb
+    template: pdb-flower.yaml
+    set:
+      supersetCeleryFlower.podDisruptionBudget.enabled: true
+      supersetCeleryFlower.podDisruptionBudget.maxUnavailable: null
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: flower
+
+  - it: should set correct component on websocket pdb
+    template: pdb-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      supersetWebsockets.podDisruptionBudget.enabled: true
+      supersetWebsockets.podDisruptionBudget.maxUnavailable: null
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: websocket
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/component"]
+          value: websocket
+
+  - it: should use recommended labels on init job pod template
+    template: init-job.yaml
+    set:
+      init.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/component"]
+          value: init
+      - isNotNull:
+          path: spec.template.metadata.labels.job
