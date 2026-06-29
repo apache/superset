@@ -22,6 +22,7 @@ import {
   VizType,
   getChartTransformPropsRegistry,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
 import {
   EchartsPieChartPlugin,
@@ -145,6 +146,7 @@ export const BasicMap = ({
   borderRadius: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={VIZ_TYPE}
     width={width}
     height={height}
