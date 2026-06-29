@@ -42,7 +42,9 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
+import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import {
   getFilterValue,
   getPermalinkValue,
@@ -152,6 +154,23 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, id = 0 } = dashboard || {};
 
+  // The live title is edited in Redux and persisted via an in-SPA save with no
+  // full reload, so the useDashboard() API result can be stale. Track the live
+  // title so the browser tab stays in sync after a rename.
+  const liveDashboardTitle = useSelector<RootState, string | undefined>(
+    state => state.dashboardLayout?.present?.[DASHBOARD_HEADER_ID]?.meta?.text,
+  );
+  // Only trust the live layout title once the layout belongs to the dashboard
+  // being shown. During SPA dashboard-to-dashboard navigation the previous
+  // dashboard's layout lingers until the new one hydrates, so fall back to the
+  // freshly fetched API title until the hydrated dashboard matches.
+  const hydratedDashboardId = useSelector<RootState, number | undefined>(
+    state => state.dashboardInfo?.id,
+  );
+  const pageTitle =
+    (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
+    dashboard_title;
+
   // Get CSS from dashboardInfo (unified properties location)
   const css =
     useSelector((state: RootState) => state.dashboardInfo.css) ||
@@ -205,7 +224,22 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
       }
       if (isOldRison) {
-        dataMask = isOldRison;
+        // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
+        // per-filter selections under `currentState`; modern dataMask uses
+        // `filterState`. Without this copy the filter panel shows no active
+        // selections even though extraFormData still applies the query filter.
+        if (typeof isOldRison === 'object' && isOldRison !== null) {
+          dataMask = Object.fromEntries(
+            Object.entries(
+              isOldRison as Record<string, Record<string, unknown>>,
+            ).map(([filterId, entry]) => [
+              filterId,
+              entry?.currentState && !entry?.filterState
+                ? { ...entry, filterState: entry.currentState }
+                : entry,
+            ]),
+          );
+        }
       }
 
       // Parse Rison URL filters with intelligent native filter injection
@@ -303,10 +337,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   // Update document title when dashboard title changes
   useEffect(() => {
-    if (dashboard_title) {
-      document.title = dashboard_title;
+    if (pageTitle) {
+      document.title = sanitizeDocumentTitle(pageTitle);
     }
-  }, [dashboard_title]);
+  }, [pageTitle]);
 
   // Restore original title on unmount
   useEffect(

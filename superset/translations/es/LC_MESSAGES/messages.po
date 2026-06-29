@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -256,6 +256,8 @@ msgid ""
 "%(prefix)sResults truncated to %(row_count)s rows due to memory "
 "constraints."
 msgstr ""
+"%(prefix)sResultados truncados a %(row_count)s filas por limitaciones "
+"en la memoria"
 
 #, python-format
 msgid ""
@@ -341,7 +343,7 @@ msgstr "%s seleccionado (virtual)"
 
 #, python-format
 msgid "%s Semantic View"
-msgstr ""
+msgstr "%s Vista semántica"
 
 #, fuzzy, python-format
 msgid "%s URL"
@@ -365,11 +367,11 @@ msgstr[1] ""
 msgid "%s column(s)"
 msgstr "%s columna(s)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "Hace 1 día"
-msgstr[1] ""
+msgstr[1] "Hace %s días"
 
 #, fuzzy, python-format
 msgid "%s hr ago"
@@ -377,9 +379,9 @@ msgid_plural "%s hr ago"
 msgstr[0] "%s fila"
 msgstr[1] "%s filas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s imported"
-msgstr "Datos importados"
+msgstr "%s importados"
 
 #, fuzzy, python-format
 msgid "%s item"
@@ -451,11 +453,11 @@ msgid_plural "%s records..."
 msgstr[0] "%s error"
 msgstr[1] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s record..."
 msgid_plural "%s records..."
-msgstr[0] "%s error"
-msgstr[1] ""
+msgstr[0] "%s registro"
+msgstr[1] "%s registros"
 
 #, python-format
 msgid "%s row"
@@ -481,11 +483,11 @@ msgstr[1] ""
 
 #, python-format
 msgid "%s semantic view(s) added"
-msgstr ""
+msgstr "%s vista(s) semántica(s) agregada(s)"
 
 #, python-format
 msgid "%s semantic view(s) failed to add"
-msgstr ""
+msgstr "No se pudo agregar la(s) %s vista(s) semántica(s)"
 
 #, python-format
 msgid "%s semantic view(s) failed to add: %s"
@@ -567,13 +569,13 @@ msgstr ""
 " si eliminas las «cookies» o cambias de navegador.\n"
 "\n"
 
-#, fuzzy, python-format
+#, python-format
 msgid "... and %d more"
-msgstr "... y %s otros"
+msgstr "... y otros %d"
 
-#, fuzzy, python-format
+#, python-format
 msgid "... and %s more records"
-msgstr "... y %s otros"
+msgstr "... y otros %s"
 
 #, python-format
 msgid "... and %s others"
@@ -639,9 +641,8 @@ msgstr "Frecuencia de inicio de 1 año"
 msgid "10 minute"
 msgstr "10 minutos"
 
-#, fuzzy
 msgid "10 seconds"
-msgstr "30 segundos"
+msgstr "10 segundos"
 
 msgid "10/90 percentiles"
 msgstr "Percentiles 10/90"
@@ -655,9 +656,8 @@ msgstr "104 semanas"
 msgid "104 weeks ago"
 msgstr "Hace 104 semanas"
 
-#, fuzzy
 msgid "12 hours"
-msgstr "1 hora"
+msgstr "12 horas"
 
 msgid "15 minute"
 msgstr "15 minutos"
@@ -695,9 +695,8 @@ msgstr "Percentiles 2/98"
 msgid "22"
 msgstr "22"
 
-#, fuzzy
 msgid "24 hours"
-msgstr "6 horas"
+msgstr "24 horas"
 
 msgid "28 days"
 msgstr "28 días"
@@ -768,7 +767,6 @@ msgstr "52 semanas con comienzo el lunes (frec. = 52W-MON)"
 msgid "6 hour"
 msgstr "6 horas"
 
-#, fuzzy
 msgid "6 hours"
 msgstr "6 horas"
 
@@ -800,7 +798,7 @@ msgid "<= (Smaller or equal)"
 msgstr "<= (menor o igual)"
 
 msgid "<enter SQL expression here>"
-msgstr "<introduce la expresión SQL aquí>"
+msgstr "<introduzca la expresión SQL aquí>"
 
 msgid "<new column>"
 msgstr "<nueva columna>"
@@ -1018,7 +1016,8 @@ msgid "API key revoked successfully"
 msgstr ""
 
 msgid "API keys allow scoped programmatic access to Superset."
-msgstr ""
+msgstr "Las claves API permiten el acceso programático con "
+"ámbito restringido a Superset."
 
 msgid "APPLY"
 msgstr "APLICAR"
@@ -1032,13 +1031,11 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AGO"
 
-#, fuzzy
 msgid "Aborted"
-msgstr "Iniciado"
+msgstr "Abortado"
 
-#, fuzzy
 msgid "Aborting"
-msgstr "Trabajando"
+msgstr "Abortando"
 
 msgid "About"
 msgstr "Acerca de"
@@ -1050,9 +1047,8 @@ msgstr "Token de acceso"
 msgid "Access token"
 msgstr "Token de acceso"
 
-#, fuzzy
 msgid "Account"
-msgstr "recuento"
+msgstr "Cuenta"
 
 msgid "Action"
 msgstr "Acción"
@@ -1187,9 +1183,8 @@ msgstr ""
 "Añadir columnas temporales calculadas al conjunto de datos en el modal "
 "«Editar fuente de datos»"
 
-#, fuzzy
 msgid "Add certification details for this dashboard"
-msgstr "Detalles de la certificación"
+msgstr "Añada detalles de la certificación al tablero"
 
 msgid "Add color for positive/negative change"
 msgstr "Añadir color para cambio positivo/negativo"
@@ -1250,9 +1245,8 @@ msgstr ""
 "                    de los datos subyacentes o limitar los valores "
 "disponibles que se muestran en el filtro."
 
-#, fuzzy
 msgid "Add folder"
-msgstr "Añadir filtro"
+msgstr "Añadir carpeta"
 
 msgid "Add item"
 msgstr "Añadir elemento"
@@ -1268,6 +1262,10 @@ msgstr "Añadir nuevo formateador de color"
 
 msgid "Add new formatter"
 msgstr "Añadir nuevo formateador"
+
+#, fuzzy
+msgid "Add numbered column"
+msgstr " para añadir columnas calculadas"
 
 #, fuzzy
 msgid "Add or edit display controls"
@@ -1550,9 +1548,8 @@ msgstr "Todos los gráficos"
 msgid "All charts/global scoping"
 msgstr "Todos los gráficos/alcance global"
 
-#, fuzzy
 msgid "All dimensions"
-msgstr "Dimensiones"
+msgstr "Todas las dimensiones"
 
 msgid "All filters"
 msgstr "Todos los filtros"
@@ -1850,7 +1847,7 @@ msgstr "Se ha producido un error al recuperar los valores del esquema: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Se ha producido un error al recuperar los valores del esquema: %s"
 
@@ -1925,7 +1922,7 @@ msgstr "Se ha producido un error al analizar la clave."
 msgid "An error occurred while pruning logs "
 msgstr "Se ha producido un error al depurar los registros "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Se ha producido un error al renderizar la visualización: %s"
 
@@ -2512,7 +2509,7 @@ msgstr "Exponente de la base"
 msgid "Base height"
 msgstr "Altura de la base"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Estilo del mapa de la capa base. Consulta la documentación de Mapbox: %s"
 
@@ -2929,7 +2926,7 @@ msgid "Cancel query on window unload event"
 msgstr "Cancelar consulta en el evento de descarga de la ventana"
 
 msgid "Cancellation not available due to missing abort handler"
-msgstr ""
+msgstr "No es posible cancelar debido a la falta del controlador de cancelación."
 
 msgid "Cannot access the query"
 msgstr "No se puede acceder a la consulta"
@@ -3828,7 +3825,7 @@ msgid "Columns missing in datasource: %(invalid_columns)s"
 msgstr "Columnas que faltan en la fuente de datos: %(invalid_columns)s"
 
 msgid "Columns should be inside folders"
-msgstr ""
+msgstr "Las columnas deben estar dentro de carpetas"
 
 msgid "Columns subtotal position"
 msgstr "Posición del subtotal de columnas"
@@ -4383,6 +4380,13 @@ msgstr ""
 "Las métricas «ad hoc» SQL personalizadas no están habilitadas para este "
 "conjunto de datos"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Los campos SQL personalizados no pueden contener subconsultas."
+
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Los campos SQL personalizados no pueden contener subconsultas."
 
@@ -4806,6 +4810,9 @@ msgstr "Configuración de la base de datos actualizada"
 
 msgid "Database type does not support file uploads."
 msgstr "El tipo de base de datos no admite subidas de archivos."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "La subida de la base de datos ha fallado"
@@ -5919,8 +5926,8 @@ msgstr "Duración en ms (1,40008 => 1 ms 400 µs 80 ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Duración en ms (100.40008 => 100 ms 400 µs 80 ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Duración en ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Duración en ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Duración en ms (66 000 => 1 m 6 s)"
@@ -6425,7 +6432,7 @@ msgstr "Error al eliminar %s"
 
 #, python-format
 msgid "Error disabling fullscreen: %s"
-msgstr ""
+msgstr "Error al deshabilitar la pantalla completa: %s"
 
 #, fuzzy, python-format
 msgid "Error enabling fullscreen: %s"
@@ -9727,7 +9734,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "No hay columnas de la tabla"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Todavía no hay %s"
 
@@ -9818,6 +9825,10 @@ msgstr "Sin definir"
 
 msgid "Not equal to (≠)"
 msgstr "No es igual a (≠)"
+
+#, fuzzy
+msgid "Not found"
+msgstr "No se ha encontrado ningún gráfico"
 
 msgid "Not in"
 msgstr "No está en"
@@ -10907,6 +10918,12 @@ msgstr "ID del proyecto"
 msgid "Proportional"
 msgstr "Proporcional"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Publicado"
 
@@ -11169,11 +11186,6 @@ msgstr "Filtro previo"
 #, fuzzy
 msgid "Registration date"
 msgstr "Fecha de inicio"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
-#, fuzzy
-msgid "Registration hash"
-msgstr "Hash de registro"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -11705,6 +11717,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "Consultas de SQL Lab"
@@ -16219,6 +16237,9 @@ msgstr "Introduce un valor"
 msgid "Type is required"
 msgstr "El tipo es obligatorio"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
 msgid "Type of chart to display in sparkline"
@@ -16398,6 +16419,12 @@ msgstr "Deshacer la acción"
 
 msgid "Undo?"
 msgstr "¿Deshacer?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+"Se ha producido un error inesperado; comprueba tus registros para obtener"
+" más información"
 
 msgid "Unexpected error"
 msgstr "Error inesperado"
@@ -17393,6 +17420,10 @@ msgstr "Si se deben mostrar los valores mínimo y máximo del eje X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Si se deben mostrar los valores mínimo y máximo del eje Y"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Si se debe mostrar la línea de tendencia"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Si se deben mostrar los valores numéricos dentro de las celdas"
 
@@ -18095,6 +18126,10 @@ msgstr ""
 
 msgid "`operation` property of post processing object undefined"
 msgstr "Propiedad «operation» del objeto de posprocesamiento no definida"
+
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
 
 msgid "`prophet` package not installed"
 msgstr "El paquete «prophet» no está instalado"
@@ -19036,25 +19071,8 @@ msgstr "your-project-1234-a1"
 msgid "zoom area"
 msgstr "área del «zoom»"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
-
 msgid "© Layer attribution"
 msgstr "© Atribución de la capa"
+
+msgid "№"
+msgstr ""

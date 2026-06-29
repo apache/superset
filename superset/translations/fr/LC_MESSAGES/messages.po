@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -204,16 +204,16 @@ msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" est maintenant le thème par défaut du système"
 
 #, python-format
-msgid "% calculation"
-msgstr "% calcul"
+msgid "%% calculation"
+msgstr "%% calcul"
 
 #, python-format
-msgid "% of parent"
-msgstr "% de parent"
+msgid "%% of parent"
+msgstr "%% du parent"
 
 #, python-format
-msgid "% of total"
-msgstr "% du total"
+msgid "%% of total"
+msgstr "%% du total"
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -1240,6 +1240,10 @@ msgstr "Ajouter un nouveau formateur de couleur"
 msgid "Add new formatter"
 msgstr "Ajouter un nouveau formateur"
 
+#, fuzzy
+msgid "Add numbered column"
+msgstr " pour ajouter des colonnes calculées"
+
 msgid "Add or edit display controls"
 msgstr "Ajouter ou modifier les contrôles d'affichage"
 
@@ -1288,8 +1292,8 @@ msgstr[1] ""
 #, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "Ajouté à %s tableau de bord"
-msgstr[1] "Ajoutés à %s tableaux de bords"
+msgstr[0] "Ajouté à 1 tableau de bord"
+msgstr[1] "Ajouté à %s tableaux de bord"
 
 msgid "Additional Parameters"
 msgstr "Paramètres supplémentaires"
@@ -1809,7 +1813,7 @@ msgstr "Une erreur s'est produite lors de l'extraction des valeurs du schéma :
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Une erreur s'est produite lors de l'extraction des Thèmes "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Une erreur s'est produite lors de l'extraction des valeurs du schéma : %s"
 
@@ -1885,7 +1889,7 @@ msgstr "Une erreur s'est produite lors de l'analyse de la clé."
 msgid "An error occurred while pruning logs "
 msgstr "Une erreur s'est produite lors de la suppression des journaux "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Une erreur s'est produite durant le rendu de la visualisation : %s"
 
@@ -2109,7 +2113,7 @@ msgstr "Filtres appliqués (%d)"
 
 #, python-format
 msgid "Applied filters (%s)"
-msgstr "Filtres appliqués (%d)"
+msgstr "Filtres appliqués (%s)"
 
 #, python-format
 msgid "Applied filters: %s"
@@ -2452,7 +2456,7 @@ msgstr "Port de la base de données"
 msgid "Base height"
 msgstr "Hauteur de base"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Style de la couche de base de la carte. Voir la documentation Mapbox : %s"
 
@@ -4245,6 +4249,13 @@ msgstr ""
 "Les mesures SQL ponctuelles personnalisées ne sont pas activées pour cet "
 "ensemble de données"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
+
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
 
@@ -4643,6 +4654,9 @@ msgstr "Mise à jour des paramètres de la base de données"
 
 msgid "Database type does not support file uploads."
 msgstr "La base de données ne prend pas en charge le chargement de fichiers"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Le chargement de fichier dans la base a échoué"
@@ -5681,9 +5695,9 @@ msgstr "Nom(s) de colonne dupliqué : %(columns)s"
 msgid "Duplicate role"
 msgstr "Dupliquer le rôle"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Duplicate role %(name)s"
-msgstr "Nom(s) de colonne dupliqué : %(columns)s"
+msgstr "Dupliquer le rôle %(name)s"
 
 msgid "Duplicate tab"
 msgstr "Dupliquer l'onglet"
@@ -5736,8 +5750,8 @@ msgstr "Durée en ms (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Durée en ms (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Durée en ms (66000 => 1m 6s)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Durée en ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Durée en ms (66000 => 1m 6s)"
@@ -7642,7 +7656,7 @@ msgstr "Inclure une description qui sera envoyée avec votre rapport"
 
 #, fuzzy, python-format
 msgid "Include description to be sent with %s"
-msgstr "Inclure une description qui sera envoyée avec votre rapport"
+msgstr "Inclure une description à envoyer avec %s"
 
 msgid "Include series name as an axis"
 msgstr "Inclure le nom de la série comme axe"
@@ -7897,9 +7911,9 @@ msgstr "Type de résultat invalide : %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Le rolling_type est invalide: %(type)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid spatial point encountered: %(latlong)s"
-msgstr "Point géographique invalide : %s"
+msgstr "Point géographique invalide : %(latlong)s"
 
 #, fuzzy
 msgid "Invalid state."
@@ -9503,7 +9517,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Pas de colonnes de tableau"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Pas encore de %s"
 
@@ -9598,6 +9612,10 @@ msgstr "Indéfini"
 
 msgid "Not equal to (≠)"
 msgstr "Différent de (≠)"
+
+#, fuzzy
+msgid "Not found"
+msgstr "Graphique non trouvé"
 
 #, fuzzy
 msgid "Not in"
@@ -10708,6 +10726,12 @@ msgstr "Déclassé"
 msgid "Proportional"
 msgstr "Proportionnel"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Publié"
 
@@ -10971,9 +10995,6 @@ msgstr "S'enregister"
 #, fuzzy
 msgid "Registration date"
 msgstr "Source de l'annotation"
-
-msgid "Registration hash"
-msgstr "Hachage d'enregistrement"
 
 #, fuzzy
 msgid "Registration successful"
@@ -11501,9 +11522,9 @@ msgstr "Exécuter la sélection"
 msgid "Running"
 msgstr "En cours d’exécution"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Exécution de l’instruction %(block_num)s sur %(block_count)s"
+msgstr "Exécution du bloc %(block_num)s sur %(block_count)s"
 
 msgid "SAT"
 msgstr "SAT"
@@ -11516,6 +11537,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -11817,9 +11844,9 @@ msgstr ""
 msgid "Search"
 msgstr "Rechercher"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Search %s records"
-msgstr "Registres bruts"
+msgstr "Rechercher dans %s enregistrements"
 
 msgid "Search / Filter"
 msgstr "Rechercher / Filtrer"
@@ -12682,9 +12709,9 @@ msgstr ""
 msgid "Show"
 msgstr "Afficher"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Show %s entries"
-msgstr "Afficher la mesure"
+msgstr "Afficher %s entrées"
 
 msgid "Show Bubbles"
 msgstr "Afficher les bulles"
@@ -13587,13 +13614,13 @@ msgstr "Nom du tableau"
 msgid "Table V2"
 msgstr "Tableau V2"
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "Table [%(table)s] could not be found, please double check your database "
 "connection, schema, and table name"
 msgstr ""
-"La tableau [%(table_name)s] n'a pu être trouvé, vérifiez à nouveau votre "
-"connexion à votre base de données, le schéma et le nom du tableau"
+"La table [%(table)s] n'a pu être trouvée, veuillez revérifier votre "
+"connexion à la base de données, le schéma et le nom de la table"
 
 msgid ""
 "Table already exists. You can change your 'if table already exists' "
@@ -14840,9 +14867,9 @@ msgstr "Les thèmes n'ont pas pu être supprimés."
 msgid "There are associated alerts or reports"
 msgstr "Il y a des alertes ou des rapports associés"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "Il y a des alertes ou des rapports associés : %s,"
+msgstr "Il y a des alertes ou des rapports associés : %(report_names)s"
 
 msgid "There are no charts added to this dashboard"
 msgstr "Il n'y a pas de graphiques ajouté dans ce tableau de bord"
@@ -16003,6 +16030,9 @@ msgstr "Saisissez une valeur"
 msgid "Type is required"
 msgstr "Le type est requis"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 #, fuzzy
 msgid "Type of chart to display in sparkline"
 msgstr "Nombre de graphiques à afficher par ligne"
@@ -16173,6 +16203,12 @@ msgstr "Annuler l'action"
 msgid "Undo?"
 msgstr "Annuler?"
 
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+"Une erreur inattendue s'est produite, veuillez consulter vos journaux "
+"pour plus de détails"
+
 msgid "Unexpected error"
 msgstr "Erreur inattendue"
 
@@ -16189,9 +16225,9 @@ msgstr "Erreur inattendue :"
 msgid "Unexpected no file extension found"
 msgstr "Aucune expression sauvegardée n'a été trouvée"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Unexpected time range: %(error)s"
-msgstr "Intervalle de temps inattendu: %s"
+msgstr "Intervalle de temps inattendu : %(error)s"
 
 #, fuzzy
 msgid "Ungroup By"
@@ -17185,6 +17221,10 @@ msgstr "Affichage ou non des valeurs min et max de l’axe des absisses"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Affichage ou non des valeurs min et max de l’axe des ordonnées"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Affichage ou non de la ligne de tendance"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Affichage ou non des valeurs numériques dans les cellules"
 
@@ -17906,6 +17946,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "La propriété « operation » de l'objet de post-traitement est indéfinie"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "Paquet « prophet » non installée"
 
@@ -18391,25 +18435,25 @@ msgstr "devrait être un nombre entier"
 msgid "is false"
 msgstr "est faux"
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
 msgstr ""
-"La base de données %s est liée à %s graphiques qui apparaissent sur %s "
-"tableaux de bord et les utilisateurs ont des onglets %s SQL Lab ouverts "
-"qui utilisent cette base de données. Êtes-vous sûr de vouloir continuer? "
-"Supprimer la base de données brisera ces objets."
+"est liée à %s graphiques qui apparaissent sur %s tableaux de bord et les "
+"utilisateurs ont %s onglets SQL Lab ouverts qui utilisent cette base de "
+"données. Êtes-vous sûr de vouloir continuer ? La suppression de la base de"
+" données brisera ces objets."
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards. Are you sure you "
 "want to continue? Deleting the dataset will break those objects."
 msgstr ""
-"L'ensemble de données %s est lié aux graphiques %s qui apparaissent dans "
-"%s tableaux de bord. Êtes-vous sûr de vouloir continuer? La suppression "
-"de l'ensemble de données brisera ces objets."
+"est lié à %s graphiques qui apparaissent sur %s tableaux de bord. Êtes-vous"
+" sûr de vouloir continuer ? La suppression de l'ensemble de données "
+"brisera ces objets."
 
 msgid "is not"
 msgstr "n'est pas"
@@ -18869,25 +18913,8 @@ msgstr ""
 msgid "zoom area"
 msgstr "zone de zoom"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
-
 msgid "© Layer attribution"
 msgstr "© Attribution de la couche"
+
+msgid "№"
+msgstr ""

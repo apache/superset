@@ -591,6 +591,10 @@ export function dbReducer(
             catalog: payloadCatalog,
           },
           // eslint-disable-next-line camelcase
+          engine_information:
+            action.payload.engine_information ||
+            trimmedState.engine_information,
+          // eslint-disable-next-line camelcase
           query_input,
         };
       }
@@ -601,6 +605,9 @@ export function dbReducer(
         configuration_method: action.payload.configuration_method,
         parameters: action.payload.parameters || trimmedState.parameters,
         ssh_tunnel: action.payload.ssh_tunnel || trimmedState.ssh_tunnel,
+        // eslint-disable-next-line camelcase
+        engine_information:
+          action.payload.engine_information || trimmedState.engine_information,
         // eslint-disable-next-line camelcase
         query_input,
       };
@@ -933,7 +940,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       const errors = await getValidation(dbToUpdate, true);
-      if (!isEmpty(validationErrors) || errors?.length) {
+      if (!isEmpty(validationErrors) || !isEmpty(errors)) {
         addDangerToast(
           t('Connection failed, please check your connection settings.'),
         );
@@ -1201,9 +1208,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           // For all other options, sort alphabetically
           return String(a.label).localeCompare(String(b.label));
         }}
-        getPopupContainer={triggerNode =>
-          triggerNode.parentElement || document.body
-        }
+        getPopupContainer={() => document.body}
         dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
       />
       <Alert

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { ensureIsArray, usePrevious } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { isEqual } from 'lodash';
@@ -29,15 +29,8 @@ import {
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
 import MetricDefinitionValue from './MetricDefinitionValue';
-import AdhocMetric from './AdhocMetric';
+import AdhocMetric, { dedupeAdhocMetricOptionName } from './AdhocMetric';
 import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
-
-const defaultProps = {
-  onChange: () => {},
-  clearable: true,
-  savedMetrics: [],
-  columns: [],
-};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getOptionsForSavedMetrics(
@@ -73,10 +66,13 @@ function coerceAdhocMetrics(value: any) {
     }
     return [value];
   }
+  // Metrics are identified by optionName when editing; regenerate any that
+  // collide so each keeps a unique identity (see dedupeAdhocMetricOptionName).
+  const seenOptionNames = new Set<string>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return value.map((val: any) => {
     if (isDictionaryForAdhocMetric(val)) {
-      return new AdhocMetric(val);
+      return dedupeAdhocMetricOptionName(new AdhocMetric(val), seenOptionNames);
     }
     return val;
   });
@@ -122,11 +118,11 @@ export interface MetricsControlProps {
 }
 
 const MetricsControl = ({
-  onChange,
+  onChange = () => {},
   multi,
   value: propsValue,
-  columns,
-  savedMetrics,
+  columns = [],
+  savedMetrics = [],
   datasource,
   ...props
 }: MetricsControlProps) => {
@@ -351,6 +347,5 @@ const MetricsControl = ({
   );
 };
 
-MetricsControl.defaultProps = defaultProps;
-
-export default MetricsControl;
+// Was a PureComponent before the FC conversion; preserve shallow-equal skip.
+export default memo(MetricsControl);

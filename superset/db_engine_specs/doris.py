@@ -21,7 +21,7 @@ from typing import Any, Optional
 from urllib import parse
 
 from flask_babel import gettext as __
-from sqlalchemy import Float, Integer, Numeric, String, TEXT, types
+from sqlalchemy import Float, Integer, Numeric, String, TEXT, text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
@@ -326,7 +326,7 @@ class DorisEngineSpec(MySQLEngineSpec):
         CatalogId, CatalogName, Type, IsCurrent, CreateTime, LastUpdateTime, Comment
         We need to extract just the CatalogName column.
         """
-        result = inspector.bind.execute("SHOW CATALOGS")
+        result = inspector.bind.execute(text("SHOW CATALOGS"))
         return {row.CatalogName for row in result}
 
     @classmethod
