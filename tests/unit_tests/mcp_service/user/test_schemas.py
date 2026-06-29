@@ -23,7 +23,7 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy.orm.exc import DetachedInstanceError
 
-from superset.mcp_service.user.schemas import UserInfo, serialize_user_object
+from superset.mcp_service.user.schemas import serialize_user_object, UserInfo
 
 
 def test_user_info_rejects_bare_string_for_roles() -> None:
@@ -94,8 +94,10 @@ def test_serialize_user_object_round_trip_with_empty_roles() -> None:
     assert info is not None
     assert info.roles == []
     assert info.username == "admin"
-    assert info.first_name == "Admin"
-    assert info.last_name == "User"
+    assert "<UNTRUSTED-CONTENT>" in (info.first_name or "")
+    assert "Admin" in (info.first_name or "")
+    assert "<UNTRUSTED-CONTENT>" in (info.last_name or "")
+    assert "User" in (info.last_name or "")
     assert info.active is True
     assert info.email == "admin@example.com"
 
@@ -120,7 +122,9 @@ def test_serialize_user_object_round_trip_with_role_objects() -> None:
     assert info is not None
     assert info.roles == ["Admin"]
     assert info.username == "admin"
-    assert info.first_name == "Admin"
-    assert info.last_name == "User"
+    assert "<UNTRUSTED-CONTENT>" in (info.first_name or "")
+    assert "Admin" in (info.first_name or "")
+    assert "<UNTRUSTED-CONTENT>" in (info.last_name or "")
+    assert "User" in (info.last_name or "")
     assert info.active is True
     assert info.email == "admin@example.com"
