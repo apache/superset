@@ -23,6 +23,7 @@ import {
   fetchVersionSnapshot,
   restoreVersion,
 } from './api';
+import { useDashboardStateStore } from 'src/dashboard/stores';
 import { useVersionActions } from './useVersionActions';
 
 jest.mock('./api', () => ({
@@ -63,7 +64,6 @@ const mockDispatch = jest.fn();
 // it); tests control that signal through this state object.
 let mockState: {
   versionHistory: { sessionLog: unknown[] };
-  dashboardState: { hasUnsavedChanges: boolean };
 };
 jest.mock('react-redux', () => ({
   ...jest.requireActual('react-redux'),
@@ -90,8 +90,9 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockState = {
     versionHistory: { sessionLog: [] },
-    dashboardState: { hasUnsavedChanges: false },
   };
+  // The dashboard dirty signal now lives in the Zustand state store.
+  useDashboardStateStore.setState({ hasUnsavedChanges: false });
   // Distinct ids so the "already at this version" branch is not taken.
   // mockReset first: clearAllMocks does NOT drop queued ...Once values, so
   // without it every beforeEach stacks another tx-1 and a test that doesn't
@@ -107,7 +108,7 @@ beforeEach(() => {
 test('a dirty dashboard blocks restore with the save-or-discard toast', () => {
   // Restoring rehydrates the page from the server, wiping unsaved edits and
   // undo history — the same hazard the preview entry gate guards.
-  mockState.dashboardState.hasUnsavedChanges = true;
+  useDashboardStateStore.setState({ hasUnsavedChanges: true });
   const { result } = renderHook(() =>
     useVersionActions('dashboard', 'entity-uuid'),
   );
@@ -135,7 +136,7 @@ test('work turning dirty while the modal is open still blocks the restore', asyn
   });
   expect(result.current.restoreModal?.props.target).toEqual(target);
 
-  mockState.dashboardState.hasUnsavedChanges = true;
+  useDashboardStateStore.setState({ hasUnsavedChanges: true });
   rerender();
   await act(async () => {
     await result.current.restoreModal?.props.onConfirm();

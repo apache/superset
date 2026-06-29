@@ -26,6 +26,8 @@ import {
   ChartCustomizationType,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import FilterControls from './FilterControls';
 
@@ -35,9 +37,21 @@ const mockStoreForCustomization = {
   ...stateWithoutNativeFilters,
   dashboardInfo: {
     ...stateWithoutNativeFilters.dashboardInfo,
-    filterBarOrientation: FilterBarOrientation.Vertical,
+    // Orientation is denormalized into metadata; the migrated component reads it
+    // via selectFilterBarOrientation (metadata.filter_bar_orientation).
+    metadata: {
+      ...stateWithoutNativeFilters.dashboardInfo.metadata,
+      filter_bar_orientation: FilterBarOrientation.Vertical,
+    },
   },
 };
+
+beforeEach(() => {
+  useDashboardInfoStore.setState({
+    dashboardInfo:
+      mockStoreForCustomization.dashboardInfo as unknown as DashboardInfo,
+  });
+});
 
 jest.mock('react-redux', () => ({
   ...jest.requireActual('react-redux'),
@@ -101,19 +115,15 @@ test('renders multiple chart customization dividers in vertical mode', () => {
 });
 
 test('renders chart customization divider in horizontal mode', () => {
-  const horizontalStore = {
-    ...mockStoreForCustomization,
+  useDashboardInfoStore.setState({
     dashboardInfo: {
       ...mockStoreForCustomization.dashboardInfo,
-      filterBarOrientation: FilterBarOrientation.Horizontal,
-    },
-  };
-
-  const { useSelector } = jest.requireMock('react-redux');
-  useSelector.mockImplementation(
-    (selector: (state: typeof horizontalStore) => unknown) =>
-      selector(horizontalStore),
-  );
+      metadata: {
+        ...mockStoreForCustomization.dashboardInfo.metadata,
+        filter_bar_orientation: FilterBarOrientation.Horizontal,
+      },
+    } as unknown as DashboardInfo,
+  });
 
   const divider: ChartCustomizationDivider = {
     id: 'CHART_CUSTOMIZATION_DIVIDER-abc123',
@@ -130,6 +140,11 @@ test('renders chart customization divider in horizontal mode', () => {
   expect(
     screen.getByRole('heading', { name: 'Horizontal Divider' }),
   ).toBeInTheDocument();
+  // Proves it actually rendered in horizontal mode: horizontal dividers show
+  // the description as a tooltip icon (divider-description-icon), whereas
+  // vertical dividers render it inline (divider-description).
+  expect(screen.getByTestId('divider-description-icon')).toBeInTheDocument();
+  expect(screen.queryByTestId('divider-description')).not.toBeInTheDocument();
 });
 
 test('does not render removed chart customization dividers', () => {
@@ -178,7 +193,7 @@ test('renders divider with description icon in vertical mode when description ex
   expect(
     screen.getByRole('heading', { name: 'Divider With Description' }),
   ).toBeInTheDocument();
-  expect(screen.queryByTestId('divider-description-icon')).toBeInTheDocument();
+  expect(screen.queryByTestId('divider-description')).toBeInTheDocument();
 });
 
 test('renders empty state when no chart customizations provided', () => {
@@ -302,79 +317,11 @@ function setupWithFilters(overrideState: any = {}, props: any = {}) {
   );
 }
 
-test('FilterControls should mark out-of-scope filters as not overflowed in vertical mode', () => {
-  const stateWithVertical = getDefaultState(FilterBarOrientation.Vertical);
-
-  stateWithVertical.nativeFilters.filters['filter-3'].scope = {
-    rootPath: ['ROOT_ID'],
-    excluded: ['TAB-1'],
-  };
-
-  const { container } = setupWithFilters(stateWithVertical);
-
-  expect(container).toBeInTheDocument();
-});
-
-test('FilterControls should mark out-of-scope filters as overflowed in horizontal mode', () => {
-  const stateWithHorizontal = getDefaultState(FilterBarOrientation.Horizontal);
-
-  stateWithHorizontal.nativeFilters.filters['filter-3'].scope = {
-    rootPath: ['ROOT_ID'],
-    excluded: ['TAB-1'],
-  };
-
-  const { container } = setupWithFilters(stateWithHorizontal);
-
-  expect(container).toBeInTheDocument();
-});
-
-test('FilterControls overflowedByIndex calculation respects filter bar orientation', () => {
-  const verticalState = getDefaultState(FilterBarOrientation.Vertical);
-  verticalState.nativeFilters.filters['filter-2'].scope = {
-    rootPath: ['ROOT_ID'],
-    excluded: ['TAB-1'],
-  };
-
-  const { rerender, container } = setupWithFilters(verticalState);
-  expect(container).toBeInTheDocument();
-
-  const horizontalState = getDefaultState(FilterBarOrientation.Horizontal);
-  horizontalState.nativeFilters.filters['filter-2'].scope = {
-    rootPath: ['ROOT_ID'],
-    excluded: ['TAB-1'],
-  };
-
-  rerender(
-    <Provider store={mockStore(horizontalState) as Store}>
-      <FilterControls
-        dataMaskSelected={{}}
-        onFilterSelectionChange={jest.fn()}
-        onPendingCustomizationDataMaskChange={jest.fn()}
-        chartCustomizationValues={[]}
-      />
-    </Provider>,
-  );
-
-  expect(container).toBeInTheDocument();
-});
-
-test('FilterControls should correctly pass isOverflowing prop to filter controls', () => {
-  const state = getDefaultState(FilterBarOrientation.Vertical);
-
-  state.nativeFilters.filters['filter-1'].scope = {
-    rootPath: ['ROOT_ID'],
-    excluded: [],
-  };
-
-  state.nativeFilters.filters['filter-2'].scope = {
-    rootPath: ['ROOT_ID'],
-    excluded: ['TAB-1'],
-  };
-
-  const { container } = setupWithFilters(state);
-
-  expect(container).toBeInTheDocument();
-});
+// NOTE: Overflow/orientation behaviour (which filters overflow, overflowedByIndex,
+// isOverflowing) is covered meaningfully in FilterControls.overflow.test.tsx,
+// which mocks the collapsible bar and drives the overflow callback. jsdom has no
+// layout, so it cannot exercise real overflow here — earlier smoke tests that only
+// asserted `container.toBeInTheDocument()` were removed as misleading false coverage.
 
 test('FilterControls should handle empty filters list', () => {
   const state = getDefaultState(FilterBarOrientation.Vertical);
@@ -395,30 +342,4 @@ test('does not render "Filters out of scope" when all filters are in scope', () 
   setupWithFilters(state);
 
   expect(screen.queryByText(/Filters out of scope/)).not.toBeInTheDocument();
-});
-
-test('FilterControls overflowedByIndex updates when filters change scope', () => {
-  const state = getDefaultState(FilterBarOrientation.Vertical);
-
-  const { container, rerender } = setupWithFilters(state);
-  expect(container).toBeInTheDocument();
-
-  const updatedState = getDefaultState(FilterBarOrientation.Vertical);
-  updatedState.nativeFilters.filters['filter-1'].scope = {
-    rootPath: ['ROOT_ID'],
-    excluded: ['TAB-1'],
-  };
-
-  rerender(
-    <Provider store={mockStore(updatedState) as Store}>
-      <FilterControls
-        dataMaskSelected={{}}
-        onFilterSelectionChange={jest.fn()}
-        onPendingCustomizationDataMaskChange={jest.fn()}
-        chartCustomizationValues={[]}
-      />
-    </Provider>,
-  );
-
-  expect(container).toBeInTheDocument();
 });

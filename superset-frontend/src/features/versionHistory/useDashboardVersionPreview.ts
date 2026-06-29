@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef } from 'react';
-import { useDispatch, useSelector, useStore } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import type { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -28,7 +28,12 @@ import {
   HydrateDashboardData,
 } from 'src/dashboard/actions/hydrate';
 import { clearDataMaskState } from 'src/dataMask/actions';
-import type { RootState } from 'src/dashboard/types';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import {
+  useDashboardId,
+  useDashboardInfo,
+  useLastModifiedTime,
+} from 'src/dashboard/stores';
 import {
   fetchDashboardHydrationData,
   fetchDashboardTheme,
@@ -182,13 +187,12 @@ async function resolveSnapshotTheme(
  */
 export function useDashboardVersionPreview(uuid: string | undefined) {
   const dispatch = useDispatch();
-  const store = useStore<RootState>();
   const history = useHistory();
   const { addDangerToast } = useToasts();
   const preview = useSelector(selectVersionPreview);
-  const dashboardId = useSelector<RootState, number | undefined>(
-    state => state.dashboardInfo?.id,
-  );
+  const dashboardId = useDashboardId();
+  const dashboardInfo = useDashboardInfo();
+  const lastModifiedTime = useLastModifiedTime();
   const liveDataRef = useRef<DashboardHydrationData | null>(null);
   // The user's filter selections at the moment they entered preview, restored
   // when the preview closes. Captured once per live -> preview transition so
@@ -203,12 +207,10 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
   // saves round-trip through ON_SAVE (dashboardState.lastModifiedTime),
   // while native-filter and properties saves bump
   // dashboardInfo.last_modified_time.
-  const saveSignal = useSelector<RootState, string>(state =>
-    [
-      state.dashboardState?.lastModifiedTime ?? '',
-      state.dashboardInfo?.last_modified_time ?? '',
-    ].join('|'),
-  );
+  const saveSignal = [
+    lastModifiedTime ?? '',
+    dashboardInfo?.last_modified_time ?? '',
+  ].join('|');
   const lastSaveSignalRef = useRef(saveSignal);
   // Hydration writes to the global store, which outlives this hook. The
   // fetch-id guard below only invalidates requests superseded by another
@@ -378,7 +380,7 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
         if (appliedVersionRef.current === null) {
           // Entering preview from the live dashboard: remember the user's
           // filter selections so closing the preview can bring them back.
-          liveDataMaskRef.current = store.getState().dataMask;
+          liveDataMaskRef.current = useDataMaskStore.getState().dataMask;
         }
         appliedVersionRef.current = versionUuid;
         // The snapshot renders with its own filter defaults (from its
@@ -463,7 +465,6 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
     history,
     lastRestoredUuid,
     restoreCount,
-    store,
     uuid,
     versionUuid,
   ]);

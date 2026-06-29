@@ -19,11 +19,15 @@
 /* eslint-disable camelcase */
 import { JsonObject } from '@superset-ui/core';
 import { Dispatch } from 'redux';
+import {
+  useDashboardLayoutStore,
+  useDashboardStateStore,
+} from 'src/dashboard/stores';
 import { DashboardLayout, GetState } from '../types';
 
 // util function to make sure filter is a valid slice in current dashboard
-function isValidFilter(getState: GetState, chartId: number): boolean {
-  return getState().dashboardState.sliceIds.includes(chartId);
+function isValidFilter(chartId: number): boolean {
+  return useDashboardStateStore.getState().sliceIds.includes(chartId);
 }
 
 export const CHANGE_FILTER = 'CHANGE_FILTER';
@@ -45,8 +49,8 @@ export function changeFilter(
     dispatch: Dispatch,
     getState: GetState,
   ): ChangeFilterAction | JsonObject => {
-    if (isValidFilter(getState, chartId)) {
-      const components = getState().dashboardLayout.present;
+    if (isValidFilter(chartId)) {
+      const components = useDashboardLayoutStore.getState().layout;
       return dispatch({
         type: CHANGE_FILTER,
         chartId,
@@ -72,7 +76,7 @@ export function updateDirectPathToFilter(chartId: number, path: string[]) {
     dispatch: Dispatch,
     getState: GetState,
   ): UpdateDirectPathToFilterAction | JsonObject => {
-    if (isValidFilter(getState, chartId)) {
+    if (isValidFilter(chartId)) {
       return dispatch({
         type: UPDATE_DIRECT_PATH_TO_FILTER,
         chartId,
@@ -80,24 +84,6 @@ export function updateDirectPathToFilter(chartId: number, path: string[]) {
       } as UpdateDirectPathToFilterAction);
     }
     return getState().dashboardFilters;
-  };
-}
-
-export const UPDATE_LAYOUT_COMPONENTS = 'UPDATE_LAYOUT_COMPONENTS';
-
-interface UpdateLayoutComponentsAction {
-  type: typeof UPDATE_LAYOUT_COMPONENTS;
-  components: DashboardLayout;
-}
-
-export function updateLayoutComponents(
-  components: DashboardLayout,
-): (dispatch: Dispatch) => void {
-  return (dispatch: Dispatch) => {
-    dispatch({
-      type: UPDATE_LAYOUT_COMPONENTS,
-      components,
-    } as UpdateLayoutComponentsAction);
   };
 }
 

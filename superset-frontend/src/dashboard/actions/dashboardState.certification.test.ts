@@ -26,6 +26,12 @@ import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
 import { saveDashboardRequest } from 'src/dashboard/actions/dashboardState';
 import { SAVE_TYPE_OVERWRITE } from 'src/dashboard/util/constants';
+import {
+  useDashboardInfoStore,
+  useDashboardStateStore,
+  useDashboardLayoutStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -67,6 +73,15 @@ afterEach(() => {
 });
 
 function setup() {
+  // The save flow reads dashboardInfo/layout/state from Zustand (charts stays
+  // on the Redux getState mock), so seed the stores the migrated thunk reads.
+  useDashboardInfoStore.setState({
+    dashboardInfo: mockState.dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState(mockState.dashboardState);
+  useDashboardLayoutStore.setState({
+    layout: mockState.dashboardLayout.present as unknown as DashboardLayout,
+  });
   const getState = jest.fn(() => mockState) as unknown as () => any;
   const dispatch = jest.fn();
   return { getState, dispatch };

@@ -20,12 +20,13 @@ import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { t } from '@apache-superset/core/translation';
-import { ChartCustomization, DataMaskStateWithId } from '@superset-ui/core';
+import { ChartCustomization } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { getFilterValueForDisplay } from '../nativeFilters/utils';
 import { extractLabel } from '../nativeFilters/selectors';
-import { useChartCustomizationFromRedux } from '../nativeFilters/state';
+import { useChartCustomizations } from '../nativeFilters/state';
 import { RootState } from '../../types';
 import { isChartWithoutGroupBy } from '../../util/charts/chartTypeLimitations';
 
@@ -169,11 +170,9 @@ export const CustomizationsBadge = ({ chartId }: CustomizationsBadgeProps) => {
   const triggerRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
 
-  const chartCustomizationItems = useChartCustomizationFromRedux();
+  const chartCustomizationItems = useChartCustomizations();
 
-  const dataMask = useSelector<RootState, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
+  const dataMask = useDataMaskStore(s => s.dataMask);
 
   // Use memoized selectors for chart data
   const selectChartDataset = useMemo(
