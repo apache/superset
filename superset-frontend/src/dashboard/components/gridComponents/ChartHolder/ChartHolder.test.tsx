@@ -30,10 +30,16 @@ import {
   fireEvent,
   userEvent,
 } from 'spec/helpers/testing-library';
+import { act } from '@testing-library/react';
 import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { initialState } from 'src/SqlLab/fixtures';
-import { SET_DIRECT_PATH } from 'src/dashboard/actions/dashboardState';
+import {
+  useDashboardStateStore,
+  useDashboardSlicesStore,
+  useDashboardInfoStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import {
   CHART_TYPE,
   COLUMN_TYPE,
@@ -95,12 +101,20 @@ describe('ChartHolder', () => {
     window.HTMLElement.prototype.scrollIntoView = scrollViewBase;
   });
 
-  const createMockStore = (customState: any = {}) =>
-    createStore(
+  const createMockStore = (customState: any = {}) => {
+    const state = { ...mockState, ...(initialState as any), ...customState };
+    useDashboardSlicesStore
+      .getState()
+      .setSlices(state.sliceEntities?.slices ?? {});
+    useDashboardInfoStore.setState({
+      dashboardInfo: (state.dashboardInfo ?? {}) as DashboardInfo,
+    });
+    return createStore(
       combineReducers(reducerIndex),
-      { ...mockState, ...(initialState as any), ...customState },
+      state,
       compose(applyMiddleware(thunk)),
     );
+  };
 
   const renderWrapper = (store = createMockStore(), props: any = {}) =>
     render(<ChartHolder {...defaultProps} {...props} />, {
@@ -156,6 +170,12 @@ describe('ChartHolder', () => {
   });
 
   test('should highlight when path matches', async () => {
+    // Set initial Zustand state with directPathToChild but directPathLastUpdated=0
+    // so the highlight effect does not trigger on mount
+    useDashboardStateStore.setState({
+      directPathToChild: ['CHART-ID'],
+      directPathLastUpdated: 0,
+    });
     const store = createMockStore({
       dashboardState: {
         ...mockState.dashboardState,
@@ -176,7 +196,13 @@ describe('ChartHolder', () => {
       screen.getByTestId('dashboard-component-chart-holder'),
     ).not.toHaveClass('fade-in');
 
-    store.dispatch({ type: SET_DIRECT_PATH, path: ['CHART-ID'] });
+    // Update Zustand store to simulate a new navigation (directPathLastUpdated changes)
+    act(() => {
+      useDashboardStateStore.setState({
+        directPathToChild: ['CHART-ID'],
+        directPathLastUpdated: Date.now(),
+      });
+    });
 
     await waitFor(() => {
       expect(

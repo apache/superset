@@ -262,8 +262,9 @@ test('can edit dashboard title via properties modal', async () => {
     sendAsJson: false,
   });
 
-  // Mock GET for single dashboard (PropertiesModal fetches /api/v1/dashboard/<id>)
-  fetchMock.get(/\/api\/v1\/dashboard\/\d+$/, {
+  // Mock GET for single dashboard. PropertiesModal now uses useDashboardQuery
+  // which appends ?q=<rison-columns>, so the URL has a query string.
+  fetchMock.get(/\/api\/v1\/dashboard\/\d+(\?.*)?$/, {
     result: {
       ...mockDashboards[0],
       json_metadata: '{}',

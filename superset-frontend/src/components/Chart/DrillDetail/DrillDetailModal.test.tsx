@@ -21,6 +21,8 @@ import { useState } from 'react';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
+import { useDashboardSlicesStore } from 'src/dashboard/stores';
+import type { Slice } from 'src/dashboard/types';
 import DrillDetailModal from './DrillDetailModal';
 
 jest.mock('./DrillDetailPane', () => () => null);
@@ -62,6 +64,9 @@ const renderModal = async (overrideState: Record<string, any> = {}) => {
     );
   };
 
+  useDashboardSlicesStore.getState().setSlices({
+    [chartId]: { slice_id: chartId, slice_name: chartName } as Slice,
+  });
   render(<DrillDetailModalWrapper />, {
     useRouter: true,
     useRedux: true,

@@ -26,7 +26,7 @@ import {
 import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Global } from '@emotion/react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -39,7 +39,7 @@ import {
 import { findPermission } from 'src/utils/findPermission';
 import { safeStringify } from 'src/utils/safeStringify';
 import Subject from 'src/types/Subject';
-import { DashboardLayout, RootState } from 'src/dashboard/types';
+import { RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { AlertObject } from 'src/features/alerts/types';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
@@ -61,6 +61,13 @@ import {
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
+import { useConfirmModal } from 'src/hooks/useConfirmModal';
+import {
+  useDiscardChanges,
+  useSaveDashboard,
+  useFavoriteStatus,
+  useToggleFavorite,
+} from 'src/dashboard/queries';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -69,28 +76,43 @@ import {
   addWarningToast,
 } from '../../../components/MessageToasts/actions';
 import {
-  dashboardTitleChanged,
-  redoLayoutAction,
-  undoLayoutAction,
-  updateDashboardTitle,
-  clearDashboardHistory,
-} from '../../actions/dashboardLayout';
-import {
   fetchCharts,
-  fetchFaveStar,
   maxUndoHistoryToast,
-  onChange,
   onRefresh,
   saveDashboardRequest,
-  saveFaveStar,
-  savePublished,
-  setEditMode,
-  setMaxUndoHistoryExceeded,
-  setRefreshFrequency,
-  setUnsavedChanges,
 } from '../../actions/dashboardState';
+import {
+  useDashboardLayout,
+  useUndoLength,
+  useRedoLength,
+  undoLayout,
+  redoLayout,
+  clearLayoutHistory,
+  updateDashboardTitle as updateDashboardTitleAction,
+  useDashboardInfo,
+  useCustomCss,
+  useEditMode,
+  useIsPublished,
+  useHasUnsavedChanges,
+  useExpandedSlices,
+  useRefreshFrequency,
+  useShouldPersistRefreshFrequency,
+  useColorNamespace,
+  useColorScheme,
+  useIsStarred,
+  useMaxUndoHistoryExceeded,
+  useLastModifiedTime,
+  setHasUnsavedChanges,
+  setDashboardInfo,
+  setRefreshFrequency,
+  setMaxUndoHistoryExceeded,
+  setEditMode,
+} from 'src/dashboard/stores';
+import {
+  flagTitleUnsavedChanges,
+  resetTitleDirtyFlag,
+} from 'src/dashboard/util/flagTitleUnsavedChanges';
 import { logEvent } from '../../../logger/actions';
-import { dashboardInfoChanged } from '../../actions/dashboardInfo';
 import { ChartState } from 'src/explore/types';
 import { useChartIds } from '../../util/charts/useChartIds';
 import { useDashboardMetadataBar } from './useDashboardMetadataBar';
@@ -112,45 +134,9 @@ type DashboardPropertiesUpdate = {
   title?: string;
 };
 
-type DashboardLayoutStateWithHistory = RootState['dashboardLayout'] & {
-  past: DashboardLayout[];
-  future: DashboardLayout[];
-};
-
-type DashboardInfoState = RootState['dashboardInfo'] & {
-  dash_save_perm?: boolean;
-  dash_share_perm?: boolean;
-  is_managed_externally?: boolean;
-  slug?: string;
-  description?: string;
-  last_modified_time?: number;
-  certified_by?: string;
-  certification_details?: string;
-  tags?: TagType[];
-  metadata: RootState['dashboardInfo']['metadata'] & {
-    timed_refresh_immune_slices?: number[];
-    refresh_frequency?: number;
-  };
-};
-
-type DashboardStateWithExtras = RootState['dashboardState'] & {
-  expandedSlices: Record<number, boolean>;
-  shouldPersistRefreshFrequency?: boolean;
-  colorNamespace?: string;
-  isStarred?: boolean;
-  maxUndoHistoryExceeded?: boolean;
-};
-
-type HeaderRootState = Omit<
-  RootState,
-  'dashboardLayout' | 'dashboardInfo' | 'dashboardState' | 'charts' | 'user'
-> & {
-  dashboardLayout: DashboardLayoutStateWithHistory;
-  dashboardInfo: DashboardInfoState;
-  dashboardState: DashboardStateWithExtras;
+type HeaderRootState = Omit<RootState, 'charts' | 'user'> & {
   charts: Record<string, ChartState>;
   user: UserWithPermissionsAndRoles;
-  lastModifiedTime: number;
 };
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -213,9 +199,9 @@ const discardBtnStyle = (theme: SupersetTheme) => css`
   height: ${theme.sizeUnit * 8}px;
 `;
 
-const discardChanges = () => {
+// Reload fallback when no cached hydration payload exists to restore in place.
+const discardChangesViaReload = () => {
   const url = new URL(window.location.href);
-
   url.searchParams.delete('edit');
   window.location.assign(url);
 };
@@ -232,52 +218,29 @@ const Header = (): JSX.Element => {
   const [showingReportModal, setShowingReportModal] = useState(false);
   const [currentReportDeleting, setCurrentReportDeleting] =
     useState<AlertObject | null>(null);
-  const dashboardInfo = useSelector(
-    (state: HeaderRootState) => state.dashboardInfo,
-  );
-  const layout = useSelector(
-    (state: HeaderRootState) => state.dashboardLayout.present,
-  );
-  const undoLength = useSelector(
-    (state: HeaderRootState) => state.dashboardLayout.past.length,
-  );
-  const redoLength = useSelector(
-    (state: HeaderRootState) => state.dashboardLayout.future.length,
-  );
+  const dashboardInfo = useDashboardInfo();
+  const layout = useDashboardLayout();
+  // Undo/redo history lives in the zundo temporal store.
+  const undoLength = useUndoLength();
+  const redoLength = useRedoLength();
   const user = useSelector((state: HeaderRootState) => state.user);
   const chartIds = useChartIds();
 
-  const {
-    expandedSlices,
-    refreshFrequency,
-    shouldPersistRefreshFrequency,
-    customCss,
-    colorNamespace,
-    colorScheme,
-    isStarred,
-    isPublished,
-    hasUnsavedChanges,
-    maxUndoHistoryExceeded,
-    editMode,
-    lastModifiedTime,
-  } = useSelector(
-    (state: HeaderRootState) => ({
-      expandedSlices: state.dashboardState.expandedSlices ?? {},
-      refreshFrequency: state.dashboardState.refreshFrequency ?? 0,
-      shouldPersistRefreshFrequency:
-        !!state.dashboardState.shouldPersistRefreshFrequency,
-      customCss: state.dashboardInfo.css ?? '',
-      colorNamespace: state.dashboardState.colorNamespace,
-      colorScheme: state.dashboardState.colorScheme,
-      isStarred: !!state.dashboardState.isStarred,
-      isPublished: !!state.dashboardState.isPublished,
-      hasUnsavedChanges: !!state.dashboardState.hasUnsavedChanges,
-      maxUndoHistoryExceeded: !!state.dashboardState.maxUndoHistoryExceeded,
-      editMode: !!state.dashboardState.editMode,
-      lastModifiedTime: state.lastModifiedTime ?? 0,
-    }),
-    shallowEqual,
-  );
+  const editMode = useEditMode();
+  const isPublished = useIsPublished();
+  const hasUnsavedChanges = useHasUnsavedChanges();
+  const customCss = useCustomCss();
+  const expandedSlices = useExpandedSlices();
+  const refreshFrequency = useRefreshFrequency();
+  const shouldPersistRefreshFrequency = useShouldPersistRefreshFrequency();
+  const colorNamespace = useColorNamespace();
+  const colorScheme = useColorScheme();
+  const isStarred = useIsStarred();
+  const showFaveStar = Boolean(user?.userId && dashboardInfo?.id);
+  useFavoriteStatus(dashboardInfo.id, showFaveStar);
+  const { mutate: toggleFavorite } = useToggleFavorite(dashboardInfo.id);
+  const maxUndoHistoryExceeded = useMaxUndoHistoryExceeded();
+  const lastModifiedTime = useLastModifiedTime();
   const isLoading = useSelector((state: HeaderRootState) =>
     Object.values(state.charts).some(chart => {
       const start = chart.chartUpdateStartTime ?? 0;
@@ -296,6 +259,21 @@ const Header = (): JSX.Element => {
     dashboardInfo.last_modified_time ?? 0,
   );
   const themeId = dashboardInfo.theme ? dashboardInfo.theme.id : null;
+  const onUndo = useCallback(() => {
+    // Undo only rewinds layout history; it must not clear the dirty flag (covers theme/title/properties edits too).
+    undoLayout();
+  }, []);
+  const onRedo = useCallback(() => {
+    redoLayout();
+    setHasUnsavedChanges(true);
+  }, []);
+  const clearDashboardHistory = useCallback(() => {
+    clearLayoutHistory();
+  }, []);
+  const updateDashboardTitle = useCallback((text: string) => {
+    updateDashboardTitleAction(text);
+  }, []);
+
   const boundActionCreators = useMemo(
     () =>
       bindActionCreators(
@@ -303,25 +281,11 @@ const Header = (): JSX.Element => {
           addSuccessToast,
           addDangerToast,
           addWarningToast,
-          onUndo: undoLayoutAction,
-          onRedo: redoLayoutAction,
-          clearDashboardHistory,
-          setEditMode,
-          setUnsavedChanges,
-          fetchFaveStar,
-          saveFaveStar,
-          savePublished,
           fetchCharts,
-          updateDashboardTitle,
-          onChange,
           onSave: saveDashboardRequest,
-          setMaxUndoHistoryExceeded,
           maxUndoHistoryToast,
           logEvent,
-          setRefreshFrequency,
           onRefresh,
-          dashboardInfoChanged,
-          dashboardTitleChanged,
         },
         dispatch,
       ),
@@ -349,17 +313,17 @@ const Header = (): JSX.Element => {
     autoRefreshMode,
     isLoading,
     onRefresh: boundActionCreators.onRefresh,
-    setRefreshFrequency: boundActionCreators.setRefreshFrequency,
+    setRefreshFrequency,
     logEvent: boundActionCreators.logEvent,
   });
 
   // Track theme changes as unsaved changes, and sync ref when navigating between dashboards
   useEffect(() => {
     if (editMode && dashboardInfo.theme !== previousThemeRef.current) {
-      boundActionCreators.setUnsavedChanges(true);
+      setHasUnsavedChanges(true);
     }
     previousThemeRef.current = dashboardInfo.theme;
-  }, [dashboardInfo.theme, editMode, boundActionCreators]);
+  }, [dashboardInfo.theme, editMode]);
 
   useEffect(() => {
     if (UNDO_LIMIT - undoLength <= 0 && !didNotifyMaxUndoHistoryToast) {
@@ -367,7 +331,7 @@ const Header = (): JSX.Element => {
       boundActionCreators.maxUndoHistoryToast();
     }
     if (undoLength > UNDO_LIMIT && !maxUndoHistoryExceeded) {
-      boundActionCreators.setMaxUndoHistoryExceeded();
+      setMaxUndoHistoryExceeded(true);
     }
   }, [
     boundActionCreators,
@@ -391,15 +355,28 @@ const Header = (): JSX.Element => {
   const handleChangeText = useCallback(
     (nextText: string) => {
       if (nextText && dashboardTitle !== nextText) {
-        boundActionCreators.updateDashboardTitle(nextText);
-        boundActionCreators.onChange();
+        updateDashboardTitle(nextText);
+        setHasUnsavedChanges(true);
       }
     },
-    [boundActionCreators, dashboardTitle],
+    [dashboardTitle, updateDashboardTitle],
   );
 
+  // Flag the dirty state as the title is typed; clear it if reverted to the saved title.
+  const titleDirtyRef = useRef<boolean | undefined>(undefined);
+  const handleChangeTitleText = useCallback(
+    (nextText: string) =>
+      flagTitleUnsavedChanges(dashboardTitle, nextText, titleDirtyRef),
+    [dashboardTitle],
+  );
+  const handleTitleEditingChange = useCallback((isEditing: boolean) => {
+    if (!isEditing) {
+      resetTitleDirtyFlag(titleDirtyRef);
+    }
+  }, []);
+
   const handleCtrlY = useCallback(() => {
-    boundActionCreators.onRedo();
+    onRedo();
     setEmphasizeRedo(true);
     if (ctrlYTimeout.current !== null) {
       clearTimeout(ctrlYTimeout.current);
@@ -407,10 +384,10 @@ const Header = (): JSX.Element => {
     ctrlYTimeout.current = setTimeout(() => {
       setEmphasizeRedo(false);
     }, 100);
-  }, [boundActionCreators]);
+  }, [onRedo]);
 
   const handleCtrlZ = useCallback(() => {
-    boundActionCreators.onUndo();
+    onUndo();
     setEmphasizeUndo(true);
     if (ctrlZTimeout.current !== null) {
       clearTimeout(ctrlZTimeout.current);
@@ -418,16 +395,48 @@ const Header = (): JSX.Element => {
     ctrlZTimeout.current = setTimeout(() => {
       setEmphasizeUndo(false);
     }, 100);
-  }, [boundActionCreators]);
+  }, [onUndo]);
 
   const toggleEditMode = useCallback(() => {
     boundActionCreators.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
       edit_mode: !editMode,
     });
-    boundActionCreators.setEditMode(!editMode);
+    setEditMode(!editMode);
   }, [boundActionCreators, editMode]);
 
+  const performInPlaceDiscard = useDiscardChanges(dashboardInfo.id);
+  const { showConfirm, ConfirmModal: discardConfirmModal } = useConfirmModal();
+  const saveDashboardMutation = useSaveDashboard();
+  // Synchronous double-click guard: mutation.isPending only flips after a
+  // re-render, so a ref is needed to block duplicate PUTs until the save settles.
+  const saveInFlightRef = useRef(false);
+
+  const discardChanges = useCallback(() => {
+    const doDiscard = () => {
+      if (performInPlaceDiscard()) {
+        setEditMode(false);
+      } else {
+        discardChangesViaReload();
+      }
+    };
+    if (!hasUnsavedChanges) {
+      doDiscard();
+      return;
+    }
+    showConfirm({
+      title: t('Discard changes?'),
+      body: t(
+        'You will lose all changes since your last save. This cannot be undone.',
+      ),
+      confirmText: t('Discard'),
+      cancelText: t('Keep editing'),
+      confirmButtonStyle: 'danger',
+      onConfirm: doDiscard,
+    });
+  }, [hasUnsavedChanges, performInPlaceDiscard, showConfirm]);
+
   const overwriteDashboard = useCallback(() => {
+    if (saveInFlightRef.current) return;
     const currentColorNamespace =
       dashboardInfo?.metadata?.color_namespace || colorNamespace;
     const currentColorScheme =
@@ -477,13 +486,26 @@ const Header = (): JSX.Element => {
         );
       }
 
-      boundActionCreators.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+      saveInFlightRef.current = true;
+      saveDashboardMutation.mutate(
+        {
+          data,
+          id: dashboardInfo.id,
+          saveType: SAVE_TYPE_OVERWRITE,
+        },
+        {
+          onSettled: () => {
+            saveInFlightRef.current = false;
+          },
+        },
+      );
     }
   }, [
     actualLastModifiedTime,
     boundActionCreators,
     colorNamespace,
     colorScheme,
+    saveDashboardMutation,
     customCss,
     dashboardInfo.certification_details,
     dashboardInfo.certified_by,
@@ -566,7 +588,7 @@ const Header = (): JSX.Element => {
 
   const handleOnPropertiesChange = useCallback(
     (updates: DashboardPropertiesUpdate) => {
-      boundActionCreators.dashboardInfoChanged({
+      setDashboardInfo({
         slug: updates.slug,
         description: updates.description,
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
@@ -580,28 +602,28 @@ const Header = (): JSX.Element => {
         ...(updates.theme !== undefined && { theme: updates.theme }),
         css: updates.css,
       });
-      boundActionCreators.setUnsavedChanges(true);
+      setHasUnsavedChanges(true);
 
       if (updates.title && dashboardTitle !== updates.title) {
-        boundActionCreators.updateDashboardTitle(updates.title);
-        boundActionCreators.onChange();
+        updateDashboardTitle(updates.title);
+        setHasUnsavedChanges(true);
       }
     },
-    [boundActionCreators, dashboardTitle],
+    [dashboardTitle, updateDashboardTitle],
   );
 
   const handleRefreshChange = useCallback(
     (refreshFrequency: number, editMode: boolean) => {
-      boundActionCreators.setRefreshFrequency(refreshFrequency, !!editMode);
+      setRefreshFrequency(refreshFrequency, !!editMode);
     },
-    [boundActionCreators],
+    [],
   );
 
   const handleEnterEditMode = useCallback(() => {
     toggleEditMode();
-    boundActionCreators.clearDashboardHistory?.();
-    boundActionCreators.setUnsavedChanges(false);
-  }, [toggleEditMode, boundActionCreators]);
+    clearDashboardHistory();
+    setHasUnsavedChanges(false);
+  }, [toggleEditMode, clearDashboardHistory]);
 
   const NavExtension = extensionsRegistry.get('dashboard.nav.right');
 
@@ -610,11 +632,20 @@ const Header = (): JSX.Element => {
       title: dashboardTitle,
       canEdit: userCanEdit && editMode,
       onSave: handleChangeText,
+      onChange: handleChangeTitleText,
+      onEditingChange: handleTitleEditingChange,
       placeholder: t('Add the name of the dashboard'),
       label: t('Dashboard title'),
       showTooltip: false,
     }),
-    [dashboardTitle, editMode, handleChangeText, userCanEdit],
+    [
+      dashboardTitle,
+      editMode,
+      handleChangeText,
+      handleChangeTitleText,
+      handleTitleEditingChange,
+      userCanEdit,
+    ],
   );
 
   const certifiedBadgeProps = useMemo(
@@ -628,17 +659,14 @@ const Header = (): JSX.Element => {
   const faveStarProps = useMemo(
     () => ({
       itemId: dashboardInfo.id,
-      fetchFaveStar: boundActionCreators.fetchFaveStar,
-      saveFaveStar: boundActionCreators.saveFaveStar,
+      // No-op: favorite status is already fetched by useFavoriteStatus.
+      fetchFaveStar: () => {},
+      saveFaveStar: (_id: number, currentIsStarred: boolean) =>
+        toggleFavorite(currentIsStarred),
       isStarred,
       showTooltip: true,
     }),
-    [
-      boundActionCreators.fetchFaveStar,
-      boundActionCreators.saveFaveStar,
-      dashboardInfo.id,
-      isStarred,
-    ],
+    [dashboardInfo.id, isStarred, toggleFavorite],
   );
 
   const titlePanelAdditionalItems = useMemo(
@@ -657,7 +685,6 @@ const Header = (): JSX.Element => {
           key="published-status"
           dashboardId={dashboardInfo.id}
           isPublished={isPublished}
-          savePublished={boundActionCreators.savePublished}
           userCanEdit={userCanEdit}
           userCanSave={userCanSaveAs}
         />
@@ -665,7 +692,6 @@ const Header = (): JSX.Element => {
       !editMode && !isEmbedded && metadataBar,
     ],
     [
-      boundActionCreators.savePublished,
       dashboardInfo.id,
       editMode,
       metadataBar,
@@ -693,9 +719,7 @@ const Header = (): JSX.Element => {
                     <StyledUndoRedoButton
                       buttonStyle="link"
                       disabled={undoLength < 1}
-                      onClick={
-                        undoLength > 0 ? boundActionCreators.onUndo : undefined
-                      }
+                      onClick={undoLength > 0 ? onUndo : undefined}
                     >
                       <Icons.Undo
                         css={[
@@ -715,9 +739,7 @@ const Header = (): JSX.Element => {
                     <StyledUndoRedoButton
                       buttonStyle="link"
                       disabled={redoLength < 1}
-                      onClick={
-                        redoLength > 0 ? boundActionCreators.onRedo : undefined
-                      }
+                      onClick={redoLength > 0 ? onRedo : undefined}
                     >
                       <Icons.Redo
                         css={[
@@ -746,13 +768,16 @@ const Header = (): JSX.Element => {
                 <Button
                   css={saveBtnStyle}
                   buttonSize="small"
-                  disabled={!hasUnsavedChanges}
+                  disabled={
+                    !hasUnsavedChanges || saveDashboardMutation.isPending
+                  }
+                  loading={saveDashboardMutation.isPending}
                   buttonStyle="primary"
                   onClick={overwriteDashboard}
                   data-test="header-save-button"
                   aria-label={t('Save')}
+                  icon={<Icons.SaveOutlined iconSize="m" />}
                 >
-                  <Icons.SaveOutlined iconSize="m" />
                   {t('Save')}
                 </Button>
               </div>
@@ -782,8 +807,8 @@ const Header = (): JSX.Element => {
     ),
     [
       NavExtension,
-      boundActionCreators.onRedo,
-      boundActionCreators.onUndo,
+      onRedo,
+      onUndo,
       editMode,
       emphasizeRedo,
       emphasizeUndo,
@@ -855,7 +880,7 @@ const Header = (): JSX.Element => {
           disabled: isVersionPreviewActive,
         }}
         additionalActionsMenu={menu}
-        showFaveStar={Boolean(user?.userId && dashboardInfo?.id)}
+        showFaveStar={showFaveStar}
         showTitlePanelItems
       />
       {showingPropertiesModal && (
@@ -909,6 +934,7 @@ const Header = (): JSX.Element => {
       )}
 
       <OverwriteConfirm />
+      {discardConfirmModal}
 
       {userCanCurate && (
         <DashboardEmbedModal

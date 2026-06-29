@@ -22,6 +22,7 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { NativeFilterType } from '@superset-ui/core';
 import type { Filter } from '@superset-ui/core';
+import { useNativeFiltersStore } from 'src/dashboard/stores';
 import FilterValue from './FilterValue';
 
 const mockGetChartDataRequest = jest.fn();
@@ -119,6 +120,12 @@ function renderFilterValue(
   stateOverrides: Record<string, unknown> = {},
 ) {
   const state = { ...getDefaultStoreState(), ...stateOverrides };
+  // Native filters are read from the Zustand store; mirror the mock Redux state.
+  useNativeFiltersStore.setState({
+    filters:
+      (state.nativeFilters as { filters?: Record<string, unknown> })?.filters ??
+      {},
+  } as never);
   const store = mockStore(state);
   const mergedProps = { ...defaultProps, ...propOverrides };
   return render(

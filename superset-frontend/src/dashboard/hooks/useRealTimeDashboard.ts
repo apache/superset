@@ -16,19 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useMemo } from 'react';
+import { useDashboardStateStore } from 'src/dashboard/stores';
 import { AutoRefreshStatus } from '../types/autoRefresh';
-import { DashboardState, RootState } from '../types';
-import {
-  setAutoRefreshStatus,
-  setAutoRefreshPaused,
-  setAutoRefreshPausedByTab,
-  recordAutoRefreshSuccess,
-  recordAutoRefreshError,
-  setAutoRefreshFetchStartTime,
-  setAutoRefreshPauseOnInactiveTab,
-} from '../actions/autoRefresh';
+import { DashboardState } from '../types';
 
 type DashboardStateRoot = {
   dashboardState: Partial<DashboardState>;
@@ -105,94 +96,66 @@ export const selectEffectiveRefreshStatus = (
 };
 
 export const useRealTimeDashboard = () => {
-  const dispatch = useDispatch();
-
-  // Selectors
-  const isRealTimeDashboard = useSelector(selectIsRealTimeDashboard);
-  const isManuallyPaused = useSelector(selectIsManuallyPaused);
-  const isPaused = useSelector(selectIsPaused);
-  const effectiveStatus = useSelector(selectEffectiveRefreshStatus);
-
-  const lastSuccessfulRefresh = useSelector(
-    (state: RootState) => state.dashboardState?.lastSuccessfulRefresh ?? null,
+  // Auto-refresh state lives in the dashboard Zustand store.
+  const refreshFrequency = useDashboardStateStore(s => s.refreshFrequency);
+  const autoRefreshPaused = useDashboardStateStore(s => s.autoRefreshPaused);
+  const autoRefreshPausedByTab = useDashboardStateStore(
+    s => s.autoRefreshPausedByTab,
+  );
+  const autoRefreshStatus = useDashboardStateStore(s => s.autoRefreshStatus);
+  const refreshErrorCount = useDashboardStateStore(s => s.refreshErrorCount);
+  const lastSuccessfulRefresh = useDashboardStateStore(
+    s => s.lastSuccessfulRefresh,
+  );
+  const lastAutoRefreshTime = useDashboardStateStore(
+    s => s.lastAutoRefreshTime,
+  );
+  const lastError = useDashboardStateStore(s => s.lastRefreshError);
+  const autoRefreshFetchStartTime = useDashboardStateStore(
+    s => s.autoRefreshFetchStartTime,
+  );
+  const autoRefreshPauseOnInactiveTab = useDashboardStateStore(
+    s => s.autoRefreshPauseOnInactiveTab,
   );
 
-  const lastAutoRefreshTime = useSelector(
-    (state: RootState) => state.dashboardState?.lastAutoRefreshTime ?? null,
+  // Zustand action methods are stable references.
+  const setStatus = useDashboardStateStore(s => s.setAutoRefreshStatus);
+  const setPaused = useDashboardStateStore(s => s.setAutoRefreshPaused);
+  const setPausedByTab = useDashboardStateStore(
+    s => s.setAutoRefreshPausedByTab,
+  );
+  const recordSuccess = useDashboardStateStore(s => s.recordAutoRefreshSuccess);
+  const recordError = useDashboardStateStore(s => s.recordAutoRefreshError);
+  const setFetchStartTime = useDashboardStateStore(
+    s => s.setAutoRefreshFetchStartTime,
+  );
+  const setPauseOnInactiveTab = useDashboardStateStore(
+    s => s.setAutoRefreshPauseOnInactiveTab,
   );
 
-  const lastError = useSelector(
-    (state: RootState) => state.dashboardState?.lastRefreshError ?? null,
+  const stateForSelectors = useMemo<DashboardStateRoot>(
+    () => ({
+      dashboardState: {
+        refreshFrequency,
+        autoRefreshPaused,
+        autoRefreshPausedByTab,
+        autoRefreshStatus,
+        refreshErrorCount,
+      },
+    }),
+    [
+      refreshFrequency,
+      autoRefreshPaused,
+      autoRefreshPausedByTab,
+      autoRefreshStatus,
+      refreshErrorCount,
+    ],
   );
 
-  const refreshErrorCount = useSelector(
-    (state: RootState) => state.dashboardState?.refreshErrorCount ?? 0,
-  );
-
-  const refreshFrequency = useSelector(
-    (state: RootState) => state.dashboardState?.refreshFrequency ?? 0,
-  );
-
-  const autoRefreshFetchStartTime = useSelector(
-    (state: RootState) =>
-      state.dashboardState?.autoRefreshFetchStartTime ?? null,
-  );
-
-  const autoRefreshPauseOnInactiveTab = useSelector(
-    (state: RootState) =>
-      state.dashboardState?.autoRefreshPauseOnInactiveTab ?? false,
-  );
-
-  const isPausedByTab = useSelector(
-    (state: RootState) => state.dashboardState?.autoRefreshPausedByTab ?? false,
-  );
-
-  // Action dispatchers
-  const setStatus = useCallback(
-    (status: AutoRefreshStatus) => {
-      dispatch(setAutoRefreshStatus(status));
-    },
-    [dispatch],
-  );
-
-  const setPaused = useCallback(
-    (paused: boolean) => {
-      dispatch(setAutoRefreshPaused(paused));
-    },
-    [dispatch],
-  );
-
-  const setPausedByTab = useCallback(
-    (pausedByTab: boolean) => {
-      dispatch(setAutoRefreshPausedByTab(pausedByTab));
-    },
-    [dispatch],
-  );
-
-  const recordSuccess = useCallback(() => {
-    dispatch(recordAutoRefreshSuccess());
-  }, [dispatch]);
-
-  const recordError = useCallback(
-    (error?: string) => {
-      dispatch(recordAutoRefreshError(error));
-    },
-    [dispatch],
-  );
-
-  const setFetchStartTime = useCallback(
-    (timestamp: number | null) => {
-      dispatch(setAutoRefreshFetchStartTime(timestamp));
-    },
-    [dispatch],
-  );
-
-  const setPauseOnInactiveTab = useCallback(
-    (pauseOnInactiveTab: boolean) => {
-      dispatch(setAutoRefreshPauseOnInactiveTab(pauseOnInactiveTab));
-    },
-    [dispatch],
-  );
+  const isRealTimeDashboard = selectIsRealTimeDashboard(stateForSelectors);
+  const isManuallyPaused = selectIsManuallyPaused(stateForSelectors);
+  const isPaused = selectIsPaused(stateForSelectors);
+  const effectiveStatus = selectEffectiveRefreshStatus(stateForSelectors);
 
   return useMemo(
     () => ({
@@ -200,15 +163,15 @@ export const useRealTimeDashboard = () => {
       isRealTimeDashboard,
       isManuallyPaused,
       isPaused,
-      isPausedByTab,
+      isPausedByTab: autoRefreshPausedByTab ?? false,
       effectiveStatus,
-      lastSuccessfulRefresh,
-      lastAutoRefreshTime,
-      lastError,
-      refreshErrorCount,
-      refreshFrequency,
-      autoRefreshFetchStartTime,
-      autoRefreshPauseOnInactiveTab,
+      lastSuccessfulRefresh: lastSuccessfulRefresh ?? null,
+      lastAutoRefreshTime: lastAutoRefreshTime ?? null,
+      lastError: lastError ?? null,
+      refreshErrorCount: refreshErrorCount ?? 0,
+      refreshFrequency: refreshFrequency ?? 0,
+      autoRefreshFetchStartTime: autoRefreshFetchStartTime ?? null,
+      autoRefreshPauseOnInactiveTab: autoRefreshPauseOnInactiveTab ?? false,
       // Actions
       setStatus,
       setPaused,
@@ -222,7 +185,7 @@ export const useRealTimeDashboard = () => {
       isRealTimeDashboard,
       isManuallyPaused,
       isPaused,
-      isPausedByTab,
+      autoRefreshPausedByTab,
       effectiveStatus,
       lastSuccessfulRefresh,
       lastAutoRefreshTime,

@@ -25,6 +25,7 @@ import {
 } from 'src/explore/types';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState, handleDeprecatedControls } from 'src/explore/store';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { Dispatch } from 'redux';
 import {
   Currency,
@@ -232,6 +233,8 @@ export const hydrateExplore =
       triggerQuery: !!saveAction,
       lastRendered: 0,
     };
+
+    useDataMaskStore.getState().hydrateExploreDataMask(dataMask);
 
     return dispatch({
       type: HYDRATE_EXPLORE,

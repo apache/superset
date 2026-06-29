@@ -16,35 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { bindActionCreators, Dispatch } from 'redux';
-import { connect } from 'react-redux';
 import DashboardGrid from '../components/DashboardGrid';
-
+import type { DashboardGridProps } from '../components/DashboardGrid';
 import {
-  handleComponentDrop,
-  resizeComponent,
-} from '../actions/dashboardLayout';
-import { setDirectPathToChild, setEditMode } from '../actions/dashboardState';
-import { RootState } from 'src/dashboard/types';
+  useDashboardStateStore,
+  useDashboardLayoutStore,
+  useDashboardInfoStore,
+} from 'src/dashboard/stores';
+import { useHandleComponentDrop } from 'src/dashboard/hooks/useHandleComponentDrop';
 
-function mapStateToProps({ dashboardState, dashboardInfo }: RootState) {
-  return {
-    editMode: dashboardState.editMode,
-    canEdit: dashboardInfo.dash_edit_perm,
-    dashboardId: dashboardInfo.id,
-  };
-}
+type DashboardGridContainerProps = Omit<
+  DashboardGridProps,
+  | 'editMode'
+  | 'setEditMode'
+  | 'canEdit'
+  | 'dashboardId'
+  | 'handleComponentDrop'
+  | 'resizeComponent'
+  | 'setDirectPathToChild'
+  | 'theme'
+>;
 
-function mapDispatchToProps(dispatch: Dispatch) {
-  return bindActionCreators(
-    {
-      handleComponentDrop,
-      resizeComponent,
-      setDirectPathToChild,
-      setEditMode,
-    },
-    dispatch,
+export default function DashboardGridContainer(
+  props: DashboardGridContainerProps,
+) {
+  const editMode = useDashboardStateStore(s => s.editMode);
+  const { setEditMode, setDirectPathToChild } =
+    useDashboardStateStore.getState();
+  const canEdit = useDashboardInfoStore(s => s.dashboardInfo.dash_edit_perm);
+  const dashboardId = useDashboardInfoStore(s => s.dashboardInfo.id);
+
+  const handleComponentDrop = useHandleComponentDrop();
+  const resizeComponent = useDashboardLayoutStore(s => s.resizeComponent);
+
+  return (
+    <DashboardGrid
+      {...props}
+      setDirectPathToChild={setDirectPathToChild}
+      handleComponentDrop={handleComponentDrop}
+      resizeComponent={resizeComponent}
+      editMode={editMode}
+      setEditMode={setEditMode}
+      canEdit={canEdit}
+      dashboardId={dashboardId}
+    />
   );
 }
-
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardGrid);

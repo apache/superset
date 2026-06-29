@@ -28,6 +28,7 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
+import { useDashboardStateStore } from 'src/dashboard/stores';
 import React from 'react';
 import { RENDER_TAB_CONTENT } from '../Tab';
 import TabsComponent from './Tabs';
@@ -273,14 +274,11 @@ test('activeTabs hydrated from a permalink selects the matching tab content', ()
   // not just highlight the tab header while showing the first tab's content.
   const props = createProps();
   props.editMode = false;
+  // activeTabs now lives in the Zustand dashboard-state store, not Redux.
+  useDashboardStateStore.setState({ activeTabs: ['TAB-YT6eNksV-'] });
   render(<Tabs {...props} />, {
     useRedux: true,
     useDnd: true,
-    initialState: {
-      dashboardState: {
-        activeTabs: ['TAB-YT6eNksV-'],
-      },
-    },
   });
 
   // The tab referenced by dashboardState.activeTabs is the selected one

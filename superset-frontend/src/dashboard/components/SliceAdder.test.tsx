@@ -63,8 +63,7 @@ const mockStore = configureStore({
 
 const defaultProps: Omit<SliceAdderProps, 'theme'> = {
   slices: mockSliceEntities.slices,
-  fetchSlices: jest.fn(),
-  updateSlices: jest.fn(),
+  setQueryParams: jest.fn(),
   selectedSliceIds: [127, 128],
   userId: 1,
   dashboardId: 0,
@@ -99,20 +98,15 @@ describe('SliceAdder', () => {
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 
-  test('fetches slices on mount', () => {
-    renderSliceAdder();
-    expect(defaultProps.fetchSlices).toHaveBeenCalledWith(1, '', 'changed_on');
-  });
-
   test('handles search input changes', async () => {
     renderSliceAdder();
     const searchInput = screen.getByPlaceholderText('Filter your charts');
     await userEvent.type(searchInput, 'test search');
-    expect(defaultProps.fetchSlices).toHaveBeenCalledWith(
-      1,
-      'test search',
-      'changed_on',
-    );
+    expect(defaultProps.setQueryParams).toHaveBeenCalledWith({
+      userId: 1,
+      filterValue: 'test search',
+      sortColumn: 'changed_on',
+    });
   });
 
   test('handles sort selection changes', async () => {
@@ -122,18 +116,22 @@ describe('SliceAdder', () => {
     await userEvent.click(sortSelect);
     const vizTypeOption = screen.getByText('Sort by viz type');
     await userEvent.click(vizTypeOption);
-    expect(defaultProps.fetchSlices).toHaveBeenCalledWith(1, '', 'viz_type');
+    expect(defaultProps.setQueryParams).toHaveBeenCalledWith({
+      userId: 1,
+      filterValue: '',
+      sortColumn: 'viz_type',
+    });
   });
 
   test('handles show only my charts toggle', async () => {
     renderSliceAdder();
     const checkbox = screen.getByRole('checkbox');
     await userEvent.click(checkbox);
-    expect(defaultProps.fetchSlices).toHaveBeenCalledWith(
-      undefined,
-      '',
-      'changed_on',
-    );
+    expect(defaultProps.setQueryParams).toHaveBeenCalledWith({
+      userId: undefined,
+      filterValue: '',
+      sortColumn: 'changed_on',
+    });
   });
 
   test('opens new chart in new tab when create new chart is clicked', () => {

@@ -28,6 +28,8 @@ import {
 import setupPlugins from 'src/setup/setupPlugins';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
+import { useDashboardSlicesStore } from 'src/dashboard/stores';
+import type { Slice } from 'src/dashboard/types';
 import { BinaryQueryObjectFilterClause, VizType } from '@superset-ui/core';
 import { Menu } from '@superset-ui/core/components/Menu';
 import DrillDetailModal from '../DrillDetail/DrillDetailModal';
@@ -125,6 +127,13 @@ const renderMenu = ({
   filters,
 }: Partial<DrillDetailMenuItemsProps> & { chartId?: number }) => {
   const store = getMockStoreWithNativeFilters();
+  // DrillDetailModal reads the chart's slice_name from useDashboardSlicesStore.
+  useDashboardSlicesStore.getState().setSlices({
+    [chartId ?? defaultChartId]: {
+      slice_id: chartId ?? defaultChartId,
+      slice_name: chartName,
+    } as Slice,
+  });
   return render(
     <MockRenderChart
       chartId={chartId}
