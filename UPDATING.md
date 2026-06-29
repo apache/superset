@@ -54,23 +54,17 @@ The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list re
 
 The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
 
-### Tagging on `create_all`-bootstrapped PostgreSQL/MySQL schemas
+### Tagging fix for `create_all`-bootstrapped schemas
 
-`tagged_object.object_id` is a polymorphic reference — depending on `object_type` it points at a dashboard, chart, or saved query — so it must not carry a foreign key to any single table. The canonical migration chain (`c82ee8a39623` onward) never created such constraints. Deployments that bootstrapped their metadata schema with SQLAlchemy's `create_all` (instead of `superset db upgrade`) on a backend that enforces foreign keys — PostgreSQL, or MySQL with `FOREIGN_KEY_CHECKS=1` — may carry three unsatisfiable FKs from `tagged_object.object_id` to `dashboards.id`, `slices.id`, and `saved_query.id`. These break tagging (`TAGGING_SYSTEM = True`) with a `ForeignKeyViolation`.
+Only affects deployments whose metadata schema was created with SQLAlchemy's `create_all` (rather than `superset db upgrade`) on a foreign-key-enforcing backend — PostgreSQL, or MySQL with `FOREIGN_KEY_CHECKS=1`. Such schemas carry three invalid foreign keys on `tagged_object.object_id` that break tagging (`TAGGING_SYSTEM = True`) with a `ForeignKeyViolation`. Schemas built via `superset db upgrade` are unaffected.
 
-This release removes the constraints from the ORM model so they are no longer emitted on future `create_all` runs. It does not (and a `downgrade` could never safely) drop constraints already present in such a schema, so affected operators should drop them manually. Constraint names vary by backend and creation order — inspect the table to find them first:
-
-PostgreSQL (names typically `tagged_object_object_id_fkey`, `…_fkey1`, `…_fkey2`):
+This release stops the ORM from emitting these constraints, but it cannot drop ones already present in your schema. If affected, drop them manually (names vary by backend, so look them up first):
 
 ```sql
-ALTER TABLE tagged_object DROP CONSTRAINT tagged_object_object_id_fkey;
-ALTER TABLE tagged_object DROP CONSTRAINT tagged_object_object_id_fkey1;
-ALTER TABLE tagged_object DROP CONSTRAINT tagged_object_object_id_fkey2;
-```
+-- PostgreSQL: names are typically tagged_object_object_id_fkey, _fkey1, _fkey2
+ALTER TABLE tagged_object DROP CONSTRAINT <constraint_name>;
 
-MySQL (find the constraint names via `SHOW CREATE TABLE tagged_object;`):
-
-```sql
+-- MySQL: find names via `SHOW CREATE TABLE tagged_object;`
 ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
 ```
 
