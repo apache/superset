@@ -126,22 +126,30 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
           onAddSqlEditor();
         },
       },
-      ...primaryItems.map(item => {
+      ...primaryItems.flatMap(item => {
         const command = commands.getCommand(item.command);
-        const Icon = command?.icon
+        if (!command) {
+          // An extension contributed this menu item but its command isn't
+          // registered (load is still pending or failed). Skip it so clicking
+          // can't throw "Command not found" and break the add-tab flow.
+          return [];
+        }
+        const Icon = command.icon
           ? ((Icons as Record<string, typeof Icons.FileOutlined>)[
               command.icon
             ] ?? Icons.FileOutlined)
           : Icons.FileOutlined;
-        return {
-          key: command?.id ?? item.command,
-          label: command?.title ?? item.command,
-          icon: <Icon iconSize="m" />,
-          onClick: () => {
-            setOpen(false);
-            commands.executeCommand(item.command);
-          },
-        } as MenuItemType;
+        return [
+          {
+            key: command.id,
+            label: command.title ?? item.command,
+            icon: <Icon iconSize="m" />,
+            onClick: () => {
+              setOpen(false);
+              commands.executeCommand(item.command);
+            },
+          } as MenuItemType,
+        ];
       }),
     ];
   }, [open, onAddSqlEditor]);
