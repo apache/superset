@@ -151,9 +151,8 @@ def _clean_filter_scopes(filter_scopes: Dict[str, Any], chart_id: int) -> bool:
 
     Mutates *filter_scopes* in place. Returns True if anything changed.
     """
-    chart_key = str(chart_id)
     changed = False
-    if chart_key in filter_scopes:
+    if (chart_key := str(chart_id)) in filter_scopes:
         del filter_scopes[chart_key]
         changed = True
     for column_scopes in filter_scopes.values():

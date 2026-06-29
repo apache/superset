@@ -657,7 +657,7 @@ def test_clean_json_metadata_handles_malformed_sections() -> None:
 
 
 def test_clean_json_metadata_reserializes_dict_default_filters() -> None:
-    """When default_filters is already a dict it is cleaned and re-serialized to a string."""
+    """When default_filters is a dict it is cleaned and re-serialized to a string."""
     metadata: dict[str, Any] = {
         "default_filters": {"10": {"col": ["v"]}, "20": {"col": ["v2"]}},
     }
@@ -677,7 +677,7 @@ async def test_malformed_position_json_returns_error(
     mock_raise_for_ownership: Mock,
     mcp_server: object,
 ) -> None:
-    """A dashboard with unparseable position_json returns an error instead of wiping the layout."""
+    """Unparseable position_json returns an error instead of wiping the layout."""
     chart_10 = _mock_chart(id=10)
     dashboard = _mock_dashboard(
         slices=[chart_10],
