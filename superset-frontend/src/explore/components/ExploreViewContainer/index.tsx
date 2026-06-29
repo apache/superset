@@ -45,7 +45,7 @@ import {
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
+import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash-es';
 import { Resizable } from 're-resizable';
 import { useHistory } from 'react-router-dom';
 import { Tooltip } from '@superset-ui/core/components';

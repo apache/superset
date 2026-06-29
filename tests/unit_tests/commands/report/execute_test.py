@@ -28,6 +28,7 @@ from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleCsvFailedError,
+    ReportScheduleExecutorNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
@@ -885,6 +886,46 @@ def test_get_tab_url(
     assert result == urllib.parse.urljoin(base_url, "superset/dashboard/p/uri/")
 
 
+@patch("superset.commands.report.execute.db.session")
+@patch(
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+)
+def test_get_tab_url_commits_permalink_before_returning(
+    mock_run,
+    mock_session,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Regression test for #40996.
+
+    The report-generation flow runs inside an outer ``@transaction`` block,
+    so ``CreateDashboardPermalinkCommand``'s inner ``@transaction`` decorator
+    skips its own commit and leaves the permalink row flushed but uncommitted.
+    Playwright then opens the permalink on a separate database connection and
+    404s. ``_get_tab_url`` must therefore commit explicitly **after** the
+    permalink command returns so the row is visible across connections.
+    """
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.dashboard_id = 123
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_run.return_value = "uri"
+    dashboard_state = DashboardPermalinkState(
+        anchor="1",
+        dataMask=None,
+        activeTabs=None,
+        urlParams=None,
+    )
+
+    class_instance._get_tab_url(dashboard_state)
+
+    mock_run.assert_called_once()
+    mock_session.commit.assert_called_once()
+
+
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
@@ -1096,6 +1137,103 @@ def test_screenshot_width_calculation(
                 )
 
 
+def _executor_report_state(mocker: MockerFixture) -> BaseReportState:
+    report_schedule = create_report_schedule(mocker)
+    # _get_csv_data/_get_embedded_data build a chart-data URL from chart_id
+    # before resolving the executor; give it a concrete value so URL building
+    # succeeds and the executor resolution is actually reached.
+    report_schedule.chart_id = 1
+    report_schedule.force_screenshot = False
+    return BaseReportState(
+        report_schedule=report_schedule,
+        scheduled_dttm=datetime.now(),
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+    )
+
+
+@pytest.mark.parametrize(
+    "method_name",
+    ["_get_screenshots", "_get_csv_data", "_get_embedded_data"],
+)
+def test_get_content_raises_when_executor_user_missing(
+    app: SupersetApp, mocker: MockerFixture, method_name: str
+) -> None:
+    """
+    When the configured executor user cannot be resolved
+    (``security_manager.find_user`` returns ``None``), each content path raises a
+    dedicated ``ReportScheduleExecutorNotFoundError`` naming the username at the
+    resolution boundary, rather than passing ``None`` further into the
+    webdriver/auth flow.
+    """
+    app.config.update(
+        {
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 1600,
+            "WEBDRIVER_WINDOW": {"slice": (800, 600), "dashboard": (800, 600)},
+            "ALERT_REPORTS_EXECUTORS": {},
+        }
+    )
+    report_state = _executor_report_state(mocker)
+
+    with (
+        patch("superset.commands.report.execute.security_manager") as mock_sm,
+        patch("superset.commands.report.execute.get_executor") as mock_get_executor,
+        patch("superset.commands.report.execute.machine_auth_provider_factory"),
+    ):
+        mock_get_executor.return_value = ("executor", "ghost_user")
+        mock_sm.find_user = mocker.MagicMock(return_value=None)
+
+        with pytest.raises(ReportScheduleExecutorNotFoundError, match="ghost_user"):
+            getattr(report_state, method_name)()
+
+
+def test_executor_not_found_error_message_without_username() -> None:
+    """
+    When no username is available, the message falls back to ``(unknown)``
+    rather than leaving a double space ("...executor user  was not found.").
+    """
+    message = str(ReportScheduleExecutorNotFoundError().message)
+
+    assert "(unknown)" in message
+    assert "user  was" not in message
+
+
+def test_executor_not_found_error_status_is_server_error() -> None:
+    """
+    The executor-not-found error is a 5xx so ``get_logger_from_status`` marks the
+    Celery task ``FAILURE`` (a missing executor is a server-side misconfiguration
+    that ops task-state alerting must still see), not a 4xx that would log a
+    ``WARNING`` and leave the task non-``FAILURE``.
+    """
+    assert ReportScheduleExecutorNotFoundError().status == 500
+
+
+def test_resolve_executor_user_returns_user_and_username(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """
+    Happy path: when the executor user exists, the helper returns the
+    ``(user, username)`` tuple unchanged — locking the no-behavior-change exit
+    criterion for the three call sites.
+    """
+    from superset.commands.report.execute import resolve_executor_user
+
+    app.config.update({"ALERT_REPORTS_EXECUTORS": {}})
+    report_schedule = create_report_schedule(mocker)
+    mock_user = mocker.MagicMock()
+
+    with (
+        patch("superset.commands.report.execute.security_manager") as mock_sm,
+        patch("superset.commands.report.execute.get_executor") as mock_get_executor,
+    ):
+        mock_get_executor.return_value = ("executor", "real_user")
+        mock_sm.find_user = mocker.MagicMock(return_value=mock_user)
+
+        user, username = resolve_executor_user(report_schedule)
+
+    assert user is mock_user
+    assert username == "real_user"
+
+
 def test_update_recipient_to_slack_v2(mocker: MockerFixture):
     """
     Test converting a Slack recipient to Slack v2 format.
@@ -1171,7 +1309,9 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
         mock_cmmd.update_report_schedule_slack_v2()
 
 
-def test_update_recipient_to_slack_v2_multiple_recipients(mocker: MockerFixture):
+def test_update_recipient_to_slack_v2_multiple_recipients(
+    mocker: MockerFixture,
+) -> None:
     """All Slack recipients are upgraded atomically when every channel resolves."""
 
     def fake_get_channels(search_string, types, exact_match):
@@ -1211,12 +1351,14 @@ def test_update_recipient_to_slack_v2_multiple_recipients(mocker: MockerFixture)
     assert recipients[1].recipient_config_json == '{"target": "C2"}'
 
 
-def test_update_recipient_to_slack_v2_partial_failure_is_atomic(mocker: MockerFixture):
+def test_update_recipient_to_slack_v2_partial_failure_is_atomic(
+    mocker: MockerFixture,
+) -> None:
     """Regression: when one of several Slack recipients fails to resolve, no
     recipient may be left partially upgraded.
 
     The first recipient resolves cleanly and the second references a missing
-    channel. The upgrade must raise and leave *both* recipients untouched —
+    channel. The upgrade must raise and leave *both* recipients untouched:
     previously the already-resolved first recipient kept its mutated
     ``type``/``recipient_config_json``, which a later error-log commit could
     persist as a half-upgraded schedule.
@@ -1262,6 +1404,61 @@ def test_update_recipient_to_slack_v2_partial_failure_is_atomic(mocker: MockerFi
     ]
     assert recipients[0].recipient_config_json == first_config
     assert recipients[1].recipient_config_json == second_config
+
+
+def test_update_recipient_to_slack_v2_pre_iteration_failure(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A failure raised while accessing/iterating the recipients surfaces as
+    ``UpdateFailedError``, not a ``NameError`` that masks the real error.
+    """
+
+    class _ExplodingRecipients:
+        def __iter__(self):
+            raise RuntimeError("recipients exploded")
+
+    mock_report_schedule = mocker.MagicMock()
+    mock_report_schedule.recipients = _ExplodingRecipients()
+
+    mock_cmmd = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+
+    with pytest.raises(UpdateFailedError):
+        mock_cmmd.update_report_schedule_slack_v2()
+
+
+def test_update_recipient_to_slack_v2_no_slack_recipients_is_noop(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With no SLACK recipients there is nothing to migrate: the method returns
+    without raising and leaves the non-Slack recipients untouched.
+    """
+    mock_search = mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+    )
+    mock_report_schedule = ReportSchedule(
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json=json.dumps({"target": "user@example.com"}),
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    mock_cmmd.update_report_schedule_slack_v2()
+
+    assert mock_cmmd._report_schedule.recipients[0].type == ReportRecipientType.EMAIL
+    assert (
+        mock_cmmd._report_schedule.recipients[0].recipient_config_json
+        == '{"target": "user@example.com"}'
+    )
+    mock_search.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
