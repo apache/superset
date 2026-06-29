@@ -28,7 +28,8 @@ import * as ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import PropertiesModal from '.';
-import * as dashboardInfoActions from 'src/dashboard/actions/dashboardInfo';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 
 // Increase timeout for CI environment
 jest.setTimeout(60000);
@@ -108,7 +109,8 @@ const dashboardInfo = {
   url: '/superset/dashboard/26/',
 };
 
-fetchMock.get('glob:*/api/v1/dashboard/26', {
+// useDashboardQuery appends ?q=<rison-encoded-columns>, so the glob needs the trailing *
+fetchMock.get('glob:*/api/v1/dashboard/26*', {
   body: {
     result: { ...dashboardInfo, json_metadata: mockedJsonMetadata },
   },
@@ -530,7 +532,10 @@ describe('PropertiesModal', () => {
   });
 
   test('preserves certification fields on save without opening Certification section', async () => {
-    const saved = jest.spyOn(dashboardInfoActions, 'dashboardSaveSucceeded');
+    useDashboardInfoStore.setState({
+      dashboardInfo: { id: 26 } as unknown as DashboardInfo,
+      versionHistoryRevision: 0,
+    });
     // Accordion Collapse only mounts the active panel, so certifiedBy /
     // certificationDetails FormItems are unregistered until Certification is
     // opened. onFinish must use getFieldsValue(true) to read store values for
@@ -573,8 +578,7 @@ describe('PropertiesModal', () => {
     expect(submitCall.certifiedBy).toBe('John Doe');
     expect(submitCall.certificationDetails).toBe('Sample certification');
 
-    expect(saved).toHaveBeenCalledTimes(1);
-    expect(saved).toHaveBeenCalledWith(props.dashboardId);
+    expect(useDashboardInfoStore.getState().versionHistoryRevision).toBe(1);
     expect(put).toHaveBeenCalled();
     const putRequest = put.mock.calls[0][0];
     expect(typeof putRequest.body).toBe('string');
@@ -584,7 +588,10 @@ describe('PropertiesModal', () => {
   });
 
   test('submitting with onlyApply:true', async () => {
-    const saved = jest.spyOn(dashboardInfoActions, 'dashboardSaveSucceeded');
+    useDashboardInfoStore.setState({
+      dashboardInfo: { id: 26 } as unknown as DashboardInfo,
+      versionHistoryRevision: 0,
+    });
     mockedIsFeatureEnabled.mockReturnValue(false);
     const props = createProps();
     props.onlyApply = true;
@@ -612,7 +619,7 @@ describe('PropertiesModal', () => {
     await waitFor(() => {
       expect(props.onSubmit).toHaveBeenCalledTimes(1);
     });
-    expect(saved).not.toHaveBeenCalled();
+    expect(useDashboardInfoStore.getState().versionHistoryRevision).toBe(0);
   });
 
   test('passes full theme object with json_data to onSubmit when theme is selected', async () => {

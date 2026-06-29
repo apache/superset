@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1608,6 +1608,9 @@ msgstr "Voeg een Plugin toe"
 
 msgid "Add a dataset"
 msgstr "Een dataset toevoegen"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Een nieuw tabblad toevoegen"
@@ -3738,6 +3741,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 #, fuzzy
 msgid "Cannot delete system themes"
 msgstr "Kan geen toegang krijgen tot de query"
@@ -5341,10 +5347,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Kan niet verbinden met de database: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Kon niet alle opgeslagen grafieken ophalen"
 
@@ -6642,6 +6644,15 @@ msgstr ""
 msgid "Delete template"
 msgstr "Verwijder template"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "Verwijder template"
@@ -6736,6 +6747,12 @@ msgstr "Verwijderd %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -6991,6 +7008,9 @@ msgstr "Er zijn geen voorbeelden gevonden voor deze dataset"
 
 msgid "Discard"
 msgstr "Negeren"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -8597,6 +8617,9 @@ msgstr "Laden van grafiekgegevens mislukt."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -8673,6 +8696,9 @@ msgstr "Opslaan van cross-filter scope mislukt"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Opslaan van cross-filter scope mislukt"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8962,7 +8988,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10875,6 +10903,15 @@ msgstr "Lijst bijgewerkt"
 msgid "List view"
 msgstr "Splits nummer"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Live render"
 
@@ -10913,6 +10950,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -12221,6 +12261,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13896,6 +13940,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Ruwe records"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -16740,9 +16787,6 @@ msgstr ""
 "Sorry er is een fout opgetreden bij het ophalen van database informatie: "
 "%s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Sorry er was een fout bij het ophalen van de opgeslagen grafieken: "
-
 msgid "Sorry, An error occurred"
 msgstr "Sorry, er is een fout opgetreden"
 
@@ -16757,6 +16801,9 @@ msgstr "Sorry, er ging iets mis. Embedding kon niet worden gedeactiveerd."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Er is iets fout gegaan. Probeer het opnieuw."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Sorry, er ging iets mis. Probeer het later nog eens."
@@ -18123,6 +18170,16 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "De objecteigenschap die voor puntlabels moet worden gebruikt"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -19580,6 +19637,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Deze grafiek is verplaatst naar een ander filterbereik."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Deze grafiek wordt extern beheerd, en kan niet worden bewerkt in Superset"
@@ -20886,6 +20951,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Kan semantische weergaven niet ophalen. Controleer de laagconfiguratie."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Niet in staat om zo’n holiday te vinden: [%(holiday)s]"
 
@@ -21681,6 +21750,9 @@ msgstr "Kijker"
 msgid "Viewers"
 msgstr "Kijkers"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -21914,6 +21986,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -22909,6 +22986,9 @@ msgstr ""
 " niet automatisch bijgewerkt. Voer de query uit door op de knop 'Grafiek "
 "bijwerken' te klikken of"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -23333,6 +23413,9 @@ msgstr "aanmaken"
 
 msgid "create a new chart"
 msgstr "maak een nieuwe grafiek"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "maak data uit SQL query"

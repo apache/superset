@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -1795,6 +1795,9 @@ msgstr "Dodaj plugin"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Add a dataset"
 msgstr "Dodaj skup podataka"
+
+msgid "Add a datasource"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Add a new tab"
@@ -4196,6 +4199,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid "Cannot delete system themes"
 msgstr "Nije moguće obrisati sistemske teme"
@@ -5974,10 +5980,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nije moguće povezati se sa bazom podataka: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Could not fetch all saved charts"
@@ -7451,6 +7453,16 @@ msgstr ""
 msgid "Delete template"
 msgstr "Obriši šablon"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 # ru, uk]
 msgid "Delete theme"
 msgstr "Obriši temu"
@@ -7570,6 +7582,13 @@ msgstr "Obrisano %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "Obrisano %s stavki(a)"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 # ru, uk]
 #, python-format
@@ -7859,6 +7878,9 @@ msgstr "Onemogućava funkciju prelaska na detalje za ovu bazu podataka."
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Discard"
 msgstr "Odbaci"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -9625,6 +9647,9 @@ msgstr "Neuspelo učitavanje podataka grafikona."
 msgid "Failed to load columns for %s %s"
 msgstr "Neuspelo učitavanje kolona za %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -9702,6 +9727,9 @@ msgstr "Neuspelo čuvanje opsega ukrštenog filtera"
 # uk]
 msgid "Failed to save cross-filters setting"
 msgstr "Neuspelo čuvanje podešavanja ukrštenih filtera"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Failed to set local theme: Invalid JSON configuration"
@@ -10011,7 +10039,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -12120,6 +12150,15 @@ msgstr "Lista ažurirana"
 msgid "List view"
 msgstr "Pregled liste"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Live render"
 msgstr "Renderovanje uživo"
@@ -12161,6 +12200,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 # uk]
@@ -13612,6 +13654,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -15525,6 +15571,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Raw records"
 msgstr "Sirovi zapisi"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -18626,10 +18675,6 @@ msgstr ""
 "Žao nam je, došlo je do greške prilikom preuzimanja informacija o bazi "
 "podataka: %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, ru, sk, sl, uk, zh, zh_TW]
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Žao nam je, došlo je do greške prilikom preuzimanja sačuvanih grafikona: "
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, An error occurred"
 msgstr "Žao nam je, došlo je do greške"
@@ -18649,6 +18694,9 @@ msgstr "Žao nam je, došlo je do greške. Ugrađivanje nije moglo biti deaktivi
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Žao nam je, došlo je do greške. Pokušajte ponovo."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, something went wrong. Try again later."
@@ -20138,6 +20186,16 @@ msgstr ""
 # ru, sk, uk]
 msgid "The feature property to use for point labels"
 msgstr "Svojstvo entiteta koje se koristi za oznake tačaka"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -21654,6 +21712,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Ovaj grafikon je premešten u drugi opseg filtera."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Ovim grafikonom se upravlja eksterno i ne može se prepisati u Superset-u."
 
@@ -23024,6 +23090,10 @@ msgstr ""
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nije moguće preuzeti semantičke prikaze. Proverite konfiguraciju sloja."
 
+#, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
@@ -23882,6 +23952,9 @@ msgstr "Gledalac"
 msgid "Viewers"
 msgstr "Gledaoci"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -24139,6 +24212,11 @@ msgstr "Nije moguće pronaći kolonu „%(column_name)s” u redu %(location)s."
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -25272,6 +25350,9 @@ msgstr ""
 "Ažurirali ste vrednosti na kontrolnoj tabli, ali grafikon nije automatski"
 " ažuriran. Pokrenite upit klikom na dugme „Ažuriraj grafikon” ili"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 #, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
@@ -25750,6 +25831,9 @@ msgstr "kreiraj"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "create a new chart"
 msgstr "kreiraj novi grafikon"
+
+msgid "create a semantic view"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
 msgid "create dataset from SQL query"

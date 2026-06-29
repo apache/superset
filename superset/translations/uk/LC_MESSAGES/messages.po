@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1615,6 +1615,9 @@ msgstr "Додати модуль"
 
 msgid "Add a dataset"
 msgstr "Додати набір даних"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Додати нову вкладку"
@@ -3554,6 +3557,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "Неможливо вилучити системні теми"
 
@@ -5018,10 +5024,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Не вдалося підʼєднатися до бази даних: «%(database)s»"
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Не вдалося одержати всі збережені діаграми"
 
@@ -6214,6 +6216,17 @@ msgstr ""
 msgid "Delete template"
 msgstr "Вилучити шаблон"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Вилучити тему"
 
@@ -6327,6 +6340,14 @@ msgstr "Вилучено %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6571,6 +6592,9 @@ msgstr "Вимикає функцію деталізації для цієї б�
 
 msgid "Discard"
 msgstr "Відкинути"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -8021,6 +8045,9 @@ msgstr "Не вдалося завантажити дані діаграми."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -8091,6 +8118,9 @@ msgstr "Не вдалося зберегти межі перехресного �
 
 msgid "Failed to save cross-filters setting"
 msgstr "Не вдалося зберегти налаштування перехресних фільтрів"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Не вдалося вказати місцеву тему: неправильні налаштування JSON"
@@ -8346,7 +8376,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10077,6 +10109,15 @@ msgstr "Перелік оновлено"
 msgid "List view"
 msgstr "Перелік користувачів"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Моментальний перегляд"
 
@@ -10114,6 +10155,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11329,6 +11373,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12898,6 +12946,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Сирі записи"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15538,9 +15589,6 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "На жаль, трапилась помилка одержання інформації про базу даних: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "На жаль, трапилась помилка одержання збережених діаграм: "
-
 msgid "Sorry, An error occurred"
 msgstr "На жаль, трапилась помилка"
 
@@ -15555,6 +15603,9 @@ msgstr "Отакої, щось не так. Вбудовування немож�
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Отакої, щось не так. Спробуйте ще раз."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Отакої, щось не так. Спробуйте ще раз пізніше."
@@ -16803,6 +16854,16 @@ msgstr ""
 
 msgid "The feature property to use for point labels"
 msgstr "Спеціальна властивість для міток точок"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -18143,6 +18204,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Цю діаграму переміщено до іншого набору фільтрів."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Ця діаграма контролюється зовні, тому його не можна редагувати тут"
@@ -19342,6 +19411,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Не вдалося завантажити семантичні вигляди. Перевірте конфігурацію шару."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Неможливо знайти таке свято: [%(holiday)s]"
 
@@ -20054,6 +20127,9 @@ msgstr "Переглядач"
 msgid "Viewers"
 msgstr "Переглядачі"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20273,6 +20349,11 @@ msgstr "Не вдається знайти стовпець «%(column_name)s» 
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21229,6 +21310,9 @@ msgstr ""
 "Ви оновили значення в панелі керування, але діаграма не оновився "
 "автоматично. Запустіть запит, натиснувши кнопку «Оновити діаграму», або"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -21629,6 +21713,9 @@ msgstr "створити"
 
 msgid "create a new chart"
 msgstr "створити нову діаграму"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "створити набір даних із запиту SQL"

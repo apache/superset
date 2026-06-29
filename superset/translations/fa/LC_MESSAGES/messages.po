@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -1604,6 +1604,9 @@ msgstr "یک افزونه اضافه کنید"
 
 msgid "Add a dataset"
 msgstr "یک مجموعه داده اضافه کنید"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "یک زبانه جدید اضافه کنید"
@@ -3652,6 +3655,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 #, fuzzy
 msgid "Cannot delete system themes"
 msgstr "نمی‌توان به کوئری دسترسی پیدا کرد"
@@ -5230,10 +5236,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "نمی‌توان به پایگاه داده متصل شد: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "نتوانستیم همه نمودارهای ذخیره شده را بارگذاری کنیم"
 
@@ -6491,6 +6493,15 @@ msgstr ""
 msgid "Delete template"
 msgstr "قالب را حذف کنید"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "قالب را حذف کنید"
@@ -6585,6 +6596,12 @@ msgstr "%s حذف شد"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -6835,6 +6852,9 @@ msgstr "این ویژگی جستجوی جزئیات برای این پایگاه
 
 msgid "Discard"
 msgstr "رد کنید"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -8421,6 +8441,9 @@ msgstr "بارگذاری داده‌های نمودار ناموفق بود."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -8497,6 +8520,9 @@ msgstr "خطا در ذخیره‌سازی دامنه فیلتر متقاطع"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "خطا در ذخیره‌سازی دامنه فیلتر متقاطع"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8780,7 +8806,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10656,6 +10684,15 @@ msgstr "لیست بروزرسانی شده"
 msgid "List view"
 msgstr "عدد را تقسیم کن"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "رندر زنده"
 
@@ -10694,6 +10731,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -11980,6 +12020,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13621,6 +13665,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "رکوردهای خام"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -16405,9 +16452,6 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "متأسفیم، در بازیابی اطلاعات پایگاه داده خطایی رخ داده است: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "متأسفم، خطایی در بارگذاری نمودارهای ذخیره شده وجود داشت:"
-
 msgid "Sorry, An error occurred"
 msgstr "متاسفم، یک خطا رخ داده است"
 
@@ -16422,6 +16466,9 @@ msgstr "متأسفم، مشکلی پیش آمد. غیر فعال کردن جاس
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "متأسفم، مشکلی پیش آمده است. لطفاً دوباره تلاش کنید."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "متأسفم، مشکلی پیش آمده است. بعداً تلاش کنید."
@@ -17754,6 +17801,16 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "خاصیت ویژگی برای استفاده در برچسب‌های نقطه"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -19146,6 +19203,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "این نمودار به دامنه فیلتر دیگری منتقل شده است."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
@@ -20430,6 +20495,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "امکان دریافت نماهای معنایی وجود ندارد. پیکربندی لایه را بررسی کنید."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "قادر به پیدا کردن چنین تعطیلاتی نیستم: [%(holiday)s]"
 
@@ -21201,6 +21270,9 @@ msgstr "بیننده"
 msgid "Viewers"
 msgstr "بینندگان"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -21426,6 +21498,11 @@ msgstr "ما نمی‌توانیم ستون \"%(column_name)s\" را در خط %
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -22399,6 +22476,9 @@ msgstr ""
 "به‌روزرسانی نشد. با کلیک بر روی دکمه \"به‌روزرسانی نمودار\" query را اجرا"
 " کنید یا"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -22814,6 +22894,9 @@ msgstr "ایجاد کنید"
 
 msgid "create a new chart"
 msgstr "یک نمودار جدید بسازید"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "ایجاد مجموعه داده از کوئریی SQL"

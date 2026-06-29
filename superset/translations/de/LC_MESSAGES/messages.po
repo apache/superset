@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -1679,6 +1679,9 @@ msgstr "Ein Plugin hinzufügen"
 
 msgid "Add a dataset"
 msgstr "Einen Datensatz hinzufügen"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Eine neue Registerkarte hinzufügen"
@@ -3712,6 +3715,9 @@ msgstr ""
 "Datensätze erhalten, die Datenbank kann aber trotzdem nicht gelöscht "
 "werden."
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "Systemdesigns können nicht gelöscht werden"
 
@@ -5220,10 +5226,6 @@ msgstr ""
 "Es konnte keine Verbindung zur Datenbank \"%(database)s\" hergestellt "
 "werden."
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr "Semantische Ansichten %s konnten nicht gelöscht werden: %s"
-
 msgid "Could not fetch all saved charts"
 msgstr "Nicht alle gespeicherten Diagramme konnten abgerufen werden"
 
@@ -6437,6 +6439,15 @@ msgstr "Ausgewählte löschen"
 msgid "Delete template"
 msgstr "Vorlage löschen"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Design löschen"
 
@@ -6530,6 +6541,12 @@ msgstr "Gelöscht %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s Element(e) gelöscht"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6792,6 +6809,9 @@ msgstr "Deaktiviert die Drill-to-Detail-Funktion für diese Datenbank."
 
 msgid "Discard"
 msgstr "Verwerfen"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -8292,6 +8312,9 @@ msgstr "Diagrammdaten konnten nicht geladen werden."
 msgid "Failed to load columns for %s %s"
 msgstr "Die Spalte für %s %s konnte nicht geladen werden"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr "Laden der Datenquellen-Metadaten fehlgeschlagen"
 
@@ -8361,6 +8384,9 @@ msgstr "Cross-Filter-Scoping konnte nicht gespeichert werden"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Das Speichern der Einstellungen für Kreuzfilter ist fehlgeschlagen"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr ""
@@ -8634,7 +8660,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10427,6 +10455,15 @@ msgstr "Liste aktualisiert"
 msgid "List view"
 msgstr "Listenansicht"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Live-Darstellung"
 
@@ -10462,6 +10499,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11684,6 +11724,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13322,6 +13366,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Roheinträge"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -16038,9 +16085,6 @@ msgstr ""
 "Beim Abrufen von Datenbankinformationen ist leider ein Fehler "
 "aufgetreten: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Beim Abrufen gespeicherter Diagramme ist leider ein Fehler aufgetreten: "
-
 msgid "Sorry, An error occurred"
 msgstr "Leider ist ein Fehler aufgetreten"
 
@@ -16059,6 +16103,9 @@ msgid "Sorry, something went wrong. Please try again."
 msgstr ""
 "Entschuldigung, da ist etwas schief gelaufen. Bitte versuchen Sie es "
 "erneut."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Entschuldigung, etwas ist schief gegangen. Versuchen Sie es später erneut."
@@ -17365,6 +17412,16 @@ msgstr ""
 
 msgid "The feature property to use for point labels"
 msgstr "Die zu verwendende Objekt-Eigenschaft für Punktbeschriftungen"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr "Die folgenden Diagramme konnten nicht exportiert werden:"
@@ -18886,6 +18943,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Dieses Diagramm wurde in einen anderen Filterbereich verschoben."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
 "Dieses Diagramm wird extern verwaltet und kann nicht in Superset "
@@ -20198,6 +20263,10 @@ msgstr ""
 "Schichten-Konfiguration."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Kann einen solchen Feiertag nicht finden: [%(holiday)s]"
 
@@ -20770,9 +20839,6 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Verwendet die ersten 25 Werte, falls die Dimension mehr enthält."
 
-msgid "Valid"
-msgstr "Gültig"
-
 msgid "Valid SQL expression"
 msgstr "Gültiger SQL-Ausdruck"
 
@@ -20973,6 +21039,9 @@ msgstr "Betrachter*in"
 
 msgid "Viewers"
 msgstr "Betrachter*innen"
+
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
 
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
@@ -21196,6 +21265,11 @@ msgstr ""
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "Die Spalte „%(column_name)s“ konnte nicht aufgelöst werden."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -22215,6 +22289,9 @@ msgstr ""
 "aus, indem Sie auf die Schaltfläche \"Diagramm aktualisieren\" klicken "
 "oder"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 #, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
@@ -22613,6 +22690,9 @@ msgstr "Erstellen"
 
 msgid "create a new chart"
 msgstr "neues Diagramm erstellen"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "Datensatz aus SQL-Abfrage erstellen"

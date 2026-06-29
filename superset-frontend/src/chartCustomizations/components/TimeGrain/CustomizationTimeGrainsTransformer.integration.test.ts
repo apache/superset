@@ -18,7 +18,7 @@
  */
 
 import { ChartCustomization, ChartCustomizationType } from '@superset-ui/core';
-import { getInitialDataMask } from 'src/dataMask/reducer';
+import { getInitialDataMask } from 'src/dataMask/useDataMaskStore';
 import type { ChartCustomizationsFormItem } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
 import { transformCustomizationForSave } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/transformers';
 

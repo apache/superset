@@ -54,7 +54,15 @@ import {
 import type { Store } from 'redux';
 import { ToastType } from 'src/components/MessageToasts/types';
 import { setDatasources } from 'src/dashboard/actions/datasources';
-import type { Datasource } from 'src/dashboard/types';
+import type {
+  DashboardInfo,
+  DashboardLayout,
+  Datasource,
+} from 'src/dashboard/types';
+import {
+  useDashboardInfoStore,
+  useDashboardLayoutStore,
+} from 'src/dashboard/stores';
 import {
   RangeFilterPlugin,
   SelectFilterPlugin,
@@ -188,6 +196,14 @@ const renderModal = (
   modalProps: FiltersConfigModalProps = props,
 ) => {
   const store = createStore(initialState, reducerIndex);
+  // The modal reads dashboardInfo and the layout from Zustand; datasources,
+  // charts and toasts stay in Redux.
+  useDashboardInfoStore.setState({
+    dashboardInfo: initialState.dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardLayoutStore.setState({
+    layout: initialState.dashboardLayout.present as DashboardLayout,
+  });
   return {
     store,
     ...render(<FiltersConfigModal {...modalProps} />, {

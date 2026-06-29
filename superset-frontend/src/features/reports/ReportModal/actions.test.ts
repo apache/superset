@@ -17,11 +17,15 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { waitFor } from 'spec/helpers/testing-library';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import {
   addReport,
   editReport,
   deleteActiveReport,
   fetchUISpecificReport,
+  toggleActive,
   ADD_REPORT,
   EDIT_REPORT,
   DELETE_REPORT,
@@ -33,6 +37,38 @@ const REPORT_POST_ENDPOINT = 'glob:*/api/v1/report/';
 
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
+});
+
+test('toggleActive refreshes a dashboard report via dashboardInfo from Zustand, not the charts branch (C2)', async () => {
+  useDashboardInfoStore.setState({
+    dashboardInfo: { id: 42 } as DashboardInfo,
+  });
+  fetchMock.put('glob:*/api/v1/report/7', {});
+  fetchMock.get('glob:*/api/v1/report/?q=*', { result: [{ id: 1 }] });
+
+  const getState = () => ({
+    user: { userId: 1 },
+    // charts is populated: reading dashboardInfo from Redux (undefined) would
+    // wrongly fall through to this branch.
+    charts: { '10': { id: 10 } },
+    explore: {},
+  });
+  const dispatched: { type?: string; [k: string]: unknown }[] = [];
+  const dispatch = (action: unknown): unknown => {
+    dispatched.push(action as { type?: string });
+    return typeof action === 'function'
+      ? (action as Function)(dispatch, getState)
+      : action;
+  };
+
+  await toggleActive({ id: 7 } as never, true)(dispatch as never);
+
+  await waitFor(() => {
+    const setReport = dispatched.find(a => a?.type === SET_REPORT);
+    expect(setReport).toBeDefined();
+    expect(setReport?.creationMethod).toBe('dashboards');
+    expect(setReport?.resourceId).toBe(42);
+  });
 });
 
 test('addReport dispatches ADD_REPORT and success toast on success', async () => {

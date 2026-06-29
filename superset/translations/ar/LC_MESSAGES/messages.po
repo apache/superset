@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1748,6 +1748,9 @@ msgstr "إضافة مكون إضافي"
 
 msgid "Add a dataset"
 msgstr "إضافة مجموعة بيانات"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "إضافة علامة تبويب جديدة"
@@ -3836,6 +3839,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 #, fuzzy
 msgid "Cannot delete system themes"
 msgstr "لا يمكن الوصول إلى الاستعلام"
@@ -5431,10 +5437,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "تعذر الاتصال بقاعدة البيانات: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "تعذر جلب جميع المخططات المحفوظة"
 
@@ -6726,6 +6728,19 @@ msgstr ""
 msgid "Delete template"
 msgstr "حذف القالب"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "حذف القالب"
@@ -6866,6 +6881,16 @@ msgstr "تم الحذف %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7118,6 +7143,9 @@ msgstr "لم يتم إرجاع أي عينات لمجموعة البيانات �
 
 msgid "Discard"
 msgstr "تجاهل"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -8745,6 +8773,9 @@ msgstr "فشل تحميل بيانات المخطط."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -8821,6 +8852,9 @@ msgstr "فشلت عملية حفظ تحديد نطاق عوامل التصفية
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "فشلت عملية حفظ تحديد نطاق عوامل التصفية المشتركة"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9110,7 +9144,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10999,6 +11035,15 @@ msgstr "تم تحديث القائمة"
 msgid "List view"
 msgstr "رقم منقسم"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "التصيير المباشر"
 
@@ -11037,6 +11082,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -12350,6 +12398,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -14022,6 +14074,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "السجلات الخام"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -16853,9 +16908,6 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "عذرًا، حدث خطأ أثناء جلب معلومات قاعدة البيانات: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "عذرًا، حدث خطأ أثناء جلب المخططات المحفوظة: "
-
 msgid "Sorry, An error occurred"
 msgstr "عذرًا، حدث خطأ"
 
@@ -16870,6 +16922,9 @@ msgstr "آسف، حدث خطأ ما. لا يمكن إلغاء تفعيل الت�
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "آسف، حدث خطأ ما. يرجى المحاولة مرة أخرى."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "آسف، حدث خطأ ما. حاول مرة أخرى لاحقًا."
@@ -18225,6 +18280,16 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "خاصية العنصر المستخدمة لتسميات النقاط"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -19636,6 +19701,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "تم نقل هذا المخطط إلى نطاق تصفية مختلف."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "تتم إدارة هذا المخطط خارجيًا، ولا يمكن تحريره في Superset"
@@ -20929,6 +21002,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "تعذر جلب طرق العرض الدلالية. تحقق من تكوين الطبقة."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "غير قادر على العثور على مثل هذه العطلة: [%(holiday)s]"
 
@@ -21721,6 +21798,9 @@ msgstr "مشاهِد"
 msgid "Viewers"
 msgstr "مشاهِدون"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -21943,6 +22023,11 @@ msgstr "يبدو أننا لا نستطيع حل العمود \"%(column_name)s\
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -22933,6 +23018,9 @@ msgstr ""
 "لقد قمت بتحديث القيم في لوحة التحكم، ولكن لم يتم تحديث المخطط تلقائيًا. "
 "قم بتشغيل الاستعلام بالنقر فوق الزر «تحديث المخطط» أو"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -23358,6 +23446,9 @@ msgstr "انشاء"
 
 msgid "create a new chart"
 msgstr "إنشاء مخطط جديد"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "إنشاء مجموعة بيانات من استعلام SQL"
