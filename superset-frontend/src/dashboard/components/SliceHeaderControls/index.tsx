@@ -389,12 +389,15 @@ const SliceHeaderControls = (
     }
     return '';
   };
-  const refreshTooltipData = [
-    ...new Set(
-      isCached.map((itemCached, index) => getCachedTitle(itemCached, index)),
-    ),
-  ];
-  // If all queries have same cache time we can unit them to one
+  const refreshTooltipData = (() => {
+    const titles = isCached.map((itemCached, index) =>
+      getCachedTitle(itemCached, index),
+    );
+    // Collapse to a single entry only when every query shares the same
+    // cache/fetch time; otherwise keep the per-query list so the "Query N"
+    // numbering stays aligned with the original query order.
+    return new Set(titles).size === 1 ? [titles[0]] : titles;
+  })();
   const refreshTooltip = refreshTooltipData.map((item, index) => (
     <div key={`tooltip-${index}`}>
       {refreshTooltipData.length > 1
