@@ -228,22 +228,19 @@ const SaveModal = ({
   const history = useHistory();
   const theme = useTheme();
 
-  const canOverwriteSlice = useCallback(
-    (): boolean => {
-      const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
-      const canEditSlice = Boolean(
-        slice?.editors?.some((editor: { id: number } | number) =>
-          userSubjects.includes(typeof editor === 'number' ? editor : editor.id),
-        ),
-      );
+  const canOverwriteSlice = useCallback((): boolean => {
+    const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
+    const canEditSlice = Boolean(
+      slice?.editors?.some((editor: { id: number } | number) =>
+        userSubjects.includes(typeof editor === 'number' ? editor : editor.id),
+      ),
+    );
 
-      return (
-        (can_overwrite || isUserAdmin(user) || canEditSlice) &&
-        !slice?.is_managed_externally
-      );
-    },
-    [can_overwrite, slice, user],
-  );
+    return (
+      (can_overwrite || isUserAdmin(user) || canEditSlice) &&
+      !slice?.is_managed_externally
+    );
+  }, [can_overwrite, slice, user]);
 
   const [newSliceName, setNewSliceName] = useState<string | undefined>(
     sliceName,

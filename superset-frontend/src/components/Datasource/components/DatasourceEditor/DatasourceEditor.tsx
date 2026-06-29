@@ -27,7 +27,6 @@ import {
   useMemo,
 } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import type { JsonObject } from '@superset-ui/core';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { Radio } from '@superset-ui/core/components/Radio';
