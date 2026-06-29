@@ -474,7 +474,7 @@ def execute_sql_statements(  # noqa: C901
     for statement in parsed_script.statements:
         apply_limit(query, statement)
 
-    # some databases (like BigQuery and Kusto) do not persist state across mmultiple
+    # some databases (like BigQuery and Kusto) do not persist state across multiple
     # statements if they're run separately (especially when using `NullPool`), so we run
     # the query as a single block.
     if db_engine_spec.run_multiple_statements_as_one:
@@ -517,8 +517,15 @@ def execute_sql_statements(  # noqa: C901
             query.set_extra_json_key("progress", msg)
             db.session.commit()
 
-            # Hook to allow environment-specific mutation (usually comments) to the SQL
-            query.executed_sql = database.mutate_sql_based_on_config(block)
+            # Hook to allow environment-specific mutation (usually comments) to the SQL.
+            # `is_split` reflects whether this block is an individual statement: when
+            # the engine runs everything as one block the SQL is not split, otherwise
+            # each block is a single split-out statement. This lets `MUTATE_AFTER_SPLIT`
+            # decide correctly whether the mutator fires here.
+            query.executed_sql = database.mutate_sql_based_on_config(
+                block,
+                is_split=not db_engine_spec.run_multiple_statements_as_one,
+            )
 
             try:
                 result_set = execute_query(query, cursor, log_params)

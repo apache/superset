@@ -47,7 +47,7 @@ from superset.models.core import Database
 
 # Note: database, database_with_dml, mock_db_session fixtures and
 # mock_query_execution helper are imported from conftest.py
-from .conftest import mock_query_execution
+from .conftest import create_mock_cursor, mock_query_execution
 
 # =============================================================================
 # Basic Execution Tests
@@ -869,6 +869,45 @@ def test_execute_applies_sql_mutator(
     assert result.status == QueryStatus.SUCCESS
     # Verify mutate_sql_based_on_config was called
     mutate_mock.assert_called()
+
+
+@pytest.mark.parametrize("is_split", [True, False])
+def test_execute_sql_with_cursor_forwards_is_split(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+    mock_query: MagicMock,
+    is_split: bool,
+) -> None:
+    """
+    `execute_sql_with_cursor` must forward `is_split` to the SQL mutator.
+
+    `Database.mutate_sql_based_on_config` only fires `SQL_QUERY_MUTATOR` when
+    `is_split == MUTATE_AFTER_SPLIT`, so passing the wrong value silently skips
+    mutation (the SQL Lab bug behind issue #30169). This guards the contract.
+    """
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mutate_mock = mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql, **kw: sql
+    )
+    mocker.patch.object(database.db_engine_spec, "execute")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[(1,)])
+    mocker.patch("superset.result_set.SupersetResultSet", return_value=MagicMock())
+
+    cursor = create_mock_cursor(["id"], data=[(1,)])
+
+    execute_sql_with_cursor(
+        database=database,
+        cursor=cursor,
+        statements=["SELECT id FROM t"],
+        query=mock_query,
+        is_split=is_split,
+    )
+
+    mutate_mock.assert_called_once()
+    assert mutate_mock.call_args.kwargs["is_split"] is is_split
 
 
 # =============================================================================
