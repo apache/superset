@@ -19,12 +19,32 @@
 import { isEqualArray } from '@superset-ui/core';
 import { TableChartProps } from '../types';
 
+const getDescriptions = (props: TableChartProps) => {
+  const colnames = props.queriesData?.[0]?.colnames || [];
+  const columns = props.rawDatasource?.columns || [];
+  const metrics = props.rawDatasource?.metrics || [];
+
+  return colnames.map((key: string) => {
+    const metricLookupKey = key.startsWith('%') ? key.slice(1) : key;
+    return (
+      columns.find((item: { column_name: string }) => item.column_name === key)
+        ?.description ??
+      metrics.find(
+        (item: { metric_name: string }) => item.metric_name === metricLookupKey,
+      )?.description
+    );
+  });
+};
+
 export default function isEqualColumns(
   propsA: TableChartProps[],
   propsB: TableChartProps[],
 ) {
   const a = propsA[0];
   const b = propsB[0];
+
+  const descA = getDescriptions(a);
+  const descB = getDescriptions(b);
   return (
     a.datasource.columnFormats === b.datasource.columnFormats &&
     a.datasource.currencyFormats === b.datasource.currencyFormats &&
@@ -41,6 +61,7 @@ export default function isEqualColumns(
     JSON.stringify(a.formData.extraFormData || null) ===
       JSON.stringify(b.formData.extraFormData || null) &&
     JSON.stringify(a.rawFormData.column_config || null) ===
-      JSON.stringify(b.rawFormData.column_config || null)
+      JSON.stringify(b.rawFormData.column_config || null) &&
+    JSON.stringify(descA) === JSON.stringify(descB)
   );
 }
