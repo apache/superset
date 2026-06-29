@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 14:29-0700\n"
+"POT-Creation-Date: 2026-09-24 14:03-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5492,6 +5492,9 @@ msgstr ""
 msgid "Discard"
 msgstr ""
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr ""
 
@@ -6759,6 +6762,9 @@ msgstr ""
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -6824,6 +6830,9 @@ msgid "Failed to save cross-filter scoping"
 msgstr ""
 
 msgid "Failed to save cross-filters setting"
+msgstr ""
+
+msgid "Failed to save filter changes"
 msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
@@ -13076,9 +13085,6 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr ""
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr ""
-
 msgid "Sorry, An error occurred"
 msgstr ""
 
@@ -13092,6 +13098,9 @@ msgid "Sorry, something went wrong. Embedding could not be deactivated."
 msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
+msgstr ""
+
+msgid "Sorry, something went wrong. The changes could not be saved."
 msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
@@ -17546,6 +17555,9 @@ msgid ""
 "You updated the values in the control panel, but the chart was not "
 "updated automatically. Run the query by clicking on the \"Update chart\" "
 "button or"
+msgstr ""
+
+msgid "You will lose all changes since your last save. This cannot be undone."
 msgstr ""
 
 #, python-format

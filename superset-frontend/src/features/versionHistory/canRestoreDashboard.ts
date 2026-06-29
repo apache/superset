@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { RootState } from 'src/dashboard/types';
+import { useCanEditDashboard, useDashboardInfo } from 'src/dashboard/stores';
 
 /**
  * Whether the current user may restore a version of this dashboard.
@@ -26,7 +26,7 @@ import type { RootState } from 'src/dashboard/types';
  * lives outside Superset, so a restore would be overwritten again by the next
  * sync.
  *
- * Exported as one selector because the gate has more than one consumer — the
+ * Exported as one hook because the gate has more than one consumer — the
  * history panel and the preview banner — and the header menu's own
  * `is_managed_externally` check already showed how easily those drift apart.
  * The panel is reachable directly via `?version_history=true`, so a gate
@@ -34,8 +34,10 @@ import type { RootState } from 'src/dashboard/types';
  * endpoint checks editorship but not external management, which leaves this as
  * the only guard.
  */
-export const selectCanRestoreDashboard = (state: RootState): boolean =>
-  (state.dashboardInfo?.dash_edit_perm ?? false) &&
-  !state.dashboardInfo?.is_managed_externally;
+export const useCanRestoreDashboard = (): boolean => {
+  const canEdit = useCanEditDashboard();
+  const dashboardInfo = useDashboardInfo();
+  return canEdit && !dashboardInfo?.is_managed_externally;
+};
 
-export default selectCanRestoreDashboard;
+export default useCanRestoreDashboard;

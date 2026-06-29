@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 14:03-0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -3897,6 +3897,13 @@ msgstr "圖表無法删除。"
 msgid "Chart width"
 msgstr "圖表寬度"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "圖表"
 
@@ -6494,6 +6501,9 @@ msgstr "這個數據集没有返回預覽數據"
 msgid "Discard"
 msgstr "取消"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "顯示名稱"
 
@@ -8027,6 +8037,9 @@ msgstr "載入圖表資料失敗。"
 msgid "Failed to load columns for %s %s"
 msgstr "上傳列式文件到資料庫"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8104,6 +8117,9 @@ msgstr "保存交叉篩選作用域失敗"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "保存交叉篩選作用域失敗"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -15651,9 +15667,6 @@ msgstr "抱歉，出了點問題。請稍後再試。"
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "抱歉，獲取資料庫訊息時出錯：%s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "抱歉，這個看板在獲取圖表時發生錯誤："
-
 msgid "Sorry, An error occurred"
 msgstr "抱歉，發生錯誤"
 
@@ -15672,6 +15685,9 @@ msgstr "抱歉，出了點問題。請稍後再試。"
 #, fuzzy
 msgid "Sorry, something went wrong. Please try again."
 msgstr "抱歉，出了點問題。請稍後再試。"
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "抱歉，出了點問題。請稍後再試。"
@@ -17316,6 +17332,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "該查詢包含一個或多個格式不正確的模板参數。"
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -21100,6 +21123,9 @@ msgid ""
 "button or"
 msgstr "您已更新了控制面板中的值，但圖表未自動更新。請點擊 \"更新圖表\" 按钮運行查詢或"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -21158,7 +21184,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

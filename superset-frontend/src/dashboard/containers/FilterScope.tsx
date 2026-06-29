@@ -16,32 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { connect } from 'react-redux';
-import { bindActionCreators, Dispatch } from 'redux';
+import { useMemo } from 'react';
+import { bindActionCreators } from 'redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { updateDashboardFiltersScope } from '../actions/dashboardFilters';
-import { setUnsavedChanges } from '../actions/dashboardState';
 import FilterScopeSelector from '../components/filterscope/FilterScopeSelector';
 import { RootState } from 'src/dashboard/types';
+import {
+  useDashboardLayoutStore,
+  useDashboardStateStore,
+} from 'src/dashboard/stores';
 
-function mapStateToProps({ dashboardLayout, dashboardFilters }: RootState) {
-  return {
-    dashboardFilters,
-    layout: dashboardLayout.present,
-  };
+interface FilterScopeContainerProps {
+  onCloseModal: () => void;
 }
 
-function mapDispatchToProps(dispatch: Dispatch) {
-  return bindActionCreators(
-    {
-      updateDashboardFiltersScope,
-      setUnsavedChanges,
-    },
-    dispatch,
+export default function FilterScopeContainer({
+  onCloseModal,
+}: FilterScopeContainerProps) {
+  const dispatch = useDispatch();
+  const layout = useDashboardLayoutStore(s => s.layout);
+  const dashboardFilters = useSelector(
+    (state: RootState) => state.dashboardFilters,
+  );
+  const actions = useMemo(
+    () =>
+      bindActionCreators(
+        {
+          updateDashboardFiltersScope,
+        },
+        dispatch,
+      ),
+    [dispatch],
+  );
+  const { setHasUnsavedChanges } = useDashboardStateStore.getState();
+
+  return (
+    <FilterScopeSelector
+      dashboardFilters={dashboardFilters}
+      layout={layout}
+      onCloseModal={onCloseModal}
+      setUnsavedChanges={setHasUnsavedChanges}
+      {...actions}
+    />
   );
 }
-
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(FilterScopeSelector);

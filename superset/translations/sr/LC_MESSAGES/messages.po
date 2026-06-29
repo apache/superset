@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 14:03-0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -4387,6 +4387,13 @@ msgstr "Графикон је сачуван, али није могао бит�
 msgid "Chart width"
 msgstr "Ширина графикона"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 msgid "Charts"
@@ -7324,6 +7331,9 @@ msgstr "Онемогућава функцију преласка на детаљ
 msgid "Discard"
 msgstr "Одбаци"
 
+msgid "Discard changes?"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Display Name"
 msgstr "Назив за приказ"
@@ -8984,6 +8994,9 @@ msgstr "Неуспело учитавање података графикона.
 msgid "Failed to load columns for %s %s"
 msgstr "Неуспело учитавање колона за %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -9058,6 +9071,9 @@ msgstr "Неуспело чување опсега укрштеног филте
 # uk]
 msgid "Failed to save cross-filters setting"
 msgstr "Неуспело чување подешавања укрштених филтера"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Failed to set local theme: Invalid JSON configuration"
@@ -17274,10 +17290,6 @@ msgstr ""
 "Жао нам је, дошло је до грешке приликом преузимања информација о бази "
 "података: %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, ru, sk, sl, uk, zh, zh_TW]
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Жао нам је, дошло је до грешке приликом преузимања сачуваних графикона: "
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, An error occurred"
 msgstr "Жао нам је, дошло је до грешке"
@@ -17297,6 +17309,9 @@ msgstr "Жао нам је, дошло је до грешке. Уграђива�
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Жао нам је, дошло је до грешке. Покушајте поново."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, something went wrong. Try again later."
@@ -19108,6 +19123,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Упит садржи један или више неправилно форматираних параметара шаблона."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -23314,6 +23336,9 @@ msgstr ""
 "Ажурирали сте вредности на контролној табли, али графикон није аутоматски"
 " ажуриран. Покрените упит кликом на дугме „Ажурирај графикон” или"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 #, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
@@ -23366,7 +23391,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

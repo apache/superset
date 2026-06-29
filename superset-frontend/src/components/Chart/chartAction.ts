@@ -55,6 +55,8 @@ import {
   selectAsyncModeOverride,
   AsyncModeOverride,
 } from 'src/utils/asyncMode';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
@@ -88,13 +90,13 @@ export interface DataMaskState {
   };
 }
 
-// RootState uses flexible types to accommodate various state shapes
-// across dashboard and explore views
+// RootState is a flexible shape across dashboard and explore views. dataMask
+// lives in Zustand now; dashboardInfo is retained here for the per-dashboard
+// async-mode override selector (reads dashboardInfo.metadata.async_mode).
 export interface RootState {
   charts: ChartsState;
   common: CommonState;
-  dashboardInfo: DashboardInfoState;
-  dataMask: DataMaskState;
+  dashboardInfo?: DashboardInfoState;
   explore: {
     form_data: QueryFormData;
     datasource?: { type: string };
@@ -1045,7 +1047,8 @@ export function refreshChart(
       return Promise.resolve();
     }
     const timeout =
-      getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+      useDashboardInfoStore.getState().dashboardInfo.common.conf
+        .SUPERSET_WEBSERVER_TIMEOUT;
 
     if (
       !chart.latestQueryFormData ||
@@ -1060,7 +1063,7 @@ export function refreshChart(
         timeout,
         chart.id,
         dashboardId,
-        getState().dataMask[chart.id]?.ownState,
+        useDataMaskStore.getState().dataMask[chart.id]?.ownState,
       ),
     ) as unknown as Promise<void>;
   };

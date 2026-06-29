@@ -21,7 +21,12 @@ import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
-import { onRefresh, setRefreshFrequency } from '../../actions/dashboardState';
+import {
+  useDashboardInfo,
+  useRefreshFrequency,
+  setRefreshFrequency,
+} from 'src/dashboard/stores';
+import { onRefresh } from '../../actions/dashboardState';
 import { logEvent } from '../../../logger/actions';
 import { useHeaderAutoRefresh } from './useHeaderAutoRefresh';
 
@@ -36,22 +41,18 @@ import { useHeaderAutoRefresh } from './useHeaderAutoRefresh';
 const HeadlessAutoRefresh = (): null => {
   const dispatch = useDispatch();
   const chartIds = useChartIds();
-  const dashboardId = useSelector((state: RootState) => state.dashboardInfo.id);
-  const refreshFrequency = useSelector(
-    (state: RootState) => state.dashboardState.refreshFrequency ?? 0,
-  );
-  const immuneSlices = useSelector(
-    (state: RootState) =>
-      state.dashboardInfo.metadata?.timed_refresh_immune_slices,
-  );
+  // Auto-refresh config moved to the Zustand dashboard-info store; read it
+  // through the domain hooks like the header does.
+  const dashboardInfo = useDashboardInfo();
+  const dashboardId = dashboardInfo.id;
+  const refreshFrequency = useRefreshFrequency();
+  const immuneSlices = dashboardInfo.metadata?.timed_refresh_immune_slices;
   const timedRefreshImmuneSlices = useMemo(
     () => immuneSlices || [],
     [immuneSlices],
   );
-  const autoRefreshMode = useSelector(
-    (state: RootState) =>
-      state.dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_MODE,
-  );
+  const autoRefreshMode =
+    dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_MODE;
   const isLoading = useSelector((state: RootState) =>
     Object.values(state.charts).some(chart => {
       const start = chart.chartUpdateStartTime ?? 0;
@@ -65,7 +66,6 @@ const HeadlessAutoRefresh = (): null => {
       bindActionCreators(
         {
           onRefresh,
-          setRefreshFrequency,
           logEvent,
         },
         dispatch,
@@ -81,7 +81,7 @@ const HeadlessAutoRefresh = (): null => {
     autoRefreshMode,
     isLoading,
     onRefresh: boundActionCreators.onRefresh,
-    setRefreshFrequency: boundActionCreators.setRefreshFrequency,
+    setRefreshFrequency,
     logEvent: boundActionCreators.logEvent,
   });
 

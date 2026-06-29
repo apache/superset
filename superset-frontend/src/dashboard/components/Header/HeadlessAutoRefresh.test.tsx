@@ -18,6 +18,11 @@
  */
 import { render } from 'spec/helpers/testing-library';
 import { AutoRefreshProvider } from 'src/dashboard/contexts/AutoRefreshContext';
+import {
+  useDashboardInfoStore,
+  useDashboardStateStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import HeadlessAutoRefresh from './HeadlessAutoRefresh';
 
 const mockUseHeaderAutoRefresh = jest.fn();
@@ -34,32 +39,38 @@ jest.mock('./useHeaderAutoRefresh', () => ({
   },
 }));
 
-const initialState = {
-  dashboardInfo: {
-    id: 42,
-    metadata: { timed_refresh_immune_slices: [7] },
-    common: { conf: { DASHBOARD_AUTO_REFRESH_MODE: 'fetch' } },
-  },
-  dashboardState: {
-    refreshFrequency: 30,
-    sliceIds: [1, 2, 3],
-  },
+// isLoading is still derived from the (Redux) charts slice.
+const reduxState = {
   charts: {
     1: { id: 1, chartUpdateStartTime: 0, chartUpdateEndTime: 0 },
     2: { id: 2, chartUpdateStartTime: 0, chartUpdateEndTime: 0 },
   },
 };
 
+// Auto-refresh config (dashboard id/metadata, slice ids, refresh frequency)
+// now lives in the Zustand dashboard stores, not Redux.
+const seedStores = (refreshFrequency = 30) => {
+  useDashboardInfoStore.setState({
+    dashboardInfo: {
+      id: 42,
+      metadata: { timed_refresh_immune_slices: [7] },
+      common: { conf: { DASHBOARD_AUTO_REFRESH_MODE: 'fetch' } },
+    } as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState({ refreshFrequency, sliceIds: [1, 2, 3] });
+};
+
 beforeEach(() => {
   mockUseHeaderAutoRefresh.mockClear();
 });
 
-test('drives the auto-refresh hook from redux state without a header', () => {
+test('drives the auto-refresh hook from dashboard state without a header', () => {
+  seedStores(30);
   const { container } = render(
     <AutoRefreshProvider>
       <HeadlessAutoRefresh />
     </AutoRefreshProvider>,
-    { useRedux: true, initialState },
+    { useRedux: true, initialState: reduxState },
   );
 
   // The component renders nothing but must still start the refresh timer.
@@ -80,18 +91,13 @@ test('drives the auto-refresh hook from redux state without a header', () => {
   );
 });
 
-test('passes the redux refresh frequency through to the hook', () => {
+test('passes the refresh frequency through to the hook', () => {
+  seedStores(0);
   render(
     <AutoRefreshProvider>
       <HeadlessAutoRefresh />
     </AutoRefreshProvider>,
-    {
-      useRedux: true,
-      initialState: {
-        ...initialState,
-        dashboardState: { ...initialState.dashboardState, refreshFrequency: 0 },
-      },
-    },
+    { useRedux: true, initialState: reduxState },
   );
 
   expect(mockUseHeaderAutoRefresh).toHaveBeenCalledWith(

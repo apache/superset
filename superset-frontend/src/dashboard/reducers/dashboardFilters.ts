@@ -21,7 +21,6 @@ import { JsonValue } from '@superset-ui/core';
 import {
   CHANGE_FILTER,
   UPDATE_DIRECT_PATH_TO_FILTER,
-  UPDATE_LAYOUT_COMPONENTS,
   UPDATE_DASHBOARD_FILTERS_SCOPE,
 } from '../actions/dashboardFilters';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
@@ -138,15 +137,6 @@ export default function dashboardFiltersReducer(
     },
   };
 
-  if (action.type === UPDATE_LAYOUT_COMPONENTS) {
-    buildActiveFilters({
-      dashboardFilters: dashboardFilters as Parameters<
-        typeof buildActiveFilters
-      >[0]['dashboardFilters'],
-      components: action.components,
-    });
-    return dashboardFilters;
-  }
   if (action.type === UPDATE_DASHBOARD_FILTERS_SCOPE) {
     const allDashboardFiltersScope = action.scopes;
     if (!allDashboardFiltersScope) return dashboardFilters;

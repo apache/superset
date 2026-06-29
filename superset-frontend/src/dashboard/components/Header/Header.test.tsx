@@ -23,7 +23,7 @@ import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import * as redux from 'redux';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { screen, userEvent, within, waitFor } from '@superset-ui/core/spec';
-import { ActionCreators as UndoActionCreators } from 'redux-undo';
+import { act } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
@@ -31,8 +31,14 @@ import getUserName from 'src/utils/getUserName';
 import { render, createStore } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import Header from '.';
-import { DASHBOARD_HEADER_ID } from '../../util/constants';
-import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
+import {
+  useDashboardStateStore,
+  useDashboardLayoutStore,
+  useDashboardInfoStore,
+  type DashboardStateStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
+import { DASHBOARD_HEADER_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 const mockHistoryReplace = jest.fn();
@@ -106,6 +112,13 @@ const initialState = {
   charts: {},
   dashboardLayout: {
     present: {
+      // A real dashboard layout always carries the root node; the undo guard
+      // refuses to restore a snapshot without it.
+      [DASHBOARD_ROOT_ID]: {
+        id: DASHBOARD_ROOT_ID,
+        type: 'ROOT',
+        children: [DASHBOARD_HEADER_ID],
+      },
       [DASHBOARD_HEADER_ID]: {
         meta: {
           text: 'Dashboard Title',
@@ -129,17 +142,27 @@ const editableState = {
   },
 };
 
-const undoState = {
-  ...editableState,
-  dashboardLayout: {
-    ...initialState.dashboardLayout,
-    past: [initialState.dashboardLayout.present],
-  },
-};
-
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
 function setup(overrideState: JsonObject = {}) {
+  const mergedState = { ...initialState, ...overrideState };
+  const ds = mergedState.dashboardState as
+    | Partial<DashboardStateStore>
+    | undefined;
+  if (ds) {
+    useDashboardStateStore.setState(ds);
+  }
+  const layoutPresent =
+    (mergedState.dashboardLayout as any)?.present ??
+    initialState.dashboardLayout.present;
+  useDashboardLayoutStore.setState({ layout: layoutPresent });
+  useDashboardInfoStore.setState({
+    dashboardInfo: (mergedState.dashboardInfo ??
+      {}) as unknown as DashboardInfo,
+  });
+  // Seeding the layout is not an undoable edit — clear the zundo history so
+  // the undo/redo buttons start disabled.
+  useDashboardLayoutStore.temporal.getState().clear();
   return render(
     <div className="dashboard">
       <Header />
@@ -147,7 +170,7 @@ function setup(overrideState: JsonObject = {}) {
     {
       useRedux: true,
       useTheme: true,
-      initialState: { ...initialState, ...overrideState },
+      initialState: mergedState,
     },
   );
 }
@@ -164,21 +187,15 @@ const addWarningToast = jest.fn();
 const onUndo = jest.fn();
 const onRedo = jest.fn();
 const setEditMode = jest.fn();
-const setUnsavedChanges = jest.fn();
-const fetchFaveStar = jest.fn();
-const saveFaveStar = jest.fn();
-const savePublished = jest.fn();
 const fetchCharts = jest.fn();
 const updateDashboardTitle = jest.fn();
 const updateCss = jest.fn();
-const onChange = jest.fn();
 const onSave = jest.fn();
 const setMaxUndoHistoryExceeded = jest.fn();
 const maxUndoHistoryToast = jest.fn();
 const logEvent = jest.fn();
 const setRefreshFrequency = jest.fn();
 const onRefresh = jest.fn();
-const dashboardInfoChanged = jest.fn();
 const dashboardTitleChanged = jest.fn();
 const startAutoRefresh = jest.fn();
 const endAutoRefresh = jest.fn();
@@ -195,6 +212,41 @@ jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
   useUnsavedChangesPrompt: jest.fn(),
+}));
+
+// Stub the save mutation so we can assert clicks fire .mutate exactly once
+// without dispatching the underlying saveDashboardRequest thunk. Mock the
+// submodule directly (not the barrel) to avoid re-evaluating queries/index,
+// whose circular import with dashboardState breaks under jest.requireActual.
+const mockSaveDashboardMutate = jest.fn();
+jest.mock('src/dashboard/queries/useSaveDashboard/useSaveDashboard', () => ({
+  useSaveDashboard: () => ({
+    mutate: mockSaveDashboardMutate,
+    mutateAsync: mockSaveDashboardMutate,
+    isPending: false,
+    reset: jest.fn(),
+  }),
+}));
+// PublishedStatus publishes via the usePublishDashboard mutation hook.
+const mockPublish = jest.fn();
+jest.mock(
+  'src/dashboard/queries/usePublishDashboard/usePublishDashboard',
+  () => ({
+    usePublishDashboard: () => ({ mutate: mockPublish }),
+  }),
+);
+// Favoriting flows through the favorite query/mutation hooks. Mock the
+// submodules directly (not the barrel) to avoid re-evaluating queries/index.
+const mockUseFavoriteStatus = jest.fn((_id: number, _enabled?: boolean) => ({
+  data: undefined,
+}));
+jest.mock('src/dashboard/queries/useFavoriteStatus/useFavoriteStatus', () => ({
+  useFavoriteStatus: (id: number, enabled?: boolean) =>
+    mockUseFavoriteStatus(id, enabled),
+}));
+const mockToggleFavorite = jest.fn();
+jest.mock('src/dashboard/queries/useToggleFavorite/useToggleFavorite', () => ({
+  useToggleFavorite: () => ({ mutate: mockToggleFavorite }),
 }));
 jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
   useAutoRefreshContext: jest.fn(),
@@ -223,21 +275,15 @@ beforeAll(() => {
     onUndo,
     onRedo,
     setEditMode,
-    setUnsavedChanges,
-    fetchFaveStar,
-    saveFaveStar,
-    savePublished,
     fetchCharts,
     updateDashboardTitle,
     updateCss,
-    onChange,
     onSave,
     setMaxUndoHistoryExceeded,
     maxUndoHistoryToast,
     logEvent,
     setRefreshFrequency,
     onRefresh,
-    dashboardInfoChanged,
     dashboardTitleChanged,
   }));
 });
@@ -279,52 +325,60 @@ beforeEach(() => {
   window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
 
-test('should render', () => {
+test('should render', async () => {
   const { container } = setup();
   expect(container).toBeInTheDocument();
 });
 
-test('should render the title', () => {
+test('should render the title', async () => {
   setup();
   expect(screen.getByTestId('editable-title-input')).toHaveDisplayValue(
     'Dashboard Title',
   );
 });
 
-test('should render the editable title', () => {
+test('should render the editable title', async () => {
   setup(editableState);
   expect(screen.getByDisplayValue('Dashboard Title')).toBeInTheDocument();
 });
 
 test('should edit the title', async () => {
   setup(editableState);
+  useDashboardStateStore.setState({ hasUnsavedChanges: false });
   const editableTitle = screen.getByDisplayValue('Dashboard Title');
-  expect(onChange).not.toHaveBeenCalled();
+  expect(useDashboardStateStore.getState().hasUnsavedChanges).toBe(false);
   await userEvent.click(editableTitle);
   await userEvent.clear(editableTitle);
   await userEvent.type(editableTitle, 'New Title');
   await userEvent.click(document.body);
-  expect(onChange).toHaveBeenCalled();
+  expect(useDashboardStateStore.getState().hasUnsavedChanges).toBe(true);
   expect(screen.getByDisplayValue('New Title')).toBeInTheDocument();
 });
 
-test('typing in the title only dispatches once on commit, not per keystroke', async () => {
+test('typing in the title enables Save immediately and commits once on blur', async () => {
   setup(editableState);
+  useDashboardStateStore.setState({ hasUnsavedChanges: false });
   const editableTitle = screen.getByDisplayValue('Dashboard Title');
+  // Title commits now route through the Zustand layout store.
+  const titleSpy = jest.spyOn(
+    useDashboardLayoutStore.getState(),
+    'updateDashboardTitle',
+  );
   await userEvent.click(editableTitle);
   await userEvent.clear(editableTitle);
   await userEvent.type(editableTitle, 'abcdef');
-  // No commit yet - typing should keep state local to DynamicEditableTitle
-  expect(updateDashboardTitle).not.toHaveBeenCalled();
-  expect(onChange).not.toHaveBeenCalled();
+  // Save enables as soon as the title diverges (unsaved flagged on the store),
+  // but the title isn't committed per keystroke.
+  expect(useDashboardStateStore.getState().hasUnsavedChanges).toBe(true);
+  expect(titleSpy).not.toHaveBeenCalled();
   // Commit by blurring
   await userEvent.click(document.body);
-  expect(updateDashboardTitle).toHaveBeenCalledTimes(1);
-  expect(updateDashboardTitle).toHaveBeenCalledWith('abcdef');
-  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(titleSpy).toHaveBeenCalledTimes(1);
+  expect(titleSpy).toHaveBeenCalledWith('abcdef');
+  titleSpy.mockRestore();
 });
 
-test('should render the "Draft" status', () => {
+test('should render the "Draft" status', async () => {
   setup();
   expect(screen.getByText('Draft')).toBeInTheDocument();
 });
@@ -339,12 +393,12 @@ test('should publish', async () => {
   };
   setup(canEditState);
   const draft = screen.getByText('Draft');
-  expect(savePublished).toHaveBeenCalledTimes(0);
+  expect(mockPublish).toHaveBeenCalledTimes(0);
   await userEvent.click(draft);
-  expect(savePublished).toHaveBeenCalledTimes(1);
+  expect(mockPublish).toHaveBeenCalledWith(true);
 });
 
-test('should render metadata', () => {
+test('should render metadata', async () => {
   setup();
   expect(
     screen.getByText(getUserName(initialState.dashboardInfo.created_by)),
@@ -354,29 +408,64 @@ test('should render metadata', () => {
   ).toBeInTheDocument();
 });
 
-test('should render the "Undo" action as disabled', () => {
+// Pushes a real layout change so the zundo temporal store records a past
+// state, then re-renders are flushed via act().
+function createLayoutHistory() {
+  act(() => {
+    useDashboardLayoutStore.getState().updateComponents({
+      [DASHBOARD_HEADER_ID]: {
+        id: DASHBOARD_HEADER_ID,
+        type: 'HEADER',
+        children: [],
+        meta: { text: 'Edited Title' },
+      },
+    });
+  });
+}
+
+test('should render the "Undo" action as disabled', async () => {
   setup(editableState);
   expect(screen.getByTestId('undo-action').parentElement).toBeDisabled();
 });
 
 test('should undo when past actions exist', async () => {
-  setup(undoState);
+  setup(editableState);
+  createLayoutHistory();
   const undo = screen.getByTestId('undo-action');
-  const undoButton = undo.parentElement;
 
-  expect(undoButton).toBeEnabled();
-  expect(onUndo).not.toHaveBeenCalled();
+  expect(undo.parentElement).toBeEnabled();
+  expect(useDashboardLayoutStore.temporal.getState().pastStates).toHaveLength(
+    1,
+  );
 
   await userEvent.click(undo);
-  expect(onUndo).toHaveBeenCalledTimes(1);
+  // The zundo undo popped the past state.
+  expect(useDashboardLayoutStore.temporal.getState().pastStates).toHaveLength(
+    0,
+  );
 });
 
-test('should render the "Redo" action as disabled', () => {
+test('undo does not clear unsaved changes flagged by non-layout edits', async () => {
+  setup(editableState);
+  createLayoutHistory();
+  // A non-layout edit (theme/properties) marks the dashboard dirty.
+  useDashboardStateStore.setState({ hasUnsavedChanges: true });
+
+  await userEvent.click(screen.getByTestId('undo-action'));
+
+  // Layout history is rewound, but the non-layout dirty flag must survive.
+  expect(useDashboardLayoutStore.temporal.getState().pastStates).toHaveLength(
+    0,
+  );
+  expect(useDashboardStateStore.getState().hasUnsavedChanges).toBe(true);
+});
+
+test('should render the "Redo" action as disabled', async () => {
   setup(editableState);
   expect(screen.getByTestId('redo-action').parentElement).toBeDisabled();
 });
 
-test('should have correct redo button structure', () => {
+test('should have correct redo button structure', async () => {
   setup(editableState);
 
   const redo = screen.getByTestId('redo-action');
@@ -388,155 +477,51 @@ test('should have correct redo button structure', () => {
 });
 
 test('should enable undo button when past actions exist', async () => {
-  setup(undoState);
+  setup(editableState);
+  createLayoutHistory();
 
-  const undoButton = screen.getByTestId('undo-action').parentElement;
-  const redoButton = screen.getByTestId('redo-action').parentElement;
-
-  expect(undoButton).toBeEnabled();
-  expect(redoButton).toBeDisabled();
-  expect(onUndo).not.toHaveBeenCalled();
-
-  await userEvent.click(screen.getByTestId('undo-action'));
-  expect(onUndo).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId('undo-action').parentElement).toBeEnabled();
+  expect(screen.getByTestId('redo-action').parentElement).toBeDisabled();
 });
 
 test('should enable redo button after undo creates future history', async () => {
-  const testStore = createStore(
-    {
-      ...initialState,
-      ...editableState,
-      dashboardLayout: {
-        present: {
-          [DASHBOARD_HEADER_ID]: {
-            meta: { text: 'Original Title' },
-          },
-        },
-        past: [],
-        future: [],
-      },
-    },
-    reducerIndex,
+  setup(editableState);
+  createLayoutHistory();
+
+  expect(screen.getByTestId('undo-action').parentElement).toBeEnabled();
+
+  await userEvent.click(screen.getByTestId('undo-action'));
+
+  // The undo moved the state into the future stack — redo is now available.
+  expect(screen.getByTestId('redo-action').parentElement).toBeEnabled();
+  expect(useDashboardLayoutStore.temporal.getState().futureStates).toHaveLength(
+    1,
   );
-
-  render(
-    <div className="dashboard">
-      <Header />
-    </div>,
-    {
-      useRedux: true,
-      useTheme: true,
-      store: testStore,
-    },
-  );
-
-  testStore.dispatch({
-    type: UPDATE_COMPONENTS,
-    payload: {
-      nextComponents: {
-        [DASHBOARD_HEADER_ID]: {
-          meta: { text: 'Updated Title' },
-        },
-      },
-    },
-  });
-
-  await waitFor(() => {
-    expect(screen.getByTestId('undo-action').parentElement).toBeEnabled();
-  });
-
-  testStore.dispatch(UndoActionCreators.undo());
-
-  await waitFor(() => {
-    const redoButton = screen.getByTestId('redo-action').parentElement;
-    expect(redoButton).toBeEnabled();
-  });
-
-  expect(onRedo).not.toHaveBeenCalled();
 
   await userEvent.click(screen.getByTestId('redo-action'));
-  expect(onRedo).toHaveBeenCalledTimes(1);
+  expect(useDashboardLayoutStore.temporal.getState().futureStates).toHaveLength(
+    0,
+  );
 });
 
 test('should enable undo button when real actions create past history', async () => {
-  const testStore = createStore(
-    {
-      ...initialState,
-      ...editableState,
-      dashboardLayout: {
-        present: {
-          [DASHBOARD_HEADER_ID]: {
-            meta: { text: 'Original Title' },
-          },
-        },
-        past: [],
-        future: [],
-      },
-    },
-    reducerIndex,
-  );
+  setup(editableState);
 
-  render(
-    <div className="dashboard">
-      <Header />
-    </div>,
-    {
-      useRedux: true,
-      useTheme: true,
-      store: testStore,
-    },
-  );
+  expect(screen.getByTestId('undo-action').parentElement).toBeDisabled();
 
-  const undoButton = screen.getByTestId('undo-action').parentElement;
-  expect(undoButton).toBeDisabled();
+  createLayoutHistory();
 
-  testStore.dispatch({
-    type: UPDATE_COMPONENTS,
-    payload: {
-      nextComponents: {
-        [DASHBOARD_HEADER_ID]: {
-          meta: { text: 'Updated Title' },
-        },
-      },
-    },
-  });
-
-  await waitFor(() => {
-    expect(screen.getByTestId('undo-action').parentElement).toBeEnabled();
-  });
-
-  expect(onUndo).not.toHaveBeenCalled();
-
-  await userEvent.click(screen.getByTestId('undo-action'));
-  expect(onUndo).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId('undo-action').parentElement).toBeEnabled();
 });
 
 test('should disable both buttons when no actions available', async () => {
   setup(editableState);
 
-  const undoButton = screen.getByTestId('undo-action').parentElement;
-  const redoButton = screen.getByTestId('redo-action').parentElement;
-
-  expect(undoButton).toBeDisabled();
-  expect(redoButton).toBeDisabled();
-  expect(onUndo).not.toHaveBeenCalled();
-  expect(onRedo).not.toHaveBeenCalled();
-
-  // Both buttons are disabled via `pointer-events: none`, so a real user
-  // could never click them; explicitly opt out of user-event's pointer
-  // events check to confirm the disabled buttons still ignore clicks.
-  await userEvent.click(screen.getByTestId('undo-action'), {
-    pointerEventsCheck: 0,
-  });
-  await userEvent.click(screen.getByTestId('redo-action'), {
-    pointerEventsCheck: 0,
-  });
-
-  expect(onUndo).not.toHaveBeenCalled();
-  expect(onRedo).not.toHaveBeenCalled();
+  expect(screen.getByTestId('undo-action').parentElement).toBeDisabled();
+  expect(screen.getByTestId('redo-action').parentElement).toBeDisabled();
 });
 
-test('should render an enabled "Exit edit mode" button when there are no unsaved changes', () => {
+test('should render an enabled "Exit edit mode" button when there are no unsaved changes', async () => {
   setup(editableState);
   expect(screen.getByRole('button', { name: /exit edit mode/i })).toBeEnabled();
   expect(
@@ -544,7 +529,7 @@ test('should render an enabled "Exit edit mode" button when there are no unsaved
   ).not.toBeInTheDocument();
 });
 
-test('should render an enabled "Discard" button when there are unsaved changes', () => {
+test('should render an enabled "Discard" button when there are unsaved changes', async () => {
   const unsavedState = {
     ...editableState,
     dashboardState: {
@@ -559,12 +544,13 @@ test('should render an enabled "Discard" button when there are unsaved changes',
   ).not.toBeInTheDocument();
 });
 
-test('should render the "Save" button as disabled', () => {
+test('should render the "Save" button as disabled', async () => {
   setup(editableState);
   expect(screen.getByText('Save').parentElement).toBeDisabled();
 });
 
 test('should save', async () => {
+  mockSaveDashboardMutate.mockClear();
   const unsavedState = {
     ...editableState,
     dashboardState: {
@@ -574,9 +560,9 @@ test('should save', async () => {
   };
   setup(unsavedState);
   const save = screen.getByText('Save');
-  expect(onSave).not.toHaveBeenCalled();
+  expect(mockSaveDashboardMutate).not.toHaveBeenCalled();
   await userEvent.click(save);
-  expect(onSave).toHaveBeenCalledTimes(1);
+  expect(mockSaveDashboardMutate).toHaveBeenCalledTimes(1);
 });
 
 test('should block saving and surface the size, limit, and config key when the layout exceeds the limit', async () => {
@@ -607,7 +593,7 @@ test('should block saving and surface the size, limit, and config key when the l
   expect(message).toContain('SUPERSET_DASHBOARD_POSITION_DATA_LIMIT');
 });
 
-test('should NOT render the "Draft" status', () => {
+test('should NOT render the "Draft" status', async () => {
   const publishedState = {
     ...initialState,
     dashboardState: {
@@ -619,13 +605,13 @@ test('should NOT render the "Draft" status', () => {
   expect(screen.queryByText('Draft')).not.toBeInTheDocument();
 });
 
-test('should render the unselected fave icon', () => {
+test('should render the unselected fave icon', async () => {
   setup();
-  expect(fetchFaveStar).toHaveBeenCalled();
+  expect(mockUseFavoriteStatus).toHaveBeenCalled();
   expect(screen.getByRole('img', { name: 'unstarred' })).toBeInTheDocument();
 });
 
-test('should render the selected fave icon', () => {
+test('should render the selected fave icon', async () => {
   const favedState = {
     dashboardState: {
       ...initialState.dashboardState,
@@ -636,7 +622,7 @@ test('should render the selected fave icon', () => {
   expect(screen.getByRole('img', { name: 'starred' })).toBeInTheDocument();
 });
 
-test('should NOT render the fave icon on anonymous user', () => {
+test('should NOT render the fave icon on anonymous user', async () => {
   const anonymousUserState = {
     user: undefined,
   };
@@ -652,38 +638,32 @@ test('should NOT render the fave icon on anonymous user', () => {
 test('should fave', async () => {
   setup();
   const fave = screen.getByRole('img', { name: 'unstarred' });
-  expect(saveFaveStar).not.toHaveBeenCalled();
+  expect(mockToggleFavorite).not.toHaveBeenCalled();
   await userEvent.click(fave);
-  expect(saveFaveStar).toHaveBeenCalledTimes(1);
+  expect(mockToggleFavorite).toHaveBeenCalledTimes(1);
 });
 
-// FaveStar.onClick passes the *prior* isStarred value to saveFaveStar — the
-// reducer flips it. So favoriting (unstarred → starred) sends `false`, and
+// FaveStar.onClick passes the *prior* isStarred value through; the toggle
+// mutation flips it. So favoriting (unstarred → starred) sends `false`, and
 // unfavoriting (starred → unstarred) sends `true`.
-test('should call saveFaveStar with false when favoriting from the header', async () => {
+test('should toggle favorite with false when favoriting from the header', async () => {
   setup();
   const header = screen.getByTestId('dashboard-header-container');
 
   await userEvent.click(within(header).getByRole('img', { name: 'unstarred' }));
-  expect(saveFaveStar).toHaveBeenCalledTimes(1);
-  expect(saveFaveStar).toHaveBeenCalledWith(
-    initialState.dashboardInfo.id,
-    false,
-  );
+  expect(mockToggleFavorite).toHaveBeenCalledTimes(1);
+  expect(mockToggleFavorite).toHaveBeenCalledWith(false);
 });
 
-test('should call saveFaveStar with true when unfavoriting from the header', async () => {
+test('should toggle favorite with true when unfavoriting from the header', async () => {
   setup({
     dashboardState: { ...initialState.dashboardState, isStarred: true },
   });
   const header = screen.getByTestId('dashboard-header-container');
 
   await userEvent.click(within(header).getByRole('img', { name: 'starred' }));
-  expect(saveFaveStar).toHaveBeenCalledTimes(1);
-  expect(saveFaveStar).toHaveBeenCalledWith(
-    initialState.dashboardInfo.id,
-    true,
-  );
+  expect(mockToggleFavorite).toHaveBeenCalledTimes(1);
+  expect(mockToggleFavorite).toHaveBeenCalledWith(true);
 });
 
 test('should toggle the edit mode', async () => {
@@ -700,7 +680,7 @@ test('should toggle the edit mode', async () => {
   expect(logEvent).toHaveBeenCalled();
 });
 
-test('should NOT render the Edit dashboard button when embedded', () => {
+test('should NOT render the Edit dashboard button when embedded', async () => {
   // Embedded (Embedded SDK) dashboards authenticate with a guest token and so
   // have no userId. The Edit button must be hidden even with edit permission,
   // since the embedded context cannot handle entering/exiting edit mode.
@@ -715,7 +695,7 @@ test('should NOT render the Edit dashboard button when embedded', () => {
   expect(screen.queryByTestId('edit-dashboard-button')).not.toBeInTheDocument();
 });
 
-test('should render the dropdown icon', () => {
+test('should render the dropdown icon', async () => {
   setup();
   expect(screen.getByRole('img', { name: 'ellipsis' })).toBeInTheDocument();
 });
@@ -808,7 +788,7 @@ test('resume clears tab pause flag', async () => {
   expect(setPausedByTab).toHaveBeenCalledWith(false);
 });
 
-test('should render an extension component if one is supplied', () => {
+test('should render an extension component if one is supplied', async () => {
   const extensionsRegistry = getExtensionsRegistry();
   extensionsRegistry.set('dashboard.nav.right', () => (
     <>dashboard.nav.right extension component</>
@@ -821,7 +801,7 @@ test('should render an extension component if one is supplied', () => {
   ).toBeInTheDocument();
 });
 
-test('should NOT render MetadataBar when in edit mode', () => {
+test('should NOT render MetadataBar when in edit mode', async () => {
   const state = {
     ...editableState,
     dashboardInfo: {
@@ -835,7 +815,7 @@ test('should NOT render MetadataBar when in edit mode', () => {
   ).not.toBeInTheDocument();
 });
 
-test('should NOT render MetadataBar when embedded', () => {
+test('should NOT render MetadataBar when embedded', async () => {
   const state = {
     dashboardInfo: {
       ...initialState.dashboardInfo,
@@ -848,7 +828,7 @@ test('should NOT render MetadataBar when embedded', () => {
   ).not.toBeInTheDocument();
 });
 
-test('should hide edit button and navbar, and show Exit fullscreen when in fullscreen mode', () => {
+test('should hide edit button and navbar, and show Exit fullscreen when in fullscreen mode', async () => {
   const fullscreenState = {
     ...initialState,
     dashboardState: {
@@ -878,7 +858,7 @@ test('should have fullscreen option in dropdown', async () => {
   expect(screen.queryByText('Enter fullscreen')).not.toBeInTheDocument();
 });
 
-test('should render MetadataBar when not in edit mode and not embedded', () => {
+test('should render MetadataBar when not in edit mode and not embedded', async () => {
   const state = {
     dashboardInfo: {
       ...initialState.dashboardInfo,
@@ -980,34 +960,6 @@ test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
 });
 
 test('should clear history and unsaved changes when entering edit mode', async () => {
-  const clearDashboardHistory = jest.fn();
-
-  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
-    addSuccessToast,
-    addDangerToast,
-    addWarningToast,
-    onUndo,
-    onRedo,
-    setEditMode,
-    setUnsavedChanges,
-    fetchFaveStar,
-    saveFaveStar,
-    savePublished,
-    fetchCharts,
-    updateDashboardTitle,
-    updateCss,
-    onChange,
-    onSave,
-    setMaxUndoHistoryExceeded,
-    maxUndoHistoryToast,
-    logEvent,
-    setRefreshFrequency,
-    onRefresh,
-    dashboardInfoChanged,
-    dashboardTitleChanged,
-    clearDashboardHistory,
-  }));
-
   const canEditState = {
     dashboardInfo: {
       ...initialState.dashboardInfo,
@@ -1016,26 +968,41 @@ test('should clear history and unsaved changes when entering edit mode', async (
   };
 
   setup(canEditState);
+  useDashboardStateStore.setState({ hasUnsavedChanges: true });
+
+  // Seed zundo history so we can prove entering edit mode clears it.
+  createLayoutHistory();
+  expect(
+    useDashboardLayoutStore.temporal.getState().pastStates.length,
+  ).toBeGreaterThan(0);
 
   const editButton = screen.getByText('Edit dashboard');
   await userEvent.click(editButton);
 
-  expect(clearDashboardHistory).toHaveBeenCalledTimes(1);
-  expect(setUnsavedChanges).toHaveBeenCalledWith(false);
+  expect(useDashboardLayoutStore.temporal.getState().pastStates).toHaveLength(
+    0,
+  );
+  expect(useDashboardStateStore.getState().hasUnsavedChanges).toBe(false);
 });
 
 test('should mark theme change as unsaved when in edit mode', async () => {
+  useDashboardStateStore.setState({ editMode: true });
+  const dashboardInfo = {
+    ...editableState.dashboardInfo,
+    theme: 'LIGHT',
+  };
   const testStore = createStore(
     {
       ...initialState,
       ...editableState,
-      dashboardInfo: {
-        ...editableState.dashboardInfo,
-        theme: 'LIGHT',
-      },
+      dashboardInfo,
     },
     reducerIndex,
   );
+  useDashboardInfoStore.setState({
+    dashboardInfo: dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState({ hasUnsavedChanges: false });
 
   render(
     <div className="dashboard">
@@ -1048,21 +1015,24 @@ test('should mark theme change as unsaved when in edit mode', async () => {
     },
   );
 
-  expect(setUnsavedChanges).not.toHaveBeenCalledWith(true);
+  expect(useDashboardStateStore.getState().hasUnsavedChanges).toBe(false);
 
-  testStore.dispatch({
-    type: 'DASHBOARD_INFO_UPDATED',
-    newInfo: {
-      theme: 'DARK',
-    },
+  act(() => {
+    useDashboardInfoStore.setState({
+      dashboardInfo: {
+        ...dashboardInfo,
+        theme: 'DARK',
+      } as unknown as DashboardInfo,
+    });
   });
 
   await waitFor(() => {
-    expect(setUnsavedChanges).toHaveBeenCalledWith(true);
+    expect(useDashboardStateStore.getState().hasUnsavedChanges).toBe(true);
   });
 });
 
-test('should not mark initial theme as unsaved change', () => {
+test('should not mark initial theme as unsaved change', async () => {
+  useDashboardStateStore.setState({ hasUnsavedChanges: false });
   setup({
     ...editableState,
     dashboardInfo: {
@@ -1071,20 +1041,25 @@ test('should not mark initial theme as unsaved change', () => {
     },
   });
 
-  expect(setUnsavedChanges).not.toHaveBeenCalledWith(true);
+  expect(useDashboardStateStore.getState().hasUnsavedChanges).toBe(false);
 });
 
 test('should sync theme ref when navigating between dashboards', async () => {
+  const dashboardInfo = {
+    ...initialState.dashboardInfo,
+    theme: 'LIGHT',
+  };
   const testStore = createStore(
     {
       ...initialState,
-      dashboardInfo: {
-        ...initialState.dashboardInfo,
-        theme: 'LIGHT',
-      },
+      dashboardInfo,
     },
     reducerIndex,
   );
+  useDashboardInfoStore.setState({
+    dashboardInfo: dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState({ hasUnsavedChanges: false });
 
   render(
     <div className="dashboard">
@@ -1097,16 +1072,19 @@ test('should sync theme ref when navigating between dashboards', async () => {
     },
   );
 
-  testStore.dispatch({
-    type: 'DASHBOARD_INFO_UPDATED',
-    newInfo: {
+  // Navigating to another dashboard updates the dashboardInfo Zustand store
+  // (the real mechanism post-migration), which should sync the theme ref
+  // without marking unsaved changes.
+  useDashboardInfoStore.setState({
+    dashboardInfo: {
+      ...dashboardInfo,
       id: 2,
       theme: 'DARK',
-    },
+    } as unknown as DashboardInfo,
   });
 
   await waitFor(() => {
-    expect(setUnsavedChanges).toHaveBeenCalledTimes(0);
+    expect(useDashboardStateStore.getState().hasUnsavedChanges).toBe(false);
   });
 });
 
@@ -1159,7 +1137,7 @@ test('should not duplicate subdirectory prefix when entering fullscreen', async 
   );
 });
 
-test('share URL should use browser-absolute pathname to preserve subdirectory prefix', () => {
+test('share URL should use browser-absolute pathname to preserve subdirectory prefix', async () => {
   const { useLocation } = jest.requireMock('react-router-dom');
   // Router returns path without the subdirectory prefix
   useLocation.mockReturnValue({

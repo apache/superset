@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 14:03-0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -3299,6 +3299,13 @@ msgstr ""
 msgid "Chart width"
 msgstr ""
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr ""
 
@@ -5485,6 +5492,9 @@ msgstr ""
 msgid "Discard"
 msgstr ""
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr ""
 
@@ -6757,6 +6767,9 @@ msgstr ""
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -6822,6 +6835,9 @@ msgid "Failed to save cross-filter scoping"
 msgstr ""
 
 msgid "Failed to save cross-filters setting"
+msgstr ""
+
+msgid "Failed to save filter changes"
 msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
@@ -13088,9 +13104,6 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr ""
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr ""
-
 msgid "Sorry, An error occurred"
 msgstr ""
 
@@ -13104,6 +13117,9 @@ msgid "Sorry, something went wrong. Embedding could not be deactivated."
 msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
+msgstr ""
+
+msgid "Sorry, something went wrong. The changes could not be saved."
 msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
@@ -14434,6 +14450,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr ""
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -17556,6 +17579,9 @@ msgid ""
 "button or"
 msgstr ""
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 #, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
@@ -17598,7 +17624,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

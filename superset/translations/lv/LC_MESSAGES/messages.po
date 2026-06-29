@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 14:03-0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -3645,6 +3645,13 @@ msgstr "Diagramma tika saglabāta, bet to nevarēja pievienot izvēlētajai ciln
 msgid "Chart width"
 msgstr "Diagrammas platums"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Diagrammas"
 
@@ -6020,6 +6027,9 @@ msgstr "Atspējo iedziļināšanās detaļās funkciju šai datubāzei."
 msgid "Discard"
 msgstr "Atmest"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Attēlojamais nosaukums"
 
@@ -7365,6 +7375,9 @@ msgstr "Neizdevās ielādēt diagrammas datus."
 msgid "Failed to load columns for %s %s"
 msgstr "Neizdevās ielādēt datu kopas %s kolonnas"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7432,6 +7445,9 @@ msgstr "Neizdevās saglabāt krusteniskā filtra tvērumu"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Neizdevās saglabāt krustfiltru iestatījumus"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Neizdevās iestatīt vietējo motīvu: nederīga JSON konfigurācija"
@@ -14176,9 +14192,6 @@ msgstr "Kaut kas nogāja greizi."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Diemžēl, ielādējot datubāzes informāciju, radās kļūda: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Diemžēl, ielādējot saglabātās diagrammas, radās kļūda: "
-
 msgid "Sorry, An error occurred"
 msgstr "Diemžēl, radās kļūda"
 
@@ -14193,6 +14206,9 @@ msgstr "Diemžēl, kaut kas nogāja greizi. Iegulšanu nevarēja deaktivizēt."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Diemžēl, kaut kas nogāja greizi. Lūdzu, mēģiniet vēlreiz."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Diemžēl, kaut kas nogāja greizi. Mēģiniet vēlāk."
@@ -15725,6 +15741,13 @@ msgstr ""
 "parametrus."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -19274,6 +19297,9 @@ msgstr ""
 "atjaunināta automātiski. Izpildiet vaicājumu, noklikšķinot uz pogas "
 "\"Atjaunināt diagrammu\" vai"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -19322,7 +19348,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
