@@ -1688,14 +1688,26 @@ describe('async actions', () => {
           {
             ...query,
             id: 'previewOne',
-            sqlEditorId: oldQueryEditor.id,
-            inLocalStorage: true,
+            sqlEditorId: null,
+            isDataPreview: true,
           },
           {
             ...query,
             id: 'previewTwo',
+            sqlEditorId: null,
+            isDataPreview: true,
+          },
+          {
+            ...query,
+            id: 'runningQuery',
             sqlEditorId: oldQueryEditor.id,
-            inLocalStorage: true,
+            state: 'running',
+          },
+          {
+            ...query,
+            id: 'unrelatedQuery',
+            sqlEditorId: 'other-editor',
+            state: 'running',
           },
         ];
         const store = mockStore({
@@ -1730,12 +1742,7 @@ describe('async actions', () => {
           },
           {
             type: actions.MIGRATE_QUERY,
-            queryId: 'previewOne',
-            queryEditorId: '1',
-          },
-          {
-            type: actions.MIGRATE_QUERY,
-            queryId: 'previewTwo',
+            queryId: 'runningQuery',
             queryEditorId: '1',
           },
         ];
@@ -1743,7 +1750,7 @@ describe('async actions', () => {
           .dispatch(actions.syncQueryEditor(oldQueryEditor))
           .then(() => {
             expect(store.getActions()).toEqual(expectedActions);
-            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(3);
+            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(2);
 
             // query editor has 2 tables loaded in the schema viewer
             expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(2);
