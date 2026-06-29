@@ -18,7 +18,7 @@
  */
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
-import { isPlainObject } from 'lodash';
+import { isPlainObject } from 'lodash-es';
 import { Languages } from 'src/features/home/LanguagePicker';
 import {
   AnyThemeConfig,

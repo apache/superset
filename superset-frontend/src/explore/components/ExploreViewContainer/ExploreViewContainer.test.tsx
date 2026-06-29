@@ -104,9 +104,9 @@ jest.mock(
   }),
 );
 
-jest.mock('lodash/debounce', () => ({
-  __esModule: true,
-  default: (fuc: Function) => fuc,
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fuc: Function) => fuc,
 }));
 
 fetchMock.post('glob:*/api/v1/explore/form_data*', { key: KEY });
