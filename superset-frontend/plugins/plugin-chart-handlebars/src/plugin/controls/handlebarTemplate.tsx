@@ -61,7 +61,8 @@ const HandlebarsTemplateControl = (
     { key: 'stringify', descKey: 'Converts an object to a JSON string.' },
     {
       key: 'formatNumber',
-      descKey: 'Formats a number using locale-specific formatting.',
+      descKey:
+        'Formats a number using a Superset d3 format or locale. Example: {{formatNumber value format=",.2f"}}.',
     },
     {
       key: 'parseJson',

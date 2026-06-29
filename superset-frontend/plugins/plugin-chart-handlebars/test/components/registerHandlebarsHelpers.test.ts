@@ -49,6 +49,16 @@ describe('registerHandlebarsHelpers', () => {
     expect(template({ missingKey: undefined })).toBe('');
   });
 
+  test('formatNumber helper applies d3 number formats', () => {
+    const template = Handlebars.compile('{{formatNumber value format=",.2f"}}');
+    expect(template({ value: 1234567.891 })).toBe('1,234,567.89');
+  });
+
+  test('formatNumber helper formats integers with comma grouping', () => {
+    const template = Handlebars.compile('{{formatNumber value format=",d"}}');
+    expect(template({ value: 1234567 })).toBe('1,234,567');
+  });
+
   test('tn helper returns a string for pluralized keys', () => {
     const { configure } = jest.requireActual(
       '@apache-superset/core/translation',

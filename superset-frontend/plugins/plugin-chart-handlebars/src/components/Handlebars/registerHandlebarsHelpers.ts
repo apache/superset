@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t, tn } from '@apache-superset/core/translation';
+import { getNumberFormatter } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import Handlebars, { HelperOptions } from 'handlebars';
 import { isPlainObject } from 'lodash';
@@ -61,13 +62,31 @@ export function registerHandlebarsHelpers(): void {
     return isPlainObject(obj) ? JSON.stringify(obj) : String(obj);
   });
 
+  // usage: {{formatNumber value format=",.2f"}} or {{formatNumber value locale="en-US"}}
   Handlebars.registerHelper(
     'formatNumber',
-    function (number: unknown, locale = 'en-US') {
-      if (typeof number !== 'number') {
-        return number;
+    function (number: unknown, block: HelperOptions) {
+      if (number === null || number === undefined || number === '') {
+        return '';
       }
-      return number.toLocaleString(locale);
+
+      const num = typeof number === 'number' ? number : Number(number);
+      if (Number.isNaN(num)) {
+        return String(number);
+      }
+
+      const format = block.hash.format as string | undefined;
+      const locale = block.hash.locale as string | undefined;
+
+      if (format) {
+        return String(getNumberFormatter(format)(num));
+      }
+
+      if (locale) {
+        return num.toLocaleString(locale);
+      }
+
+      return String(getNumberFormatter()(num));
     },
   );
 
