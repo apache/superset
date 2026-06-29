@@ -27,7 +27,7 @@ import pytest
 import rison
 import yaml
 from freezegun import freeze_time
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
