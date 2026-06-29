@@ -47,6 +47,16 @@ const HandlebarsTemplateControl = (
   );
 
   const helperDescriptions = [
+    {
+      key: 't',
+      descKey:
+        'Translates a string using the active Superset language pack. Example: {{t "Conversion Rate"}}.',
+    },
+    {
+      key: 'tn',
+      descKey:
+        'Translates a pluralized string using the active Superset language pack.',
+    },
     { key: 'dateFormat', descKey: 'Formats a date using a specified format.' },
     { key: 'stringify', descKey: 'Converts an object to a JSON string.' },
     {
