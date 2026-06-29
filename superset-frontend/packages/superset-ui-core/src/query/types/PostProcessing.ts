@@ -248,6 +248,18 @@ export type PostProcessingHistogram =
   | _PostProcessingHistogram
   | DefaultPostProcessing;
 
+interface _PostProcessingSelect {
+  operation: 'select';
+  options?: {
+    columns?: string[];
+    exclude?: string[];
+    rename?: Record<string, string>;
+  };
+}
+export type PostProcessingSelect =
+  | _PostProcessingSelect
+  | DefaultPostProcessing;
+
 /**
  * Parameters for chart data postprocessing.
  * See superset/utils/pandas_processing.py.
@@ -267,6 +279,7 @@ export type PostProcessingRule =
   | PostProcessingRename
   | PostProcessingFlatten
   | PostProcessingHistogram
+  | PostProcessingSelect
   | PostProcessingRank;
 
 export function isPostProcessingAggregation(
@@ -357,4 +370,10 @@ export function isPostProcessingHistogram(
   rule?: PostProcessingRule,
 ): rule is PostProcessingHistogram {
   return rule?.operation === 'histogram';
+}
+
+export function isPostProcessingSelect(
+  rule?: PostProcessingRule,
+): rule is PostProcessingSelect {
+  return rule?.operation === 'select';
 }

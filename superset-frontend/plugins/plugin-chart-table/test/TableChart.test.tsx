@@ -473,6 +473,38 @@ describe('plugin-chart-table', () => {
         expect(cells[4]).toHaveTextContent('2.47k');
       });
 
+      test('render columns dropdown when visibleColumnsStorageKey is provided', async () => {
+        const props = transformProps(testData.advanced);
+        const persistTableOwnState = jest.fn();
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...props}
+                visibleColumnsStorageKey="table_col_key"
+                persistTableOwnState={persistTableOwnState}
+                sticky={false}
+              />
+            ),
+          }),
+        );
+
+        // Find Columns dropdown
+        const columnsBtn = screen.getByText('Columns');
+        expect(columnsBtn).toBeInTheDocument();
+
+        // Click to open dropdown
+        fireEvent.click(columnsBtn);
+
+        // Wait for dropdown to render columns
+        const columnItem = await screen.findByText('name');
+        expect(columnItem).toBeInTheDocument();
+
+        // Click on a column to toggle it
+        fireEvent.click(columnItem);
+        expect(persistTableOwnState).toHaveBeenCalled();
+      });
+
       test('render advanced data with currencies', () => {
         render(
           ProviderWrapper({

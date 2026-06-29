@@ -49,6 +49,7 @@ import {
   isPostProcessingRename,
   isPostProcessingFlatten,
   isPostProcessingRank,
+  isPostProcessingSelect,
 } from '@superset-ui/core';
 import { ComparisonType, RollingType, TimeGranularity } from '../../../src';
 
@@ -156,6 +157,13 @@ const SORT_RULE: PostProcessingSort = {
   operation: 'sort',
   options: {
     by: 'foo',
+  },
+};
+
+const SELECT_RULE: PostProcessingSelect = {
+  operation: 'select',
+  options: {
+    columns: ['foo', 'bar'],
   },
 };
 
@@ -273,6 +281,12 @@ test('PostProcessingFlatten type guard', () => {
   expect(isPostProcessingFlatten(FLATTEN_RULE)).toEqual(true);
   expect(isPostProcessingFlatten(AGGREGATE_RULE)).toEqual(false);
   expect(isPostProcessingFlatten(undefined)).toEqual(false);
+});
+
+test('PostProcessingSelect type guard', () => {
+  expect(isPostProcessingSelect(SELECT_RULE)).toEqual(true);
+  expect(isPostProcessingSelect(AGGREGATE_RULE)).toEqual(false);
+  expect(isPostProcessingSelect(undefined)).toEqual(false);
 });
 
 test('PostProcessingRank type guard', () => {
