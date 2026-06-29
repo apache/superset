@@ -108,7 +108,7 @@ dependencies = [
     "simplejson>=4.1.1",
     "slack_sdk>=3.19.0, <4",
     "sqlalchemy>=1.4, <2",
-    "sqlalchemy-utils>=0.38.0, <0.43", # expanding lowerbound to work with pydoris
+    "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
     "sqlglot>=30.8.0, <31",
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
@@ -147,7 +147,7 @@ denodo = ["denodo-sqlalchemy>=2.0.5,<2.1.0"]
 dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
 drill = ["sqlalchemy-drill>=1.1.10, <2"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb>=1.5.2,<2", "duckdb-engine>=0.17.0"]
+duckdb = ["duckdb>=1.5.4,<2", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.4.2"]
 solr = ["sqlalchemy-solr >= 0.2.4.3"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
@@ -206,7 +206,7 @@ spark = [
     "thrift>=0.23.0, <1",
 ]
 tdengine = [
-    "taospy>=2.7.21",
+    "taospy>=2.8.9",
     "taos-ws-py>=0.6.9"
 ]
 teradata = ["teradatasql>=16.20.0.23"]
