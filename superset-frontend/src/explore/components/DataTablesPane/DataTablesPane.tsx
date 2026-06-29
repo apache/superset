@@ -30,6 +30,22 @@ import {
 import { SamplesPane, useResultsPane } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
 
+/**
+ * A mixed chart can be reconfigured to return fewer result panes than before
+ * (e.g. dropping a query), which removes the corresponding results tab. If the
+ * selected tab was one of those, the active key goes stale and the data panel
+ * renders blank until the user reselects a valid tab. Returns the first
+ * results tab to fall back to in that case, otherwise undefined.
+ */
+export const getStaleResultsTabFallback = (
+  activeTabKey: string,
+  resultsTabKeys: string[],
+): string | undefined =>
+  activeTabKey.startsWith(ResultTypes.Results) &&
+  !resultsTabKeys.includes(activeTabKey)
+    ? ResultTypes.Results
+    : undefined;
+
 const StyledDiv = styled.div`
   ${() => `
     display: flex;
@@ -201,21 +217,16 @@ export const DataTablesPane = ({
     };
   });
 
+  const resultsTabFallback = getStaleResultsTabFallback(
+    activeTabKey,
+    queryResultsPanes.map(({ key }) => key),
+  );
+
   useEffect(() => {
-    // A mixed chart can be reconfigured to return fewer result panes than
-    // before (e.g. dropping a query). If the selected results tab no longer
-    // exists, fall back to the first results tab so the data panel never
-    // renders blank with a stale active key.
-    if (
-      activeTabKey.startsWith(ResultTypes.Results) &&
-      !queryResultsPanes.some(({ key }) => key === activeTabKey)
-    ) {
-      setActiveTabKey(ResultTypes.Results);
+    if (resultsTabFallback) {
+      setActiveTabKey(resultsTabFallback);
     }
-    // queryResultsPanes is rebuilt every render; its length is the only input
-    // that can invalidate the active results key.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTabKey, queryResultsPanes.length]);
+  }, [resultsTabFallback]);
 
   const tabItems = [
     ...queryResultsPanes,
