@@ -29,6 +29,9 @@ import {
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
+import { exportDashboardAsExample } from 'src/dashboard/queries';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import { useExcelExportStorageConfigured } from 'src/dashboard/stores';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import downloadAsImage from 'src/utils/downloadAsImage';
@@ -104,12 +107,8 @@ export const useDownloadMenuItems = (
     },
     [],
   );
-  const dataMask = useSelector((state: RootState) => state.dataMask);
-  const isExcelExportStorageConfigured = useSelector(
-    (state: RootState) =>
-      state.dashboardInfo?.common?.conf?.EXCEL_EXPORT_STORAGE_CONFIGURED !==
-      false,
-  );
+  const dataMask = useDataMaskStore(state => state.dataMask);
+  const isExcelExportStorageConfigured = useExcelExportStorageConfigured();
   // Disable both Excel actions while either export is running.
   const [exportingXlsx, setExportingXlsx] = useState<'data' | 'images' | null>(
     null,
@@ -178,13 +177,7 @@ export const useDownloadMenuItems = (
 
   const onExportAsExample = async () => {
     try {
-      const response = await SupersetClient.get({
-        endpoint: `/api/v1/dashboard/${dashboardId}/export_as_example/`,
-        headers: {
-          Accept: 'application/zip',
-        },
-        parseMethod: 'raw',
-      });
+      const response = await exportDashboardAsExample(dashboardId);
 
       const blob = await response.blob();
       downloadBlob(

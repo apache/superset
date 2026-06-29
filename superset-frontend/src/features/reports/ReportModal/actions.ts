@@ -28,7 +28,8 @@ import { isEmpty } from 'lodash-es';
 import { Dispatch, AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import { ReportObject, ReportCreationMethod } from 'src/features/reports/types';
-import { DashboardInfo, ChartsState } from 'src/dashboard/types';
+import { ChartsState } from 'src/dashboard/types';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ExplorePageState } from 'src/explore/types';
 
@@ -42,9 +43,9 @@ interface ReportApiJsonResponse {
   id: number;
 }
 
+// dashboardInfo lives in Zustand (read via useDashboardInfoStore), not Redux.
 interface ReportRootState {
   user: UserWithPermissionsAndRoles;
-  dashboardInfo: DashboardInfo;
   charts: ChartsState;
   explore: ExplorePageState['explore'] & {
     user?: UserWithPermissionsAndRoles;
@@ -129,7 +130,8 @@ const structureFetchAction = (
   getState: () => ReportRootState,
 ) => {
   const state = getState();
-  const { user, dashboardInfo, charts, explore } = state;
+  const { user, charts, explore } = state;
+  const { dashboardInfo } = useDashboardInfoStore.getState();
   if (!isEmpty(dashboardInfo)) {
     dispatch(
       fetchUISpecificReport({

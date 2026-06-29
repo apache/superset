@@ -50,6 +50,10 @@ type Props = {
   minWidth?: number;
   maxWidth?: number;
   children: (width: number) => ReactNode;
+  // Notified with the new width when the user finishes a resize. A drag
+  // re-renders only this component, so a parent that needs the width (e.g. to
+  // offset a sticky header) must be told explicitly rather than inferring it.
+  onWidthChange?: (width: number) => void;
 };
 
 const ResizableSidebar: FC<Props> = ({
@@ -59,6 +63,7 @@ const ResizableSidebar: FC<Props> = ({
   maxWidth,
   enable,
   children,
+  onWidthChange,
 }) => {
   const [width, setWidth] = useStoredSidebarWidth(id, initialWidth);
 
@@ -76,7 +81,11 @@ const ResizableSidebar: FC<Props> = ({
           size={{ width, height: '100%' }}
           minWidth={minWidth}
           maxWidth={maxWidth}
-          onResizeStop={(e, direction, ref, d) => setWidth(width + d.width)}
+          onResizeStop={(e, direction, ref, d) => {
+            const newWidth = width + d.width;
+            setWidth(newWidth);
+            onWidthChange?.(newWidth);
+          }}
         />
       </ResizableWrapper>
       {children(width)}

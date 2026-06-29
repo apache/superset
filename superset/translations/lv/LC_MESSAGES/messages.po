@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 17:53-0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -154,26 +154,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standarts, lai nodrošinātu, ka leksikogrāfiskā secība\n"
-"                      sakrīt ar hronoloģisko secību. Ja\n"
-"                      laika zīmoga formāts neatbilst ISO 8601 standartam,"
-"\n"
-"                      jums būs jādefinē izteiksme un tips, lai\n"
-"                      pārveidotu virkni datumā vai laika zīmogā. Ņemiet "
-"vērā, ka\n"
-"                      pašlaik laika zonas netiek atbalstītas. Ja laiks ir"
-" saglabāts\n"
-"                      epohas formātā, ievadiet `epoch_s` vai `epoch_ms`. "
-"Ja nav norādīts nekāds paraugs\n"
-"                      , mēs izmantojam papildu parametru, lai izmantotu "
-"papildu noklusējumus katram\n"
-"                      datubāzes/kolonnas nosaukuma līmenim."
 
 msgid " to add calculated columns"
 msgstr " lai pievienotu aprēķinātās kolonnas"
@@ -1038,6 +1024,9 @@ msgstr ""
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Sīkāka "
 "informācija: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1052,8 +1041,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Sveču diagramma rāda katra perioda atvēršanas, slēgšanas, augstāko un "
-"zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona "
-"analīzei."
+"zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona"
+" analīzei."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
@@ -1668,6 +1657,9 @@ msgstr "Ietekmētās diagrammas"
 
 msgid "Affected Dashboards"
 msgstr "Ietekmētie infopaneļi"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4682,6 +4674,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nevarēja atrisināt resursdatora nosaukumu: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Nevarēja validēt lietotāju pašreizējā sesijā."
 
@@ -5089,6 +5087,9 @@ msgstr "Informācijas paneli nevarēja atjaunot."
 msgid "Dashboard could not be updated."
 msgstr "Infopaneli nevarēja atjaunināt."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Informācijas panelis neeksistē"
 
@@ -5097,6 +5098,9 @@ msgstr "Informācijas panelis veiksmīgi eksportēts kā piemērs"
 
 msgid "Dashboard exported successfully"
 msgstr "Informācijas panelis veiksmīgi eksportēts"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Infopanelis importēts"
@@ -5718,6 +5722,11 @@ msgstr "Dzēst grupu"
 msgid "Delete item"
 msgstr "Dzēst objektu"
 
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
+
 msgid "Delete permanently"
 msgstr ""
 
@@ -6061,6 +6070,9 @@ msgstr "Atspējo iedziļināšanās detaļās funkciju šai datubāzei."
 
 msgid "Discard"
 msgstr "Atmest"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Attēlojamais nosaukums"
@@ -7073,9 +7085,6 @@ msgstr "Excel eksports"
 msgid "Excel XML Export"
 msgstr "Excel XML eksports"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Nevar noteikt Excel faila formātu"
 
@@ -7243,6 +7252,11 @@ msgstr "Eksportēt uz oriģinālo .CSV"
 msgid "Export to pivoted .CSV"
 msgstr "Eksportēt uz šķērsgriezuma .CSV"
 
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
+
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -7407,6 +7421,9 @@ msgstr "Neizdevās ielādēt diagrammas datus."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7474,6 +7491,9 @@ msgstr "Neizdevās saglabāt krusteniskā filtra tvērumu"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Neizdevās saglabāt krustfiltru iestatījumus"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Neizdevās iestatīt vietējo motīvu: nederīga JSON konfigurācija"
@@ -10455,6 +10475,11 @@ msgstr "Neviens -> Bulta"
 msgid "None -> None"
 msgstr "Neviens -> Neviens"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normāls"
 
@@ -10478,6 +10503,15 @@ msgstr "Nav vienāds"
 
 msgid "Not Time Series"
 msgstr "Nav laika sērija"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Nav derīgs ZIP fails"
@@ -11010,8 +11044,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Pārklājajiet slēgšanas cenas vienkāršos slīdošos vidējos (MA5, MA10, MA15, "
-"...). Ierakstiet pielāgotu periodu, lai to pievienotu."
+"Pārklājajiet slēgšanas cenas vienkāršos slīdošos vidējos (MA5, MA10, "
+"MA15, ...). Ierakstiet pielāgotu periodu, lai to pievienotu."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11595,6 +11629,12 @@ msgstr "Prefikss vai piedēklis"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -12900,6 +12940,9 @@ msgstr "Shēma"
 
 msgid "Schema cache timeout"
 msgstr "Shēmas kešatmiņas noilgums"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Shēmas, kurās atļauta failu augšupielāde"
@@ -14281,9 +14324,6 @@ msgstr "Kaut kas nogāja greizi."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Diemžēl, ielādējot datubāzes informāciju, radās kļūda: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Diemžēl, ielādējot saglabātās diagrammas, radās kļūda: "
-
 msgid "Sorry, An error occurred"
 msgstr "Diemžēl, radās kļūda"
 
@@ -14298,6 +14338,9 @@ msgstr "Diemžēl, kaut kas nogāja greizi. Iegulšanu nevarēja deaktivizēt."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Diemžēl, kaut kas nogāja greizi. Lūdzu, mēģiniet vēlreiz."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Diemžēl, kaut kas nogāja greizi. Mēģiniet vēlāk."
@@ -15486,6 +15529,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -15960,6 +16009,10 @@ msgstr ""
 "derīga shēma."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16019,6 +16072,10 @@ msgid ""
 msgstr ""
 "Tabula \"%(table)s\" nepastāv. Lai izpildītu šo vaicājumu, jāizmanto "
 "derīga tabula."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16483,6 +16540,12 @@ msgstr "Priekšskatot atlasīto vaicājumu, radās problēma. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16503,6 +16566,12 @@ msgstr "Šīs ir datu kopas, kurām šis filtrs tiks piemērots."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -16519,6 +16588,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -16644,6 +16718,12 @@ msgstr ""
 "                  skata jāpārsūta uz diagrammu, kas satur anotāciju datus."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -17474,6 +17554,9 @@ msgstr "Otrdiena"
 
 msgid "Tukey"
 msgstr "Tūkija"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tips"
@@ -18487,6 +18570,10 @@ msgstr ""
 "%(location)s."
 
 #, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+#, python-format
 msgid "We have the following keys: %s"
 msgstr "Mums ir šādas atslēgas: %s"
 
@@ -19395,6 +19482,9 @@ msgstr ""
 "atjaunināta automātiski. Izpildiet vaicājumu, noklikšķinot uz pogas "
 "\"Atjaunināt diagrammu\" vai"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -19699,6 +19789,13 @@ msgstr "pogu (cmd + z), kamēr saglabāsiet izmaiņas."
 
 msgid "by using"
 msgstr "izmantojot"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "cannot be empty"
 msgstr "nevar būt tukšs"
