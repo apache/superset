@@ -642,7 +642,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.superset_app.sync_config_to_db()
 
         self.init_views()
-
+        self.configure_openapi_prefix()
         self.init_all_dependencies_and_extensions()
 
     @staticmethod
@@ -967,6 +967,25 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.indexview = SupersetIndexView
         appbuilder.security_manager_class = custom_sm
         appbuilder.init_app(self.superset_app, db.session)
+
+    def configure_openapi_prefix(self) -> None:
+        """Ensure OpenAPI/Swagger endpoints respect SUPERSET_APP_ROOT prefix routing.
+        
+        Fixes: https://github.com/apache/superset/issues/33304
+        Must be called after init_views() so blueprints are already registered.
+        """
+        import os
+        
+        app_root = (
+            self.superset_app.config.get("APPLICATION_ROOT")
+            or os.environ.get("SUPERSET_APP_ROOT")
+        )
+        
+        if app_root and app_root.strip("/"):
+            prefix = f"/{app_root.strip('/')}"
+            for rule in self.superset_app.url_map.iter_rules():
+                if "openapi" in rule.endpoint and not rule.rule.startswith(prefix):
+                    rule.rule = f"{prefix}{rule.rule}"
 
     def configure_url_map_converters(self) -> None:
         #
