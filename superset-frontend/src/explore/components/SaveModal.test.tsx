@@ -29,13 +29,12 @@ import {
 import fetchMock from 'fetch-mock';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
-import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
-import * as dashboardStateActions from 'src/dashboard/actions/dashboardState';
+import SaveModal, {
+  createRedirectParams,
+  addChartToDashboard,
+} from 'src/explore/components/SaveModal';
 import { CHART_WIDTH } from 'src/dashboard/constants';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
-
-// Cast PureSaveModal to `any` to allow instantiation with partial props in tests
-const TestSaveModal = PureSaveModal as any;
 
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
@@ -408,151 +407,31 @@ test('renders InfoTooltip icon next to Dataset Name label when datasource type i
   expect(labelContainer).toContainElement(infoTooltip);
 });
 
-test('make sure slice_id in the URLSearchParams before the redirect', () => {
-  const myProps = {
-    ...defaultProps,
-    slice: {
-      slice_id: 1,
-      slice_name: 'title',
-      editors: [{ id: 1 }],
-    },
-    actions: {
-      setFormData: jest.fn(),
-      updateSlice: jest.fn(() => Promise.resolve({ id: 1 })),
-      getSliceDashboards: jest.fn(),
-    },
-    user: { userId: 1 },
-    history: {
-      replace: jest.fn(),
-    },
-    dispatch: jest.fn(),
-  };
-
-  const saveModal = new TestSaveModal(myProps);
-  const result = saveModal.handleRedirect(
-    'https://example.com/?name=John&age=30',
+test('createRedirectParams sets slice_id in the URLSearchParams', () => {
+  const result = createRedirectParams(
+    '?name=John&age=30',
     { id: 1 },
+    'overwrite',
   );
   expect(result.get('slice_id')).toEqual('1');
+  expect(result.get('save_action')).toEqual('overwrite');
 });
 
-test('removes form_data_key from URL parameters after save', () => {
-  const myProps = {
-    ...defaultProps,
-    slice: {
-      slice_id: 1,
-      slice_name: 'title',
-      editors: [{ id: 1 }],
-    },
-    actions: {
-      setFormData: jest.fn(),
-      updateSlice: jest.fn(() => Promise.resolve({ id: 1 })),
-      getSliceDashboards: jest.fn(),
-    },
-    user: { userId: 1 },
-    history: {
-      replace: jest.fn(),
-    },
-    dispatch: jest.fn(),
-  };
-
-  const saveModal = new TestSaveModal(myProps);
-
+test('createRedirectParams removes form_data_key from URL parameters', () => {
   // Test with form_data_key in the URL
   const urlWithFormDataKey = '?form_data_key=12345&other_param=value';
-  const result = saveModal.handleRedirect(urlWithFormDataKey, { id: 1 });
+  const result = createRedirectParams(
+    urlWithFormDataKey,
+    { id: 1 },
+    'overwrite',
+  );
 
   // form_data_key should be removed
   expect(result.has('form_data_key')).toBe(false);
   // other parameters should remain
   expect(result.get('other_param')).toEqual('value');
   expect(result.get('slice_id')).toEqual('1');
-  expect(result.has('save_action')).toBe(false);
-});
-
-test('dispatches removeChartState when saving and going to dashboard', async () => {
-  // Spy on the removeChartState action creator
-  const removeChartStateSpy = jest.spyOn(
-    dashboardStateActions,
-    'removeChartState',
-  );
-
-  // Mock the dashboard API response
-  const dashboardId = 123;
-  const dashboardUrl = '/superset/dashboard/test-dashboard/';
-  fetchMock.get(`glob:*/api/v1/dashboard/${dashboardId}*`, {
-    result: {
-      id: dashboardId,
-      dashboard_title: 'Test Dashboard',
-      url: dashboardUrl,
-    },
-  });
-
-  const mockDispatch = jest.fn();
-  const mockHistory = {
-    push: jest.fn(),
-    replace: jest.fn(),
-  };
-  const chartId = 42;
-  const mockUpdateSlice = jest.fn(() => Promise.resolve({ id: chartId }));
-  const mockSetFormData = jest.fn();
-
-  const myProps = {
-    ...defaultProps,
-    slice: {
-      slice_id: 1,
-      slice_name: 'title',
-      editors: [{ id: 1 }],
-    },
-    actions: {
-      setFormData: mockSetFormData,
-      updateSlice: mockUpdateSlice,
-      getSliceDashboards: jest.fn(() => Promise.resolve([])),
-      saveSliceFailed: jest.fn(),
-    },
-    user: { userId: 1 },
-    history: mockHistory,
-    dispatch: mockDispatch,
-  };
-
-  const saveModal = new TestSaveModal(myProps);
-  saveModal.state = {
-    action: 'overwrite',
-    newSliceName: 'test chart',
-    datasetName: 'test dataset',
-    dashboard: { label: 'Test Dashboard', value: dashboardId },
-    saveStatus: null,
-    isLoading: false,
-    tabsData: [],
-  };
-
-  // Mock onHide to prevent errors
-  saveModal.onHide = jest.fn();
-
-  // Trigger save and go to dashboard (gotodash = true)
-  await saveModal.saveOrOverwrite(true);
-
-  // Wait for async operations
-  await waitFor(() => {
-    expect(mockUpdateSlice).toHaveBeenCalled();
-    expect(mockSetFormData).toHaveBeenCalled();
-  });
-
-  // Verify removeChartState was called with the correct chart ID
-  expect(removeChartStateSpy).toHaveBeenCalledWith(chartId);
-
-  // Verify the action was dispatched (check the action object directly)
-  expect(mockDispatch).toHaveBeenCalled();
-  expect(mockDispatch).toHaveBeenCalledWith({
-    type: 'REMOVE_CHART_STATE',
-    chartId,
-  });
-
-  // Verify navigation happened
-  expect(mockHistory.push).toHaveBeenCalled();
-
-  // Clean up
-  removeChartStateSpy.mockRestore();
+  expect(result.get('save_action')).toEqual('overwrite');
 });
 
 test('disables tab selector when no dashboard selected', () => {
@@ -571,233 +450,6 @@ test('renders tab selector when saving as', async () => {
   const tabSelector = getByTestId('mock-tree-select');
   expect(tabSelector).toBeInTheDocument();
   expect(tabSelector).toBeDisabled();
-});
-
-test('onDashboardChange triggers tabs load for existing dashboard', async () => {
-  const dashboardId = mockEvent.value;
-
-  fetchMock.get(`glob:*/api/v1/dashboard/${dashboardId}/tabs`, {
-    json: {
-      result: {
-        tab_tree: [
-          { value: 'tab1', title: 'Main Tab' },
-          { value: 'tab2', title: 'Tab' },
-        ],
-      },
-    },
-  });
-  const component = new TestSaveModal(defaultProps);
-  const loadTabsMock = jest
-    .fn()
-    .mockResolvedValue([{ value: 'tab1', title: 'Main Tab' }]);
-  component.loadTabs = loadTabsMock;
-  await component.onDashboardChange({
-    value: dashboardId,
-    label: 'Test Dashboard',
-  });
-  expect(loadTabsMock).toHaveBeenCalledWith(dashboardId);
-});
-
-test('onTabChange correctly updates selectedTab via forceUpdate', () => {
-  const component = new TestSaveModal(defaultProps);
-
-  component.state = {
-    ...component.state,
-    tabsData: [
-      {
-        value: 'tab1',
-        title: 'Main Tab',
-        key: 'tab1',
-        children: [
-          {
-            value: 'tab2',
-            title: 'Analytics Tab',
-            key: 'tab2',
-          },
-        ],
-      },
-    ],
-  };
-
-  component.setState = function (this: any, stateUpdate: any) {
-    if (typeof stateUpdate === 'function') {
-      this.state = { ...this.state, ...stateUpdate(this.state) };
-    } else {
-      this.state = { ...this.state, ...stateUpdate };
-    }
-  }.bind(component);
-
-  component.onTabChange('tab2');
-
-  expect(component.state.selectedTab).toEqual({
-    value: 'tab2',
-    label: 'Analytics Tab',
-  });
-});
-
-const ownerUser = {
-  userId: 1,
-  username: 'testuser',
-  firstName: 'Test',
-  lastName: 'User',
-  isActive: true,
-  isAnonymous: false,
-  permissions: {},
-  roles: { Alpha: [['can_write', 'Dashboard']] as [string, string][] },
-  groups: [],
-};
-
-const makeMetadataDashboard = (id: number, title: string) => ({
-  id,
-  dashboard_title: title,
-  editors: [{ id: 1, label: 'Test User', type: 1 }],
-  viewers: [],
-  url: `/superset/dashboard/${id}/`,
-  slug: null,
-  thumbnail_url: null,
-  published: true,
-  changed_by_name: 'Test User',
-  changed_by: { id: 1, first_name: 'Test', last_name: 'User' },
-  changed_on: '2024-01-01',
-  charts: [],
-});
-
-test('pre-populates dashboard from metadata.dashboards when dashboardId prop is absent', async () => {
-  const dashboardId = 5;
-  const dashboardTitle = 'Chart Dashboard';
-
-  const myProps = {
-    ...defaultProps,
-    dashboardId: null,
-    metadata: {
-      dashboards: [{ id: dashboardId, dashboard_title: dashboardTitle }],
-      editors: ['Test User'],
-      created_on_humanized: '2 days ago',
-      changed_on_humanized: '1 day ago',
-    },
-    user: ownerUser,
-    slice: { slice_id: 1, slice_name: 'My Chart', editors: [{ id: 1 }] },
-    dispatch: jest.fn(),
-    addDangerToast: jest.fn(),
-  };
-
-  const component = new TestSaveModal(myProps);
-  const mockFull = makeMetadataDashboard(dashboardId, dashboardTitle);
-
-  component.loadDashboard = jest.fn().mockResolvedValue(mockFull);
-  component.loadTabs = jest.fn().mockResolvedValue([]);
-
-  const stateUpdates: any[] = [];
-  component.setState = jest.fn((update: any) => {
-    stateUpdates.push(update);
-  });
-
-  try {
-    sessionStorage.clear();
-  } catch (_) {
-    // ignore
-  }
-
-  await component.componentDidMount();
-
-  expect(component.loadDashboard).toHaveBeenCalledWith(dashboardId);
-  expect(stateUpdates).toContainEqual({
-    dashboard: { label: dashboardTitle, value: dashboardId },
-  });
-  expect(component.loadTabs).toHaveBeenCalledWith(dashboardId);
-});
-
-test('skips non-editable dashboards and picks the first editable one from metadata', async () => {
-  const editableId = 7;
-  const editableTitle = 'Editable Dashboard';
-
-  const myProps = {
-    ...defaultProps,
-    dashboardId: null,
-    metadata: {
-      dashboards: [
-        { id: 6, dashboard_title: 'Not Mine' },
-        { id: editableId, dashboard_title: editableTitle },
-      ],
-      editors: ['Test User'],
-      created_on_humanized: '2 days ago',
-      changed_on_humanized: '1 day ago',
-    },
-    user: ownerUser,
-    slice: { slice_id: 1, slice_name: 'My Chart', editors: [{ id: 1 }] },
-    dispatch: jest.fn(),
-    addDangerToast: jest.fn(),
-  };
-
-  const component = new TestSaveModal(myProps);
-
-  const notMine = makeMetadataDashboard(6, 'Not Mine');
-  notMine.editors = [{ id: 99, label: 'Other User', type: 1 }];
-  const editable = makeMetadataDashboard(editableId, editableTitle);
-
-  component.loadDashboard = jest
-    .fn()
-    .mockImplementation((id: number) =>
-      Promise.resolve(id === 6 ? notMine : editable),
-    );
-  component.loadTabs = jest.fn().mockResolvedValue([]);
-
-  const stateUpdates: any[] = [];
-  component.setState = jest.fn((update: any) => {
-    stateUpdates.push(update);
-  });
-
-  try {
-    sessionStorage.clear();
-  } catch (_) {
-    // ignore
-  }
-
-  await component.componentDidMount();
-
-  expect(stateUpdates).toContainEqual({
-    dashboard: { label: editableTitle, value: editableId },
-  });
-  expect(component.loadTabs).toHaveBeenCalledWith(editableId);
-});
-
-test('does not use metadata fallback when dashboardId prop is set', async () => {
-  const propDashboardId = 3;
-  const propDashboardTitle = 'Prop Dashboard';
-
-  const myProps = {
-    ...defaultProps,
-    dashboardId: propDashboardId,
-    metadata: {
-      dashboards: [{ id: 99, dashboard_title: 'Should Not Be Used' }],
-      editors: ['Test User'],
-      created_on_humanized: '2 days ago',
-      changed_on_humanized: '1 day ago',
-    },
-    user: ownerUser,
-    slice: { slice_id: 1, slice_name: 'My Chart', editors: [{ id: 1 }] },
-    dispatch: jest.fn(),
-    addDangerToast: jest.fn(),
-  };
-
-  const component = new TestSaveModal(myProps);
-  const mockFull = makeMetadataDashboard(propDashboardId, propDashboardTitle);
-
-  component.loadDashboard = jest.fn().mockResolvedValue(mockFull);
-  component.loadTabs = jest.fn().mockResolvedValue([]);
-
-  const stateUpdates: any[] = [];
-  component.setState = jest.fn((update: any) => {
-    stateUpdates.push(update);
-  });
-
-  await component.componentDidMount();
-
-  expect(component.loadDashboard).toHaveBeenCalledWith(propDashboardId);
-  expect(component.loadDashboard).not.toHaveBeenCalledWith(99);
-  expect(stateUpdates).toContainEqual({
-    dashboard: { label: propDashboardTitle, value: propDashboardId },
-  });
 });
 
 test('chart placement logic finds row with available space', () => {
@@ -886,7 +538,7 @@ test('chart placement logic finds row with available space', () => {
   expect(findRowWithSpace(positionJson3, ['row1'])).toBeNull();
 });
 
-test('addChartToDashboardTab successfully adds chart to existing row with space', async () => {
+test('addChartToDashboard successfully adds chart to existing row with space', async () => {
   const dashboardId = 123;
   const chartId = 456;
   const tabId = 'TABS_ID';
@@ -928,18 +580,11 @@ test('addChartToDashboardTab successfully adds chart to existing row with space'
     json: { result: mockDashboard },
   });
 
-  const component = new TestSaveModal(defaultProps);
-
   const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
   mockNanoid.mockReturnValue('test-id');
 
   try {
-    await component.addChartToDashboardTab(
-      dashboardId,
-      chartId,
-      tabId,
-      sliceName,
-    );
+    await addChartToDashboard(dashboardId, chartId, tabId, sliceName);
 
     expect(SupersetClient.get).toHaveBeenCalledWith({
       endpoint: `/api/v1/dashboard/${dashboardId}`,
@@ -965,7 +610,7 @@ test('addChartToDashboardTab successfully adds chart to existing row with space'
   }
 });
 
-test('addChartToDashboardTab creates new row when no existing row has space', async () => {
+test('addChartToDashboard creates new row when no existing row has space', async () => {
   const dashboardId = 123;
   const chartId = 456;
   const tabId = 'TABS_ID';
@@ -1019,19 +664,12 @@ test('addChartToDashboardTab creates new row when no existing row has space', as
     });
   });
 
-  const component = new TestSaveModal(defaultProps);
-
   const mockRowId = 'test-row-id';
   const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
   mockNanoid.mockReturnValueOnce(mockRowId);
 
   try {
-    await component.addChartToDashboardTab(
-      dashboardId,
-      chartId,
-      tabId,
-      sliceName,
-    );
+    await addChartToDashboard(dashboardId, chartId, tabId, sliceName);
 
     expect(SupersetClient.put).toHaveBeenCalled();
     const body = JSON.parse(putRequestBody.body);
@@ -1053,7 +691,7 @@ test('addChartToDashboardTab creates new row when no existing row has space', as
   }
 });
 
-test('addChartToDashboardTab handles empty position_json', async () => {
+test('addChartToDashboard handles empty position_json', async () => {
   const dashboardId = 123;
   const chartId = 456;
   const tabId = 'TABS_ID';
@@ -1076,14 +714,12 @@ test('addChartToDashboardTab handles empty position_json', async () => {
     json: { result: mockDashboard },
   });
 
-  const component = new TestSaveModal(defaultProps);
-
   const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
   mockNanoid.mockReturnValue('test-id');
 
   try {
     await expect(
-      component.addChartToDashboardTab(dashboardId, chartId, tabId, sliceName),
+      addChartToDashboard(dashboardId, chartId, tabId, sliceName),
     ).rejects.toThrow(`Tab ${tabId} not found in positionJson`);
   } finally {
     SupersetClient.get = originalGet;

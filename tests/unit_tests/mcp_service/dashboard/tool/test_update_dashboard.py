@@ -81,6 +81,7 @@ def _mock_dashboard(
     dashboard.slices = []
     dashboard.editors = []
     dashboard.tags = []
+    dashboard.embedded = []
     return dashboard
 
 

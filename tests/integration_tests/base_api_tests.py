@@ -70,13 +70,8 @@ class TestOpenApiSpec(SupersetTestCase):
         assert set(response.keys()) <= known_keys
 
 
-class ApiOwnersTestCaseMixin:
-    """
-    Implements shared tests for the editors related field endpoint.
-
-    Previously tested the ``/related/owners`` endpoint; updated to use
-    ``/related/editors`` since ``owners`` is now a computed property.
-    """
+class ApiEditorsTestCaseMixin:
+    """Implements shared tests for the editors related field endpoint."""
 
     resource_name: str = ""
 
@@ -186,3 +181,21 @@ class ApiOwnersTestCaseMixin:
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response["count"] > 0
+
+    def test_get_disallowed_related_field_logs_warning(self):
+        """
+        API: Test disallowed related field returns 404 and logs the field.
+        """
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/{self.resource_name}/related/not_allowed"
+
+        with patch("superset.views.base_api.logger") as mock_logger:
+            rv = self.client.get(uri)
+        assert rv.status_code == 404
+        # A disallowed related field is recorded as a security log event,
+        # including the rejected column name, in addition to the 404.
+        mock_logger.warning.assert_called_once()
+        assert "column=not_allowed" in (
+            mock_logger.warning.call_args.args[0]
+            % mock_logger.warning.call_args.args[1:]
+        )

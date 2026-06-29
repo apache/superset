@@ -42,7 +42,7 @@ from superset.utils.core import backend, override_user
 from superset.utils.screenshots import ScreenshotCachePayload
 from superset.utils import json
 
-from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
+from tests.integration_tests.base_api_tests import ApiEditorsTestCaseMixin
 from tests.integration_tests.base_tests import (
     subjects_from_users,
     SupersetTestCase,
@@ -80,7 +80,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 DASHBOARDS_FIXTURE_COUNT = 10
 
 
-class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
+class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
     resource_name = "dashboard"
 
     dashboards: list[Dashboard] = []
@@ -1952,7 +1952,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/"
         rv = self.client.post(uri, json=dashboard_data)
-        # roles is no longer a valid field — rejected as bad request
+        # roles is no longer a valid field; reject as bad request
         assert rv.status_code == 400
 
     def test_create_dashboard_validate_json(self):

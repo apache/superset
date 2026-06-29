@@ -41,7 +41,7 @@ from superset.subjects.types import SubjectType
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema
-from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
+from tests.integration_tests.base_api_tests import ApiEditorsTestCaseMixin
 from tests.integration_tests.base_tests import (
     subjects_from_users,
     SupersetTestCase,
@@ -84,7 +84,7 @@ from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 CHARTS_FIXTURE_COUNT = 10
 
 
-class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
+class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
     resource_name = "chart"
 
     @pytest.fixture(autouse=True)
@@ -649,9 +649,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == {"message": {"datasource_id": ["Datasource does not exist"]}}
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_create_chart_validate_user_is_dashboard_owner(self):
+    def test_create_chart_validate_user_is_dashboard_editor(self):
         """
-        Chart API: Test create validate user is dashboard owner
+        Chart API: Test create validates user is dashboard editor
         """
         dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
         # Must be published so that alpha user has read access to dash
@@ -775,7 +775,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_chart_new_owner_not_admin(self):
+    def test_update_chart_preserves_editors_not_admin(self):
         """
         Chart API: Test update preserves editors when non-admin updates chart
         """
@@ -794,7 +794,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_chart_new_owner_admin(self):
+    def test_update_chart_preserves_editors_admin(self):
         """
         Chart API: Test update as admin preserves editors
         """
@@ -811,7 +811,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("add_dashboard_to_chart")
-    def test_update_chart_preserve_ownership(self):
+    def test_update_chart_preserves_editors(self):
         """
         Chart API: Test update chart preserves editors (if un-changed)
         """
@@ -2290,7 +2290,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("create_chart_with_tag")
     def test_update_chart_add_tags_can_tag_on_chart(self):
         """
-        Validates an owner with can tag on chart permission can
+        Validates an editor with can tag on chart permission can
         add tags while updating a chart
         """
         self.login(ALPHA_USERNAME)
@@ -2324,7 +2324,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("create_chart_with_tag")
     def test_update_chart_remove_tags_can_tag_on_chart(self):
         """
-        Validates an owner with can tag on chart permission can
+        Validates an editor with can tag on chart permission can
         remove tags from a chart
         """
         self.login(ALPHA_USERNAME)
@@ -2354,7 +2354,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("create_chart_with_tag")
     def test_update_chart_add_tags_missing_permission(self):
         """
-        Validates an owner can't add tags to a chart if they don't
+        Validates an editor can't add tags to a chart if they don't
         have permission to it
         """
         self.login(ALPHA_USERNAME)
@@ -2388,7 +2388,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("create_chart_with_tag")
     def test_update_chart_remove_tags_missing_permission(self):
         """
-        Validates an owner can't remove tags from a chart if they don't
+        Validates an editor can't remove tags from a chart if they don't
         have permission to it
         """
         self.login(ALPHA_USERNAME)
@@ -2418,7 +2418,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("create_chart_with_tag")
     def test_update_chart_no_tag_changes(self):
         """
-        Validates an owner without permission to change tags is able to
+        Validates an editor without permission to change tags is able to
         update a chart when tags haven't changed
         """
         self.login(ALPHA_USERNAME)

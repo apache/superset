@@ -2778,7 +2778,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 condition = condition_factory(expr.name, expr)
 
                 # Create CASE expression: condition true -> original, else "Others"
-                case_expr = sa.case([(condition, expr)], else_=sa.literal("Others"))
+                case_expr = sa.case((condition, expr), else_=sa.literal("Others"))
                 case_expr = self.make_sqla_column_compatible(case_expr, expr.name)
                 modified_select_exprs.append(case_expr)
             else:
@@ -2793,7 +2793,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 # Create CASE expression for groupby
                 case_expr = sa.case(
-                    [(condition, gby_expr)],
+                    (condition, gby_expr),
                     else_=sa.literal("Others"),
                 )
                 # Don't apply make_sqla_column_compatible to GROUP BY expressions.
@@ -2962,6 +2962,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # Process template
             tp = self.get_template_processor()
             processed_expression = self._process_expression_template(expression, tp)
+
+            # Apply the same parsing policy used for stored adhoc column and
+            # metric expressions (single statement, no set operations, and no
+            # sub-queries unless ALLOW_ADHOC_SUBQUERY is enabled), so expression
+            # validation follows one policy across the query pipeline. Imported
+            # locally to avoid a circular import with the connectors package.
+            from superset.connectors.sqla.models import validate_stored_expression
+
+            validate_stored_expression(
+                self.database, self.catalog, self.schema or "", processed_expression
+            )
 
             # Build validation query
             tbl, cte = self.get_from_clause(tp)

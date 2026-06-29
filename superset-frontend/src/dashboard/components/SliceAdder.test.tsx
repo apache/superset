@@ -45,17 +45,17 @@ jest.mock('@superset-ui/core', () => ({
   ),
 }));
 
-jest.mock('lodash/debounce', () => {
-  const debounced = (fn: Function) => {
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fn: Function) => {
     const debouncedFn = ((...args: any[]) =>
       fn(...args)) as unknown as Function & {
       cancel: () => void;
     };
     debouncedFn.cancel = () => {};
     return debouncedFn;
-  };
-  return debounced;
-});
+  },
+}));
 
 const mockStore = configureStore({
   reducer: (state = { common: { locale: 'en' } }) => state,

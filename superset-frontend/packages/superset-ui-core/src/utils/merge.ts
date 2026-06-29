@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { mergeWith } from 'lodash';
+import { mergeWith } from 'lodash-es';
 
 /**
  * Merges objects using lodash.mergeWith, but replaces arrays instead of concatenating them.

@@ -223,6 +223,29 @@ class BaseSupersetApiMixin:
             f"{self.__class__.__name__}.{func_name}.{action}"
         )
 
+    def log_rejected_field_access(self, func_name: str, column_name: str) -> None:
+        """Emit a security log event when a related/distinct field is rejected.
+
+        The allowlist check itself blocks the request; this records the attempt
+        in the structured log (alongside the existing statsd counter) so that
+        rejected field access is visible to security monitoring and forensics,
+        with the caller's identity, the endpoint, and the attempted value.
+        """
+        # Sanitize the user-supplied column name to a single, bounded token so
+        # it cannot inject newlines or forge extra key=value tokens in the log
+        # line. Restrict to a safe character set (column names are alphanumeric
+        # plus ``_-.``) and replace anything else with ``?``.
+        sanitized_column = "".join(
+            ch if (ch.isalnum() or ch in "_-.") else "?" for ch in str(column_name)
+        )[:200]
+        logger.warning(
+            "Rejected disallowed field access: user_id=%s endpoint=%s.%s column=%s",
+            get_user_id(),
+            self.__class__.__name__,
+            func_name,
+            sanitized_column,
+        )
+
     def timing_stats(self, action: str, func_name: str, value: float) -> None:
         """
         Proxy function for statsd.incr to impose a key structure for REST API's
@@ -619,6 +642,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             return response
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)
+            self.log_rejected_field_access(self.related.__name__, column_name)
             return self.response_404()
         args = kwargs.get("rison", {})
 
@@ -697,7 +721,8 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
               $ref: '#/components/responses/500'
         """
         if column_name not in self.allowed_distinct_fields:
-            self.incr_stats("error", self.related.__name__)
+            self.incr_stats("error", self.distinct.__name__)
+            self.log_rejected_field_access(self.distinct.__name__, column_name)
             return self.response_404()
         args = kwargs.get("rison", {})
         # handle pagination

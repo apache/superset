@@ -178,7 +178,7 @@ export const hydrateDashboard =
         viz_type: slice.form_data.viz_type,
         datasource: slice.form_data.datasource,
         description: slice.description,
-        description_markeddown: slice.description_markeddown,
+        description_markdown: slice.description_markeddown,
         editors: slice.editors,
         modified: slice.modified,
         changed_on: new Date(slice.changed_on).getTime(),

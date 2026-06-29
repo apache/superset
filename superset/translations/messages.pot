@@ -2422,6 +2422,9 @@ msgstr ""
 msgid "COPY QUERY"
 msgstr ""
 
+msgid "Copy query"
+msgstr ""
+
 msgid "CREATE TABLE AS"
 msgstr ""
 
@@ -5983,6 +5986,9 @@ msgid "FEB"
 msgstr ""
 
 msgid "FIT DATA"
+msgstr ""
+
+msgid "Fit data"
 msgstr ""
 
 msgid "FRI"

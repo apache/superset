@@ -29,7 +29,7 @@ import {
 import { css, styled } from '@apache-superset/core/theme';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
-import { uniqBy } from 'lodash';
+import { uniqBy } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import {
   createErrorHandler,

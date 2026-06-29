@@ -155,14 +155,15 @@ async def get_dashboard_info(
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
-        # Eager load slices (charts), editors, and tags to avoid N+1
-        # queries. Also eager load editors/tags on each slice since the
+        # Eager load slices (charts), editors, tags, and embedded rows to avoid
+        # N+1 queries. Also eager load editors/tags on each slice since the
         # dashboard serializer calls serialize_chart_object for every chart.
         eager_options = [
             subqueryload(Dashboard.slices).subqueryload(Slice.editors),
             subqueryload(Dashboard.slices).subqueryload(Slice.tags),
             subqueryload(Dashboard.editors),
             subqueryload(Dashboard.tags),
+            subqueryload(Dashboard.embedded),
         ]
 
         with event_logger.log_context(action="mcp.get_dashboard_info.lookup"):
