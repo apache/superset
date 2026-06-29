@@ -1677,6 +1677,164 @@ def test_data_cache_default_timeout(
     assert rv.json["result"][0]["cache_timeout"] == 3456
 
 
+def _native_filter_options_config(
+    native_filter_timeout: int | None = None,
+    data_cache_timeout: int = 3456,
+) -> dict[str, Any]:
+    """
+    Build a patched config for native filter option cache timeout tests.
+    """
+    config = {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 100_000,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": data_cache_timeout,
+        },
+    }
+    if native_filter_timeout is not None:
+        config["NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT"] = native_filter_timeout
+    else:
+        config.pop("NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT", None)
+    return config
+
+
+_NATIVE_FILTER_SELECT_FORM_DATA: dict[str, Any] = {
+    "native_filter_id": "NATIVE_FILTER-abc123",
+    "viz_type": "filter_select",
+    "metrics": ["count"],  # CRITICAL — always present in real requests
+    "groupby": ["col1"],
+    "row_limit": 1000,
+}
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=None, data_cache_timeout=3456),
+)
+def test_native_filter_default_uses_data_cache_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=9999, data_cache_timeout=3456),
+)
+def test_native_filter_uses_native_filter_options_cache_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 9999
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=300, data_cache_timeout=3456),
+)
+def test_native_filter_overrides_dataset_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    datasource: SqlaTable = (
+        db.session.query(SqlaTable)
+        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+        .first()
+    )
+    datasource.cache_timeout = 86400
+    db.session.commit()
+
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 300
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=300, data_cache_timeout=3456),
+)
+def test_standard_chart_uses_dataset_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    datasource: SqlaTable = (
+        db.session.query(SqlaTable)
+        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+        .first()
+    )
+    datasource.cache_timeout = 86400
+    db.session.commit()
+
+    physical_query_context["form_data"] = {
+        "viz_type": "bar",
+        "metrics": ["count"],
+        "groupby": ["col1"],
+    }
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 86400
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(
+        native_filter_timeout=CACHE_DISABLED_TIMEOUT, data_cache_timeout=3456
+    ),
+)
+def test_native_filter_cache_disabled_semantics(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
+    test_client.post(CHART_DATA_URI, json=physical_query_context)
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["is_cached"] is None
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=9999, data_cache_timeout=3456),
+)
+def test_false_positive_protection(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    physical_query_context["form_data"] = {
+        "native_filter_id": "TEST",
+        "viz_type": "table",
+        "metrics": ["count"],
+        "groupby": ["col1"],
+    }
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_options_config(native_filter_timeout=300, data_cache_timeout=3456),
+)
+def test_explicit_custom_timeout_wins_over_native_filter(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
+    physical_query_context["custom_cache_timeout"] = CACHE_DISABLED_TIMEOUT
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == CACHE_DISABLED_TIMEOUT
+
+
 def test_chart_cache_timeout(
     load_energy_table_with_slice: list[Slice],  # noqa: F811
     test_client,
