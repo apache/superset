@@ -530,9 +530,12 @@ async def test_json_metadata_cleanup(
     dashboard = _mock_dashboard(
         slices=[chart_10, chart_20],
         position_json=json.dumps(_simple_grid_layout()),
-        json_metadata=json.dumps(metadata),
     )
-    updated_dashboard = _mock_dashboard(id=1, slices=[chart_20])
+    # json_metadata is read from the re-fetched dashboard (updated_dashboard)
+    # to avoid overwriting concurrent metadata edits.
+    updated_dashboard = _mock_dashboard(
+        id=1, slices=[chart_20], json_metadata=json.dumps(metadata)
+    )
     mock_find_by_id.side_effect = [dashboard, updated_dashboard]
     mock_raise_for_ownership.return_value = None
 

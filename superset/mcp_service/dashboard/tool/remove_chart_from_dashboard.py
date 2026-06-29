@@ -319,20 +319,6 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
                 "slices": remaining_slices,  # Pass ORM objects, not IDs
             }
 
-            # Clean stale chart references from json_metadata without routing
-            # through UpdateDashboardCommand: that path calls
-            # DashboardDAO.set_dash_metadata which, when "positions" is
-            # present in the metadata blob, overwrites dashboard.slices from
-            # layout data and silently drops charts attached via the slices
-            # relationship but absent from position_json.
-            try:
-                metadata = json.loads(dashboard.json_metadata or "{}")
-            except (json.JSONDecodeError, TypeError):
-                metadata = None
-            metadata_changed = isinstance(metadata, dict) and _clean_json_metadata(
-                metadata, request.chart_id
-            )
-
             command = UpdateDashboardCommand(request.dashboard_id, update_data)
             updated_dashboard = command.run()
 
@@ -391,13 +377,28 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
                 error=None,
             )
 
-        # Write cleaned metadata directly, bypassing UpdateDashboardCommand's
-        # json_metadata path which triggers set_dash_metadata's positions
-        # branch and overwrites slices from layout data.
-        # This is a best-effort secondary write: the chart has already been
-        # removed from layout and slices (committed above). If this commit
-        # fails, log a warning but return success — stale metadata is
-        # preferable to reporting failure after a successful removal.
+        # Clean stale chart references from json_metadata without routing
+        # through UpdateDashboardCommand: that path calls
+        # DashboardDAO.set_dash_metadata which, when "positions" is
+        # present in the metadata blob, overwrites dashboard.slices from
+        # layout data and silently drops charts attached via the slices
+        # relationship but absent from position_json.
+        #
+        # Read from the re-fetched dashboard so cleanup is applied to the
+        # latest persisted state rather than the pre-command snapshot,
+        # avoiding silent overwrites of concurrent metadata edits.
+        try:
+            metadata = json.loads(updated_dashboard.json_metadata or "{}")
+        except (json.JSONDecodeError, TypeError):
+            metadata = None
+        metadata_changed = isinstance(metadata, dict) and _clean_json_metadata(
+            metadata, request.chart_id
+        )
+
+        # Best-effort secondary write: the chart has already been removed from
+        # layout and slices (committed above). If this commit fails, log a
+        # warning but return success — stale metadata is preferable to
+        # reporting failure after a successful removal.
         if metadata_changed and isinstance(metadata, dict):
             from superset import db
 
