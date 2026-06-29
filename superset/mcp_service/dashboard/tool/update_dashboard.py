@@ -113,8 +113,7 @@ def _merge_json_metadata(dashboard: Any, overrides: dict[str, Any]) -> str:
     existing: dict[str, Any] = {}
     if dashboard.json_metadata:
         try:
-            parsed = json.loads(dashboard.json_metadata)
-            if isinstance(parsed, dict):
+            if isinstance(parsed := json.loads(dashboard.json_metadata), dict):
                 existing = parsed
         except (ValueError, TypeError):
             pass
