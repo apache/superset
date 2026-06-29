@@ -520,6 +520,133 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     )
 
 
+def _collect_sortable_identifiers(
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> set[str]:
+    """
+    Frozen column names and metric labels/definitions a guest may legitimately
+    sort by: every column or metric the stored chart already references.
+
+    Order-by only changes the ordering of the result, not which data is read, so
+    any column or metric already part of the chart is a safe sort target. A term
+    that is not present in the stored chart (for example a free-form ``random()``
+    expression) cannot be validated and must be rejected. Order-by entries are
+    ``(column_or_metric, ascending)`` pairs, so only their first element is
+    collected.
+    """
+    allowed: set[str] = set()
+
+    def add(values: Any) -> None:
+        for value in values or []:
+            allowed.add(freeze_value(value))
+
+    def add_orderby(entries: Any) -> None:
+        for entry in entries or []:
+            if isinstance(entry, (list, tuple)) and entry:
+                allowed.add(freeze_value(entry[0]))
+
+    params = stored_chart.params_dict
+    for key in ("columns", "groupby", "metrics", "all_columns"):
+        add(params.get(key))
+    # Legacy charts store a single metric under the singular ``metric`` key.
+    add([params["metric"]] if params.get("metric") is not None else None)
+    add_orderby(params.get("orderby"))
+
+    if stored_query_context:
+        for query in stored_query_context.get("queries") or []:
+            for key in ("columns", "groupby", "metrics", "all_columns"):
+                add(query.get(key))
+            add_orderby(query.get("orderby"))
+
+    return allowed
+
+
+def _orderby_modified(
+    query_context: "QueryContext",
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether any order-by clause sorts by a term the stored chart does not already
+    reference.
+
+    A guest reordering an embedded chart by one of its existing columns or
+    metrics is legitimate and must not read as tampering; introducing a new
+    expression is not, and is rejected.
+    """
+    allowed = _collect_sortable_identifiers(stored_chart, stored_query_context)
+    form_data = query_context.form_data or {}
+    # Both ``form_data`` and each ``QueryObject`` can carry an order-by, and in
+    # the common frontend path they carry the same one. Either source could
+    # smuggle an unauthorized term, so validate the union of both rather than
+    # trusting one over the other; the duplication is harmless.
+    requested = list(form_data.get("orderby") or [])
+    for query in query_context.queries:
+        requested.extend(getattr(query, "orderby", None) or [])
+
+    for entry in requested:
+        # Order-by entries must be ``(column_or_metric, ascending)`` pairs. A
+        # malformed shape (e.g. a bare string or nested list) is not a valid
+        # sort the chart could have produced, so treat it as tampering rather
+        # than letting it crash query building when it is later unpacked.
+        if not (
+            isinstance(entry, (list, tuple))
+            and len(entry) == 2
+            and isinstance(entry[1], bool)
+        ):
+            return True
+        if freeze_value(entry[0]) not in allowed:
+            return True
+    return False
+
+
+def _columns_metrics_modified(
+    query_context: "QueryContext",
+    form_data: dict[str, Any],
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether the requested columns/metrics/group-by read beyond what the stored
+    chart exposes. Each requested set must be a subset of the values stored on
+    the chart (params and, when present, the stored query context).
+    """
+    for key, equivalent in [
+        ("metrics", ["metrics"]),
+        ("columns", ["columns", "groupby"]),
+        ("groupby", ["columns", "groupby"]),
+    ]:
+        requested_values = {freeze_value(value) for value in form_data.get(key) or []}
+        stored_values = {
+            freeze_value(value) for value in stored_chart.params_dict.get(key) or []
+        }
+        # ``form_data`` values are checked against ``params_dict`` alone;
+        # ``query_context`` values are checked below against the fuller set that
+        # also includes the stored query context. This asymmetry is intentional:
+        # each requested source is compared to its corresponding stored source.
+        if not requested_values.issubset(stored_values):
+            return True
+
+        # compare queries in query_context
+        queries_values = {
+            freeze_value(value)
+            for query in query_context.queries
+            for value in getattr(query, key, []) or []
+        }
+        if stored_query_context:
+            for query in stored_query_context.get("queries") or []:
+                for equiv_key in equivalent:
+                    stored_values.update(
+                        {freeze_value(value) for value in query.get(equiv_key) or []}
+                    )
+
+        if not queries_values.issubset(stored_values):
+            return True
+
+    return False
+
+
 def query_context_modified(query_context: "QueryContext") -> bool:
     """
     Check if a query context has been modified.
@@ -550,35 +677,18 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         else None
     )
 
-    # compare columns and metrics in form_data with stored values
-    for key, equivalent in [
-        ("metrics", ["metrics"]),
-        ("columns", ["columns", "groupby"]),
-        ("groupby", ["columns", "groupby"]),
-        ("orderby", ["orderby"]),
-    ]:
-        requested_values = {freeze_value(value) for value in form_data.get(key) or []}
-        stored_values = {
-            freeze_value(value) for value in stored_chart.params_dict.get(key) or []
-        }
-        if not requested_values.issubset(stored_values):
-            return True
+    # compare columns and metrics in form_data with stored values. Order-by is
+    # handled separately: a strict subset check there would reject a guest
+    # legitimately sorting an embedded chart by one of its existing columns.
+    if _columns_metrics_modified(
+        query_context, form_data, stored_chart, stored_query_context
+    ):
+        return True
 
-        # compare queries in query_context
-        queries_values = {
-            freeze_value(value)
-            for query in query_context.queries
-            for value in getattr(query, key, []) or []
-        }
-        if stored_query_context:
-            for query in stored_query_context.get("queries") or []:
-                for key in equivalent:
-                    stored_values.update(
-                        {freeze_value(value) for value in query.get(key) or []}
-                    )
-
-        if not queries_values.issubset(stored_values):
-            return True
+    # Order-by may sort only by columns/metrics already present in the stored
+    # chart; new expressions (e.g. ``random()``) are still rejected.
+    if _orderby_modified(query_context, stored_chart, stored_query_context):
+        return True
 
     return False
 
@@ -1289,9 +1399,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The error message
         """
 
-        quoted_tables = [f"`{table}`" for table in tables]
-        return f"""You need access to the following tables: {", ".join(quoted_tables)},
-            `all_database_access` or `all_datasource_access` permission"""
+        quoted_tables = [f'"{table}"' for table in tables]
+        return _(
+            "You need access to the following tables: %(tables)s, "
+            "'all_database_access' or 'all_datasource_access' permission"
+        ) % {
+            "tables": ",".join(quoted_tables),
+        }
 
     def get_table_access_error_object(self, tables: set["Table"]) -> SupersetError:
         """
@@ -3153,12 +3267,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
+        from flask import current_app
+
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
         from superset.models.sql_lab import Query
         from superset.utils.core import shortid
+
+        # Extension hook: bypass all permission checks if an external system
+        # (e.g. folder permissions) grants access to this resource.
+        if bypass := current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS"):
+            if bypass(
+                user_id=get_user_id(),
+                dashboard=dashboard,
+                chart=chart,
+                datasource=datasource,
+                query_context=query_context,
+            ):
+                logger.info(
+                    "EXTRA_RAISE_FOR_ACCESS_BYPASS granted access for user %s",
+                    get_user_id(),
+                )
+                return
 
         if sql and database:
             query = Query(
@@ -4147,6 +4279,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:
+            # Extension hook: check if the user is an extra owner
+            resolver = current_app.config.get("EXTRA_OWNERS_RESOLVER")
+            if resolver and not g.user.is_anonymous:
+                extra_owners = resolver(orig_resource)
+                user_id = g.user.id
+                if any(
+                    (u.id if hasattr(u, "id") else u.get("id")) == user_id
+                    for u in extra_owners
+                ):
+                    return
+
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,

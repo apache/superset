@@ -30,6 +30,7 @@ import {
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
+import * as navigationUtils from 'src/utils/navigationUtils';
 import { AlertObject, NotificationMethodOption } from './types';
 
 jest.mock('@superset-ui/core', () => ({
@@ -706,6 +707,60 @@ test('removes ignore cache checkbox when chart is selected', async () => {
       name: /ignore cache when generating report/i,
     }),
   ).not.toBeInTheDocument();
+});
+
+test('open chart button opens explore with slice_id', async () => {
+  // Render with an existing alert that has a chart selected
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  // Ensure chart is present
+  await screen.findByText(/test chart/i);
+
+  const openChartButton = screen.getByRole('button', {
+    name: /open chart in new tab/i,
+  });
+  expect(openChartButton).toBeInTheDocument();
+
+  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  try {
+    await userEvent.click(openChartButton);
+    expect(navSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/explore/?slice_id=1'),
+      { newWindow: true },
+    );
+  } finally {
+    navSpy.mockRestore();
+  }
+});
+
+test('open dashboard button opens dashboard url', async () => {
+  // Render with an existing alert that has a dashboard selected
+  render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  // Ensure dashboard is present
+  await screen.findByText(/test dashboard/i);
+
+  const openDashButton = screen.getByRole('button', {
+    name: /open dashboard in new tab/i,
+  });
+  expect(openDashButton).toBeInTheDocument();
+
+  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  try {
+    await userEvent.click(openDashButton);
+    expect(navSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/dashboard/1'),
+      { newWindow: true },
+    );
+  } finally {
+    navSpy.mockRestore();
+  }
 });
 
 test('does not show screenshot width when csv is selected', async () => {

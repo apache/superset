@@ -71,9 +71,9 @@ def env(key, default=None):
 
 # Redis Base URL
 {{- if .Values.supersetNode.connections.redis_password }}
-REDIS_BASE_URL=f"{env('REDIS_PROTO')}://{env('REDIS_USER', '')}:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}"
+REDIS_BASE_URL=f"{env('REDIS_DRIVER') or env('REDIS_PROTO')}://{env('REDIS_USER', '')}:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}"
 {{- else }}
-REDIS_BASE_URL=f"{env('REDIS_PROTO')}://{env('REDIS_HOST')}:{env('REDIS_PORT')}"
+REDIS_BASE_URL=f"{env('REDIS_DRIVER') or env('REDIS_PROTO')}://{env('REDIS_HOST')}:{env('REDIS_PORT')}"
 {{- end }}
 
 # Redis URL Params
@@ -107,8 +107,6 @@ else:
     {{- else }}
     {{ fail (printf "Unsupported database type: %s. Please use 'postgresql' or 'mysql'." .Values.supersetNode.connections.db_type) }}
     {{- end }}
-
-SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 class CeleryConfig:
   imports  = ("superset.sql_lab", )

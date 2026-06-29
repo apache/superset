@@ -84,7 +84,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
         # serialize. Convert all keys to regular strings to fix YAML serialization.
         payload = {str(key): value for key, value in payload.items()}
 
-        file_content = yaml.safe_dump(payload, sort_keys=False)
+        file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 
     @staticmethod
@@ -128,4 +128,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
 
             payload["version"] = EXPORT_VERSION
 
-            yield file_path, lambda: yaml.safe_dump(payload, sort_keys=False)
+            yield (
+                file_path,
+                lambda: yaml.safe_dump(payload, sort_keys=False, allow_unicode=True),
+            )

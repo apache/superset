@@ -26,7 +26,11 @@ from typing import cast, TYPE_CHECKING, TypedDict
 from flask import current_app as app
 
 from superset import feature_flag_manager, thumbnail_cache
-from superset.exceptions import ScreenshotImageNotAvailableException
+from superset.distributed_lock import DistributedLock
+from superset.exceptions import (
+    LockAlreadyHeldException,
+    ScreenshotImageNotAvailableException,
+)
 from superset.extensions import event_logger
 from superset.utils.hashing import hash_from_dict
 from superset.utils.urls import modify_url_query
@@ -119,7 +123,6 @@ class ScreenshotCachePayload:
 
     def computing(self) -> None:
         self.update_timestamp()
-        self._image = None
         self.status = StatusValues.COMPUTING
 
     def update(self, image: bytes) -> None:
@@ -152,9 +155,7 @@ class ScreenshotCachePayload:
 
     def is_computing_stale(self) -> bool:
         """Check if a COMPUTING status is stale (task likely failed or stuck)."""
-        # Use the same TTL as error cache - if computing takes longer than this,
-        # it's likely stuck and should be retried
-        computing_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+        computing_ttl = app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
         return (
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() >= computing_ttl
@@ -280,43 +281,66 @@ class BaseScreenshot:
         :return: Image payload
         """
         cache_key = cache_key or self.get_cache_key(window_size, thumb_size)
-        cache_payload = self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
-        if not cache_payload.should_trigger_task(force=force):
-            logger.info(
-                "Skipping compute - already processed for thumbnail: %s", cache_key
-            )
-            return
-
-        window_size = window_size or self.window_size
-        thumb_size = thumb_size or self.thumb_size
-        logger.info("Processing url for thumbnail: %s", cache_key)
-        cache_payload.computing()
-        image = None
-        # Assuming all sorts of things can go wrong with Selenium
         try:
-            logger.info("trying to generate screenshot")
-            with event_logger.log_context(f"screenshot.compute.{self.thumbnail_type}"):
-                image = self.get_screenshot(user=user, window_size=window_size)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.warning("Failed at generating thumbnail %s", ex, exc_info=True)
-            cache_payload.error()
-        if image and window_size != thumb_size:
-            try:
-                image = self.resize_image(image, thumb_size=thumb_size)
-            except Exception as ex:  # pylint: disable=broad-except
-                logger.warning("Failed at resizing thumbnail %s", ex, exc_info=True)
-                cache_payload.error()
+            with DistributedLock(
+                namespace="thumbnail",
+                key=cache_key,
+                ttl_seconds=app.config["THUMBNAIL_COMPUTING_CACHE_TTL"],
+            ):
+                cache_payload = (
+                    self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
+                )
+                if not cache_payload.should_trigger_task(force=force):
+                    logger.info(
+                        "Skipping compute - already processed for thumbnail: %s",
+                        cache_key,
+                    )
+                    return
+
+                window_size = window_size or self.window_size
+                thumb_size = thumb_size or self.thumb_size
+                logger.info("Processing url for thumbnail: %s", cache_key)
+                cache_payload.computing()
+                self.cache.set(cache_key, cache_payload.to_dict())
                 image = None
+                # Assuming all sorts of things can go wrong with Selenium
+                try:
+                    logger.info("trying to generate screenshot")
+                    with event_logger.log_context(
+                        f"screenshot.compute.{self.thumbnail_type}"
+                    ):
+                        image = self.get_screenshot(user=user, window_size=window_size)
+                except Exception as ex:  # pylint: disable=broad-except
+                    logger.warning(
+                        "Failed at generating thumbnail %s", ex, exc_info=True
+                    )
+                    cache_payload.error()
+                if image and window_size != thumb_size:
+                    try:
+                        image = self.resize_image(image, thumb_size=thumb_size)
+                    except Exception as ex:  # pylint: disable=broad-except
+                        logger.warning(
+                            "Failed at resizing thumbnail %s", ex, exc_info=True
+                        )
+                        cache_payload.error()
+                        image = None
 
-        # Cache the result (success or error) to avoid immediate retries
-        if image:
-            with event_logger.log_context(f"screenshot.cache.{self.thumbnail_type}"):
-                cache_payload.update(image)
+                if image:
+                    with event_logger.log_context(
+                        f"screenshot.cache.{self.thumbnail_type}"
+                    ):
+                        cache_payload.update(image)
 
-        logger.info("Caching thumbnail: %s", cache_key)
-        self.cache.set(cache_key, cache_payload.to_dict())
-        logger.info("Updated thumbnail cache; Status: %s", cache_payload.get_status())
-        return
+                logger.info("Caching thumbnail: %s", cache_key)
+                self.cache.set(cache_key, cache_payload.to_dict())
+                logger.info(
+                    "Updated thumbnail cache; Status: %s", cache_payload.get_status()
+                )
+        except LockAlreadyHeldException:
+            logger.info(
+                "Skipping duplicate thumbnail task for %s - lock already held",
+                cache_key,
+            )
 
     @classmethod
     def resize_image(

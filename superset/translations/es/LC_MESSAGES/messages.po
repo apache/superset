@@ -256,6 +256,8 @@ msgid ""
 "%(prefix)sResults truncated to %(row_count)s rows due to memory "
 "constraints."
 msgstr ""
+"%(prefix)sResultados truncados a %(row_count)s filas por limitaciones "
+"en la memoria"
 
 #, python-format
 msgid ""
@@ -341,7 +343,7 @@ msgstr "%s seleccionado (virtual)"
 
 #, python-format
 msgid "%s Semantic View"
-msgstr ""
+msgstr "%s Vista semántica"
 
 #, fuzzy, python-format
 msgid "%s URL"
@@ -365,11 +367,11 @@ msgstr[1] ""
 msgid "%s column(s)"
 msgstr "%s columna(s)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "Hace 1 día"
-msgstr[1] ""
+msgstr[1] "Hace %s días"
 
 #, fuzzy, python-format
 msgid "%s hr ago"
@@ -377,9 +379,9 @@ msgid_plural "%s hr ago"
 msgstr[0] "%s fila"
 msgstr[1] "%s filas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s imported"
-msgstr "Datos importados"
+msgstr "%s importados"
 
 #, fuzzy, python-format
 msgid "%s item"
@@ -451,11 +453,11 @@ msgid_plural "%s records..."
 msgstr[0] "%s error"
 msgstr[1] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s record..."
 msgid_plural "%s records..."
-msgstr[0] "%s error"
-msgstr[1] ""
+msgstr[0] "%s registro"
+msgstr[1] "%s registros"
 
 #, python-format
 msgid "%s row"
@@ -481,11 +483,11 @@ msgstr[1] ""
 
 #, python-format
 msgid "%s semantic view(s) added"
-msgstr ""
+msgstr "%s vista(s) semántica(s) agregada(s)"
 
 #, python-format
 msgid "%s semantic view(s) failed to add"
-msgstr ""
+msgstr "No se pudo agregar la(s) %s vista(s) semántica(s)"
 
 #, python-format
 msgid "%s semantic view(s) failed to add: %s"
@@ -567,13 +569,13 @@ msgstr ""
 " si eliminas las «cookies» o cambias de navegador.\n"
 "\n"
 
-#, fuzzy, python-format
+#, python-format
 msgid "... and %d more"
-msgstr "... y %s otros"
+msgstr "... y otros %d"
 
-#, fuzzy, python-format
+#, python-format
 msgid "... and %s more records"
-msgstr "... y %s otros"
+msgstr "... y otros %s"
 
 #, python-format
 msgid "... and %s others"
@@ -639,9 +641,8 @@ msgstr "Frecuencia de inicio de 1 año"
 msgid "10 minute"
 msgstr "10 minutos"
 
-#, fuzzy
 msgid "10 seconds"
-msgstr "30 segundos"
+msgstr "10 segundos"
 
 msgid "10/90 percentiles"
 msgstr "Percentiles 10/90"
@@ -655,9 +656,8 @@ msgstr "104 semanas"
 msgid "104 weeks ago"
 msgstr "Hace 104 semanas"
 
-#, fuzzy
 msgid "12 hours"
-msgstr "1 hora"
+msgstr "12 horas"
 
 msgid "15 minute"
 msgstr "15 minutos"
@@ -695,9 +695,8 @@ msgstr "Percentiles 2/98"
 msgid "22"
 msgstr "22"
 
-#, fuzzy
 msgid "24 hours"
-msgstr "6 horas"
+msgstr "24 horas"
 
 msgid "28 days"
 msgstr "28 días"
@@ -768,7 +767,6 @@ msgstr "52 semanas con comienzo el lunes (frec. = 52W-MON)"
 msgid "6 hour"
 msgstr "6 horas"
 
-#, fuzzy
 msgid "6 hours"
 msgstr "6 horas"
 
@@ -800,7 +798,7 @@ msgid "<= (Smaller or equal)"
 msgstr "<= (menor o igual)"
 
 msgid "<enter SQL expression here>"
-msgstr "<introduce la expresión SQL aquí>"
+msgstr "<introduzca la expresión SQL aquí>"
 
 msgid "<new column>"
 msgstr "<nueva columna>"
@@ -1018,7 +1016,8 @@ msgid "API key revoked successfully"
 msgstr ""
 
 msgid "API keys allow scoped programmatic access to Superset."
-msgstr ""
+msgstr "Las claves API permiten el acceso programático con "
+"ámbito restringido a Superset."
 
 msgid "APPLY"
 msgstr "APLICAR"
@@ -1032,13 +1031,11 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AGO"
 
-#, fuzzy
 msgid "Aborted"
-msgstr "Iniciado"
+msgstr "Abortado"
 
-#, fuzzy
 msgid "Aborting"
-msgstr "Trabajando"
+msgstr "Abortando"
 
 msgid "About"
 msgstr "Acerca de"
@@ -1050,9 +1047,8 @@ msgstr "Token de acceso"
 msgid "Access token"
 msgstr "Token de acceso"
 
-#, fuzzy
 msgid "Account"
-msgstr "recuento"
+msgstr "Cuenta"
 
 msgid "Action"
 msgstr "Acción"
@@ -1187,9 +1183,8 @@ msgstr ""
 "Añadir columnas temporales calculadas al conjunto de datos en el modal "
 "«Editar fuente de datos»"
 
-#, fuzzy
 msgid "Add certification details for this dashboard"
-msgstr "Detalles de la certificación"
+msgstr "Añada detalles de la certificación al tablero"
 
 msgid "Add color for positive/negative change"
 msgstr "Añadir color para cambio positivo/negativo"
@@ -1250,9 +1245,8 @@ msgstr ""
 "                    de los datos subyacentes o limitar los valores "
 "disponibles que se muestran en el filtro."
 
-#, fuzzy
 msgid "Add folder"
-msgstr "Añadir filtro"
+msgstr "Añadir carpeta"
 
 msgid "Add item"
 msgstr "Añadir elemento"
@@ -1554,9 +1548,8 @@ msgstr "Todos los gráficos"
 msgid "All charts/global scoping"
 msgstr "Todos los gráficos/alcance global"
 
-#, fuzzy
 msgid "All dimensions"
-msgstr "Dimensiones"
+msgstr "Todas las dimensiones"
 
 msgid "All filters"
 msgstr "Todos los filtros"
@@ -2933,7 +2926,7 @@ msgid "Cancel query on window unload event"
 msgstr "Cancelar consulta en el evento de descarga de la ventana"
 
 msgid "Cancellation not available due to missing abort handler"
-msgstr ""
+msgstr "No es posible cancelar debido a la falta del controlador de cancelación."
 
 msgid "Cannot access the query"
 msgstr "No se puede acceder a la consulta"
@@ -3832,7 +3825,7 @@ msgid "Columns missing in datasource: %(invalid_columns)s"
 msgstr "Columnas que faltan en la fuente de datos: %(invalid_columns)s"
 
 msgid "Columns should be inside folders"
-msgstr ""
+msgstr "Las columnas deben estar dentro de carpetas"
 
 msgid "Columns subtotal position"
 msgstr "Posición del subtotal de columnas"
@@ -6439,7 +6432,7 @@ msgstr "Error al eliminar %s"
 
 #, python-format
 msgid "Error disabling fullscreen: %s"
-msgstr ""
+msgstr "Error al deshabilitar la pantalla completa: %s"
 
 #, fuzzy, python-format
 msgid "Error enabling fullscreen: %s"
