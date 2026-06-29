@@ -131,6 +131,7 @@ Dashboard Management:
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
 - update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; ownership-checked per-instance)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
+- delete_dashboard: Permanently delete a dashboard by ID/UUID/slug (requires ownership; destructive; does not delete its charts)
 
 Annotation Layers:
 - list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
@@ -177,6 +178,7 @@ Chart Management:
 - generate_explore_link: Create an interactive explore URL (preferred for exploration)
 - update_chart: Update existing saved chart configuration (requires write access)
 - update_chart_preview: Update cached chart preview without saving (requires write access)
+- delete_chart: Permanently delete a chart by ID/UUID (requires ownership; destructive)
 
 SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id and SQL access)
@@ -679,6 +681,7 @@ from superset.mcp_service.chart import (  # noqa: F401, E402
     resources as chart_resources,
 )
 from superset.mcp_service.chart.tool import (  # noqa: F401, E402
+    delete_chart,
     generate_chart,
     get_chart_data,
     get_chart_info,
@@ -691,6 +694,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    delete_dashboard,
     generate_dashboard,
     get_dashboard_info,
     get_dashboard_layout,
