@@ -1,0 +1,78 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+name: Dependency security scan
+
+on:
+  schedule:
+    # Daily at 06:00 UTC.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      manifests:
+        description: "Comma-separated lockfiles to audit"
+        required: false
+        default: "requirements/base.txt"
+      min_severity:
+        description: "Minimum severity (LOW/MODERATE/HIGH/CRITICAL)"
+        required: false
+        default: "LOW"
+      max_issues:
+        description: "Maximum actionable issues to file"
+        required: false
+        default: "25"
+  push:
+    branches:
+      - master
+    paths:
+      - "requirements/*.txt"
+      - "scripts/scan_and_file_issues.py"
+      - ".github/workflows/security-scan.yml"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Audit dependencies and file issues
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install scanner dependencies
+        run: python -m pip install --upgrade pip pip-audit requests
+
+      - name: Scan dependencies and file issues
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SCAN_MANIFESTS: ${{ github.event.inputs.manifests || 'requirements/base.txt' }}
+          SCAN_MIN_SEVERITY: ${{ github.event.inputs.min_severity || 'LOW' }}
+          SCAN_MAX_ISSUES: ${{ github.event.inputs.max_issues || '25' }}
+        # The script owns pip-audit invocation and treats "vulns found"
+        # (pip-audit exit 1) as success, only failing on genuine tool errors.
+        run: python scripts/scan_and_file_issues.py
