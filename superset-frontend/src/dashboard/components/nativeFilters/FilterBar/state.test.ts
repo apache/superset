@@ -19,6 +19,12 @@
 import { act, renderHook } from '@testing-library/react';
 import { useSelector } from 'react-redux';
 import { DataMaskState, DataMaskStateWithId } from '@superset-ui/core';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import {
+  useDashboardInfoStore,
+  useDashboardStateStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import {
   useAllAppliedDataMask,
   useFilterUpdates,
@@ -31,10 +37,27 @@ jest.mock('react-redux', () => ({
   useSelector: jest.fn(),
 }));
 
-const mockUseSelector = (mockState: object) => {
+const mockUseSelector = (mockState: Record<string, unknown>) => {
+  // `charts` is still Redux; dataMask, dashboardInfo and dashboardState moved
+  // to Zustand, so mirror those into the stores the hooks actually read.
   (useSelector as jest.Mock).mockImplementation(
     (selector: (state: object) => unknown) => selector(mockState),
   );
+  if ('dataMask' in mockState) {
+    useDataMaskStore.setState({
+      dataMask: mockState.dataMask as DataMaskStateWithId,
+    });
+  }
+  if ('dashboardInfo' in mockState) {
+    useDashboardInfoStore.setState({
+      dashboardInfo: mockState.dashboardInfo as DashboardInfo,
+    });
+  }
+  if ('dashboardState' in mockState) {
+    useDashboardStateStore.setState(
+      mockState.dashboardState as Record<string, never>,
+    );
+  }
 };
 
 afterEach(() => {

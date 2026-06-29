@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -2373,9 +2373,6 @@ msgstr "Er is een fout opgetreden tijdens het parsen van de sleutel."
 msgid "An error occurred while pruning logs "
 msgstr "Er is een fout opgetreden tijdens opschonen van de logbestanden "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3436,6 +3433,9 @@ msgstr "CVAS (create view as select) query is geen SELECT instructie."
 msgid "Cache Timeout (seconds)"
 msgstr "Cache Timeout (seconden)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4402,6 +4402,9 @@ msgstr "Paneel data samenvouwen"
 msgid "Collapse row"
 msgstr "Rij inklappen"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Instellingen inklappen"
 
@@ -5129,6 +5132,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Kan de hostname niet omzetten: \"%(host)s\"."
@@ -5155,6 +5163,12 @@ msgstr "Tel"
 
 msgid "Country"
 msgstr "Land"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Land kleurenschema"
@@ -6641,6 +6655,9 @@ msgstr "Er zijn geen voorbeelden gevonden voor deze dataset"
 
 msgid "Discard"
 msgstr "Negeren"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Toon naam"
@@ -8188,6 +8205,12 @@ msgstr "Laden van grafiekgegevens mislukt."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8261,6 +8284,9 @@ msgstr "Opslaan van cross-filter scope mislukt"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Opslaan van cross-filter scope mislukt"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8440,6 +8466,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filter grafieken"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filter heeft een standaardwaarde"
 
@@ -8481,6 +8513,10 @@ msgstr "Filter je grafieken"
 
 msgid "Filters"
 msgstr "Filters"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9384,11 +9420,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr ""
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Voeg naam van de series toe aan een as"
 
 msgid "Include time"
 msgstr "Includeer tijd"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Verhoog"
@@ -9682,6 +9725,9 @@ msgstr "Ongeldig resultaattype: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Ongeldig rolling_type: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Ongeldige status."
@@ -10367,6 +10413,9 @@ msgstr "Geladen gegevens in de cache"
 
 msgid "Loaded from cache"
 msgstr "Geladen uit de cache"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Loading"
@@ -11083,6 +11132,9 @@ msgstr "Ontbrekende URL-parameters"
 
 msgid "Mixed Chart"
 msgstr "Gemengde Grafiek"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Gewijzigd"
@@ -11934,6 +11986,9 @@ msgstr "Eén of vele metrieken om weer te geven"
 #, fuzzy
 msgid "One or more annotation layers failed loading."
 msgstr "Aantekening lagen worden nog steeds geladen."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Een of meer kolommen bestaan al"
@@ -12919,6 +12974,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Voorvertoning"
 
@@ -13345,6 +13405,9 @@ msgstr "Herlaad"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL Lab herladen"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -14099,6 +14162,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL Query"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL expressie"
@@ -15094,6 +15162,9 @@ msgstr "Semantische weergave"
 msgid "Semantic Views"
 msgstr "Semantische weergaven"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Aantekeningenlaag"
@@ -15648,6 +15719,9 @@ msgstr "Toon Markeringen"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "Toon Totaal"
@@ -15921,9 +15995,6 @@ msgstr ""
 "Sorry er is een fout opgetreden bij het ophalen van database informatie: "
 "%s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Sorry er was een fout bij het ophalen van de opgeslagen grafieken: "
-
 msgid "Sorry, An error occurred"
 msgstr "Sorry, er is een fout opgetreden"
 
@@ -15938,6 +16009,9 @@ msgstr "Sorry, er ging iets mis. Embedding kon niet worden gedeactiveerd."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Er is iets fout gegaan. Probeer het opnieuw."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Sorry, er ging iets mis. Probeer het later nog eens."
@@ -16181,6 +16255,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16924,6 +17003,10 @@ msgstr ""
 "gebruikt in\n"
 "            tijdbereik filters in dashboards. Wilt u het toevoegen aan de"
 " filterlijst?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -17864,6 +17947,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "Toon series waarden op de grafiek"
@@ -18570,6 +18668,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -19672,6 +19782,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Kan een dergelijk datumverschil niet berekenen"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Kan geen verbinding maken met catalogus genaamd “%(catalog_name)s”."
@@ -20332,6 +20445,9 @@ msgstr "Waarde Opmaak"
 
 msgid "Value and Percentage"
 msgstr "Waarde en Percentage"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Waarde grenzen"
@@ -21688,6 +21804,9 @@ msgstr ""
 "Je hebt de waarden in het bedieningspaneel bijgewerkt, maar de grafiek is"
 " niet automatisch bijgewerkt. Voer de query uit door op de knop 'Grafiek "
 "bijwerken' te klikken of"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

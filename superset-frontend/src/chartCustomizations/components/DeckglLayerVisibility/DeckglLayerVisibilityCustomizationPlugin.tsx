@@ -25,18 +25,12 @@ import {
   Tooltip,
   type FormItemProps,
 } from '@superset-ui/core/components';
-import { useSelector } from 'react-redux';
-import { createSelector } from '@reduxjs/toolkit';
+import { useDashboardSlicesStore } from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { PluginDeckglLayerVisibilityProps } from './types';
 import { useDeckLayerMetadata } from './useDeckLayerMetadata';
 import { FilterPluginStyle, StatusMessage } from '../common';
 import { Slice } from 'src/dashboard/types';
-
-type SliceEntitiesState = {
-  sliceEntities?: {
-    slices: Record<number, Slice>;
-  };
-};
 
 type DataMaskState = Record<
   string,
@@ -47,24 +41,18 @@ type DataMaskState = Record<
 
 const EMPTY_OBJECT = {};
 
-const selectAllLayerIds = createSelector(
-  [
-    (state: SliceEntitiesState) =>
-      state.sliceEntities?.slices || (EMPTY_OBJECT as Record<number, Slice>),
-  ],
-  slices => {
-    const ids: number[] = [];
-    Object.values(slices).forEach(slice => {
-      if (slice.form_data?.viz_type === 'deck_multi') {
-        const deckSlices = slice.form_data.deck_slices as number[] | undefined;
-        if (deckSlices && Array.isArray(deckSlices)) {
-          ids.push(...deckSlices);
-        }
+function getAllLayerIds(slices: Record<number, Slice>) {
+  const ids: number[] = [];
+  Object.values(slices).forEach(slice => {
+    if (slice.form_data?.viz_type === 'deck_multi') {
+      const deckSlices = slice.form_data.deck_slices as number[] | undefined;
+      if (deckSlices && Array.isArray(deckSlices)) {
+        ids.push(...deckSlices);
       }
-    });
-    return [...new Set(ids)];
-  },
-);
+    }
+  });
+  return [...new Set(ids)];
+}
 
 export default function DeckglLayerVisibilityCustomizationPlugin(
   props: PluginDeckglLayerVisibilityProps,
@@ -75,10 +63,10 @@ export default function DeckglLayerVisibilityCustomizationPlugin(
   );
   const hasInitialized = useRef(false);
 
-  const allLayerIds = useSelector(selectAllLayerIds);
-  const dataMask = useSelector(
-    (state: { dataMask?: DataMaskState }) =>
-      state.dataMask || (EMPTY_OBJECT as DataMaskState),
+  const slices = useDashboardSlicesStore(s => s.slices);
+  const allLayerIds = useMemo(() => getAllLayerIds(slices), [slices]);
+  const dataMask = useDataMaskStore(
+    s => (s.dataMask as DataMaskState) || (EMPTY_OBJECT as DataMaskState),
   );
 
   const visibleDeckLayersFromRedux = useMemo(() => {

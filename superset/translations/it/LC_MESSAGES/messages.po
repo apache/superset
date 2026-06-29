@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -1396,6 +1396,11 @@ msgstr "Un set di dati riutilizzabile verrà salvato con il grafico."
 msgid "A rule with this name already exists."
 msgstr ""
 
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -2693,9 +2698,6 @@ msgstr "Si è verificato un errore durante l'analisi della chiave."
 msgid "An error occurred while pruning logs "
 msgstr "Si è verificato un errore durante l'eliminazione dei log "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Si è verificato un errore nell'aggiornare lo schema di configurazione"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3941,6 +3943,9 @@ msgstr "La query CVAS (create view as select) non è un'istruzione SELECT."
 msgid "Cache Timeout (seconds)"
 msgstr "Timeout cache (secondi)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -5048,6 +5053,9 @@ msgstr "Collassa pannello dati"
 msgid "Collapse row"
 msgstr "Collassa riga"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Comprimi impostazioni"
 
@@ -5922,6 +5930,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -5950,6 +5963,12 @@ msgstr "Conteggio"
 
 msgid "Country"
 msgstr "Nazione"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -7571,6 +7590,9 @@ msgstr "Disabilita la funzionalità drill-to-dettaglio per questo database."
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Discard"
 msgstr "Annulla"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Visualizza Nome"
@@ -9309,6 +9331,12 @@ msgstr "Impossibile caricare i dati del grafico."
 msgid "Failed to load columns for %s %s"
 msgstr "Errore nel caricare le colonne per %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -9381,6 +9409,9 @@ msgstr "Essore nel salvataggio dell'ambito del filtro cross"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Essore nel salvataggio delle impostazioni del filtro cross"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9577,6 +9608,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtra grafici"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -9623,6 +9660,10 @@ msgstr "Controlli del filtro"
 
 msgid "Filters"
 msgstr "Filtri"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Filtri e controlli"
@@ -10728,6 +10769,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Includi la descrizione da inviare con %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -10739,6 +10783,10 @@ msgstr "Includi il nome della serie come asse"
 # zh, zh_TW]
 msgid "Include time"
 msgstr "Includere il tempo"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Aumenta"
@@ -11100,6 +11148,9 @@ msgstr "Tipo di risultato non valido: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "rolling_type non valido: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -11925,6 +11976,9 @@ msgstr "Dati caricati memorizzati nella cache"
 # tr, uk, zh, zh_TW]
 msgid "Loaded from cache"
 msgstr "Caricato dalla cache"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 msgid "Loading"
 msgstr "Caricamento"
@@ -12782,6 +12836,9 @@ msgstr "Parametri URL mancanti"
 msgid "Mixed Chart"
 msgstr "Grafico misto"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Modificato"
 
@@ -13288,6 +13345,9 @@ msgstr ""
 "Nessun grafico deck.gl multistrato è attualmente aggiunto a questa "
 "dashboard."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nessun record trovato"
 
@@ -13744,6 +13804,9 @@ msgstr "Una o più metriche da mostrare"
 # es, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "One or more annotation layers failed loading."
 msgstr "Impossibile caricare uno o più livelli di annotazioni."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -14975,6 +15038,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -15473,6 +15541,9 @@ msgstr "Ricarica"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "Reload SQL Lab"
 msgstr "Ricarica SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -16362,6 +16433,11 @@ msgstr ""
 # sr_Latn, tr, uk, zh, zh_TW]
 msgid "SQL Query"
 msgstr "Query SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Espressione SQL"
@@ -17423,6 +17499,9 @@ msgstr "Vista semantica"
 msgid "Semantic Views"
 msgstr "Viste semantiche"
 
+msgid "Semantic cache"
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Livello semantico"
 
@@ -18058,6 +18137,9 @@ msgstr "Mostra riepilogo"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "Mostra totale"
 
@@ -18390,9 +18472,6 @@ msgstr "Qualcosa è andato storto."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Si è verificato un errore nel reperire le informazioni del database: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Si è verificato un errore nel reperire i grafici salvati: "
-
 msgid "Sorry, An error occurred"
 msgstr "Si è verificato un errore"
 
@@ -18407,6 +18486,9 @@ msgstr "Qualcosa è andato storto. L'embedding non può essere disattivato."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Qualcosa è andato storto. Provare di nuovo."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Qualcosa è andato storto. Riprovare più tardi."
@@ -18676,6 +18758,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -19523,6 +19610,10 @@ msgstr ""
 "nei filtri per intervallo di tempo nei dashboard. Desideri aggiungerlo "
 "all'elenco dei filtri?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -20362,6 +20453,9 @@ msgstr ""
 msgid "The provided table was not found in the provided database"
 msgstr "La tabella indicata non è stata trovata nel database indicato"
 
+msgid "The provider query will be available after the chart runs."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -20591,6 +20685,21 @@ msgstr "È in corso la generazione dello screenshot. Non abbandonare la pagina."
 msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 msgid "The service url of the layer"
@@ -21384,6 +21493,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -22677,6 +22798,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Impossibile calcolare tale delta di date"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -23474,6 +23598,9 @@ msgstr "Formato Valore"
 
 msgid "Value and Percentage"
 msgstr "Valore e percentuale"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Limiti valore"
@@ -25175,6 +25302,9 @@ msgstr ""
 "Hai aggiornato i valori nel pannello di controllo, ma il grafico non è "
 "stato aggiornato automaticamente. "
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, python-format
@@ -26760,14 +26890,3 @@ msgstr[1] ""
 # sr_Latn]
 msgid "№"
 msgstr "№"
-
-msgid ""
-"A semantic view's provider query is produced when the chart runs and "
-"returned with its data."
-msgstr ""
-
-msgid "No provider query is available for this run."
-msgstr ""
-
-msgid "The provider query will be available after the chart runs."
-msgstr ""

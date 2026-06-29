@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -2422,12 +2422,6 @@ msgstr "A apărut o eroare la analizarea cheii."
 msgid "An error occurred while pruning logs "
 msgstr "A apărut o eroare la curățarea jurnalelor "
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
-# sr, sr_Latn]
-#, fuzzy
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "A apărut o eroare la reîmprospătarea schemei de configurare"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3435,6 +3429,9 @@ msgstr ""
 msgid "Cache Timeout (seconds)"
 msgstr "Expirare Cache (secunde)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -4370,6 +4367,9 @@ msgstr "Restrânge panoul de date"
 msgid "Collapse row"
 msgstr "Restrânge rând"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Restrânge setările"
 
@@ -5074,6 +5074,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nu s-a putut rezolva numele de gazdă: \"%(host)s\"."
@@ -5097,6 +5102,12 @@ msgstr "Numără"
 
 msgid "Country"
 msgstr "Țară"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Schemă Culori Țară"
@@ -6581,6 +6592,9 @@ msgstr "Dezactivează funcția drill to detail pentru această bază de date."
 
 msgid "Discard"
 msgstr "Renunță"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Nume Afișat"
@@ -8098,6 +8112,12 @@ msgstr "Eșuat la încărcarea datelor graficului."
 msgid "Failed to load columns for %s %s"
 msgstr "Încărcarea coloanelor pentru %s %s a eșuat"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8170,6 +8190,9 @@ msgstr "Eșuat la salvarea domeniului de aplicare a filtrării încrucișate"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Eșuat la salvarea setării filtrelor încrucișate"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Eșuat la setarea temei locale: Configurație JSON invalidă"
@@ -8332,6 +8355,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrează grafice"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filtrul are valoare implicită"
 
@@ -8375,6 +8404,10 @@ msgstr "Filtrează graficele tale"
 
 msgid "Filters"
 msgstr "Filtre"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
@@ -9246,11 +9279,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Include descriere de trimis cu %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Include numele seriei ca axă"
 
 msgid "Include time"
 msgstr "Include timpul"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Creștere"
@@ -9545,6 +9585,9 @@ msgstr "Tip rezultat invalid: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "rolling_type invalid: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Stare invalidă."
@@ -10214,6 +10257,9 @@ msgstr "Date încărcate cache-uite"
 
 msgid "Loaded from cache"
 msgstr "Încărcat din cache"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn, tr]
@@ -10906,6 +10952,9 @@ msgstr "Parametri URL lipsă"
 
 msgid "Mixed Chart"
 msgstr "Grafic Mixt"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Modificat"
@@ -11756,6 +11805,9 @@ msgstr "Unul sau mai mulți indicatori de afișat"
 
 msgid "One or more annotation layers failed loading."
 msgstr "Unul sau mai multe straturi de adnotare au eșuat la încărcare."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Una sau mai multe coloane există deja"
@@ -12709,6 +12761,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Previzualizare"
 
@@ -13122,6 +13179,9 @@ msgstr "Reîncarcă"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Reîncărcați SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13871,6 +13931,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Interogare SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Expresie SQL"
@@ -14856,6 +14921,9 @@ msgstr "Vizualizare semantică"
 msgid "Semantic Views"
 msgstr "Vizualizări semantice"
 
+msgid "Semantic cache"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -15409,6 +15477,9 @@ msgstr "Afișează rezumat"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "Afișează total"
 
@@ -15665,9 +15736,6 @@ msgstr ""
 "Ne pare rău, a apărut o eroare la preluarea informațiilor despre baza de "
 "date: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Ne pare rău, a apărut o eroare la preluarea graficelor salvate: "
-
 msgid "Sorry, An error occurred"
 msgstr "Ne pare rău, a apărut o eroare"
 
@@ -15682,6 +15750,9 @@ msgstr "Ne pare rău, ceva a mers greșit. Integrarea nu a putut fi dezactivată
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Ne pare rău, ceva a mers greșit. Vă rugăm să încercați din nou."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Ne pare rău, ceva a mers greșit. Încercați din nou mai târziu."
@@ -15921,6 +15992,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16671,6 +16747,10 @@ msgstr ""
 "Axa X nu este în lista de filtre, ceea ce va împiedica utilizarea ei în "
 "filtrele de interval de timp din panourile de control. Doriți să o "
 "adăugați în lista de filtre?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -17540,6 +17620,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "URL-ul serviciului stratului"
 
@@ -18240,6 +18335,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -19314,6 +19421,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Nu se poate calcula un astfel de delta de dată"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Nu se poate conecta la catalogul numit \"%(catalog_name)s\"."
@@ -19956,6 +20066,9 @@ msgstr "Format valoare"
 
 msgid "Value and Percentage"
 msgstr "Valoare și procentaj"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Limite valoare"
@@ -21296,6 +21409,9 @@ msgstr ""
 "Ați actualizat valorile din panoul de control, dar graficul nu a fost "
 "actualizat automat. Rulați interogarea făcând clic pe butonul "
 "\"Actualizează grafic\" sau"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]

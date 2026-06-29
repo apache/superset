@@ -46,7 +46,7 @@ jest.mock('./sections/BasicInfoSection', () => {
   return { __esModule: true, default: Deferred };
 });
 
-fetchMock.get('glob:*/api/v1/dashboard/26', {
+fetchMock.get('glob:*/api/v1/dashboard/26*', {
   body: {
     result: {
       id: 26,

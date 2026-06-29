@@ -18,58 +18,23 @@
  */
 import { renderHook, act } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import { createStore, AnyAction } from 'redux';
+import { createStore } from 'redux';
 import { ReactNode } from 'react';
 import { useAutoRefreshTabPause } from './useAutoRefreshTabPause';
-import {
-  AUTO_REFRESH_STATE_DEFAULTS,
-  AutoRefreshStatus,
-} from '../types/autoRefresh';
-import {
-  SET_AUTO_REFRESH_PAUSED_BY_TAB,
-  SET_AUTO_REFRESH_STATUS,
-} from '../actions/autoRefresh';
+import { useDashboardStateStore } from 'src/dashboard/stores';
+import { AUTO_REFRESH_STATE_DEFAULTS } from '../types/autoRefresh';
 
-// Helper to create mock Redux store with proper reducer
+// Auto-refresh state lives in the Zustand dashboard store; the Redux store
+// here is only Provider scaffolding for components still wrapped in Redux.
 const createMockStore = (overrides = {}) => {
-  const initialState = {
-    dashboardState: {
-      ...AUTO_REFRESH_STATE_DEFAULTS,
-      refreshFrequency: 5,
-      ...overrides,
-    },
-  };
-
-  const reducer = (
-    state = initialState,
-    action: AnyAction,
-  ): typeof initialState => {
-    switch (action.type) {
-      case SET_AUTO_REFRESH_PAUSED_BY_TAB:
-        return {
-          ...state,
-          dashboardState: {
-            ...state.dashboardState,
-            autoRefreshPausedByTab: action.isPausedByTab,
-          },
-        };
-      case SET_AUTO_REFRESH_STATUS:
-        return {
-          ...state,
-          dashboardState: {
-            ...state.dashboardState,
-            autoRefreshStatus: action.status as AutoRefreshStatus,
-          },
-        };
-      default:
-        return state;
-    }
-  };
-
-  return createStore(reducer);
+  useDashboardStateStore.setState({
+    ...AUTO_REFRESH_STATE_DEFAULTS,
+    refreshFrequency: 5,
+    ...overrides,
+  });
+  return createStore(state => state, {});
 };
 
-// Wrapper component for Redux
 const createWrapper = (store: ReturnType<typeof createMockStore>) =>
   function ReduxWrapper({ children }: { children: ReactNode }) {
     return <Provider store={store}>{children}</Provider>;

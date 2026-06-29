@@ -18,26 +18,22 @@
  */
 import { ReactElement, useCallback, memo, useMemo } from 'react';
 import { bindActionCreators } from 'redux';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { logEvent } from 'src/logger/actions';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { componentLookup } from 'src/dashboard/components/gridComponents';
 import getDetailedComponentWidth from 'src/dashboard/util/getDetailedComponentWidth';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
-import {
-  createComponent,
-  deleteComponent,
-  updateComponents,
-  handleComponentDrop,
-} from 'src/dashboard/actions/dashboardLayout';
-import {
-  setDirectPathToChild,
-  setActiveTab,
-  setFullSizeChartId,
-} from 'src/dashboard/actions/dashboardState';
+import { findTabsToRestore } from 'src/dashboard/util/findTabsToRestore';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
-import type { RootState, LayoutItem } from 'src/dashboard/types';
+import type { LayoutItem } from 'src/dashboard/types';
+import {
+  useDashboardStateStore,
+  useDashboardLayoutStore,
+  useDashboardInfoStore,
+} from 'src/dashboard/stores';
+import { useHandleComponentDrop } from 'src/dashboard/hooks/useHandleComponentDrop';
 
 interface DashboardComponentProps {
   id: string;
@@ -92,16 +88,10 @@ const DashboardComponent = (
   props: DashboardComponentProps,
 ): ReactElement | null => {
   const dispatch = useDispatch();
-  const dashboardLayout = useSelector(
-    (state: RootState) => state.dashboardLayout.present,
-  );
-  const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
-  const editMode = useSelector(
-    (state: RootState) => state.dashboardState.editMode,
-  );
-  const fullSizeChartId = useSelector(
-    (state: RootState) => state.dashboardState.fullSizeChartId,
-  );
+  const dashboardLayout = useDashboardLayoutStore(s => s.layout);
+  const dashboardInfo = useDashboardInfoStore(s => s.dashboardInfo);
+  const editMode = useDashboardStateStore(s => s.editMode);
+  const fullSizeChartId = useDashboardStateStore(s => s.fullSizeChartId);
   const dashboardId = dashboardInfo.id;
   const component = dashboardLayout[props.id];
   const parentComponent = dashboardLayout[props.parentId];
@@ -113,23 +103,44 @@ const DashboardComponent = (
   const filters = getActiveFilters();
   const embeddedMode = !dashboardInfo.userId;
 
+  const handleComponentDrop = useHandleComponentDrop();
+  const { createComponent, deleteComponent, updateComponents } =
+    useDashboardLayoutStore.getState();
+
   const boundActionCreators = useMemo(
     () =>
       bindActionCreators(
         {
           addDangerToast,
-          createComponent,
-          deleteComponent,
-          updateComponents,
-          handleComponentDrop,
-          setDirectPathToChild,
-          setFullSizeChartId,
-          setActiveTab,
           logEvent,
         },
         dispatch,
       ),
     [dispatch],
+  );
+  const { setDirectPathToChild } = useDashboardStateStore.getState();
+  // Tab navigation: compute the active/inactive tab sets (reading the layout +
+  // state stores) and apply them via the state store. Lives here rather than a
+  // store slice, since the layout store already imports the state store.
+  const setActiveTab = useCallback((tabId: string, prevTabId?: string) => {
+    const { activeTabs, inactiveTabs } = findTabsToRestore(
+      tabId,
+      prevTabId,
+      useDashboardStateStore.getState(),
+      useDashboardLayoutStore.getState().layout,
+    );
+    useDashboardStateStore
+      .getState()
+      .applyActiveTab(activeTabs, inactiveTabs, prevTabId);
+  }, []);
+  const layoutActions = useMemo(
+    () => ({
+      createComponent,
+      deleteComponent,
+      updateComponents,
+      handleComponentDrop,
+    }),
+    [createComponent, deleteComponent, updateComponents, handleComponentDrop],
   );
 
   // rows and columns need more data about their child dimensions
@@ -164,10 +175,15 @@ const DashboardComponent = (
   const ResolvedComponent = Component as React.ComponentType<
     Record<string, unknown>
   > | null;
+  const { setFullSizeChartId } = useDashboardStateStore.getState();
+
   return ResolvedComponent ? (
     <ResolvedComponent
       {...props}
       {...boundActionCreators}
+      {...layoutActions}
+      setActiveTab={setActiveTab}
+      setDirectPathToChild={setDirectPathToChild}
       component={component}
       getComponentById={getComponentById}
       parentComponent={parentComponent}
@@ -176,6 +192,7 @@ const DashboardComponent = (
       dashboardId={dashboardId}
       dashboardInfo={dashboardInfo}
       fullSizeChartId={fullSizeChartId}
+      setFullSizeChartId={setFullSizeChartId}
       occupiedColumnCount={occupiedColumnCount}
       minColumnWidth={minColumnWidth}
       isComponentVisible={isComponentVisible}

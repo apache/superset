@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-10 10:31+0100\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -146,7 +146,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr ""
 
@@ -166,7 +166,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr ""
 
@@ -174,7 +174,7 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr ""
 
@@ -5329,6 +5329,9 @@ msgstr ""
 msgid "Discard"
 msgstr ""
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr ""
 
@@ -6334,10 +6337,7 @@ msgstr ""
 msgid "Expired"
 msgstr ""
 
-msgid ""
-"Explicit formats validate all values against bundled boundaries. "
-"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
-"ambiguous values fail rather than displaying blank regions."
+msgid "Explicit formats validate all values against bundled boundaries. Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or ambiguous values fail rather than displaying blank regions."
 msgstr ""
 
 msgid "Explore"
@@ -6580,6 +6580,9 @@ msgstr ""
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -6648,6 +6651,9 @@ msgid "Failed to save cross-filter scoping"
 msgstr ""
 
 msgid "Failed to save cross-filters setting"
+msgstr ""
+
+msgid "Failed to save filter changes"
 msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
@@ -7513,10 +7519,6 @@ msgstr ""
 msgid "Inactive"
 msgstr ""
 
-#, python-format
-msgid "Incompatible filters (%d)"
-msgstr ""
-
 msgid "Include Series"
 msgstr ""
 
@@ -7543,6 +7545,10 @@ msgid "Include series name as an axis"
 msgstr ""
 
 msgid "Include time"
+msgstr ""
+
+#, python-format
+msgid "Incompatible filters (%d)"
 msgstr ""
 
 msgid "Increase"
@@ -12864,9 +12870,6 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr ""
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr ""
-
 msgid "Sorry, An error occurred"
 msgstr ""
 
@@ -12880,6 +12883,9 @@ msgid "Sorry, something went wrong. Embedding could not be deactivated."
 msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
+msgstr ""
+
+msgid "Sorry, something went wrong. The changes could not be saved."
 msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
@@ -15664,9 +15670,7 @@ msgstr ""
 msgid "Unpin from top"
 msgstr ""
 
-msgid ""
-"Unrecognized or duplicate country value; choose the matching country "
-"format or normalize source values before aggregation."
+msgid "Unrecognized or duplicate country value; choose the matching country format or normalize source values before aggregation."
 msgstr ""
 
 #, python-format
@@ -16944,6 +16948,9 @@ msgid "You need to"
 msgstr ""
 
 msgid "You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the \"Update chart\" button or"
+msgstr ""
+
+msgid "You will lose all changes since your last save. This cannot be undone."
 msgstr ""
 
 #, python-format

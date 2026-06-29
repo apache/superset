@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -2306,9 +2306,6 @@ msgstr "I puta he hapa i te poroporo o te kī."
 msgid "An error occurred while pruning logs "
 msgstr "I puta he hapa i te puretanga o ngā rārangi "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3327,6 +3324,9 @@ msgstr "Ehara i te kīanga SELECT te pātai CVAS (hanga tirohanga hei tīpako)."
 msgid "Cache Timeout (seconds)"
 msgstr "Wā Kore-mahi Keteroki (hēkona)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4281,6 +4281,9 @@ msgstr "Hīngonga papa raraunga"
 msgid "Collapse row"
 msgstr "Hīngonga rārangi"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Whakaiti tautuhinga"
 
@@ -4973,6 +4976,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Kāore i taea te whakaoti i te ingoa tūmau: \"%(host)s\"."
@@ -4996,6 +5004,12 @@ msgstr "Tatau"
 
 msgid "Country"
 msgstr "Whenua"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Kaupapa Tae Whenua"
@@ -6424,6 +6438,9 @@ msgstr ""
 
 msgid "Discard"
 msgstr "Whakarerea"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Ingoa Whakaatu"
@@ -7908,6 +7925,12 @@ msgstr "I rahua te uta i ngā raraunga kauwhata."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7983,6 +8006,9 @@ msgstr "I rahua te tiaki i te korahi tātari-whiti"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "I rahua te tiaki i te korahi tātari-whiti"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8157,6 +8183,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Tātari kauwhata"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "He uara taunoa tō te tātari"
 
@@ -8198,6 +8230,10 @@ msgstr "Tātari i ō kauwhata"
 
 msgid "Filters"
 msgstr "Tātari"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9073,11 +9109,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Whakauru whakamārama hei tuku me %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Whakauru ingoa raupapa hei tukutuku"
 
 msgid "Include time"
 msgstr "Whakauru wā"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Piki"
@@ -9359,6 +9402,9 @@ msgstr "Momo hua muhu: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Rolling_type muhu: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Tūnga muhu."
@@ -10018,6 +10064,9 @@ msgstr "Raraunga kua utaina i te keteroki"
 
 msgid "Loaded from cache"
 msgstr "Kua utaina mai i te keteroki"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Loading"
@@ -10697,6 +10746,9 @@ msgstr "Kei te ngaro ngā tawhā URL"
 
 msgid "Mixed Chart"
 msgstr "Kauwhata Whakananu"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Kua Whakarerekeahia"
@@ -11528,6 +11580,9 @@ msgstr "Ine kotahi, nui ake rānei hei whakaatu"
 
 msgid "One or more annotation layers failed loading."
 msgstr "I rahua te utanga o tētahi, nui ake rānei papa tohu."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Kua tīari kētia tētahi, nui ake rānei tīwae"
@@ -12477,6 +12532,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Arokite"
 
@@ -12896,6 +12956,9 @@ msgstr "Uta-anō"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Utahia anō te SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13629,6 +13692,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Pātai SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Kīanga SQL"
@@ -14603,6 +14671,9 @@ msgstr "Tirohanga Tikanga"
 msgid "Semantic Views"
 msgstr "Ngā Tirohanga Tikanga"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Papa tohu"
@@ -15143,6 +15214,9 @@ msgstr "Whakaatu whakarāpopototanga"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "Whakaatu tapeke"
 
@@ -15409,9 +15483,6 @@ msgstr ""
 "Aroha mai, i puta he hapa i te tikitanga o ngā mōhiohio pātengi raraunga:"
 " %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Aroha mai, i puta he hapa i te tikitanga o ngā kauwhata kua tiakina: "
-
 msgid "Sorry, An error occurred"
 msgstr "Aroha mai, I puta he hapa"
 
@@ -15426,6 +15497,9 @@ msgstr "Aroha mai, i hē tētahi mea. Kāore i taea te whakakore i te tāmau."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Aroha mai, i hē tētahi mea. Tēnā whakamātauhia anō."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Aroha mai, i hē tētahi mea. Whakamātauhia anō ā muri ake nei."
@@ -15671,6 +15745,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16390,6 +16469,10 @@ msgid ""
 msgstr ""
 "Kāore te tukutuku-X i runga i te rārangi tātari, ā, ka aukati tēnei i te "
 "whakamahitanga i ngā"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -17254,6 +17337,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "Te url ratonga o te papa"
 
@@ -17940,6 +18038,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -19013,6 +19123,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Kāore e taea te tatau i tētahi rerekētanga rā pēnei"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Kāore e taea te hono ki te kātaloka ko \"%(catalog_name)s\" te ingoa."
@@ -19657,6 +19770,9 @@ msgstr "Hōputu Uara"
 
 msgid "Value and Percentage"
 msgstr "Uara me te Ōrau"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Rohe uara"
@@ -20971,6 +21087,9 @@ msgstr ""
 "I whakahou koe i ngā uara i te papa whakahaere, engari kāore i "
 "whakahouhia aunoa te kauwhata. Whakahaere i te pātai mā te pāwhiri i te "
 "pātene \"Whakahou kauwhata\", "
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

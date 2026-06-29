@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -1345,6 +1345,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Skup podataka za ponovnu upotrebu biće sačuvan uz vaš grafikon."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -2671,9 +2676,6 @@ msgstr "Došlo je do greške prilikom analize ključa."
 msgid "An error occurred while pruning logs "
 msgstr "Došlo je do greške prilikom čišćenja dnevnika "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Došlo je do greške prilikom ažuriranja šeme konfiguracije"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3870,6 +3872,9 @@ msgstr "CVAS (create view as select) upit nije SELECT izjava."
 msgid "Cache Timeout (seconds)"
 msgstr "Istek keša (sekunde)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # ru, sk, uk]
 msgid ""
 "Cache data separately for each user based on their data access roles and "
@@ -4967,6 +4972,9 @@ msgstr "Skupi panel sa podacima"
 msgid "Collapse row"
 msgstr "Skupi red"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Skupi podešavanja"
 
@@ -5759,6 +5767,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
@@ -5786,6 +5799,12 @@ msgstr "Broj"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Country"
 msgstr "Država"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Country Color Scheme"
@@ -7500,6 +7519,9 @@ msgstr "Onemogućava funkciju prelaska na detalje za ovu bazu podataka."
 msgid "Discard"
 msgstr "Odbaci"
 
+msgid "Discard changes?"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Display Name"
 msgstr "Naziv za prikaz"
@@ -9206,6 +9228,12 @@ msgstr "Neuspelo učitavanje podataka grafikona."
 msgid "Failed to load columns for %s %s"
 msgstr "Neuspelo učitavanje kolona za %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -9280,6 +9308,9 @@ msgstr "Neuspelo čuvanje opsega ukrštenog filtera"
 # uk]
 msgid "Failed to save cross-filters setting"
 msgstr "Neuspelo čuvanje podešavanja ukrštenih filtera"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Failed to set local theme: Invalid JSON configuration"
@@ -9464,6 +9495,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtriraj grafikone"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Filter has default value"
 msgstr "Filter ima podrazumevanu vrednost"
@@ -9519,6 +9556,10 @@ msgstr "Filtrirajte svoje grafikone"
 # zh, zh_TW]
 msgid "Filters"
 msgstr "Filteri"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 # uk]
 msgid "Filters and controls"
@@ -10506,6 +10547,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Uključite opis koji će biti poslat sa %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Include series name as an axis"
 msgstr "Uključi naziv serije kao osu"
@@ -10513,6 +10557,10 @@ msgstr "Uključi naziv serije kao osu"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Include time"
 msgstr "Uključi vreme"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Increase"
@@ -10837,6 +10885,9 @@ msgstr "Nevažeći tip rezultata: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Nevažeći rolling_type: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Invalid state."
@@ -11608,6 +11659,9 @@ msgstr "Učitani podaci keširani"
 msgid "Loaded from cache"
 msgstr "Učitano iz keša"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "Učitavanje"
 
@@ -12376,6 +12430,9 @@ msgstr "Nedostaju URL parametri"
 msgid "Mixed Chart"
 msgstr "Mešoviti grafikon"
 
+msgid "Mixed cache"
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 msgid "Modified"
@@ -12910,6 +12967,9 @@ msgstr ""
 "Na ovu kontrolnu tablu trenutno nisu dodati nikakvi višeslojni deck.gl "
 "grafikoni."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "No records found"
@@ -13368,6 +13428,9 @@ msgstr "Jedna ili više metrika za prikaz"
 # ja, lv, mi, ru, sk, sl, uk]
 msgid "One or more annotation layers failed loading."
 msgstr "Učitavanje jednog ili više slojeva anotacija nije uspelo."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "One or more columns already exist"
@@ -14479,6 +14542,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Preview"
@@ -14978,6 +15046,9 @@ msgstr "Ponovo učitaj"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Ponovo učitaj SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -15821,6 +15892,11 @@ msgstr ""
 # zh_TW]
 msgid "SQL Query"
 msgstr "SQL upit"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "SQL expression"
@@ -16923,6 +16999,9 @@ msgstr "Semantički pogled"
 msgid "Semantic Views"
 msgstr "Semantički pogledi"
 
+msgid "Semantic cache"
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Semantički sloj"
 
@@ -17509,6 +17588,9 @@ msgstr "Prikaži sažetak"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Show total"
 msgstr "Prikaži ukupno"
@@ -17793,10 +17875,6 @@ msgstr ""
 "Žao nam je, došlo je do greške prilikom preuzimanja informacija o bazi "
 "podataka: %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, ru, sk, sl, uk, zh, zh_TW]
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Žao nam je, došlo je do greške prilikom preuzimanja sačuvanih grafikona: "
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, An error occurred"
 msgstr "Žao nam je, došlo je do greške"
@@ -17816,6 +17894,9 @@ msgstr "Žao nam je, došlo je do greške. Ugrađivanje nije moglo biti deaktivi
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Žao nam je, došlo je do greške. Pokušajte ponovo."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, something went wrong. Try again later."
@@ -18104,6 +18185,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18926,6 +19012,10 @@ msgstr ""
 " vremenskog opsega u kontrolnim tablama. Želite li da je dodate na listu "
 "filtera?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -19662,6 +19752,9 @@ msgstr "Primarna metrika se koristi za definisanje veličina segmenata luka"
 msgid "The provided table was not found in the provided database"
 msgstr "Navedena tabela nije pronađena u navedenoj bazi podataka"
 
+msgid "The provider query will be available after the chart runs."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The query associated with the results was deleted."
 msgstr "Upit povezan sa rezultatima je obrisan."
@@ -19865,6 +19958,21 @@ msgstr "Snimak ekrana se generiše. Molimo nemojte napuštati stranicu."
 msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 # ja, lv, mi, ru, sk, uk]
@@ -20628,6 +20736,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -21797,6 +21917,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Nije moguće izračunati takvu razliku u datumima"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
@@ -22501,6 +22624,9 @@ msgstr "Format vrednosti"
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Value and Percentage"
 msgstr "Vrednost i procenat"
+
+msgid "Value axis labels"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Value bounds"
@@ -24035,6 +24161,9 @@ msgstr ""
 "Ažurirali ste vrednosti na kontrolnoj tabli, ali grafikon nije automatski"
 " ažuriran. Pokrenite upit klikom na dugme „Ažuriraj grafikon” ili"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 #, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
@@ -25487,14 +25616,3 @@ msgstr[2] ""
 
 msgid "№"
 msgstr "№"
-
-msgid ""
-"A semantic view's provider query is produced when the chart runs and "
-"returned with its data."
-msgstr ""
-
-msgid "No provider query is available for this run."
-msgstr ""
-
-msgid "The provider query will be available after the chart runs."
-msgstr ""

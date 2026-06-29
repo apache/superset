@@ -17,26 +17,23 @@
  * under the License.
  */
 import { renderHook } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
-import { createElement } from 'react';
-import type { ReactNode } from 'react';
 import type {
   DataMaskStateWithId,
   QueryObjectFilterClause,
 } from '@superset-ui/core';
+import { useNativeFiltersStore, type FilterEntry } from 'src/dashboard/stores';
 import {
   FilterConfigMap,
   resolveTransitiveParentIds,
 } from '../../dependencyGraph';
 import { useFilterDependencies, useTransitiveParentIds } from './state';
 
-const mockStore = configureStore([]);
-
-const buildWrapper = (filters: FilterConfigMap) => {
-  const store = mockStore({ nativeFilters: { filters } });
-  return ({ children }: { children: ReactNode }) =>
-    createElement(Provider, { store }, children);
+// The dependency hooks read the filter config from the native-filters Zustand
+// store; seed it before each renderHook call.
+const seedFilters = (filters: FilterConfigMap) => {
+  useNativeFiltersStore.setState({
+    filters: filters as unknown as Record<string, FilterEntry>,
+  });
 };
 
 test('resolveTransitiveParentIds returns empty for a filter with no parents', () => {
@@ -97,13 +94,13 @@ test('resolveTransitiveParentIds tolerates missing filter entries', () => {
   ).toEqual(['Y']);
 });
 
-test('useTransitiveParentIds reads filter config from redux', () => {
-  const wrapper = buildWrapper({
+test('useTransitiveParentIds reads filter config from the store', () => {
+  seedFilters({
     A: { cascadeParentIds: [] },
     B: { cascadeParentIds: ['A'] },
     C: { cascadeParentIds: ['B'] },
   });
-  const { result } = renderHook(() => useTransitiveParentIds('C'), { wrapper });
+  const { result } = renderHook(() => useTransitiveParentIds('C'));
   expect(result.current).toEqual(['A', 'B']);
 });
 
@@ -111,7 +108,7 @@ test('useFilterDependencies merges extraFormData across the full chain', () => {
   // Regression test for sc-102912: a chain A -> B -> C -> D where each level
   // only lists its direct parent must still produce extra_form_data that
   // includes clauses from every ancestor, not just the closest parent.
-  const wrapper = buildWrapper({
+  seedFilters({
     A: { cascadeParentIds: [] },
     B: { cascadeParentIds: ['A'] },
     C: { cascadeParentIds: ['B'] },
@@ -131,9 +128,8 @@ test('useFilterDependencies merges extraFormData across the full chain', () => {
       extraFormData: { filters: [{ col: 'state', op: 'IN', val: ['CA'] }] },
     },
   };
-  const { result } = renderHook(
-    () => useFilterDependencies('D', dataMaskSelected),
-    { wrapper },
+  const { result } = renderHook(() =>
+    useFilterDependencies('D', dataMaskSelected),
   );
   const cols = (
     (result.current.filters ?? []) as QueryObjectFilterClause[]
@@ -147,7 +143,7 @@ test('useFilterDependencies lets the closest ancestor override scalar fields', (
   // `mergeExtraFormData` appends filter arrays but overrides scalar fields
   // like `time_range`. Topological order must put the closest parent last so
   // its scalar overrides win over further ancestors.
-  const wrapper = buildWrapper({
+  seedFilters({
     A: { cascadeParentIds: [] },
     B: { cascadeParentIds: ['A'] },
     C: { cascadeParentIds: ['B'] },
@@ -162,21 +158,18 @@ test('useFilterDependencies lets the closest ancestor override scalar fields', (
       extraFormData: { time_range: 'Last month' },
     },
   };
-  const { result } = renderHook(
-    () => useFilterDependencies('C', dataMaskSelected),
-    { wrapper },
+  const { result } = renderHook(() =>
+    useFilterDependencies('C', dataMaskSelected),
   );
   // B is C's closest ancestor with a time_range, so it should win over A.
   expect(result.current.time_range).toBe('Last month');
 });
 
 test('useFilterDependencies returns empty object when parent state is missing', () => {
-  const wrapper = buildWrapper({
+  seedFilters({
     A: { cascadeParentIds: [] },
     B: { cascadeParentIds: ['A'] },
   });
-  const { result } = renderHook(() => useFilterDependencies('B', {}), {
-    wrapper,
-  });
+  const { result } = renderHook(() => useFilterDependencies('B', {}));
   expect(result.current).toEqual({});
 });

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -2401,10 +2401,6 @@ msgstr "Wystąpił błąd podczas analizowania klucza."
 msgid "An error occurred while pruning logs "
 msgstr "Wystąpił błąd podczas czyszczenia dzienników."
 
-#, fuzzy
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Wystąpił błąd podczas usuwania wartości."
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3446,6 +3442,9 @@ msgstr "Zapytanie CVAS (create view as select) nie jest poleceniem SELECT."
 msgid "Cache Timeout (seconds)"
 msgstr "Limit czasu pamięci podręcznej (w sekundach)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4427,6 +4426,9 @@ msgstr "Zwiń panel danych"
 msgid "Collapse row"
 msgstr "Zwiń wiersz"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Zwiń ustawienia"
 
@@ -5174,6 +5176,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nie udało się rozpoznać nazwy hosta: \"%(host)s\"."
@@ -5202,6 +5209,12 @@ msgstr "Liczba"
 #, fuzzy
 msgid "Country"
 msgstr "Kraj"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 #, fuzzy
 msgid "Country Color Scheme"
@@ -6728,6 +6741,9 @@ msgstr "Wyłącza funkcję przechodzenia do szczegółów dla tej bazy danych."
 #, fuzzy
 msgid "Discard"
 msgstr "Odrzuć"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Nazwa wyświetlana"
@@ -8314,6 +8330,12 @@ msgstr "Nie udało się załadować danych wykresu."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8389,6 +8411,9 @@ msgstr "Nie udało się zapisać zakresu filtrów krzyżowych"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Nie udało się zapisać zakresu filtrów krzyżowych"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8573,6 +8598,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtruj wykresy"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filtr ma wartość domyślną"
 
@@ -8615,6 +8646,10 @@ msgstr "Filtruj swoje wykresy"
 
 msgid "Filters"
 msgstr "Filtry"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9546,12 +9581,19 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Dołącz opis, który zostanie wysłany z %s."
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Uwzględnij nazwę serii jako oś"
 
 #, fuzzy
 msgid "Include time"
 msgstr "Uwzględnij czas"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 #, fuzzy
 msgid "Increase"
@@ -9842,6 +9884,9 @@ msgstr "Nieprawidłowy typ wyniku: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Nieprawidłowy rolling_type: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Nieprawidłowy stan."
@@ -10520,6 +10565,9 @@ msgstr "Załadowane dane zapisane w pamięci podręcznej"
 
 msgid "Loaded from cache"
 msgstr "Załadowane z pamięci podręcznej"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Loading"
@@ -11232,6 +11280,9 @@ msgstr "Brakujące parametry URL"
 
 msgid "Mixed Chart"
 msgstr "Wykres mieszany"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Zmodyfikowany"
@@ -12099,6 +12150,9 @@ msgstr "Jedna lub wiele miar do wyświetlenia"
 #, fuzzy
 msgid "One or more annotation layers failed loading."
 msgstr "Nie udało się załadować jednej lub więcej warstw adnotacji."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Jedna lub więcej kolumn już istnieje"
@@ -13099,6 +13153,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Podgląd"
 
@@ -13551,6 +13610,9 @@ msgstr "Przeładuj"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Przeładuj SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -14325,6 +14387,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Zapytanie SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Wyrażenie SQL"
@@ -15359,6 +15426,9 @@ msgstr "Widok semantyczny"
 msgid "Semantic Views"
 msgstr "Widoki semantyczne"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Warstwa adnotacji"
@@ -15936,6 +16006,9 @@ msgstr "Pokaż podsumowanie"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "Pokaż sumę całkowitą"
@@ -16214,9 +16287,6 @@ msgstr ""
 "Przepraszamy, wystąpił błąd podczas pobierania informacji o bazie danych:"
 " %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Przepraszamy, wystąpił błąd podczas pobierania zapisanych wykresów:"
-
 msgid "Sorry, An error occurred"
 msgstr "Przepraszamy, wystąpił błąd"
 
@@ -16235,6 +16305,9 @@ msgstr "Przepraszamy, wystąpił problem. Osadzenie nie mogło zostać dezaktywo
 #, fuzzy
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Coś poszło nie tak. Spróbuj ponownie."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Coś poszło nie tak. Spróbuj ponownie później."
@@ -16498,6 +16571,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -17265,6 +17343,10 @@ msgstr ""
 "Oś X nie znajduje się na liście filtrów, co uniemożliwi jej użycie w "
 "filtrach zakresu czasu na pulpitach nawigacyjnych. Czy chcesz dodać ją do"
 " listy filtrów?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -18167,6 +18249,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "Pokaż wartości serii na wykresie"
@@ -18885,6 +18982,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -20010,6 +20119,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Nie można obliczyć takiego delta daty"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Nie można połączyć się z katalogiem o nazwie \"%(catalog_name)s\"."
@@ -20681,6 +20793,9 @@ msgstr "Format wartości"
 #, fuzzy
 msgid "Value and Percentage"
 msgstr "Wartość i procent"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Granice wartości"
@@ -22043,6 +22158,9 @@ msgstr ""
 "Zaktualizowałeś wartości w panelu sterowania, ale wykres nie został "
 "zaktualizowany automatycznie. Uruchom zapytanie, klikając przycisk "
 "„Zaktualizuj wykres” lub"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

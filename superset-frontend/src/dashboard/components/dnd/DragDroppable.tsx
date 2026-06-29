@@ -193,7 +193,7 @@ export class UnwrappedDragDroppable extends PureComponent<
       onDragTab,
     } = this.props;
     const { dropIndicator } = this.state;
-    const isTabsType = component.type === TAB_TYPE;
+    const isTabsType = component?.type === TAB_TYPE;
     const validStateChange =
       dropIndicator !== prevState.dropIndicator ||
       isDraggingOver !== prevProps.isDraggingOver ||
@@ -257,7 +257,7 @@ export class UnwrappedDragDroppable extends PureComponent<
         : null;
 
     const draggingTabOnTab =
-      component.type === TAB_TYPE && dragComponentType === TAB_TYPE;
+      component?.type === TAB_TYPE && dragComponentType === TAB_TYPE;
 
     const childProps: ChildProps = editMode
       ? {

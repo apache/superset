@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -2232,9 +2232,6 @@ msgstr "திறவுகோலை (key) பாகுபடுத்தும�
 msgid "An error occurred while pruning logs "
 msgstr "பதிவுகளை (logs) நீக்கும்போது ஒரு பிழை ஏற்பட்டது "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3190,6 +3187,9 @@ msgstr "CVAS வினவல் ஒரு SELECT கூற்று அல்ல
 msgid "Cache Timeout (seconds)"
 msgstr "கேச் (Cache) காலாவதி நேரம் (விநாடிகள்)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -4090,6 +4090,9 @@ msgstr "தரவுப் பலகத்தைச் சுருக்கு"
 msgid "Collapse row"
 msgstr "வரிசையைச் சுருக்கு"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "அமைப்புகளைச் சுருக்கு"
 
@@ -4756,6 +4759,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "\"%(host)s\" ஹோஸ்ட் பெயரைத் தீர்க்க முடியவில்லை."
@@ -4779,6 +4787,12 @@ msgstr "எண்ணிக்கை (Count)"
 
 msgid "Country"
 msgstr "நாடு"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "நாட்டின் வண்ணத் திட்டம்"
@@ -6123,6 +6137,9 @@ msgstr "இந்தத் தரவுத்தளத்திற்கான �
 
 msgid "Discard"
 msgstr "கைவிடு (Discard)"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "காட்சிப் பெயர்"
@@ -7520,6 +7537,12 @@ msgstr "சார்ட் தரவை ஏற்றுவதில் தோல
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7587,6 +7610,9 @@ msgstr "கிராஸ்-ஃபில்டர் ஸ்கோப்பிங�
 
 msgid "Failed to save cross-filters setting"
 msgstr "கிராஸ்-ஃபில்டர் அமைப்பைச் சேமிப்பதில் தோல்வி"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "உள்ளூர் தீமை அமைப்பதில் தோல்வி: தவறான JSON உள்ளமைவு"
@@ -7738,6 +7764,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "சார்ட்டுகளை வடிகட்டு"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "வடிகட்டி இயல்புநிலை மதிப்பைக் கொண்டுள்ளது"
 
@@ -7779,6 +7811,10 @@ msgstr "உங்கள் சார்ட்டுகளை வடிகட்�
 
 msgid "Filters"
 msgstr "வடிகட்டிகள்"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "வடிகட்டிகள் மற்றும் கட்டுப்பாடுகள்"
@@ -8572,11 +8608,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "%s உடன் அனுப்பப்பட வேண்டிய விளக்கத்தைச் சேர்க்கவும்"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "தொடரின் பெயரை ஒரு அச்சாகச் சேர்"
 
 msgid "Include time"
 msgstr "நேரத்தைச் சேர்"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "அதிகரிப்பு"
@@ -8834,6 +8877,9 @@ msgstr "தவறான முடிவு வகை: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "தவறான rolling_type: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "தவறான நிலை."
@@ -9452,6 +9498,9 @@ msgstr "ஏற்றப்பட்ட தரவு கேச் (cache) செ�
 msgid "Loaded from cache"
 msgstr "கேச் (cache)-லிருந்து ஏற்றப்பட்டது"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "ஏற்றுகிறது..."
@@ -10062,6 +10111,9 @@ msgstr "URL அளவுருக்கள் இல்லை"
 
 msgid "Mixed Chart"
 msgstr "கலப்பு சார்ட் (Mixed Chart)"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "மாற்றப்பட்டது"
@@ -10842,6 +10894,9 @@ msgstr "காட்டப்பட வேண்டிய ஒன்று அல
 
 msgid "One or more annotation layers failed loading."
 msgstr "ஒன்று அல்லது அதற்கு மேற்பட்ட குறிப்பு அடுக்குகள் ஏற்றப்பட முடியவில்லை."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "ஒன்று அல்லது அதற்கு மேற்பட்ட நெடுவரிசைகள் ஏற்கனவே உள்ளன"
@@ -11717,6 +11772,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "முன்னோட்டம்"
 
@@ -12109,6 +12169,9 @@ msgstr "மீண்டும் ஏற்று (Reload)"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL லேப்"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -12787,6 +12850,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL வினவல்"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL கோவை (expression)"
@@ -13651,6 +13719,9 @@ msgstr ""
 msgid "Semantic Views"
 msgstr ""
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "சிறுகுறிப்பு அடுக்கு"
@@ -14148,6 +14219,9 @@ msgstr "சுருக்கத்தைக் காண்பி"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "மொத்தத்தைக் காண்பி"
 
@@ -14385,9 +14459,6 @@ msgstr "ஏதோ தவறு நிகழ்ந்துவிட்டது.
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "மன்னிக்கவும், தரவுத்தளத் தகவலைப் பெறுவதில் பிழை ஏற்பட்டது: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "மன்னிக்கவும், சேமிக்கப்பட்ட சார்ட்டுகளைப் பெறுவதில் பிழை ஏற்பட்டது: "
-
 msgid "Sorry, An error occurred"
 msgstr "மன்னிக்கவும், ஒரு பிழை ஏற்பட்டது"
 
@@ -14404,6 +14475,9 @@ msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "மன்னிக்கவும், ஏதோ தவறு நடந்துவிட்டது. மீண்டும் முயற்சிக்கவும்."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr ""
@@ -14630,6 +14704,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -15280,6 +15359,10 @@ msgid ""
 msgstr ""
 "X-அச்சு வடிகட்டி பட்டியலில் இல்லை. நேர வரம்பு வடிகட்டிகளில் பயன்படுத்த "
 "அதைச் சேர்க்க விரும்புகிறீர்களா?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -16028,6 +16111,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "அடுக்கின் சேவை URL"
 
@@ -16650,6 +16748,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -17592,6 +17702,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "அத்தகைய தேதி வித்தியாசத்தைக் கணக்கிட முடியவில்லை"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "\"%(catalog_name)s\" என்ற பெயருடைய பட்டியலுடன் இணைக்க முடியவில்லை."
@@ -18152,6 +18265,9 @@ msgstr "மதிப்பு வடிவம்"
 
 msgid "Value and Percentage"
 msgstr "மதிப்பு மற்றும் சதவீதம்"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "மதிப்பு எல்லைகள்"
@@ -19411,6 +19527,9 @@ msgid ""
 msgstr ""
 "நீங்கள் கட்டுப்பாட்டு பலகத்தில் மதிப்புகளைப் புதுப்பித்துள்ளீர்கள், ஆனால்"
 " சார்ட் தானாகப் புதுப்பிக்கப்படவில்லை."
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 #, python-format
 msgid ""

@@ -23,6 +23,7 @@ import { styled } from '@apache-superset/core/theme';
 import { Input } from '@superset-ui/core/components';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import { RootState } from 'src/dashboard/types';
+import { useConfiguredAutoRefreshIntervals } from 'src/dashboard/stores';
 
 // Minimum custom refresh interval in seconds
 export const MINIMUM_REFRESH_INTERVAL = 1;
@@ -166,14 +167,14 @@ export const RefreshFrequencySelect = ({
   value,
   onChange,
 }: RefreshFrequencySelectProps) => {
-  const configuredIntervals = useSelector(
-    (state: RootState) =>
-      // The select also mounts from the Dashboard List / Home pages, where no
-      // dashboard has been hydrated yet; the bootstrapped store carries the
-      // same config there.
-      state.dashboardInfo?.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS ??
-      state.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
+  const hydratedIntervals = useConfiguredAutoRefreshIntervals();
+  // The select also mounts from the Dashboard List / Home pages, where no
+  // dashboard has been hydrated yet; the bootstrapped Redux store carries the
+  // same config there.
+  const bootstrappedIntervals = useSelector(
+    (state: RootState) => state.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
   );
+  const configuredIntervals = hydratedIntervals ?? bootstrappedIntervals;
   const options = useMemo(
     () => getRefreshFrequencyOptions(configuredIntervals),
     [configuredIntervals],

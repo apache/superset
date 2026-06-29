@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -2072,9 +2072,6 @@ msgstr "キーの解析中にエラーが発生しました。"
 msgid "An error occurred while pruning logs "
 msgstr "ログの削除(プルーニング)中にエラーが発生しました "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "構成スキーマの更新中にエラーが発生しました"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -2959,6 +2956,9 @@ msgstr "CVAS (CREATE VIEW AS SELECT) クエリがSELECTステートメントで�
 msgid "Cache Timeout (seconds)"
 msgstr "キャッシュの有効期限 (秒)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -3792,6 +3792,9 @@ msgstr "データパネルを閉じる"
 msgid "Collapse row"
 msgstr "行を折りたたむ"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "設定を折りたたむ"
 
@@ -4417,6 +4420,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "ホスト名「%(host)s」を解決できませんでした。"
@@ -4440,6 +4448,12 @@ msgstr "カウント (件数)"
 
 msgid "Country"
 msgstr "国"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "国別の配色"
@@ -5688,6 +5702,9 @@ msgstr "このデータベースの詳細表示(ドリルスルー)機能を無�
 
 msgid "Discard"
 msgstr "破棄"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "表示名"
@@ -7004,6 +7021,12 @@ msgstr "チャートデータの読み込みに失敗しました。"
 msgid "Failed to load columns for %s %s"
 msgstr "%s %s の列情報の読み込みに失敗しました"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7070,6 +7093,9 @@ msgstr "クロスフィルターの適用範囲保存に失敗しました"
 
 msgid "Failed to save cross-filters setting"
 msgstr "クロスフィルター設定の保存に失敗しました"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "ローカルテーマの設定に失敗しました: JSON設定が無効です"
@@ -7216,6 +7242,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "チャートをフィルター"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "フィルターに既定値あり"
 
@@ -7254,6 +7286,10 @@ msgstr "チャートを絞り込む"
 
 msgid "Filters"
 msgstr "フィルター"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "フィルターとコントロール"
@@ -8003,11 +8039,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "%s と一緒に送信する説明文を含める"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "系列名を軸として含める"
 
 msgid "Include time"
 msgstr "時間を含める"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "増加"
@@ -8263,6 +8306,9 @@ msgstr "結果種類が無効です: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "無効なローリング種類: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "無効な状態です。"
@@ -8870,6 +8916,9 @@ msgstr "読み込まれたデータがキャッシュされました"
 msgid "Loaded from cache"
 msgstr "キャッシュから読み込みました"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "読み込み中..."
 
@@ -9467,6 +9516,9 @@ msgstr "URLパラメータがありません"
 
 msgid "Mixed Chart"
 msgstr "混合チャート"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "更新日"
@@ -10234,6 +10286,9 @@ msgstr "表示する1つまたは複数のメトリック"
 
 msgid "One or more annotation layers failed loading."
 msgstr "1つ以上の注釈レイヤーの読み込みに失敗しました。"
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "1つ以上の列が既に存在します"
@@ -11075,6 +11130,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "プレビュー"
 
@@ -11462,6 +11522,9 @@ msgstr "再読み込み"
 
 msgid "Reload SQL Lab"
 msgstr "SQL Labを再読み込み"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -12139,6 +12202,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQLクエリ"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL式"
@@ -12963,6 +13031,9 @@ msgstr "セマンティックビュー"
 msgid "Semantic Views"
 msgstr "セマンティックビュー"
 
+msgid "Semantic cache"
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "セマンティックレイヤー"
 
@@ -13425,6 +13496,9 @@ msgstr "合計を表示"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "合計を表示"
 
@@ -13645,9 +13719,6 @@ msgstr "問題が発生しました。"
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "申し訳ありません、データベース情報の取得中にエラーが発生しました: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "申し訳ありません、保存済みチャートの取得中にエラーが発生しました:"
-
 msgid "Sorry, An error occurred"
 msgstr "申し訳ありません、エラーが発生しました"
 
@@ -13662,6 +13733,9 @@ msgstr "申し訳ありません、問題が発生しました。埋め込みを
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "申し訳ありません、問題が発生しました。もう一度試してください。"
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "申し訳ありません、問題が発生しました。後でもう一度試してください。"
@@ -13880,6 +13954,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -14511,6 +14590,10 @@ msgid ""
 "used in time range filters in dashboards. Would you like to add it to the"
 " filters list?"
 msgstr "X軸がフィルターリストに含まれていないため、ダッシュボードの時間範囲フィルターで使用できません。フィルターリストに追加しますか？"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -15217,6 +15300,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "レイヤーのサービスURL"
 
@@ -15812,6 +15910,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -16697,6 +16807,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "指定された期間差を計算できません"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "カタログ「%(catalog_name)s」に接続できません。"
@@ -17238,6 +17351,9 @@ msgstr "値の形式"
 
 msgid "Value and Percentage"
 msgstr "値とパーセンテージ"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "値の境界"
@@ -18376,6 +18492,9 @@ msgid ""
 "updated automatically. Run the query by clicking on the \"Update chart\" "
 "button or"
 msgstr "コントロールパネルの値を更新しましたが、チャートには自動反映されていません。「チャートを更新」ボタンをクリックするか、以下を実行してください"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 #, python-format
 msgid ""

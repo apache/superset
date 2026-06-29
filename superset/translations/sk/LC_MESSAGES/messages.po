@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -2284,9 +2284,6 @@ msgstr "Pri parsovanie klíče došlo k chybe."
 msgid "An error occurred while pruning logs "
 msgstr "Pri mazaní protokolov došlo k chybe "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3270,6 +3267,9 @@ msgstr "Dotaz CVAS (create view as select) nie je príkazom SELECT."
 msgid "Cache Timeout (seconds)"
 msgstr "Časový limit mezipameti (sekundy)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -4171,6 +4171,9 @@ msgstr "Sbalit dátový panel"
 msgid "Collapse row"
 msgstr "Sbalit riadok"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Zbaliť nastavenie"
 
@@ -4848,6 +4851,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nemožno preložiť názov hostitele: „%(host)s“."
@@ -4871,6 +4879,12 @@ msgstr "Počet"
 
 msgid "Country"
 msgstr "Zeme"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Barevné schéma zeme"
@@ -6287,6 +6301,9 @@ msgstr "Zakáže funkciu prechodu na detail pre tuto databázy."
 
 msgid "Discard"
 msgstr "Zahodit"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Zobrazované meno"
@@ -7731,6 +7748,12 @@ msgstr "Nepodarilo sa načítať data grafu."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7801,6 +7824,9 @@ msgstr "Nepodarilo sa uložiť rozsah krížového filtrovanie"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Nepodarilo sa uložiť nastavenie krížových filtrov"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Nepodarilo sa nastaviť místní téma: Neplatná konfigurácia JSON"
@@ -7953,6 +7979,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrovať grafy"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filter má predvolený hodnotu"
 
@@ -7994,6 +8026,10 @@ msgstr "Filtrujte svoje grafy"
 
 msgid "Filters"
 msgstr "Filtre"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -8817,11 +8853,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Zahrnúť popis, ktorý bude odeslán s %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Zahrnúť názov série ako osu"
 
 msgid "Include time"
 msgstr "Zahrnúť čas"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Zvýšit"
@@ -9096,6 +9139,9 @@ msgstr "Neplatný typ výsledku: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Neplatný rolling_type: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Neplatný stav."
@@ -9741,6 +9787,9 @@ msgstr "Načtená data uložena do mezipameti"
 
 msgid "Loaded from cache"
 msgstr "Načteno z mezipameti"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Loading"
@@ -10402,6 +10451,9 @@ msgstr "Chybí parametre URL"
 
 msgid "Mixed Chart"
 msgstr "Smíšený graf"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Zmenené"
@@ -11228,6 +11280,9 @@ msgstr "Jedna alebo viac metrik k zobrazenie"
 
 msgid "One or more annotation layers failed loading."
 msgstr "Načítavanie jedné alebo viac vrstev anotací zlyhalo."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Jeden alebo viac stĺpcov již existuje"
@@ -12160,6 +12215,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Náhľad"
 
@@ -12567,6 +12627,9 @@ msgstr "Znovu načítať"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Znovu načítať SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13287,6 +13350,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL dotaz"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL výraz"
@@ -14221,6 +14289,9 @@ msgstr "Sémantický pohľad"
 msgid "Semantic Views"
 msgstr "Sémantické pohľady"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Vrstva anotací"
@@ -14734,6 +14805,9 @@ msgstr "Zobraziť souhrn"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "Zobraziť celkovo"
 
@@ -14989,9 +15063,6 @@ msgstr "Niečo sa pokazilo."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Omlouváme se, pri načítavanie informací o databázy došlo k chybe: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Omlouváme se, pri načítavanie uložených grafů došlo k chybe: "
-
 msgid "Sorry, An error occurred"
 msgstr "Omlouváme se, došlo k chybe"
 
@@ -15006,6 +15077,9 @@ msgstr "Omlouváme se, niečo sa pokazilo. Vkládanie sa nepodarilo deaktivovať
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Omlouváme se, niečo sa pokazilo. Skúste to prosím znovu."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Omlouváme se, niečo sa pokazilo. Skúste to znovu neskôr."
@@ -15243,6 +15317,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -15941,6 +16020,10 @@ msgstr ""
 "Osa X nie je na zozname filtrov, což zabranie jejímu použití v\n"
 "            filtrech časového rozsahu na nástenkách. Chcete ji pridať do "
 "zozname filtrov?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -16772,6 +16855,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "URL služby vrstvy"
 
@@ -17440,6 +17538,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -18461,6 +18571,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Nemožno vypočítať takovou časovou deltu"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Nemožno sa pripojiť ke katalogu s názvom „%(catalog_name)s“."
@@ -19078,6 +19191,9 @@ msgstr "Formát hodnoty"
 
 msgid "Value and Percentage"
 msgstr "Hodnota a procento"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Hranica hodnoty"
@@ -20363,6 +20479,9 @@ msgstr ""
 "Aktualizovali jste hodnoty v ovládacím panelu, ale graf sa automaticky "
 "neaktualizoval. Spusťte dotaz kliknutiem na tlačidlo „Aktualizovať graf“ "
 "alebo"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -2480,9 +2480,6 @@ msgstr "حدث خطأ أثناء تحليل المفتاح."
 msgid "An error occurred while pruning logs "
 msgstr "حدث خطأ أثناء تقليم السجلات "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3518,6 +3515,9 @@ msgstr "استعلام CVAS (إنشاء طريقة عرض كتحديد) ليس �
 msgid "Cache Timeout (seconds)"
 msgstr "مهلة ذاكرة التخزين المؤقت (بالثواني)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4488,6 +4488,9 @@ msgstr "طي لوحة البيانات"
 msgid "Collapse row"
 msgstr "طي الصف"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "طي الإعدادات"
 
@@ -5207,6 +5210,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "تعذر حل اسم المضيف: \"%(host)s\"."
@@ -5233,6 +5241,12 @@ msgstr "عد"
 
 msgid "Country"
 msgstr "بلد"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "نظام ألوان البلد"
@@ -6748,6 +6762,9 @@ msgstr "لم يتم إرجاع أي عينات لمجموعة البيانات �
 
 msgid "Discard"
 msgstr "تجاهل"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "اسم العرض"
@@ -8316,6 +8333,12 @@ msgstr "فشل تحميل بيانات المخطط."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8389,6 +8412,9 @@ msgstr "فشلت عملية حفظ تحديد نطاق عوامل التصفية
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "فشلت عملية حفظ تحديد نطاق عوامل التصفية المشتركة"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8568,6 +8594,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "مخططات التصفية"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "يحتوي عامل التصفية على قيمة افتراضية"
 
@@ -8609,6 +8641,10 @@ msgstr "تصفية الرسوم البيانية الخاصة بك"
 
 msgid "Filters"
 msgstr "مرشحات"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9496,11 +9532,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr ""
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "قم بتضمين اسم السلسلة كمحور"
 
 msgid "Include time"
 msgstr "قم بتضمين الوقت"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "زيادة"
@@ -9793,6 +9836,9 @@ msgstr "نوع نتيجة غير صالح: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "نوع التدوير غير صالح: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "حالة غير صالحة."
@@ -10471,6 +10517,9 @@ msgstr "تم تخزين البيانات المحملة مؤقتًا"
 
 msgid "Loaded from cache"
 msgstr "تم تحميله من ذاكرة التخزين المؤقت"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Loading"
@@ -11184,6 +11233,9 @@ msgstr "معلمات URL المفقودة"
 
 msgid "Mixed Chart"
 msgstr "مخطط مختلط"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "تم التعديل"
@@ -12040,6 +12092,9 @@ msgstr "مقياس واحد أو عدة مقاييس لعرضها"
 #, fuzzy
 msgid "One or more annotation layers failed loading."
 msgstr "فشلت طبقة أخرى من التعليقات التوضيحية في التحميل."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "عمود واحد أو أكثر موجود بالفعل"
@@ -13019,6 +13074,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "استطلاع"
 
@@ -13447,6 +13507,9 @@ msgstr "إعادة تحميل"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "إعادة تحميل SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -14202,6 +14265,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "استعلام SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "تعبير SQL"
@@ -15192,6 +15260,9 @@ msgstr "العرض الدلالي"
 msgid "Semantic Views"
 msgstr "العروض الدلالية"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "طبقة التعليقات التوضيحية"
@@ -15744,6 +15815,9 @@ msgstr "عرض الملخص"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "عرض الإجمالي"
@@ -16002,9 +16076,6 @@ msgstr "حدث خطأ ما."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "عذرًا، حدث خطأ أثناء جلب معلومات قاعدة البيانات: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "عذرًا، حدث خطأ أثناء جلب المخططات المحفوظة: "
-
 msgid "Sorry, An error occurred"
 msgstr "عذرًا، حدث خطأ"
 
@@ -16019,6 +16090,9 @@ msgstr "آسف، حدث خطأ ما. لا يمكن إلغاء تفعيل الت�
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "آسف، حدث خطأ ما. يرجى المحاولة مرة أخرى."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "آسف، حدث خطأ ما. حاول مرة أخرى لاحقًا."
@@ -16261,6 +16335,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -17007,6 +17086,10 @@ msgstr ""
 "المحور X ليس مدرجًا في قائمة الفلاتر مما سيمنع استخدامه فيه\n"
 " فلاتر النطاق الزمني في لوحات المعلومات. هل ترغب في إضافته إلى قائمة "
 "الفلاتر؟"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -17902,6 +17985,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "عرض قيم السلسلة على الرسم البياني"
@@ -18594,6 +18692,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -19685,6 +19795,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "تعذر حساب فارق التاريخ هذا"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "غير قادر على الاتصال بالكتالوج المسمى \"%(catalog_name)s\"."
@@ -20334,6 +20447,9 @@ msgstr "تنسيق القيمة"
 
 msgid "Value and Percentage"
 msgstr "القيمة والنسبة المئوية"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "حدود القيمة"
@@ -21680,6 +21796,9 @@ msgid ""
 msgstr ""
 "لقد قمت بتحديث القيم في لوحة التحكم، ولكن لم يتم تحديث المخطط تلقائيًا. "
 "قم بتشغيل الاستعلام بالنقر فوق الزر «تحديث المخطط» أو"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

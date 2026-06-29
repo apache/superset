@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -2318,9 +2318,6 @@ msgstr "S'ha produït un error mentre s'analitzava la clau."
 msgid "An error occurred while pruning logs "
 msgstr "S'ha produït un error mentre es netejaven els registres "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3356,6 +3353,9 @@ msgstr "La consulta CVAS (crear vista com a selecció) no és una declaració SE
 msgid "Cache Timeout (seconds)"
 msgstr "Temps d'Espera de la Memòria Cau (segons)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4309,6 +4309,9 @@ msgstr "Col·lapsar panell de dades"
 msgid "Collapse row"
 msgstr "Col·lapsar fila"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Replega la configuració"
 
@@ -5002,6 +5005,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "No s'ha pogut resoldre el nom del servidor: \"%(host)s\"."
@@ -5025,6 +5033,12 @@ msgstr "Recompte"
 
 msgid "Country"
 msgstr "País"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Esquema de Colors de País"
@@ -6481,6 +6495,9 @@ msgstr ""
 
 msgid "Discard"
 msgstr "Descartar"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Nom a Mostrar"
@@ -7976,6 +7993,12 @@ msgstr "Ha fallat en carregar dades del gràfic."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8051,6 +8074,9 @@ msgstr "Ha fallat en desar l'àmbit del filtre creuat"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Ha fallat en desar l'àmbit del filtre creuat"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8225,6 +8251,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrar gràfics"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "El filtre té valor per defecte"
 
@@ -8266,6 +8298,10 @@ msgstr "Filtrar els teus gràfics"
 
 msgid "Filters"
 msgstr "Filtres"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9140,11 +9176,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Incloure descripció per enviar amb %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Incloure nom de sèrie com a eix"
 
 msgid "Include time"
 msgstr "Incloure temps"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Augment"
@@ -9425,6 +9468,9 @@ msgstr "Tipus de resultat invàlid: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Tipus de rolling invàlid: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Estat invàlid."
@@ -10085,6 +10131,9 @@ msgstr "Dades carregades en memòria cau"
 
 msgid "Loaded from cache"
 msgstr "Carregat des de memòria cau"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Loading"
@@ -10769,6 +10818,9 @@ msgstr "Falten paràmetres URL"
 
 msgid "Mixed Chart"
 msgstr "Gràfic Mixt"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Modificat"
@@ -11607,6 +11659,9 @@ msgstr "Una o moltes mètriques a mostrar"
 
 msgid "One or more annotation layers failed loading."
 msgstr "Una o més capes d'anotació van fallar en carregar."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Una o més columnes ja existeixen"
@@ -12556,6 +12611,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Vista prèvia"
 
@@ -12975,6 +13035,9 @@ msgstr "Recarregar"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Torna a carregar SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13703,6 +13766,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Consulta SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Expressió SQL"
@@ -14677,6 +14745,9 @@ msgstr "Vista semàntica"
 msgid "Semantic Views"
 msgstr "Vistes semàntiques"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Capa d'anotació"
@@ -15223,6 +15294,9 @@ msgstr "Mostrar resum"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "Mostrar total"
 
@@ -15491,9 +15565,6 @@ msgstr ""
 "Ho sentim, hi ha hagut un error obtenint informació de la base de dades: "
 "%s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Ho sentim, hi ha hagut un error obtenint gràfics desats: "
-
 msgid "Sorry, An error occurred"
 msgstr "Ho sentim, s'ha produït un error"
 
@@ -15510,6 +15581,9 @@ msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Ho sentim, alguna cosa va anar malament. Si us plau torna-ho a provar."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Ho sentim, alguna cosa va anar malament. Prova-ho de nou més tard."
@@ -15753,6 +15827,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16476,6 +16555,10 @@ msgstr ""
 "en\n"
 "            filtres de rang temporal als dashboards. Vols afegir-lo a la "
 "llista de filtres?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -17352,6 +17435,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "La URL del servei de la capa"
 
@@ -18034,6 +18132,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -19114,6 +19224,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "No es pot calcular aquest delta de data"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "No es pot connectar al catàleg anomenat \"%(catalog_name)s\"."
@@ -19754,6 +19867,9 @@ msgstr "Format de Valor"
 
 msgid "Value and Percentage"
 msgstr "Valor i Percentatge"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Límits de valor"
@@ -21079,6 +21195,9 @@ msgstr ""
 "Has actualitzat els valors al panell de control, però el gràfic no s'ha "
 "actualitzat automàticament. Executa la consulta clicant al botó "
 "\"Actualitzar gràfic\" o"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
