@@ -1955,8 +1955,8 @@ class ManageNativeFiltersResponse(BaseModel):
 # Per-dataset caps keep responses small enough for LLM context: wide
 # datasets can have hundreds of columns, which would dwarf the fields an
 # agent actually needs to configure native filters.
-MAX_DASHBOARD_DATASET_COLUMNS = 100
-MAX_DASHBOARD_DATASET_METRICS = 50
+MAX_DASHBOARD_DATASET_COLUMNS: int = 100
+MAX_DASHBOARD_DATASET_METRICS: int = 50
 
 
 class DashboardDatasetColumn(BaseModel):
@@ -2142,7 +2142,7 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
         slices_by_datasource.setdefault(datasource_id, []).append(slc)
 
     datasets: List[DashboardDatasetSummary] = []
-    inaccessible_count = 0
+    inaccessible_count: int = 0
     for slices in slices_by_datasource.values():
         datasource = next(
             (
