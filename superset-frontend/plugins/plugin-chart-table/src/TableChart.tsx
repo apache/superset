@@ -108,6 +108,25 @@ interface TableSize {
   height: number;
 }
 
+const getCrossFilterValue = (
+  value: DataRecordValue,
+  column: DataColumnMeta | undefined,
+): DataRecordValue => {
+  const input = value instanceof DateWithFormatter ? value.input : value;
+  if (
+    column?.dataType === GenericDataType.Temporal &&
+    typeof input === 'string' &&
+    input.trim() !== '' &&
+    Number.isFinite(Number(input))
+  ) {
+    return Number(input);
+  }
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+  return value;
+};
+
 const ACTION_KEYS = {
   enter: 'Enter',
   spacebar: 'Spacebar',
@@ -533,6 +552,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     // so that cross-filters work on the receiving chart
                     const resolvedCol = columnLabelToNameMap[col] ?? col;
                     const val = ensureIsArray(updatedFilters?.[col]);
+                    const column = columnsMeta.find(
+                      columnMeta => columnMeta.key === col,
+                    );
                     if (
                       !val.length ||
                       val[0] === null ||
@@ -546,9 +568,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     return {
                       col: resolvedCol,
                       op: 'IN' as const,
-                      val: val.map(el =>
-                        el instanceof Date ? el.getTime() : el!,
-                      ),
+                      val: val.map(el => getCrossFilterValue(el!, column)),
                       grain: resolvedCol === DTTM_ALIAS ? timeGrain : undefined,
                     };
                   }),
@@ -571,6 +591,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       timestampFormatter,
       timeGrain,
       columnLabelToNameMap,
+      columnsMeta,
     ],
   );
 
@@ -1304,7 +1325,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 col.toggleSortBy();
               }
             }}
-            role="columnheader button"
             onClick={onClick}
             data-column-name={col.id}
             {...(allowRearrangeColumns && {

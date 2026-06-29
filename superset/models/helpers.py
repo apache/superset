@@ -2591,21 +2591,50 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if values is None:
             return None
 
+        temporal_comparison_operators = {
+            utils.FilterOperator.EQUALS,
+            utils.FilterOperator.NOT_EQUALS,
+            utils.FilterOperator.IN,
+            utils.FilterOperator.NOT_IN,
+            utils.FilterOperator.GREATER_THAN,
+            utils.FilterOperator.LESS_THAN,
+            utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+            utils.FilterOperator.LESS_THAN_OR_EQUALS,
+        }
+
+        def handle_temporal_value(value: FilterValue) -> FilterValue | ColumnElement:
+            if (
+                operator not in temporal_comparison_operators
+                or target_generic_type != utils.GenericDataType.TEMPORAL
+                or target_native_type is None
+                or db_engine_spec is None
+            ):
+                return value
+
+            if isinstance(value, (float, int)) and not isinstance(value, bool):
+                epoch_ms: float = value
+            elif isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value):
+                epoch_ms = int(value)
+            else:
+                return value
+
+            try:
+                dttm = datetime.fromtimestamp(epoch_ms / 1000, tz=timezone.utc).replace(
+                    tzinfo=None
+                )
+            except (OverflowError, OSError, ValueError):
+                return value
+
+            temporal_sql = db_engine_spec.convert_dttm(
+                target_type=target_native_type,
+                dttm=dttm,
+                db_extra=db_extra,
+            )
+            return literal_column(temporal_sql) if temporal_sql is not None else value
+
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
                 return value
-            if (
-                isinstance(value, (float, int))
-                and target_generic_type == utils.GenericDataType.TEMPORAL
-                and target_native_type is not None
-                and db_engine_spec is not None
-            ):
-                value = db_engine_spec.convert_dttm(
-                    target_type=target_native_type,
-                    dttm=datetime.utcfromtimestamp(value / 1000),
-                    db_extra=db_extra,
-                )
-                value = literal_column(value)
             if isinstance(value, str):
                 value = value.strip("\t\n")
 
@@ -2626,6 +2655,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     return None
                 if value == EMPTY_STRING:
                     return ""
+                value = handle_temporal_value(value)
+            elif value is not None:
+                value = handle_temporal_value(value)
             if target_generic_type == utils.GenericDataType.BOOLEAN:
                 return utils.cast_to_boolean(value)
             return value

@@ -32,7 +32,7 @@ from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.elements import ColumnElement
 
 from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
-from superset.utils.core import GenericDataType
+from superset.utils.core import FilterOperator, GenericDataType
 from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
@@ -3193,3 +3193,265 @@ def test_process_sql_expression_no_gate_when_denylists_empty(
         template_processor=None,
     )
     assert result is not None
+
+
+def test_temporal_epoch_string_filter_is_coerced_for_bigquery() -> None:
+    """
+    Drill-to-detail can send JavaScript timestamp strings for temporal values.
+    BigQuery DATE filters must receive a DATE literal instead of the raw string.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == "CAST('2026-05-13' AS DATE)"
+
+
+def test_temporal_negative_epoch_string_filter_is_coerced_for_bigquery() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="-1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == "CAST('1913-08-22' AS DATE)"
+
+
+@pytest.mark.parametrize("value", [1778630400000, 1778630400000.0])
+def test_temporal_numeric_filter_is_coerced_for_bigquery(
+    value: int | float,
+) -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    result = ExploreMixin.filter_values_handler(
+        values=value,
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(result, ColumnElement)
+    assert str(result) == "CAST('2026-05-13' AS DATE)"
+
+
+def test_temporal_overflow_epoch_filter_is_not_coerced() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = "999999999999999999999999999999999999999"
+
+    result = ExploreMixin.filter_values_handler(
+        values=value,
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert result == value
+
+
+def test_temporal_epoch_filter_is_not_coerced_without_engine_literal() -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    result = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="UNKNOWN_TYPE",
+        db_engine_spec=BaseEngineSpec,
+    )
+
+    assert result == "1778630400000"
+
+
+@pytest.mark.parametrize(
+    "operator",
+    [FilterOperator.IN, FilterOperator.NOT_IN],
+)
+def test_temporal_epoch_string_filter_list_is_coerced_for_bigquery(
+    operator: FilterOperator,
+) -> None:
+    """
+    Cross-filtering can send JavaScript timestamp strings inside IN lists.
+    BigQuery DATE filters must receive DATE literals instead of raw strings.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    values = ExploreMixin.filter_values_handler(
+        values=["1777248000000"],
+        operator=operator,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        is_list_target=True,
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(values, list)
+    assert len(values) == 1
+    assert isinstance(values[0], ColumnElement)
+    assert str(values[0]) == "CAST('2026-04-27' AS DATE)"
+
+
+def test_temporal_epoch_string_filter_list_is_coerced_for_clickhouse() -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    values = ExploreMixin.filter_values_handler(
+        values=["1777248000000"],
+        operator=FilterOperator.IN,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="Date",
+        is_list_target=True,
+        db_engine_spec=ClickHouseEngineSpec,
+    )
+
+    assert isinstance(values, list)
+    assert len(values) == 1
+    assert isinstance(values[0], ColumnElement)
+    assert str(values[0]) == "toDate('2026-04-27')"
+
+
+@pytest.mark.parametrize(
+    "target_type,expected",
+    [
+        ("DATE", "TO_DATE('2026-05-13', 'YYYY-MM-DD')"),
+        (
+            "TIMESTAMP",
+            "TO_TIMESTAMP('2026-05-13 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+        ),
+    ],
+)
+def test_temporal_epoch_string_filter_is_coerced_for_postgres(
+    target_type: str,
+    expected: str,
+) -> None:
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type=target_type,
+        db_engine_spec=PostgresEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == expected
+
+
+def test_temporal_epoch_string_filter_list_is_coerced_for_postgres() -> None:
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    values = ExploreMixin.filter_values_handler(
+        values=["1777248000000"],
+        operator=FilterOperator.IN,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        is_list_target=True,
+        db_engine_spec=PostgresEngineSpec,
+    )
+
+    assert isinstance(values, list)
+    assert len(values) == 1
+    assert isinstance(values[0], ColumnElement)
+    assert str(values[0]) == "TO_DATE('2026-04-27', 'YYYY-MM-DD')"
+
+
+def test_non_temporal_numeric_string_filter_is_not_coerced() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.STRING,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert value == "1778630400000"
+
+
+def test_temporal_range_filter_value_is_not_coerced() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="No filter",
+        operator=FilterOperator.TEMPORAL_RANGE,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert value == "No filter"
+
+
+@pytest.mark.parametrize(
+    "target_type,expected",
+    [
+        (
+            "DATETIME",
+            "CAST('2026-05-13T14:30:00.123000' AS DATETIME)",
+        ),
+        (
+            "TIMESTAMP",
+            "CAST('2026-05-13T14:30:00.123000' AS TIMESTAMP)",
+        ),
+    ],
+)
+def test_temporal_epoch_string_filter_is_coerced_for_datetime_bigquery(
+    target_type: str,
+    expected: str,
+) -> None:
+    """Sub-second epoch precision survives DATETIME / TIMESTAMP coercion."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778682600123",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type=target_type,
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == expected
+
+
+def test_temporal_non_numeric_string_filter_is_not_coerced() -> None:
+    """Only digit strings (JS epoch ms) are coerced — anything else passes through."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="2025-12-20",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert value == "2025-12-20"
