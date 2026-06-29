@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { invert } from 'lodash';
+import { invert } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   AnnotationLayer,
@@ -381,6 +381,15 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
+  // With the "full range" time-shift option, offset series are outer-joined onto
+  // the main series, which inserts null rows into the main series wherever the
+  // comparison period has data the current period lacks. Connect nulls so the
+  // main line stays continuous (matching the default left-join appearance) rather
+  // than fragmenting at every inserted gap.
+  const timeCompareFullRange = Boolean(
+    chartProps.rawFormData?.time_compare_full_range,
+  );
+
   const offsetLineWidths: { [key: string]: number } = {};
 
   // For horizontal bar charts, calculate min/max from data to avoid cutting off labels
@@ -478,7 +487,7 @@ export default function transformProps(
       colorScaleKey,
       {
         area,
-        connectNulls: derivedSeries,
+        connectNulls: derivedSeries || timeCompareFullRange,
         filterState,
         seriesContexts,
         markerEnabled,

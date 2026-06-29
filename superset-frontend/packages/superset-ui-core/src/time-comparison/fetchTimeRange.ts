@@ -17,7 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import {
   SupersetClient,
   getClientErrorObject,

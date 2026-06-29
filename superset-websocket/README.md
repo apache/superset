@@ -16,6 +16,7 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
+
 # Superset WebSocket Server
 
 A Node.js WebSocket server for sending async event data to the Superset web application frontend.
@@ -164,4 +165,4 @@ HEAD /health
 
 ## Containerization
 
-*TODO: containerize websocket server*
+_TODO: containerize websocket server_
