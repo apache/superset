@@ -20,12 +20,13 @@ from __future__ import annotations
 import logging
 import traceback
 from http.client import HTTPResponse
-from typing import cast, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 from urllib import request
 from uuid import UUID, uuid4
 
 from celery.utils.log import get_task_logger
 from flask import g
+from sqlalchemy import or_, select
 from superset_core.tasks.types import TaskProperties, TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
@@ -40,6 +41,8 @@ from superset.utils.hashing import hash_from_str
 from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import User
+
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.reports.models import ReportSchedule
@@ -47,6 +50,50 @@ if TYPE_CHECKING:
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def _get_indirect_editor_user(editors: list[Any]) -> User | None:
+    """Return a deterministic user represented by role/group editor subjects."""
+    from flask_appbuilder.security.sqla.models import (
+        assoc_user_group,
+        assoc_user_role,
+        User,
+    )
+
+    from superset import db
+    from superset.subjects.types import SubjectType
+
+    role_ids = [
+        editor.role_id
+        for editor in editors
+        if editor.type == SubjectType.ROLE and editor.role_id
+    ]
+    group_ids = [
+        editor.group_id
+        for editor in editors
+        if editor.type == SubjectType.GROUP and editor.group_id
+    ]
+    conditions = []
+    if role_ids:
+        conditions.append(
+            User.id.in_(
+                select(assoc_user_role.c.user_id).where(
+                    assoc_user_role.c.role_id.in_(role_ids)
+                )
+            )
+        )
+    if group_ids:
+        conditions.append(
+            User.id.in_(
+                select(assoc_user_group.c.user_id).where(
+                    assoc_user_group.c.group_id.in_(group_ids)
+                )
+            )
+        )
+    if not conditions:
+        return None
+
+    return db.session.query(User).filter(or_(*conditions)).order_by(User.id).first()
 
 
 # pylint: disable=too-many-branches
@@ -115,13 +162,17 @@ def get_executor(  # noqa: C901
             if user := model.changed_by:
                 return executor, user.username
         if executor == ExecutorType.EDITOR:
-            # Priority: modifier → creator → first direct user editor
+            # Priority: modifier → creator → direct user editor → indirect editor.
             if (modifier := model.changed_by) and _is_editor(modifier.id):
                 return executor, modifier.username
             if (creator := model.created_by) and _is_editor(creator.id):
                 return executor, creator.username
             if editor_users:
                 return executor, editor_users[0].username
+            if indirect_editor := _get_indirect_editor_user(
+                getattr(model, "editors", [])
+            ):
+                return executor, indirect_editor.username
 
     raise ExecutorNotFoundError()
 

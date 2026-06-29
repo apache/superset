@@ -38,8 +38,10 @@ import {
 } from '@superset-ui/core';
 
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { SUBJECT_TEXT_LABEL_PROP } from 'src/features/subjects/SubjectSelectLabel';
-import type { SubjectPickerValue } from 'src/features/subjects/SubjectPicker';
+import {
+  mapPickerValuesToSubjects,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
 import Subject from 'src/types/Subject';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import {
@@ -247,27 +249,11 @@ const PropertiesModal = ({
   };
 
   const handleOnChangeEditors = (values: SubjectPickerValue[]) => {
-    const parsedEditors: Subject[] = ensureIsArray(values).map(v => ({
-      id: v.value,
-      label:
-        (v[SUBJECT_TEXT_LABEL_PROP] as string) ||
-        (typeof v.label === 'string' ? v.label : ''),
-      type: (v.type as number) ?? 0,
-      secondary_label: (v.secondary_label as string) || undefined,
-    }));
-    setEditors(parsedEditors);
+    setEditors(mapPickerValuesToSubjects(values));
   };
 
   const handleOnChangeViewers = (values: SubjectPickerValue[]) => {
-    const parsedViewers: Subject[] = ensureIsArray(values).map(v => ({
-      id: v.value,
-      label:
-        (v[SUBJECT_TEXT_LABEL_PROP] as string) ||
-        (typeof v.label === 'string' ? v.label : ''),
-      type: (v.type as number) ?? 0,
-      secondary_label: (v.secondary_label as string) || undefined,
-    }));
-    setViewers(parsedViewers);
+    setViewers(mapPickerValuesToSubjects(values));
   };
 
   const handleOnCancel = () => {

@@ -26,9 +26,9 @@ import {
   SUBJECT_DETAIL_PROP,
   SUBJECT_OPTION_FILTER_PROPS,
 } from 'src/features/subjects/SubjectSelectLabel';
-import type { SubjectPickerValue } from './utils';
+import { mergeSubjectPickerValues, type SubjectPickerValue } from './utils';
 
-export { mapSubjectsToPickerValues } from './utils';
+export { mapPickerValuesToSubjects, mapSubjectsToPickerValues } from './utils';
 export type { SubjectPickerValue } from './utils';
 
 interface SubjectPickerProps {
@@ -63,6 +63,21 @@ const SubjectPicker = ({
   header,
   dataTest,
 }: SubjectPickerProps) => {
+  const handleChange = useCallback(
+    (
+      values: SubjectPickerValue[],
+      options?: SubjectPickerValue | SubjectPickerValue[],
+    ) => {
+      onChange(
+        mergeSubjectPickerValues(
+          values,
+          Array.isArray(options) ? options : options ? [options] : [],
+        ),
+      );
+    },
+    [onChange],
+  );
+
   const loadOptions = useCallback(
     (input = '', page: number, pageSize: number) => {
       const query = rison.encode({
@@ -91,6 +106,8 @@ const SubjectPicker = ({
                   type: item.extra?.type,
                   secondaryLabel: detail || undefined,
                 }),
+                type: item.extra?.type,
+                secondary_label: detail,
                 [SUBJECT_TEXT_LABEL_PROP]: item.text,
                 [SUBJECT_DETAIL_PROP]: detail,
               };
@@ -108,7 +125,7 @@ const SubjectPicker = ({
       mode="multiple"
       value={value}
       options={loadOptions}
-      onChange={onChange}
+      onChange={handleChange}
       placeholder={placeholder}
       disabled={disabled}
       allowClear={allowClear}

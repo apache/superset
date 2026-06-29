@@ -16,9 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { SubjectType } from 'src/types/Subject';
-import { mapSubjectsToPickerValues } from './utils';
+import {
+  mapPickerValuesToSubjects,
+  mapSubjectsToPickerValues,
+  mergeSubjectPickerValues,
+} from './utils';
+
+const mockAsyncSelect = jest.fn((props: any) => (
+  <div>
+    {props.header}
+    <input
+      aria-label={props.ariaLabel}
+      aria-controls="subject-picker-options"
+      aria-expanded="false"
+      disabled={props.disabled}
+      placeholder={props.placeholder}
+      role="combobox"
+    />
+    <button
+      type="button"
+      onClick={() =>
+        props.onChange(
+          [{ value: 2, label: 'Admin' }],
+          [
+            {
+              value: 2,
+              label: 'Admin',
+              textLabel: 'Admin',
+              subjectDetail: '',
+              type: 2,
+            },
+          ],
+        )
+      }
+    >
+      select subject
+    </button>
+  </div>
+));
+
+jest.mock('@superset-ui/core/components', () => ({
+  AsyncSelect: (props: any) => mockAsyncSelect(props),
+}));
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 test('mapSubjectsToPickerValues maps subjects to picker values', () => {
   const subjects = [
@@ -45,9 +90,48 @@ test('mapSubjectsToPickerValues maps subjects to picker values', () => {
   expect(result[0].subjectDetail).toBe('alice@example.com');
   expect(result[1].value).toBe(2);
   expect(result[1].textLabel).toBe('Admin');
+  expect(result[1].type).toBe(SubjectType.Role);
   expect(result[2].value).toBe(3);
   expect(result[2].textLabel).toBe('Team A');
   expect(result[2].subjectDetail).toBe('Engineering');
+});
+
+test('mergeSubjectPickerValues preserves subject metadata from options', () => {
+  const [option] = mapSubjectsToPickerValues([
+    { id: 2, label: 'Admin', type: SubjectType.Role },
+  ]);
+  const [result] = mergeSubjectPickerValues(
+    [{ value: 2, label: option.label }],
+    [option],
+  );
+
+  expect(result.textLabel).toBe('Admin');
+  expect(result.type).toBe(SubjectType.Role);
+  expect(result.subjectDetail).toBe('');
+});
+
+test('mapPickerValuesToSubjects maps selected picker values to subjects', () => {
+  const [option] = mapSubjectsToPickerValues([
+    {
+      id: 3,
+      label: 'Team A',
+      type: SubjectType.Group,
+      secondary_label: 'Engineering',
+    },
+  ]);
+  const [mergedValue] = mergeSubjectPickerValues(
+    [{ value: 3, label: option.label }],
+    [option],
+  );
+
+  expect(mapPickerValuesToSubjects([mergedValue])).toEqual([
+    {
+      id: 3,
+      label: 'Team A',
+      type: SubjectType.Group,
+      secondary_label: 'Engineering',
+    },
+  ]);
 });
 
 test('mapSubjectsToPickerValues handles empty array', () => {
@@ -114,4 +198,28 @@ test('SubjectPicker renders as disabled', async () => {
 
   const combobox = screen.getByRole('combobox', { name: 'Editors' });
   expect(combobox).toBeDisabled();
+});
+
+test('SubjectPicker preserves subject metadata on change', async () => {
+  const { default: SubjectPicker } = await import('.');
+  const onChange = jest.fn();
+
+  render(
+    <SubjectPicker
+      relatedUrl="/api/v1/dashboard/related/editors"
+      ariaLabel="Editors"
+      value={[]}
+      onChange={onChange}
+    />,
+  );
+
+  userEvent.click(screen.getByRole('button', { name: 'select subject' }));
+
+  expect(onChange).toHaveBeenCalledWith([
+    expect.objectContaining({
+      value: 2,
+      textLabel: 'Admin',
+      type: SubjectType.Role,
+    }),
+  ]);
 });

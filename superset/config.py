@@ -1142,11 +1142,11 @@ THEME_FONT_URL_ALLOWED_DOMAINS: list[str] = [
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # User used to execute cache warmup tasks
-# By default, the cache is warmed up using the editor (giving priority to the
-# last modifier, then the creator, then the first direct user-type editor).
-# Editor resolution checks both direct user-type subjects and indirect membership
-# through role/group subjects. To fall back to using a fixed user (admin in this
-# example), use the following configuration:
+# By default, the cache is warmed up using a physical user represented by the
+# editors (giving priority to the last modifier, then the creator, then the first
+# direct user editor, then a deterministic user from editor role/group subjects).
+# To fall back to using a fixed user (admin in this example), use the following
+# configuration:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
@@ -2117,10 +2117,11 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
-# execute as the primary user-type editor of the alert/report (giving priority to
-# the last modifier and then the creator if either is a user-type editor, otherwise
-# the first editor will be used). Editor resolution checks both direct user-type
-# subjects and indirect membership through role/group subjects.
+# execute as a physical user represented by the alert/report editors (giving
+# priority to the last modifier and then the creator if either is an editor,
+# otherwise the first direct user editor, then a deterministic user from editor
+# role/group subjects). Editor resolution checks both direct user-type subjects
+# and indirect membership through role/group subjects.
 #
 # To first try to execute as the creator if they're an editor (directly or via
 # role/group), then fall back to the creator, then the last modifier if they're an

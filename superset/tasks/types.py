@@ -50,7 +50,7 @@ class ExecutorType(StrEnum):
     MODIFIER_EDITOR = "modifier_editor"
     # An editor of the model. Resolves to a user who is an editor either directly
     # or through role/group membership. Prioritizes: modifier -> creator -> first
-    # direct user-type editor.
+    # direct user-type editor -> deterministic user from role/group editors.
     EDITOR = "editor"
 
 
