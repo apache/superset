@@ -21,17 +21,14 @@ import { SupersetClient } from '@superset-ui/core';
 import { useDownloadScreenshot } from './useDownloadScreenshot';
 import { DownloadScreenshotFormat } from '../components/menu/DownloadMenuItems/types';
 
+// Spread the real module so the dashboard store import graph (DatasourceType,
+// etc., pulled in via the stores barrel → crossFilters → constants) resolves;
+// override only the network client the test drives.
 jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
   SupersetClient: {
     post: jest.fn(),
     get: jest.fn(),
-  },
-  SupersetApiError: class SupersetApiError extends Error {
-    status: number;
-    constructor(message: string, status: number) {
-      super(message);
-      this.status = status;
-    }
   },
 }));
 

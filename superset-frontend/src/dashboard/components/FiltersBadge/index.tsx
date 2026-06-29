@@ -26,20 +26,20 @@ import {
   memo,
 } from 'react';
 
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { uniqWith } from 'lodash-es';
 import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
-import {
-  DataMaskStateWithId,
-  Filters,
-  JsonObject,
-  usePrevious,
-} from '@superset-ui/core';
+import { usePrevious } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
+import {
+  setDirectPathToChild,
+  useChartConfiguration,
+  useFilterEntries,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { Badge } from '@superset-ui/core/components';
 import DetailsPanelPopover from './DetailsPanel';
 import {
@@ -106,7 +106,6 @@ const sortByStatus = (indicators: Indicator[]): Indicator[] => {
 const indicatorsInitialState: Indicator[] = [];
 
 export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
-  const dispatch = useDispatch();
   const isAutoRefreshing = useIsAutoRefreshing();
   const datasources = useSelector<RootState, RootState['datasources']>(
     state => state.datasources,
@@ -115,17 +114,11 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     RootState,
     RootState['dashboardFilters']
   >(state => state.dashboardFilters);
-  const nativeFilters = useSelector<RootState, Filters>(
-    state => state.nativeFilters?.filters,
-  );
-  const chartConfiguration = useSelector<RootState, JsonObject>(
-    state => state.dashboardInfo.metadata?.chart_configuration,
-  );
+  const nativeFilters = useFilterEntries();
+  const chartConfiguration = useChartConfiguration();
   const chart = useSelector<RootState, Chart>(state => state.charts[chartId]);
   const chartLayoutItems = useChartLayoutItems();
-  const dataMask = useSelector<RootState, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
+  const dataMask = useDataMaskStore(s => s.dataMask);
 
   const [nativeIndicators, setNativeIndicators] = useState<Indicator[]>(
     indicatorsInitialState,
@@ -137,12 +130,9 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const popoverContentRef = useRef<HTMLDivElement>(null);
   const popoverTriggerRef = useRef<HTMLDivElement>(null);
 
-  const onHighlightFilterSource = useCallback(
-    (path: string[]) => {
-      dispatch(setDirectPathToChild(path));
-    },
-    [dispatch],
-  );
+  const onHighlightFilterSource = useCallback((path: string[]) => {
+    setDirectPathToChild(path);
+  }, []);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {

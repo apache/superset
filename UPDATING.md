@@ -77,6 +77,19 @@ Deployments that intentionally point webhooks at internal targets (chatops bridg
 ### Impala cancel_query blocks private/internal hosts by default
 
 The Impala engine spec's `cancel_query` issues an HTTP request from the Superset backend to the host configured on the Impala database connection. That host is now validated before the request: if it resolves to a private/internal IP range, the cancel call is refused and a warning is logged. Operators whose Impala cluster runs on an internal network can opt out by setting `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS = True` in `superset_config.py`. This mirrors the dataset-import and webhook opt-out flags.
+### Dashboard state moved from Redux to Zustand + TanStack Query
+
+The dashboard's `dashboardState`, `dashboardLayout`, `dashboardInfo`,
+`sliceEntities`, `nativeFilters`, and `dataMask` state is now held in Zustand
+stores (`src/dashboard/stores`), with dashboard and chart-list data fetched via
+TanStack Query, instead of the Redux store. `charts`, `datasources`, and
+`dashboardFilters` remain in Redux (shared with Explore). Code or third-party
+extensions that read those migrated slices from the Redux store (for example
+`useSelector(state => state.dashboardState)`) must read from the corresponding
+Zustand store instead. The shared `EditableTitle` and `DynamicEditableTitle`
+components also gain optional `onChange`/`onEditingChange` props (additive, no
+change for existing consumers).
+
 ### Map chart renderer and OpenStreetMap migration behavior
 
 The MapLibre migration for deck.gl charts preserves saved non-Mapbox styles on

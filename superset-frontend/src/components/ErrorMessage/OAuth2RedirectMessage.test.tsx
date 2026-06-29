@@ -25,6 +25,8 @@ import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import { OAuth2RedirectMessage } from '.';
 
 // Mock the Redux store
@@ -72,6 +74,9 @@ beforeEach(() => {
   (global as any).BroadcastChannel = jest
     .fn()
     .mockImplementation(() => capturedChannel);
+  useDashboardInfoStore.setState({
+    dashboardInfo: { id: 'dashboard-id' } as unknown as DashboardInfo,
+  });
 });
 
 function simulateBroadcastMessage(data: any) {

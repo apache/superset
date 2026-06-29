@@ -19,14 +19,11 @@
 import { SyntheticEvent } from 'react';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  SupersetClient,
-} from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { parse as parseContentDisposition } from 'content-disposition';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
+import { exportDashboardAsExample } from 'src/dashboard/queries';
 import { MenuKeys } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import downloadAsImage from 'src/utils/downloadAsImage';
@@ -108,13 +105,7 @@ export const useDownloadMenuItems = (
 
   const onExportAsExample = async () => {
     try {
-      const response = await SupersetClient.get({
-        endpoint: `/api/v1/dashboard/${dashboardId}/export_as_example/`,
-        headers: {
-          Accept: 'application/zip',
-        },
-        parseMethod: 'raw',
-      });
+      const response = await exportDashboardAsExample(dashboardId);
 
       // Parse filename from Content-Disposition header
       const disposition = response.headers.get('Content-Disposition');

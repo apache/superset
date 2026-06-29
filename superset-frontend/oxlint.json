@@ -282,6 +282,63 @@
       "rules": {
         "jsx-a11y/no-redundant-roles": "off"
       }
+    },
+    {
+      // Dashboard decoupling guard: components consume client state through the
+      // domain hooks/actions exported from src/dashboard/stores (and server
+      // state through src/dashboard/queries), never the raw Zustand stores or
+      // the underlying libraries directly. react-redux stays allowed because
+      // the shared charts/datasources state is intentionally still Redux.
+      // Adapter layers (queries/, util/, actions/, containers/, hooks/) live
+      // outside components/ and are exempt.
+      "files": [
+        "src/dashboard/components/**/*.ts",
+        "src/dashboard/components/**/*.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "zustand",
+                "message": "Dashboard components must use the domain hooks from 'src/dashboard/stores', not zustand directly."
+              },
+              {
+                "name": "@tanstack/react-query",
+                "message": "Dashboard components must use the query hooks from 'src/dashboard/queries', not @tanstack/react-query directly."
+              },
+              {
+                "name": "src/dashboard/stores",
+                "importNames": [
+                  "useDashboardStateStore",
+                  "useDashboardInfoStore",
+                  "useDashboardLayoutStore",
+                  "useDashboardSlicesStore",
+                  "useNativeFiltersStore"
+                ],
+                "message": "Import the domain hooks/actions from 'src/dashboard/stores', not the raw Zustand stores."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["**/dashboard/stores/*", "**/dashboard/stores/*/**"],
+                "message": "Dashboard components must import client-state hooks/actions from the 'src/dashboard/stores' barrel only — not its submodules, per-store barrels, or the raw Zustand store files."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/dashboard/components/**/*.test.ts",
+        "src/dashboard/components/**/*.test.tsx",
+        "src/dashboard/components/**/__tests__/**"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
     }
   ],
   "ignorePatterns": [

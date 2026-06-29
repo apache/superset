@@ -27,6 +27,7 @@ import {
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { testWithId } from 'src/utils/testUtils';
 import { Preset, makeApi } from '@superset-ui/core';
+import type { DataMaskStateWithId } from '@superset-ui/core';
 import {
   TimeFilterPlugin,
   SelectFilterPlugin,
@@ -34,6 +35,15 @@ import {
 } from 'src/filters/components';
 import fetchMock from 'fetch-mock';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import type { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
+import {
+  useDashboardStateStore,
+  useDashboardLayoutStore,
+  useNativeFiltersStore,
+  useDashboardInfoStore,
+  type FilterEntry,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
@@ -233,6 +243,20 @@ function renderFilterBar(
   props: { filtersOpen: boolean; toggleFiltersBar: jest.Mock },
   state?: object,
 ) {
+  const typedState = state as
+    | {
+        dataMask?: DataMaskStateWithId;
+        nativeFilters?: { filters?: Record<string, FilterEntry> };
+        dashboardInfo?: DashboardInfo;
+      }
+    | undefined;
+  useDataMaskStore.setState({ dataMask: typedState?.dataMask ?? {} });
+  useNativeFiltersStore.setState({
+    filters: typedState?.nativeFilters?.filters ?? {},
+  });
+  useDashboardInfoStore.setState({
+    dashboardInfo: (typedState?.dashboardInfo ?? {}) as DashboardInfo,
+  });
   return render(
     <FilterBar
       orientation={FilterBarOrientation.Vertical}
@@ -513,9 +537,15 @@ test('Clear All stages filter_select clear without dispatching until Apply', asy
       activeTabs: ['ROOT_ID'],
     },
     dataMask: {
-      [filterId]: createDataMask(filterId, ['East'], {
-        filters: [{ col: 'region', op: 'IN', val: ['East'] }],
-      }),
+      // filterState carries a display `label` — Clear All must drop it,
+      // otherwise the filter indicator badge stays stale after Apply.
+      [filterId]: {
+        id: filterId,
+        filterState: { value: ['East'], label: 'East' },
+        extraFormData: {
+          filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+        },
+      },
     },
     nativeFilters: {
       filters: { [filterId]: selectFilter },
@@ -544,9 +574,15 @@ test('Clear All stages filter_select clear without dispatching until Apply', asy
   await act(async () => {
     userEvent.click(applyBtn);
   });
+  // value AND label cleared (toHaveBeenCalledWith is exact — a retained
+  // `label: 'East'` would fail this).
   expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
     id: filterId,
-    filterState: { value: undefined, validateStatus: undefined },
+    filterState: {
+      value: undefined,
+      label: undefined,
+      validateStatus: undefined,
+    },
     extraFormData: {},
   });
   updateDataMaskSpy.mockRestore();
@@ -806,6 +842,11 @@ test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', 
     },
   };
 
+  useDashboardStateStore.setState({ activeTabs: ['TAB-active'] });
+  useDashboardLayoutStore.setState({
+    layout: dashboardLayoutWithTabs as unknown as DashboardLayout,
+  });
+
   const props = createOpenedBarProps();
   renderFilterBar(props, stateWithTabsAndFilters);
 
@@ -977,6 +1018,15 @@ test('FilterBar with orientation=Horizontal routes to Horizontal layout instead 
   const state = createStateWithFilter(filter, dataMask, {
     filterBarOrientation: FilterBarOrientation.Horizontal,
   });
+  // The bar reads these from Zustand, not the Redux initialState.
+  useDataMaskStore.setState({ dataMask: state.dataMask });
+  useNativeFiltersStore.setState({
+    filters: state.nativeFilters.filters as Record<string, FilterEntry>,
+  });
+  useDashboardInfoStore.setState({
+    dashboardInfo: state.dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState({ activeTabs: ['ROOT_ID'] });
 
   render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
     initialState: state,
@@ -1009,7 +1059,7 @@ test('FilterBar with orientation=Horizontal and no filters shows empty state alo
       dash_edit_perm: true,
       metadata: {
         native_filter_configuration: [],
-        filterBarOrientation: FilterBarOrientation.Horizontal,
+        filter_bar_orientation: FilterBarOrientation.Horizontal,
       },
     },
     dashboardState: {
@@ -1018,6 +1068,13 @@ test('FilterBar with orientation=Horizontal and no filters shows empty state alo
     },
     nativeFilters: { filters: {}, filtersState: {} },
   };
+  // The bar reads these from Zustand, not the Redux initialState.
+  useDataMaskStore.setState({ dataMask: {} });
+  useNativeFiltersStore.setState({ filters: {} });
+  useDashboardInfoStore.setState({
+    dashboardInfo: state.dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState({ activeTabs: ['ROOT_ID'] });
 
   render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
     initialState: state,

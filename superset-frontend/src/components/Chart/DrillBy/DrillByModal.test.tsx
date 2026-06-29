@@ -31,6 +31,8 @@ import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import { useDashboardLayoutStore } from 'src/dashboard/stores';
+import type { DashboardLayout } from 'src/dashboard/types';
 import DrillByModal, { DrillByModalProps } from './DrillByModal';
 
 setupAGGridModules();
@@ -58,20 +60,14 @@ const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
 
 const { form_data: formData } = chartQueries[sliceId];
 const { slice_name: chartName } = formData;
-const drillByModalState = {
-  ...mockState,
-  dashboardLayout: {
-    past: [],
-    present: {
-      CHART_ID: {
-        id: 'CHART_ID',
-        meta: {
-          chartId: formData.slice_id,
-          sliceName: chartName,
-        },
-      },
+const drillByModalState = { ...mockState };
+const drillByLayout = {
+  CHART_ID: {
+    id: 'CHART_ID',
+    meta: {
+      chartId: formData.slice_id,
+      sliceName: chartName,
     },
-    future: [],
   },
 };
 const dataset = {
@@ -123,6 +119,9 @@ const renderModal = async (
       </DashboardPageIdContext.Provider>
     );
   };
+  useDashboardLayoutStore
+    .getState()
+    .setLayout(drillByLayout as unknown as DashboardLayout);
   render(<DrillByModalWrapper />, {
     useDnd: true,
     useRedux: true,

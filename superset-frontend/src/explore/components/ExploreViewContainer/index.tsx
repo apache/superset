@@ -79,6 +79,7 @@ import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import {
   ChartState,
   Datasource,
@@ -309,7 +310,6 @@ interface ExploreRootState {
     };
   };
   impressionId: string;
-  dataMask: Record<number, { ownState?: JsonObject }>;
   reports: JsonObject;
   user: User;
   saveModal: {
@@ -368,7 +368,30 @@ interface DispatchProps {
 
 type ExploreViewContainerProps = StateProps & DispatchProps & OwnProps;
 
-function ExploreViewContainer(props: ExploreViewContainerProps) {
+function ExploreViewContainer(rawProps: ExploreViewContainerProps) {
+  // Subscribe to the Zustand dataMask (connect doesn't observe it).
+  const sliceId = rawProps.form_data?.slice_id ?? rawProps.slice?.slice_id ?? 0;
+  const ownState = useDataMaskStore(state => state.dataMask[sliceId]?.ownState);
+  const form_data = useMemo(() => {
+    // metricSqlExpressions is runtime-only and must not be serialised to chart params
+    const ownStateForQuery = omit(ownState, [
+      'clientView',
+      'metricSqlExpressions',
+    ]);
+    return {
+      ...rawProps.form_data,
+      extra_form_data: mergeExtraFormData(
+        { ...rawProps.form_data?.extra_form_data },
+        { ...ownStateForQuery },
+      ),
+    };
+  }, [rawProps.form_data, ownState]);
+  const props: ExploreViewContainerProps = {
+    ...rawProps,
+    form_data,
+    ownState,
+  };
+
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = props.vizType
     ? dynamicPluginContext.dynamicPlugins[props.vizType]
@@ -1119,16 +1142,8 @@ function patchBigNumberTotalFormData(
 }
 
 function mapStateToProps(state: ExploreRootState) {
-  const {
-    explore,
-    charts,
-    common,
-    impressionId,
-    dataMask,
-    reports,
-    user,
-    saveModal,
-  } = state;
+  const { explore, charts, common, impressionId, reports, user, saveModal } =
+    state;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
   const hasQueryMode = !!controls?.query_mode?.value;
   const fieldsToOmit = hasQueryMode
@@ -1166,19 +1181,8 @@ function mapStateToProps(state: ExploreRootState) {
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
 
-  // exclude clientView and metricSqlExpressions from extra_form_data;
-  // metricSqlExpressions is runtime-only and must not be serialised to chart params
-  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, [
-    'clientView',
-    'metricSqlExpressions',
-  ]);
+  // ownState merge happens in the component (subscribes to useDataMaskStore).
 
-  form_data.extra_form_data = mergeExtraFormData(
-    { ...form_data.extra_form_data },
-    {
-      ...ownStateForQuery,
-    },
-  );
   const chart = charts[slice_id];
   const colorScheme = explore.form_data?.color_scheme;
   const ownColorScheme = explore.form_data?.own_color_scheme;
@@ -1237,7 +1241,6 @@ function mapStateToProps(state: ExploreRootState) {
     force: !!explore.force,
     chart,
     timeout: common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    ownState: dataMask[slice_id]?.ownState,
     impressionId,
     user,
     // ExploreRootState['explore'] is compatible with ExplorePageState['explore']

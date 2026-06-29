@@ -22,6 +22,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { ExplorePageState } from 'src/explore/types';
 import { RootState } from 'src/dashboard/types';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
@@ -93,9 +94,7 @@ export function OAuth2RedirectMessage({
   const chartList = useSelector<RootState, string[]>(state =>
     Object.keys(state.charts),
   );
-  const dashboardId = useSelector<RootState, number | undefined>(
-    state => state.dashboardInfo?.id,
-  );
+  const dashboardId = useDashboardInfoStore(s => s.dashboardInfo?.id);
 
   const dispatch = useDispatch();
 

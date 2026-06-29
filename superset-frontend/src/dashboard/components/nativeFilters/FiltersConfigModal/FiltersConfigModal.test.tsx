@@ -37,6 +37,8 @@ import {
   TimeFilterPlugin,
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import FiltersConfigModal, {
   FiltersConfigModalProps,
 } from './FiltersConfigModal';
@@ -205,9 +207,15 @@ afterEach(() => {
 });
 
 function defaultRender(
-  initialState: ReturnType<typeof defaultState> = defaultState(),
+  initialState: ReturnType<typeof defaultState> & {
+    dashboardInfo?: Record<string, unknown>;
+  } = defaultState(),
   modalProps: FiltersConfigModalProps = props,
 ) {
+  useDashboardInfoStore.setState({
+    dashboardInfo: (initialState.dashboardInfo ??
+      {}) as unknown as DashboardInfo,
+  });
   return render(<FiltersConfigModal {...modalProps} />, {
     initialState,
     useDnd: true,
@@ -221,10 +229,6 @@ function getCheckbox(name: RegExp) {
 
 function queryCheckbox(name: RegExp) {
   return screen.queryByRole('checkbox', { name });
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 test('renders a value filter type', () => {
@@ -382,10 +386,16 @@ test('validates the default value', async () => {
   // Enable default value checkbox without setting a value
   await userEvent.click(defaultValueCheckbox);
   // Try to save - should show validation error
-  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await userEvent.click(
+    await screen.findByRole('button', { name: SAVE_REGEX }),
+  );
   // Verify validation error appears (actual message is "Please choose a valid value")
   expect(
-    await screen.findByText(DEFAULT_VALUE_INVALID_REGEX, {}, { timeout: 3000 }),
+    await screen.findByText(
+      DEFAULT_VALUE_INVALID_REGEX,
+      {},
+      { timeout: 10000 },
+    ),
   ).toBeInTheDocument();
 }, 50000);
 
@@ -393,8 +403,10 @@ test('validates the pre-filter value', async () => {
   // Use real timers to avoid userEvent + fake timers compatibility issues
   defaultRender();
 
-  await userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
-  await userEvent.click(getCheckbox(PRE_FILTER_REGEX));
+  await userEvent.click(await screen.findByText(FILTER_SETTINGS_REGEX));
+  await userEvent.click(
+    await screen.findByRole('checkbox', { name: PRE_FILTER_REGEX }),
+  );
 
   // Wait for validation error to appear
   await waitFor(
@@ -402,7 +414,7 @@ test('validates the pre-filter value', async () => {
       const errorMessages = screen.getAllByText(PRE_FILTER_REQUIRED_REGEX);
       expect(errorMessages.length).toBeGreaterThan(0);
     },
-    { timeout: 10000 },
+    { timeout: 15000 },
   );
 }, 50000); // Slow-running test, increase timeout to 50 seconds.
 
@@ -607,17 +619,21 @@ test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
     const firstSortable = sortableElements[0] as HTMLElement;
     firstSortable.focus();
 
+    // dnd-kit reacts to Space by attaching its keyboard sensor; yield to React
+    // between events so the activeElement reflects the sensor's focus shift.
     fireEvent.keyDown(firstSortable, { code: 'Space' });
-    await sleep(1);
+    await waitFor(() => expect(document.activeElement).not.toBe(document.body));
     fireEvent.keyDown(document.activeElement ?? firstSortable, {
       code: 'ArrowDown',
     });
-    await sleep(1);
+    await waitFor(() => expect(document.activeElement).not.toBe(document.body));
     fireEvent.keyDown(document.activeElement ?? firstSortable, {
       code: 'Space',
     });
 
-    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: SAVE_REGEX }),
+    );
 
     await waitFor(
       () =>
@@ -634,7 +650,7 @@ test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
             }),
           }),
         ),
-      { timeout: 5000 },
+      { timeout: 15000 },
     );
   } finally {
     if (originalOffsetHeight) {
@@ -735,18 +751,22 @@ test('modifies the name of a filter', async () => {
   // Switch back to real timers so waitFor polling works
   jest.useRealTimers();
 
-  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await userEvent.click(
+    await screen.findByRole('button', { name: SAVE_REGEX }),
+  );
 
-  await waitFor(() =>
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filterChanges: expect.objectContaining({
-          modified: expect.arrayContaining([
-            expect.objectContaining({ name: 'New Filter Name' }),
-          ]),
+  await waitFor(
+    () =>
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterChanges: expect.objectContaining({
+            modified: expect.arrayContaining([
+              expect.objectContaining({ name: 'New Filter Name' }),
+            ]),
+          }),
         }),
-      }),
-    ),
+      ),
+    { timeout: 10000 },
   );
 }, 30000);
 

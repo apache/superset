@@ -29,12 +29,10 @@ import {
   createContext,
   FC,
 } from 'react';
-import { useSelector } from 'react-redux';
 import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
-import { RootState } from 'src/dashboard/types';
-import { DataMaskStateWithId } from '@superset-ui/core';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
@@ -177,9 +175,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     [height],
   );
 
-  const dataMask = useSelector<RootState, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
+  const dataMask = useDataMaskStore(s => s.dataMask);
   const chartIds = useChartIds();
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();

@@ -25,7 +25,7 @@ import {
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import DatasetSelect, { loadDatasetOptions } from './DatasetSelect';
-import { supersetGetCache } from 'src/utils/cachedSupersetGet';
+import { queryClient } from 'src/queries/queryClient';
 
 const DATASETS = [
   {
@@ -59,6 +59,7 @@ const mockOnChange = jest.fn();
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
+  queryClient.clear();
 });
 
 const getSelect = () => screen.getByRole('combobox', { name: /dataset/i });
@@ -204,7 +205,7 @@ test('includes table_name field in option data structure', async () => {
 });
 
 test('uses API count instead of filteredResult.length', async () => {
-  supersetGetCache.clear();
+  queryClient.clear();
   fetchMock.clearHistory().removeRoutes();
   fetchMock.get('glob:*/api/v1/dataset/*', {
     result: [
@@ -231,7 +232,7 @@ test('uses API count instead of filteredResult.length', async () => {
 });
 
 test('returns total count from API when data is filtered', async () => {
-  supersetGetCache.clear();
+  queryClient.clear();
   fetchMock.clearHistory().removeRoutes();
 
   fetchMock.get('glob:*/api/v1/dataset/*', {

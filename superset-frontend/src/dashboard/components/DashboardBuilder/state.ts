@@ -16,38 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { RootState } from 'src/dashboard/types';
+import {
+  useNativeFiltersBarOpen,
+  setNativeFiltersBarOpen,
+  useCanEditDashboard,
+} from 'src/dashboard/stores';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   useFilters,
   useNativeFiltersDataMask,
 } from '../nativeFilters/FilterBar/state';
-import { useChartCustomizationFromRedux } from '../nativeFilters/state';
-import { toggleNativeFiltersBar } from '../../actions/dashboardState';
+import { useChartCustomizations } from '../nativeFilters/state';
 
 export const useNativeFilters = () => {
-  const dispatch = useDispatch();
-
   const [isInitialized, setIsInitialized] = useState(false);
 
   const showNativeFilters = useSelector<RootState, boolean>(
     () => getUrlParam(URL_PARAMS.showFilters) ?? true,
   );
-  const canEdit = useSelector<RootState, boolean>(
-    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
-  );
-  const dashboardFiltersOpen = useSelector<RootState, boolean>(
-    state => state.dashboardState.nativeFiltersBarOpen ?? false,
-  );
+  const canEdit = useCanEditDashboard();
+  const dashboardFiltersOpen = useNativeFiltersBarOpen() ?? false;
 
   const filters = useFilters();
   const filterValues = useMemo(() => Object.values(filters), [filters]);
   const expandFilters = getUrlParam(URL_PARAMS.expandFilters);
-  const chartCustomizations = useChartCustomizationFromRedux();
+  const chartCustomizations = useChartCustomizations();
 
   const nativeFiltersEnabled =
     showNativeFilters &&
@@ -83,9 +81,9 @@ export const useNativeFilters = () => {
   const toggleDashboardFiltersOpen = useCallback(
     (visible?: boolean) => {
       const newState = visible ?? !dashboardFiltersOpen;
-      dispatch(toggleNativeFiltersBar(newState));
+      setNativeFiltersBarOpen(newState);
     },
-    [dispatch, dashboardFiltersOpen],
+    [dashboardFiltersOpen],
   );
 
   useEffect(() => {
@@ -97,12 +95,11 @@ export const useNativeFilters = () => {
         chartCustomizations.length === 0 &&
         nativeFiltersEnabled)
     ) {
-      dispatch(toggleNativeFiltersBar(false));
+      setNativeFiltersBarOpen(false);
     } else {
-      dispatch(toggleNativeFiltersBar(true));
+      setNativeFiltersBarOpen(true);
     }
   }, [
-    dispatch,
     filterValues.length,
     chartCustomizations.length,
     expandFilters,

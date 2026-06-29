@@ -215,8 +215,6 @@ const resetUseSelectorMock = () => {
   });
 
   // By default we get file extensions to be uploaded
-  useSelectorMock.mockReturnValueOnce('1');
-  // By default we get file extensions to be uploaded
   useSelectorMock.mockReturnValueOnce({
     CSV_EXTENSIONS: ['csv'],
     EXCEL_EXTENSIONS: ['xls', 'xlsx'],

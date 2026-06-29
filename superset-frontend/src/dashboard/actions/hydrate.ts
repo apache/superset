@@ -22,10 +22,6 @@ import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import type { History } from 'history';
-import { chart } from 'src/components/Chart/chartReducer';
-import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
-import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
-import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { findPermission } from 'src/utils/findPermission';
 import {
@@ -33,56 +29,69 @@ import {
   canUserSaveAsDashboard,
 } from 'src/dashboard/util/permissionUtils';
 import type { Dashboard } from 'src/types/Dashboard';
-import {
-  getCrossFiltersConfiguration,
-  isCrossFiltersEnabled,
-} from 'src/dashboard/util/crossFilters';
-import {
-  DASHBOARD_HEADER_ID,
-  GRID_DEFAULT_CHART_WIDTH,
-  GRID_COLUMN_COUNT,
-  DASHBOARD_ROOT_ID,
-} from 'src/dashboard/util/constants';
-import {
-  DASHBOARD_HEADER_TYPE,
-  CHART_TYPE,
-  ROW_TYPE,
-} from 'src/dashboard/util/componentTypes';
-import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
-import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
+import { getCrossFiltersConfiguration } from 'src/dashboard/util/crossFilters';
 import getLocationHash from 'src/dashboard/util/getLocationHash';
-import newComponentFactory, {
-  DashboardEntity,
-} from 'src/dashboard/util/newComponentFactory';
+import type { DashboardEntity } from 'src/dashboard/util/newComponentFactory';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
+import {
+  useDashboardStateStore,
+  useDashboardLayoutStore,
+  useDashboardSlicesStore,
+  useNativeFiltersStore,
+  useDashboardInfoStore,
+  getNativeFiltersInitialState,
+  type DashboardInfoData,
+  type FilterEntry,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import type { DashboardFilterMetadata } from 'src/dataMask/useDataMaskStore';
+import { queryClient } from 'src/queries/queryClient';
+import { dashboardKeys } from 'src/dashboard/queries/keys';
 import extractUrlParams from '../util/extractUrlParams';
-import updateComponentParentsList from '../util/updateComponentParentsList';
+import buildDashboardLayout, {
+  HydrateChartData,
+} from '../util/buildDashboardLayout';
 import { AUTO_REFRESH_STATE_DEFAULTS } from '../types/autoRefresh';
 import { migrateChartCustomizationArray } from '../util/migrateChartCustomization';
 import {
+  ChartsState,
   DashboardLayout,
-  FilterBarOrientation,
   GetState,
   LayoutItem,
   RootState,
+  Slice,
 } from '../types';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
-interface HydrateChartData {
-  slice_id: number;
-  slice_url: string;
-  slice_name: string;
-  form_data: JsonObject;
-  description: string;
-  description_markeddown: string;
-  owners: { id: number }[];
-  modified: string;
-  changed_on: string;
+/** Shape cached at `dashboardKeys.hydrationPayload(id)`; the in-place-discard restore point. */
+export interface HydrationPayload {
+  dashboardInfo: DashboardInfoData;
+  dashboardLayout: {
+    present: DashboardLayout;
+    past?: unknown[];
+    future?: unknown[];
+  };
+  charts: ChartsState;
+  sliceEntities: {
+    slices: Record<number, Slice>;
+    isLoading: boolean;
+    errorMessage: string | null;
+    lastUpdated: number;
+  };
+  dataMask: DataMaskStateWithId;
+  dashboardFilters: JsonObject;
+  nativeFilters: {
+    filters: Record<string, FilterEntry>;
+    focusedFilterId?: string;
+    hoveredFilterId?: string;
+    hoveredChartCustomizationId?: string;
+  };
+  zustandStateSeed: Record<string, unknown>;
 }
 
 interface HydrateDashboardData extends Dashboard {
@@ -110,155 +119,27 @@ export const hydrateDashboard =
     chartStates,
   }: HydrateDashboardParams) =>
   (dispatch: AppDispatch, getState: GetState): AnyAction => {
-    const { user, common, dashboardState } = getState();
+    const { user, common } = getState();
+    const dashboardState = useDashboardStateStore.getState();
     const { metadata, position_data: positionData } = dashboard;
     const regularUrlParams = extractUrlParams('regular');
     const reservedUrlParams = extractUrlParams('reserved');
     const editMode = reservedUrlParams.edit === 'true';
 
-    charts.forEach((chartItem: HydrateChartData) => {
-      // eslint-disable-next-line no-param-reassign
-      chartItem.slice_id = chartItem.form_data.slice_id as number;
+    const { layout, chartQueries, slices, sliceIds } = buildDashboardLayout({
+      dashboardTitle: dashboard.dashboard_title,
+      positionData,
+      charts,
+      regularUrlParams,
     });
 
-    // new dash: position_json could be {} or null
-    // getEmptyLayout() includes a version string entry plus BasicLayoutItem entries
-    // which lack the `meta` field; layout is mutated below to add full LayoutItem entries
-    const layout = (
-      positionData && Object.keys(positionData).length > 0
-        ? positionData
-        : getEmptyLayout()
-    ) as Record<string, LayoutItem | DashboardEntity>;
-
-    // create a lookup to sync layout names with slice names
-    const chartIdToLayoutId: Record<number, string> = {};
-    Object.values(layout).forEach(layoutComponent => {
-      if (layoutComponent.type === CHART_TYPE) {
-        const { chartId } = (layoutComponent as LayoutItem).meta;
-        if (chartId !== undefined) {
-          chartIdToLayoutId[chartId] = layoutComponent.id;
-        }
-      }
-    });
-
-    // find root level chart container node for newly-added slices
-    const parentId = findFirstParentContainerId(layout as DashboardLayout);
-    const parent = layout[parentId];
-    let newSlicesContainer: DashboardEntity | undefined;
-    let newSlicesContainerWidth = 0;
-
-    const chartQueries: Record<string, JsonObject> = {};
     const dashboardFilters: Record<string, JsonObject> = {};
-    const slices: Record<string, JsonObject> = {};
-    const sliceIds = new Set<number>();
-    const slicesFromExploreCount = new Map<number, number>();
-
-    charts.forEach((slice: HydrateChartData) => {
-      const key = slice.slice_id;
-      const formData = {
-        ...slice.form_data,
-        url_params: {
-          ...(slice.form_data.url_params as JsonObject),
-          ...regularUrlParams,
-        },
-      };
-      chartQueries[key] = {
-        ...chart,
-        id: key,
-        form_data: applyDefaultFormData(
-          formData as Parameters<typeof applyDefaultFormData>[0],
-        ),
-      };
-
-      slices[key] = {
-        slice_id: key,
-        slice_url: slice.slice_url,
-        slice_name: slice.slice_name,
-        form_data: slice.form_data,
-        viz_type: slice.form_data.viz_type,
-        datasource: slice.form_data.datasource,
-        description: slice.description,
-        description_markdown: slice.description_markeddown,
-        owners: slice.owners,
-        modified: slice.modified,
-        changed_on: new Date(slice.changed_on).getTime(),
-      };
-
-      sliceIds.add(key);
-
-      // if there are newly added slices from explore view, fill slices into 1 or more rows
-      if (!chartIdToLayoutId[key] && layout[parentId]) {
-        if (
-          newSlicesContainerWidth === 0 ||
-          newSlicesContainerWidth + GRID_DEFAULT_CHART_WIDTH > GRID_COLUMN_COUNT
-        ) {
-          newSlicesContainer = newComponentFactory(
-            ROW_TYPE,
-            undefined,
-            ((parent as LayoutItem).parents ?? []).slice(),
-          );
-          layout[newSlicesContainer.id] = newSlicesContainer;
-          parent.children.push(newSlicesContainer.id);
-          newSlicesContainerWidth = 0;
-        }
-
-        const chartHolder = newComponentFactory(
-          CHART_TYPE,
-          {
-            chartId: slice.slice_id,
-          },
-          (newSlicesContainer!.parents || []).slice(),
-        );
-
-        const count = (slicesFromExploreCount.get(slice.slice_id) ?? 0) + 1;
-        chartHolder.id = `${CHART_TYPE}-explore-${slice.slice_id}-${count}`;
-        slicesFromExploreCount.set(slice.slice_id, count);
-
-        layout[chartHolder.id] = chartHolder;
-        newSlicesContainer!.children.push(chartHolder.id);
-        const holderChartId = chartHolder.meta.chartId;
-        if (holderChartId !== undefined) {
-          chartIdToLayoutId[holderChartId] = chartHolder.id;
-        }
-        newSlicesContainerWidth += GRID_DEFAULT_CHART_WIDTH;
-      }
-
-      // sync layout names with current slice names in case a slice was edited
-      // in explore since the layout was updated. name updates go through layout for undo/redo
-      // functionality and python updates slice names based on layout upon dashboard save
-      const layoutId = chartIdToLayoutId[key];
-      if (layoutId && layout[layoutId]) {
-        (layout[layoutId] as LayoutItem).meta.sliceName = slice.slice_name;
-      }
-    });
-
-    // make sure that parents tree is built
-    if (
-      Object.values(layout).some(
-        element => element.id !== DASHBOARD_ROOT_ID && !element.parents,
-      )
-    ) {
-      updateComponentParentsList({
-        currentComponent: layout[DASHBOARD_ROOT_ID] as LayoutItem,
-        layout: layout as Record<string, LayoutItem>,
-      });
-    }
-
     buildActiveFilters({
       dashboardFilters: dashboardFilters as Parameters<
         typeof buildActiveFilters
       >[0]['dashboardFilters'],
       components: layout as Record<string, LayoutItem>,
     });
-
-    // store the header as a layout component so we can undo/redo changes
-    layout[DASHBOARD_HEADER_ID] = {
-      id: DASHBOARD_HEADER_ID,
-      type: DASHBOARD_HEADER_TYPE,
-      meta: {
-        text: dashboard.dashboard_title,
-      },
-    } as LayoutItem;
 
     const dashboardLayout = {
       past: [] as Record<string, LayoutItem | DashboardEntity>[],
@@ -306,9 +187,9 @@ export const hydrateDashboard =
     ).filter(Boolean);
     const combinedFilters = [...filters, ...chartCustomizations];
 
-    const nativeFilters = getInitialNativeFilterState({
+    const nativeFilters = getNativeFiltersInitialState({
       filterConfig: combinedFilters as Parameters<
-        typeof getInitialNativeFilterState
+        typeof getNativeFiltersInitialState
       >[0]['filterConfig'],
     });
 
@@ -323,79 +204,136 @@ export const hydrateDashboard =
 
     const { roles } = user;
     const canEdit = canUserEditDashboard(dashboard, user);
-    const crossFiltersEnabled = isCrossFiltersEnabled(
-      metadata.cross_filters_enabled as boolean | undefined,
+
+    const hydratedEditMode = canEdit && editMode;
+    const hydratedActiveTabs = activeTabs || dashboardState?.activeTabs || [];
+
+    // Seed the dashboard-state Zustand store. Captured into a named object so the
+    // same seed can be cached and replayed by useDiscardChanges (HYDRATE_DASHBOARD
+    // resets only the Redux reducers, not the Zustand store).
+    const zustandStateSeed = {
+      ...AUTO_REFRESH_STATE_DEFAULTS,
+      editMode: hydratedEditMode,
+      fullSizeChartId: null,
+      isPublished: dashboard.published ?? null,
+      sliceIds: Array.from(sliceIds),
+      activeTabs: hydratedActiveTabs,
+      inactiveTabs: [],
+      hasUnsavedChanges: false,
+      // Starts closed; the useNativeFilters mount effect opens it when there are filters.
+      nativeFiltersBarOpen: false,
+      isRefreshing: false,
+      isFiltersRefreshing: false,
+      directPathToChild,
+      directPathLastUpdated: Date.now(),
+      isStarred: false,
+      maxUndoHistoryExceeded: false,
+      dashboardIsSaving: false,
+      // Stale-overwrite guard baseline: must be numeric (Header takes Math.max with
+      // the real last_modified_time), so seed 0 — a non-numeric seed makes Math.max NaN.
+      lastModifiedTime: 0,
+      lastRefreshTime: 0,
+      overwriteConfirmMetadata: undefined,
+      colorScheme: metadata?.color_scheme || undefined,
+      colorNamespace: metadata?.color_namespace || undefined,
+      updatedColorScheme: false,
+      labelsColorMapMustSync: false,
+      sharedLabelsColorsMustSync: false,
+      expandedSlices: metadata?.expanded_slices || {},
+      focusedFilterField: null,
+      chartStates: chartStates || {},
+      refreshFrequency: metadata?.refresh_frequency || 0,
+      shouldPersistRefreshFrequency: false,
+      datasetsStatus: ResourceStatus.Loading,
+      preselectNativeFilters:
+        (getUrlParam(URL_PARAMS.nativeFilters) as JsonObject | undefined) ||
+        undefined,
+      tabActivationTimes: Object.fromEntries(
+        hydratedActiveTabs.map((tabId: string) => [tabId, Date.now()]),
+      ),
+    };
+    useDashboardStateStore.setState(zustandStateSeed);
+
+    // Seed the layout store, then clear zundo history so the empty `{}` initial
+    // layout isn't left as a bogus undo target.
+    useDashboardLayoutStore.getState().setLayout(dashboardLayout.present);
+    useDashboardLayoutStore.temporal.getState().clear();
+
+    // Seed the dashboard's chart metadata; the "add chart" panel uses useSlicesQuery instead.
+    useDashboardSlicesStore
+      .getState()
+      .setSlices(slices as Record<number, Slice>);
+
+    // Seed the filter Zustand stores (dataMask + native filters).
+    useDataMaskStore
+      .getState()
+      .hydrateDataMask(metadata as DashboardFilterMetadata, dataMask);
+    useNativeFiltersStore
+      .getState()
+      .hydrateNativeFilters(nativeFilters.filters);
+
+    const hydrateData = {
+      // Consumed by useDiscardChanges to re-seed useDashboardSlicesStore.
+      sliceEntities: {
+        slices,
+        isLoading: false,
+        errorMessage: null,
+        lastUpdated: 0,
+      },
+      charts: chartQueries,
+      // read-only data
+      dashboardInfo: {
+        ...dashboard,
+        metadata,
+        userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
+        dash_edit_perm: canEdit,
+        dash_save_perm: canUserSaveAsDashboard(dashboard, user),
+        dash_share_perm: findPermission(
+          'can_share_dashboard',
+          'Superset',
+          roles,
+        ),
+        dash_export_perm: findPermission('can_export', 'Dashboard', roles),
+        superset_can_explore: findPermission('can_explore', 'Superset', roles),
+        superset_can_share: findPermission(
+          'can_share_chart',
+          'Superset',
+          roles,
+        ),
+        superset_can_csv: findPermission('can_csv', 'Superset', roles),
+        common: {
+          // legacy, please use state.common instead
+          conf: common?.conf,
+        },
+      },
+      dataMask,
+      dashboardFilters,
+      nativeFilters,
+      dashboardLayout,
+      // Carried (not read by any reducer) so useDiscardChanges can replay the Zustand seed.
+      zustandStateSeed,
+    };
+
+    // Seed the dashboardInfo Zustand store; readers consume it from here.
+    useDashboardInfoStore
+      .getState()
+      .hydrateDashboardInfo(
+        hydrateData.dashboardInfo as unknown as DashboardInfoData,
+      );
+
+    // Cache the payload so useDiscardChanges can re-seed without a reload. No useQuery
+    // observes it, so gcTime: Infinity prevents GC (which would degrade discard to a
+    // reload); set on the shared prefix and before setQueryData so the default applies.
+    queryClient.setQueryDefaults(dashboardKeys.hydrationPayloadAll, {
+      gcTime: Infinity,
+    });
+    queryClient.setQueryData<HydrationPayload>(
+      dashboardKeys.hydrationPayload(dashboard.id),
+      hydrateData as unknown as HydrationPayload,
     );
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
-      data: {
-        sliceEntities: { ...initSliceEntities, slices, isLoading: false },
-        charts: chartQueries,
-        // read-only data
-        dashboardInfo: {
-          ...dashboard,
-          metadata,
-          userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
-          dash_edit_perm: canEdit,
-          dash_save_perm: canUserSaveAsDashboard(dashboard, user),
-          dash_share_perm: findPermission(
-            'can_share_dashboard',
-            'Superset',
-            roles,
-          ),
-          dash_export_perm: findPermission('can_export', 'Dashboard', roles),
-          superset_can_explore: findPermission(
-            'can_explore',
-            'Superset',
-            roles,
-          ),
-          superset_can_share: findPermission(
-            'can_share_chart',
-            'Superset',
-            roles,
-          ),
-          superset_can_csv: findPermission('can_csv', 'Superset', roles),
-          common: {
-            // legacy, please use state.common instead
-            conf: common?.conf,
-          },
-          filterBarOrientation:
-            metadata.filter_bar_orientation || FilterBarOrientation.Vertical,
-          crossFiltersEnabled,
-        },
-        dataMask,
-        dashboardFilters,
-        nativeFilters,
-        dashboardState: {
-          ...AUTO_REFRESH_STATE_DEFAULTS,
-          preselectNativeFilters: getUrlParam(URL_PARAMS.nativeFilters),
-          sliceIds: Array.from(sliceIds),
-          directPathToChild,
-          directPathLastUpdated: Date.now(),
-          focusedFilterField: null,
-          expandedSlices: metadata?.expanded_slices || {},
-          refreshFrequency: metadata?.refresh_frequency || 0,
-          // dashboard viewers can set refresh frequency for the current visit,
-          // only persistent refreshFrequency will be saved to backend
-          shouldPersistRefreshFrequency: false,
-          css: dashboard.css || '',
-          colorNamespace: metadata?.color_namespace || null,
-          colorScheme: metadata?.color_scheme || null,
-          editMode: canEdit && editMode,
-          isPublished: dashboard.published,
-          hasUnsavedChanges: false,
-          dashboardIsSaving: false,
-          maxUndoHistoryExceeded: false,
-          lastModifiedTime: dashboard.changed_on,
-          isRefreshing: false,
-          isFiltersRefreshing: false,
-          activeTabs: activeTabs || dashboardState?.activeTabs || [],
-          datasetsStatus:
-            dashboardState?.datasetsStatus || ResourceStatus.Loading,
-          chartStates: chartStates || dashboardState?.chartStates || {},
-        },
-        dashboardLayout,
-      },
+      data: hydrateData,
     });
   };

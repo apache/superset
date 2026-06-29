@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ReactNode, useCallback, useContext, useEffect, useRef } from 'react';
-import { t } from '@apache-superset/core/translation';
 import { JsonObject } from '@superset-ui/core';
+import { clearAllChartStates } from 'src/dashboard/stores';
 
 import { Loading } from '@superset-ui/core/components';
 import { PluginContext } from 'src/components';
@@ -63,7 +63,6 @@ interface DashboardActions {
   triggerQuery: (value: boolean, id: number | string) => void;
   logEvent: (eventName: string, eventData: Record<string, unknown>) => void;
   clearDataMaskState: () => void;
-  clearAllChartStates: () => void;
   setDatasources: (datasources: unknown) => void;
 }
 
@@ -90,27 +89,11 @@ interface VisibilityEventData {
   ts: number;
 }
 
-function unload(event: BeforeUnloadEvent): string {
-  const message = t('You have unsaved changes.');
-  // Set returnValue on the actual event object to trigger the browser prompt
-  event.returnValue = message;
-  return message; // Gecko + Webkit, Safari, Chrome etc.
-}
-
-function onBeforeUnload(hasChanged: boolean): void {
-  if (hasChanged) {
-    window.addEventListener('beforeunload', unload);
-  } else {
-    window.removeEventListener('beforeunload', unload);
-  }
-}
-
 function Dashboard({
   actions,
   dashboardId,
   editMode,
   isPublished,
-  hasUnsavedChanges,
   slices,
   activeFilters,
   chartConfiguration,
@@ -240,18 +223,11 @@ function Dashboard({
     ) {
       applyFilters();
     }
-
-    if (hasUnsavedChanges) {
-      onBeforeUnload(true);
-    } else {
-      onBeforeUnload(false);
-    }
   }, [
     chartConfiguration,
     editMode,
     ownDataCharts,
     activeFilters,
-    hasUnsavedChanges,
     applyFilters,
   ]);
 
@@ -312,9 +288,8 @@ function Dashboard({
     // componentWillUnmount equivalent
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      onBeforeUnload(false); // Remove beforeunload listener on unmount
       actionsRef.current.clearDataMaskState();
-      actionsRef.current.clearAllChartStates();
+      clearAllChartStates();
     };
     // Only run on mount/unmount - listeners/cleanup go through refs to avoid
     // capturing stale closures.

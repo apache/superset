@@ -18,6 +18,12 @@
  */
 import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import {
+  useDashboardStateStore,
+  useDashboardSlicesStore,
+  useDashboardInfoStore,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
 import { DashboardChartStates } from '../dashboard/types/chartState';
@@ -52,15 +58,13 @@ const getDashboardPermalink = async ({
 }: {
   anchor: string;
 }): Promise<string> => {
-  const state = store?.getState();
-  const { dashboardId, dataMask, activeTabs, chartStates, sliceEntities } = {
-    dashboardId:
-      state?.dashboardInfo?.id || bootstrapData?.embedded!.dashboard_id,
-    dataMask: state?.dataMask,
-    activeTabs: state.dashboardState?.activeTabs,
-    chartStates: state.dashboardState?.chartStates,
-    sliceEntities: state?.sliceEntities?.slices,
-  };
+  const dashboardStateStore = useDashboardStateStore.getState();
+  const dashboardId =
+    useDashboardInfoStore.getState().dashboardInfo?.id ||
+    bootstrapData?.embedded!.dashboard_id;
+  const { dataMask } = useDataMaskStore.getState();
+  const { activeTabs, chartStates } = dashboardStateStore;
+  const sliceEntities = useDashboardSlicesStore.getState().slices;
 
   const includeChartState =
     hasStatefulCharts(sliceEntities) &&
@@ -79,12 +83,12 @@ const getDashboardPermalink = async ({
   return url;
 };
 
-const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
+const getActiveTabs = () => useDashboardStateStore.getState().activeTabs || [];
 
-const getDataMask = () => store?.getState()?.dataMask || {};
+const getDataMask = () => useDataMaskStore.getState().dataMask || {};
 
 const getChartStates = () =>
-  store?.getState()?.dashboardState?.chartStates || {};
+  useDashboardStateStore.getState().chartStates || {};
 
 const getChartDataPayloads = async (params?: {
   chartId?: number;

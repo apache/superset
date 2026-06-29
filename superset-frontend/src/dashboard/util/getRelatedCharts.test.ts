@@ -105,3 +105,14 @@ test('Return only chart ids in specific scope with cross filter', () => {
   const result = getRelatedCharts('1', filters['1'], slices);
   expect(result).toEqual([2]);
 });
+
+test('returns [] when the filter is undefined (stale filter key)', () => {
+  // A focused/hovered filter id can outlive its filter; getRelatedCharts must
+  // not dereference an undefined filter.
+  const result = getRelatedCharts(
+    'missing',
+    undefined as unknown as AppliedCrossFilterType,
+    slices,
+  );
+  expect(result).toEqual([]);
+});

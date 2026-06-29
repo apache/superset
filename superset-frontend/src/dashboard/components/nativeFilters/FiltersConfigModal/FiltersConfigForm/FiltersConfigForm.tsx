@@ -29,7 +29,6 @@ import {
   ChartCustomization,
   ChartCustomizationType,
   getChartMetadataRegistry,
-  JsonResponse,
   NativeFilterType,
   SupersetApiError,
   ClientErrorObject,
@@ -50,7 +49,6 @@ import {
   RefObject,
   memo,
 } from 'react';
-import rison from 'rison';
 import {
   PluginFilterSelectCustomizeProps,
   SelectFilterOperatorType,
@@ -74,13 +72,14 @@ import { BasicErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { Radio } from '@superset-ui/core/components/Radio';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import { useDatasetMetadata } from 'src/dashboard/queries';
 import {
   Chart,
   ChartsState,
   DatasourcesState,
   RootState,
 } from 'src/dashboard/types';
+import { useDashboardId } from 'src/dashboard/stores';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import type AdhocFilterClass from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -313,9 +312,7 @@ const FiltersConfigForm = (
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
-  const dashboardId = useSelector<RootState, number>(
-    state => state.dashboardInfo.id,
-  );
+  const dashboardId = useDashboardId();
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -741,47 +738,50 @@ const FiltersConfigForm = (
 
   const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
 
+  const { data: datasetResult, error: datasetError } = useDatasetMetadata(
+    datasetId,
+    [
+      'columns.column_name',
+      'columns.expression',
+      'columns.filterable',
+      'columns.is_dttm',
+      'columns.type',
+      'columns.type_generic',
+      'columns.verbose_name',
+      'database.id',
+      'database.database_name',
+      'datasource_type',
+      'filter_select_enabled',
+      'id',
+      'is_sqllab_view',
+      'main_dttm_col',
+      'metrics.metric_name',
+      'metrics.verbose_name',
+      'schema',
+      'sql',
+      'table_name',
+      'time_grain_sqla',
+    ],
+  );
+
   useEffect(() => {
-    if (datasetId) {
-      cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
-          columns: [
-            'columns.column_name',
-            'columns.expression',
-            'columns.filterable',
-            'columns.is_dttm',
-            'columns.type',
-            'columns.type_generic',
-            'columns.verbose_name',
-            'database.id',
-            'database.database_name',
-            'datasource_type',
-            'filter_select_enabled',
-            'id',
-            'is_sqllab_view',
-            'main_dttm_col',
-            'metrics.metric_name',
-            'metrics.verbose_name',
-            'schema',
-            'sql',
-            'table_name',
-            'time_grain_sqla',
-          ],
-        })}`,
-      })
-        .then((response: JsonResponse) => {
-          setMetrics(response.json?.result?.metrics);
-          const dataset = response.json?.result;
-          // modify the response to fit structure expected by AdhocFilterControl
-          dataset.type = dataset.datasource_type;
-          dataset.filter_select = true;
-          setDatasetDetails(dataset);
-        })
-        .catch((response: SupersetApiError) => {
-          addDangerToast(response.message);
-        });
+    if (!datasetResult) {
+      return;
     }
-  }, [datasetId]);
+    setMetrics((datasetResult.metrics as Metric[]) ?? []);
+    // reshape to the structure expected by AdhocFilterControl
+    setDatasetDetails({
+      ...datasetResult,
+      type: datasetResult.datasource_type,
+      filter_select: true,
+    });
+  }, [datasetResult]);
+
+  useEffect(() => {
+    if (datasetError) {
+      addDangerToast((datasetError as SupersetApiError).message);
+    }
+  }, [datasetError]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {
