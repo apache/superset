@@ -84,6 +84,12 @@ export type Datasource = Dataset & {
    * side; missing here means the explore UI keeps current behavior.
    */
   supports_samples?: boolean;
+  /**
+   * False when the datasource doesn't model raw rows and therefore can't
+   * answer a drill-to-detail query. Tracked separately from
+   * ``supports_samples`` so the two capabilities can diverge.
+   */
+  supports_drill_to_detail?: boolean;
 };
 
 export interface ExplorePageInitialData {
