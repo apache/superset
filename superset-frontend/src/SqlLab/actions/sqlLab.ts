@@ -689,8 +689,8 @@ export function syncQueryEditor(
       (table: Table) =>
         table.inLocalStorage && table.queryEditorId === queryEditor.id,
     );
-    const localStorageQueries = Object.values(queries).filter(
-      query => query.inLocalStorage && query.sqlEditorId === queryEditor.id,
+    const queriesToMigrate = Object.values(queries).filter(
+      query => query.sqlEditorId === queryEditor.id && !query.isDataPreview,
     );
     return SupersetClient.post({
       endpoint: '/tabstateview/',
@@ -712,7 +712,7 @@ export function syncQueryEditor(
           ...localStorageTables.map((table: Table) =>
             migrateTable(table, newQueryEditor.tabViewId!, dispatch),
           ),
-          ...localStorageQueries.map((query: Query) =>
+          ...queriesToMigrate.map((query: Query) =>
             migrateQuery(query.id, newQueryEditor.tabViewId!, dispatch),
           ),
         ]);
