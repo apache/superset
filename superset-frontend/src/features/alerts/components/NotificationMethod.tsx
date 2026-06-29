@@ -258,7 +258,7 @@ const fetchEmailRecipientOptions = async (
   page: number,
   pageSize: number,
 ) => {
-  const query = rison.encode({
+  const query = rison.encode_uri({
     filter: filterValue,
     page,
     page_size: pageSize,

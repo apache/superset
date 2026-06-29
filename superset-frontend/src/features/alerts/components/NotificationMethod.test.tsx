@@ -32,6 +32,7 @@ import {
   SupersetClient,
   TextResponse,
 } from '@superset-ui/core';
+import rison from 'rison';
 import { NotificationMethod, mapSlackValues } from './NotificationMethod';
 import { NotificationMethodOption, NotificationSetting } from '../types';
 
@@ -361,8 +362,9 @@ describe('NotificationMethod', () => {
       />,
     );
 
+    const filterValue = 'test +&#';
     fireEvent.change(screen.getByTestId('recipients'), {
-      target: { value: 'test' },
+      target: { value: filterValue },
     });
     fireEvent.click(screen.getByTestId('recipients-load-options'));
 
@@ -376,7 +378,15 @@ describe('NotificationMethod', () => {
     );
     expect(SupersetClient.get).toHaveBeenCalledWith(
       expect.objectContaining({
-        endpoint: expect.stringContaining('filter:test'),
+        endpoint: expect.stringContaining(
+          `q=${rison.encode_uri({
+            filter: filterValue,
+            page: 0,
+            page_size: 25,
+            order_column: 'username',
+            order_direction: 'asc',
+          })}`,
+        ),
       }),
     );
   });
