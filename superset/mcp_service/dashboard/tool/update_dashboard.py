@@ -124,7 +124,7 @@ def _merge_json_metadata(dashboard: Any, overrides: dict[str, Any]) -> str:
 # Typed json_metadata convenience fields. Each maps 1:1 to a json_metadata
 # key but is exposed as a validated field so an LLM does not have to hand-build
 # the raw ``json_metadata_overrides`` dict for common toggles.
-_TYPED_METADATA_FIELDS = (
+_TYPED_METADATA_FIELDS: tuple[str, ...] = (
     "cross_filters_enabled",
     "refresh_frequency",
     "filter_bar_orientation",
@@ -140,7 +140,7 @@ def _collect_metadata_overrides(request: UpdateDashboardRequest) -> dict[str, An
     keys without a typed field.
     """
     overrides: dict[str, Any] = dict(request.json_metadata_overrides or {})
-    typed = {
+    typed: dict[str, Any] = {
         field: value
         for field in _TYPED_METADATA_FIELDS
         if (value := getattr(request, field)) is not None
@@ -188,7 +188,7 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
         dashboard.position_json = json.dumps(request.position_json)
         changed.append("position_json")
 
-    metadata_overrides = _collect_metadata_overrides(request)
+    metadata_overrides: dict[str, Any] = _collect_metadata_overrides(request)
     if metadata_overrides:
         dashboard.json_metadata = _merge_json_metadata(dashboard, metadata_overrides)
         changed.append("json_metadata")
@@ -314,7 +314,9 @@ def update_dashboard(
     if auth_error is not None:
         return auth_error
 
-    validation_error = _validate_update_request(dashboard, request)
+    validation_error: DashboardError | None = _validate_update_request(
+        dashboard, request
+    )
     if validation_error is not None:
         return validation_error
 
