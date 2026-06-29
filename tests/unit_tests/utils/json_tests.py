@@ -415,3 +415,17 @@ def test_format_timedelta():
         json.format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3))
         == "-16 days, 4:03:00"
     )
+
+
+def test_dumps_escapes_non_ascii_by_default():
+    # Default ensure_ascii=True keeps output safe for narrow charset columns
+    # (e.g. MySQL utf8) by escaping non-ASCII characters to \uXXXX sequences.
+    assert json.dumps("Hello, world!") == '"Hello, world!"'
+    assert json.dumps("Привет") == '"\\u041f\\u0440\\u0438\\u0432\\u0435\\u0442"'
+
+
+def test_dumps_preserves_unicode_when_ensure_ascii_false():
+    # Opt-in ensure_ascii=False renders non-ASCII characters verbatim.
+    assert json.dumps("Hello, world!", ensure_ascii=False) == '"Hello, world!"'
+    assert json.dumps("Привет, мир!", ensure_ascii=False) == '"Привет, мир!"'
+    assert json.dumps("你好，世界！", ensure_ascii=False) == '"你好，世界！"'
