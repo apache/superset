@@ -64,17 +64,25 @@ async def find_users(request: FindUsersRequest, ctx: Context) -> FindUsersRespon
     )
 
     user_model = security_manager.user_model
-    needle = f"%{request.query.strip()}%"
+    # Escape LIKE metacharacters so a query of "%" or "_" cannot enumerate all
+    # users. Backslash must be doubled first to avoid double-escaping.
+    escaped = (
+        request.query.strip()
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_")
+    )
+    needle = f"%{escaped}%"
 
     with event_logger.log_context(action="mcp.find_users.query"):
         query = (
             db.session.query(user_model)
             .filter(
                 or_(
-                    user_model.username.ilike(needle),
-                    user_model.first_name.ilike(needle),
-                    user_model.last_name.ilike(needle),
-                    user_model.email.ilike(needle),
+                    user_model.username.ilike(needle, escape="\\"),
+                    user_model.first_name.ilike(needle, escape="\\"),
+                    user_model.last_name.ilike(needle, escape="\\"),
+                    user_model.email.ilike(needle, escape="\\"),
                 )
             )
             .order_by(user_model.username.asc())
