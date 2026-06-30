@@ -248,7 +248,10 @@ export interface SupersetSpecificTokens {
   buttonPaddingInlineSM?: number;
   buttonFontSize?: number;
   buttonBorderRadius?: number;
-  buttonStyleMap?: Record<string, { type?: string; variant?: string; color?: string }>;
+  buttonStyleMap?: Record<
+    string,
+    { type?: string; variant?: string; color?: string }
+  >;
 
   // Dashboard tile tokens (opt-in, defaults to transparent/no border/shadow)
   dashboardTileBg?: string;
