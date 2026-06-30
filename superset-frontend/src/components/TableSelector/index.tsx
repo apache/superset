@@ -68,6 +68,12 @@ const TableSelectorWrapper = styled.div`
       flex: 1;
       max-width: calc(100% - ${theme.sizeUnit + REFRESH_WIDTH}px)
     }
+
+    .truncated-table-message {
+      color: ${theme.colorTextSecondary};
+      font-size: ${theme.fontSizeSM}px;
+      margin-top: ${theme.sizeUnit}px;
+    }
   `}
 `;
 
@@ -339,6 +345,11 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       <>
         <StyledFormLabel>{label}</StyledFormLabel>
         {renderSelectRow(select, refreshLabel)}
+        {data?.hasMore && (
+          <div className="truncated-table-message">
+            {t('Some tables are not shown. Refine your search.')}
+          </div>
+        )}
       </>
     );
   }
