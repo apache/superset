@@ -67,7 +67,7 @@ def test_convert_dttm_normalizes_aware_datetime_to_utc() -> None:
         ClickHouseEngineSpec as spec,  # noqa: N813
     )
 
-    aware_dttm = datetime(
+    aware_dttm: datetime = datetime(
         2026,
         6,
         30,

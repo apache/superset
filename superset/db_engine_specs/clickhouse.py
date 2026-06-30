@@ -134,7 +134,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
         if isinstance(sqla_type, types.DateTime):
             if dttm.tzinfo is not None and dttm.utcoffset() is not None:
                 dttm = dttm.astimezone(timezone.utc).replace(tzinfo=None)
-            formatted_dttm = dttm.isoformat(sep=" ", timespec="seconds")
+            formatted_dttm: str = dttm.isoformat(sep=" ", timespec="seconds")
             return f"toDateTime('{formatted_dttm}', 'UTC')"
         return None
 
