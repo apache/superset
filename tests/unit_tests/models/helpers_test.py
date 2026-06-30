@@ -3251,4 +3251,7 @@ def test_get_sqla_query_dotted_struct_column_bigquery(
     # The dotted STRUCT path must be quoted per-segment so BigQuery resolves the
     # nested field, and must not appear as a single merged identifier.
     assert "`forecasts`.`original`.`total_cost`" in sql
+    # ```forecasts.original``` is a substring of the broken form
+    # ```forecasts.original`.`total_cost``` (the regression), so this negative
+    # assertion catches the actual failure mode, not just an exact-string match.
     assert "`forecasts.original`" not in sql

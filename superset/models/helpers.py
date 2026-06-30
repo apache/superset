@@ -3354,11 +3354,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # multi-part identifiers (e.g. a BigQuery STRUCT field registered
                 # with a dotted ``column_name`` such as ``a.b.c``) are quoted per
                 # segment, matching the chart/groupby selection path above.
-                # Routing these through ``quote()`` + sqlglot normalization below
-                # can instead quote the whole dotted path as one identifier
-                # (e.g. ``a.b.c`` becomes a single quoted name rather than the
-                # correct per-segment form), which breaks drill to detail /
-                # samples queries on nested columns (SC-111745).
+                # Without this, a registered string column falls through to the
+                # ``quote()`` + ``_process_select_expression`` (sqlglot
+                # ``sanitize_clause``) path below, which re-serializes the merged
+                # identifier into a table-qualified form that no longer matches
+                # ``quoted_columns_by_name`` and is emitted via ``literal_column``
+                # as a single quoted name — breaking drill to detail / samples
+                # queries on nested columns (SC-111745).
+                # The guard fires for every registered physical column, not only
+                # dotted ones; that is intentional — for a plain name like ``id``
+                # the resolved column produces SQL identical to the fallback path.
                 if isinstance(selected, str) and selected in columns_by_name:
                     select_exprs.append(
                         self.convert_tbl_column_to_sqla_col(
