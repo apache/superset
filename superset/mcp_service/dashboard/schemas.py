@@ -66,6 +66,7 @@ Example usage:
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
@@ -809,6 +810,36 @@ class UpdateDashboardRequest(BaseModel):
             "Optional new dashboard CSS. Pass empty string to clear existing CSS."
         ),
     )
+    tags: List[int] | None = Field(
+        None,
+        description=(
+            "Optional FULL-REPLACEMENT list of tag IDs to associate with the "
+            "dashboard. Discover IDs with ``list_tags``. An empty list clears "
+            "all custom tags. Omit (None) to leave tags unchanged."
+        ),
+    )
+    cross_filters_enabled: bool | None = Field(
+        None,
+        description=(
+            "Optional toggle for dashboard-wide cross filtering. Typed "
+            "convenience for the ``cross_filters_enabled`` json_metadata key."
+        ),
+    )
+    refresh_frequency: int | None = Field(
+        None,
+        ge=0,
+        description=(
+            "Optional auto-refresh interval in seconds (0 = off). Typed "
+            "convenience for the ``refresh_frequency`` json_metadata key."
+        ),
+    )
+    filter_bar_orientation: Literal["VERTICAL", "HORIZONTAL"] | None = Field(
+        None,
+        description=(
+            "Optional native filter bar orientation. Typed convenience for "
+            "the ``filter_bar_orientation`` json_metadata key."
+        ),
+    )
     sanitization_warnings: List[str] = Field(
         default_factory=list,
         description=(
@@ -870,6 +901,32 @@ class UpdateDashboardRequest(BaseModel):
         return sanitize_user_input(
             v, "Dashboard title", max_length=500, allow_empty=True
         )
+
+    @field_validator("slug")
+    @classmethod
+    def normalize_slug(cls, v: str | None) -> str | None:
+        """Normalize the slug to match the REST DashboardPutSchema contract.
+
+        Mirrors ``BaseDashboardSchema.post_load``: strip, replace spaces with
+        hyphens, and drop characters outside ``[\\w-]`` so the tool cannot
+        persist slugs the REST update path would have cleaned.
+
+        Whitespace-only inputs normalize to ``""`` (clears the slug), matching
+        REST schema behavior. Raises ``ValueError`` when a non-whitespace input
+        normalizes to empty (e.g. ``"!!!"``), preventing accidental slug clearing.
+        """
+        if not v:
+            return v
+        stripped = v.strip()
+        if not stripped:
+            return ""  # whitespace-only → same as empty string (clears slug)
+        normalized = re.sub(r"[^\w\-]+", "", stripped.replace(" ", "-"))
+        if not normalized:
+            raise ValueError(
+                "slug contains only characters that are removed during "
+                "normalization; use letters, digits, underscores, or hyphens"
+            )
+        return normalized
 
 
 class UpdateDashboardResponse(BaseModel):
