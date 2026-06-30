@@ -177,6 +177,13 @@
         "docs": "https://superset.apache.org/user-docs/databases/supported/superset-meta-database"
       },
       {
+        "name": "ENABLE_VIEWERS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Subject-based viewer access control for dashboards and charts. When enabled, resources can have explicit viewer Subject assignments.",
+        "category": "security"
+      },
+      {
         "name": "ESTIMATE_QUERY_COST",
         "default": false,
         "lifecycle": "testing",

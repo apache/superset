@@ -35,6 +35,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import type { ColumnObject } from 'src/features/datasets/types';
+import type Subject from 'src/types/Subject';
 import DatasourceControl from '.';
 
 // Mock DatasourceEditor to avoid mounting the full 2500+ line editor tree.
@@ -97,6 +98,7 @@ interface TestDatasource {
   main_dttm_col?: string | null;
   sql?: string;
   metrics?: Array<{ id: number; metric_name: string }>;
+  editors?: Subject[];
   [key: string]: unknown;
 }
 
@@ -112,6 +114,7 @@ const mockDatasource: TestDatasource = {
   type: DatasourceType.Table,
   columns: [],
   sql: 'SELECT * FROM mock_datasource_sql',
+  editors: [{ id: 1, label: 'john doe', type: 1 }],
 };
 
 // Use type assertion for test props since the component is wrapped with withTheme

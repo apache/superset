@@ -80,6 +80,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
       description_markeddown: '',
       modified: '<span class="no-wrap">22 hours ago</span>',
       changed_on: 1617143411523,
+      editors: [],
     },
     isCached: [false],
     isExpanded: false,

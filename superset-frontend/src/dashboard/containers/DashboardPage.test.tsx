@@ -61,7 +61,7 @@ const mockDashboard = {
   changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
   changed_on: '2024-01-01T00:00:00',
   charts: [],
-  roles: [],
+  editors: [],
   theme: mockTheme,
 };
 

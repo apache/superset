@@ -49,8 +49,10 @@ import {
   SUBJECT_DETAIL_PROP,
 } from 'src/features/subjects/SubjectSelectLabel';
 import SubjectPicker, {
+  mapSubjectsToPickerValues,
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
+import type Subject from 'src/types/Subject';
 // import { Form as AntdForm } from 'src/components/Form';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import {
@@ -1997,24 +1999,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        editors: (resource.editors || []).map((editor: any) => ({
-          value: editor.value || editor.id,
-          label: SubjectSelectLabel({
-            label:
-              editor.label ||
-              (editor.first_name
-                ? `${editor.first_name} ${editor.last_name}`
-                : ''),
-            type: editor.type,
-            secondaryLabel: editor.secondary_label || editor.email,
-          }),
-          [SUBJECT_TEXT_LABEL_PROP]:
-            editor.label ||
-            (editor.first_name
-              ? `${editor.first_name} ${editor.last_name}`
-              : ''),
-          [SUBJECT_DETAIL_PROP]: editor.secondary_label || editor.email || '',
-        })),
+        editors: mapSubjectsToPickerValues(
+          (resource.editors || []) as Subject[],
+        ),
         validator_config_json:
           resource.validator_type === 'not null'
             ? {

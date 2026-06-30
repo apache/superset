@@ -453,7 +453,6 @@ interface DashboardSaveData extends JsonObject {
   css?: string;
   dashboard_title?: string;
   editors?: { id: number }[] | number[];
-  roles?: JsonObject[];
   slug?: string | null;
   tags?: JsonObject[];
   metadata?: JsonObject;
@@ -520,7 +519,6 @@ export function saveDashboardRequest(
       editors: ensureIsArray(editors as JsonObject[]).map((o: JsonObject) =>
         hasId(o) ? o.id : o,
       ),
-      roles: undefined,
       slug: slug || null,
       description: description || null,
       tags: !isFeatureEnabled(FeatureFlag.TaggingSystem)
@@ -676,7 +674,6 @@ export function saveDashboardRequest(
               slug: cleanedData.slug,
               description: cleanedData.description,
               editors: cleanedData.editors,
-              roles: cleanedData.roles,
               tags: cleanedData.tags || [],
               theme_id: cleanedData.theme_id,
               json_metadata: safeStringify({

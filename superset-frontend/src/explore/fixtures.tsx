@@ -162,6 +162,7 @@ export const fallbackExploreInitialData: ExplorePageInitialData = {
     datasource_name: '',
     name: '',
     description: null,
+    editors: [],
   },
   slice: null,
 };

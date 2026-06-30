@@ -32,6 +32,7 @@ import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import * as navigationUtils from 'src/utils/navigationUtils';
 import { AlertObject, NotificationMethodOption } from './types';
+import { SubjectType } from 'src/types/Subject';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -51,6 +52,12 @@ jest.mock('src/components/Chart/chartAction', () => ({
   ...jest.requireActual('src/components/Chart/chartAction'),
   getChartDataRequest: (...args: unknown[]) => mockGetChartDataRequest(...args),
 }));
+
+const mockEditorSubject = {
+  id: 1,
+  label: 'Superset Admin',
+  type: SubjectType.User,
+};
 
 const generateMockPayload = (dashboard = true) => {
   const mockPayload = {
@@ -75,13 +82,7 @@ const generateMockPayload = (dashboard = true) => {
     last_value_row_json: null,
     log_retention: 90,
     name: 'Test Alert',
-    editors: [
-      {
-        first_name: 'Superset',
-        id: 1,
-        last_name: 'Admin',
-      },
-    ],
+    editors: [mockEditorSubject],
     recipients: [
       {
         id: 1,
@@ -316,13 +317,7 @@ const validAlert: AlertObject = {
   force_screenshot: false,
   last_state: 'Not triggered',
   name: 'Test Alert',
-  editors: [
-    {
-      first_name: 'Superset',
-      id: 1,
-      last_name: 'Admin',
-    },
-  ],
+  editors: [mockEditorSubject],
   recipients: [
     {
       type: NotificationMethodOption.Email,

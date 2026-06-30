@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Column, Metric } from '@superset-ui/core';
+import type Subject from 'src/types/Subject';
 
 export enum DrillByType {
   Chart,
@@ -37,6 +38,7 @@ export type Dataset = {
   description?: string;
   table_name?: string;
   columns?: Column[];
+  editors?: Subject[];
   drillable_columns?: Column[];
   metrics?: Metric[];
   verbose_map?: Record<string, string>;

@@ -494,25 +494,25 @@ class TestChartsUpdateCommand(SupersetTestCase):
         self, mock_sm_g, mock_core_g, mock_update_g, mock_find_by_id
     ) -> None:
         """
-        A query_context-only update relaxes the ownership requirement but must
+        A query_context-only update relaxes the editor requirement but must
         still require access to the chart. We bypass the DAO ``ChartFilter``
         base filter (by patching ``find_by_id`` to return the chart directly)
         so the request reaches the new explicit ``raise_for_access`` check, and
-        assert that a non-owner with no access to the chart's datasource is
+        assert that a non-editor with no access to the chart's datasource is
         rejected with ``ChartForbiddenError``. This deterministically exercises
         the new branch and would fail on master, where the check is absent.
         """
         chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
         pk = chart.id
         admin = security_manager.find_user(username="admin")
-        chart.owners = [admin]
+        chart.editors = subjects_from_users([admin])
         db.session.commit()
 
         # Return the chart directly, bypassing ChartFilter, so the command's
         # own raise_for_access gate is what denies the request.
         mock_find_by_id.return_value = chart
 
-        # gamma has no access to the energy datasource and does not own the chart
+        # gamma has no access to the energy datasource and cannot edit the chart
         gamma = security_manager.find_user(username="gamma")
         mock_core_g.user = mock_sm_g.user = mock_update_g.user = gamma
         json_obj = {

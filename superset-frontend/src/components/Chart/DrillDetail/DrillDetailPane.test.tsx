@@ -66,6 +66,7 @@ const MOCKED_DATASET = {
     first_name: 'John',
     last_name: 'Doe',
   },
+  editors: [{ id: 1, label: 'John Doe', type: 1 }],
 };
 
 const setupDatasetEndpoint = () => {

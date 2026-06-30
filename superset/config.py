@@ -801,7 +801,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "CSS_TEMPLATES": True,
     # Subject-based viewer access control for dashboards and charts.
     # When enabled, resources can have explicit viewer Subject assignments.
-    # @lifecycle: experimental
+    # @lifecycle: testing
     # @category: security
     "ENABLE_VIEWERS": False,
     # Supports simultaneous data and dashboard virtualization for backend performance

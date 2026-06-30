@@ -212,7 +212,7 @@ slices and dashboards of your own.
 ### Manage access to Dashboards
 
 Access to dashboards is managed via editors and permissions. Non-editor access can be controlled
-through dataset permissions or dashboard-level roles (using the `DASHBOARD_RBAC` feature flag).
+through dataset permissions, or through dashboard viewers when `ENABLE_VIEWERS` is enabled.
 
 For detailed information on configuring dashboard access, see the
 [Dashboard Access Control](/admin-docs/security/#dashboard-access-control) section in the
@@ -228,7 +228,9 @@ title of your dashboard.
 <img src={useBaseUrl("/img/tutorial/publish_button_dashboard.png" )} />
 
 :::warning
-Draft dashboards are only visible to the dashboard editors and admins. Published dashboards are visible to all users with access to the underlying datasets or if RBAC is enabled, to the roles that have been granted access to the dashboard.
+Draft dashboards are only visible to dashboard editors and admins. Published dashboards are visible
+to users with access to the underlying datasets, or, when `ENABLE_VIEWERS` is enabled, to users
+who have viewer access directly or through an assigned role or group subject.
 :::
 
 ### Mark a Dashboard as Favorite

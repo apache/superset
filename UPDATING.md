@@ -42,6 +42,19 @@ This is a breaking API and metadata change:
 API clients and automation should send and read `editors`, `viewers`, and `subjects` instead
 of the legacy fields.
 
+`DASHBOARD_RBAC` has been removed. To preserve the previous Dashboard RBAC behavior, enable both
+subject viewers and viewer datasource bypass:
+
+```python
+FEATURE_FLAGS = {
+    "ENABLE_VIEWERS": True,
+}
+VIEWER_PROMISCUOUS_MODE = True
+```
+
+Enabling only `ENABLE_VIEWERS` allows assigning dashboard/chart viewer subjects, but viewers still
+need normal datasource permissions unless `VIEWER_PROMISCUOUS_MODE` is also enabled.
+
 ### Guest-token RLS rules reject unknown fields
 
 The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a *global* rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.

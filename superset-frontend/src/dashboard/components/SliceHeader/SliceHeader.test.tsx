@@ -172,6 +172,7 @@ const createProps = (overrides: any = {}) => ({
     description_markeddown: '',
     modified: '<span class="no-wrap">20 hours ago</span>',
     changed_on: 1617143411366,
+    editors: [],
     slice_description: '',
   },
   componentId: 'CHART-aGfmWtliqA',

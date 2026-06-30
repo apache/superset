@@ -61,7 +61,7 @@ const outsiderUser: UserWithPermissionsAndRoles = {
   username: 'outsider',
 };
 
-const owner: User = {
+const editor: User = {
   first_name: 'Test',
   id: editorUser.userId!,
   last_name: 'User',
@@ -98,7 +98,7 @@ const dashboard: Dashboard = {
   published: true,
   css: null,
   changed_by_name: 'Test User',
-  changed_by: owner,
+  changed_by: editor,
   changed_on: '2021-05-12T16:56:22.116839',
   charts: [],
   editors: [editorSubject],
