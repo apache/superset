@@ -64,7 +64,7 @@ def test_delete_routes_to_soft_delete_for_mixin_models(
     mock_flag: MagicMock, app_context: None
 ) -> None:
     """delete() soft-deletes a mixin model when the SOFT_DELETE gate is ON."""
-    items = [MagicMock(), MagicMock()]
+    items: list[MagicMock] = [MagicMock(), MagicMock()]
 
     with patch.object(_SoftDeletableDAO, "soft_delete") as mock_soft:
         _SoftDeletableDAO.delete(items)
@@ -77,7 +77,7 @@ def test_delete_hard_deletes_mixin_model_when_gate_off(
 ) -> None:
     """With the SOFT_DELETE gate OFF (default), even a mixin model hard-deletes
     — the substrate ships dark."""
-    items = [MagicMock(), MagicMock()]
+    items: list[MagicMock] = [MagicMock(), MagicMock()]
 
     with patch.object(_SoftDeletableDAO, "hard_delete") as mock_hard:
         _SoftDeletableDAO.delete(items)
@@ -90,7 +90,21 @@ def test_delete_routes_to_hard_delete_for_non_mixin_models(
 ) -> None:
     """delete() calls hard_delete() for non-SoftDeleteMixin models — regardless
     of the gate (here ON, to show the gate doesn't make a plain model soft)."""
-    items = [MagicMock(), MagicMock()]
+    items: list[MagicMock] = [MagicMock(), MagicMock()]
+
+    with patch.object(_PlainDAO, "hard_delete") as mock_hard:
+        _PlainDAO.delete(items)
+        mock_hard.assert_called_once_with(items)
+
+
+@patch("superset.daos.base.is_feature_enabled", return_value=False)
+def test_delete_hard_deletes_non_mixin_model_when_gate_off(
+    mock_flag: MagicMock, app_context: None
+) -> None:
+    """A non-SoftDeleteMixin model hard-deletes with the gate OFF too — the
+    mixin check short-circuits to hard_delete before the gate is evaluated.
+    Completes the (gate, model_type) matrix's fourth cell."""
+    items: list[MagicMock] = [MagicMock(), MagicMock()]
 
     with patch.object(_PlainDAO, "hard_delete") as mock_hard:
         _PlainDAO.delete(items)
@@ -102,7 +116,7 @@ def test_hard_delete_calls_session_delete(
     mock_db: MagicMock, app_context: None
 ) -> None:
     """hard_delete() calls db.session.delete() on each item."""
-    items = [MagicMock(), MagicMock()]
+    items: list[MagicMock] = [MagicMock(), MagicMock()]
 
     BaseDAO.hard_delete(items)
 
@@ -113,7 +127,7 @@ def test_hard_delete_calls_session_delete(
 
 def test_soft_delete_calls_item_soft_delete(app_context: None) -> None:
     """soft_delete() calls soft_delete() on each item."""
-    items = [MagicMock(), MagicMock()]
+    items: list[MagicMock] = [MagicMock(), MagicMock()]
 
     BaseDAO.soft_delete(items)
     items[0].soft_delete.assert_called_once()

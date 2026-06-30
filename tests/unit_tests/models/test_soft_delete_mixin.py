@@ -186,17 +186,17 @@ def test_listener_noop_when_gate_off(app_context: None, session: Session) -> Non
     soft-deleted row is NOT hidden — the substrate is dark. (While
     the gate is off the delete path also doesn't create such rows; this pins the
     listener side.)"""
-    obj = _SoftDeletable(name="visible_when_gate_off")
+    obj: _SoftDeletable = _SoftDeletable(name="visible_when_gate_off")
     session.add(obj)
     session.flush()
-    obj_id = obj.id
+    obj_id: int = obj.id
 
     obj.soft_delete()
     session.flush()
     session.expire_all()
 
     with patch("superset.models.helpers.is_feature_enabled", return_value=False):
-        result = (
+        result: _SoftDeletable | None = (
             session.query(_SoftDeletable)
             .filter(_SoftDeletable.id == obj_id)
             .one_or_none()
