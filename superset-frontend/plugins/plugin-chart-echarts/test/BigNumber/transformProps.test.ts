@@ -17,6 +17,7 @@
  * under the License.
  */
 import { DatasourceType, TimeGranularity, VizType } from '@superset-ui/core';
+import type { LineSeriesOption } from 'echarts';
 import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
@@ -269,10 +270,13 @@ describe('BigNumberWithTrendline', () => {
       },
     });
 
-    const series = (transformed.echartOptions?.series as any)?.[0];
-    expect(series?.lineStyle?.width).toBe(2);
+    const series = (
+      transformed.echartOptions?.series as LineSeriesOption[]
+    )?.[0];
+    const lineWidth = series?.lineStyle?.width;
+    expect(lineWidth).toBe(2);
 
-    const expectedPad = series.lineStyle.width / 2;
+    const expectedPad = (lineWidth as number) / 2;
     expect(transformed.echartOptions?.grid).toEqual({
       bottom: expectedPad,
       left: expectedPad,
