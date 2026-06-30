@@ -105,19 +105,48 @@ async def generate_chart(  # noqa: C901
     - Set save_chart=True to permanently save the chart
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
-    - MUST include chart_type in config (either 'xy' or 'table')
+    - MUST include chart_type in config (see the 7 valid values below)
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
     which chart configuration schema to use. It MUST be included and MUST match the
-    other fields in your configuration:
+    other fields in your configuration. There are exactly 7 valid chart_type values
+    — NOT 'line', 'bar', 'mixed_timeseries', etc. Those are 'kind' values WITHIN
+    chart_type='xy' (see below), not chart_type values themselves:
 
-    - Use chart_type='xy' for charts with x and y axes (line, bar, area, scatter)
-      Required fields: x, y
+    - chart_type='xy' for line, bar, area, or scatter charts (x/y axes).
+      Required fields: x, y. Use 'kind' to pick line/bar/area/scatter
+      (default kind='line').
 
-    - Use chart_type='table' for tabular visualizations
+    - chart_type='table' for tabular visualizations.
       Required fields: columns
 
-    Example usage for XY chart:
+    - chart_type='pie' for pie or donut charts.
+      Required fields: dimension, metric
+
+    - chart_type='pivot_table' for interactive pivot tables.
+      Required fields: rows, metrics (columns is optional, for cross-tabs)
+
+    - chart_type='mixed_timeseries' for dual-series time charts (e.g. bar
+      + line on the same axis). Required fields: x, y (primary metrics),
+      y_secondary (secondary metrics)
+
+    - chart_type='handlebars' for custom HTML template charts.
+      Required fields: handlebars_template
+
+    - chart_type='big_number' for a single KPI/big-number display.
+      Required fields: metric
+
+    Quick lookup — natural-language ask -> chart_type (+ kind if applicable):
+    - "bar chart" / "line chart" / "area chart" / "scatter plot"
+      -> chart_type='xy', kind='bar'/'line'/'area'/'scatter'
+    - "pie chart" / "donut chart" -> chart_type='pie'
+    - "table" / "data grid" -> chart_type='table'
+    - "pivot table" / "cross-tab" -> chart_type='pivot_table'
+    - "compare two metrics over time" -> chart_type='mixed_timeseries'
+    - "single number" / "KPI" / "scorecard" -> chart_type='big_number'
+    - "custom HTML template" -> chart_type='handlebars'
+
+    Example usage for XY chart (bar/line/area/scatter):
     ```json
     {
         "dataset_id": 123,
@@ -141,6 +170,18 @@ async def generate_chart(  # noqa: C901
                 {"name": "quantity", "aggregate": "SUM"},
                 {"name": "revenue", "aggregate": "SUM", "label": "Total Revenue"}
             ]
+        }
+    }
+    ```
+
+    Example usage for Pie chart:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "pie",
+            "dimension": {"name": "product_category"},
+            "metric": {"name": "revenue", "aggregate": "SUM"}
         }
     }
     ```

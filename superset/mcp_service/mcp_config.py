@@ -294,14 +294,17 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
 #
 # Summary Mode (include_schemas):
 # --------------------------------
-# When include_schemas=False (default), search results omit inputSchema
-# entirely and include a lightweight "parameters_hint" field listing
-# top-level parameter names (e.g. "page, page_size, search, filters").
-# This reduces per-search token cost by ~80% vs compact mode while still
-# conveying what parameters a tool accepts.  Full schemas remain available
-# when invoking the tool via call_tool.
-# - Set include_schemas=True to restore full inputSchema in search results.
-# - compact_schemas is ignored when include_schemas=False (no schema to
+# When include_schemas=False, search results omit inputSchema entirely and
+# include a lightweight "parameters_hint" field listing top-level parameter
+# names (e.g. "page, page_size, search, filters"). This reduces per-search
+# token cost by ~80% vs compact mode while still conveying what parameters
+# a tool accepts. Full schemas remain available when invoking the tool via
+# call_tool.
+# - include_schemas defaults to True: search results carry full inputSchema
+#   so LLMs can see structured/discriminated-union configs (e.g. chart
+#   generation) without a second round trip. Set include_schemas=False to
+#   switch to summary mode if search_tools response size becomes a problem
+#   again; compact_schemas is ignored when include_schemas=False (no schema to
 #   compact); max_description_length still applies in summary mode.
 # =============================================================================
 MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
