@@ -767,7 +767,7 @@ def test_get_since_until_sub_hour_presets() -> None:
     """Verify that sub-hour presets ('Last 5 minutes', 'Last 15 minutes',
     'Last 30 minutes', 'Last 1 hour') resolve to the expected datetime pairs
     when relative_end='now'."""
-    result: tuple
+    result: tuple[Optional[datetime], Optional[datetime]]
 
     result = get_since_until("Last 5 minutes", relative_end="now")
     expected = datetime(2016, 11, 7, 9, 25, 10), datetime(2016, 11, 7, 9, 30, 10)
