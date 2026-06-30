@@ -76,8 +76,7 @@ class DashboardRestoreFailedError(UpdateFailedError):
     # row. ``UpdateFailedError`` is the nearest typed middle-tier base in the
     # codebase. A dedicated ``RestoreFailedError`` in
     # ``superset/commands/exceptions.py`` would be more precise across the
-    # entity rollouts but lives in already-merged infrastructure (#39977);
-    # introducing it can be a cross-entity follow-up.
+    # entity rollouts; extracting it there is left as a cross-entity follow-up.
     message = _("Dashboard could not be restored.")
 
 

@@ -244,7 +244,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return max(dashboard_changed_on, datasources_changed_on).replace(microsecond=0)
 
     @staticmethod
-    def validate_slug_uniqueness(slug: str) -> bool:
+    def validate_slug_uniqueness(slug: str | None) -> bool:
         # The ``SoftDeleteMixin`` listener auto-appends ``deleted_at IS NULL``
         # to this query, so soft-deleted rows are correctly ignored on
         # PostgreSQL and MySQL 8.0+ where slug uniqueness is enforced by a
@@ -254,7 +254,12 @@ class DashboardDAO(BaseDAO[Dashboard]):
         # row with the same slug at flush time, even though this check
         # passes. The fallback constraint is documented in UPDATING.md and
         # in the 9e1f3b8c4d2a migration.
-        if not slug:
+        #
+        # Use ``slug is None`` (not ``not slug``) so an empty-string slug still
+        # runs the uniqueness check, matching ``validate_update_slug_uniqueness``
+        # below — otherwise two active dashboards could both carry ``slug=""``
+        # at the application layer (colliding only at flush via the partial index).
+        if slug is None:
             return True
         dashboard_query = db.session.query(Dashboard).filter(Dashboard.slug == slug)
         return not db.session.query(dashboard_query.exists()).scalar()
