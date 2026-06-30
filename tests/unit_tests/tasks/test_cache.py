@@ -274,7 +274,7 @@ def test_native_filter_options_strategy_uses_real_filter_helpers() -> None:
                     "filterType": "filter_select",
                     "type": "NATIVE_FILTER",
                     "targets": [{"datasetId": 7, "column": {"name": "country"}}],
-                    "adhocFilters": [
+                    "adhoc_filters": [
                         {
                             "expressionType": "SIMPLE",
                             "subject": "region",

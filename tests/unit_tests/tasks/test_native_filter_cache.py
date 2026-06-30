@@ -162,7 +162,7 @@ def test_build_native_filter_option_form_data_correct_shape() -> None:
     }
 
 
-def test_build_native_filter_option_form_data_uses_filter_level_time_range_and_granularity() -> None:
+def test_build_native_filter_option_form_data_uses_filter_level_prefilters() -> None:
     filter_config: dict[str, Any] = {
         **_filter_config(),
         "time_range": "Last week",
