@@ -44,13 +44,15 @@ const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
   typeof cachedSupersetGet
 >;
 
+type MockColumn = { name: string; filterable: boolean };
+
 // Mock ColumnSelect to test filterValues logic and expose onChange
 jest.mock('./ColumnSelect', () => ({
   ColumnSelect: ({
     filterValues,
     onChange,
   }: {
-    filterValues: (column: any) => boolean;
+    filterValues: (column: MockColumn) => boolean;
     onChange?: (value: string) => void;
   }) => {
     const columns = [
@@ -340,6 +342,7 @@ describe('plugin column-picker control (isColumnSelect)', () => {
 
   test('populates options after a successful fetch, dropping blank column names', async () => {
     const fetchPromise = Promise.resolve({
+      response: {} as Response,
       json: {
         result: {
           columns: [
@@ -349,7 +352,7 @@ describe('plugin column-picker control (isColumnSelect)', () => {
           ],
         },
       },
-    } as any);
+    });
     mockCachedSupersetGet.mockReturnValue(fetchPromise);
     renderColumnPicker();
     expect(mockCachedSupersetGet).toHaveBeenCalledWith({
@@ -373,8 +376,9 @@ describe('plugin column-picker control (isColumnSelect)', () => {
 
   test('onChange resets defaultDataMask and notifies change', async () => {
     const fetchPromise = Promise.resolve({
+      response: {} as Response,
       json: { result: { columns: [{ column_name: 'col_a' }] } },
-    } as any);
+    });
     mockCachedSupersetGet.mockReturnValue(fetchPromise);
     const props = renderColumnPicker();
     await act(async () => {
