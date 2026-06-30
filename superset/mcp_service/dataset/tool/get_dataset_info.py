@@ -74,6 +74,15 @@ async def get_dataset_info(
     (pre-defined saved metrics). When building chart configs, use saved_metric=true
     for metrics — do not treat them as columns. See instructions for details.
 
+    The select_columns parameter controls which top-level fields are returned.
+    Default fields: 'id', 'table_name', 'schema', 'database_name', 'database_id',
+    'uuid', 'is_virtual', 'description', 'main_dttm_col', 'sql', 'url',
+    'columns', 'metrics'.
+    Additional fields available on request: 'certified_by', 'certification_details',
+    'changed_on', 'changed_on_humanized', 'created_on', 'created_on_humanized',
+    'tags', 'schema_perm', 'offset', 'cache_timeout', 'params', 'template_params',
+    'extra', 'is_favorite'.
+
     Example usage:
     ```json
     {
@@ -85,6 +94,14 @@ async def get_dataset_info(
     ```json
     {
         "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+    }
+    ```
+
+    Or to fetch only columns metadata:
+    ```json
+    {
+        "identifier": 123,
+        "select_columns": ["columns"]
     }
     ```
     """
