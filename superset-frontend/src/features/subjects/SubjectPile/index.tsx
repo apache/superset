@@ -17,12 +17,18 @@
  * under the License.
  */
 import { getCategoricalSchemeRegistry } from '@superset-ui/core';
-import { Avatar, AvatarGroup, Tooltip } from '@superset-ui/core/components';
+import {
+  Avatar,
+  AvatarGroup,
+  Tooltip,
+  type AvatarProps,
+} from '@superset-ui/core/components';
 import { styled } from '@apache-superset/core/theme';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import Subject, { SubjectType } from 'src/types/Subject';
 
 const colorList = getCategoricalSchemeRegistry().get()?.colors ?? [];
+const AVATAR_SIZE: AvatarProps['size'] = 'small';
 
 // https://en.wikipedia.org/wiki/Linear_congruential_generator
 function stringAsciiPRNG(value: string, m: number) {
@@ -77,7 +83,7 @@ export function SubjectPile({
   maxCount?: number;
 }) {
   return (
-    <AvatarGroup max={{ count: maxCount }}>
+    <AvatarGroup max={{ count: maxCount }} size={AVATAR_SIZE}>
       {subjects.map(subject => {
         const displayName = subject.label ?? '';
         const uniqueKey = `${subject.id}-${displayName}`;
@@ -94,6 +100,7 @@ export function SubjectPile({
             <AvatarComponent
               key={uniqueKey}
               shape={getAvatarShape(subject.type)}
+              size={AVATAR_SIZE}
               style={avatarStyle}
               src={avatarUrl}
             >
