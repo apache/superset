@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { InputNumber, Select } from '@superset-ui/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
@@ -74,9 +74,12 @@ export function CommonFrame(props: FrameComponentProps) {
   );
 
   // If the current value doesn't match any known pattern, reset to a default.
-  if (!isPreset && !isCustom) {
-    props.onChange('Last week');
-  }
+  // Use useEffect to avoid calling onChange synchronously during render.
+  useEffect(() => {
+    if (!isPreset && !isCustom) {
+      props.onChange('Last week');
+    }
+  }, [props.value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const radioValue = isCustom ? CUSTOM_SENTINEL : props.value;
 

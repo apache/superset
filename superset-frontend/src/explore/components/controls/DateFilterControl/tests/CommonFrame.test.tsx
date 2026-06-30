@@ -51,6 +51,7 @@ test('defaults to Last week when value does not match any known range', () => {
   const onChange = jest.fn();
   render(<CommonFrame onChange={onChange} value="some-invalid-value" />);
   expect(onChange).toHaveBeenCalledWith('Last week');
+  expect(onChange).toHaveBeenCalledTimes(1);
 });
 
 test('selects Other radio and emits a non-preset value when Other is clicked', () => {
@@ -96,6 +97,7 @@ test('changing the number input emits an updated Last N unit string', () => {
   const numberInput = screen.getByRole('spinbutton');
   fireEvent.change(numberInput, { target: { value: '8' } });
 
+  expect(onChange).toHaveBeenCalledTimes(1);
   // The last call should contain 8 hours
   const calls = onChange.mock.calls.map(c => c[0] as string);
   const lastCall = calls[calls.length - 1];
