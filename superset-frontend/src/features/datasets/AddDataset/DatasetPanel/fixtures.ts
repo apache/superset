@@ -39,6 +39,7 @@ export const exampleDataset: DatasetObject[] = [
     db: {
       id: 1,
       database_name: 'test_database',
+      editors: [1],
       backend: 'test_backend',
     },
     schema: 'test_schema',

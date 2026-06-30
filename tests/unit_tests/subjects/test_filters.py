@@ -24,6 +24,8 @@ ChartFilter, and ReportScheduleFilter properly branch on ENABLE_VIEWERS.
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from superset.subjects.types import SubjectType
+
 
 def _make_sm(*, is_admin: bool = False, can_access_all: bool = False) -> MagicMock:
     """Build a mock security_manager with explicit return_value settings."""
@@ -249,6 +251,14 @@ def _apply_subject_type_filter(
     return query, result
 
 
+def _assert_subject_type_filter_values(
+    query: MagicMock,
+    expected: list[SubjectType],
+) -> None:
+    expression = query.filter.call_args.args[0]
+    assert expression.right.value == expected
+
+
 def test_subject_type_filter_both_none():
     """Both global and entity None -> no filter, query returned unchanged."""
     query, result = _apply_subject_type_filter()
@@ -256,31 +266,51 @@ def test_subject_type_filter_both_none():
     query.filter.assert_not_called()
 
 
+def test_subject_type_filter_config_default_user_and_group():
+    """Default config exposes user and group subjects."""
+    from superset.config import SUBJECTS_RELATED_TYPES
+
+    assert SUBJECTS_RELATED_TYPES == [SubjectType.USER, SubjectType.GROUP]
+
+
 def test_subject_type_filter_global_only():
     """Global set, entity None -> filters by global types."""
-    query, result = _apply_subject_type_filter(global_types=[1, 3])
+    query, result = _apply_subject_type_filter(
+        global_types=[SubjectType.USER, SubjectType.GROUP]
+    )
     query.filter.assert_called_once()
+    _assert_subject_type_filter_values(query, [SubjectType.USER, SubjectType.GROUP])
     assert result is query.filter.return_value
 
 
 def test_subject_type_filter_entity_only():
     """Global None, entity set -> filters by entity types."""
-    query, result = _apply_subject_type_filter(entity_types=[3])
+    query, result = _apply_subject_type_filter(entity_types=[SubjectType.GROUP])
     query.filter.assert_called_once()
+    _assert_subject_type_filter_values(query, [SubjectType.GROUP])
     assert result is query.filter.return_value
 
 
-def test_subject_type_filter_intersection():
-    """Both set -> intersection applied."""
-    query, result = _apply_subject_type_filter(global_types=[1, 3], entity_types=[3])
+def test_subject_type_filter_entity_overrides_global():
+    """Entity-specific config replaces the global config."""
+    query, result = _apply_subject_type_filter(
+        global_types=[SubjectType.USER],
+        entity_types=[SubjectType.GROUP],
+    )
     query.filter.assert_called_once()
+    _assert_subject_type_filter_values(query, [SubjectType.GROUP])
     assert result is query.filter.return_value
 
 
-def test_subject_type_filter_disjoint():
-    """Disjoint sets -> empty intersection, still calls filter (with empty set)."""
-    query, result = _apply_subject_type_filter(global_types=[1, 3], entity_types=[2])
+def test_subject_type_filter_rls_roles_override_user_global():
+    """RLS can expose role subjects even when the global picker only exposes users."""
+    query, result = _apply_subject_type_filter(
+        global_types=[SubjectType.USER],
+        entity_types=[SubjectType.ROLE],
+        entity_key="SUBJECTS_RELATED_TYPES_RLS",
+    )
     query.filter.assert_called_once()
+    _assert_subject_type_filter_values(query, [SubjectType.ROLE])
     assert result is query.filter.return_value
 
 
@@ -288,7 +318,7 @@ def test_subject_type_filter_no_entity_key():
     """Factory with entity_config_key=None -> only global config used."""
     from superset.subjects.filters import subject_type_filter
 
-    config = {"SUBJECTS_RELATED_TYPES": [1, 2]}
+    config = {"SUBJECTS_RELATED_TYPES": [SubjectType.USER, SubjectType.ROLE]}
 
     filter_cls = subject_type_filter(None)
     f = object.__new__(filter_cls)
@@ -299,4 +329,5 @@ def test_subject_type_filter_no_entity_key():
         result = f.apply(query, None)
 
     query.filter.assert_called_once()
+    _assert_subject_type_filter_values(query, [SubjectType.USER, SubjectType.ROLE])
     assert result is query.filter.return_value

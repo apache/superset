@@ -27,7 +27,8 @@ export enum DatasetActionType {
 }
 
 export interface DatasetObject {
-  db: DatabaseObject;
+  db: DatabaseObject & { editors?: number[] };
+  editors?: number[];
   catalog?: string | null;
   schema?: string | null;
   dataset_name: string;

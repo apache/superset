@@ -42,6 +42,39 @@ This is a breaking API and metadata change:
 API clients and automation should send and read `editors`, `viewers`, and `subjects` instead
 of the legacy fields.
 
+Subject pickers support users, groups, and roles, but only users and groups are selectable by
+default. Existing RLS rules saved with role subjects continue to apply, but the recommended path
+is to migrate role-based subject assignments to groups. This keeps roles focused on capability
+grants while users and groups carry resource-specific assignments, which better matches
+attribute-based access control and avoids coupling permission bundles to data access rules. To
+make roles selectable everywhere:
+
+```python
+from superset.subjects.types import SubjectType
+
+SUBJECTS_RELATED_TYPES = [
+    SubjectType.USER,
+    SubjectType.ROLE,
+    SubjectType.GROUP,
+]
+```
+
+To make roles selectable only for RLS, use the RLS-specific override:
+
+```python
+from superset.subjects.types import SubjectType
+
+SUBJECTS_RELATED_TYPES_RLS = [SubjectType.ROLE]
+```
+
+Entity-specific `SUBJECTS_RELATED_TYPES_*` settings replace `SUBJECTS_RELATED_TYPES` for that
+picker.
+
+Deployments using `EXTRA_OWNERS_RESOLVER` must migrate to `EXTRA_EDITORS_RESOLVER`. The new
+resolver should return editor Subjects, subject IDs, or dicts with an `id` key instead of FAB
+User objects. API responses expose these dynamic assignments as `extra_editors` instead of
+`extra_owners`.
+
 `DASHBOARD_RBAC` has been removed. To preserve the previous Dashboard RBAC behavior, enable both
 subject viewers and viewer datasource bypass:
 

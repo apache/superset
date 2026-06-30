@@ -18,6 +18,7 @@
  */
 
 import { render, screen } from 'spec/helpers/testing-library';
+import { SubjectType } from 'src/types/Subject';
 import AllEntitiesTable from './AllEntitiesTable';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -29,6 +30,9 @@ describe('AllEntitiesTable', () => {
     chart: [],
     query: [],
   };
+  const johnEditor = { id: 1, label: 'John Doe', type: SubjectType.User };
+  const janeEditor = { id: 2, label: 'Jane Smith', type: SubjectType.User };
+  const aliceEditor = { id: 3, label: 'Alice Brown', type: SubjectType.User };
 
   const mockObjectsWithTags = {
     dashboard: [
@@ -40,7 +44,7 @@ describe('AllEntitiesTable', () => {
         changed_on: '2023-11-20T12:34:56Z',
         created_by: 1,
         creator: 'John Doe',
-        editors: [],
+        editors: [johnEditor],
         tags: [
           { id: 101, name: 'Sales', type: 'TagType.custom' },
           { id: 42, name: 'Current Tag', type: 'TagType.custom' },
@@ -56,7 +60,7 @@ describe('AllEntitiesTable', () => {
         changed_on: '2023-11-19T12:00:00Z',
         created_by: 2,
         creator: 'Jane Smith',
-        editors: [],
+        editors: [janeEditor],
         tags: [
           { id: 102, name: 'Revenue', type: 'TagType.custom' },
           { id: 42, name: 'Current Tag', type: 'TagType.custom' },
@@ -72,7 +76,7 @@ describe('AllEntitiesTable', () => {
         changed_on: '2023-11-18T09:30:00Z',
         created_by: 3,
         creator: 'Alice Brown',
-        editors: [],
+        editors: [aliceEditor],
         tags: [
           { id: 103, name: 'Engagement', type: 'TagType.custom' },
           { id: 42, name: 'Current Tag', type: 'TagType.custom' },

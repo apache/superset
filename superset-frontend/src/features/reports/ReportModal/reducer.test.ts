@@ -48,6 +48,7 @@ const makeReport = (overrides: Partial<ReportObject> = {}): ReportObject => ({
   log_retention: 90,
   creation_method: 'dashboards',
   force_screenshot: false,
+  editors: [1],
   ...overrides,
 });
 

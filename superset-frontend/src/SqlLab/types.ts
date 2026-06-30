@@ -27,6 +27,7 @@ import type {
   DropdownButtonProps,
 } from '@superset-ui/core/components';
 import type { TableMetaData } from 'src/hooks/apiResources';
+import type Subject from 'src/types/Subject';
 
 export type QueryButtonProps = DropdownButtonProps | ButtonProps;
 
@@ -138,6 +139,7 @@ export const EXPLORE_CHART_DEFAULT = {
 export interface DatasetOptionAutocomplete {
   value: string;
   datasetId: number;
+  editors: Subject[];
 }
 
 export interface SchemaOption {

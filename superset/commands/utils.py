@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any, Optional, TYPE_CHECKING
 
+from flask import current_app, has_app_context
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -40,6 +41,10 @@ from superset.utils.core import DatasourceType, get_user_id
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
+
+
+def _has_extra_editors_resolver() -> bool:
+    return bool(has_app_context() and current_app.config.get("EXTRA_EDITORS_RESOLVER"))
 
 
 def populate_subject_list(
@@ -70,7 +75,11 @@ def populate_subject_list(
 
     if ensure_no_lockout and not security_manager.is_admin() and user_id:
         user_subject = get_user_subject(user_id)
-        if user_subject and user_subject.id not in subject_ids:
+        if (
+            user_subject
+            and user_subject.id not in subject_ids
+            and not _has_extra_editors_resolver()
+        ):
             user_subject_ids = set(get_user_subject_ids(user_id))
             if not (user_subject_ids & set(subject_ids)):
                 subjects.append(user_subject)

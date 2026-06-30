@@ -1116,6 +1116,13 @@ def test_rls_tables_related_api_with_filter_no_matches(admin_client):
     assert data["count"] == 0
 
 
+@mock.patch.dict(
+    "flask.current_app.config",
+    {
+        "SUBJECTS_RELATED_TYPES": [SubjectType.USER, SubjectType.GROUP],
+        "SUBJECTS_RELATED_TYPES_RLS": None,
+    },
+)
 def test_rls_subjects_related_api(admin_client):
     params = rison.dumps({"page": 0, "page_size": 100})
 
@@ -1126,6 +1133,30 @@ def test_rls_subjects_related_api(admin_client):
 
     assert data["count"] > 0
     assert len(result) > 0
+    assert {subject["extra"]["type"] for subject in result} <= {
+        SubjectType.USER,
+        SubjectType.GROUP,
+    }
+
+
+@mock.patch.dict(
+    "flask.current_app.config",
+    {
+        "SUBJECTS_RELATED_TYPES": [SubjectType.USER],
+        "SUBJECTS_RELATED_TYPES_RLS": [SubjectType.ROLE],
+    },
+)
+def test_rls_subjects_related_api_entity_override_roles(admin_client):
+    params = rison.dumps({"page": 0, "page_size": 100})
+
+    rv = admin_client.get(f"/api/v1/rowlevelsecurity/related/subjects?q={params}")
+    assert rv.status_code == 200
+    data = json.loads(rv.data.decode("utf-8"))
+    result = data["result"]
+
+    assert data["count"] > 0
+    assert len(result) > 0
+    assert {subject["extra"]["type"] for subject in result} == {SubjectType.ROLE}
 
 
 @pytest.mark.usefixtures(

@@ -21,7 +21,7 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import redirect, request, Response, send_file, url_for
+from flask import current_app, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -85,6 +85,7 @@ from superset.daos.chart import ChartDAO
 from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
+from superset.security.manager import get_extra_editor_subject_ids
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -338,6 +339,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             dash = ChartDAO.get_by_id_or_uuid(id_or_uuid)
             result = self.chart_get_response_schema.dump(dash)
+            if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+                result["extra_editors"] = get_extra_editor_subject_ids(dash)
             return self.response(200, result=result)
         except ChartNotFoundError:
             return self.response_404()

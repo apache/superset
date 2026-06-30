@@ -19,6 +19,7 @@
 import { useResizeDetector } from 'react-resize-detector';
 import { SupersetClient } from '@superset-ui/core';
 import { css } from '@apache-superset/core/theme';
+import { SubjectType } from 'src/types/Subject';
 import { useDatasetMetadataBar } from './useDatasetMetadataBar';
 
 export default {
@@ -39,6 +40,10 @@ export default {
             created_on_humanized: 'a month ago',
             table_name: `This is dataset's name`,
             description: 'This is a dataset description',
+            editors: [
+              { id: 1, label: 'John Doe', type: SubjectType.User },
+              { id: 2, label: 'Luke Skywalker', type: SubjectType.User },
+            ],
           },
         },
       },
@@ -59,6 +64,10 @@ export const DatasetSpecific = () => {
     created_on_humanized: 'a month ago',
     table_name: `This is dataset's name`,
     description: 'This is a dataset description',
+    editors: [
+      { id: 1, label: 'John Doe', type: SubjectType.User },
+      { id: 2, label: 'Luke Skywalker', type: SubjectType.User },
+    ],
   };
 
   const { metadataBar } = useDatasetMetadataBar({ dataset: mockDataset });

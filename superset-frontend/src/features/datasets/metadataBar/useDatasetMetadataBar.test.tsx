@@ -21,6 +21,7 @@ import fetchMock from 'fetch-mock';
 import { renderHook } from '@testing-library/react';
 import { createWrapper, render } from 'spec/helpers/testing-library';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
+import { SubjectType } from 'src/types/Subject';
 import { useDatasetMetadataBar } from './useDatasetMetadataBar';
 
 const MOCK_DATASET = {
@@ -32,6 +33,10 @@ const MOCK_DATASET = {
   created_on_humanized: 'a month ago',
   table_name: `This is dataset's name`,
   description: 'This is a dataset description',
+  editors: [
+    { id: 1, label: 'John Doe', type: SubjectType.User },
+    { id: 2, label: 'Luke Skywalker', type: SubjectType.User },
+  ],
 };
 
 afterEach(() => {
@@ -52,6 +57,7 @@ test('renders dataset metadata bar with dataset prop', async () => {
   expect(await findByText(`This is dataset's name`)).toBeVisible();
   expect(await findByText('This is a dataset description')).toBeVisible();
   expect(await findByText('Luke Skywalker')).toBeVisible();
+  expect(await findByText('John Doe')).toBeVisible();
   expect(await findByText('a month ago')).toBeVisible();
   expect(await findAllByRole('img')).toHaveLength(4);
 });

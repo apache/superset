@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
@@ -66,6 +67,52 @@ def test_is_editor_no_editors_relationship_returns_false():
     sm = _make_sm()
     with patch.object(sm, "is_admin", return_value=False):
         assert sm.is_editor(_make_resource(editor_ids=None)) is False
+
+
+def test_get_extra_editor_subject_ids_normalizes_resolver_output():
+    from superset.security.manager import get_extra_editor_subject_ids
+
+    resource = _make_resource()
+
+    def resolver(_: object) -> list[object]:
+        return [
+            _make_subject(10),
+            20,
+            {"id": "30"},
+            {"id": None},
+            {"id": "invalid"},
+            MagicMock(),
+            20,
+        ]
+
+    with (
+        patch("superset.security.manager.has_app_context", return_value=True),
+        patch(
+            "superset.security.manager.current_app",
+            SimpleNamespace(config={"EXTRA_EDITORS_RESOLVER": resolver}),
+        ),
+    ):
+        assert get_extra_editor_subject_ids(resource) == [10, 20, 30]
+
+
+def test_is_editor_extra_editors_resolver_match():
+    """Dynamic editor subjects grant edit access."""
+    sm = _make_sm()
+    resource = _make_resource(editor_ids=[])
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch(
+            "superset.subjects.utils.get_user_subject_ids",
+            return_value=[77],
+        ),
+        patch(
+            "superset.security.manager.get_extra_editor_subject_ids",
+            return_value=[77],
+        ),
+    ):
+        assert sm.is_editor(resource) is True
 
 
 @pytest.mark.parametrize(
@@ -161,6 +208,26 @@ def test_is_viewer_anonymous():
         patch("superset.security.manager.get_user_id", return_value=None),
     ):
         assert sm.is_viewer(_make_resource(editor_ids=[10], viewer_ids=[10])) is False
+
+
+def test_is_viewer_extra_editors_resolver_match():
+    """Dynamic editor subjects also imply view access."""
+    sm = _make_sm()
+    resource = _make_resource(editor_ids=[], viewer_ids=[])
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch(
+            "superset.subjects.utils.get_user_subject_ids",
+            return_value=[77],
+        ),
+        patch(
+            "superset.security.manager.get_extra_editor_subject_ids",
+            return_value=[77],
+        ),
+    ):
+        assert sm.is_viewer(resource) is True
 
 
 @pytest.mark.parametrize(

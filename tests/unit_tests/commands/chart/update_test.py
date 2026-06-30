@@ -130,7 +130,7 @@ def test_update_chart_query_context_non_editor_with_access_allowed(
 def test_update_chart_editor_can_perform_regular_update(
     mocker: MockerFixture,
 ) -> None:
-    """Chart editors can perform regular (non-query-context) updates."""
+    """Chart editors can perform regular updates and pass editor changes."""
     editor = mocker.MagicMock(id=1)
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
     chart = mocker.MagicMock(id=1, tags=[], dashboards=[], editors=[editor])
@@ -140,8 +140,12 @@ def test_update_chart_editor_can_perform_regular_update(
     )
     compute_subjects = mocker.patch("superset.commands.chart.update.compute_subjects")
 
-    UpdateChartCommand(1, {"slice_name": "Renamed Chart"}).validate()
+    UpdateChartCommand(1, {"slice_name": "Renamed Chart", "editors": [2]}).validate()
 
     find_by_id.assert_called_once_with(1)
     raise_for_editorship.assert_called_once()
     compute_subjects.assert_called_once()
+    properties = compute_subjects.call_args.args[1]
+    exceptions = compute_subjects.call_args.args[2]
+    assert properties["editors"] == [2]
+    assert exceptions == []

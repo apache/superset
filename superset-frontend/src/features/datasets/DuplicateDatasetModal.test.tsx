@@ -19,6 +19,7 @@
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
+import type Subject from 'src/types/Subject';
 import DuplicateDatasetModal from './DuplicateDatasetModal';
 
 // Test-only fixture type that includes all fields from API responses
@@ -32,6 +33,7 @@ interface VirtualDatasetFixture {
     id: string;
     database_name: string;
   };
+  editors: Subject[];
   changed_by_name: string;
   changed_by: string;
   changed_on_delta_humanized: string;
@@ -50,6 +52,7 @@ const mockDataset: VirtualDatasetFixture = {
     id: '1',
     database_name: 'PostgreSQL',
   },
+  editors: [{ id: 1, label: 'Admin User', type: 1 }],
   changed_by_name: 'Admin',
   changed_by: 'Admin User',
   changed_on_delta_humanized: '1 day ago',

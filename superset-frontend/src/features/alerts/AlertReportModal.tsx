@@ -138,6 +138,12 @@ export interface AlertReportModalProps {
   show: boolean;
 }
 
+type AlertFormState = Partial<
+  Omit<AlertObject, 'editors'> & {
+    editors?: SubjectPickerValue[];
+  }
+>;
+
 const DEFAULT_WORKING_TIMEOUT = 3600;
 const DEFAULT_CRON_VALUE = '0 0 * * *'; // every day
 const DEFAULT_RETENTION = 90;
@@ -463,7 +469,7 @@ export const TRANSLATIONS = {
   NOTIFICATION_TITLE: t('Notification method'),
   // Error text
   NAME_ERROR_TEXT: t('name'),
-  OWNERS_ERROR_TEXT: t('editors'),
+  EDITORS_ERROR_TEXT: t('editors'),
   CONTENT_ERROR_TEXT: t('content type'),
   DATABASE_ERROR_TEXT: t('database'),
   SQL_ERROR_TEXT: t('sql'),
@@ -529,8 +535,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
 
-  const [currentAlert, setCurrentAlert] =
-    useState<Partial<AlertObject> | null>();
+  const [currentAlert, setCurrentAlert] = useState<AlertFormState | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
   const [activeCollapsePanel, setActiveCollapsePanel] = useState<
@@ -961,9 +966,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : null,
       custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
-      editors: (currentAlert?.editors || []).map(
-        editor => (editor as MetaObject).value || editor.id,
-      ),
+      editors: (currentAlert?.editors || []).map(editor => editor.value),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
       extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
@@ -1764,7 +1767,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       errors.push(TRANSLATIONS.NAME_ERROR_TEXT);
     }
     if (!currentAlert?.editors?.length) {
-      errors.push(TRANSLATIONS.OWNERS_ERROR_TEXT);
+      errors.push(TRANSLATIONS.EDITORS_ERROR_TEXT);
     }
     updateValidationStatus(Sections.General, errors);
   };
@@ -2147,12 +2150,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       ariaLabel={t('Editors')}
                       allowClear
                       placeholder={t('Select editors')}
-                      value={
-                        (currentAlert?.editors as {
-                          label: string;
-                          value: number;
-                        }[]) || []
-                      }
+                      value={currentAlert?.editors || []}
                       onChange={onEditorsChange}
                       dataTest="editors-select"
                     />

@@ -100,6 +100,42 @@ def test_create_chart_command_allowed_when_access_passes() -> None:
                     command.validate()  # should not raise
 
 
+def test_create_chart_command_delegates_editors_to_subjects() -> None:
+    """CreateChartCommand.validate() must resolve editor subject IDs."""
+    from superset.commands.chart.create import CreateChartCommand
+
+    mock_datasource = MagicMock()
+    mock_datasource.name = "test_table"
+
+    with patch(
+        "superset.commands.chart.create.get_datasource_by_id",
+        return_value=mock_datasource,
+    ):
+        with patch("superset.commands.chart.create.security_manager.raise_for_access"):
+            with patch(
+                "superset.commands.chart.create.DashboardDAO.find_by_ids",
+                return_value=[],
+            ):
+                with patch(
+                    "superset.commands.chart.create.populate_subjects",
+                    return_value=None,
+                ) as populate_subjects:
+                    command = CreateChartCommand(
+                        {
+                            "slice_name": "test",
+                            "viz_type": "bar",
+                            "datasource_id": 1,
+                            "datasource_type": "table",
+                            "editors": [7],
+                        }
+                    )
+                    command.validate()
+
+    properties, exceptions = populate_subjects.call_args.args
+    assert properties["editors"] == [7]
+    assert exceptions == []
+
+
 # ---------------------------------------------------------------------------
 # UpdateChartCommand
 # ---------------------------------------------------------------------------

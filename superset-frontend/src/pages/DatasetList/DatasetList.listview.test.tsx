@@ -40,6 +40,7 @@ import {
   assertOnlyExpectedCalls,
   API_ENDPOINTS,
   mockDatasetListEndpoints,
+  mockDatasetEditors,
   getDeleteRouteName,
 } from './DatasetList.testHelpers';
 
@@ -994,7 +995,7 @@ test('virtual dataset shows delete, export, edit, and duplicate actions', async 
 test('edit action is enabled for dataset editor', async () => {
   const dataset = {
     ...mockDatasets[0],
-    editors: [{ id: mockAdminUser.userId, value: mockAdminUser.userId }],
+    editors: [mockDatasetEditors.admin],
   };
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
@@ -1017,12 +1018,12 @@ test('edit action is enabled for dataset editor', async () => {
 test('edit action is disabled for non-editor', async () => {
   const dataset = {
     ...mockDatasets[0],
-    editors: [{ id: 999, value: 999 }],
+    editors: [mockDatasetEditors.external],
   };
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
-  // Use a non-admin user to test ownership check
+  // Use a non-admin user to test the editor check.
   const regularUser = {
     ...mockAdminUser,
     roles: { Admin: [['can_read', 'Dataset']] },
@@ -1046,7 +1047,7 @@ test('edit action is disabled for non-editor', async () => {
 test('all action buttons are clickable and enabled for admin user', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    editors: [{ id: mockAdminUser.userId, value: mockAdminUser.userId }],
+    editors: [mockDatasetEditors.admin],
   };
 
   mockDatasetListEndpoints({ result: [virtualDataset], count: 1 });
@@ -1237,12 +1238,7 @@ test('delete action gracefully handles 500 internal server error', async () => {
 test('duplicate action shows error toast on 403 forbidden', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    editors: [
-      {
-        id: mockAdminUser.userId as number,
-        value: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
   setupErrorTestScenario({
@@ -1294,12 +1290,7 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
 test('duplicate action shows error toast on 500 internal server error', async () => {
   const virtualDataset = {
     ...mockDatasets[1],
-    editors: [
-      {
-        id: mockAdminUser.userId as number,
-        value: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
   setupErrorTestScenario({
@@ -1702,18 +1693,13 @@ test('type filter persists after duplicating a dataset', async () => {
 
 test('edit action shows error toast when dataset fetch fails', async () => {
   const dataset = mockDatasets[0];
-  // Make the dataset edited by admin so edit button is enabled
-  const ownedDataset = {
+  // Make the dataset editable by admin so the edit button is enabled.
+  const editableDataset = {
     ...dataset,
-    editors: [
-      {
-        id: mockAdminUser.userId as number,
-        value: mockAdminUser.userId as number,
-      },
-    ],
+    editors: [mockDatasetEditors.admin],
   };
 
-  mockDatasetListEndpoints({ result: [ownedDataset], count: 1 });
+  mockDatasetListEndpoints({ result: [editableDataset], count: 1 });
 
   // Mock SupersetClient.get to fail for the specific dataset endpoint
   jest.spyOn(SupersetClient, 'get').mockImplementation(async request => {
@@ -1733,7 +1719,7 @@ test('edit action shows error toast when dataset fetch fails', async () => {
   });
 
   await waitFor(() => {
-    expect(screen.getByText(ownedDataset.table_name)).toBeInTheDocument();
+    expect(screen.getByText(editableDataset.table_name)).toBeInTheDocument();
   });
 
   const table = screen.getByTestId('listview-table');

@@ -59,6 +59,7 @@ from superset.constants import (
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
+from superset.subjects.types import SubjectType
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
@@ -2713,17 +2714,20 @@ EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
 # Only effective when ENABLE_VIEWERS is on.
 VIEWER_PROMISCUOUS_MODE = False
 
-# Controls which Subject types appear in the editor/viewer picker.
-# None = show all types (USER, ROLE, GROUP). Example: [1, 3] = USER + GROUP only.
-SUBJECTS_RELATED_TYPES: list[int] | None = None
+# Controls which Subject types appear in editor/viewer/subject pickers.
+# None = show all types (USER, ROLE, GROUP).
+SUBJECTS_RELATED_TYPES: list[SubjectType] | None = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+]
 
 # Per-entity overrides for SUBJECTS_RELATED_TYPES.
-# When set, the effective types = intersection of the global and entity-specific list.
-# None = inherit global behavior. Example: [3] = show only GROUP subjects.
-SUBJECTS_RELATED_TYPES_DASHBOARDS: list[int] | None = None
-SUBJECTS_RELATED_TYPES_CHARTS: list[int] | None = None
-SUBJECTS_RELATED_TYPES_RLS: list[int] | None = None
-SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[int] | None = None
+# When set, the entity-specific list completely replaces the global default.
+# None = inherit global behavior.
+SUBJECTS_RELATED_TYPES_DASHBOARDS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_CHARTS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
 
 
 # Extra dynamic query filters make it possible to limit which objects are shown
@@ -2760,6 +2764,9 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
 EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
+# Resolve additional editor subjects for a resource. Also used for editorship
+# checks and lockout-prevention logic.
+EXTRA_EDITORS_RESOLVER: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
 

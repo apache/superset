@@ -28,6 +28,7 @@ import {
 import { GenericDataType } from '@apache-superset/core/common';
 import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
+import { SubjectType } from 'src/types/Subject';
 
 export const mockedActions = Object.fromEntries(
   Object.keys(actions).map(key => [key, jest.fn()]),
@@ -786,4 +787,5 @@ export const mockdatasets = Array.from({ length: 3 }, (_, i) => ({
   catalog: null,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
+  editors: [{ id: i + 1, label: `Editor ${i + 1}`, type: SubjectType.User }],
 }));

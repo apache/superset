@@ -215,7 +215,7 @@ function ReportModal({
           } as ReportObject),
         );
       } else {
-        // Subscribe path: creation_method, owners, and recipients are set server-side.
+        // Subscribe path: creation_method, editors, and recipients are set server-side.
         await dispatch(subscribeReport(commonFields as ReportObject));
       }
       onHide();

@@ -35,9 +35,8 @@ from superset.views.base import BaseFilter
 def subject_type_filter(entity_config_key: str | None = None) -> type[BaseFilter]:
     """Return a BaseFilter subclass scoped to a specific entity config.
 
-    The effective allowed types = intersection of the global
-    ``SUBJECTS_RELATED_TYPES`` and the per-entity config key (if set).
-    When both are ``None``, no filtering is applied.
+    The per-entity config key overrides ``SUBJECTS_RELATED_TYPES`` when set.
+    When neither is set, no filtering is applied.
     """
 
     class _Filter(BaseFilter):
@@ -52,13 +51,8 @@ def subject_type_filter(entity_config_key: str | None = None) -> type[BaseFilter
                 current_app.config.get(entity_config_key) if entity_config_key else None
             )
 
-            if global_types is not None and entity_types is not None:
-                allowed = set(global_types) & set(entity_types)
-            elif global_types is not None:
-                allowed = set(global_types)
-            elif entity_types is not None:
-                allowed = set(entity_types)
-            else:
+            allowed = entity_types if entity_types is not None else global_types
+            if allowed is None:
                 return query
 
             return query.filter(Subject.type.in_(allowed))

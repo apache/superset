@@ -27,6 +27,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import DashboardListComponent from 'src/pages/DashboardList';
 import handleResourceExport from 'src/utils/export';
+import { SubjectType } from 'src/types/Subject';
 
 // Cast to accept partial mock props in tests
 const DashboardList = DashboardListComponent as unknown as React.FC<
@@ -35,6 +36,20 @@ const DashboardList = DashboardListComponent as unknown as React.FC<
 
 export const mockHandleResourceExport =
   handleResourceExport as jest.MockedFunction<typeof handleResourceExport>;
+
+const adminEditor = { id: 1, label: 'Admin User', type: SubjectType.User };
+const dataAnalystEditor = {
+  id: 2,
+  label: 'Data Analyst',
+  type: SubjectType.User,
+};
+const alphaEditor = { id: 3, label: 'Alpha', type: SubjectType.Role };
+const marketingEditor = {
+  id: 4,
+  label: 'Marketing Lead',
+  type: SubjectType.User,
+};
+const opsEditor = { id: 5, label: 'Ops Engineer', type: SubjectType.User };
 
 export const mockDashboards = [
   {
@@ -51,7 +66,7 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '1 day ago',
-    roles: [{ id: 1, name: 'Admin' }],
+    editors: [adminEditor],
     tags: [{ id: 1, name: 'production', type: 'TagTypes.custom' }],
     thumbnail_url: '/thumbnail',
     certified_by: 'Data Team',
@@ -72,7 +87,7 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '2 days ago',
-    roles: [],
+    editors: [dataAnalystEditor],
     tags: [],
     thumbnail_url: '/thumbnail',
     certified_by: null,
@@ -93,7 +108,7 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '3 days ago',
-    roles: [{ id: 2, name: 'Alpha' }],
+    editors: [adminEditor, alphaEditor],
     tags: [
       { id: 2, name: 'executive', type: 'TagTypes.custom' },
       { id: 3, name: 'quarterly', type: 'TagTypes.custom' },
@@ -117,7 +132,7 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '5 days ago',
-    roles: [],
+    editors: [marketingEditor],
     tags: [],
     thumbnail_url: '/thumbnail',
     certified_by: null,
@@ -138,7 +153,7 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '1 week ago',
-    roles: [],
+    editors: [opsEditor],
     tags: [{ id: 4, name: 'monitoring', type: 'TagTypes.custom' }],
     thumbnail_url: '/thumbnail',
     certified_by: null,

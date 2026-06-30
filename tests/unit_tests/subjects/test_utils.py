@@ -143,6 +143,47 @@ def test_populate_subject_list_lockout_prevention(
     assert result[1] == other_subject
 
 
+def test_populate_subject_list_extra_editors_resolver_skips_lockout_prevention():
+    user_subject = _make_subject(10)
+    other_subject = _make_subject(20)
+    mock_sm = _mock_sm(is_admin=False)
+
+    with (
+        patch("superset.commands.utils.get_user_id", return_value=1),
+        patch("superset.commands.utils.security_manager", mock_sm),
+        patch("superset.commands.utils.get_user_subject", return_value=user_subject),
+        patch("superset.commands.utils.get_user_subject_ids", return_value=[10]),
+        patch("superset.commands.utils.get_subject", return_value=other_subject),
+        patch(
+            "superset.commands.utils._has_extra_editors_resolver",
+            return_value=True,
+        ),
+    ):
+        result = populate_subject_list(
+            [20],
+            default_to_user=False,
+            ensure_no_lockout=True,
+        )
+
+    assert result == [other_subject]
+
+
+def test_populate_subject_list_extra_editors_resolver_keeps_default_to_user():
+    user_subject = _make_subject(10)
+
+    with (
+        patch("superset.commands.utils.get_user_id", return_value=1),
+        patch("superset.commands.utils.get_user_subject", return_value=user_subject),
+        patch(
+            "superset.commands.utils._has_extra_editors_resolver",
+            return_value=True,
+        ),
+    ):
+        result = populate_subject_list([], default_to_user=True)
+
+    assert result == [user_subject]
+
+
 @patch("superset.commands.utils.get_subject")
 @patch("superset.commands.utils.security_manager", new_callable=lambda: _mock_sm)
 @patch("superset.commands.utils.get_user_id")

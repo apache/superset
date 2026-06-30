@@ -25,7 +25,7 @@ from math import ceil
 from types import SimpleNamespace
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
-from flask import current_app, Flask, g, Request, Response
+from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
@@ -112,6 +112,49 @@ logger = logging.getLogger(__name__)
 
 def get_conf() -> Any:
     return current_app.config
+
+
+def _get_subject_id(subject: Any) -> int | None:
+    from superset.subjects.models import (
+        Subject,  # pylint: disable=import-outside-toplevel
+    )
+
+    if isinstance(subject, Subject):
+        return subject.id
+    if isinstance(subject, int):
+        return subject
+    if isinstance(subject, dict):
+        subject_id = subject.get("id")
+    else:
+        return None
+    try:
+        return int(subject_id) if subject_id is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def get_extra_editor_subject_ids(resource: Model) -> list[int]:
+    """
+    Resolve additional editor subject IDs for a resource.
+
+    The configured resolver may return Subject instances, raw subject IDs, or
+    dict-like subject representations containing an ``id`` key.
+    """
+    if not has_app_context():
+        return []
+
+    resolver = current_app.config.get("EXTRA_EDITORS_RESOLVER")
+    if not resolver:
+        return []
+
+    subject_ids: list[int] = []
+    seen: set[int] = set()
+    for subject in resolver(resource) or []:
+        subject_id = _get_subject_id(subject)
+        if subject_id is not None and subject_id not in seen:
+            subject_ids.append(subject_id)
+            seen.add(subject_id)
+    return subject_ids
 
 
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
@@ -4472,22 +4515,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :param resource: The dashboard, dataset, chart, etc. resource
         :returns: Whether the current user is an editor of the resource
-        :raises AttributeError: If the resource has no ``editors`` relationship
         """
         from superset.subjects.utils import get_user_subject_ids
 
         if self.is_admin():
             return True
 
-        if not hasattr(resource, "editors"):
-            return False
-
         user_id = get_user_id()
         if not user_id:
             return False
 
         subject_ids = set(get_user_subject_ids(user_id))
-        return bool(subject_ids & {s.id for s in resource.editors})
+        editor_subject_ids = set(get_extra_editor_subject_ids(resource))
+        if hasattr(resource, "editors"):
+            editor_subject_ids.update(s.id for s in resource.editors)
+        return bool(subject_ids & editor_subject_ids)
 
     def is_viewer(self, resource: Model) -> bool:
         """
@@ -4510,9 +4552,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         subject_ids = set(get_user_subject_ids(user_id))
 
-        if hasattr(resource, "editors") and bool(
-            subject_ids & {s.id for s in resource.editors}
-        ):
+        editor_subject_ids = set(get_extra_editor_subject_ids(resource))
+        if hasattr(resource, "editors"):
+            editor_subject_ids.update(s.id for s in resource.editors)
+        if subject_ids & editor_subject_ids:
             return True
 
         if hasattr(resource, "viewers") and bool(

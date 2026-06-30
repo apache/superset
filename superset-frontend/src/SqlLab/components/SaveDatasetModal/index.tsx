@@ -48,12 +48,17 @@ import { useAppSelector } from 'src/SqlLab/hooks/useAppSelector';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { DatasetRadioState, EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
+import {
+  DatasetRadioState,
+  EXPLORE_CHART_DEFAULT,
+  type DatasetOptionAutocomplete,
+} from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { isEmpty } from 'lodash-es';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
+import type Subject from 'src/types/Subject';
 
 interface QueryDatabase {
   id?: number;
@@ -153,6 +158,10 @@ type UpdateDatasetPayload = {
   templateParams?: string;
 };
 
+type DatasetOverwriteOption = DatasetOptionAutocomplete & {
+  label: string;
+};
+
 const updateDataset = async ({
   dbId,
   datasetId,
@@ -227,7 +236,7 @@ export const SaveDatasetModal = ({
   );
   const [shouldOverwriteDataset, setShouldOverwriteDataset] = useState(false);
   const [datasetToOverwrite, setDatasetToOverwrite] = useState<
-    Record<string, any>
+    Partial<DatasetOverwriteOption>
   >({});
   const [selectedDatasetToOverwrite, setSelectedDatasetToOverwrite] = useState<
     SelectValue | undefined
@@ -266,7 +275,7 @@ export const SaveDatasetModal = ({
       const [, key] = await Promise.all([
         updateDataset({
           dbId: datasource?.dbId,
-          datasetId: datasetToOverwrite?.datasetid,
+          datasetId: datasetToOverwrite.datasetId!,
           sql: datasource?.sql,
           columns: datasource?.columns?.map(
             (d: { column_name: string; type: string; is_dttm: boolean }) => ({
@@ -275,15 +284,13 @@ export const SaveDatasetModal = ({
               is_dttm: d.is_dttm,
             }),
           ),
-          editors: datasetToOverwrite?.editors?.map(
-            (o: { id: number }) => o.id,
-          ),
+          editors: datasetToOverwrite.editors?.map(editor => editor.id) || [],
           overrideColumns: true,
           templateParams,
         }),
-        postFormData(datasetToOverwrite.datasetid, 'table', {
+        postFormData(datasetToOverwrite.datasetId!, 'table', {
           ...formDataWithDefaults,
-          datasource: `${datasetToOverwrite.datasetid}__table`,
+          datasource: `${datasetToOverwrite.datasetId}__table`,
           ...(defaultVizType === VizType.Table && {
             all_columns: datasource?.columns?.map(column => column.column_name),
           }),
@@ -335,14 +342,10 @@ export const SaveDatasetModal = ({
         endpoint: `/api/v1/dataset/?q=${queryParams}`,
       }).then(response => ({
         data: response.json.result.map(
-          (r: {
-            table_name: string;
-            id: number;
-            editors: { id: number }[];
-          }) => ({
+          (r: { table_name: string; id: number; editors: Subject[] }) => ({
             value: r.table_name,
             label: r.table_name,
-            datasetid: r.id,
+            datasetId: r.id,
             editors: r.editors,
           }),
         ),
@@ -396,7 +399,10 @@ export const SaveDatasetModal = ({
       });
   };
 
-  const handleOverwriteDatasetOption = (value: SelectValue, option: any) => {
+  const handleOverwriteDatasetOption = (
+    value: SelectValue,
+    option: DatasetOverwriteOption,
+  ) => {
     setDatasetToOverwrite(option);
     setSelectedDatasetToOverwrite(value);
   };
@@ -419,7 +425,7 @@ export const SaveDatasetModal = ({
 
   const filterAutocompleteOption = (
     inputValue: string,
-    option: { value: string; datasetid: number },
+    option: DatasetOverwriteOption,
   ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
 
   return (
