@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, cast, TYPE_CHECKING
 from urllib import parse
 
@@ -132,7 +132,10 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
         if isinstance(sqla_type, types.Date):
             return f"toDate('{dttm.date().isoformat()}')"
         if isinstance(sqla_type, types.DateTime):
-            return f"""toDateTime('{dttm.isoformat(sep=" ", timespec="seconds")}')"""
+            if dttm.tzinfo is not None and dttm.utcoffset() is not None:
+                dttm = dttm.astimezone(timezone.utc).replace(tzinfo=None)
+            formatted_dttm = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"toDateTime('{formatted_dttm}', 'UTC')"
         return None
 
 
