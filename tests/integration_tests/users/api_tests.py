@@ -335,6 +335,48 @@ class TestCurrentUserApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert "confirm_password" in data["message"]
 
+    def test_put_my_password_conflict_returns_400(self) -> None:
+        """Return 400 with a retry message when a concurrent update wins the race."""
+        from superset.views.users.api import PasswordChangeConflictError
+
+        self.login(ADMIN_USERNAME)
+        with patch(
+            "superset.views.users.api._commit_user_password_change",
+            side_effect=PasswordChangeConflictError,
+        ):
+            rv = self.client.put(
+                mePasswordUri,
+                json={
+                    "current_password": DEFAULT_PASSWORD,
+                    "new_password": "AnotherStr0ng!Pass",
+                    "confirm_password": "AnotherStr0ng!Pass",
+                },
+            )
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "try again" in data["message"].lower()
+
+    def test_put_my_password_db_error_returns_500(self) -> None:
+        """Return 500 when a database error occurs during the password commit."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        self.login(ADMIN_USERNAME)
+        with patch(
+            "superset.views.users.api._commit_user_password_change",
+            side_effect=SQLAlchemyError("db failure"),
+        ):
+            rv = self.client.put(
+                mePasswordUri,
+                json={
+                    "current_password": DEFAULT_PASSWORD,
+                    "new_password": "AnotherStr0ng!Pass",
+                    "confirm_password": "AnotherStr0ng!Pass",
+                },
+            )
+        assert rv.status_code == 500
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "try again" in data["message"].lower()
+
 
 class TestUserApi(SupersetTestCase):
     def test_avatar_with_invalid_user(self):

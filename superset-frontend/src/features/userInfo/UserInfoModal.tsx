@@ -104,6 +104,9 @@ function UserInfoModal({
             confirm_password: String(values.confirm_password),
           },
         });
+        // The server rebuilds the session on password change, rotating the CSRF
+        // token. Re-fetch it so subsequent mutating requests don't 400.
+        await SupersetClient.reAuthenticate();
         addSuccessToast(t('The password reset was successful'));
       }
     } catch (error) {

@@ -122,15 +122,33 @@ def bump_user_session_auth_stamp(user_id: int) -> None:
 
 def validate_session_auth_stamp_for_request() -> None:
     """Drop login when the session cookie carries an outdated stamp for this user."""
+    from flask import current_app
+    from flask_appbuilder.const import AUTH_DB
+    from sqlalchemy.orm.exc import DetachedInstanceError
+
     from superset.models.user_session_auth_stamp import UserSessionAuthStamp
 
     if not has_request_context():
+        return
+    # The stamp is only ever bumped on AUTH_DB password changes; skip the DB
+    # hit for other auth backends where the stamp never changes after login.
+    if current_app.config.get("AUTH_TYPE") != AUTH_DB:
         return
     if not getattr(current_user, "is_authenticated", False):
         return
     if getattr(current_user, "is_guest_user", False):
         return
-    raw_id = current_user.get_id()
+    try:
+        raw_id = current_user.get_id()
+    except DetachedInstanceError:
+        # The user object was detached from the session (e.g. after a rollback
+        # in a previous before_request hook). Fail open — Flask-Login will
+        # reload the user on the next request.
+        logger.warning(
+            "Skipping session auth stamp check: current_user is detached",
+            exc_info=True,
+        )
+        return
     if raw_id is None:
         return
     try:
@@ -139,16 +157,19 @@ def validate_session_auth_stamp_for_request() -> None:
         return
 
     try:
-        row = db.session.get(UserSessionAuthStamp, user_id)
+        # Use a savepoint so a DB failure (e.g. missing table during a rolling
+        # deploy) only rolls back the nested transaction, not the outer one.
+        # Rolling back the outer session expires every object in it — including
+        # the current_user — and causes DetachedInstanceError in later hooks.
+        with db.session.begin_nested():
+            row = db.session.get(UserSessionAuthStamp, user_id)
     except SQLAlchemyError:
-        # Fail open: a database error (for example a missing table during a
-        # rolling deploy or migration mismatch) must not turn every
-        # authenticated request into a 500. Skip the check for this request.
+        # Fail open: skip the check rather than turning every authenticated
+        # request into a 500.
         logger.warning(
             "Skipping session auth stamp check due to a database error",
             exc_info=True,
         )
-        db.session.rollback()  # pylint: disable=consider-using-transaction
         return
 
     if row is None:

@@ -63,23 +63,9 @@ logger: logging.Logger = logging.getLogger(__name__)
 user_response_schema: UserResponseSchema = UserResponseSchema()
 
 
-def _get_client_ip() -> str | None:
-    """Return best-effort client IP from request context."""
-    if request.access_route:
-        return request.access_route[0]
-    return request.remote_addr
-
-
 def _me_password_rate_limit_key() -> str:
-    """Return the rate-limit key for password changes.
-
-    Uses a per-user key (``me_password_uid:<id>``) when a user is in context,
-    otherwise falls back to the client IP (or ``"unknown"`` when unavailable).
-    """
-    uid = getattr(getattr(g, "user", None), "id", None)
-    if uid is not None:
-        return f"me_password_uid:{uid}"
-    return _get_client_ip() or "unknown"
+    """Return the per-user rate-limit key for password changes."""
+    return f"me_password_uid:{g.user.id}"
 
 
 def _rate_limit_me_password_change(

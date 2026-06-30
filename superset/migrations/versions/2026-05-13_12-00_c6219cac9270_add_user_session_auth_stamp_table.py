@@ -17,7 +17,7 @@
 """add user_session_auth_stamp table
 
 Revision ID: c6219cac9270
-Revises: 78a40c08b4be
+Revises: a7d3f1b9c2e4
 Create Date: 2026-05-13 12:00:00.000000
 
 """
