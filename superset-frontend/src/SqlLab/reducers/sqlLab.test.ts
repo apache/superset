@@ -32,7 +32,6 @@ const initialState = mockState.sqlLab as unknown as SqlLabState;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sqlLabReducer', () => {
-  describe('Database actions', () => {
     test('should merge databases instead of replacing existing database state', () => {
       const existingDb = databases.result[0];
       const incomingDb = databases.result[1];
@@ -66,7 +65,6 @@ describe('sqlLabReducer', () => {
       expect(
         newState.databases[incomingDb.id].database_name,
       ).toBe(incomingDb.database_name);
-    });
   });
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Query editors actions', () => {
