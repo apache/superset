@@ -46,6 +46,24 @@ describe('Timeseries buildQuery', () => {
     expect(query.orderby).toEqual([['bar', false]]);
   });
 
+  test('should include the scatter dot size metric in query metrics', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      size: 'qux',
+    });
+    const [query] = queryContext.queries;
+    expect(query.metrics).toEqual(['bar', 'baz', 'qux']);
+  });
+
+  test('should dedupe the dot size metric when it is also a value metric', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      size: 'bar',
+    });
+    const [query] = queryContext.queries;
+    expect(query.metrics).toEqual(['bar', 'baz']);
+  });
+
   test('should not order by timeseries limit if orderby provided', () => {
     const queryContext = buildQuery({
       ...formData,

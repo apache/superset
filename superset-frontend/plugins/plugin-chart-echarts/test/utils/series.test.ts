@@ -33,6 +33,7 @@ import {
   extractShowValueIndexes,
   extractTooltipKeys,
   formatSeriesName,
+  getAreaScaledSymbolSize,
   getAxisType,
   getChartPadding,
   getLegendProps,
@@ -1597,4 +1598,30 @@ test('extractTooltipKeys with rich tooltip and sorting by metrics', () => {
 test('extractTooltipKeys with non-rich tooltip', () => {
   const result = extractTooltipKeys(forecastValue, 1, false, false);
   expect(result).toEqual(['foo']);
+});
+
+test('getAreaScaledSymbolSize maps the value extent to the size range', () => {
+  // smallest value renders at the minimum diameter
+  expect(getAreaScaledSymbolSize(10, [10, 40], [5, 30])).toBe(5);
+  // largest value renders at the maximum diameter
+  expect(getAreaScaledSymbolSize(40, [10, 40], [5, 30])).toBe(30);
+});
+
+test('getAreaScaledSymbolSize scales area, not diameter', () => {
+  // the midpoint value's *area* is halfway between the min and max areas
+  const midSize = getAreaScaledSymbolSize(25, [10, 40], [5, 30]);
+  expect(midSize ** 2).toBeCloseTo((5 ** 2 + 30 ** 2) / 2);
+});
+
+test('getAreaScaledSymbolSize clamps values outside the extent', () => {
+  expect(getAreaScaledSymbolSize(-100, [10, 40], [5, 30])).toBe(5);
+  expect(getAreaScaledSymbolSize(1000, [10, 40], [5, 30])).toBe(30);
+});
+
+test('getAreaScaledSymbolSize handles degenerate extents and bad values', () => {
+  const midAreaSize = Math.sqrt((5 ** 2 + 30 ** 2) / 2);
+  expect(getAreaScaledSymbolSize(7, [7, 7], [5, 30])).toBeCloseTo(midAreaSize);
+  expect(getAreaScaledSymbolSize(NaN, [10, 40], [5, 30])).toBeCloseTo(
+    midAreaSize,
+  );
 });

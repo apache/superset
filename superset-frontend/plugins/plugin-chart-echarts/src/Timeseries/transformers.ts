@@ -205,6 +205,7 @@ export function transformSeries(
     seriesContexts?: { [key: string]: ForecastSeriesEnum[] };
     markerEnabled?: boolean;
     markerSize?: number;
+    symbolSizeFn?: (value: (number | string | null)[]) => number;
     areaOpacity?: number;
     seriesType?: EchartsTimeseriesSeriesType;
     stack?: StackType;
@@ -239,6 +240,7 @@ export function transformSeries(
     seriesContexts = {},
     markerEnabled,
     markerSize,
+    symbolSizeFn,
     areaOpacity = 1,
     seriesType,
     stack,
@@ -413,7 +415,7 @@ export function transformSeries(
     emphasis,
     showSymbol,
     symbol,
-    symbolSize: markerSize,
+    symbolSize: symbolSizeFn ?? markerSize,
     label: {
       show: !!showValue,
       position: isHorizontal ? 'right' : 'top',
