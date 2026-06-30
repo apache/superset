@@ -80,9 +80,14 @@ export const FilterItem = styled.button`
     padding: 0;
     border: none;
     background: none;
-    outline: none;
+    outline: 2px solid transparent; /* WCAG 2.4.7: transparent outline prevents double-ring with box-shadow */
     width: 100%;
     color: inherit;
+
+    &:focus-visible {
+      box-shadow: inset 0 0 0 2px ${theme.colorPrimary};
+      border-radius: ${theme.borderRadius}px;
+    }
 
     &::-moz-focus-inner {
       border: 0;

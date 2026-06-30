@@ -130,6 +130,57 @@ export const GlobalStyles = () => {
           .ant-tabs-tab {
           padding-top: 0;
         }
+        /* WCAG 2.4.7: Focus Visible — give every interactive element a visible
+           keyboard focus indicator. Uses :focus-visible so the ring only shows
+           on keyboard navigation, not on mouse clicks.
+
+           Selector scope: limited to actually interactive elements (native
+           focusable elements plus AntD wrappers and common ARIA roles) instead
+           of the universal "*", so non-interactive elements that happen to
+           receive programmatic focus do not pick up an unwanted outline.
+           Wrapped in :where() so the rule keeps specificity (0,0,1,0) and
+           remains easy for component-level styles to override.
+
+           Why !important: AntD ships per-component focus resets such as
+           ".ant-btn:focus { outline: 0 }" with the same (0,0,2,0) specificity
+           as a hypothetical un-flagged ".ant-btn:focus-visible" rule here, and
+           AntD's runtime-injected styles can land after this global block.
+           !important is the only way to guarantee the WCAG focus indicator is
+           not silently reset back to outline:0. Components that genuinely need
+           a different focus treatment must use !important themselves, matching
+           AntD's own pattern. */
+        :where(
+          a,
+          button,
+          input,
+          select,
+          textarea,
+          [tabindex],
+          [role='button'],
+          [role='link'],
+          [role='menuitem'],
+          [role='tab'],
+          [role='checkbox'],
+          [role='option'],
+          [role='combobox'],
+          [role='switch'],
+          .ant-btn,
+          .ant-input,
+          .ant-input-affix-wrapper,
+          .ant-input-number,
+          .ant-select-selector,
+          .ant-checkbox-input,
+          .ant-radio-input,
+          .ant-switch,
+          .ant-picker,
+          .ant-cascader-picker,
+          .ant-dropdown-trigger,
+          .ant-tabs-tab,
+          .ant-menu-item
+        ):focus-visible {
+          outline: 2px solid ${theme.colorPrimary} !important;
+          outline-offset: 2px !important;
+        }
       `}
     />
   );
