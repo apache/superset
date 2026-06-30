@@ -39,7 +39,7 @@ class ChartTypePlugin(Protocol):
     """
     Protocol that every chart-type plugin must satisfy.
 
-    Implementing all eight methods in a single class guarantees that adding a
+    Implementing all nine methods in a single class guarantees that adding a
     new chart type requires only one new file — the plugin — rather than edits
     across multiple separate files.
     """
