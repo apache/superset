@@ -195,6 +195,7 @@ function ButtonInner(props: ButtonProps, ref: Ref<HTMLElement>) {
       variant={variant}
       danger={effectiveButtonStyle === 'danger'}
       color={color}
+      // Static class names for embedded-dashboard CSS targeting
       className={cx(
         className,
         'superset-button',
