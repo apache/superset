@@ -25,7 +25,7 @@ import {
   CategoricalScheme,
 } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
-import { sortBy } from 'lodash';
+import { sortBy } from 'lodash-es';
 import { Select, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ColorSchemeLabel from 'src/explore/components/controls/ColorSchemeControl/ColorSchemeLabel';

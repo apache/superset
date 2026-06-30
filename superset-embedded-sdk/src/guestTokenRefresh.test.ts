@@ -24,22 +24,23 @@ import {
   DEFAULT_TOKEN_EXP_MS,
   DEFAULT_TOKEN_REFRESH_RETRY_MS,
 } from "./guestTokenRefresh";
+import { afterAll, beforeAll, it, expect, describe, vi } from "vitest";
 
 describe("guest token refresh", () => {
   beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date("2022-03-03 01:00"));
-    jest.spyOn(global, "setTimeout");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2022-03-03 01:00"));
+    vi.spyOn(globalThis, "setTimeout");
   });
 
   afterAll(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   function makeFakeJWT(claims: any) {
     // not a valid jwt, but close enough for this code
     const tokenifiedClaims = Buffer.from(JSON.stringify(claims)).toString(
-      "base64"
+      "base64",
     );
     return `abc.${tokenifiedClaims}.xyz`;
   }
