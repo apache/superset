@@ -19,6 +19,12 @@ from typing import Any
 
 from sqlalchemy.orm.session import Session
 
+from superset import db
+from superset.connectors.sqla.models import Database, SqlaTable
+from superset.daos.dashboard import DashboardDAO
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+
 
 def test_set_dash_metadata_preserves_soft_deleted_members(
     session: Session,
@@ -33,12 +39,6 @@ def test_set_dash_metadata_preserves_soft_deleted_members(
     restore-reattach contract) and writing ``uuid: None`` into its
     position slot. This test fails if the bypass is removed.
     """
-    from superset import db
-    from superset.connectors.sqla.models import Database, SqlaTable
-    from superset.daos.dashboard import DashboardDAO
-    from superset.models.dashboard import Dashboard
-    from superset.models.slice import Slice
-
     Dashboard.metadata.create_all(session.get_bind())
 
     dataset = SqlaTable(
