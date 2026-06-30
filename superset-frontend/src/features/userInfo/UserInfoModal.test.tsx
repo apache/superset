@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, JsonResponse } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -69,10 +69,9 @@ const fillPasswords = (newPassword = STRONG_PASSWORD) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest
-    .spyOn(SupersetClient, 'get')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .mockResolvedValue({ json: { result: policyResult } } as any);
+  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: policyResult },
+  } as unknown as JsonResponse);
 });
 
 afterEach(() => {
@@ -91,8 +90,7 @@ test('fetches the password policy when opened', async () => {
 test('submits a valid password change and lets FormModal trigger onSave', async () => {
   const put = jest
     .spyOn(SupersetClient, 'put')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .mockResolvedValue({ json: {} } as any);
+    .mockResolvedValue({ json: {} } as unknown as JsonResponse);
   const { onSave } = renderModal();
 
   fillPasswords();

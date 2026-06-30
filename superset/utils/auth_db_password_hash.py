@@ -33,7 +33,7 @@ from superset.utils.auth_db_password import (
 _BCRYPT_HASH_RE = re.compile(r"^\$2[aby]\$\d{2}\$")
 _ARGON2_HASH_PREFIX = "$argon2"
 
-_argon2_hasher = PasswordHasher()
+_argon2_hasher: PasswordHasher = PasswordHasher()
 
 
 def is_bcrypt_password_hash(password_hash: str) -> bool:
@@ -88,4 +88,7 @@ def verify_auth_db_password(password_hash: str, password: str) -> bool:
             return True
         except (VerifyMismatchError, InvalidHash):
             return False
-    return check_password_hash(password_hash, password)
+    try:
+        return check_password_hash(password_hash, password)
+    except ValueError:
+        return False

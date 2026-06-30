@@ -151,7 +151,7 @@ describe('table actions', () => {
         fetchMock.callHistory.calls(getTableMetadataEndpoint),
       ).toHaveLength(1),
     );
-    const refreshButton = getByRole('button', { name: 'sync' });
+    const refreshButton = getByRole('button', { name: 'Refresh table schema' });
     fireEvent.click(refreshButton);
     await waitFor(() =>
       expect(
@@ -170,7 +170,7 @@ describe('table actions', () => {
         fetchMock.callHistory.calls(getTableMetadataEndpoint),
       ).toHaveLength(1),
     );
-    const viewButton = getByRole('button', { name: 'eye' });
+    const viewButton = getByRole('button', { name: 'Show CREATE VIEW statement' });
     fireEvent.click(viewButton);
     await waitFor(() =>
       expect(

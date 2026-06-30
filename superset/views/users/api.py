@@ -58,9 +58,9 @@ from superset.views.users.schemas import (
 )
 from superset.views.utils import bootstrap_user_data
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
-user_response_schema = UserResponseSchema()
+user_response_schema: UserResponseSchema = UserResponseSchema()
 
 
 def _get_client_ip() -> str | None:
@@ -176,14 +176,16 @@ class CurrentUserRestApi(BaseSupersetApi):
     resource_name = "me"
     openapi_spec_tag = "Current User"
     allow_browser_login = True
-    openapi_spec_component_schemas = (
+    openapi_spec_component_schemas: tuple[type, ...] = (
         UserResponseSchema,
         CurrentUserPutSchema,
         CurrentUserPasswordPutSchema,
     )
 
-    current_user_put_schema = CurrentUserPutSchema()
-    current_user_password_put_schema = CurrentUserPasswordPutSchema()
+    current_user_put_schema: CurrentUserPutSchema = CurrentUserPutSchema()
+    current_user_password_put_schema: CurrentUserPasswordPutSchema = (
+        CurrentUserPasswordPutSchema()
+    )
 
     def pre_update(self, item: User, data: Dict[str, Any]) -> None:
         item.changed_on = datetime.now()
@@ -433,7 +435,10 @@ class CurrentUserRestApi(BaseSupersetApi):
                     "Password policy is only available when AUTH_TYPE is AUTH_DB."
                 ),
             )
-        return self.response(200, result=get_public_auth_db_password_policy())
+        try:
+            return self.response(200, result=get_public_auth_db_password_policy())
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
 
 
 class UserRestApi(BaseSupersetApi):

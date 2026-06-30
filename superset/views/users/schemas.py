@@ -20,11 +20,11 @@ from marshmallow import fields, Schema, validates_schema, ValidationError
 from marshmallow.fields import Boolean, Integer, String
 from marshmallow.validate import Length
 
-first_name_description = "The current user's first name"
-last_name_description = "The current user's last name"
-current_password_description = "The user's current password"  # noqa: S105
-new_password_description = "The desired new password"  # noqa: S105
-confirm_password_description = "Confirmation of the desired new password"  # noqa: S105
+first_name_description: str = "The current user's first name"
+last_name_description: str = "The current user's last name"
+current_password_description: str = "The user's current password"  # noqa: S105
+new_password_description: str = "The desired new password"  # noqa: S105
+confirm_password_description: str = "Confirmation of the desired new password"  # noqa: S105
 
 
 class UserResponseSchema(Schema):
@@ -59,7 +59,7 @@ class CurrentUserPasswordPutSchema(Schema):
     current_password = fields.String(
         required=True,
         metadata={"description": current_password_description},
-        validate=[Length(min=1, max=256)],
+        validate=[Length(min=1)],
     )
     # Minimum length is enforced by the configurable AUTH_DB password policy
     # (``validate_auth_db_password``), which supports ``password_min_length = 0``.

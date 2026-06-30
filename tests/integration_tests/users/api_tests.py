@@ -254,6 +254,7 @@ class TestCurrentUserApi(SupersetTestCase):
             self._restore_admin_default_password(app)
 
     def test_put_my_password_invalid_hash_algorithm(self) -> None:
+        """Return 400 when AUTH_DB_CONFIG has an unsupported hash algorithm."""
         self.login(ADMIN_USERNAME)
         original_auth_db_config = superset_integration_app.config.get(
             "AUTH_DB_CONFIG", {}

@@ -45,4 +45,5 @@ class UserSessionAuthStamp(Model):
     )
 
     def __repr__(self) -> str:
+        """Return a debug string identifying this stamp by its user ID."""
         return f"<UserSessionAuthStamp user_id={self.user_id}>"

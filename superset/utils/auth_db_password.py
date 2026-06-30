@@ -41,7 +41,7 @@ AUTH_DB_DEFAULTS: dict[str, Any] = {
     "login_lockout_duration_minutes": 15,
 }
 
-_PUBLIC_PASSWORD_POLICY_KEYS = (
+_PUBLIC_PASSWORD_POLICY_KEYS: tuple[str, ...] = (
     "password_min_length",
     "password_require_uppercase",
     "password_require_lowercase",
@@ -50,12 +50,12 @@ _PUBLIC_PASSWORD_POLICY_KEYS = (
     "password_common_list_check",
 )
 
-_SUPPORTED_HASH_ALGORITHMS = frozenset({"bcrypt", "argon2"})
+_SUPPORTED_HASH_ALGORITHMS: frozenset[str] = frozenset({"bcrypt", "argon2"})
 
 # bcrypt silently truncates input beyond this UTF-8 byte limit.
-BCRYPT_MAX_PASSWORD_BYTES = 72
+BCRYPT_MAX_PASSWORD_BYTES: int = 72
 
-_COMMON_PASSWORDS = frozenset(
+_COMMON_PASSWORDS: frozenset[str] = frozenset(
     password.lower()
     for password in {
         "password",

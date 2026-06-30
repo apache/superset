@@ -271,7 +271,7 @@ describe('SavedQueryList', () => {
       await screen.findByTestId('saved_query-list-view');
 
       const queryButton = await screen.findByRole('button', {
-        name: /query/i,
+        name: /^plus\s+query$/i,
       });
       fireEvent.click(queryButton);
 
