@@ -133,12 +133,15 @@ function ButtonInner(props: ButtonProps, ref: Ref<HTMLElement>) {
 
   let defaultHeight = theme.buttonControlHeight ?? 32;
   let defaultPaddingInline = theme.buttonPaddingInline ?? 18;
+  let defaultBorderRadius = theme.buttonBorderRadius ?? theme.borderRadius;
   if (buttonSize === 'xsmall') {
     defaultHeight = theme.buttonControlHeightXS ?? 22;
     defaultPaddingInline = 5;
+    defaultBorderRadius = theme.buttonBorderRadius ?? theme.borderRadiusSM;
   } else if (buttonSize === 'small') {
     defaultHeight = theme.buttonControlHeightSM ?? 30;
     defaultPaddingInline = theme.buttonPaddingInlineSM ?? 10;
+    defaultBorderRadius = theme.buttonBorderRadius ?? theme.borderRadiusSM;
   }
   if (buttonStyle === 'link') {
     defaultPaddingInline = 4;
@@ -153,9 +156,7 @@ function ButtonInner(props: ButtonProps, ref: Ref<HTMLElement>) {
     ctaMinHeight: styleConfig?.ctaMinHeight ?? theme.sizeUnit * 8,
     iconGap: styleConfig?.iconGap ?? theme.sizeUnit * 2,
     borderRadius:
-      styleConfig?.borderRadius ??
-      theme.buttonBorderRadius ??
-      theme.borderRadius,
+      styleConfig?.borderRadius ?? defaultBorderRadius,
   };
 
   const {

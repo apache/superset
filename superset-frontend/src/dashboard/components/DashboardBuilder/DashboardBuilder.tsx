@@ -339,7 +339,8 @@ const StyledDashboardContent = styled.div<{
         border: ${theme.dashboardTileBorder ?? 'none'};
         border-radius: ${theme.dashboardTileBorderRadius ??
         theme.borderRadius}px;
-        box-shadow: ${theme.dashboardTileBoxShadow ?? 'none'};
+        box-shadow: ${theme.dashboardTileBoxShadow ??
+        `0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)}`};
       }
 
       & .missing-chart-container {
