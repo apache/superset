@@ -20,6 +20,7 @@ from typing import Any
 from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
+import freezegun
 import pandas as pd
 import pyarrow as pa
 import pytest
@@ -1980,11 +1981,11 @@ def test_get_time_bounds_with_offset_no_bounds(
 
 def test_convert_query_object_filter_temporal_range_with_value() -> None:
     """
-    Test conversion of TEMPORAL_RANGE filter with valid string value.
+    Test conversion of TEMPORAL_RANGE filter with an explicit "start : end" value.
     """
     all_dimensions = {
         "order_date": Dimension(
-            "order_date", "order_date", pa.utf8(), "order_date", "Order date"
+            "order_date", "order_date", pa.timestamp("us"), "order_date", "Order date"
         )
     }
     filter_: ValidatedQueryObjectFilterClause = {
@@ -2000,15 +2001,78 @@ def test_convert_query_object_filter_temporal_range_with_value() -> None:
             type=PredicateType.WHERE,
             column=all_dimensions["order_date"],
             operator=Operator.GREATER_THAN_OR_EQUAL,
-            value="2025-01-01",
+            value=datetime(2025, 1, 1),
         ),
         Filter(
             type=PredicateType.WHERE,
             column=all_dimensions["order_date"],
             operator=Operator.LESS_THAN,
-            value="2025-12-31",
+            value=datetime(2025, 12, 31),
         ),
     }
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    [
+        "Last week",
+        "Last 7 days",
+        "Last month",
+        "Next 30 days",
+        "previous calendar week",
+        "previous calendar month",
+        "previous calendar year",
+        "Current day",
+        "Current week",
+    ],
+)
+def test_convert_query_object_filter_temporal_range_named_ranges(
+    time_range: str,
+) -> None:
+    """
+    Named time ranges must be parsed via the standard time-range parser rather than
+    split on " : ". Previously these raised ``ValueError`` from
+    ``"Last week".split(" : ")``.
+    """
+    all_dimensions = {
+        "order_date": Dimension(
+            "order_date", "order_date", pa.timestamp("us"), "order_date", "Order date"
+        )
+    }
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.TEMPORAL_RANGE.value,
+        "col": "order_date",
+        "val": time_range,
+    }
+
+    with freezegun.freeze_time("2025-10-15"):
+        result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result is not None
+    assert {f.operator for f in result} == {
+        Operator.GREATER_THAN_OR_EQUAL,
+        Operator.LESS_THAN,
+    }
+    for f in result:
+        assert isinstance(f.value, datetime)
+
+
+def test_convert_query_object_filter_temporal_range_no_filter() -> None:
+    """
+    A "No filter" value should produce no filters at all.
+    """
+    all_dimensions = {
+        "order_date": Dimension(
+            "order_date", "order_date", pa.timestamp("us"), "order_date", "Order date"
+        )
+    }
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.TEMPORAL_RANGE.value,
+        "col": "order_date",
+        "val": "No filter",
+    }
+
+    assert _convert_query_object_filter(filter_, all_dimensions) is None
 
 
 def test_convert_query_object_filter_temporal_range_coerces_date_bounds() -> None:
