@@ -40,7 +40,7 @@ from superset.tasks.native_filter_cache import (
 from superset.utils.date_parser import parse_human_datetime
 from superset.utils.webdriver import WebDriverSelenium
 
-logger = get_task_logger(__name__)
+logger: logging.Logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
 
 
@@ -56,7 +56,7 @@ class CacheWarmupTask:
 def get_dash_url(dashboard: Dashboard) -> str:
     """Return external URL for warming up a given dashboard cache."""
     with current_app.test_request_context():
-        baseurl = (
+        baseurl: str = (
             # when running this as an async task, drop the request context with
             # app.test_request_context()
             current_app.config.get("WEBDRIVER_BASEURL")
@@ -120,11 +120,11 @@ class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     """
 
-    name = "dummy"
+    name: str = "dummy"
 
     def get_urls(self) -> list[str]:
         # Use selectinload to avoid N+1 queries when checking dashboard.slices
-        dashboards = (
+        dashboards: list[Dashboard] = (
             db.session.query(Dashboard)
             .options(selectinload(Dashboard.slices))
             .filter(Dashboard.published.is_(True))
@@ -152,15 +152,15 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
 
     """
 
-    name = "top_n_dashboards"
+    name: str = "top_n_dashboards"
 
     def __init__(self, top_n: int = 5, since: str = "7 days ago") -> None:
         super().__init__()
-        self.top_n = top_n
-        self.since = parse_human_datetime(since) if since else None
+        self.top_n: int = top_n
+        self.since: Any = parse_human_datetime(since) if since else None
 
     def get_urls(self) -> list[str]:
-        records = (
+        records: list[Any] = (
             db.session.query(Log.dashboard_id, func.count(Log.dashboard_id))
             .filter(and_(Log.dashboard_id.isnot(None), Log.dttm >= self.since))
             .group_by(Log.dashboard_id)
@@ -168,8 +168,8 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
             .limit(self.top_n)
             .all()
         )
-        dash_ids = [record.dashboard_id for record in records]
-        dashboards = (
+        dash_ids: list[int] = [record.dashboard_id for record in records]
+        dashboards: list[Dashboard] = (
             db.session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
         )
 
@@ -192,19 +192,19 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         }
     """
 
-    name = "dashboard_tags"
+    name: str = "dashboard_tags"
 
     def __init__(self, tags: Optional[list[str]] = None) -> None:
         super().__init__()
-        self.tags = tags or []
+        self.tags: list[str] = tags or []
 
     def get_urls(self) -> list[str]:
-        urls = []
-        tags = db.session.query(Tag).filter(Tag.name.in_(self.tags)).all()
-        tag_ids = [tag.id for tag in tags]
+        urls: list[str] = []
+        tags: list[Tag] = db.session.query(Tag).filter(Tag.name.in_(self.tags)).all()
+        tag_ids: list[int] = [tag.id for tag in tags]
 
         # add dashboards that are tagged
-        tagged_objects = (
+        tagged_objects: list[TaggedObject] = (
             db.session.query(TaggedObject)
             .filter(
                 and_(
@@ -214,8 +214,10 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
             )
             .all()
         )
-        dash_ids = [tagged_object.object_id for tagged_object in tagged_objects]
-        tagged_dashboards = db.session.query(Dashboard).filter(
+        dash_ids: list[int] = [
+            tagged_object.object_id for tagged_object in tagged_objects
+        ]
+        tagged_dashboards: list[Dashboard] = db.session.query(Dashboard).filter(
             Dashboard.id.in_(dash_ids)
         )
         for dashboard in tagged_dashboards:
@@ -234,7 +236,7 @@ class NativeFilterOptionsStrategy(Strategy):  # pylint: disable=too-few-public-m
 
     def __init__(self, dashboard_ids: list[int]) -> None:
         super().__init__()
-        self.dashboard_ids = dashboard_ids
+        self.dashboard_ids: list[int] = dashboard_ids
 
     def get_urls(self) -> list[str]:
         return []
@@ -243,11 +245,11 @@ class NativeFilterOptionsStrategy(Strategy):  # pylint: disable=too-few-public-m
         tasks: list[CacheWarmupTask] = []
 
         for dashboard_id in self.dashboard_ids:
-            skipped = 0
-            built = 0
+            skipped: int = 0
+            built: int = 0
 
             try:
-                dashboard = DashboardDAO.find_by_id(dashboard_id)
+                dashboard: Dashboard | None = DashboardDAO.find_by_id(dashboard_id)
                 if dashboard is None:
                     logger.warning(
                         "Dashboard %s not found; skipping native filter option "
@@ -256,20 +258,24 @@ class NativeFilterOptionsStrategy(Strategy):  # pylint: disable=too-few-public-m
                     )
                     continue
 
-                filter_configs = get_eligible_native_filters(dashboard)
+                filter_configs: list[dict[str, Any]] = get_eligible_native_filters(
+                    dashboard
+                )
 
                 for filter_config in filter_configs:
                     try:
-                        form_data = build_native_filter_option_form_data(
-                            dashboard,
-                            filter_config,
+                        form_data: dict[str, Any] | None = (
+                            build_native_filter_option_form_data(
+                                dashboard,
+                                filter_config,
+                            )
                         )
                         if form_data is None:
                             skipped += 1
                             continue
 
-                        query_context = build_native_filter_option_query_context(
-                            form_data
+                        query_context: QueryContext | None = (
+                            build_native_filter_option_query_context(form_data)
                         )
                         if query_context is None:
                             skipped += 1
@@ -332,35 +338,35 @@ def cache_warmup(
 
     """
     logger.info("Loading strategy")
-    class_ = strategy_registry.get(strategy_name)
+    class_: type[Strategy] | None = strategy_registry.get(strategy_name)
     if class_ is None:
-        message = "No strategy %s found!" % strategy_name
+        message: str = "No strategy %s found!" % strategy_name
         logger.error(message, exc_info=True)
         return message
 
     logger.info("Loading %s", class_.__name__)
     try:
-        strategy = class_(*args, **kwargs)
+        strategy: Strategy = class_(*args, **kwargs)
         logger.info("Success!")
     except TypeError:
-        message = "Error loading strategy!"
+        message: str = "Error loading strategy!"
         logger.exception(message)
         return message
 
     results: dict[str, list[str]] = {"success": [], "errors": []}
 
-    warmup_username = current_app.config.get("SUPERSET_CACHE_WARMUP_USER")
+    warmup_username: str | None = current_app.config.get("SUPERSET_CACHE_WARMUP_USER")
     if not warmup_username:
-        message = (
+        message: str = (
             "SUPERSET_CACHE_WARMUP_USER is not configured. Set it to a dedicated "
             "least-privilege user with access to the dashboards you want warmed up."
         )
         logger.error(message)
         return message
 
-    user = security_manager.find_user(username=warmup_username)
+    user: Any = security_manager.find_user(username=warmup_username)
     if not user:
-        message = (
+        message: str = (
             f"Cache warmup user '{warmup_username}' not found. Please configure "
             "SUPERSET_CACHE_WARMUP_USER with a valid username."
         )
@@ -375,13 +381,13 @@ def cache_warmup(
         with override_user(user, force=False):
             tasks: list[CacheWarmupTask] = strategy.get_tasks()
             for task in tasks:
-                task_name = (
+                task_name: str = (
                     f"dashboard:{task.dashboard_id}:"
                     f"native_filter:{task.native_filter_id}"
                 )
                 try:
                     logger.info("Warming up cache for %s", task_name)
-                    command = ChartDataCommand(task.query_context)
+                    command: Any = ChartDataCommand(task.query_context)
                     command.validate()
                     command.run(cache=True)
                     results["success"].append(task_name)
@@ -391,7 +397,9 @@ def cache_warmup(
 
         return results
 
-    wd = WebDriverSelenium(current_app.config["WEBDRIVER_TYPE"], user=user)
+    wd: WebDriverSelenium = WebDriverSelenium(
+        current_app.config["WEBDRIVER_TYPE"], user=user
+    )
 
     try:
         for url in strategy.get_urls():

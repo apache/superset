@@ -53,8 +53,8 @@ def _filter_config(
 
 
 def test_get_eligible_native_filters_returns_only_filter_select() -> None:
-    filter_select = _filter_config(filter_id="select")
-    metadata = {
+    filter_select: dict[str, Any] = _filter_config(filter_id="select")
+    metadata: dict[str, Any] = {
         "native_filter_configuration": [
             filter_select,
             _filter_config(filter_id="range", filter_type="filter_range"),
@@ -62,14 +62,16 @@ def test_get_eligible_native_filters_returns_only_filter_select() -> None:
         ]
     }
 
-    result = get_eligible_native_filters(_dashboard(json.dumps(metadata)))
+    result: list[dict[str, Any]] = get_eligible_native_filters(
+        _dashboard(json.dumps(metadata))
+    )
 
     assert result == [filter_select]
 
 
 def test_get_eligible_native_filters_skips_non_dict_entries() -> None:
-    valid_filter = _filter_config(filter_id="valid")
-    metadata = {
+    valid_filter: dict[str, Any] = _filter_config(filter_id="valid")
+    metadata: dict[str, Any] = {
         "native_filter_configuration": [
             "not-a-filter",
             valid_filter,
@@ -78,57 +80,67 @@ def test_get_eligible_native_filters_skips_non_dict_entries() -> None:
         ]
     }
 
-    result = get_eligible_native_filters(_dashboard(json.dumps(metadata)))
+    result: list[dict[str, Any]] = get_eligible_native_filters(
+        _dashboard(json.dumps(metadata))
+    )
 
     assert result == [valid_filter]
 
 
 def test_get_eligible_native_filters_skips_missing_target() -> None:
-    metadata = {
+    metadata: dict[str, Any] = {
         "native_filter_configuration": [
             _filter_config(targets=[]),
         ]
     }
 
-    result = get_eligible_native_filters(_dashboard(json.dumps(metadata)))
+    result: list[dict[str, Any]] = get_eligible_native_filters(
+        _dashboard(json.dumps(metadata))
+    )
 
     assert result == []
 
 
 def test_get_eligible_native_filters_skips_missing_column() -> None:
-    metadata = {
+    metadata: dict[str, Any] = {
         "native_filter_configuration": [
             _filter_config(targets=[{"datasetId": 10, "column": {}}]),
         ]
     }
 
-    result = get_eligible_native_filters(_dashboard(json.dumps(metadata)))
+    result: list[dict[str, Any]] = get_eligible_native_filters(
+        _dashboard(json.dumps(metadata))
+    )
 
     assert result == []
 
 
 def test_get_eligible_native_filters_malformed_json_metadata() -> None:
-    result = get_eligible_native_filters(_dashboard("{"))
+    result: list[dict[str, Any]] = get_eligible_native_filters(_dashboard("{"))
 
     assert result == []
 
 
 def test_get_eligible_native_filters_missing_native_filter_configuration() -> None:
-    result = get_eligible_native_filters(_dashboard(json.dumps({"label": "dash"})))
+    result: list[dict[str, Any]] = get_eligible_native_filters(
+        _dashboard(json.dumps({"label": "dash"}))
+    )
 
     assert result == []
 
 
 def test_build_native_filter_option_form_data_correct_shape() -> None:
-    dashboard = _dashboard(json_metadata=None, dashboard_id=42)
-    filter_config = {
+    dashboard: mock.MagicMock = _dashboard(json_metadata=None, dashboard_id=42)
+    filter_config: dict[str, Any] = {
         **_filter_config(filter_id="native-filter-1"),
-        "adhocFilters": [{"expressionType": "SIMPLE"}],
+        "adhoc_filters": [{"expressionType": "SIMPLE"}],
         "controlValues": {"sortAscending": False},
         "sortMetric": "sum__value",
     }
 
-    result = build_native_filter_option_form_data(dashboard, filter_config)
+    result: dict[str, Any] | None = build_native_filter_option_form_data(
+        dashboard, filter_config
+    )
 
     assert result == {
         "datasource": "10__table",
@@ -150,8 +162,35 @@ def test_build_native_filter_option_form_data_correct_shape() -> None:
     }
 
 
+def test_build_native_filter_option_form_data_uses_filter_level_time_range_and_granularity() -> None:
+    filter_config: dict[str, Any] = {
+        **_filter_config(),
+        "time_range": "Last week",
+        "granularity_sqla": "ds",
+    }
+
+    result: dict[str, Any] | None = build_native_filter_option_form_data(
+        _dashboard(json_metadata=None),
+        filter_config,
+    )
+
+    assert result is not None
+    assert result["time_range"] == "Last week"
+    assert result["granularity_sqla"] == "ds"
+
+
+def test_build_native_filter_option_form_data_falls_back_to_default_time_range() -> None:
+    result: dict[str, Any] | None = build_native_filter_option_form_data(
+        _dashboard(json_metadata=None),
+        _filter_config(),
+    )
+
+    assert result is not None
+    assert result["time_range"] == "No filter"
+
+
 def test_build_native_filter_option_form_data_missing_dataset_id() -> None:
-    result = build_native_filter_option_form_data(
+    result: dict[str, Any] | None = build_native_filter_option_form_data(
         _dashboard(json_metadata=None),
         _filter_config(targets=[{"column": {"name": "country"}}]),
     )
@@ -160,7 +199,7 @@ def test_build_native_filter_option_form_data_missing_dataset_id() -> None:
 
 
 def test_build_native_filter_option_form_data_missing_column_name() -> None:
-    result = build_native_filter_option_form_data(
+    result: dict[str, Any] | None = build_native_filter_option_form_data(
         _dashboard(json_metadata=None),
         _filter_config(targets=[{"datasetId": 10, "column": {}}]),
     )
@@ -169,7 +208,7 @@ def test_build_native_filter_option_form_data_missing_column_name() -> None:
 
 
 def test_build_native_filter_option_query_context_returns_query_context() -> None:
-    form_data = build_native_filter_option_form_data(
+    form_data: dict[str, Any] | None = build_native_filter_option_form_data(
         _dashboard(json_metadata=None),
         _filter_config(),
     )
@@ -180,7 +219,7 @@ def test_build_native_filter_option_query_context_returns_query_context() -> Non
     datasource.uid = "10__table"
     datasource.column_names = ["country"]
 
-    expected = QueryContext(
+    expected: QueryContext = QueryContext(
         datasource=datasource,
         queries=[],
         slice_=None,
@@ -196,7 +235,9 @@ def test_build_native_filter_option_query_context_returns_query_context() -> Non
         "superset.tasks.native_filter_cache.ChartDataQueryContextSchema"
     ) as schema_class:
         schema_class.return_value.load.return_value = expected
-        result = build_native_filter_option_query_context(form_data or {})
+        result: QueryContext | None = build_native_filter_option_query_context(
+            form_data or {}
+        )
 
     assert isinstance(result, QueryContext)
     assert result == expected
@@ -204,11 +245,11 @@ def test_build_native_filter_option_query_context_returns_query_context() -> Non
 
 
 def test_build_native_filter_option_query_context_groupby_in_payload() -> None:
-    form_data = build_native_filter_option_form_data(
+    form_data: dict[str, Any] | None = build_native_filter_option_form_data(
         _dashboard(json_metadata=None),
         {
             **_filter_config(),
-            "adhocFilters": [
+            "adhoc_filters": [
                 {
                     "expressionType": "SIMPLE",
                     "clause": "WHERE",
@@ -231,12 +272,14 @@ def test_build_native_filter_option_query_context_groupby_in_payload() -> None:
         ) as mock_resolve_engine,
     ):
         schema_class.return_value.load.return_value = expected
-        result = build_native_filter_option_query_context(form_data or {})
+        result: QueryContext | None = build_native_filter_option_query_context(
+            form_data or {}
+        )
 
     mock_resolve_engine.assert_not_called()
     assert result == expected
-    payload = schema_class.return_value.load.call_args.args[0]
-    query = payload["queries"][0]
+    payload: dict[str, Any] = schema_class.return_value.load.call_args.args[0]
+    query: dict[str, Any] = payload["queries"][0]
     assert query["groupby"] == ["country"]
     assert "columns" not in query
     assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
@@ -244,7 +287,7 @@ def test_build_native_filter_option_query_context_groupby_in_payload() -> None:
 
 
 def test_build_native_filter_option_query_context_with_adhoc_filters() -> None:
-    adhoc_filters = [
+    adhoc_filters: list[dict[str, Any]] = [
         {
             "expressionType": "SIMPLE",
             "clause": "WHERE",
@@ -253,11 +296,11 @@ def test_build_native_filter_option_query_context_with_adhoc_filters() -> None:
             "comparator": ["EMEA", "APAC"],
         }
     ]
-    form_data = build_native_filter_option_form_data(
+    form_data: dict[str, Any] | None = build_native_filter_option_form_data(
         _dashboard(json_metadata=None),
         {
             **_filter_config(),
-            "adhocFilters": adhoc_filters,
+            "adhoc_filters": adhoc_filters,
         },
     )
     expected: mock.MagicMock = mock.MagicMock(spec=QueryContext)
@@ -272,12 +315,14 @@ def test_build_native_filter_option_query_context_with_adhoc_filters() -> None:
         ) as mock_resolve_engine,
     ):
         schema_class.return_value.load.return_value = expected
-        result = build_native_filter_option_query_context(form_data or {})
+        result: QueryContext | None = build_native_filter_option_query_context(
+            form_data or {}
+        )
 
     mock_resolve_engine.assert_not_called()
     assert result == expected
-    payload = schema_class.return_value.load.call_args.args[0]
-    query = payload["queries"][0]
+    payload: dict[str, Any] = schema_class.return_value.load.call_args.args[0]
+    query: dict[str, Any] = payload["queries"][0]
     assert query["filters"] == [
         {"col": "region", "op": "IN", "val": ["EMEA", "APAC"]}
     ]
@@ -285,11 +330,11 @@ def test_build_native_filter_option_query_context_with_adhoc_filters() -> None:
 
 
 def test_resolve_datasource_engine_only_called_for_sql_filters() -> None:
-    simple_form_data = build_native_filter_option_form_data(
+    simple_form_data: dict[str, Any] | None = build_native_filter_option_form_data(
         _dashboard(json_metadata=None),
         {
             **_filter_config(),
-            "adhocFilters": [
+            "adhoc_filters": [
                 {
                     "expressionType": "SIMPLE",
                     "clause": "WHERE",
@@ -300,11 +345,11 @@ def test_resolve_datasource_engine_only_called_for_sql_filters() -> None:
             ],
         },
     )
-    sql_form_data = build_native_filter_option_form_data(
+    sql_form_data: dict[str, Any] | None = build_native_filter_option_form_data(
         _dashboard(json_metadata=None),
         {
             **_filter_config(),
-            "adhocFilters": [
+            "adhoc_filters": [
                 {
                     "expressionType": "SQL",
                     "clause": "WHERE",
@@ -334,7 +379,9 @@ def test_resolve_datasource_engine_only_called_for_sql_filters() -> None:
 
 
 def test_build_native_filter_option_query_context_missing_groupby() -> None:
-    result = build_native_filter_option_query_context({"datasource": "10__table"})
+    result: QueryContext | None = build_native_filter_option_query_context(
+        {"datasource": "10__table"}
+    )
 
     assert result is None
 
@@ -348,7 +395,7 @@ def test_build_native_filter_option_query_context_malformed_groupby() -> None:
     ]
 
     for groupby in malformed_groupby_values:
-        result = build_native_filter_option_query_context(
+        result: QueryContext | None = build_native_filter_option_query_context(
             {
                 "datasource": "10__table",
                 "groupby": groupby,

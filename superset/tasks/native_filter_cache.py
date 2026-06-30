@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Final
 
 from marshmallow import ValidationError
 
@@ -28,10 +28,10 @@ from superset.models.dashboard import Dashboard
 from superset.utils import json
 from superset.utils.core import DatasourceType, split_adhoc_filters_into_base_filters
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
-NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
-NO_FILTER_TIME_RANGE = "No filter"
+NATIVE_FILTER_DEFAULT_ROW_LIMIT: Final[int] = 1000
+NO_FILTER_TIME_RANGE: Final[str] = "No filter"
 
 
 def _resolve_datasource_engine(datasource_id: int) -> str:
@@ -40,7 +40,7 @@ def _resolve_datasource_engine(datasource_id: int) -> str:
         # pylint: disable=import-outside-toplevel
         from superset.daos.datasource import DatasourceDAO
 
-        datasource = DatasourceDAO.get_datasource(
+        datasource: Any = DatasourceDAO.get_datasource(
             datasource_type=DatasourceType.TABLE,
             database_id_or_uuid=datasource_id,
         )
@@ -55,9 +55,11 @@ def _get_filter_target(filter_config: dict[str, Any]) -> tuple[int | str, str] |
         if not isinstance(target, dict):
             continue
 
-        dataset_id = target.get("datasetId")
-        column = target.get("column") or {}
-        column_name = column.get("name") if isinstance(column, dict) else None
+        dataset_id: Any = target.get("datasetId")
+        column: Any = target.get("column") or {}
+        column_name: str | None = (
+            column.get("name") if isinstance(column, dict) else None
+        )
 
         if dataset_id is not None and column_name:
             return dataset_id, column_name
@@ -83,7 +85,7 @@ def get_eligible_native_filters(dashboard: Dashboard) -> list[dict[str, Any]]:
         )
         return []
 
-    native_filter_config = metadata.get("native_filter_configuration")
+    native_filter_config: Any = metadata.get("native_filter_configuration")
     if not isinstance(native_filter_config, list):
         logger.warning(
             "Dashboard %s has no native_filter_configuration; skipping native "
@@ -125,7 +127,7 @@ def build_native_filter_option_form_data(
     filter_config: dict[str, Any],
 ) -> dict[str, Any] | None:
     """Build form data for a native filter option query."""
-    target = _get_filter_target(filter_config)
+    target: tuple[int | str, str] | None = _get_filter_target(filter_config)
     if target is None:
         logger.warning(
             "Native filter %s on dashboard %s has no valid target; skipping",
@@ -134,8 +136,10 @@ def build_native_filter_option_form_data(
         )
         return None
 
+    dataset_id: int | str
+    column_name: str
     dataset_id, column_name = target
-    control_values = filter_config.get("controlValues") or {}
+    control_values: dict[str, Any] = filter_config.get("controlValues") or {}
 
     return {
         "datasource": f"{dataset_id}__table",
@@ -144,13 +148,13 @@ def build_native_filter_option_form_data(
         "native_filter_id": filter_config["id"],
         "dashboardId": dashboard.id,
         "groupby": [column_name],
-        "adhoc_filters": filter_config.get("adhocFilters", []),
+        "adhoc_filters": filter_config.get("adhoc_filters", []),
         "extra_filters": [],
         "extra_form_data": {},
         "metrics": ["count"],
         "row_limit": NATIVE_FILTER_DEFAULT_ROW_LIMIT,
-        "time_range": NO_FILTER_TIME_RANGE,
-        "granularity_sqla": None,
+        "time_range": filter_config.get("time_range") or NO_FILTER_TIME_RANGE,
+        "granularity_sqla": filter_config.get("granularity_sqla"),
         "showSearch": True,
         "sortAscending": control_values.get("sortAscending", True),
         "sortMetric": filter_config.get("sortMetric", None),
@@ -161,9 +165,9 @@ def build_native_filter_option_query_context(
     form_data: dict[str, Any],
 ) -> QueryContext | None:
     """Build a query context for a native filter option query."""
-    datasource = form_data.get("datasource")
-    groupby = form_data.get("groupby") or []
-    column_name = (
+    datasource: Any = form_data.get("datasource")
+    groupby: Any = form_data.get("groupby") or []
+    column_name: str | None = (
         groupby[0]
         if isinstance(groupby, list) and groupby and isinstance(groupby[0], str)
         else None
@@ -177,7 +181,7 @@ def build_native_filter_option_query_context(
         return None
 
     try:
-        datasource_id = int(str(datasource).split("__", 1)[0])
+        datasource_id: int = int(str(datasource).split("__", 1)[0])
     except (TypeError, ValueError):
         logger.warning(
             "Invalid native filter option datasource %r; skipping query context",
@@ -185,19 +189,23 @@ def build_native_filter_option_query_context(
         )
         return None
 
-    sort_metric = form_data.get("sortMetric")
-    sort_ascending = form_data.get("sortAscending", True)
-    metrics = [sort_metric] if sort_metric else []
-    orderby = [[sort_metric or column_name, bool(sort_ascending)]]
-    adhoc_filters = form_data.get("adhoc_filters") or []
-    has_sql_filter = any(
+    sort_metric: str | None = form_data.get("sortMetric")
+    sort_ascending: bool = form_data.get("sortAscending", True)
+    metrics: list[str] = [sort_metric] if sort_metric else []
+    orderby: list[list[str | bool]] = [
+        [sort_metric or column_name, bool(sort_ascending)]
+    ]
+    adhoc_filters: list[Any] = form_data.get("adhoc_filters") or []
+    has_sql_filter: bool = any(
         isinstance(filter_, dict) and filter_.get("expressionType") == "SQL"
         for filter_ in adhoc_filters
     )
-    engine = _resolve_datasource_engine(datasource_id) if has_sql_filter else "base"
+    engine: str = (
+        _resolve_datasource_engine(datasource_id) if has_sql_filter else "base"
+    )
     split_adhoc_filters_into_base_filters(form_data, engine)
 
-    payload = {
+    payload: dict[str, Any] = {
         "datasource": {
             "id": datasource_id,
             "type": DatasourceType.TABLE,

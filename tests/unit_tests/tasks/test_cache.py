@@ -33,7 +33,7 @@ def test_cache_warmup_unknown_strategy(app_context: None) -> None:
     from superset.tasks.cache import cache_warmup
 
     with mock.patch("superset.tasks.cache.WebDriverSelenium") as mock_wd:
-        result = cache_warmup("does_not_exist")
+        result: dict[str, list[str]] | str = cache_warmup("does_not_exist")
 
     assert result == "No strategy does_not_exist found!"
     mock_wd.assert_not_called()
@@ -50,7 +50,7 @@ def test_cache_warmup_missing_config(app_context: None) -> None:
         ),
         mock.patch("superset.tasks.cache.WebDriverSelenium") as mock_wd,
     ):
-        result = cache_warmup("dummy")
+        result: dict[str, list[str]] | str = cache_warmup("dummy")
 
     assert isinstance(result, str)
     assert "SUPERSET_CACHE_WARMUP_USER is not configured" in result
@@ -70,7 +70,7 @@ def test_cache_warmup_user_not_found(app_context: None) -> None:
         mock.patch("superset.tasks.cache.WebDriverSelenium") as mock_wd,
     ):
         mock_sm.find_user = mock.MagicMock(return_value=None)
-        result = cache_warmup("dummy")
+        result: dict[str, list[str]] | str = cache_warmup("dummy")
 
     assert isinstance(result, str)
     assert "not found" in result
@@ -82,7 +82,7 @@ def test_cache_warmup_happy_path(app_context: None) -> None:
     """Each URL is screenshotted as the configured user and the driver is destroyed."""
     from superset.tasks.cache import cache_warmup
 
-    urls = ["http://localhost/dash/1", "http://localhost/dash/2"]
+    urls: list[str] = ["http://localhost/dash/1", "http://localhost/dash/2"]
     user: mock.MagicMock = mock.MagicMock()
 
     with (
@@ -95,8 +95,8 @@ def test_cache_warmup_happy_path(app_context: None) -> None:
         mock.patch("superset.tasks.cache.DummyStrategy.get_urls", return_value=urls),
     ):
         mock_sm.find_user = mock.MagicMock(return_value=user)
-        driver = mock_wd.return_value
-        result = cache_warmup("dummy")
+        driver: mock.MagicMock = mock_wd.return_value
+        result: dict[str, list[str]] | str = cache_warmup("dummy")
 
     assert result == {"success": urls, "errors": []}
     mock_wd.assert_called_once_with("chrome", user=user)
@@ -108,7 +108,7 @@ def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
     """A failing URL is recorded as an error and cleanup still runs in finally."""
     from superset.tasks.cache import cache_warmup
 
-    urls = ["http://localhost/dash/ok", "http://localhost/dash/boom"]
+    urls: list[str] = ["http://localhost/dash/ok", "http://localhost/dash/boom"]
     user: mock.MagicMock = mock.MagicMock()
 
     def side_effect(url: str, _element: str) -> None:
@@ -125,9 +125,9 @@ def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
         mock.patch("superset.tasks.cache.DummyStrategy.get_urls", return_value=urls),
     ):
         mock_sm.find_user = mock.MagicMock(return_value=user)
-        driver = mock_wd.return_value
+        driver: mock.MagicMock = mock_wd.return_value
         driver.get_screenshot.side_effect = side_effect
-        result = cache_warmup("dummy")
+        result: dict[str, list[str]] | str = cache_warmup("dummy")
 
     assert result == {
         "success": ["http://localhost/dash/ok"],
@@ -142,8 +142,11 @@ def test_native_filter_options_strategy_returns_tasks_for_eligible_filters() -> 
 
     dashboard: mock.MagicMock = mock.MagicMock()
     dashboard.id = 10
-    filter_configs = [{"id": "filter-1"}, {"id": "filter-2"}]
-    form_data = [{"groupby": ["country"]}, {"groupby": ["state"]}]
+    filter_configs: list[dict[str, Any]] = [{"id": "filter-1"}, {"id": "filter-2"}]
+    form_data: list[dict[str, Any]] = [
+        {"groupby": ["country"]},
+        {"groupby": ["state"]},
+    ]
     query_contexts: list[mock.MagicMock] = [mock.MagicMock(), mock.MagicMock()]
 
     with (
@@ -164,7 +167,7 @@ def test_native_filter_options_strategy_returns_tasks_for_eligible_filters() -> 
             side_effect=query_contexts,
         ) as mock_build_query_context,
     ):
-        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+        tasks: list[Any] = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
 
     assert len(tasks) == 2
     assert [task.query_context for task in tasks] == query_contexts
@@ -185,7 +188,7 @@ def test_native_filter_options_strategy_skips_missing_dashboard() -> None:
         ),
         mock.patch("superset.tasks.cache.get_eligible_native_filters") as mock_filters,
     ):
-        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+        tasks: list[Any] = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
 
     assert tasks == []
     mock_filters.assert_not_called()
@@ -197,7 +200,7 @@ def test_native_filter_options_strategy_skips_when_form_data_is_none() -> None:
 
     dashboard: mock.MagicMock = mock.MagicMock()
     dashboard.id = 10
-    filter_configs = [{"id": "filter-1"}, {"id": "filter-2"}]
+    filter_configs: list[dict[str, Any]] = [{"id": "filter-1"}, {"id": "filter-2"}]
     query_context: mock.MagicMock = mock.MagicMock()
 
     with (
@@ -218,7 +221,7 @@ def test_native_filter_options_strategy_skips_when_form_data_is_none() -> None:
             return_value=query_context,
         ) as mock_build_query_context,
     ):
-        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+        tasks: list[Any] = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
 
     assert len(tasks) == 1
     assert tasks[0].query_context == query_context
@@ -250,7 +253,7 @@ def test_native_filter_options_strategy_skips_when_query_context_is_none() -> No
             return_value=None,
         ),
     ):
-        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+        tasks: list[Any] = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
 
     assert tasks == []
 
@@ -301,14 +304,14 @@ def test_native_filter_options_strategy_uses_real_filter_helpers() -> None:
             return_value=query_context,
         ) as mock_build_query_context,
     ):
-        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+        tasks: list[Any] = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
 
     assert len(tasks) == 1
     assert tasks[0].dashboard_id == 10
     assert tasks[0].native_filter_id == "filter-1"
     assert tasks[0].query_context == query_context
     mock_build_query_context.assert_called_once()
-    form_data = mock_build_query_context.call_args.args[0]
+    form_data: dict[str, Any] = mock_build_query_context.call_args.args[0]
     assert form_data["datasource"] == "7__table"
     assert form_data["groupby"] == ["country"]
     assert form_data["adhoc_filters"] == [
@@ -327,7 +330,7 @@ def test_native_filter_options_strategy_skips_filter_helper_exceptions() -> None
 
     dashboard: mock.MagicMock = mock.MagicMock()
     dashboard.id = 10
-    filter_configs = [{"missing_id": True}, {"id": "filter-2"}]
+    filter_configs: list[dict[str, Any]] = [{"missing_id": True}, {"id": "filter-2"}]
     query_context: mock.MagicMock = mock.MagicMock()
 
     with (
@@ -348,7 +351,7 @@ def test_native_filter_options_strategy_skips_filter_helper_exceptions() -> None
             return_value=query_context,
         ),
     ):
-        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+        tasks: list[Any] = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
 
     assert len(tasks) == 1
     assert tasks[0].native_filter_id == "filter-2"
@@ -381,7 +384,9 @@ def test_native_filter_options_strategy_skips_dashboard_lookup_exceptions() -> N
             return_value=query_context,
         ),
     ):
-        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10, 11]).get_tasks()
+        tasks: list[Any] = NativeFilterOptionsStrategy(
+            dashboard_ids=[10, 11]
+        ).get_tasks()
 
     assert len(tasks) == 1
     assert tasks[0].dashboard_id == 11
