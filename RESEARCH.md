@@ -284,35 +284,59 @@ metrics/columns in Python — this avoids writing a custom RBAC-aware JOIN.
 
 ---
 
-## Open Questions
+## Questions for Beto — with Answers (2026-06-04)
 
 1. **What does MCP v2 mean architecturally?** The story comment says these tools belong in "MCP v2
    epic." Are there breaking changes (new tool naming, new auth model, new transport) that affect how
    these tools should be designed?
 
+   > **💬 Beto:** No. It's just the second release of the MCP service — not a breaking change. Build
+   > these tools with the same conventions as v1.
+
 2. **Which external semantic layer implementations exist at Preset?** The `registry` is empty in OSS.
    What types are registered in `superset-shell`? Which implementations should `query_semantic_view`
    be tested against first (dbt, Snowflake Cortex, Cube)?
 
-3. **Is Beto's (betodealmeida) semantic layer work complete enough to build MCP tools on top of?**
-   The `TODO` comment in `SemanticLayer.implementation` references an `extension_manager` that isn't
-   wired yet. Is the plugin mechanism stable?
+   > **💬 Beto:** Our first target is Snowflake, followed by MetricFlow, Cube, DJ. But it shouldn't
+   > matter — the interface is identical for all of them.
+
+3. **Is `SemanticLayer.implementation` wiring complete?** There's a `TODO` comment in
+   `semantic_layers/models.py` referencing an `extension_manager` that isn't fully wired yet (currently
+   falls back directly to `registry[self.type]`). Is the plugin mechanism stable enough to build MCP
+   tools on top of?
+
+   > **💬 Beto:** It is. The TODO in the discovery mechanism is because we've been discussing changing
+   > how installed extensions are discovered in the future, but it won't affect any APIs — it's purely
+   > internal. Safe to build on top of today.
 
 4. **RLS for external semantic layers**: SqlaTable RLS is handled by `get_sqla_row_level_filters()`.
    External layers have their own permission models (dbt Cloud access, Cube tenant isolation). How should
    MCP enforce per-user data access when querying external layers?
 
-5. **Should `list_metrics` / `list_dimensions` be scoped to Tier 1 (Superset built-in) or include
-   external semantic layers?** If external layers have their own metric catalogs, a unified `list_metrics`
-   that spans both could be very powerful but complex.
+   > **💬 Beto:** We don't currently support RLS in semantic layers/views, but will eventually. Don't
+   > worry about this now — when we add support it will be transparent to the MCP service.
 
-6. **Privacy controls for external layer schema**: `get_semantic_view_schema` returns metric/dimension
-   names from external systems. Should it be gated behind the same `requires_data_model_metadata_access`
-   decorator as `get_dataset_info` and `query_dataset`?
+5. **Should `list_metrics` / `list_dimensions` span built-in + external layers?** A unified
+   `list_metrics` spanning both SqlaTable saved metrics and external semantic layer metrics could be
+   very powerful but complex. Or should they be separate surfaces?
+
+   > **💬 Beto:** Yes — unified. Most users will have only a single semantic layer (the whole point is
+   > a single source of truth). Because of this, we should never force the user to choose a layer before
+   > listing metrics — most of the time there will be only one, and we should never prompt to choose from
+   > a single-element list. Even when there are multiple, start with global search.
+
+6. **What is the intended LLM workflow for external semantic layers?** For built-in datasets the
+   workflow is: `list_datasets` → `get_dataset_info` → `query_dataset`. What's the analogous flow
+   for external layers?
+
+   > **💬 Beto:** The flow is `list_metrics` → metrics come with related dimensions already — then
+   > `get_table(metrics, dimensions, filters)`. Also worth exposing the `get_compatible_*()` methods
+   > from `superset-core/src/superset_core/semantic_layers/view.py`. When listing metrics, compatible
+   > dimensions should be part of the metric payload itself.
 
 ---
 
-## Effort Estimate
+## Effort Estimate (original)
 
 | Scope | Effort | Notes |
 |---|---|---|
@@ -328,5 +352,189 @@ metrics/columns in Python — this avoids writing a custom RBAC-aware JOIN.
 | **Total Tier 1+2** | **~2.5 weeks** | Assuming external implementation is available |
 | **Total Tier 1+2+3** | **~3.5 weeks** | |
 
-These estimates assume the external semantic layer plugin mechanism (`registry`) has at least one working
-implementation to test against. If that work is not complete, Tier 2 is blocked and effort increases.
+---
+
+## Final Architecture Proposal
+
+*Synthesized from the research above and Beto's 2026-06-04 answers.*
+
+### Core Insight: Flat Metric-First Workflow
+
+Beto's answer to Q6 collapses the original three-tier hierarchy into a much flatter design. The intended
+LLM workflow is:
+
+```
+list_metrics  →  get_table(metrics, dimensions, filters)
+```
+
+Not the hierarchical: `list_semantic_layers → list_semantic_views → get_semantic_view_schema → query_semantic_view`.
+
+This means `list_metrics` is the **primary entry point** — not an administrative helper — and it must
+work globally across both built-in datasets and external semantic layers without the user choosing a
+layer first. Compatible dimensions travel with each metric in the response payload.
+
+The abstract interface in `superset-core/src/superset_core/semantic_layers/view.py` is the contract
+we're wrapping. Every proposed MCP tool maps to a method there:
+
+| MCP Tool | `view.py` method | Notes |
+|---|---|---|
+| `list_metrics` | `get_metrics()` | + `SqlMetric` for built-in |
+| `get_compatible_dimensions` | `get_compatible_dimensions(metrics, dims)` | Refinement during selection |
+| `get_compatible_metrics` | `get_compatible_metrics(metrics, dims)` | Refinement during selection |
+| `get_table` | `get_table(query)` | Unified query; replaces `query_dataset` + `query_semantic_view` |
+| `get_dimension_values` | `get_values(dimension, filters)` | Distinct values for filter UI |
+| `get_row_count` | `get_row_count(query)` | Preview row count before full fetch |
+
+### Revised Tool Design
+
+#### `list_metrics` ★ Primary tool
+
+Search all accessible metrics globally — spanning both built-in (`SqlMetric`) and external semantic
+layer metrics (via `SemanticView.get_metrics()`). No layer selection required.
+
+- **Inputs:** `search` (optional text filter), `page`, `page_size`
+- **Outputs:**
+  ```json
+  [{
+    "name": "total_revenue",
+    "description": "...",
+    "source": {"type": "dataset" | "semantic_view", "id": "<uuid>", "name": "Sales"},
+    "compatible_dimensions": [
+      {"name": "region", "type": "VARCHAR", "is_dttm": false},
+      {"name": "order_date", "type": "TIMESTAMP", "is_dttm": true}
+    ]
+  }]
+  ```
+- **RBAC:** Built-in metrics: filter by accessible datasets via `DatasetDAO`. External: filter by
+  accessible `SemanticLayer` connections.
+- **Effort:** M (3–4 days) — unified across both sources is more complex than a single DAO query.
+
+---
+
+#### `get_table` ★ Unified query tool
+
+Execute a semantic query against any metric source. Routes to the built-in path or the external
+`SemanticView.get_table()` path based on where the metrics come from.
+
+- **Inputs:** `metrics: list[str]`, `dimensions: list[str]`, `filters`, `time_range`, `time_grain`,
+  `row_limit`
+- **Outputs:** Tabular rows + column metadata + performance info (same shape as existing `query_dataset`)
+- **Routing logic:**
+  - All metrics from `SqlMetric` → existing `ChartDataCommand` path (`datasource_type="table"`)
+  - Metrics from `SemanticView` → `mapper.py` + `datasource_type="semantic_view"` path
+  - Mixed → error (metrics must come from a single source)
+- **Notes:** This is the peer/replacement for `query_dataset` in semantic-layer-first workflows.
+  Existing `query_dataset` is unchanged — it remains the direct-dataset tool.
+- **Effort:** M (4–5 days) — routing logic + integration tests against both paths.
+
+---
+
+#### `get_compatible_dimensions`
+
+Refine dimension selection given already-chosen metrics and dimensions. Surfaces
+`view.get_compatible_dimensions()`.
+
+- **Inputs:** `metric_names: list[str]`, `selected_dimensions: list[str]` (already picked)
+- **Outputs:** `[{name, type, is_dttm, description}]` — dimensions compatible with the current selection
+- **Use case:** LLM is helping user build a query step-by-step; user has picked 2 metrics and now asks
+  "what dimensions can I group by?"
+- **Effort:** S (1–2 days)
+
+---
+
+#### `get_compatible_metrics`
+
+Mirror of `get_compatible_dimensions` — refine metric selection given selected dimensions.
+
+- **Inputs:** `selected_metrics: list[str]`, `dimension_names: list[str]`
+- **Outputs:** `[{name, description, source}]` — metrics compatible with the selected dimensions
+- **Effort:** S (1 day)
+
+---
+
+#### `get_dimension_values`
+
+Fetch distinct values for a dimension (for filter UI or LLM-driven filtering). Surfaces
+`view.get_values()`.
+
+- **Inputs:** `dimension_name: str`, `source_id` (dataset UUID or semantic_view UUID), `filters`
+  (optional pre-filters)
+- **Outputs:** `[{value, label}]`
+- **Effort:** S (1–2 days)
+
+---
+
+#### `get_row_count`
+
+Count rows a query would return before executing it — useful for previews and safety checks. Surfaces
+`view.get_row_count()`.
+
+- **Inputs:** `metrics: list[str]`, `dimensions: list[str]`, `filters`, `time_range`
+- **Outputs:** `{row_count: int}`
+- **Effort:** S (1 day)
+
+---
+
+#### Admin Discovery Tools (lower priority)
+
+These are useful for admin/setup workflows but are NOT part of the primary LLM query flow:
+
+| Tool | Effort | Purpose |
+|---|---|---|
+| `list_semantic_layers` | S (1–2 days) | List configured external connections |
+| `get_semantic_layer_info` | S (1–2 days) | Details of a connection + its views |
+| `list_semantic_views` | S (1 day) | Paginated views within a layer |
+
+---
+
+### What Changed from the Original Proposal
+
+| Original | Revised | Reason |
+|---|---|---|
+| Tier 3 (`list_metrics`) = lowest priority | `list_metrics` = **highest priority** | Beto: it's the primary entry point |
+| Separate `query_dataset` + `query_semantic_view` | Unified `get_table` | Beto: single query tool for the semantic workflow |
+| `get_semantic_view_schema` for schema discovery | `list_metrics` includes compatible dims inline | Beto: schema travels with metrics |
+| Layer selection required before listing metrics | Global search, no layer selection | Beto: single source of truth, never prompt to choose |
+| `get_compatible_*()` not in scope | Now explicit MCP tools | Beto: expose these directly |
+
+### Implementation Phases
+
+**Phase 1 — Core semantic workflow (~2 weeks, mostly unblocked)**
+
+All built-in layer support; external layer support added in Phase 2.
+
+1. `list_metrics` (built-in SqlMetric + stub for external)
+2. `get_table` (built-in path first; `datasource_type="table"`)
+3. `get_compatible_dimensions` / `get_compatible_metrics`
+4. Update `DEFAULT_INSTRUCTIONS` in `app.py`
+
+**Phase 2 — External layer support (~1.5 weeks, needs Snowflake plugin)**
+
+1. Extend `list_metrics` to query external `SemanticView.get_metrics()`
+2. Extend `get_table` to route to `datasource_type="semantic_view"` path
+3. `get_dimension_values` (via `view.get_values()`)
+4. `get_row_count` (via `view.get_row_count()`)
+
+**Phase 3 — Admin tools (~0.5 weeks, independent)**
+
+1. `list_semantic_layers` / `get_semantic_layer_info` / `list_semantic_views`
+
+### Revised Effort Summary
+
+| Tool | Phase | Effort | Blocked? |
+|---|---|---|---|
+| `list_metrics` (built-in) | 1 | M (3 days) | No |
+| `get_table` (built-in path) | 1 | M (3–4 days) | No |
+| `get_compatible_dimensions` | 1 | S (1–2 days) | No |
+| `get_compatible_metrics` | 1 | S (1 day) | No |
+| `DEFAULT_INSTRUCTIONS` update | 1 | S (1 day) | No |
+| `list_metrics` (external) | 2 | M (2 days) | Yes — needs Snowflake plugin |
+| `get_table` (external path) | 2 | M (2–3 days) | Yes — needs Snowflake plugin |
+| `get_dimension_values` | 2 | S (1–2 days) | Yes — needs Snowflake plugin |
+| `get_row_count` | 2 | S (1 day) | Yes — needs Snowflake plugin |
+| `list_semantic_layers` | 3 | S (1–2 days) | No |
+| `get_semantic_layer_info` | 3 | S (1–2 days) | No |
+| `list_semantic_views` | 3 | S (1 day) | No |
+| **Total Phase 1** | | **~2 weeks** | |
+| **Total Phase 1+2** | | **~3.5 weeks** | |
+| **Total Phase 1+2+3** | | **~4 weeks** | |
