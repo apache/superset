@@ -57,8 +57,20 @@ export const GlobalStyles = () => {
           font-family: ${theme.fontFamily};
         }
 
+        /* WCAG 1.4.3: Minimum Contrast — route link colors through theme
+           tokens so they adapt to light, dark, and custom themes. Anchor-
+           styled AntD buttons (.ant-btn) and role="button" anchors carry
+           their own component-level coloring and override these values, so
+           a single global rule is enough; the previous duplicated selector
+           had no effect over the simple "a" rule. The 4.5:1 contrast
+           guarantee depends on the active theme's colorLink / colorLinkHover
+           tokens being tuned for the paired colorBgBase — Theme.setConfig
+           sanitizes them via ensureLinkContrast. */
         a {
           color: ${theme.colorLink};
+        }
+        a:hover {
+          color: ${theme.colorLinkHover};
         }
 
         h1,

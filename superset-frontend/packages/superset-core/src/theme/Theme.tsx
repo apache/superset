@@ -26,6 +26,7 @@ import {
 } from '@emotion/react';
 import createCache from '@emotion/cache';
 import { noop, mergeWith } from 'lodash-es';
+import tinycolor from 'tinycolor2';
 import { GlobalStyles } from './GlobalStyles';
 import {
   AntdThemeConfig,
@@ -36,6 +37,42 @@ import {
   SharedAntdTokens,
 } from './types';
 import { normalizeThemeConfig, serializeThemeConfig } from './utils';
+
+/**
+ * WCAG 1.4.3 helper — given a foreground color and the background it will sit
+ * on, return a color with at least `targetRatio` contrast against the
+ * background. If the input already meets the ratio it is returned unchanged.
+ *
+ * Used when Superset derives `colorLink` automatically from `colorPrimary`:
+ * brand-saturation primary colors (e.g. Superset's default `#20A7C9`) often
+ * fall below the 4.5:1 ratio that WCAG 1.4.3 requires for normal-size text,
+ * so the link tokens have to be nudged toward the background's opposite end
+ * before being handed to Ant Design / Emotion.
+ */
+function ensureLinkContrast(
+  color: string,
+  background: string,
+  targetRatio = 4.5,
+): string {
+  let current = tinycolor(color);
+  const bg = tinycolor(background);
+  if (!current.isValid() || !bg.isValid()) return color;
+  if (tinycolor.readability(current, bg) >= targetRatio) return color;
+
+  // Light backgrounds → darken the link; dark backgrounds → lighten it. Iterate
+  // in 4% HSL-lightness steps and bail out after 25 rounds to keep the result
+  // recognizably the same hue rather than collapsing to pure black/white.
+  const adjustDown = bg.getLuminance() > 0.5;
+  for (let i = 0; i < 25; i += 1) {
+    current = adjustDown
+      ? current.clone().darken(4)
+      : current.clone().lighten(4);
+    if (tinycolor.readability(current, bg) >= targetRatio) {
+      return current.toHexString();
+    }
+  }
+  return current.toHexString();
+}
 
 export class Theme {
   // Forward-compat: TS 6.0 enforces strictPropertyInitialization here;
@@ -76,7 +113,7 @@ export class Theme {
       );
 
       // In Ant Design v5, colorLink derives from colorInfo, not colorPrimary.
-      // Currently we expectlinks to follow the brand/primary color. When the user
+      // Superset expects links to follow the brand/primary color. When the user
       // overrides colorPrimary without explicitly setting colorLink, update the
       // merged colorLink so links match the new primary palette.
       if (config.token?.colorPrimary && !config.token?.colorLink) {
@@ -123,6 +160,30 @@ export class Theme {
 
     // First phase: Let Ant Design compute the tokens
     const tokens = Theme.getFilteredAntdTheme(antdConfig);
+
+    // WCAG 1.4.3: when the caller supplies no brand color at all, Ant Design's
+    // own default `colorLink = #1677ff` sits at ~4.32:1 against white — below
+    // the 4.5:1 normal-text threshold. Nudge the link tokens into compliance
+    // only in that "neither colorPrimary nor colorLink was supplied" path, so
+    // explicit brand colors keep the exact value the caller picked. Deployments
+    // that intentionally pass a low-contrast brand colorPrimary keep their
+    // brand fidelity; the WCAG guarantee here applies to the *default* Superset
+    // theme rather than to operator-customized themes.
+    const callerSetLinkOrPrimary =
+      !!(config as AnyThemeConfig)?.token?.colorLink ||
+      !!(config as AnyThemeConfig)?.token?.colorPrimary;
+    if (!callerSetLinkOrPrimary) {
+      const bg = (tokens.colorBgContainer as string) || 'white';
+      tokens.colorLink = ensureLinkContrast(tokens.colorLink as string, bg);
+      tokens.colorLinkHover = ensureLinkContrast(
+        tokens.colorLinkHover as string,
+        bg,
+      );
+      tokens.colorLinkActive = ensureLinkContrast(
+        tokens.colorLinkActive as string,
+        bg,
+      );
+    }
 
     // Extract Superset-specific properties from top-level config.
     // These are custom properties that aren't part of Ant Design's token system
