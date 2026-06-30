@@ -29,9 +29,9 @@ class _FakeModel:
     """
 
     def __init__(self, pk: int, label: str) -> None:
-        self.id = pk
-        self._label = label
-        self.detached = False
+        self.id: int = pk
+        self._label: str = label
+        self.detached: bool = False
 
     def __str__(self) -> str:
         if self.detached:
