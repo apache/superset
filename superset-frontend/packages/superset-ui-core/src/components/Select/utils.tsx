@@ -201,6 +201,16 @@ export const dropDownRenderHelper = (
   );
 };
 
+// Strips surrounding double quotes from a string, e.g. `"foo"` → `foo`.
+// TODO(antd): drop once https://github.com/ant-design/ant-design/issues/57820 ships.
+export function stripSurroundingQuotes(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length > 1 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
 export const handleFilterOptionHelper = (
   search: string,
   option: AntdLabeledValue,
@@ -216,7 +226,7 @@ export const handleFilterOptionHelper = (
   }
 
   if (filterOption) {
-    const searchValue = search.trim().toLowerCase();
+    const searchValue = stripSurroundingQuotes(search).toLowerCase();
     if (optionFilterProps?.length) {
       return optionFilterProps.some(prop => {
         const optionProp = option?.[prop as keyof CustomLabeledValue]
@@ -250,3 +260,57 @@ export const mapOptions = (values: SelectOptionsType): Record<string, any>[] =>
     key: opt.value,
     ...opt,
   }));
+
+// Splits text by separators, preserving commas inside double quotes.
+// TODO(antd): drop once https://github.com/ant-design/ant-design/issues/57820 ships.
+export function splitWithQuoteEscaping(
+  text: string,
+  separators: string[],
+): string[] {
+  const separator = separators.find(sep => text.includes(sep));
+  if (!separator) {
+    return [text];
+  }
+
+  const results: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (!inQuotes && text.startsWith(separator, i)) {
+      results.push(current.trim());
+      current = '';
+      i += separator.length - 1;
+    } else {
+      current += char;
+    }
+  }
+
+  if (current.trim()) {
+    results.push(current.trim());
+  }
+
+  return results.filter(Boolean);
+}
+
+// Returns the index of the last separator not inside double quotes, or -1.
+// TODO(antd): drop once https://github.com/ant-design/ant-design/issues/57820 ships.
+export function findLastUnquotedSeparatorIndex(
+  text: string,
+  separator: string,
+): number {
+  let inQuotes = false;
+  let lastIndex = -1;
+  for (let i = 0; i < text.length; i += 1) {
+    if (text[i] === '"') {
+      inQuotes = !inQuotes;
+    } else if (!inQuotes && text[i] === separator) {
+      lastIndex = i;
+    }
+  }
+  return lastIndex;
+}
