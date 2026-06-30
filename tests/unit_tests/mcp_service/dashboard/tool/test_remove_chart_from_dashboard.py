@@ -691,3 +691,34 @@ async def test_malformed_position_json_returns_error(
     assert content["error"] is not None
     assert "malformed" in content["error"].lower()
     assert content["dashboard"] is None
+
+
+@patch(
+    "superset.commands.dashboard.update.UpdateDashboardCommand.run",
+)
+@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_forbidden_error_from_command_returns_permission_denied(
+    mock_find_by_id: Mock,
+    mock_raise_for_ownership: Mock,
+    mock_run: Mock,
+    mcp_server: object,
+) -> None:
+    """ForbiddenError raised by UpdateDashboardCommand sets permission_denied=True."""
+    from superset.commands.dashboard.exceptions import DashboardForbiddenError
+
+    chart_10 = _mock_chart(id=10)
+    dashboard = _mock_dashboard(
+        slices=[chart_10],
+        position_json=json.dumps(_simple_grid_layout()),
+    )
+    mock_find_by_id.return_value = dashboard
+    mock_raise_for_ownership.return_value = None
+    mock_run.side_effect = DashboardForbiddenError()
+
+    content = await _call_remove(mcp_server, chart_id=10)
+
+    assert content["permission_denied"] is True
+    assert content["dashboard"] is None
+    assert content["error"] is not None

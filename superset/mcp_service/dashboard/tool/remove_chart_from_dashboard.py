@@ -33,7 +33,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.exceptions import CommandException
+from superset.commands.exceptions import CommandException, ForbiddenError
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
@@ -501,6 +501,24 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
             dashboard_url=dashboard_url,
             removed_layout_keys=removed_keys,
             error=None,
+        )
+
+    except ForbiddenError as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
+        logger.error("Permission denied removing chart from dashboard: %s", e)
+        return RemoveChartFromDashboardResponse(
+            dashboard=None,
+            dashboard_url=None,
+            removed_layout_keys=[],
+            permission_denied=True,
+            error=f"Permission denied: {str(e)}",
         )
 
     except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
