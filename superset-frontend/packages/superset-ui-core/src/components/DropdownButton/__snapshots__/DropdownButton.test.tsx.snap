@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`styleConfig values are reflected in generated CSS 1`] = `null`;

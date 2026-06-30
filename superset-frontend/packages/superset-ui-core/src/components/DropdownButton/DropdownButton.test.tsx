@@ -45,13 +45,22 @@ test('renders without crashing with full styleConfig', () => {
   expect(container.querySelector('.ant-btn')).toBeInTheDocument();
 });
 
-test('renders without crashing with partial styleConfig', () => {
+test('styleConfig values are reflected in generated CSS', () => {
   const { container } = render(
-    <DropdownButton menu={menuProps} styleConfig={{ controlHeight: 36 }}>
+    <DropdownButton
+      menu={menuProps}
+      styleConfig={{
+        controlHeight: 40,
+        fontSize: 16,
+        fontWeight: 700,
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      }}
+    >
       Click
     </DropdownButton>,
   );
-  expect(container.querySelector('.ant-btn')).toBeInTheDocument();
+  const btnGroup = container.querySelector('.ant-btn-group');
+  expect(btnGroup).toMatchSnapshot();
 });
 
 test('renders tooltip when tooltip prop is provided', () => {
@@ -76,7 +85,5 @@ test('passes button type to underlying Dropdown.Button', () => {
       Click
     </DropdownButton>,
   );
-  expect(
-    container.querySelector('.ant-btn-primary'),
-  ).toBeInTheDocument();
+  expect(container.querySelector('.ant-btn-primary')).toBeInTheDocument();
 });
