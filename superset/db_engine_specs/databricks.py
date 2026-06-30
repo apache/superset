@@ -295,6 +295,9 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         "invalid token",
         "expired token",
         "token expired",
+        # Raised by the databricks-sql-connector when no usable credentials are
+        # present (e.g. an OAuth2 token that has been cleared/expired).
+        "no valid authentication settings",
     )
 
     @classmethod

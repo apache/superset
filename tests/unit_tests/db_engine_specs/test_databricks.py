@@ -335,6 +335,7 @@ def test_oauth2_attributes() -> None:
         "Invalid access token",
         "The access token expired",
         "UNAUTHENTICATED: token is no longer valid",
+        "RuntimeError: No valid authentication settings!",
     ],
 )
 def test_needs_oauth2_detects_auth_failure_from_message(
