@@ -34,15 +34,14 @@ Frontend contribution types allow extensions to extend Superset's user interface
 
 Extensions can add new views or panels to the host application, such as custom SQL Lab panels, dashboards, or other UI components. Contribution areas are uniquely identified (e.g., `sqllab.panels` for SQL Lab panels), enabling seamless integration into specific parts of the application.
 
-```tsx
-import React from 'react';
+```typescript
 import { views } from '@apache-superset/core';
 import MyPanel from './MyPanel';
 
 views.registerView(
   { id: 'my-extension.main', name: 'My Panel Name' },
   'sqllab.panels',
-  () => <MyPanel />,
+  MyPanel,
 );
 ```
 
@@ -111,6 +110,24 @@ editors.registerEditor(
 ```
 
 See [Editors Extension Point](./extension-points/editors) for implementation details.
+
+### Chat
+
+Extensions can add a chat interface to Superset by registering a trigger component and a panel component. The host owns the layout, open/close state, and display mode — the extension only provides the UI. The panel can be displayed as a floating overlay or docked as a resizable sidebar beside the page content, and the user's preference is persisted across reloads.
+
+```tsx
+import { chat } from '@apache-superset/core';
+import ChatTrigger from './ChatTrigger';
+import ChatPanel from './ChatPanel';
+
+chat.registerChat(
+  { id: 'my-org.my-chat', name: 'My Chat' },
+  ChatTrigger,
+  ChatPanel,
+);
+```
+
+See [Chat](./extension-points/chat.md) for implementation details.
 
 ## Backend
 

@@ -174,7 +174,7 @@ def paginated_update(
         for row in rows:
             yield row[0]
 
-        session.commit()
+        session.commit()  # pylint: disable=consider-using-transaction
         processed += len(rows)
 
         if print_page_progress:

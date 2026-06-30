@@ -24,12 +24,15 @@
  * Extensions register menu items as side effects at import time.
  */
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'use-sync-external-store/shim';
 import type { menus as menusApi } from '@apache-superset/core';
 import { Disposable } from '../models';
+import { createEventEmitter } from '../utils';
 
 type MenuItem = menusApi.MenuItem;
 type Menu = menusApi.Menu;
+type MenuItemRegisteredEvent = menusApi.MenuItemRegisteredEvent;
+type MenuItemUnregisteredEvent = menusApi.MenuItemUnregisteredEvent;
 
 type StoredMenuItem = {
   item: MenuItem;
@@ -39,8 +42,26 @@ type StoredMenuItem = {
 
 const menuItems: StoredMenuItem[] = [];
 
-const listeners = new Set<() => void>();
-const notify = () => listeners.forEach(l => l());
+const syncListeners = new Set<() => void>();
+const subscribe = (listener: () => void) => {
+  syncListeners.add(listener);
+  return () => syncListeners.delete(listener);
+};
+
+const registerEmitter = createEventEmitter<MenuItemRegisteredEvent>();
+const unregisterEmitter = createEventEmitter<MenuItemUnregisteredEvent>();
+
+const menuCache = new Map<string, Menu | undefined>();
+const notifyRegister = (event: MenuItemRegisteredEvent) => {
+  menuCache.clear();
+  syncListeners.forEach(l => l());
+  registerEmitter.fire(event);
+};
+const notifyUnregister = (event: MenuItemUnregisteredEvent) => {
+  menuCache.clear();
+  syncListeners.forEach(l => l());
+  unregisterEmitter.fire(event);
+};
 
 const registerMenuItem: typeof menusApi.registerMenuItem = (
   item: MenuItem,
@@ -49,13 +70,13 @@ const registerMenuItem: typeof menusApi.registerMenuItem = (
 ): Disposable => {
   const stored: StoredMenuItem = { item, location, group };
   menuItems.push(stored);
-  notify();
+  notifyRegister({ item, location, group });
   return new Disposable(() => {
     const index = menuItems.indexOf(stored);
     if (index >= 0) {
       menuItems.splice(index, 1);
     }
-    notify();
+    notifyUnregister({ item, location, group });
   });
 };
 
@@ -83,19 +104,32 @@ const getMenu: typeof menusApi.getMenu = (
   return result;
 };
 
-export const useMenu = (location: string): Menu | undefined => {
-  const [value, setValue] = useState(() => getMenu(location));
-  useEffect(() => {
-    const listener = () => setValue(getMenu(location));
-    listeners.add(listener);
-    return () => {
-      listeners.delete(listener);
-    };
-  }, [location]);
-  return value;
-};
+export const useMenu = (location: string): Menu | undefined =>
+  useSyncExternalStore(
+    subscribe,
+    () => {
+      if (!menuCache.has(location)) {
+        menuCache.set(location, getMenu(location));
+      }
+      return menuCache.get(location);
+    },
+    () => undefined,
+  );
+
+export const onDidRegisterMenuItem: typeof menusApi.onDidRegisterMenuItem = (
+  listener: (e: MenuItemRegisteredEvent) => void,
+  thisArgs?: unknown,
+): Disposable => registerEmitter.subscribe(listener, thisArgs);
+
+export const onDidUnregisterMenuItem: typeof menusApi.onDidUnregisterMenuItem =
+  (
+    listener: (e: MenuItemUnregisteredEvent) => void,
+    thisArgs?: unknown,
+  ): Disposable => unregisterEmitter.subscribe(listener, thisArgs);
 
 export const menus: typeof menusApi = {
   registerMenuItem,
   getMenu,
+  onDidRegisterMenuItem,
+  onDidUnregisterMenuItem,
 };

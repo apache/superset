@@ -19,6 +19,7 @@
 
 import type { editors } from '@apache-superset/core';
 import { Disposable } from '../models';
+import { createEventEmitter } from '../utils';
 
 type EditorLanguage = editors.EditorLanguage;
 type EditorProvider = editors.EditorProvider;
@@ -27,44 +28,7 @@ type EditorComponent = editors.EditorComponent;
 type EditorRegisteredEvent = editors.EditorRegisteredEvent;
 type EditorUnregisteredEvent = editors.EditorUnregisteredEvent;
 
-/**
- * Listener function type for events.
- */
 type Listener<T> = (e: T) => void;
-
-/**
- * Simple event emitter for editor provider lifecycle events.
- */
-class EventEmitter<T> {
-  private listeners: Set<Listener<T>> = new Set();
-
-  /**
-   * Subscribe to this event.
-   * @param listener The listener function to call when the event is fired.
-   * @returns A Disposable to unsubscribe from the event.
-   */
-  subscribe(listener: Listener<T>): Disposable {
-    this.listeners.add(listener);
-    return new Disposable(() => {
-      this.listeners.delete(listener);
-    });
-  }
-
-  /**
-   * Fire the event with the given data.
-   * @param data The event data to pass to listeners.
-   */
-  fire(data: T): void {
-    this.listeners.forEach(listener => {
-      try {
-        listener(data);
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error in event listener:', error);
-      }
-    });
-  }
-}
 
 /**
  * Singleton manager for editor providers.
@@ -83,15 +47,16 @@ class EditorProviders {
    */
   private languageToProvider: Map<EditorLanguage, string> = new Map();
 
-  /**
-   * Event emitter for provider registration events.
-   */
-  private registerEmitter = new EventEmitter<EditorRegisteredEvent>();
+  private registerEmitter = createEventEmitter<EditorRegisteredEvent>();
 
-  /**
-   * Event emitter for provider unregistration events.
-   */
-  private unregisterEmitter = new EventEmitter<EditorUnregisteredEvent>();
+  private unregisterEmitter = createEventEmitter<EditorUnregisteredEvent>();
+
+  private syncListeners: Set<() => void> = new Set();
+
+  public subscribe = (listener: () => void): (() => void) => {
+    this.syncListeners.add(listener);
+    return () => this.syncListeners.delete(listener);
+  };
 
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
@@ -145,6 +110,7 @@ class EditorProviders {
 
     // Fire registration event
     this.registerEmitter.fire({ editor });
+    this.syncListeners.forEach(l => l());
 
     // Return disposable for cleanup
     return new Disposable(() => {
@@ -176,6 +142,7 @@ class EditorProviders {
 
     // Fire unregistration event
     this.unregisterEmitter.fire({ editor });
+    this.syncListeners.forEach(l => l());
   }
 
   /**
@@ -213,8 +180,11 @@ class EditorProviders {
    * @param listener The listener function.
    * @returns A Disposable to unsubscribe.
    */
-  public onDidRegister(listener: Listener<EditorRegisteredEvent>): Disposable {
-    return this.registerEmitter.subscribe(listener);
+  public onDidRegister(
+    listener: Listener<EditorRegisteredEvent>,
+    thisArgs?: unknown,
+  ): Disposable {
+    return this.registerEmitter.subscribe(listener, thisArgs);
   }
 
   /**
@@ -224,8 +194,9 @@ class EditorProviders {
    */
   public onDidUnregister(
     listener: Listener<EditorUnregisteredEvent>,
+    thisArgs?: unknown,
   ): Disposable {
-    return this.unregisterEmitter.subscribe(listener);
+    return this.unregisterEmitter.subscribe(listener, thisArgs);
   }
 
   /**
@@ -234,6 +205,9 @@ class EditorProviders {
   public reset(): void {
     this.providers.clear();
     this.languageToProvider.clear();
+    this.syncListeners.clear();
+    this.registerEmitter = createEventEmitter<EditorRegisteredEvent>();
+    this.unregisterEmitter = createEventEmitter<EditorUnregisteredEvent>();
   }
 }
 

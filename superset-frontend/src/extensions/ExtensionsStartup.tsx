@@ -17,41 +17,32 @@
  * under the License.
  */
 import { useEffect } from 'react';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   authentication,
+  chat,
   core,
   commands,
   editors,
   extensions,
   menus,
+  navigation,
+  useNavigationTracker,
   sqlLab,
   views,
 } from 'src/core';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
 import ExtensionsLoader from './ExtensionsLoader';
-
-declare global {
-  interface Window {
-    superset: {
-      authentication: typeof authentication;
-      core: typeof core;
-      commands: typeof commands;
-      editors: typeof editors;
-      extensions: typeof extensions;
-      menus: typeof menus;
-      sqlLab: typeof sqlLab;
-      views: typeof views;
-    };
-  }
-}
+import 'src/extensions/Namespaces';
 
 const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
+  useNavigationTracker();
+
   const userId = useSelector<RootState, number | undefined>(
     ({ user }) => user.userId,
   );
@@ -59,15 +50,19 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   useEffect(() => {
     if (!userId) return;
 
-    // Provide the implementations for @apache-superset/core
+    // Provide the implementations for @apache-superset/core.
+    // Namespaces are listed explicitly — do not spread the core package here,
+    // as that would leak un-contracted symbols onto window.superset.
     window.superset = {
       ...supersetCore,
       authentication,
+      chat,
       core,
       commands,
       editors,
       extensions,
       menus,
+      navigation,
       sqlLab,
       views,
     };
