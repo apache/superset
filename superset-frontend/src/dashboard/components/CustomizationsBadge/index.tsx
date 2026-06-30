@@ -83,7 +83,7 @@ const StyledTag = styled(Tag)`
       vertical-align: middle;
       color: ${theme.colorTextSecondary};
       margin-right: ${theme.sizeUnit * 0.5}px;
-      font-size: 12px;
+      font-size: ${theme.fontSizeSM / theme.fontSize}em;
       &:hover {
         color: ${theme.colorText};
       }
@@ -108,7 +108,7 @@ const StyledBadge = styled(Badge)`
       height: ${theme.sizeUnit * 3}px;
       line-height: 1.2;
       font-weight: ${theme.fontWeightStrong};
-      font-size: ${theme.fontSizeSM - 2}px;
+      font-size: ${(theme.fontSizeSM - 2) / theme.fontSize}em;
       box-shadow: none;
     }
   `}
@@ -120,14 +120,14 @@ const TooltipContent = styled.div`
     max-width: 300px;
     overflow-x: hidden;
     color: ${theme.colorText};
-    font-size: ${theme.fontSizeSM}px;
+    font-size: ${theme.fontSizeSM / theme.fontSize}em;
   `}
 `;
 
 const SectionName = styled.span`
   ${({ theme }) => `
     font-weight: ${theme.fontWeightStrong};
-    font-size: ${theme.fontSizeSM}px;
+    font-size: ${theme.fontSizeSM / theme.fontSize}em;
   `}
 `;
 
@@ -142,7 +142,7 @@ const GroupByInfo = styled.div`
 
 const GroupByItem = styled.div`
   ${({ theme }) => `
-    font-size: ${theme.fontSizeSM}px;
+    font-size: ${theme.fontSizeSM / theme.fontSize}em;
     margin-bottom: ${theme.sizeUnit}px;
 
     &:last-child {
