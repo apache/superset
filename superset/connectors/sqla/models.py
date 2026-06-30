@@ -336,7 +336,7 @@ class BaseDatasource(
         return self.kind == DatasourceKind.VIRTUAL
 
     @declared_attr
-    def slices(self) -> RelationshipProperty:
+    def slices(self) -> Mapped[list["Slice"]]:
         return relationship(
             "Slice",
             overlaps="table",

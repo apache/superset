@@ -55,7 +55,7 @@ import {
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { openInNewTab, redirect } from 'src/utils/navigationUtils';
 

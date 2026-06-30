@@ -207,7 +207,7 @@ class TestSupersetAppInitializer:
         mock_app.app_context.return_value.__enter__.return_value = MagicMock()
 
         with patch("superset.initialization.db") as mock_db:
-            mock_db.engine.execute.side_effect = Exception("Connection Failed")
+            mock_db.engine.connect.side_effect = Exception("Connection Failed")
 
             with patch.object(
                 SupersetAppInitializer,
@@ -231,7 +231,7 @@ class TestSupersetAppInitializer:
         mock_app.app_context.return_value.__enter__.return_value = MagicMock()
 
         with patch("superset.initialization.db") as mock_db:
-            mock_db.engine.execute.side_effect = Exception("Connection Failed")
+            mock_db.engine.connect.side_effect = Exception("Connection Failed")
 
             with patch.object(
                 SupersetAppInitializer,

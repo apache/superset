@@ -582,7 +582,7 @@ const Tabs = (props: TabsProps): ReactElement => {
           show={!!tabToDelete}
           onHide={handleCancelTabDelete}
           onHandledPrimaryAction={handleConfirmTabDelete}
-          primaryButtonName={t('DELETE')}
+          primaryButtonName={t('Delete')}
           primaryButtonStyle="danger"
           title={t('Delete dashboard tab?')}
           centered

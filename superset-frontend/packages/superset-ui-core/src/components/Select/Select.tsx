@@ -37,7 +37,7 @@ import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
 } from 'antd/es/select';
-import { debounce, isEqual, uniq } from 'lodash';
+import { debounce, isEqual, uniq } from 'lodash-es';
 import {
   dropDownRenderHelper,
   getOption,
@@ -94,7 +94,7 @@ const Select = forwardRef(
       allowNewOptionsOnPaste = false,
       allowSelectAll = true,
       ariaLabel,
-      autoClearSearchValue = false,
+      autoClearSearchValue = true,
       filterOption = true,
       header = null,
       headerPosition = 'top',
@@ -333,6 +333,11 @@ const Select = forwardRef(
           return previousState;
         });
         fireOnChange();
+      }
+      if (autoClearSearchValue) {
+        setInputValue('');
+        setIsSearching(false);
+        setVisibleOptions(fullSelectOptions);
       }
       onSelect?.(selectedItem, option);
     };

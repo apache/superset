@@ -123,13 +123,24 @@ const contentCss = css`
   position: relative;
 `;
 
-/**
- * Renders the main content area. When the chat panel is open in panel mode,
- * wraps <Layout> and <ChatPanelContent> in a Splitter so they sit side-by-side
- * with a lazy drag bar (blue preview line, resize committed on mouseup).
- * The full <Layout> tree lives inside the first panel so its internal flex
- * context is preserved — SQL Lab, Explore, and other pages are unaffected.
- */
+// Chat panel mode locks the shell (content scrolls inside its panel); every
+// other state page-scrolls so the navbar hides on scroll.
+const lockedShellCss = css`
+  height: 100vh;
+  overflow: hidden;
+`;
+
+const pageScrollShellCss = css`
+  min-height: 100vh;
+`;
+
+const pageScrollContentCss = css`
+  display: flex;
+  flex-direction: column;
+`;
+
+// Renders the app shell and picks the scroll model: in chat panel mode <Layout>
+// sits in a Splitter beside the chat panel; otherwise the page scrolls normally.
 const AppContent = () => {
   const isAuthenticated =
     isUser(bootstrapData.user) && !bootstrapData.user.isAnonymous;
@@ -145,23 +156,14 @@ const AppContent = () => {
   );
 
   const layoutContent = (
-    <Layout css={layoutCss}>
-      <Layout.Content css={contentCss}>
+    <Layout css={isPanelOpen ? layoutCss : undefined}>
+      <Layout.Content css={isPanelOpen ? contentCss : pageScrollContentCss}>
         <RouteSwitch />
       </Layout.Content>
     </Layout>
   );
 
-  if (!isPanelOpen) {
-    return (
-      <>
-        {layoutContent}
-        {hasChatExtension && <ChatFloatingHost />}
-      </>
-    );
-  }
-
-  return (
+  const content = isPanelOpen ? (
     <Splitter
       lazy
       onResizeEnd={sizes => {
@@ -194,6 +196,21 @@ const AppContent = () => {
         <ChatPanelHost />
       </Splitter.Panel>
     </Splitter>
+  ) : (
+    <>
+      {layoutContent}
+      {hasChatExtension && <ChatFloatingHost />}
+    </>
+  );
+
+  return (
+    <Flex vertical css={isPanelOpen ? lockedShellCss : pageScrollShellCss}>
+      <Menu
+        data={bootstrapData.common.menu_data}
+        isFrontendRoute={isFrontendRoute}
+      />
+      <ExtensionsStartup>{content}</ExtensionsStartup>
+    </Flex>
   );
 };
 
@@ -202,21 +219,7 @@ const App = () => (
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
-      <Flex
-        vertical
-        css={css`
-          height: 100vh;
-          overflow: hidden;
-        `}
-      >
-        <Menu
-          data={bootstrapData.common.menu_data}
-          isFrontendRoute={isFrontendRoute}
-        />
-        <ExtensionsStartup>
-          <AppContent />
-        </ExtensionsStartup>
-      </Flex>
+      <AppContent />
       <ToastContainer />
     </RootContextProviders>
   </Router>

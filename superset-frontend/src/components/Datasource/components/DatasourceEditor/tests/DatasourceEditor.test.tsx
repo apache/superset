@@ -338,7 +338,8 @@ test('calls onChange with empty SQL when switching to physical dataset', async (
 
   // Assert that the latest onChange call has empty SQL
   expect(testProps.onChange).toHaveBeenCalled();
-  const updatedDatasource = testProps.onChange.mock.calls[0];
+  const lastCallIndex = testProps.onChange.mock.calls.length - 1;
+  const updatedDatasource = testProps.onChange.mock.calls[lastCallIndex];
   expect(updatedDatasource[0].sql).toBe('');
 });
 
@@ -871,7 +872,7 @@ test('DatasourceEditor source pins getSQLLabUrl/openOnSqlLab to the makeUrl + op
   expect(src).toMatch(
     /return makeUrl\(`\/sqllab\/\?\$\{queryParams\.toString\(\)\}`\);/,
   );
-  expect(src).toMatch(/openInNewTab\(this\.getSQLLabUrl\(\)\);/);
+  expect(src).toMatch(/openInNewTab\(getSQLLabUrl\(\)\);/);
   expect(src).toMatch(
     /import \{ makeUrl, openInNewTab \} from 'src\/utils\/navigationUtils';/,
   );

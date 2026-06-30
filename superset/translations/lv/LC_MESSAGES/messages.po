@@ -2660,6 +2660,9 @@ msgstr "Kopijas saņēmēji"
 msgid "COPY QUERY"
 msgstr "KOPĒT VAICĀJUMU"
 
+msgid "Copy query"
+msgstr "KOPĒT VAICĀJUMU"
+
 msgid "CREATE TABLE AS"
 msgstr "CREATE TABLE AS"
 
@@ -6443,6 +6446,9 @@ msgid "FEB"
 msgstr "FEB"
 
 msgid "FIT DATA"
+msgstr "PIELĀGOT DATIEM"
+
+msgid "Fit data"
 msgstr "PIELĀGOT DATIEM"
 
 msgid "FRI"
