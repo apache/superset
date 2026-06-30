@@ -61,9 +61,19 @@ const ControlContainer = styled.div<{
   }
 
   &:focus > div {
+    /* WCAG 1.4.11: Non-text contrast — the focus indicator needs at least 3:1
+       against the adjacent background. The default "theme.controlOutline"
+       token is a low-alpha tint derived from colorPrimary and typically lands
+       below 3:1, so we use full-saturation "theme.colorPrimary" here instead.
+       Do not revert to "controlOutline" without first confirming the active
+       theme satisfies 3:1 — otherwise this regresses 1.4.11.
+
+       WCAG 2.4.7: The transparent outline keeps a visible focus ring in
+       Windows High Contrast / forced-colors mode, where box-shadows are
+       suppressed but outlines are honoured. */
     border-color: ${({ theme }) => theme.colorPrimary};
-    box-shadow: ${({ theme }) => `0 0 0 2px ${theme.controlOutline}`};
-    outline: 0;
+    box-shadow: ${({ theme }) => `0 0 0 2px ${theme.colorPrimary}`};
+    outline: 2px solid transparent;
   }
 `;
 
