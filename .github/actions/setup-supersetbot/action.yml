@@ -17,6 +17,7 @@ runs:
     - name: Install supersetbot from npm
       if: ${{ inputs.from-npm == 'true' }}
       shell: bash
+      # zizmor: ignore[adhoc-packages] - installing the supersetbot CLI globally is the sole purpose of this action; there is no lockfile-based install path for a global CLI tool
       run: npm install -g supersetbot
 
     - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
@@ -31,6 +32,7 @@ runs:
       if: ${{ inputs.from-npm == 'false' }}
       shell: bash
       working-directory: supersetbot
+      # zizmor: ignore[adhoc-packages] - installs the locally packed supersetbot tarball built from the trusted apache-superset/supersetbot checkout; no lockfile applies to a global CLI install
       run: |
         # simple trick to install globally with dependencies
         npm pack
