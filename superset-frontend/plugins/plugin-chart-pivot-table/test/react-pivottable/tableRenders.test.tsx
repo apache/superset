@@ -67,6 +67,7 @@ function buildDefaultProps(overrides: Record<string, unknown> = {}) {
     aggregatorName: 'Count',
     vals: [] as string[],
     aggregatorsFactory,
+    tableRenderer: 'Table With Subtotal',
     tableOptions: {},
     onContextMenu: jest.fn(),
     ...overrides,
@@ -159,6 +160,28 @@ test('TableRenderer renders grand total when both totals are enabled', () => {
     .filter(cell => cell.classList.contains('pvtGrandTotal'));
   expect(grandTotalCells.length).toBe(1);
   expect(grandTotalCells[0]).toHaveTextContent('4');
+});
+
+test('TableRenderer renders subvalue labels for row and column subtotals', () => {
+  const props = buildDefaultProps({
+    rows: ['color', 'shape'],
+    cols: ['value'],
+    tableRenderer: 'Table With Subtotal',
+    tableOptions: {
+      rowSubTotals: true,
+      colSubTotals: true,
+    },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const subtotalLabels = Array.from(
+    document.querySelectorAll('.pvtSubtotalLabel'),
+  )
+    .map(cell => cell.textContent?.trim())
+    .filter(Boolean);
+
+  expect(subtotalLabels).toContain('Subvalue');
+  expect(subtotalLabels).not.toContain('Subtotal');
 });
 
 test('TableRenderer handles empty data gracefully', () => {
