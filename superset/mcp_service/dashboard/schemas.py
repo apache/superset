@@ -67,7 +67,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
 from pydantic import (
@@ -134,7 +134,11 @@ class DashboardError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DashboardError":
         """Create a standardized DashboardError with timestamp."""
-        return cls(error=error, error_type=error_type, timestamp=datetime.now())
+        return cls(
+            error=error,
+            error_type=error_type,
+            timestamp=datetime.now(timezone.utc),
+        )
 
 
 def serialize_tag_object(tag: Any) -> TagInfo | None:
@@ -368,6 +372,17 @@ class GetDashboardInfoRequest(MetadataCacheControl):
 
 class GetDashboardLayoutRequest(BaseModel):
     """Request schema for get_dashboard_layout."""
+
+    identifier: Annotated[
+        int | str,
+        Field(
+            description="Dashboard identifier - can be numeric ID, UUID string, or slug"
+        ),
+    ]
+
+
+class GetDashboardDatasetsRequest(BaseModel):
+    """Request schema for get_dashboard_datasets."""
 
     identifier: Annotated[
         int | str,
@@ -1563,4 +1578,235 @@ def dashboard_layout_serializer(dashboard: "Dashboard") -> DashboardLayout:
             charts=charts,
             has_layout=bool(position_json_str),
         )
+    )
+
+
+# ---------------------------------------------------------------------------
+# get_dashboard_datasets schemas
+# ---------------------------------------------------------------------------
+
+# Per-dataset caps keep responses small enough for LLM context: wide
+# datasets can have hundreds of columns, which would dwarf the fields an
+# agent actually needs to configure native filters.
+MAX_DASHBOARD_DATASET_COLUMNS: int = 100
+MAX_DASHBOARD_DATASET_METRICS: int = 50
+
+
+class DashboardDatasetColumn(BaseModel):
+    """Lean column representation for dashboard dataset context."""
+
+    column_name: str = Field(..., description="Column name")
+    verbose_name: str | None = Field(None, description="Verbose (display) name")
+    type: str | None = Field(None, description="Column data type")
+    is_dttm: bool | None = Field(None, description="Is datetime column")
+
+
+class DashboardDatasetMetric(BaseModel):
+    """Lean metric representation for dashboard dataset context."""
+
+    metric_name: str = Field(..., description="Saved metric name")
+    verbose_name: str | None = Field(None, description="Verbose (display) name")
+    expression: str | None = Field(None, description="SQL expression")
+
+
+class DashboardDatasetDatabaseInfo(BaseModel):
+    """Database connection summary for a dashboard dataset."""
+
+    id: int | None = Field(None, description="Database ID")
+    name: str | None = Field(None, description="Database name")
+    backend: str | None = Field(None, description="Database backend (engine)")
+
+
+class DashboardDatasetSummary(BaseModel):
+    """A dataset used by a dashboard's charts, with columns and metrics."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int | None = Field(None, description="Dataset ID")
+    uuid: str | None = Field(None, description="Dataset UUID")
+    table_name: str | None = Field(None, description="Table name")
+    schema_name: str | None = Field(None, description="Schema name", alias="schema")
+    database: DashboardDatasetDatabaseInfo | None = Field(
+        None, description="Database the dataset belongs to"
+    )
+    chart_count: int = Field(
+        0, description="Number of charts on the dashboard using this dataset"
+    )
+    columns: List[DashboardDatasetColumn] = Field(
+        default_factory=list, description="Dataset columns"
+    )
+    metrics: List[DashboardDatasetMetric] = Field(
+        default_factory=list, description="Dataset metrics"
+    )
+    total_column_count: int = Field(
+        0, description="Total number of columns on the dataset"
+    )
+    total_metric_count: int = Field(
+        0, description="Total number of metrics on the dataset"
+    )
+    columns_truncated: bool = Field(
+        False,
+        description=(
+            "True when the columns list was truncated to keep the response small"
+        ),
+    )
+    metrics_truncated: bool = Field(
+        False,
+        description=(
+            "True when the metrics list was truncated to keep the response small"
+        ),
+    )
+
+    @model_serializer(mode="wrap")
+    def _rename_schema_field(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Serialize 'schema_name' as 'schema' to match API conventions."""
+        data = serializer(self)
+        if "schema_name" in data:
+            data["schema"] = data.pop("schema_name")
+        return data
+
+
+class DashboardDatasets(BaseModel):
+    """Response schema for get_dashboard_datasets."""
+
+    id: int | None = Field(None, description="Dashboard ID")
+    dashboard_title: str | None = Field(None, description="Dashboard title")
+    uuid: str | None = Field(None, description="Dashboard UUID")
+    dataset_count: int = Field(
+        0, description="Number of accessible datasets used by the dashboard"
+    )
+    inaccessible_dataset_count: int = Field(
+        0,
+        description=(
+            "Number of datasets used by the dashboard that the current user "
+            "cannot access (excluded from 'datasets')"
+        ),
+    )
+    datasets: List[DashboardDatasetSummary] = Field(
+        default_factory=list,
+        description="Datasets used by the dashboard's charts",
+    )
+
+
+def _serialize_dashboard_dataset(
+    datasource: Any, chart_count: int
+) -> DashboardDatasetSummary:
+    """Serialize a datasource to a lean, LLM-safe dataset summary."""
+    all_columns = list(getattr(datasource, "columns", None) or [])
+    all_metrics = list(getattr(datasource, "metrics", None) or [])
+
+    columns = [
+        DashboardDatasetColumn(
+            column_name=escape_llm_context_delimiters(
+                getattr(column, "column_name", None) or ""
+            ),
+            verbose_name=sanitize_for_llm_context(
+                getattr(column, "verbose_name", None),
+                field_path=("columns", str(index), "verbose_name"),
+            ),
+            type=getattr(column, "type", None),
+            is_dttm=getattr(column, "is_dttm", None),
+        )
+        for index, column in enumerate(all_columns[:MAX_DASHBOARD_DATASET_COLUMNS])
+    ]
+    metrics = [
+        DashboardDatasetMetric(
+            metric_name=escape_llm_context_delimiters(
+                getattr(metric, "metric_name", None) or ""
+            ),
+            verbose_name=sanitize_for_llm_context(
+                getattr(metric, "verbose_name", None),
+                field_path=("metrics", str(index), "verbose_name"),
+            ),
+            expression=sanitize_for_llm_context(
+                getattr(metric, "expression", None),
+                field_path=("metrics", str(index), "expression"),
+            ),
+        )
+        for index, metric in enumerate(all_metrics[:MAX_DASHBOARD_DATASET_METRICS])
+    ]
+
+    database = getattr(datasource, "database", None)
+    database_info = (
+        DashboardDatasetDatabaseInfo(
+            id=getattr(database, "id", None),
+            name=escape_llm_context_delimiters(
+                getattr(database, "database_name", None)
+            ),
+            backend=getattr(database, "backend", None),
+        )
+        if database is not None
+        else None
+    )
+
+    dataset_uuid = getattr(datasource, "uuid", None)
+    return DashboardDatasetSummary(
+        id=getattr(datasource, "id", None),
+        uuid=str(dataset_uuid) if dataset_uuid else None,
+        table_name=escape_llm_context_delimiters(
+            getattr(datasource, "table_name", None)
+        ),
+        schema_name=escape_llm_context_delimiters(getattr(datasource, "schema", None)),
+        database=database_info,
+        chart_count=chart_count,
+        columns=columns,
+        metrics=metrics,
+        total_column_count=len(all_columns),
+        total_metric_count=len(all_metrics),
+        columns_truncated=len(all_columns) > MAX_DASHBOARD_DATASET_COLUMNS,
+        metrics_truncated=len(all_metrics) > MAX_DASHBOARD_DATASET_METRICS,
+    )
+
+
+def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
+    """Serialize a Dashboard model to the datasets used by its charts.
+
+    Groups the dashboard's charts by datasource (mirroring
+    ``Dashboard.datasets_trimmed_for_slices``) but keeps the full column and
+    metric lists (capped) since native-filter configuration regularly needs
+    columns that no chart references. Datasets the current user cannot
+    access are excluded and only counted.
+    """
+    from superset.mcp_service.auth import has_dataset_access
+
+    slices_by_datasource: Dict[tuple[int, str], List[Any]] = {}
+    for slc in getattr(dashboard, "slices", None) or []:
+        datasource_id = getattr(slc, "datasource_id", None)
+        datasource_type = getattr(slc, "datasource_type", None) or ""
+        if datasource_id is None:
+            continue
+        slices_by_datasource.setdefault((datasource_id, datasource_type), []).append(
+            slc
+        )
+
+    datasets: List[DashboardDatasetSummary] = []
+    inaccessible_count: int = 0
+    for slices in slices_by_datasource.values():
+        datasource = next(
+            (
+                getattr(slc, "datasource", None)
+                for slc in slices
+                if getattr(slc, "datasource", None) is not None
+            ),
+            None,
+        )
+        if datasource is None:
+            continue
+        if not has_dataset_access(datasource):
+            inaccessible_count += 1
+            continue
+        datasets.append(_serialize_dashboard_dataset(datasource, len(slices)))
+
+    datasets.sort(key=lambda dataset: dataset.id or 0)
+
+    return DashboardDatasets(
+        id=dashboard.id,
+        dashboard_title=sanitize_for_llm_context(
+            dashboard.dashboard_title or "Untitled",
+            field_path=("dashboard_title",),
+        ),
+        uuid=str(dashboard.uuid) if dashboard.uuid else None,
+        dataset_count=len(datasets),
+        inaccessible_dataset_count=inaccessible_count,
+        datasets=datasets,
     )
