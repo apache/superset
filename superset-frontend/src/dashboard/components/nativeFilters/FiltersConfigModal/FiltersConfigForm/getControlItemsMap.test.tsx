@@ -144,6 +144,26 @@ function renderControlItems(
   );
 }
 
+function renderColumnPicker(
+  controlItemConfig: Record<string, unknown> = {},
+  propsOverrides: Partial<ControlItemsProps> = {},
+) {
+  (getControlItems as jest.Mock).mockReturnValue([
+    {
+      name: 'myPluginColumn',
+      config: {
+        isColumnSelect: true,
+        label: 'My Column',
+        ...controlItemConfig,
+      },
+    },
+  ]);
+  const props = { ...createProps(), datasetId: 1, ...propsOverrides };
+  const map = getControlItemsMap(props);
+  render(map.mainControlItems.myPluginColumn.element as React.ReactElement);
+  return props;
+}
+
 test('Should render null when has no "formFilter"', () => {
   const props = createProps();
   const controlItemsMap = getControlItemsMap(props);
@@ -199,6 +219,23 @@ test('Should render ControlItems', () => {
   const controlItemsMap = getControlItemsMap(props);
   renderControlItems(controlItemsMap);
   expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+});
+
+test('renders without throwing when label/description are multi-argument functions', () => {
+  const props = createProps();
+  (getControlItems as jest.Mock).mockReturnValue([
+    {
+      name: 'name_1',
+      config: {
+        renderTrigger: true,
+        label: (state: unknown) => `label:${state}`,
+        description: (state: unknown) => `description:${state}`,
+      },
+    },
+  ]);
+  const controlItemsMap = getControlItemsMap(props);
+  expect(() => renderControlItems(controlItemsMap)).not.toThrow();
+  expect(screen.getByRole('checkbox')).toBeInTheDocument();
 });
 
 test('Clicking on checkbox', () => {
@@ -322,76 +359,59 @@ describe('ColumnSelect filterValues behavior', () => {
   });
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('plugin column-picker control (isColumnSelect)', () => {
-  function renderColumnPicker(
-    controlItemConfig: Record<string, unknown> = {},
-    propsOverrides: Partial<ControlItemsProps> = {},
-  ) {
-    (getControlItems as jest.Mock).mockReturnValue([
-      {
-        name: 'myPluginColumn',
-        config: { isColumnSelect: true, label: 'My Column', ...controlItemConfig },
+test('plugin column-picker control (isColumnSelect) populates options after a successful fetch, dropping blank column names', async () => {
+  const fetchPromise = Promise.resolve({
+    response: {} as Response,
+    json: {
+      result: {
+        columns: [
+          { column_name: 'col_a' },
+          { column_name: '' },
+          { column_name: null },
+        ],
       },
-    ]);
-    const props = { ...createProps(), datasetId: 1, ...propsOverrides };
-    const map = getControlItemsMap(props);
-    render(map.mainControlItems.myPluginColumn.element as React.ReactElement);
-    return props;
-  }
-
-  test('populates options after a successful fetch, dropping blank column names', async () => {
-    const fetchPromise = Promise.resolve({
-      response: {} as Response,
-      json: {
-        result: {
-          columns: [
-            { column_name: 'col_a' },
-            { column_name: '' },
-            { column_name: null },
-          ],
-        },
-      },
-    });
-    mockCachedSupersetGet.mockReturnValue(fetchPromise);
-    renderColumnPicker();
-    expect(mockCachedSupersetGet).toHaveBeenCalledWith({
-      endpoint: expect.stringContaining('/api/v1/dataset/1?q='),
-    });
-    await act(async () => {
-      await fetchPromise;
-    });
-    userEvent.click(screen.getByRole('combobox'));
-    expect(await screen.findByRole('option', { name: 'col_a' })).toBeInTheDocument();
-    expect(screen.getAllByRole('option')).toHaveLength(1);
+    },
   });
-
-  test('falls back to no options when the fetch rejects', async () => {
-    mockCachedSupersetGet.mockRejectedValue(new Error('boom'));
-    renderColumnPicker();
-    await waitFor(() => expect(mockCachedSupersetGet).toHaveBeenCalled());
-    userEvent.click(screen.getByRole('combobox'));
-    expect(screen.queryAllByRole('option')).toHaveLength(0);
+  mockCachedSupersetGet.mockReturnValue(fetchPromise);
+  renderColumnPicker();
+  expect(mockCachedSupersetGet).toHaveBeenCalledWith({
+    endpoint: expect.stringContaining('/api/v1/dataset/1?q='),
   });
-
-  test('onChange resets defaultDataMask and notifies change', async () => {
-    const fetchPromise = Promise.resolve({
-      response: {} as Response,
-      json: { result: { columns: [{ column_name: 'col_a' }] } },
-    });
-    mockCachedSupersetGet.mockReturnValue(fetchPromise);
-    const props = renderColumnPicker();
-    await act(async () => {
-      await fetchPromise;
-    });
-    userEvent.click(screen.getByRole('combobox'));
-    userEvent.click(await screen.findByRole('option', { name: 'col_a' }));
-    expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
-      props.form,
-      props.filterId,
-      { defaultDataMask: null },
-    );
-    expect(props.forceUpdate).toHaveBeenCalled();
-    expect(props.formChanged).toHaveBeenCalled();
+  await act(async () => {
+    await fetchPromise;
   });
+  userEvent.click(screen.getByRole('combobox'));
+  expect(
+    await screen.findByRole('option', { name: 'col_a' }),
+  ).toBeInTheDocument();
+  expect(screen.getAllByRole('option')).toHaveLength(1);
+});
+
+test('plugin column-picker control (isColumnSelect) falls back to no options when the fetch rejects', async () => {
+  mockCachedSupersetGet.mockRejectedValue(new Error('boom'));
+  renderColumnPicker();
+  await waitFor(() => expect(mockCachedSupersetGet).toHaveBeenCalled());
+  userEvent.click(screen.getByRole('combobox'));
+  expect(screen.queryAllByRole('option')).toHaveLength(0);
+});
+
+test('plugin column-picker control (isColumnSelect) onChange resets defaultDataMask and notifies change', async () => {
+  const fetchPromise = Promise.resolve({
+    response: {} as Response,
+    json: { result: { columns: [{ column_name: 'col_a' }] } },
+  });
+  mockCachedSupersetGet.mockReturnValue(fetchPromise);
+  const props = renderColumnPicker();
+  await act(async () => {
+    await fetchPromise;
+  });
+  userEvent.click(screen.getByRole('combobox'));
+  userEvent.click(await screen.findByRole('option', { name: 'col_a' }));
+  expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
+    props.form,
+    props.filterId,
+    { defaultDataMask: null },
+  );
+  expect(props.forceUpdate).toHaveBeenCalled();
+  expect(props.formChanged).toHaveBeenCalled();
 });

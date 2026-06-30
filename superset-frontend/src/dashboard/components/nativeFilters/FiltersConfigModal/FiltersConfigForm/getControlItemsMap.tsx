@@ -88,15 +88,27 @@ function resolveInitialValue(
 function ControlLabel({
   label,
   description,
+  fallbackLabel,
 }: {
   label?: BaseControlConfig['label'];
   description?: BaseControlConfig['description'];
+  fallbackLabel?: ReactNode;
 }) {
+  // Only zero-argument label/description functions are safe to invoke here:
+  // (state, controlState, chartState) are supplied by the Explore control
+  // panel renderer (ControlPanelsContainer), which this filter-config-modal
+  // control list does not have access to.
   const resolvedLabel =
-    typeof label === 'function' ? (label as () => ReactNode)() : label;
+    (typeof label === 'function'
+      ? label.length === 0
+        ? (label as () => ReactNode)()
+        : undefined
+      : label) ?? fallbackLabel;
   const resolvedDescription =
     typeof description === 'function'
-      ? (description as () => ReactNode)()
+      ? description.length === 0
+        ? (description as () => ReactNode)()
+        : undefined
       : description;
   return (
     <StyledLabel>
@@ -232,7 +244,8 @@ export default function getControlItemsMap({
             initialValue={initColumn}
             label={
               <ControlLabel
-                label={mainControlItem.config?.label || t('Column')}
+                label={mainControlItem.config?.label}
+                fallbackLabel={t('Column')}
               />
             }
             rules={[
