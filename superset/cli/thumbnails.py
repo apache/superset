@@ -15,7 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Union
+from collections.abc import Callable
+from typing import Any, Union
 
 import click
 from celery.utils.abstract import CallableTask
@@ -85,8 +86,12 @@ def compute_thumbnails(
         # Materialize the id and label up front. Computing a thumbnail below can
         # close/expire the session, which detaches the ORM instances and makes
         # str(model) raise DetachedInstanceError on subsequent iterations.
-        items = [(model.id, str(model)) for model in query.all()]
-        count = len(items)
+        items: list[tuple[int, str]] = [
+            (model.id, str(model)) for model in query.all()
+        ]
+        count: int = len(items)
+        func: Callable[..., Any]
+        action: str
         if asynchronous:
             func = compute_func.delay
             action = "Triggering"
