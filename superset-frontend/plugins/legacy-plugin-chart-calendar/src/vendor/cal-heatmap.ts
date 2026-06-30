@@ -12,6 +12,7 @@
 import d3tip from 'd3-tip';
 import { t } from '@apache-superset/core/translation';
 import { getContrastingColor } from '@superset-ui/core';
+import { CALENDAR_TOOLTIP_CLASS } from '../tooltip';
 
 var d3 = typeof require === 'function' ? require('d3') : window.d3;
 
@@ -22,7 +23,7 @@ var CalHeatMap = function () {
 
   var self = this;
   self.tip = d3tip()
-    .attr('class', 'd3-tip')
+    .attr('class', `d3-tip ${CALENDAR_TOOLTIP_CLASS}`)
     .direction('n')
     .offset([-5, 0])
     .html(
@@ -33,7 +34,7 @@ var CalHeatMap = function () {
     `,
     );
   self.legendTip = d3tip()
-    .attr('class', 'd3-tip')
+    .attr('class', `d3-tip ${CALENDAR_TOOLTIP_CLASS}`)
     .direction('n')
     .offset([-5, 0])
     .html(d => self.options.valueFormatter(d));
@@ -3443,6 +3444,9 @@ CalHeatMap.prototype = {
    */
   destroy: function (callback) {
     'use strict';
+
+    this.tip.destroy();
+    this.legendTip.destroy();
 
     this.root
       .transition()
