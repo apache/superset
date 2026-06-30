@@ -89,6 +89,11 @@ export class OptionSelector {
     [this.values[a], this.values[b]] = [this.values[b], this.values[a]];
   }
 
+  reorder(from: number, to: number) {
+    const [moved] = this.values.splice(from, 1);
+    this.values.splice(to, 0, moved);
+  }
+
   has(value: QueryFormColumn): boolean {
     return this.values.some(col => {
       if (isPhysicalColumn(value)) {

@@ -287,11 +287,18 @@ const DndMetricSelect = (props: any) => {
 
   const moveLabel = useCallback(
     (dragIndex: number, hoverIndex: number) => {
+      if (
+        dragIndex === hoverIndex ||
+        dragIndex < 0 ||
+        hoverIndex < 0 ||
+        dragIndex >= value.length ||
+        hoverIndex >= value.length
+      ) {
+        return;
+      }
       const newValues = [...value];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
+      const [moved] = newValues.splice(dragIndex, 1);
+      newValues.splice(hoverIndex, 0, moved);
       setValue(newValues);
     },
     [value],
