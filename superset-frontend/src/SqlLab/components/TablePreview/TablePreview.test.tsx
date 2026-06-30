@@ -170,7 +170,9 @@ describe('table actions', () => {
         fetchMock.callHistory.calls(getTableMetadataEndpoint),
       ).toHaveLength(1),
     );
-    const viewButton = getByRole('button', { name: 'Show CREATE VIEW statement' });
+    const viewButton = getByRole('button', {
+      name: 'Show CREATE VIEW statement',
+    });
     fireEvent.click(viewButton);
     await waitFor(() =>
       expect(

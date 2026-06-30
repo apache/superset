@@ -140,10 +140,6 @@ def validate_session_auth_stamp_for_request() -> None:
 
     try:
         row = db.session.get(UserSessionAuthStamp, user_id)
-        if row is None:
-            stamp = ensure_user_session_stamp_value(user_id)
-            session[SESSION_AUTH_STAMP_SESSION_KEY] = stamp
-            return
     except SQLAlchemyError:
         # Fail open: a database error (for example a missing table during a
         # rolling deploy or migration mismatch) must not turn every
@@ -153,6 +149,16 @@ def validate_session_auth_stamp_for_request() -> None:
             exc_info=True,
         )
         db.session.rollback()  # pylint: disable=consider-using-transaction
+        return
+
+    if row is None:
+        # No stamp row means the session predates stamp tracking. Allow the
+        # request without a check — sync_session_auth_stamp_on_login creates
+        # the row on every login, so this only occurs for sessions that
+        # pre-date the feature or whose row was removed independently.
+        # Committing inside a before_request hook would expire SQLAlchemy
+        # objects loaded by earlier hooks and can cause DetachedInstanceError
+        # in route handlers, so we never create the row here.
         return
 
     # A missing stamp means the session predates stamp tracking (or was never
