@@ -22,6 +22,7 @@ import { InputNumber, Select } from '@superset-ui/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 import {
   COMMON_RANGE_OPTIONS,
+  COMMON_RANGE_REGEX,
   DateFilterTestKey,
 } from 'src/explore/components/controls/DateFilterControl/utils';
 import {
@@ -49,10 +50,11 @@ const UNIT_OPTIONS = [
  * strings without an explicit number (e.g. "Last day").
  */
 function parseLastN(value: string): { n: number; unit: string } | null {
-  const m = value.match(
-    /^[Ll]ast\s+(\d+)\s+(second|minute|hour|day|week|month|quarter|year)s?$/i,
-  );
-  return m ? { n: Number(m[1]), unit: m[2].toLowerCase() } : null;
+  const m = value.match(COMMON_RANGE_REGEX);
+  // m[1] is the optional "<number> " capture group — absent for preset-style
+  // strings like "Last week" that have no explicit number.
+  if (!m || m[1] === undefined) return null;
+  return { n: parseInt(m[1], 10), unit: m[2].toLowerCase() };
 }
 
 /** Build the canonical "Last N unit(s)" string from parts. */
