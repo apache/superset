@@ -342,10 +342,10 @@ class WebDriverPlaywright(WebDriverProxy):
                 selenium_animation_wait = app.config[
                     "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
                 ]
-                logger.debug(
-                    "Wait %i seconds for chart animation", selenium_animation_wait
-                )
-                page.wait_for_timeout(selenium_animation_wait * 1000)
+                # The animation wait is applied later, after the loading
+                # spinners clear: ECharts only starts its draw animation once
+                # data has arrived and the spinner is gone, so waiting here
+                # (before charts finish loading) would not cover it.
                 logger.debug(
                     "Taking a PNG screenshot of url %s as user %s",
                     url,
@@ -445,11 +445,10 @@ class WebDriverPlaywright(WebDriverProxy):
                             )
                             raise
                         # Wait for chart animations (e.g. ECharts) to finish
-                        # after the spinners clear. The earlier animation wait
-                        # runs before charts finish loading, but the draw
-                        # animation only starts once data arrives and the
-                        # spinner clears, so without this wait a slow-loading
-                        # chart is captured mid-render.
+                        # after the spinners clear. The draw animation only
+                        # starts once data arrives and the spinner is gone, so
+                        # without this wait a slow-loading chart is captured
+                        # mid-render.
                         if selenium_animation_wait > 0:
                             page.wait_for_timeout(selenium_animation_wait * 1000)
                         img = WebDriverPlaywright._get_screenshot(
@@ -476,10 +475,9 @@ class WebDriverPlaywright(WebDriverProxy):
                         )
                         raise
                     # Wait for chart animations (e.g. ECharts) to finish after
-                    # the spinners clear. The earlier animation wait runs before
-                    # charts finish loading, but the draw animation only starts
-                    # once data arrives and the spinner clears, so without this
-                    # wait a slow-loading chart is captured mid-render.
+                    # the spinners clear. The draw animation only starts once
+                    # data arrives and the spinner is gone, so without this wait
+                    # a slow-loading chart is captured mid-render.
                     if selenium_animation_wait > 0:
                         page.wait_for_timeout(selenium_animation_wait * 1000)
                     img = WebDriverPlaywright._get_screenshot(
