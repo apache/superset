@@ -349,7 +349,7 @@ def cache_warmup(
         strategy: Strategy = class_(*args, **kwargs)
         logger.info("Success!")
     except TypeError:
-        message: str = "Error loading strategy!"
+        message = "Error loading strategy!"
         logger.exception(message)
         return message
 
@@ -357,7 +357,7 @@ def cache_warmup(
 
     warmup_username: str | None = current_app.config.get("SUPERSET_CACHE_WARMUP_USER")
     if not warmup_username:
-        message: str = (
+        message = (
             "SUPERSET_CACHE_WARMUP_USER is not configured. Set it to a dedicated "
             "least-privilege user with access to the dashboards you want warmed up."
         )
@@ -366,7 +366,7 @@ def cache_warmup(
 
     user: Any = security_manager.find_user(username=warmup_username)
     if not user:
-        message: str = (
+        message = (
             f"Cache warmup user '{warmup_username}' not found. Please configure "
             "SUPERSET_CACHE_WARMUP_USER with a valid username."
         )
