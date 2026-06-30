@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Select } from '@superset-ui/core/components';
 import { extendedDayjs } from '../../utils/dates';
 import {

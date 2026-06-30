@@ -18,6 +18,7 @@
  */
 import { createRef } from 'react';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
+import { supersetTheme } from '@apache-superset/core/theme';
 import type AceEditor from 'react-ace';
 import {
   AsyncAceEditor,
@@ -28,6 +29,7 @@ import {
   CssEditor,
   JsonEditor,
   ConfigEditor,
+  aceCompletionHighlightStyles,
 } from '.';
 
 import type { AceModule, AsyncAceEditorOptions } from './types';
@@ -40,6 +42,32 @@ test('renders SQLEditor', async () => {
   await waitFor(() => {
     expect(container.querySelector(selector)).toBeInTheDocument();
   });
+});
+
+test('themes the autocomplete completion highlight from the theme', () => {
+  // Ace ships a hardcoded `color: #000` for the matched-prefix highlight, which
+  // is invisible on the dark autocomplete popup. The shared editor overrides it
+  // from the theme so every Ace editor (SQL Lab, Explore Custom SQL, ...) stays
+  // consistent.
+  const { styles } = aceCompletionHighlightStyles(supersetTheme);
+
+  expect(styles).toContain('.ace_completion-highlight');
+  expect(styles).toContain(supersetTheme.colorPrimaryText);
+});
+
+test('SQLEditor uses fontFamilyCode from theme', async () => {
+  const ref = createRef<AceEditor>();
+  const { container } = render(<SQLEditor ref={ref as React.Ref<never>} />);
+
+  await waitFor(() => {
+    expect(container.querySelector(selector)).toBeInTheDocument();
+  });
+
+  const editorInstance = ref.current?.editor;
+  const fontFamily = editorInstance?.getOption('fontFamily');
+  // Verify font family is set (not undefined) and contains a monospace font
+  expect(fontFamily).toBeDefined();
+  expect(fontFamily).toMatch(/mono|courier|consolas/i);
 });
 
 test('renders FullSQLEditor', async () => {
@@ -93,13 +121,13 @@ test('renders ConfigEditor', async () => {
 test('renders a custom placeholder', () => {
   const aceModules: AceModule[] = ['mode/css', 'theme/github'];
   const editorOptions: AsyncAceEditorOptions = {
-    placeholder: () => <p role="paragraph">Custom placeholder</p>,
+    placeholder: () => <p>Custom placeholder</p>,
   };
   const Editor = AsyncAceEditor(aceModules, editorOptions);
 
   render(<Editor />);
 
-  expect(screen.getByRole('paragraph')).toBeInTheDocument();
+  expect(screen.getByText('Custom placeholder')).toBeInTheDocument();
 });
 
 test('registers afterExec event listener for command handling', async () => {

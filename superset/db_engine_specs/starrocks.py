@@ -22,14 +22,16 @@ from typing import Any
 from urllib import parse
 
 from flask_babel import gettext as __
-from sqlalchemy import Float, Integer, Numeric, types
+from sqlalchemy import Float, Integer, Numeric, text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset import is_feature_enabled
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
+from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.utils.core import GenericDataType
 
@@ -342,7 +344,7 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         The command returns columns: Catalog, Type, Comment
         """
         try:
-            result = inspector.bind.execute("SHOW CATALOGS")
+            result = inspector.bind.execute(text("SHOW CATALOGS"))
             catalogs = set()
 
             for row in result:
@@ -373,7 +375,7 @@ class StarRocksEngineSpec(MySQLEngineSpec):
         (e.g., "catalog." sets the context to that catalog).
         """
         try:
-            result = inspector.bind.execute("SHOW DATABASES")
+            result = inspector.bind.execute(text("SHOW DATABASES"))
             return {row[0] for row in result}
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("Error fetching schema names from SHOW DATABASES: %s", ex)
@@ -413,6 +415,13 @@ class StarRocksEngineSpec(MySQLEngineSpec):
             username = database.get_effective_user(database.url_object)
 
             if username:
-                return [f'EXECUTE AS "{username}" WITH NO REVERT;']
+                effective_username = username
+                if is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
+                    user = security_manager.find_user(username=username)
+                    if user and user.email:
+                        effective_username = user.email.split("@", 1)[0]
+
+                escaped = effective_username.replace('"', '""')
+                return [f'EXECUTE AS "{escaped}" WITH NO REVERT;']
 
         return []

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { ChartDataResponseResult, VizType } from '@superset-ui/core';
 import { TableChartFormData } from '../types';
 

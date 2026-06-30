@@ -20,8 +20,8 @@ import { PureComponent } from 'react';
 import cloudLayout from 'd3-cloud';
 import { scaleLinear } from 'd3-scale';
 import { seed, CategoricalColorNamespace } from '@superset-ui/core';
-import { SupersetTheme, withTheme } from '@apache-superset/core/ui';
-import { isEqual } from 'lodash';
+import { SupersetTheme, withTheme } from '@apache-superset/core/theme';
+import { isEqual } from 'lodash-es';
 
 const seedRandom = seed('superset-ui');
 

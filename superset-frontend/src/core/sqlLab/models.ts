@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sqlLab as sqlLabType, core as coreType } from '@apache-superset/core';
+import {
+  sqlLab as sqlLabType,
+  common as coreType,
+} from '@apache-superset/core';
 
 const { CTASMethod } = sqlLabType;
 

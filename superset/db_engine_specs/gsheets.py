@@ -30,9 +30,9 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from requests import Session
-from requests.exceptions import HTTPError
 from shillelagh.adapters.api.gsheets.lib import SCOPES
 from shillelagh.exceptions import UnauthenticatedError
+from sqlalchemy import text
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -42,8 +42,7 @@ from superset.databases.schemas import encrypted_field_properties, EncryptedStri
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException
-from superset.superset_typing import OAuth2TokenResponse
+from superset.exceptions import OAuth2TokenRefreshError, SupersetException
 from superset.utils import json
 from superset.utils.oauth2 import get_oauth2_access_token
 
@@ -130,8 +129,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
     encrypted_extra_sensitive_fields = {
-        "$.service_account_info.private_key",
-        "$.oauth2_client_info.secret",
+        "$.service_account_info.private_key": "Service Account Private Key",
+        "$.oauth2_client_info.secret": "OAuth2 Client Secret",
     }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
@@ -154,7 +153,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         "https://accounts.google.com/o/oauth2/v2/auth"
     )
     oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
-    oauth2_exception = UnauthenticatedError
+    oauth2_exception = (UnauthenticatedError, OAuth2TokenRefreshError)
 
     @classmethod
     def get_oauth2_authorization_uri(
@@ -203,38 +202,20 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         In case the token was manually revoked on Google side, `google-auth` will
         try to automatically refresh credentials, but it fails since it only has the
         access token. This override catches this scenario as well.
+
+        Also catches the case where no credentials are configured at all
+        (missing Application Default Credentials).
         """
+        error_message = str(ex).lower()
         return (
             g
             and hasattr(g, "user")
             and (
                 isinstance(ex, cls.oauth2_exception)
-                or "credentials do not contain the necessary fields" in str(ex)
+                or "credentials do not contain the necessary fields" in error_message
+                or "default credentials were not found" in error_message
             )
         )
-
-    @classmethod
-    def get_oauth2_fresh_token(
-        cls,
-        config: OAuth2ClientConfig,
-        refresh_token: str,
-    ) -> OAuth2TokenResponse:
-        """
-        Refresh an OAuth2 access token that has expired.
-
-        When trying to refresh an expired token that was revoked on Google side,
-        the request fails with 400 status code.
-        """
-        try:
-            return super().get_oauth2_fresh_token(config, refresh_token)
-        except HTTPError as ex:
-            if ex.response is not None and ex.response.status_code == 400:
-                error_data = ex.response.json()
-                if error_data.get("error") == "invalid_grant":
-                    raise UnauthenticatedError(
-                        error_data.get("error_description", "Token has been revoked")
-                    ) from ex
-            raise
 
     @classmethod
     def impersonate_user(
@@ -288,7 +269,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             schema=table.schema,
         ) as conn:
             cursor = conn.cursor()
-            cursor.execute(f'SELECT GET_METADATA("{table.table}")')
+            escaped_table = table.table.replace('"', '""')
+            cursor.execute(f'SELECT GET_METADATA("{escaped_table}")')
             results = cursor.fetchone()[0]
         try:
             metadata = json.loads(results)
@@ -315,12 +297,27 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         params: dict[str, Any],
     ) -> None:
         """
-        Remove `oauth2_client_info` from `encrypted_extra`.
+        Remove `oauth2_client_info` from `encrypted_extra` and wrap
+        service_account_info and catalog in adapter_kwargs for shillelagh.
         """
         ShillelaghEngineSpec.update_params_from_encrypted_extra(database, params)
 
         if "oauth2_client_info" in params:
             del params["oauth2_client_info"]
+
+        if "service_account_info" in params:
+            sa_info = params.pop("service_account_info")
+            connect_args = params.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            adapter_kwargs.setdefault("gsheetsapi", {})["service_account_info"] = (
+                sa_info
+            )
+
+        if "catalog" in params:
+            catalog = params["catalog"]  # keep in params for table listing
+            connect_args = params.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            adapter_kwargs.setdefault("gsheetsapi", {})["catalog"] = catalog
 
     @classmethod
     def get_parameters_from_uri(
@@ -384,8 +381,14 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
         engine = create_engine(
             "gsheets://",
-            service_account_info=encrypted_credentials,
-            subject=subject,
+            connect_args={
+                "adapter_kwargs": {
+                    "gsheetsapi": {
+                        "service_account_info": encrypted_credentials,
+                        "subject": subject,
+                    }
+                }
+            },
         )
         conn = engine.connect()
         idx = 0
@@ -426,7 +429,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
             try:
                 url = url.replace('"', '""')
-                results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')  # noqa: S608
+                results = conn.execute(text(f'SELECT * FROM "{url}" LIMIT 1'))  # noqa: S608
                 results.fetchall()
             except Exception:  # pylint: disable=broad-except
                 errors.append(

@@ -152,16 +152,19 @@ export interface SupersetClientInterface extends Pick<
   | 'get'
   | 'post'
   | 'postForm'
+  | 'postBlob'
   | 'put'
   | 'request'
   | 'init'
   | 'isAuthenticated'
   | 'reAuthenticate'
   | 'getGuestToken'
+  | 'getUrl'
 > {
   configure: (config?: ClientConfig) => SupersetClientInterface;
   reset: () => void;
   getCSRFToken: () => CsrfPromise;
+  guestTokenHeaderName?: string;
 }
 
 export type SupersetClientResponse = Response | JsonResponse | TextResponse;

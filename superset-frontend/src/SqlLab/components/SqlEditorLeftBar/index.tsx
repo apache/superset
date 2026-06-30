@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 
 import { resetState } from 'src/SqlLab/actions/sqlLab';
 import {
@@ -28,10 +28,11 @@ import {
   Popover,
   Typography,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, css } from '@apache-superset/core/theme';
 import type { SchemaOption, CatalogOption } from 'src/hooks/apiResources';
 import { DatabaseSelector, type DatabaseObject } from 'src/components';
+import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
 
 import useDatabaseSelector from '../SqlEditorTopBar/useDatabaseSelector';
 import TableExploreTree from '../TableExploreTree';
@@ -63,11 +64,12 @@ const StyledDivider = styled.div`
 `;
 
 const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
-  const dbSelectorProps = useDatabaseSelector(queryEditorId);
+  const activeQEId = queryEditorId || EMPTY_STATE_QE_ID;
+  const dbSelectorProps = useDatabaseSelector(activeQEId);
   const { db, catalog, schema, onDbChange, onCatalogChange, onSchemaChange } =
     dbSelectorProps;
 
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const shouldShowReset = window.location.search === '?reset=1';
 
   // Modal state for Database/Catalog/Schema selector
@@ -187,18 +189,22 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
         placement="bottomLeft"
         trigger="click"
       >
-        <DatabaseSelector
-          key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
-            schema ?? 'no-schema'
-          }`}
-          {...dbSelectorProps}
-          emptyState={<EmptyState />}
-          sqlLabMode
-          onOpenModal={openSelectorModal}
-        />
+        {/* Wrap in a span so the Popover can attach a ref without relying
+            on findDOMNode (deprecated in React 18+). */}
+        <span>
+          <DatabaseSelector
+            key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
+              schema ?? 'no-schema'
+            }`}
+            {...dbSelectorProps}
+            emptyState={<EmptyState />}
+            sqlLabMode
+            onOpenModal={openSelectorModal}
+          />
+        </span>
       </Popover>
       <StyledDivider />
-      <TableExploreTree queryEditorId={queryEditorId} />
+      <TableExploreTree queryEditorId={activeQEId} />
       {shouldShowReset && (
         <Button
           buttonSize="small"

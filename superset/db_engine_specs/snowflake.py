@@ -30,7 +30,7 @@ from cryptography.hazmat.primitives import serialization
 from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
@@ -151,8 +151,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     # pylint: disable=invalid-name
     encrypted_extra_sensitive_fields = {
-        "$.auth_params.privatekey_body",
-        "$.auth_params.privatekey_pass",
+        "$.auth_params.privatekey_body": "Private Key Body",
+        "$.auth_params.privatekey_pass": "Private Key Password",
     }
 
     _time_grain_expressions = {
@@ -268,7 +268,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return {
             catalog
             for (catalog,) in inspector.bind.execute(
-                "SELECT DATABASE_NAME from information_schema.databases"
+                text("SELECT DATABASE_NAME from information_schema.databases")
             )
         }
 
@@ -334,6 +334,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         :param cancel_query_id: Snowflake Session ID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Snowflake CURRENT_SESSION() returns an alphanumeric VARCHAR session ID
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^[a-zA-Z0-9]+$"):
+            return False
+
         try:
             cursor.execute(f"SELECT SYSTEM$CANCEL_ALL_QUERIES({cancel_query_id})")
         except Exception:  # pylint: disable=broad-except

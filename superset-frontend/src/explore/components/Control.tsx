@@ -17,13 +17,13 @@
  * under the License.
  */
 import { ReactNode, useCallback, useState, useEffect } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import {
   ControlType,
   ControlComponentProps as BaseControlComponentProps,
 } from '@superset-ui/chart-controls';
 import { JsonValue, QueryFormData, usePrevious } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import controlMap from './controls';

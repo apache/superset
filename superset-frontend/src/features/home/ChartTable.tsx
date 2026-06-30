@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -112,18 +112,19 @@ function ChartTable({
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
 
-  const getData = (tab: TableTab) =>
-    fetchData({
-      pageIndex: 0,
-      pageSize: PAGE_SIZE,
-      sortBy: [
-        {
-          id: 'changed_on_delta_humanized',
-          desc: true,
-        },
-      ],
-      filters: getFilterValues(tab, WelcomeTable.Charts, user, otherTabFilters),
-    });
+  const getChartFetchDataConfig = (tab: TableTab) => ({
+    pageIndex: 0,
+    pageSize: PAGE_SIZE,
+    sortBy: [
+      {
+        id: 'changed_on_delta_humanized',
+        desc: true,
+      },
+    ],
+    filters: getFilterValues(tab, WelcomeTable.Charts, user, otherTabFilters),
+  });
+
+  const getData = (tab: TableTab) => fetchData(getChartFetchDataConfig(tab));
 
   useEffect(() => {
     if (loaded || activeTab === TableTab.Favorite) {
@@ -234,6 +235,7 @@ function ChartTable({
               refreshData={refreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
+              getData={getData}
               favoriteStatus={favoriteStatus[e.id]}
               saveFavoriteStatus={saveFavoriteStatus}
               handleBulkChartExport={handleBulkChartExport}

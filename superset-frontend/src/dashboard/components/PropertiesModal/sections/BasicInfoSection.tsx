@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { FormItem, Input, FormInstance } from '@superset-ui/core/components';
 import { ModalFormField } from 'src/components/Modal';
 import { ValidationObject } from 'src/components/Modal/useModalValidation';
@@ -71,6 +71,18 @@ const BasicInfoSection = ({
             placeholder={t('A readable URL for your dashboard')}
             data-test="dashboard-slug-input"
             type="text"
+          />
+        </FormItem>
+      </ModalFormField>
+      <ModalFormField
+        label={t('Description')}
+        testId="dashboard-description-field"
+        bottomSpacing={false}
+      >
+        <FormItem name="description" noStyle>
+          <Input.TextArea
+            placeholder={t('A description for your dashboard')}
+            data-test="dashboard-description-input"
           />
         </FormItem>
       </ModalFormField>

@@ -37,11 +37,14 @@ import { DrillBySubmenu, DrillBySubmenuProps } from './DrillBySubmenu';
 
 const { form_data: defaultFormData } = chartQueries[sliceId];
 
-jest.mock('lodash/debounce', () => (fn: Function & { debounce: Function }) => {
-  // eslint-disable-next-line no-param-reassign
-  fn.debounce = jest.fn();
-  return fn;
-});
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fn: Function & { debounce: Function }) => {
+    // eslint-disable-next-line no-param-reassign
+    fn.debounce = jest.fn();
+    return fn;
+  },
+}));
 
 const defaultColumns = [
   { column_name: 'col1', groupby: true },
@@ -272,9 +275,13 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
   );
 });
 
-test('matrixify_enable_vertical_layout should not render component', () => {
+test('matrixify_mode_rows enabled should not render component', () => {
   const { container } = renderSubmenu({
-    formData: { ...defaultFormData, matrixify_enable_vertical_layout: true },
+    formData: {
+      ...defaultFormData,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
+    },
   });
   expect(container).toBeEmptyDOMElement();
 });

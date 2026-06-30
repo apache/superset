@@ -17,6 +17,8 @@
 from copy import deepcopy
 from typing import Any
 
+from superset.utils import json
+
 # example V0 import/export format
 dataset_ui_export: list[dict[str, Any]] = [
     {
@@ -396,6 +398,30 @@ database_config_no_creds: dict[str, Any] = {
     "extra": {},
     "sqlalchemy_uri": "bigquery://test-db/",
     "uuid": "2ff17edc-f3fa-4609-a5ac-b484281225bc",
+    "version": "1.0.0",
+}
+
+database_config_with_masked_encrypted_extra: dict[str, Any] = {
+    "allow_csv_upload": False,
+    "allow_ctas": False,
+    "allow_cvas": False,
+    "allow_dml": False,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database_encrypted",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "bigquery://test-project/",
+    "uuid": "c9a1dde3-889e-5bc0-9ae9-0bc229e8fa90",
+    "masked_encrypted_extra": json.dumps(
+        {
+            "credentials_info": {
+                "type": "service_account",
+                "project_id": "test-project",
+                "private_key": "-----BEGIN PRIVATE KEY-----\nMyPriVaTeKeY\n-----END PRIVATE KEY-----\n",  # noqa: E501
+            }
+        }
+    ),
     "version": "1.0.0",
 }
 

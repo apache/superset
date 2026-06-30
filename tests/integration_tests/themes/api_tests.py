@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 
 import pytest
-import prison
+import rison
 import uuid
 import yaml
 from datetime import datetime
@@ -114,7 +114,7 @@ class TestThemeApi(SupersetTestCase):
         themes = db.session.query(Theme).order_by(Theme.theme_name.asc()).all()
         self.login(ADMIN_USERNAME)
         query_string = {"order_column": "theme_name", "order_direction": "asc"}
-        uri = f"api/v1/theme/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/theme/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -142,7 +142,7 @@ class TestThemeApi(SupersetTestCase):
                 }
             ],
         }
-        uri = f"api/v1/theme/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/theme/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -163,7 +163,7 @@ class TestThemeApi(SupersetTestCase):
                 }
             ],
         }
-        uri = f"api/v1/theme/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/theme/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -184,7 +184,7 @@ class TestThemeApi(SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/theme/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/theme/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -353,7 +353,7 @@ class TestThemeApi(SupersetTestCase):
         theme_ids = [theme.id for theme in themes]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/theme/?q={prison.dumps(theme_ids)}"
+        uri = f"api/v1/theme/?q={rison.dumps(theme_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -373,7 +373,7 @@ class TestThemeApi(SupersetTestCase):
         theme_ids = [theme.id]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/theme/?q={prison.dumps(theme_ids)}"
+        uri = f"api/v1/theme/?q={rison.dumps(theme_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -388,7 +388,7 @@ class TestThemeApi(SupersetTestCase):
         """
         theme_ids = [1, "a"]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/theme/?q={prison.dumps(theme_ids)}"
+        uri = f"api/v1/theme/?q={rison.dumps(theme_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 400
 
@@ -401,7 +401,7 @@ class TestThemeApi(SupersetTestCase):
 
         theme_ids = [max_id + 1, max_id + 2]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/theme/?q={prison.dumps(theme_ids)}"
+        uri = f"api/v1/theme/?q={rison.dumps(theme_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404
 

@@ -30,14 +30,14 @@ import {
   ReactElement,
 } from 'react';
 
-import { t } from '@apache-superset/core';
-import { ensureIsArray, usePrevious } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray, formatNumber, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
 } from 'antd/es/select';
-import { debounce, isEqual, uniq } from 'lodash';
+import { debounce, isEqual, uniq } from 'lodash-es';
 import {
   dropDownRenderHelper,
   getOption,
@@ -91,9 +91,10 @@ const Select = forwardRef(
       className,
       allowClear,
       allowNewOptions = false,
+      allowNewOptionsOnPaste = false,
       allowSelectAll = true,
       ariaLabel,
-      autoClearSearchValue = false,
+      autoClearSearchValue = true,
       filterOption = true,
       header = null,
       headerPosition = 'top',
@@ -149,6 +150,8 @@ const Select = forwardRef(
     // Prevent maxTagCount change during click events to avoid click target disappearing
     const [stableMaxTagCount, setStableMaxTagCount] = useState(maxTagCount);
     const isOpeningRef = useRef(false);
+    const selectContainerRef = useRef<HTMLDivElement>(null);
+    const [dropdownWidth, setDropdownWidth] = useState<number | true>(true);
 
     useEffect(() => {
       if (oneLine) {
@@ -159,12 +162,23 @@ const Select = forwardRef(
           requestAnimationFrame(() => {
             setStableMaxTagCount(0);
             isOpeningRef.current = false;
+
+            // Measure collapsed width and update dropdown width
+            const selectElement =
+              selectContainerRef.current?.querySelector('.ant-select');
+            if (selectElement) {
+              const { width } = selectElement.getBoundingClientRect();
+              if (width > 0) {
+                setDropdownWidth(width);
+              }
+            }
           });
           return;
         }
         if (!isDropdownVisible) {
           // When closing, immediately show the first tag
           setStableMaxTagCount(1);
+          setDropdownWidth(true); // Reset to default when closing
           isOpeningRef.current = false;
         }
         return;
@@ -319,6 +333,11 @@ const Select = forwardRef(
           return previousState;
         });
         fireOnChange();
+      }
+      if (autoClearSearchValue) {
+        setInputValue('');
+        setIsSearching(false);
+        setVisibleOptions(fullSelectOptions);
       }
       onSelect?.(selectedItem, option);
     };
@@ -494,7 +513,7 @@ const Select = forwardRef(
 
     const bulkSelectComponent = useMemo(
       () => (
-        <StyledBulkActionsContainer justify="center">
+        <StyledBulkActionsContainer justify="center" gap="small" wrap>
           <Button
             type="link"
             buttonStyle="link"
@@ -506,7 +525,8 @@ const Select = forwardRef(
               handleSelectAll();
             }}
           >
-            {`${t('Select all')} (${bulkSelectCounts.selectable})`}
+            {t('Select all')}{' '}
+            {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.selectable)})`}
           </Button>
           <Button
             type="link"
@@ -523,7 +543,8 @@ const Select = forwardRef(
               handleDeselectAll();
             }}
           >
-            {`${t('Clear')} (${bulkSelectCounts.deselectable})`}
+            {t('Clear')}{' '}
+            {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.deselectable)})`}
           </Button>
         </StyledBulkActionsContainer>
       ),
@@ -677,20 +698,34 @@ const Select = forwardRef(
         }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
-        const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const array = token
+          ? uniq(
+              pastedText
+                .split(token)
+                .map(item => item.trim())
+                .filter(Boolean),
+            )
+          : [pastedText.trim()].filter(Boolean);
 
         const newOptions: SelectOptionsType = [];
+        // When `allowNewOptionsOnPaste` is set, accept pasted values that are
+        // not in the loaded options even if `allowNewOptions` is false. The
+        // full option set is searched server-side and only partially loaded
+        // client-side, so a pasted value can legitimately exist in the dataset
+        // but fall outside the loaded page.
+        const keepUnknownValues = allowNewOptions || allowNewOptionsOnPaste;
 
         const values = array
           .map(item => {
             const option = getOption(item, fullSelectOptions, true);
-            if (!option && allowNewOptions) {
+            if (!option && keepUnknownValues) {
               const newOption = {
                 label: item,
                 value: item,
                 isNewOption: true,
               };
               newOptions.push(newOption);
+              return labelInValue ? { label: item, value: item } : item;
             }
             return getPastedTextValue(item);
           })
@@ -717,7 +752,11 @@ const Select = forwardRef(
     };
 
     return (
-      <StyledContainer className={className} headerPosition={headerPosition}>
+      <StyledContainer
+        ref={selectContainerRef}
+        className={className}
+        headerPosition={headerPosition}
+      >
         {header && (
           <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
         )}
@@ -777,7 +816,7 @@ const Select = forwardRef(
           options={visibleOptions}
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
-          popupMatchSelectWidth={selectAllEnabled ? 168 : true}
+          popupMatchSelectWidth={oneLine ? dropdownWidth : true}
           css={props.css}
           dropdownAlign={DROPDOWN_ALIGN_BOTTOM}
           {...props}

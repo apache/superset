@@ -160,6 +160,44 @@ test('Render tab (no content)', () => {
   expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
 });
 
+test('passes correct canEdit and editing props to EditableTitle', () => {
+  const props = createProps();
+
+  props.editMode = true;
+  props.isFocused = false;
+  props.renderType = 'RENDER_TAB';
+  render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(EditableTitle).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: '🚀 Aspiring Developers',
+      canEdit: true,
+      editing: false,
+    }),
+    expect.anything(),
+  );
+
+  (EditableTitle as jest.Mock).mockClear();
+
+  const focusedProps = { ...props, isFocused: true };
+  render(<Tab {...focusedProps} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(EditableTitle).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: '🚀 Aspiring Developers',
+      canEdit: true,
+      editing: true,
+    }),
+    expect.anything(),
+  );
+});
+
 test('Render tab (no content) editMode:true', () => {
   const props = createProps();
   props.editMode = true;
@@ -578,6 +616,7 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
     true, // Force refresh
     0, // Interval
     23, // Dashboard ID
+    false, // skipFiltersRefresh
     true, // isLazyLoad flag
   );
 });
@@ -718,6 +757,7 @@ test('Should use isLazyLoad flag for tab refreshes', async () => {
     true, // force
     0, // interval
     42, // dashboardId
+    false, // skipFiltersRefresh
     true, // isLazyLoad should be true to prevent infinite loops
   );
 });

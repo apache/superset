@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { styled, supersetTheme } from '@apache-superset/core/ui';
+import { styled, supersetTheme } from '@apache-superset/core/theme';
 import { Input } from '../Input';
 import { Icons, IconNameType } from '.';
 import type { IconType } from './types';

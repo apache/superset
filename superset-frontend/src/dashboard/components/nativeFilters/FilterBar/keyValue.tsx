@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import { DashboardPermalinkValue } from 'src/dashboard/types';
 
 const assembleEndpoint = (

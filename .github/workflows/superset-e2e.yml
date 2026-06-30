@@ -10,26 +10,49 @@ on:
   workflow_dispatch:
     inputs:
       use_dashboard:
-        description: 'Use Cypress Dashboard (true/false) [paid service - trigger manually when needed]. You MUST provide a branch and/or PR number below for this to work.'
+        description: "Use Cypress Dashboard (true/false) [paid service - trigger manually when needed]. You MUST provide a branch and/or PR number below for this to work."
         required: false
-        default: 'false'
+        default: "false"
       ref:
-        description: 'The branch or tag to checkout'
+        description: "The branch or tag to checkout"
         required: false
-        default: ''
+        default: ""
       pr_id:
-        description: 'The pull request ID to checkout'
+        description: "The pull request ID to checkout"
         required: false
-        default: ''
+        default: ""
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python: ${{ steps.check.outputs.python }}
+      frontend: ${{ steps.check.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   cypress-matrix:
+    needs: changes
+    if: (needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true') && github.event.pull_request.draft == false
     # Somehow one test flakes on 24.04 for unknown reasons, this is the only GHA left on 22.04
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: read
@@ -40,9 +63,14 @@ jobs:
       # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        parallel_id: [0, 1, 2, 3, 4, 5]
+        parallel_id: [0, 1]
         browser: ["chrome"]
-        app_root: ["", "/app/prefix"]
+        app_root: ${{ github.event_name == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
+        # The /app/prefix variant (push events only) is smoke-tested on a single
+        # shard rather than the full matrix, so exclude it from the other shards.
+        exclude:
+          - parallel_id: 1
+            app_root: "/app/prefix"
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -54,7 +82,7 @@ jobs:
       USE_DASHBOARD: ${{ github.event.inputs.use_dashboard == 'true' || 'false' }}
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -69,71 +97,60 @@ jobs:
       # Conditional checkout based on context
       - name: Checkout for push or pull_request event
         if: github.event_name == 'push' || github.event_name == 'pull_request'
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           submodules: recursive
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref }}
           submodules: recursive
       - name: Checkout using PR ID (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
           submodules: recursive
       # -------------------------------------------------------
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-        if: steps.check.outputs.python || steps.check.outputs.frontend
       - name: Setup postgres
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Import test data
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: testdata
       - name: Setup Node.js
-        if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version-file: './superset-frontend/.nvmrc'
+          node-version-file: "./superset-frontend/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Install npm dependencies
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
       - name: Install cypress
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: cypress-install
       - name: Run Cypress
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           PARALLEL_ID: ${{ matrix.parallel_id }}
-          PARALLELISM: 6
+          PARALLELISM: 2
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
@@ -141,19 +158,23 @@ jobs:
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
+        env:
+          APP_ROOT: ${{ matrix.app_root }}
         run: |
-          APP_ROOT="${{ matrix.app_root }}"
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: failure()
         with:
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
           name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.parallel_id }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
 
   playwright-tests:
+    needs: changes
+    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: read
@@ -161,7 +182,7 @@ jobs:
       fail-fast: false
       matrix:
         browser: ["chromium"]
-        app_root: ["", "/app/prefix"]
+        app_root: ${{ github.event_name == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -171,7 +192,7 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -186,66 +207,59 @@ jobs:
       # Conditional checkout based on context (same as Cypress workflow)
       - name: Checkout for push or pull_request event
         if: github.event_name == 'push' || github.event_name == 'pull_request'
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           submodules: recursive
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref }}
           submodules: recursive
       - name: Checkout using PR ID (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
           submodules: recursive
       # -------------------------------------------------------
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-        if: steps.check.outputs.python || steps.check.outputs.frontend
       - name: Setup postgres
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Import test data
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: playwright_testdata
       - name: Setup Node.js
-        if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version-file: './superset-frontend/.nvmrc'
+          node-version-file: "./superset-frontend/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Install npm dependencies
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
+      - name: Build embedded SDK
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: build-embedded-sdk
       - name: Install Playwright
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: playwright-install
       - name: Run Playwright (Required Tests)
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
@@ -254,15 +268,76 @@ jobs:
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
+        env:
+          APP_ROOT: ${{ matrix.app_root }}
         run: |
-          APP_ROOT="${{ matrix.app_root }}"
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Playwright Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: failure()
         with:
           path: |
             ${{ github.workspace }}/superset-frontend/playwright-results/
             ${{ github.workspace }}/superset-frontend/test-results/
           name: playwright-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
+
+  # Stable required-status-check anchors. cypress-matrix and playwright-tests
+  # are matrix jobs gated on change detection (python || frontend). On a PR
+  # that touches neither — e.g. a docs-only PR — they are skipped at the job
+  # level, which happens before matrix expansion, so the per-combination
+  # contexts (`cypress-matrix (0, chrome)`, `playwright-tests (chromium)`) are
+  # never produced and branch protection waits on them forever. These
+  # always-running jobs report a single stable context that passes when the
+  # underlying matrix job succeeded or was skipped, and fails only on a real
+  # failure. Require these in .asf.yaml instead of the matrix-expanded names.
+  #
+  # A matrix job reads as "skipped" in two distinct cases, and only the first
+  # is a legitimate pass: (a) change detection succeeded and gated the job off
+  # (docs-only PR); (b) the `changes` job itself failed or was cancelled, in
+  # which case GHA skips its dependents too. Accepting (b) would let a broken
+  # change-detector report a false green, so each anchor first requires
+  # `changes` to have succeeded before honouring a skip.
+  cypress-matrix-required:
+    needs: [changes, cypress-matrix]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Check cypress-matrix result
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          RESULT: ${{ needs.cypress-matrix.result }}
+        run: |
+          if [ "$CHANGES" != "success" ]; then
+            echo "change detection did not succeed (result: $CHANGES); refusing to pass on a skipped matrix"
+            exit 1
+          fi
+          if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
+            echo "cypress-matrix did not pass (result: $RESULT)"
+            exit 1
+          fi
+          echo "cypress-matrix result: $RESULT (changes: $CHANGES)"
+
+  playwright-tests-required:
+    needs: [changes, playwright-tests]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Check playwright-tests result
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          RESULT: ${{ needs.playwright-tests.result }}
+        run: |
+          if [ "$CHANGES" != "success" ]; then
+            echo "change detection did not succeed (result: $CHANGES); refusing to pass on a skipped matrix"
+            exit 1
+          fi
+          if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
+            echo "playwright-tests did not pass (result: $RESULT)"
+            exit 1
+          fi
+          echo "playwright-tests result: $RESULT (changes: $CHANGES)"

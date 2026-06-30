@@ -33,6 +33,7 @@ import {
 } from 'src/SqlLab/fixtures';
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
 import { ToastType } from '../../components/MessageToasts/types';
 
 const isFeatureEnabledMock = isFeatureEnabled as unknown as jest.Mock;
@@ -581,16 +582,25 @@ describe('async actions', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('runQuery with query params', () => {
-    const { location } = window;
+    let locationSpy: jest.SpyInstance;
 
     beforeAll(() => {
-      delete (window as any).location;
-      (window as any).location = new URL('http://localhost/sqllab/?foo=bar');
+      const u = new URL('http://localhost/sqllab/?foo=bar');
+      locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+        href: u.href,
+        pathname: u.pathname,
+        search: u.search,
+        hash: u.hash,
+        origin: u.origin,
+        host: u.host,
+        hostname: u.hostname,
+        port: u.port,
+        protocol: u.protocol,
+      } as Location);
     });
 
     afterAll(() => {
-      delete (window as any).location;
-      window.location = location;
+      locationSpy.mockRestore();
     });
 
     const makeRequest = () => {
@@ -874,6 +884,44 @@ describe('async actions', () => {
                 (defaultQueryEditor as any).queryLimit ||
                 initialState.common.conf.DEFAULT_SQLLAB_LIMIT,
               inLocalStorage: true,
+              loaded: true,
+            },
+          },
+        ];
+        const request = actions.addNewQueryEditor();
+        request(store.dispatch, store.getState, undefined);
+        expect(store.getActions()).toEqual(expectedActions);
+      });
+
+      test('creates a new query editor from the saved state in the empty tab', () => {
+        const unsavedEmptyTabState = {
+          id: EMPTY_STATE_QE_ID,
+          dbId: 2,
+          catalog: 'test_catalog',
+          schema: 'test_schema',
+        };
+        const store = mockStore({
+          ...initialState,
+          sqlLab: {
+            ...initialState.sqlLab,
+            tabHistory: [EMPTY_STATE_QE_ID],
+            unsavedQueryEditor: unsavedEmptyTabState,
+          },
+        });
+        const expectedActions = [
+          {
+            type: actions.ADD_QUERY_EDITOR,
+            queryEditor: {
+              id: 'abcd',
+              immutableId: 'abcd',
+              sql: expect.stringContaining('SELECT ...'),
+              name: 'Untitled Query 4',
+              dbId: unsavedEmptyTabState.dbId,
+              catalog: unsavedEmptyTabState.catalog,
+              schema: unsavedEmptyTabState.schema,
+              inLocalStorage: true,
+              autorun: false,
+              queryLimit: initialState.common.conf.DEFAULT_SQLLAB_LIMIT,
               loaded: true,
             },
           },
@@ -1373,39 +1421,6 @@ describe('async actions', () => {
     });
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-    describe('syncTable', () => {
-      test('updates the table schema state in the backend', () => {
-        expect.assertions(4);
-
-        const tableName = 'table';
-        const schemaName = 'schema';
-        const store = mockStore(initialState);
-        const expectedActionTypes = [
-          actions.MERGE_TABLE, // syncTable
-        ];
-        const request = actions.syncTable(
-          query as any,
-          tableName as any,
-          schemaName,
-        );
-        return request(store.dispatch, store.getState, undefined).then(() => {
-          expect(store.getActions().map(a => a.type)).toEqual(
-            expectedActionTypes,
-          );
-          expect(store.getActions()[0].prepend).toBeFalsy();
-          expect(
-            fetchMock.callHistory.calls(updateTableSchemaEndpoint),
-          ).toHaveLength(1);
-
-          // tab state is not updated, since no query was run
-          expect(
-            fetchMock.callHistory.calls(updateTabStateEndpoint),
-          ).toHaveLength(0);
-        });
-      });
-    });
-
-    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('runTablePreviewQuery', () => {
       const results = {
         data: mockBigNumber,
@@ -1828,14 +1843,26 @@ describe('async actions', () => {
           {
             ...query,
             id: 'previewOne',
-            sqlEditorId: oldQueryEditor.id,
-            inLocalStorage: true,
+            sqlEditorId: null,
+            isDataPreview: true,
           },
           {
             ...query,
             id: 'previewTwo',
+            sqlEditorId: null,
+            isDataPreview: true,
+          },
+          {
+            ...query,
+            id: 'runningQuery',
             sqlEditorId: oldQueryEditor.id,
-            inLocalStorage: true,
+            state: 'running',
+          },
+          {
+            ...query,
+            id: 'unrelatedQuery',
+            sqlEditorId: 'other-editor',
+            state: 'running',
           },
         ];
         const store = mockStore({
@@ -1870,12 +1897,7 @@ describe('async actions', () => {
           },
           {
             type: actions.MIGRATE_QUERY,
-            queryId: 'previewOne',
-            queryEditorId: '1',
-          },
-          {
-            type: actions.MIGRATE_QUERY,
-            queryId: 'previewTwo',
+            queryId: 'runningQuery',
             queryEditorId: '1',
           },
         ];
@@ -1885,7 +1907,7 @@ describe('async actions', () => {
             expect(store.getActions()).toEqual(expectedActions);
             expect(
               fetchMock.callHistory.calls(updateTabStateEndpoint),
-            ).toHaveLength(3);
+            ).toHaveLength(2);
 
             // query editor has 2 tables loaded in the schema viewer
             expect(

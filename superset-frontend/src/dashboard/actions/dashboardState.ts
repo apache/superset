@@ -35,8 +35,8 @@ import {
   removeChart,
   refreshChart,
 } from 'src/components/Chart/chartAction';
-import { logging } from '@apache-superset/core';
-import { t } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import {
@@ -58,7 +58,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { navigateWithState, navigateTo } from 'src/utils/navigationUtils';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
@@ -160,27 +160,48 @@ export function toggleFaveStar(isStarred: boolean): ToggleFaveStarAction {
 }
 
 export function fetchFaveStar(id: number) {
-  return function fetchFaveStarThunk(dispatch: AppDispatch) {
+  return function fetchFaveStarThunk(
+    dispatch: AppDispatch,
+    getState: GetState,
+  ) {
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/favorite_status/?q=${rison.encode([id])}`,
     })
       .then(({ json }: { json: JsonObject }) => {
-        dispatch(toggleFaveStar(!!(json?.result as JsonObject[])?.[0]?.value));
+        // Only update state if this is still the current dashboard
+        // This prevents stale responses from affecting the UI after navigation
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            toggleFaveStar(!!(json?.result as JsonObject[])?.[0]?.value),
+          );
+        }
       })
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'There was an issue fetching the favorite status of this dashboard.',
+      .catch(error => {
+        // A 404 means the favorite status isn't available to this user (a
+        // non-owner viewing a draft dashboard, or a dashboard deleted after
+        // navigation) — swallow it silently instead of alarming them.
+        if (error instanceof Response && error.status === 404) {
+          return;
+        }
+        // Only show the error if this is still the current dashboard (prevents
+        // toasts for dashboards the user already navigated away from).
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(
+              t(
+                'There was an issue fetching the favorite status of this dashboard.',
+              ),
             ),
-          ),
-        ),
-      );
+          );
+        }
+      });
   };
 }
 
 export function saveFaveStar(id: number, isStarred: boolean) {
-  return function saveFaveStarThunk(dispatch: AppDispatch) {
+  return function saveFaveStarThunk(dispatch: AppDispatch, getState: GetState) {
     const endpoint = `/api/v1/dashboard/${id}/favorites/`;
     const apiCall = isStarred
       ? SupersetClient.delete({
@@ -190,13 +211,21 @@ export function saveFaveStar(id: number, isStarred: boolean) {
 
     return apiCall
       .then(() => {
-        dispatch(toggleFaveStar(!isStarred));
+        // Only update state if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(toggleFaveStar(!isStarred));
+        }
       })
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('There was an issue favoriting this dashboard.')),
-        ),
-      );
+      .catch(() => {
+        // Only show error if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(t('There was an issue favoriting this dashboard.')),
+          );
+        }
+      });
   };
 }
 
@@ -214,8 +243,11 @@ export function togglePublished(isPublished: boolean): TogglePublishedAction {
 export function savePublished(
   id: number,
   isPublished: boolean,
-): (dispatch: AppDispatch) => Promise<void> {
-  return function savePublishedThunk(dispatch: AppDispatch): Promise<void> {
+): (dispatch: AppDispatch, getState: GetState) => Promise<void> {
+  return function savePublishedThunk(
+    dispatch: AppDispatch,
+    getState: GetState,
+  ): Promise<void> {
     return SupersetClient.put({
       endpoint: `/api/v1/dashboard/${id}`,
       headers: { 'Content-Type': 'application/json' },
@@ -224,21 +256,30 @@ export function savePublished(
       }),
     })
       .then(() => {
-        dispatch(
-          addSuccessToast(
-            isPublished
-              ? t('This dashboard is now published')
-              : t('This dashboard is now hidden'),
-          ),
-        );
-        dispatch(togglePublished(isPublished));
+        // Only update state if this is still the current dashboard
+        // This prevents stale responses from affecting the UI after navigation
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addSuccessToast(
+              isPublished
+                ? t('This dashboard is now published')
+                : t('This dashboard is now hidden'),
+            ),
+          );
+          dispatch(togglePublished(isPublished));
+        }
       })
       .catch(() => {
-        dispatch(
-          addDangerToast(
-            t('You do not have permissions to edit this dashboard.'),
-          ),
-        );
+        // Only show error if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(
+              t('You do not have permissions to edit this dashboard.'),
+            ),
+          );
+        }
       });
   };
 }
@@ -412,9 +453,9 @@ interface DashboardSaveData extends JsonObject {
   css?: string;
   dashboard_title?: string;
   owners?: { id: number }[] | number[];
-  roles?: { id: number }[] | number[];
+  roles?: JsonObject[];
   slug?: string | null;
-  tags?: { id: number }[] | number[];
+  tags?: JsonObject[];
   metadata?: JsonObject;
   positions?: JsonObject;
   duplicate_slices?: boolean;
@@ -453,6 +494,7 @@ export function saveDashboardRequest(
       owners,
       roles,
       slug,
+      description,
       tags,
     } = data;
 
@@ -468,9 +510,12 @@ export function saveDashboardRequest(
     );
     const cleanedData: JsonObject = {
       ...data,
-      certified_by: certified_by || '',
-      certification_details:
-        certified_by && certification_details ? certification_details : '',
+      ...(certified_by !== undefined && {
+        certified_by,
+        certification_details: certified_by
+          ? (certification_details ?? '')
+          : '',
+      }),
       css: css || '',
       dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
       owners: ensureIsArray(owners as JsonObject[]).map((o: JsonObject) =>
@@ -482,6 +527,7 @@ export function saveDashboardRequest(
             hasId(r) ? r.id : r,
           ),
       slug: slug || null,
+      description: description || null,
       tags: !isFeatureEnabled(FeatureFlag.TaggingSystem)
         ? undefined
         : ensureIsArray((tags || []) as JsonObject[]).map((r: JsonObject) =>
@@ -633,6 +679,7 @@ export function saveDashboardRequest(
               css: cleanedData.css,
               dashboard_title: cleanedData.dashboard_title,
               slug: cleanedData.slug,
+              description: cleanedData.description,
               owners: cleanedData.owners,
               roles: cleanedData.roles,
               tags: cleanedData.tags || [],
@@ -740,13 +787,14 @@ export function fetchCharts(
   force = false,
   interval = 0,
   dashboardId?: number,
-): (dispatch: AppDispatch, getState: GetState) => void {
+): (dispatch: AppDispatch, getState: GetState) => Promise<void> {
   return (dispatch: AppDispatch, getState: GetState) => {
     if (!interval) {
-      chartList.forEach(chartKey =>
-        dispatch(refreshChart(chartKey, force, dashboardId)),
-      );
-      return;
+      return Promise.all(
+        chartList.map(chartKey =>
+          Promise.resolve(dispatch(refreshChart(chartKey, force, dashboardId))),
+        ),
+      ).then(() => undefined);
     }
 
     const { metadata } = getState().dashboardInfo;
@@ -770,12 +818,20 @@ export function fetchCharts(
       staggerRefresh && chartList.length > 1
         ? refreshTime / (chartList.length - 1)
         : 0;
-    chartList.forEach((chartKey: number, i: number) => {
-      setTimeout(
-        () => dispatch(refreshChart(chartKey, force, dashboardId)),
-        delay * i,
-      );
-    });
+    return Promise.all(
+      chartList.map(
+        (chartKey: number, i: number) =>
+          new Promise<void>((resolve, reject) => {
+            setTimeout(() => {
+              Promise.resolve(
+                dispatch(refreshChart(chartKey, force, dashboardId)),
+              )
+                .then(() => resolve())
+                .catch(reject);
+            }, delay * i);
+          }),
+      ),
+    ).then(() => undefined);
   };
 }
 
@@ -786,10 +842,7 @@ const refreshCharts = (
   dashboardId: number | undefined,
   dispatch: AppDispatch,
 ): Promise<void> =>
-  new Promise(resolve => {
-    dispatch(fetchCharts(chartList, force, interval, dashboardId));
-    resolve();
-  });
+  dispatch(fetchCharts(chartList, force, interval, dashboardId));
 
 export const ON_FILTERS_REFRESH = 'ON_FILTERS_REFRESH';
 
@@ -828,8 +881,9 @@ export function onRefresh(
   force = false,
   interval = 0,
   dashboardId?: number,
+  skipFiltersRefresh = false,
   isLazyLoad = false,
-): (dispatch: AppDispatch) => void {
+): (dispatch: AppDispatch) => Promise<void> {
   return (dispatch: AppDispatch) => {
     // Only dispatch ON_REFRESH for dashboard-level refreshes
     // Skip it for lazy-loaded tabs to prevent infinite loops
@@ -837,14 +891,18 @@ export function onRefresh(
       dispatch({ type: ON_REFRESH });
     }
 
-    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(
-      () => {
-        dispatch(onRefreshSuccess());
-        if (!isLazyLoad) {
-          dispatch(onFiltersRefresh());
-        }
-      },
-    );
+    return refreshCharts(
+      chartList,
+      force,
+      interval,
+      dashboardId,
+      dispatch,
+    ).then(() => {
+      dispatch(onRefreshSuccess());
+      if (!skipFiltersRefresh && !isLazyLoad) {
+        dispatch(onFiltersRefresh());
+      }
+    });
   };
 }
 

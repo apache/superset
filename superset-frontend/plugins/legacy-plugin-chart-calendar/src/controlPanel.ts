@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { legacyValidateInteger } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
+  DEFAULT_TIME_FORMAT,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
@@ -145,7 +146,7 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Time Format'),
               renderTrigger: true,
-              default: 'smart_date',
+              default: DEFAULT_TIME_FORMAT,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: D3_FORMAT_DOCS,
             },

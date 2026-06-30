@@ -21,8 +21,22 @@ import fetchMock from 'fetch-mock';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { getExtensionsRegistry } from '@superset-ui/core';
+import * as CoreTheme from '@apache-superset/core/theme';
 import { Menu } from './Menu';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
+
+jest.mock('@apache-superset/core/theme', () => ({
+  ...jest.requireActual('@apache-superset/core/theme'),
+  useTheme: jest.fn(),
+}));
+
+jest.mock('antd', () => ({
+  ...jest.requireActual('antd'),
+  Grid: {
+    ...jest.requireActual('antd').Grid,
+    useBreakpoint: () => ({ md: true }),
+  },
+}));
 
 const dropdownItems = [
   {
@@ -75,7 +89,7 @@ const dropdownItems = [
   },
   {
     label: 'Dashboard',
-    url: '/dashboard/new',
+    url: '/dashboard/new/',
     icon: 'fa-fw fa-dashboard',
     perm: 'can_write',
     view: 'Dashboard',
@@ -243,6 +257,8 @@ const staticAssetsPrefixMock = jest.spyOn(
   getBootstrapData,
   'staticAssetsPrefix',
 );
+const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');
+const useThemeMock = CoreTheme.useTheme as jest.Mock;
 
 fetchMock.get(
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
@@ -252,8 +268,11 @@ fetchMock.get(
 beforeEach(() => {
   // setup a DOM element as a render target
   useSelectorMock.mockClear();
-  // By default use empty static assets prefix
+  // By default use empty static assets prefix and default app root
   staticAssetsPrefixMock.mockReturnValue('');
+  applicationRootMock.mockReturnValue('');
+  // By default useTheme returns the real default theme (brandLogoUrl is falsy)
+  useThemeMock.mockReturnValue(CoreTheme.supersetTheme);
 });
 
 test('should render', async () => {
@@ -674,4 +693,214 @@ test('should not render the brand text if not available', async () => {
 
   const brandText = screen.queryByText(text);
   expect(brandText).not.toBeInTheDocument();
+});
+
+test('brand logo href should not be prefixed with app root when brandLogoHref is an absolute URL', async () => {
+  applicationRootMock.mockReturnValue('/superset');
+  useThemeMock.mockReturnValue({
+    ...CoreTheme.supersetTheme,
+    brandLogoUrl: '/static/assets/images/custom-logo.png',
+    brandLogoHref: 'https://external.example.com',
+  });
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: /apache superset/i,
+  });
+  expect(brandLink).toHaveAttribute('href', 'https://external.example.com');
+});
+
+test('brand logo href should not be prefixed with app root when brandLogoHref is protocol-relative', async () => {
+  applicationRootMock.mockReturnValue('/superset');
+  useThemeMock.mockReturnValue({
+    ...CoreTheme.supersetTheme,
+    brandLogoUrl: '/static/assets/images/custom-logo.png',
+    brandLogoHref: '//external.example.com',
+  });
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: /apache superset/i,
+  });
+  expect(brandLink).toHaveAttribute('href', '//external.example.com');
+});
+
+test('brand path should be prefixed with app root in subdirectory deployment', async () => {
+  applicationRootMock.mockReturnValue('/superset');
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  const propsWithSimplePath = {
+    ...mockedProps,
+    data: {
+      ...mockedProps.data,
+      brand: {
+        ...mockedProps.data.brand,
+        path: '/welcome/',
+      },
+    },
+  };
+
+  render(<Menu {...propsWithSimplePath} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: new RegExp(propsWithSimplePath.data.brand.alt, 'i'),
+  });
+  expect(brandLink).toHaveAttribute('href', '/superset/welcome/');
+});
+
+test('brand link falls back to brand.path when theme brandLogoUrl is absent', async () => {
+  // useThemeMock default returns supersetTheme with brandLogoUrl undefined (falsy)
+  applicationRootMock.mockReturnValue('/superset');
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  const propsWithFallbackPath = {
+    ...mockedProps,
+    data: {
+      ...mockedProps.data,
+      brand: {
+        ...mockedProps.data.brand,
+        path: '/welcome/',
+      },
+    },
+  };
+
+  render(<Menu {...propsWithFallbackPath} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: new RegExp(propsWithFallbackPath.data.brand.alt, 'i'),
+  });
+  // ensureAppRoot must have been applied: /welcome/ → /superset/welcome/
+  expect(brandLink).toHaveAttribute('href', '/superset/welcome/');
+});
+
+// --- Active tab highlighting (regression tests for issue #36403) ---
+//
+// The active top-level tab is highlighted by matching the current route to a
+// menu item. The matching must rely on a stable identifier (the FAB `name`),
+// not the displayed label, otherwise highlighting breaks for any non-English
+// locale where the label is translated.
+
+// Returns the top-level <li> that contains the given visible text, so we can
+// assert whether antd marked it as the selected menu item.
+const getMenuItemByText = (text: string): HTMLElement | null =>
+  screen.getByText(text).closest('li');
+
+// Scoped in a describe so the route-resetting afterEach only applies to these
+// tests and does not leak into the rest of the file.
+describe('active tab highlighting (regression #36403)', () => {
+  afterEach(() => {
+    // Reset the route so a pushed path does not leak into the next test.
+    window.history.pushState({}, '', '/');
+  });
+
+  test('highlights the active top-level tab on a matching route (English)', async () => {
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    window.history.pushState({}, '', '/dashboard/list/');
+
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    await screen.findByText('Dashboards');
+    expect(getMenuItemByText('Dashboards')).toHaveClass(
+      'ant-menu-item-selected',
+    );
+  });
+
+  test('highlights the active top-level tab when the label is localized', async () => {
+    // Russian locale: the FAB `name` stays the stable English identifier while
+    // the displayed `label` is translated. Highlighting must still work.
+    const localizedProps = {
+      ...mockedProps,
+      data: {
+        ...mockedProps.data,
+        menu: mockedProps.data.menu.map(item =>
+          item.name === 'Dashboards' ? { ...item, label: 'Дашборды' } : item,
+        ),
+      },
+    };
+
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    window.history.pushState({}, '', '/dashboard/list/');
+
+    render(<Menu {...localizedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    await screen.findByText('Дашборды');
+    expect(getMenuItemByText('Дашборды')).toHaveClass('ant-menu-item-selected');
+  });
+
+  test('highlights the active SQL tab when the label is localized', async () => {
+    // The SQL Lab top-level entry is a FAB category: its stable `name` is
+    // "SQL Lab" while its label ("SQL") is localized.
+    const localizedProps = {
+      ...mockedProps,
+      data: {
+        ...mockedProps.data,
+        menu: [
+          ...mockedProps.data.menu,
+          {
+            name: 'SQL Lab',
+            icon: 'fa-flask',
+            label: 'SQL запросы',
+            childs: [
+              {
+                name: 'SQL Editor',
+                label: 'SQL Lab',
+                url: '/sqllab/',
+                index: 1,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    window.history.pushState({}, '', '/sqllab/');
+
+    render(<Menu {...localizedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    await screen.findByText('SQL запросы');
+    // SQL Lab renders as a submenu, so antd marks it with the submenu variant.
+    expect(getMenuItemByText('SQL запросы')).toHaveClass(
+      'ant-menu-submenu-selected',
+    );
+  });
 });

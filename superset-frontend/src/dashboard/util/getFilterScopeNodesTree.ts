@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEmpty } from 'lodash';
-import { t } from '@apache-superset/core/ui';
+import { isEmpty } from 'lodash-es';
+import { t } from '@apache-superset/core/translation';
 
 import { DASHBOARD_ROOT_ID } from './constants';
 import { CHART_TYPE, DASHBOARD_ROOT_TYPE, TAB_TYPE } from './componentTypes';

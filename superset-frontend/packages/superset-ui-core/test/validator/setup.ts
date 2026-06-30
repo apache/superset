@@ -17,6 +17,6 @@
  * under the License.
  */
 
-import { configure as configureTranslation } from '@apache-superset/core';
+import { configure as configureTranslation } from '@apache-superset/core/translation';
 
 configureTranslation();

@@ -36,7 +36,11 @@ from superset.utils.core import check_is_safe_zip
 logger = logging.getLogger(__name__)
 
 FRONTEND_REGEX = re.compile(r"^frontend/dist/([^/]+)$")
-BACKEND_REGEX = re.compile(r"^backend/src/(.+)$")
+# Reject any entry whose path contains "..", conservatively excluding parent
+# traversal segments along with the (in practice nonexistent) case of a module
+# path embedding consecutive dots, so a crafted entry name cannot produce a
+# traversal-style module path (defense in depth; check_is_safe_zip runs first).
+BACKEND_REGEX = re.compile(r"^backend/src/(?!.*\.\.)(.+)$")
 
 
 class InMemoryLoader(importlib.abc.Loader):
@@ -79,6 +83,36 @@ class InMemoryFinder(importlib.abc.MetaPathFinder):
                 full_path = str(Path(source_base_path) / "backend" / "src" / path)
 
             self.modules[mod_name] = (content, is_package, full_path)
+
+        # Create namespace packages for all parent modules
+        # This ensures publisher namespace packages exist
+        namespace_packages: set[str] = set()
+        for mod_name in list(self.modules.keys()):
+            parts = mod_name.split(".")
+            for i in range(1, len(parts)):
+                namespace_name = ".".join(parts[:i])
+                if namespace_name not in self.modules:
+                    namespace_packages.add(namespace_name)
+
+        # Add namespace packages
+        for ns_name in namespace_packages:
+            # Create a virtual __init__.py path for the namespace package
+            if is_virtual_path:
+                ns_path = (
+                    f"{source_base_path}/backend/src/"
+                    f"{ns_name.replace('.', '/')}/__init__.py"
+                )
+            else:
+                ns_path = str(
+                    Path(source_base_path)
+                    / "backend"
+                    / "src"
+                    / ns_name.replace(".", "/")
+                    / "__init__.py"
+                )
+
+            # Namespace packages have empty content
+            self.modules[ns_name] = (b"", True, ns_path)
 
     def _get_module_name(self, file_path: str) -> Tuple[str, bool]:
         parts = list(Path(file_path).parts)
@@ -204,6 +238,7 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     manifest = extension.manifest
     extension_data: dict[str, Any] = {
         "id": manifest.id,
+        "publisher": manifest.publisher,
         "name": extension.name,
         "version": extension.version,
         "description": manifest.description or "",
@@ -211,16 +246,76 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     }
     if manifest.frontend:
         frontend = manifest.frontend
-        module_federation = frontend.moduleFederation
-        remote_entry_url = f"/api/v1/extensions/{manifest.id}/{frontend.remoteEntry}"
+        remote_entry_url = (
+            f"/api/v1/extensions/{manifest.publisher}/"
+            f"{manifest.name}/{frontend.remoteEntry}"
+        )
         extension_data.update(
             {
                 "remoteEntry": remote_entry_url,
-                "exposedModules": module_federation.exposes,
-                "contributions": frontend.contributions.model_dump(),
+                "moduleFederationName": frontend.moduleFederationName,
             }
         )
     return extension_data
+
+
+def is_extension_denied(extension: LoadedExtension) -> bool:
+    """
+    Return True if the extension is denied by the ``EXTENSION_DENYLIST`` config.
+
+    Each denylist entry is either an extension id (denies every version of that
+    extension) or ``"<id>@<version>"`` (denies only that exact version).
+    """
+    denylist = set(current_app.config.get("EXTENSION_DENYLIST") or [])
+    if not denylist:
+        return False
+    return extension.id in denylist or f"{extension.id}@{extension.version}" in denylist
+
+
+def is_extension_below_min_version(extension: LoadedExtension) -> bool:
+    """
+    Return True if the extension's version is below the minimum required for its
+    id by the ``EXTENSION_VERSION_POLICY`` config.
+
+    Versions are compared with PEP 440 semantics. An unparseable version (the
+    extension's or the configured minimum) fails closed — the extension is
+    treated as below the minimum rather than allowed past the policy.
+    """
+    from packaging.version import InvalidVersion, Version
+
+    policy: dict[str, str] = current_app.config.get("EXTENSION_VERSION_POLICY") or {}
+    minimum = policy.get(extension.id)
+    if not minimum:
+        return False
+    try:
+        return Version(extension.version) < Version(minimum)
+    except InvalidVersion:
+        logger.warning(
+            "Could not compare extension %s version %r against the minimum %r "
+            "required by EXTENSION_VERSION_POLICY; refusing it",
+            extension.id,
+            extension.version,
+            minimum,
+        )
+        return True
+
+
+def get_extension_rejection_reason(extension: LoadedExtension) -> str | None:
+    """
+    Return why an extension must not be loaded, or None if it may load.
+
+    Combines the static supply-chain checks (``EXTENSION_DENYLIST`` and
+    ``EXTENSION_VERSION_POLICY``).
+    """
+    if is_extension_denied(extension):
+        return "it is in EXTENSION_DENYLIST"
+    if is_extension_below_min_version(extension):
+        minimum = current_app.config["EXTENSION_VERSION_POLICY"][extension.id]
+        return (
+            f"its version {extension.version} is below the minimum {minimum} "
+            "required by EXTENSION_VERSION_POLICY"
+        )
+    return None
 
 
 def get_extensions() -> dict[str, LoadedExtension]:
@@ -228,17 +323,30 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
     # Load extensions from LOCAL_EXTENSIONS configuration (filesystem paths)
     for path in current_app.config["LOCAL_EXTENSIONS"]:
-        files = get_bundle_files_from_path(path)
-        # Use absolute filesystem path to dist directory for tracebacks
-        abs_dist_path = str((Path(path) / "dist").resolve())
-        extension = get_loaded_extension(files, source_base_path=abs_dist_path)
-        extension_id = extension.manifest.id
-        extensions[extension_id] = extension
-        logger.info(
-            "Loading extension %s (ID: %s) from local filesystem",
-            extension.name,
-            extension_id,
-        )
+        try:
+            files = get_bundle_files_from_path(path)
+            # Use absolute filesystem path to dist directory for tracebacks
+            abs_dist_path = str((Path(path) / "dist").resolve())
+            extension = get_loaded_extension(files, source_base_path=abs_dist_path)
+            extension_id = extension.manifest.id
+            if reason := get_extension_rejection_reason(extension):
+                logger.warning(
+                    "Refusing to load extension %s (ID: %s, version: %s) from "
+                    "local filesystem: %s",
+                    extension.name,
+                    extension_id,
+                    extension.version,
+                    reason,
+                )
+                continue
+            extensions[extension_id] = extension
+            logger.info(
+                "Loading extension %s (ID: %s) from local filesystem",
+                extension.name,
+                extension_id,
+            )
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Failed to load extension from %s: %s", path, e)
 
     # Load extensions from discovery path (.supx files)
     if extensions_path := current_app.config.get("EXTENSIONS_PATH"):
@@ -246,6 +354,16 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
         for extension in discover_and_load_extensions(extensions_path):
             extension_id = extension.manifest.id
+            if reason := get_extension_rejection_reason(extension):
+                logger.warning(
+                    "Refusing to load extension %s (ID: %s, version: %s) from "
+                    "discovery path: %s",
+                    extension.name,
+                    extension_id,
+                    extension.version,
+                    reason,
+                )
+                continue
             if extension_id not in extensions:  # Don't override LOCAL_EXTENSIONS
                 extensions[extension_id] = extension
                 logger.info(

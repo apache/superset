@@ -19,16 +19,18 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, Union
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
-from superset_core.api.tasks import TaskScope
+from superset_core.tasks.types import TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
 from superset.tasks.types import Executor, ExecutorType, FixedExecutor
 from superset.tasks.utils import (
     error_update,
     get_active_dedup_key,
+    get_current_user,
     get_finished_dedup_key,
     parse_properties,
     progress_update,
@@ -579,3 +581,37 @@ def test_properties_roundtrip():
     serialized = serialize_properties(original)
     parsed = parse_properties(serialized)
     assert parsed == original
+
+
+class TestGetCurrentUser:
+    """Tests for get_current_user."""
+
+    def test_returns_none_when_g_has_no_user_attribute(self) -> None:
+        """Return None when g has no 'user' attribute."""
+        with patch("superset.tasks.utils.g", MagicMock(spec=[])):
+            assert get_current_user() is None
+
+    @patch("superset.tasks.utils.g")
+    def test_returns_none_when_g_user_is_none(self, mock_g: MagicMock) -> None:
+        """Return None when g.user is None."""
+        mock_g.user = None
+        assert get_current_user() is None
+
+    @patch("superset.tasks.utils.g")
+    def test_returns_none_when_user_is_anonymous(self, mock_g: MagicMock) -> None:
+        """Return None when g.user is anonymous."""
+        mock_user = MagicMock()
+        mock_user.is_anonymous = True
+        mock_g.user = mock_user
+        assert get_current_user() is None
+
+    @patch("superset.tasks.utils.g")
+    def test_returns_username_when_user_is_authenticated(
+        self, mock_g: MagicMock
+    ) -> None:
+        """Return the username when g.user is authenticated."""
+        mock_user = MagicMock()
+        mock_user.is_anonymous = False
+        mock_user.username = "admin"
+        mock_g.user = mock_user
+        assert get_current_user() == "admin"

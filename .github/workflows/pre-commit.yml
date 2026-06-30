@@ -8,6 +8,9 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
+permissions:
+  contents: read
+
 # cancel previous workflow jobs for PRs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -16,12 +19,16 @@ concurrency:
 jobs:
   pre-commit:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     strategy:
       matrix:
-        python-version: ["current", "previous", "next"]
+        # Run the full version spread on push (master/release) and nightly,
+        # but only the current version on PRs — lint/format/type results
+        # rarely differ across patch versions, so 3x per PR is wasteful.
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "previous", "next"]') }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           submodules: recursive
@@ -39,9 +46,11 @@ jobs:
           echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
           brew install norwoodj/tap/helm-docs
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: '20'
+          node-version-file: "superset-frontend/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "superset-frontend/package-lock.json"
 
       - name: Install Frontend Dependencies
         run: |
@@ -54,18 +63,26 @@ jobs:
           yarn install --immutable
 
       - name: Cache pre-commit environments
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: |
             pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-
 
+      - name: Get changed files
+        id: changed_files
+        uses: ./.github/actions/file-changes-action
+        with:
+          output: " "
+
       - name: pre-commit
+        env:
+          CHANGED_FILES: ${{ steps.changed_files.outputs.files }}
         run: |
           set +e  # Don't exit immediately on failure
-          export SKIP=eslint-frontend,type-checking-frontend
-          pre-commit run --all-files
+          export SKIP=type-checking-frontend
+          pre-commit run --files $CHANGED_FILES
           PRE_COMMIT_EXIT_CODE=$?
           git diff --quiet --exit-code
           GIT_DIFF_EXIT_CODE=$?

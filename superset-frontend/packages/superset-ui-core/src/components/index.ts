@@ -39,6 +39,7 @@ export {
   AsyncAceEditor,
   CssEditor,
   JsonEditor,
+  JSEditor,
   SQLEditor,
   FullSQLEditor,
   MarkdownEditor,
@@ -200,6 +201,7 @@ export * from './Result';
 export {
   ThemedAgGridReact,
   type ThemedAgGridReactProps,
+  type AgGridContainerElement,
   setupAGGridModules,
   defaultModules,
 } from './ThemedAgGridReact';

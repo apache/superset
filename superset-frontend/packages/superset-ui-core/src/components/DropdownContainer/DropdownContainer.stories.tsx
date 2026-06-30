@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useRef, useCallback, useState } from 'react';
-import { isEqual } from 'lodash';
-import { css } from '@apache-superset/core/ui';
+import { isEqual } from 'lodash-es';
+import { css } from '@apache-superset/core/theme';
 import { Button } from '../Button';
 import { Select } from '../Select';
 import type { DropdownContainerProps, DropdownRef } from './types';
@@ -73,7 +73,7 @@ export const Component = (props: DropdownContainerProps) => {
   const [overflowingState, setOverflowingState] = useState<OverflowingState>();
   const containerRef = useRef<DropdownRef>(null);
   const onOverflowingStateChange = useCallback(
-    value => {
+    (value: OverflowingState) => {
       if (!isEqual(overflowingState, value)) {
         setItems(generateItems(value));
         setOverflowingState(value);

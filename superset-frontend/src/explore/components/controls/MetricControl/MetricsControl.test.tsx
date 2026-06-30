@@ -62,7 +62,10 @@ function setup(overrides: Record<string, unknown> = {}) {
     ...defaultProps,
     ...overrides,
   };
-  const result = render(<MetricsControl {...props} />, { useDnd: true });
+  const result = render(<MetricsControl {...props} />, {
+    useDnd: true,
+    useRedux: true,
+  });
   return { onChange, ...result };
 }
 
@@ -107,7 +110,7 @@ test('accepts an edited metric from an AdhocMetricEditPopover', async () => {
   userEvent.click(metricLabel);
 
   await screen.findByText('aggregate');
-  selectOption('AVG', 'Select aggregate options');
+  await selectOption('AVG', 'Select aggregate options');
 
   await screen.findByText('AVG(value)');
 
@@ -119,6 +122,53 @@ test('accepts an edited metric from an AdhocMetricEditPopover', async () => {
       label: 'AVG(value)',
     }),
   ]);
+});
+
+test('only edits the targeted metric when two metrics share an optionName', async () => {
+  // A saved chart can carry two adhoc metrics with the same optionName (e.g.
+  // born from a duplicated metric). Editing one must not overwrite the other.
+  // Saved charts store metrics as plain dictionaries in form_data, so mirror
+  // that shape (not AdhocMetric instances) to exercise the real load path.
+  const sharedOptionName = 'metric_shared_option';
+  const { onChange } = setup({
+    value: [
+      {
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        column: valueColumn,
+        aggregate: AGGREGATES.SUM,
+        label: 'SUM(value)',
+        optionName: sharedOptionName,
+      },
+      {
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        column: valueColumn,
+        aggregate: AGGREGATES.AVG,
+        label: 'AVG(value)',
+        optionName: sharedOptionName,
+      },
+    ],
+  });
+
+  userEvent.click(screen.getByText('SUM(value)'));
+  await screen.findByText('aggregate');
+  await selectOption('MAX', 'Select aggregate options');
+  await screen.findByText('MAX(value)');
+  userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  // The edit must propagate to the targeted metric (SUM → MAX) while the
+  // untouched AVG(value) metric stays present and unchanged.
+  expect(onChange).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({
+        aggregate: AGGREGATES.MAX,
+        label: 'MAX(value)',
+      }),
+      expect.objectContaining({
+        aggregate: AGGREGATES.AVG,
+        label: 'AVG(value)',
+      }),
+    ]),
+  );
 });
 
 test('removes metrics if savedMetrics changes', async () => {
@@ -166,7 +216,7 @@ test('does not remove custom SQL metric if savedMetrics changes', async () => {
       ]}
       datasource={undefined}
     />,
-    { useDnd: true },
+    { useDnd: true, useRedux: true },
   );
 
   expect(screen.getByText('old label')).toBeInTheDocument();

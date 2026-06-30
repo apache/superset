@@ -87,33 +87,6 @@ function inferSqlExpressionAggregate(
   return null;
 }
 
-/**
- * Adapter function to create an AdhocMetric instance from a core AdhocMetric type.
- * This bridges the type gap between @superset-ui/core's AdhocMetric and the local class.
- */
-export function fromCoreAdhocMetric(metric: CoreAdhocMetric): AdhocMetric {
-  return new AdhocMetric(metric as AdhocMetricInput);
-}
-
-/**
- * Type guard to check if an object can be used to construct an AdhocMetric.
- * Returns true for plain objects that have metric-like properties.
- */
-export function isDictionaryForAdhocMetric(
-  value: unknown,
-): value is AdhocMetricInput {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    !(value instanceof AdhocMetric) &&
-    ('expressionType' in value ||
-      'column' in value ||
-      'aggregate' in value ||
-      'sqlExpression' in value ||
-      'metric_name' in value)
-  );
-}
-
 export default class AdhocMetric {
   expressionType: string;
   column?: ColumnType | null;
@@ -223,4 +196,55 @@ export default class AdhocMetric {
   inferSqlExpressionColumn(): string | null {
     return inferSqlExpressionColumn(this as unknown as AdhocMetricInput);
   }
+}
+
+/**
+ * Type guard to check if an object can be used to construct an AdhocMetric.
+ * Returns true for plain objects that have metric-like properties.
+ */
+export function isDictionaryForAdhocMetric(
+  value: unknown,
+): value is AdhocMetricInput {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !(value instanceof AdhocMetric) &&
+    ('expressionType' in value ||
+      'column' in value ||
+      'aggregate' in value ||
+      'sqlExpression' in value ||
+      'metric_name' in value)
+  );
+}
+
+/**
+ * Adapter function to create an AdhocMetric instance from a core AdhocMetric type.
+ * This bridges the type gap between @superset-ui/core's AdhocMetric and the local class.
+ */
+export function fromCoreAdhocMetric(metric: CoreAdhocMetric): AdhocMetric {
+  return new AdhocMetric(metric as AdhocMetricInput);
+}
+
+/**
+ * Metrics are identified by `optionName` when editing, so two metrics sharing
+ * one (a saved chart can carry duplicate optionNames, e.g. from a duplicated
+ * metric) would let an edit to one bleed into the other. Given a `seen` set
+ * shared across a list, return the metric unchanged the first time its
+ * optionName is encountered, or a copy with a freshly generated optionName on a
+ * collision, so each metric keeps a unique identity.
+ */
+export function dedupeAdhocMetricOptionName(
+  metric: AdhocMetric,
+  seenOptionNames: Set<string>,
+): AdhocMetric {
+  if (!seenOptionNames.has(metric.optionName)) {
+    seenOptionNames.add(metric.optionName);
+    return metric;
+  }
+  const deduped = new AdhocMetric({
+    ...(metric as unknown as Record<string, unknown>),
+    optionName: undefined,
+  });
+  seenOptionNames.add(deduped.optionName);
+  return deduped;
 }

@@ -38,7 +38,7 @@ import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './utils/externalAPIs';
 
@@ -90,6 +90,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
+    // Capture the percent-metric `contribution` rule so it can be reused for
+    // the totals query below. The totals query must rename percent-metric
+    // columns the same way (`metric` -> `%metric`) so the footer can look them
+    // up; without it the totals row renders 0.000%. We deliberately reuse only
+    // this rule and not the full `postProcessing` array, which may also contain
+    // a time-comparison operator that must not run on the single totals row.
+    let contributionPostProcessing: PostProcessingRule | undefined;
     const nonCustomNorInheritShifts = ensureIsArray(
       formData.time_compare,
     ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
@@ -157,15 +164,14 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           metrics.concat(percentMetrics),
           getMetricLabel,
         );
-        postProcessing = [
-          {
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(x => `%${x}`),
-            },
+        contributionPostProcessing = {
+          operation: 'contribution',
+          options: {
+            columns: percentMetricLabels,
+            rename_columns: percentMetricLabels.map(x => `%${x}`),
           },
-        ];
+        };
+        postProcessing = [contributionPostProcessing];
       }
       // Add the operator for the time comparison if some is selected
       if (!isEmpty(timeOffsets)) {
@@ -238,12 +244,11 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         });
 
         if (matchingColumn) {
-          if (
-            typeof matchingColumn === 'object' &&
-            'sqlExpression' in matchingColumn
-          ) {
-            return matchingColumn.sqlExpression;
-          }
+          // Return the label, not the raw sqlExpression. The backend
+          // (helpers.py get_sqla_query) resolves orderby strings by
+          // matching adhoc column labels, then uses adhoc_column_to_sqla
+          // to emit the actual SQL expression into ORDER BY — so this
+          // is dialect-safe across all database engines.
           return getColumnLabel(matchingColumn);
         }
 
@@ -482,12 +487,77 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         };
       }
 
-      // Add AG Grid complex WHERE clause from ownState (non-metric filters)
+      // Map metric/column labels to SQL expressions for WHERE/HAVING resolution
+      const sqlExpressionMap: Record<string, string> = {};
+      (metrics || []).forEach((m: QueryFormMetric) => {
+        if (typeof m === 'object' && 'expressionType' in m) {
+          const label = getMetricLabel(m);
+          if (m.expressionType === 'SQL' && m.sqlExpression) {
+            sqlExpressionMap[label] = m.sqlExpression;
+          } else if (
+            m.expressionType === 'SIMPLE' &&
+            m.aggregate &&
+            m.column?.column_name
+          ) {
+            sqlExpressionMap[label] = `${m.aggregate}(${m.column.column_name})`;
+          }
+        }
+      });
+      // Map dimension columns with custom SQL expressions
+      (columns || []).forEach((col: QueryFormColumn) => {
+        if (typeof col === 'object' && 'sqlExpression' in col) {
+          const label = getColumnLabel(col);
+          if (col.sqlExpression) {
+            sqlExpressionMap[label] = col.sqlExpression;
+          }
+        }
+      });
+      // Merge datasource-level saved metrics and calculated columns
+      if (ownState.metricSqlExpressions) {
+        Object.entries(
+          ownState.metricSqlExpressions as Record<string, string>,
+        ).forEach(([label, expression]) => {
+          if (!sqlExpressionMap[label]) {
+            sqlExpressionMap[label] = expression;
+          }
+        });
+      }
+
+      const resolveLabelsToSQL = (clause: string): string => {
+        let resolved = clause;
+        // Sort by label length descending to prevent substring false positives
+        const sortedEntries = Object.entries(sqlExpressionMap).sort(
+          ([a], [b]) => b.length - a.length,
+        );
+        sortedEntries.forEach(([label, expression]) => {
+          if (resolved.includes(label)) {
+            const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // Wrap complex expressions in parentheses for valid SQL
+            const isExpression =
+              expression.includes('(') ||
+              expression.toUpperCase().includes('CASE') ||
+              expression.includes('\n');
+            const wrappedExpression = isExpression
+              ? `(${expression})`
+              : expression;
+            resolved = resolved.replace(
+              new RegExp(`\\b${escapedLabel}\\b`, 'g'),
+              wrappedExpression,
+            );
+          }
+        });
+        return resolved;
+      };
+
+      // Resolve and apply AG Grid WHERE clause
       if (ownState.agGridComplexWhere && ownState.agGridComplexWhere.trim()) {
+        const resolvedWhere = resolveLabelsToSQL(ownState.agGridComplexWhere);
+        (ownState as Record<string, unknown>).agGridComplexWhere =
+          resolvedWhere;
         const existingWhere = queryObject.extras?.where;
         const combinedWhere = existingWhere
-          ? `${existingWhere} AND ${ownState.agGridComplexWhere}`
-          : ownState.agGridComplexWhere;
+          ? `${existingWhere} AND ${resolvedWhere}`
+          : resolvedWhere;
 
         queryObject = {
           ...queryObject,
@@ -498,12 +568,15 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         };
       }
 
-      // Add AG Grid HAVING clause from ownState (metric filters only)
+      // Resolve and apply AG Grid HAVING clause
       if (ownState.agGridHavingClause && ownState.agGridHavingClause.trim()) {
+        const resolvedHaving = resolveLabelsToSQL(ownState.agGridHavingClause);
+        (ownState as Record<string, unknown>).agGridHavingClause =
+          resolvedHaving;
         const existingHaving = queryObject.extras?.having;
         const combinedHaving = existingHaving
-          ? `${existingHaving} AND ${ownState.agGridHavingClause}`
-          : ownState.agGridHavingClause;
+          ? `${existingHaving} AND ${resolvedHaving}`
+          : resolvedHaving;
 
         queryObject = {
           ...queryObject,
@@ -591,7 +664,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,
-        post_processing: [],
+        // Reapply only the percent-metric contribution rule so the totals row
+        // exposes `%metric` keys (value/value = 100% on the single aggregated
+        // row). The time-comparison operator from the main query is omitted on
+        // purpose; it must not run against the single-row totals query.
+        post_processing: contributionPostProcessing
+          ? [contributionPostProcessing]
+          : [],
         order_desc: undefined, // we don't need orderby stuff here,
         orderby: undefined, // because this query will be used for get total aggregation.
       });
@@ -606,7 +685,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         {
           ...queryObject,
           time_offsets: [],
-          row_limit: Number(formData?.row_limit) ?? 0,
+          row_limit: Number(formData?.row_limit ?? 0),
           row_offset: 0,
           post_processing: [],
           is_rowcount: true,

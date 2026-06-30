@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import {
   useCallback,
   useEffect,
@@ -27,9 +28,10 @@ import {
 } from 'react';
 
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { useHistory } from 'react-router-dom';
-import { pick } from 'lodash';
+import { pick } from 'lodash-es';
 import {
   Button,
   ButtonGroup,
@@ -44,7 +46,7 @@ import {
   ErrorMessageWithStackTrace,
 } from 'src/components';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   QueryState,
   usePrevious,
@@ -52,8 +54,9 @@ import {
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core';
-import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
+import { tn } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
   ISaveableDatasource,
   ISimpleColumn,
@@ -81,7 +84,7 @@ import {
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
 } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { findPermission } from 'src/utils/findPermission';
+import { usePermissions } from 'src/hooks/usePermissions';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
@@ -117,7 +120,7 @@ export interface ResultSetProps {
 const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
-  row-gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  row-gap: ${({ theme }) => theme.sizeUnit * 3}px;
   height: 100%;
 `;
 
@@ -171,7 +174,6 @@ const ResultSet = ({
   defaultQueryLimit,
   useFixedHeight = false,
 }: ResultSetProps) => {
-  const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
   const streamingThreshold = useSelector(
     (state: SqlLabRootState) =>
       state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD || 1000,
@@ -226,8 +228,12 @@ const ResultSet = ({
     [query.results?.expanded_columns],
   );
 
+  const {
+    canExportDataSqlLab: canExportData,
+    canCopyClipboardSqlLab: canCopyClipboard,
+  } = usePermissions();
   const history = useHistory();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
   const { showConfirm, ConfirmModal } = useConfirmModal();
 
@@ -360,12 +366,6 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
-      const canExportData = findPermission(
-        'can_export_csv',
-        'SQLLab',
-        user?.roles,
-      );
-
       const handleDownloadCsv = (event: React.MouseEvent<HTMLElement>) => {
         logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
 
@@ -379,7 +379,7 @@ const ResultSet = ({
               { rows: rowsCount.toLocaleString() },
             ),
             onConfirm: () => {
-              window.location.href = getExportCsvUrl(query.id);
+              window.location.href = sanitizeUrl(getExportCsvUrl(query.id));
             },
             confirmText: t('OK'),
             cancelText: t('Close'),
@@ -395,19 +395,26 @@ const ResultSet = ({
               onClick={createExploreResultsOnClick}
             />
           )}
-          {csv && canExportData && (
+          {csv && (
             <Button
               buttonSize="small"
               variant="text"
               color="primary"
               icon={<Icons.DownloadOutlined iconSize="m" />}
-              tooltip={t('Download to CSV')}
+              tooltip={
+                !canExportData
+                  ? t("You don't have permission to export data")
+                  : t('Download to CSV')
+              }
               aria-label={t('Download to CSV')}
-              {...(!shouldUseStreamingExport() && {
-                href: getExportCsvUrl(query.id),
-              })}
+              disabled={!canExportData}
+              {...(canExportData &&
+                !shouldUseStreamingExport() && {
+                  href: getExportCsvUrl(query.id),
+                })}
               data-test="export-csv-button"
               onClick={e => {
+                if (!canExportData) return;
                 const useStreaming = shouldUseStreamingExport();
 
                 if (useStreaming) {
@@ -418,6 +425,7 @@ const ResultSet = ({
                     url: makeUrl('/api/v1/sqllab/export_streaming/'),
                     payload: { client_id: query.id },
                     exportType: 'csv',
+                    exportSource: 'sqllab',
                     expectedRows: rows,
                   });
                 } else {
@@ -426,30 +434,38 @@ const ResultSet = ({
               }}
             />
           )}
-          {canExportData && (
-            <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(
-                data,
-                columns.map(c => c.column_name),
-              )}
-              wrapped={false}
-              copyNode={
-                <Button
-                  buttonSize="small"
-                  variant="text"
-                  color="primary"
-                  icon={<Icons.CopyOutlined iconSize="m" />}
-                  tooltip={t('Copy to Clipboard')}
-                  aria-label={t('Copy to Clipboard')}
-                  data-test="copy-to-clipboard-button"
-                />
-              }
-              hideTooltip
-              onCopyEnd={() =>
-                logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
-              }
-            />
-          )}
+          <CopyToClipboard
+            text={
+              canCopyClipboard
+                ? prepareCopyToClipboardTabularData(
+                    data,
+                    columns.map(c => c.column_name),
+                  )
+                : ''
+            }
+            disabled={!canCopyClipboard}
+            wrapped={false}
+            copyNode={
+              <Button
+                buttonSize="small"
+                variant="text"
+                color="primary"
+                icon={<Icons.CopyOutlined iconSize="m" />}
+                tooltip={
+                  !canCopyClipboard
+                    ? t("You don't have permission to copy to clipboard")
+                    : t('Copy to Clipboard')
+                }
+                aria-label={t('Copy to Clipboard')}
+                disabled={!canCopyClipboard}
+                data-test="copy-to-clipboard-button"
+              />
+            }
+            hideTooltip
+            onCopyEnd={() =>
+              logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
+            }
+          />
         </>
       );
 
@@ -531,6 +547,7 @@ const ResultSet = ({
           placement="left"
         >
           <Label
+            monospace
             css={css`
               line-height: ${theme.fontSizeLG}px;
             `}
@@ -747,6 +764,7 @@ const ResultSet = ({
               <div
                 css={css`
                   flex: 1 1 auto;
+                  padding-bottom: ${theme.sizeUnit * 3}px;
                 `}
               >
                 <AutoSizer disableWidth>

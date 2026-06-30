@@ -20,8 +20,9 @@
 import jwt
 import pytest
 
+from flask.ctx import AppContext
 from flask_wtf.csrf import generate_csrf
-from superset import db
+from superset import db, security_manager
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host
@@ -29,10 +30,81 @@ from superset.utils import json
 from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.test_app import app
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+
+
+@pytest.fixture
+def create_test_roles_with_users(app_context: AppContext):
+    """
+    Fixture that creates two test roles with specific users, permissions, and groups.
+    """
+    user1, user2, user3 = [
+        security_manager.add_user(
+            username=f"test_user_{i}",
+            first_name="Test",
+            last_name=f"User{i}",
+            email=f"test_user_{i}@test.com",
+            role=[],
+            password="password",  # noqa: S106
+        )
+        for i in range(3)
+    ]
+
+    test_group = security_manager.add_group(
+        name="test_group_1",
+        label="Test Group 1",
+        description="Test group for role testing",
+        roles=[],
+    )
+
+    pvm1 = security_manager.add_permission_view_menu("can_read", "Dashboard")
+    pvm2 = security_manager.add_permission_view_menu("can_write", "Dashboard")
+    pvm3 = security_manager.add_permission_view_menu("can_read", "Chart")
+
+    test_role_1 = security_manager.add_role("test_role_1", [pvm1, pvm2])
+    test_role_1.user.append(user1)
+    test_role_1.user.append(user2)
+    test_role_1.groups.append(test_group)
+
+    test_role_2 = security_manager.add_role("test_role_2", [pvm3])
+    test_role_2.user.append(user3)
+
+    db.session.commit()
+
+    test_data = {
+        "test_role_1": {
+            "role": test_role_1,
+            "user_ids": sorted([user1.id, user2.id]),
+            "permission_ids": sorted([pvm1.id, pvm2.id]),
+            "group_ids": [test_group.id],
+        },
+        "test_role_2": {
+            "role": test_role_2,
+            "user_ids": [user3.id],
+            "permission_ids": [pvm3.id],
+            "group_ids": [],
+        },
+    }
+
+    yield test_data
+
+    # Cleanup
+    db.session.delete(test_role_1)
+    db.session.delete(test_role_2)
+    db.session.delete(user1)
+    db.session.delete(user2)
+    db.session.delete(user3)
+    db.session.delete(test_group)
+    db.session.commit()
+
+
+@pytest.fixture
+def inject_test_roles_data(request, create_test_roles_with_users):
+    request.instance.test_roles_data = create_test_roles_with_users
 
 
 class TestSecurityCsrfApi(SupersetTestCase):
@@ -188,8 +260,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_positive(self):
@@ -204,8 +277,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_negative(self):
@@ -278,6 +352,33 @@ class TestSecurityRolesApi(SupersetTestCase):
         )
         self.assert403(response)
 
+    def test_show_roles_unexpected_error_returns_generic_message(self):
+        """
+        Security API: an unexpected error in role listing returns a generic 500
+        body (no raw exception text) and is logged server-side.
+        """
+        from unittest.mock import patch
+
+        self.login(ADMIN_USERNAME)
+        error_detail = "raw-driver-detail-should-not-leak"
+        # Patch a symbol used only inside get_list's query construction so the
+        # failure happens within the handler's try/except, not in the @protect()
+        # auth check (which also touches db.session.query).
+        with (
+            patch(
+                "superset.security.api.selectinload",
+                side_effect=Exception(error_detail),
+            ),
+            patch("superset.security.api.logger") as mock_logger,
+        ):
+            response = self.client.get(self.show_uri)
+
+        assert response.status_code == 500
+        body = response.data.decode("utf-8")
+        assert error_detail not in body
+        assert "An unexpected error occurred" in body
+        mock_logger.exception.assert_called_once()
+
     def test_show_roles_admin(self):
         """
         Security API: Admin should be able to show roles with permissions and users
@@ -293,3 +394,80 @@ class TestSecurityRolesApi(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         response = self.client.get(self.show_uri)
         self.assert403(response)
+
+    @pytest.mark.usefixtures("inject_test_roles_data")
+    def test_get_roles_with_specific_test_data(self):
+        """
+        Security API: Test roles endpoint with specific test data
+        """
+        self.login(ADMIN_USERNAME)
+        response = self.client.get(f"{self.show_uri}?q=(page_size:100)")
+        self.assert200(response)
+
+        data = json.loads(response.data.decode("utf-8"))
+
+        # Create a mapping of role names to API response
+        api_roles_by_name = {role["name"]: role for role in data["result"]}
+
+        # Verify test_role_1
+        assert "test_role_1" in api_roles_by_name, (
+            f"test_role_1 not found in API response. "
+            f"Available roles: {list(api_roles_by_name.keys())}"
+        )
+        role1_api = api_roles_by_name["test_role_1"]
+        role1_expected = self.test_roles_data["test_role_1"]
+
+        assert sorted(role1_api["user_ids"]) == role1_expected["user_ids"]
+        assert sorted(role1_api["permission_ids"]) == role1_expected["permission_ids"]
+        assert sorted(role1_api["group_ids"]) == role1_expected["group_ids"]
+
+        # Verify test_role_2
+        assert "test_role_2" in api_roles_by_name, (
+            f"test_role_2 not found in API response. "
+            f"Available roles: {list(api_roles_by_name.keys())}"
+        )
+        role2_api = api_roles_by_name["test_role_2"]
+        role2_expected = self.test_roles_data["test_role_2"]
+
+        assert sorted(role2_api["user_ids"]) == role2_expected["user_ids"]
+        assert sorted(role2_api["permission_ids"]) == role2_expected["permission_ids"]
+        assert role2_api["group_ids"] == role2_expected["group_ids"]
+
+
+class TestLogoutSessionInvalidation(SupersetTestCase):
+    """Regression for #24713: a session cookie captured pre-logout must not grant
+    access after the user logs out. The original report describes copying the
+    session cookie out, calling /logout/, and successfully reusing the cookie in
+    a second browser to bypass authentication."""
+
+    def test_session_cookie_invalidated_after_logout(self):
+        self.login(ADMIN_USERNAME)
+
+        resp_authed = self.client.get("api/v1/dashboard/", follow_redirects=False)
+        assert resp_authed.status_code == 200, (
+            f"Login did not yield an authenticated session "
+            f"(got {resp_authed.status_code})"
+        )
+
+        # Werkzeug 2.3+ exposes the test client's cookies on `_cookies` as a
+        # mapping keyed by (domain, path, key). Snapshot the session cookie
+        # value — this is what a malicious actor would copy out of a browser.
+        captured = None
+        for cookie in self.client._cookies.values():
+            if cookie.key == "session":
+                captured = cookie.value
+                break
+        assert captured, "expected a session cookie after login"
+
+        self.client.get("/logout/", follow_redirects=True)
+
+        # Replay the captured cookie in a fresh client (simulates importing
+        # the cookie into a second browser).
+        replay_client = app.test_client()
+        replay_client.set_cookie("session", captured, domain="localhost")
+
+        resp_replay = replay_client.get("api/v1/dashboard/", follow_redirects=False)
+        assert resp_replay.status_code != 200, (
+            f"Captured session cookie was still accepted after logout "
+            f"(status={resp_replay.status_code}); see issue #24713"
+        )

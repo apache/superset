@@ -17,15 +17,15 @@
  * under the License.
  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useHistory } from 'react-router-dom';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   makeApi,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   Tooltip,
@@ -53,11 +53,17 @@ import {
   useListViewResource,
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
-import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  createFetchRelated,
+  createFetchOwners,
+} from 'src/views/CRUD/utils';
+import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
+import { useExecuteReportSchedule } from 'src/features/alerts/hooks/useExecuteReportSchedule';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
@@ -102,7 +108,7 @@ const StyledHeaderWithIcon = styled.div`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  > *:first-child {
+  > *:first-of-type {
     margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
@@ -162,6 +168,53 @@ function AlertList({
   );
   const [currentAlertDeleting, setCurrentAlertDeleting] =
     useState<AlertObject | null>(null);
+
+  // Track in-flight execute requests with a ref for race-condition-safe double-click prevention
+  const executingIdsRef = useRef<Set<number>>(new Set());
+  const { executeReport } = useExecuteReportSchedule();
+
+  const handleExecuteReport = useCallback(
+    (alert: AlertObject) => {
+      const alertId = alert.id;
+      if (!alertId) {
+        return;
+      }
+      // Atomically check-and-set before any async work to prevent duplicate requests
+      // from rapid double-clicks that occur before a re-render can update state.
+      if (executingIdsRef.current.has(alertId)) {
+        return;
+      }
+      executingIdsRef.current.add(alertId);
+
+      executeReport(
+        alertId,
+        () => {
+          addSuccessToast(
+            t('%(alertType)s "%(alertName)s" triggered successfully', {
+              alertType: alert.type,
+              alertName: alert.name,
+            }),
+          );
+        },
+        error => {
+          addDangerToast(
+            t('Failed to trigger %(alertType)s "%(alertName)s": %(error)s', {
+              alertType: alert.type,
+              alertName: alert.name,
+              error,
+            }),
+          );
+        },
+      )
+        .catch(() => {
+          // Error already surfaced to the user via the onError callback above.
+        })
+        .finally(() => {
+          executingIdsRef.current.delete(alertId);
+        });
+    },
+    [executeReport, addSuccessToast, addDangerToast],
+  );
 
   // Actions
   function handleAlertEdit(alert: AlertObject | null) {
@@ -237,9 +290,13 @@ function AlertList({
           }),
         );
 
-        updateResource(update_id, { active: checked }, false, false)
-          .then()
-          .catch(() => setResourceCollection(original));
+        updateResource(update_id, { active: checked }, false, false).then(
+          response => {
+            if (!response) {
+              setResourceCollection(original);
+            }
+          },
+        );
       }
     },
     [alerts, setResourceCollection, updateResource],
@@ -396,6 +453,15 @@ function AlertList({
                   onClick: handleEdit,
                 }
               : null,
+            allowEdit
+              ? {
+                  label: 'trigger-now-action',
+                  tooltip: t('Trigger now'),
+                  placement: 'bottom',
+                  icon: 'ThunderboltOutlined',
+                  onClick: () => handleExecuteReport(original),
+                }
+              : null,
             allowEdit && canDelete
               ? {
                   label: 'delete-action',
@@ -423,7 +489,7 @@ function AlertList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canEdit, isReportEnabled, toggleActive],
+    [canDelete, canEdit, isReportEnabled, toggleActive, handleExecuteReport],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
@@ -480,16 +546,16 @@ function AlertList({
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
+        fetchSelects: createFetchOwners(
           'report',
-          'owners',
           createErrorHandler(errMsg =>
             t('An error occurred while fetching owners values: %s', errMsg),
           ),
           user,
         ),
+        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Status'),
@@ -531,7 +597,7 @@ function AlertList({
           user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [],

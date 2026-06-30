@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { HeatmapChartProps, HeatmapFormData } from '../../src/Heatmap/types';
 import transformProps from '../../src/Heatmap/transformProps';
 
