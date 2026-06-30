@@ -560,6 +560,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # if True, database will be listed as option in the upload file form
     supports_file_upload = True
 
+    # Whether the engine supports SQL GROUPING SETS / ROLLUP / CUBE. When True,
+    # consumers (e.g. the pivot table's non-additive totals) can collapse the
+    # per-rollup-level queries into a single GROUPING SETS query instead of
+    # issuing one query per level. Conservative default of False; engines opt in.
+    supports_grouping_sets = False
+
     # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False

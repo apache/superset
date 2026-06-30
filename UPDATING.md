@@ -44,6 +44,22 @@ The git SHA and build number surfaced in the "About" section, the bootstrap payl
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
 
+### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control removed)
+
+Pivot Table subtotals and grand totals are now computed by the database at each
+rollup level instead of re-aggregating the already-aggregated cell values on the
+client. This fixes long-standing incorrect totals for non-additive metrics
+(ratios such as `SUM(a)/SUM(b)`, `COUNT_DISTINCT`, `AVG`, percentiles, etc.),
+which previously summed the displayed cell values.
+
+As a result the per-table **"Aggregation function"** control (which let you pick
+how totals were aggregated client-side, e.g. Sum/Average/Count) has been
+removed: totals now always reflect the metric's own definition evaluated at the
+total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
+is unchanged. Saved charts that set `aggregateFunction` will ignore it; no
+migration is required. If you previously relied on a plain sum-of-cells total
+for a non-additive metric, that specific behavior is no longer available.
+
 ### `thumbnail_url` removed from dashboard list API response
 
 The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list responses. External consumers relying on this field must now construct the thumbnail URL client-side using `id` and `changed_on_utc`:
