@@ -122,4 +122,8 @@ export const TOOLTIP_POINTER_MARGIN = 10;
 // from the edge of the window should the tooltip be kept
 export const TOOLTIP_OVERFLOW_MARGIN = 5;
 
+// Minimum distance from the top of the chart container to keep the tooltip,
+// reserving space for annotation labels rendered at insideEndTop of markLines/markAreas
+export const TOOLTIP_TOP_CLEARANCE = 40;
+
 export const DEFAULT_LOCALE = 'en';

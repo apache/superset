@@ -788,7 +788,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
             # run a SELECT 1.   use a core select() so that
             # the SELECT of a scalar value without a table is
             # appropriately formatted for the backend
-            connection.scalar(select([1]))
+            connection.scalar(select(1))
         except exc.DBAPIError as err:
             # catch SQLAlchemy's DBAPIError, which is a wrapper
             # for the DBAPI's exception.  It includes a .connection_invalidated
@@ -800,7 +800,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
                 # itself and establish a new connection.  The disconnect detection
                 # here also causes the whole connection pool to be invalidated
                 # so that all stale connections are discarded.
-                connection.scalar(select([1]))
+                connection.scalar(select(1))
             else:
                 raise
         finally:
@@ -938,6 +938,11 @@ def send_mime_email(
     smtp_starttls = config["SMTP_STARTTLS"]
     smtp_ssl = config["SMTP_SSL"]
     smtp_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
+    # A missing timeout means the socket blocks forever when the SMTP server is
+    # unreachable, wedging the report schedule in the WORKING state. Fall back to
+    # the key being absent for backwards compatibility with custom configs.
+    # Keep this fallback in sync with the SMTP_TIMEOUT default in config.py.
+    smtp_timeout = config.get("SMTP_TIMEOUT", 30)
 
     if dryrun:
         logger.info("Dryrun enabled, email notification content is below:")
@@ -948,17 +953,27 @@ def send_mime_email(
     # root CA certificates
     ssl_context = ssl.create_default_context() if smtp_ssl_server_auth else None
     smtp = (
-        smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl_context)
+        smtplib.SMTP_SSL(
+            smtp_host, smtp_port, context=ssl_context, timeout=smtp_timeout
+        )
         if smtp_ssl
-        else smtplib.SMTP(smtp_host, smtp_port)
+        else smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout)
     )
-    if smtp_starttls:
-        smtp.starttls(context=ssl_context)
-    if smtp_user and smtp_password:
-        smtp.login(smtp_user, smtp_password)
-    logger.debug("Sent an email to %s", str(e_to))
-    smtp.sendmail(e_from, e_to, mime_msg.as_string())
-    smtp.quit()
+    try:
+        if smtp_starttls:
+            smtp.starttls(context=ssl_context)
+        if smtp_user and smtp_password:
+            smtp.login(smtp_user, smtp_password)
+        logger.debug("Sent an email to %s", str(e_to))
+        smtp.sendmail(e_from, e_to, mime_msg.as_string())
+    finally:
+        # Always release the socket; the new timeout means starttls/login/
+        # sendmail can raise, and a skipped quit() would leak connections in
+        # the long-lived worker process.
+        try:
+            smtp.quit()
+        except smtplib.SMTPException:
+            pass
 
 
 def recipients_string_to_list(address_string: str | None) -> list[str]:

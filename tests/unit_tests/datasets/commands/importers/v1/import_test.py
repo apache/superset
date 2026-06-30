@@ -810,6 +810,64 @@ def test_import_dataset_extra_empty_string(
     assert sqla_table.extra is None  # noqa: E711
 
 
+def test_import_dataset_template_params_is_empty_string(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Test importing a dataset when the template_params field is an empty string.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset_uuid = uuid.uuid4()
+    yaml_config: dict[str, Any] = {
+        "version": "1.0.0",
+        "table_name": "my_table",
+        "main_dttm_col": "ds",
+        "schema": "my_schema",
+        "sql": None,
+        "params": {
+            "remote_id": 64,
+            "database_name": "examples",
+            "import_time": 1606677834,
+        },
+        "template_params": "",
+        "extra": None,
+        "uuid": dataset_uuid,
+        "metrics": [
+            {
+                "metric_name": "cnt",
+                "expression": "COUNT(*)",
+            }
+        ],
+        "columns": [
+            {
+                "column_name": "profit",
+                "is_dttm": False,
+                "is_active": True,
+                "type": "INTEGER",
+                "groupby": False,
+                "filterable": False,
+                "expression": "revenue-expenses",
+            }
+        ],
+        "database_uuid": database.uuid,
+    }
+
+    schema = ImportV1DatasetSchema()
+    dataset_config = schema.load(yaml_config)
+    dataset_config["database_id"] = database.id
+    sqla_table = import_dataset(dataset_config)
+
+    assert sqla_table.template_params is None  # noqa: E711
+
+
 @patch("superset.commands.dataset.importers.v1.utils.is_safe_host", return_value=True)
 @patch("superset.commands.dataset.importers.v1.utils.request.build_opener")
 def test_import_column_allowed_data_url(

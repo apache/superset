@@ -22,6 +22,7 @@ from textwrap import dedent
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
+from sqlalchemy import text
 from unittest import mock
 import rison
 
@@ -184,10 +185,10 @@ class TestSqlLab(SupersetTestCase):
             examples_db = get_example_database()
             with examples_db.get_sqla_engine() as engine:
                 data = engine.execute(
-                    f"SELECT * FROM admin_database.{tmp_table_name}"  # noqa: S608
+                    text(f"SELECT * FROM admin_database.{tmp_table_name}")  # noqa: S608
                 ).fetchall()
                 names_count = engine.execute(
-                    f"SELECT COUNT(*) FROM birth_names"  # noqa: F541, S608
+                    text(f"SELECT COUNT(*) FROM birth_names")  # noqa: F541, S608
                 ).first()
                 assert names_count[0] == len(
                     data
@@ -195,7 +196,7 @@ class TestSqlLab(SupersetTestCase):
 
                 # cleanup
                 engine.execute(
-                    f"DROP {ctas_method.name} admin_database.{tmp_table_name}"
+                    text(f"DROP {ctas_method.name} admin_database.{tmp_table_name}")
                 )
                 examples_db.allow_ctas = old_allow_ctas
                 db.session.commit()
@@ -294,7 +295,10 @@ class TestSqlLab(SupersetTestCase):
 
         with examples_db.get_sqla_engine() as engine:
             engine.execute(
-                f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"  # noqa: E501
+                text(f"""
+                CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS
+                SELECT 1 as c1, 2 as c2
+                """)  # noqa: E501
             )
 
         # SQL Lab raw query access requires datasource_access on a registered
@@ -314,7 +318,7 @@ class TestSqlLab(SupersetTestCase):
 
         db.session.query(Query).delete()
         with get_example_database().get_sqla_engine() as engine:
-            engine.execute(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
+            engine.execute(text(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table"))
         db.session.commit()
 
     def test_alias_duplicate(self):

@@ -129,6 +129,8 @@ Dashboard Management:
 - get_dashboard_info: Get detailed dashboard information by ID
 - get_dashboard_layout: Get parsed tabs and chart positions for a dashboard (companion to get_dashboard_info when its omitted_fields hint flags position_json)
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
+- update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; ownership-checked per-instance)
+- duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 
 Annotation Layers:
@@ -423,8 +425,9 @@ Input format:
 {_feature_availability}Permission Awareness:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
-- Write tools (generate_chart, generate_dashboard, update_chart, create_dataset, create_virtual_dataset,
-  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview) require write
+- Write tools (generate_chart, generate_dashboard, update_chart, duplicate_dashboard,
+  create_dataset, create_virtual_dataset, save_sql_query, add_chart_to_existing_dashboard,
+  update_chart_preview) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
@@ -690,10 +693,12 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    duplicate_dashboard,
     generate_dashboard,
     get_dashboard_info,
     get_dashboard_layout,
     list_dashboards,
+    update_dashboard,
 )
 from superset.mcp_service.database.tool import (  # noqa: F401, E402
     get_database_info,
@@ -757,6 +762,69 @@ from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,
     list_users,
 )
+
+#: Tool names exempt from the mcp_auth_hook protection check. Adding a tool
+#: here is a security-significant choice — review carefully. Entries are tools
+#: that intentionally run without authentication; ``generate_bug_report`` is
+#: public so users can collect diagnostics even when auth itself is broken.
+#: Frozen so accidental post-init mutation (``ALLOWED_UNPROTECTED.add(...)``)
+#: raises ``AttributeError`` rather than silently widening the security
+#: allowlist after the startup assertion has already run.
+ALLOWED_UNPROTECTED: frozenset[str] = frozenset({"generate_bug_report"})
+
+
+def assert_all_tools_protected(mcp_instance: FastMCP) -> None:
+    """Fail loudly at startup if any registered tool bypassed ``mcp_auth_hook``.
+
+    The fresh-app-context-per-call fix in #39385 only protects tools that
+    actually go through ``mcp_auth_hook``. This catches all three known bypass
+    paths (see #39395):
+
+    * ``@tool(protect=False)`` — the wrapper is skipped entirely.
+    * Silent fallback in ``create_tool_decorator`` (now fail-fast, but a future
+      regression could reintroduce it).
+    * Direct ``mcp.add_tool()`` calls that skip the decorator.
+
+    Raises:
+        RuntimeError: if any tool's underlying function lacks the
+            ``_mcp_auth_protected`` marker set by ``mcp_auth_hook``.
+    """
+    # FastMCP 3.x exposes components keyed as ``"<kind>:<name>@..."`` (tools,
+    # prompts, resources) in the local provider's component dict. Tool values
+    # are ``FunctionTool`` objects with ``.name`` and ``.fn`` attributes.
+    tools_checked = 0
+    for key, component in mcp_instance.local_provider._components.items():
+        # Prompts and resources are intentionally skipped here. They use the
+        # same ``mcp_auth_hook`` (via ``create_prompt_decorator`` and the
+        # resource-level ``@mcp_auth_hook`` convention documented in
+        # ``mcp_service/CLAUDE.md``) but their bypass surface is different —
+        # ``protect=False`` on a prompt would need its own ``assert_all_
+        # prompts_protected`` check. Tracked as a follow-up per @aminghadersohi.
+        if not key.startswith("tool:"):
+            continue
+        tools_checked += 1
+        name = getattr(component, "name", None) or key
+        fn = getattr(component, "fn", None)
+        if name in ALLOWED_UNPROTECTED:
+            continue
+        if not getattr(fn, "_mcp_auth_protected", False):
+            raise RuntimeError(
+                f"SECURITY: MCP tool '{name}' registered without mcp_auth_hook. "
+                f"All tools must use @tool() with protect=True or be explicitly "
+                f"allowlisted in ALLOWED_UNPROTECTED."
+            )
+
+    # Defense against silent FastMCP API drift: if the private
+    # ``local_provider._components`` attribute or the ``"tool:"`` key prefix
+    # changes in a future FastMCP release, this loop would match nothing and
+    # vacuously return success. Log a warning so the regression is visible in
+    # the startup logs and routine ops review.
+    if tools_checked == 0:
+        logger.warning(
+            "assert_all_tools_protected inspected 0 tools — FastMCP internal "
+            "API (local_provider._components, 'tool:' key prefix) may have "
+            "changed. Review and update the iteration in app.py."
+        )
 
 
 def _remove_disabled_tools(disabled_tools: set[str]) -> None:
@@ -889,6 +957,9 @@ def init_fastmcp_server(
 
     # Apply any additional configuration
     _apply_config(mcp, config)
+
+    # Final invariant: every tool must have gone through mcp_auth_hook.
+    assert_all_tools_protected(mcp)
 
     logger.info("Configured FastMCP instance: %s (auth=%s)", name, auth is not None)
     return mcp

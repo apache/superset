@@ -37,11 +37,14 @@ import { DrillBySubmenu, DrillBySubmenuProps } from './DrillBySubmenu';
 
 const { form_data: defaultFormData } = chartQueries[sliceId];
 
-jest.mock('lodash/debounce', () => (fn: Function & { debounce: Function }) => {
-  // eslint-disable-next-line no-param-reassign
-  fn.debounce = jest.fn();
-  return fn;
-});
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fn: Function & { debounce: Function }) => {
+    // eslint-disable-next-line no-param-reassign
+    fn.debounce = jest.fn();
+    return fn;
+  },
+}));
 
 const defaultColumns = [
   { column_name: 'col1', groupby: true },

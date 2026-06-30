@@ -16,10 +16,12 @@
 # under the License.
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, TYPE_CHECKING
 
 import jwt
 from flask import Flask, Request, request, Response, session
@@ -31,6 +33,9 @@ from superset.async_events.cache_backend import (
 )
 from superset.utils import json
 from superset.utils.core import get_user_id
+
+if TYPE_CHECKING:
+    from superset.security.guest_token import GuestUser
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +173,17 @@ class AsyncQueryManager:
     def register_request_handlers(self, app: Flask) -> None:
         @app.after_request
         def validate_session(response: Response) -> Response:
+            # pylint: disable=import-outside-toplevel
+            from superset import security_manager
+
+            # Guest users (embedded dashboards) are typically loaded from a
+            # third-party context where session cookies are unreliable, so the
+            # async channel is derived deterministically from the guest token
+            # in `parse_channel_id_from_request` and the JWT cookie is not
+            # required.
+            if security_manager.get_current_guest_user_if_guest():
+                return response
+
             user_id = get_user_id()
 
             reset_token = (
@@ -206,7 +222,44 @@ class AsyncQueryManager:
 
             return response
 
+    def get_guest_user_channel_id(self, guest_user: GuestUser) -> str:
+        """
+        Derive a deterministic async channel ID for a guest user.
+
+        Embedded guest sessions cannot reliably rely on the async-token cookie
+        because cross-origin cookies are blocked or stripped by modern browsers
+        when running inside a third-party iframe. Using an HMAC over stable
+        guest-token claims yields a per-token channel that the chart data
+        request, the celery worker, and the polling endpoint can all derive
+        without needing a cookie. The HMAC is keyed with the configured JWT
+        secret so the value is unguessable to outside callers.
+        """
+        token = guest_user.guest_token
+        # ``iat`` uniquely identifies a guest token issuance, so it provides
+        # per-token isolation while remaining stable across the lifetime of a
+        # single embedded session.
+        message = json.dumps(
+            {
+                "user": token.get("user"),
+                "resources": token.get("resources"),
+                "iat": token.get("iat"),
+                "exp": token.get("exp"),
+                "aud": token.get("aud"),
+            },
+            sort_keys=True,
+        ).encode("utf-8")
+        digest = hmac.new(
+            self._jwt_secret.encode("utf-8"), message, hashlib.sha256
+        ).hexdigest()
+        return f"guest-{digest}"
+
     def parse_channel_id_from_request(self, req: Request) -> str:
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+
+        if guest_user := security_manager.get_current_guest_user_if_guest():
+            return self.get_guest_user_channel_id(guest_user)
+
         token = req.cookies.get(self._jwt_cookie_name)
         if not token:
             raise AsyncQueryTokenException("Token not preset")
