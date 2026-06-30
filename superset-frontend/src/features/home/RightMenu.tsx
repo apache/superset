@@ -29,7 +29,7 @@ import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
