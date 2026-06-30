@@ -403,6 +403,18 @@ class BaseReportState:
             state=dashboard_state,
         ).run()
 
+        # The report-generation flow runs inside an outer ``@transaction``
+        # block (``ReportScheduleStateMachine.run``). Because of that,
+        # ``CreateDashboardPermalinkCommand``'s inner ``@transaction``
+        # decorator detects the active transaction and skips its own
+        # commit — the new row is flushed to the session but not yet
+        # visible to other database connections. Playwright then opens
+        # the permalink URL on a separate connection to render the
+        # report, which 404s because the row isn't committed. Commit
+        # explicitly here so the permalink is visible before navigation
+        # (#40996).
+        db.session.commit()  # pylint: disable=consider-using-transaction
+
         return get_url_path(
             "Superset.dashboard_permalink",
             key=permalink_key,

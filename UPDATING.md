@@ -68,6 +68,20 @@ The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list re
 
 The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
 
+### Tagging fix for `create_all`-bootstrapped schemas
+
+Only affects deployments whose metadata schema was created with SQLAlchemy's `create_all` (rather than `superset db upgrade`) on a foreign-key-enforcing backend — PostgreSQL, or MySQL with `FOREIGN_KEY_CHECKS=1`. Such schemas carry three invalid foreign keys on `tagged_object.object_id` that break tagging (`TAGGING_SYSTEM = True`) with a `ForeignKeyViolation`. Schemas built via `superset db upgrade` are unaffected.
+
+This release stops the ORM from emitting these constraints, but it cannot drop ones already present in your schema. If affected, drop them manually (names vary by backend, so look them up first):
+
+```sql
+-- PostgreSQL: names are typically tagged_object_object_id_fkey, _fkey1, _fkey2
+ALTER TABLE tagged_object DROP CONSTRAINT <constraint_name>;
+
+-- MySQL: find names via `SHOW CREATE TABLE tagged_object;`
+ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
+```
+
 ### Webhook alerts/reports block private/internal hosts by default
 
 Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.

@@ -19,11 +19,14 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import TimeSeriesColumnControl from '.';
 
-jest.mock('lodash/debounce', () => (fn: Function & { cancel: Function }) => {
-  // eslint-disable-next-line no-param-reassign
-  fn.cancel = jest.fn();
-  return fn;
-});
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fn: Function & { cancel: Function }) => {
+    // eslint-disable-next-line no-param-reassign
+    fn.cancel = jest.fn();
+    return fn;
+  },
+}));
 
 test('renders with default props', () => {
   render(<TimeSeriesColumnControl />);
