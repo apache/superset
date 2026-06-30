@@ -7879,7 +7879,7 @@ msgid "List Unique Values"
 msgstr "Eindeutige Werte auflisten"
 
 msgid "List Users"
-msgstr "Benutzer*innen auflisten"
+msgstr "Benutzer auflisten"
 
 msgid "List of extra columns made available in JavaScript functions"
 msgstr ""
