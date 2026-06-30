@@ -30,7 +30,9 @@ import {
 import { tn } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import AdhocMetric, {
+  dedupeAdhocMetricOptionName,
+} from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger';
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
 import {
@@ -52,7 +54,7 @@ const isDictionaryForAdhocMetric = (value: QueryFormMetric) =>
   typeof value !== 'string' &&
   value.expressionType;
 
-const coerceMetrics = (
+export const coerceMetrics = (
   addedMetrics: QueryFormMetric | QueryFormMetric[] | undefined | null,
   savedMetrics: Metric[],
   columns: ColumnMeta[],
@@ -70,6 +72,10 @@ const coerceMetrics = (
       return true;
     },
   );
+
+  // Metrics are identified by optionName when editing; regenerate any that
+  // collide so each keeps a unique identity (see dedupeAdhocMetricOptionName).
+  const seenOptionNames = new Set<string>();
 
   return metricsCompatibleWithDataset.map(metric => {
     if (
@@ -94,14 +100,20 @@ const coerceMetrics = (
       );
       if (column) {
         // Cast entire config object to handle type mismatch between @superset-ui/core and local types
-        return new AdhocMetric({
-          ...(metric as unknown as Record<string, unknown>),
-          column,
-        } as Record<string, unknown>);
+        return dedupeAdhocMetricOptionName(
+          new AdhocMetric({
+            ...(metric as unknown as Record<string, unknown>),
+            column,
+          } as Record<string, unknown>),
+          seenOptionNames,
+        );
       }
     }
     // Cast to unknown first to handle type mismatch between @superset-ui/core and local AdhocMetric
-    return new AdhocMetric(metric as unknown as Record<string, unknown>);
+    return dedupeAdhocMetricOptionName(
+      new AdhocMetric(metric as unknown as Record<string, unknown>),
+      seenOptionNames,
+    );
   });
 };
 

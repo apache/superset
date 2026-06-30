@@ -886,6 +886,46 @@ def test_get_tab_url(
     assert result == urllib.parse.urljoin(base_url, "superset/dashboard/p/uri/")
 
 
+@patch("superset.commands.report.execute.db.session")
+@patch(
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+)
+def test_get_tab_url_commits_permalink_before_returning(
+    mock_run,
+    mock_session,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Regression test for #40996.
+
+    The report-generation flow runs inside an outer ``@transaction`` block,
+    so ``CreateDashboardPermalinkCommand``'s inner ``@transaction`` decorator
+    skips its own commit and leaves the permalink row flushed but uncommitted.
+    Playwright then opens the permalink on a separate database connection and
+    404s. ``_get_tab_url`` must therefore commit explicitly **after** the
+    permalink command returns so the row is visible across connections.
+    """
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.dashboard_id = 123
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_run.return_value = "uri"
+    dashboard_state = DashboardPermalinkState(
+        anchor="1",
+        dataMask=None,
+        activeTabs=None,
+        urlParams=None,
+    )
+
+    class_instance._get_tab_url(dashboard_state)
+
+    mock_run.assert_called_once()
+    mock_session.commit.assert_called_once()
+
+
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )

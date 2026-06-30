@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { last } from 'lodash';
+import { last } from 'lodash-es';
 import rison from 'rison';
 import { parse as parseContentDisposition } from 'content-disposition';
 import { t } from '@apache-superset/core/translation';
