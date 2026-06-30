@@ -147,6 +147,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "get_drill_info",
         "list_versions",
         "get_version",
+        "activity",
     }
     list_columns = [
         "id",
@@ -1696,9 +1697,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        return list_versions_endpoint(
-            self, SqlaTable, uuid_str, access_kwarg="datasource"
-        )
+        return list_versions_endpoint(self, SqlaTable, uuid_str)
 
     @expose(
         "/<uuid_str>/versions/<version_uuid_str>/",
@@ -1760,6 +1759,85 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        return get_version_endpoint(
-            self, SqlaTable, uuid_str, version_uuid_str, access_kwarg="datasource"
-        )
+        return get_version_endpoint(self, SqlaTable, uuid_str, version_uuid_str)
+
+    @expose("/<uuid_str>/activity/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
+        log_to_statsd=False,
+    )
+    def activity(self, uuid_str: str) -> Response:
+        """Return the activity stream for a dataset.
+        ---
+        get:
+          summary: Activity stream — dataset's own edits only.
+            Datasets have no transitive layer in V2 — chart and
+            dashboard edits that touch this dataset do NOT appear here;
+            ``?include=related`` and ``?include=all`` collapse to the same
+            self-only stream as ``?include=self``.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: since
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: until
+          - in: query
+            schema:
+              type: string
+              enum: [self, related, all]
+              default: all
+            name: include
+          - in: query
+            schema:
+              type: string
+            name: q
+            description: >-
+              Case-insensitive search over the full history (summary,
+              entity name, kind, path, values) — applied before
+              pagination, so `count` reflects the matches.
+          - in: query
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            name: page
+          - in: query
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 200
+              default: 25
+            name: page_size
+          responses:
+            200:
+              description: Activity stream ordered newest-first
+              content:
+                application/json:
+                  schema: ActivityResponseSchema
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.activity import activity_endpoint
+
+        return activity_endpoint(self, SqlaTable, uuid_str, request.args)

@@ -88,6 +88,18 @@ Entity version history (the `version_transaction` / `*_version` shadow tables th
 | `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` to disable pruning. |
 
 The task ships in the default `CELERYBEAT_SCHEDULE`; a deployment that overrides `CELERY_CONFIG` without inheriting the default will log a startup warning that the prune task is absent (so it never silently stops running). Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
+### Cross-entity version activity stream
+
+A read-only companion to the version-history endpoints: each entity type gains a `GET /api/v1/{chart,dashboard,dataset}/<uuid>/activity/` endpoint returning a chronological, access-filtered stream of edits — the entity's own edits plus, for charts and dashboards, transitive edits to related entities during their association windows.
+
+| Param | Type | Default | Purpose |
+|---|---|---|---|
+| `since` / `until` | ISO 8601 | — | Bound `issued_at` |
+| `include` | `self` \| `related` \| `all` | `all` | Own edits, related edits, or both |
+| `q` | string | — | Case-insensitive search over the full history, applied before pagination (so `count` reflects matches) |
+| `page` / `page_size` | integer | `0` / `25` | Pagination (`page_size` clamped to 200) |
+
+Authorization reuses the resource's `can_read` permission and per-object `raise_for_access`; related-entity rows are visibility-filtered to what the caller may see. The stream is empty unless version capture is on (`ENABLE_VERSIONING_CAPTURE`).
 
 ### Webhook alerts/reports block private/internal hosts by default
 

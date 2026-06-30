@@ -896,10 +896,11 @@ def diff_dashboard_layout(
       payloads carry old + new meta
     * id in both, equal → no record
 
-    The ``operation_type``-style verb is encoded in
-    ``path[0]`` as ``["add"|"remove"|"move"|"edit", <component-kind>,
-    <component-id>]`` so the UI's path-based renderer can read it
-    without inspecting from/to.
+    The verb lives in each record's ``operation`` field
+    (``add`` / ``remove`` / ``move`` / ``edit``); ``path`` locates the
+    component as ``[<component-id>]`` (``[<component-id>, <leaf_key>, …]``
+    for an ``edit`` that recurses into ``meta``). Paths no longer carry
+    the verb — see :func:`_layout_chart_uuids_by_verb`.
 
     ``ROOT_ID`` / ``GRID_ID`` / ``HEADER_ID`` are suppressed (see
     :data:`_LAYOUT_SUPPRESSED_IDS`).
