@@ -262,8 +262,29 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
+        chart = self._report_schedule.chart
+        dashboard = self._report_schedule.dashboard
+        if not chart and not dashboard:
+            # Defensive null-guard: a report normally has exactly one of chart or
+            # dashboard populated. If both relationship loads return None, the
+            # underlying entity has gone missing — typically because it was
+            # soft-deleted (the global visibility filter excludes it from
+            # relationship loads) or hard-deleted out from under the report.
+            # The API blocks this state via DeleteChartCommand /
+            # DeleteDashboardCommand validation, but admin tooling and direct
+            # SQLAlchemy paths can still reach it. Raise cleanly so the worker
+            # logs FAILURE with a meaningful reason instead of crashing on a
+            # downstream AttributeError.
+            raise ReportScheduleUnexpectedError(
+                f"Report schedule {self._report_schedule.id} "
+                f"({self._report_schedule.name!r}) has no resolvable target "
+                f"(chart_id={self._report_schedule.chart_id}, "
+                f"dashboard_id={self._report_schedule.dashboard_id}); "
+                "the underlying entity may have been soft- or hard-deleted."
+            )
+
         force = "true" if self._report_schedule.force_screenshot else "false"
-        if self._report_schedule.chart:
+        if chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
                 ChartDataResultFormat.JSON,
@@ -288,10 +309,7 @@ class BaseReportState:
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
             return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
 
-        dashboard = self._report_schedule.dashboard
-        dashboard_id_or_slug = (
-            dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
-        )
+        dashboard_id_or_slug = dashboard.uuid or dashboard.id
         return get_url_path(
             "Superset.dashboard",
             user_friendly=user_friendly,

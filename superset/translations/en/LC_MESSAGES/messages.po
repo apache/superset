@@ -2791,6 +2791,9 @@ msgstr ""
 msgid "Chart could not be created."
 msgstr ""
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr ""
 
@@ -4005,6 +4008,9 @@ msgstr ""
 msgid "Dashboard could not be deleted."
 msgstr ""
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr ""
 
@@ -4233,6 +4239,9 @@ msgid "Dataset could not be created."
 msgstr ""
 
 msgid "Dataset could not be duplicated."
+msgstr ""
+
+msgid "Dataset could not be restored."
 msgstr ""
 
 msgid "Dataset could not be updated."

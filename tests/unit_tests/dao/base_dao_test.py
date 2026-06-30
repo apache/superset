@@ -27,7 +27,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from superset_core.common.models import CoreModel
 
-from superset.daos.base import BaseDAO, ColumnOperatorEnum
+from superset.daos.base import _escape_like, BaseDAO, ColumnOperatorEnum
 from superset.daos.exceptions import DAOFindFailedError
 
 
@@ -50,6 +50,40 @@ class TestDAOWithNoneModel(BaseDAO[MockModel]):
 # =============================================================================
 # Unit Tests - These tests use mocks and don't touch the database
 # =============================================================================
+
+
+def test_escape_like_coerces_non_string_values() -> None:
+    """``_escape_like`` coerces non-str input rather than raising.
+
+    ``ColumnOperator.value`` is typed ``Any``, so a numeric or ``None`` value can
+    reach a LIKE-family operator; it must degrade to a literal match instead of
+    raising ``AttributeError`` on ``str.replace``.
+    """
+    # Wildcards in string input are still escaped, backslash first.
+    assert _escape_like("50%_off") == "50\\%\\_off"
+    assert _escape_like("a\\b") == "a\\\\b"
+    # Non-string input is coerced, not crashed.
+    assert _escape_like(5) == "5"
+    assert _escape_like(3.5) == "3.5"
+    assert _escape_like(None) == ""
+
+
+def test_like_operator_accepts_non_string_value() -> None:
+    """A non-string value flows through a LIKE operator without raising.
+
+    Guards the ``_escape_like`` coercion end-to-end: before it, ``ct``/``like``
+    with a numeric value raised ``AttributeError`` deep in operator application.
+    """
+    Base_test = declarative_base()  # noqa: N806
+
+    class TestModel(Base_test):  # type: ignore
+        __tablename__ = "test_model_like"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(50))
+
+    result = ColumnOperatorEnum.ct.apply(TestModel.name, 123)
+    sql = str(result.compile(compile_kwargs={"literal_binds": True}))
+    assert "123" in sql
 
 
 def test_column_operator_enum_apply_method() -> None:  # noqa: C901

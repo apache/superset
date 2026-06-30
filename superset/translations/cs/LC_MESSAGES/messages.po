@@ -3106,6 +3106,9 @@ msgstr "Změny grafu"
 msgid "Chart could not be created."
 msgstr "Graf se nepodařilo vytvořit."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Graf se nepodařilo aktualizovat."
 
@@ -4416,6 +4419,9 @@ msgstr "Konfiguraci barev nástěnky se nepodařilo aktualizovat."
 msgid "Dashboard could not be deleted."
 msgstr "Nástěnku se nepodařilo smazat."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Nástěnku se nepodařilo aktualizovat."
 
@@ -4666,6 +4672,9 @@ msgstr "Sadu dat se nepodařilo vytvořit."
 
 msgid "Dataset could not be duplicated."
 msgstr "Sadu dat se nepodařilo duplikovat."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Sadu dat se nepodařilo aktualizovat."

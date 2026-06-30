@@ -3194,6 +3194,9 @@ msgstr "Alterações no gráfico"
 msgid "Chart could not be created."
 msgstr "Não foi possível criar o gráfico."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Não foi possível atualizar o gráfico."
 
@@ -4566,6 +4569,9 @@ msgstr "Não foi possível atualizar o painel."
 msgid "Dashboard could not be deleted."
 msgstr "Não foi possível remover o painel."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Não foi possível atualizar o painel."
 
@@ -4824,6 +4830,9 @@ msgstr "Não foi possível criar o conjunto de dados."
 
 msgid "Dataset could not be duplicated."
 msgstr "Não foi possível duplicar o conjunto de dados."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Não foi possível atualizar o conjunto de dados."

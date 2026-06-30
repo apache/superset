@@ -62,6 +62,7 @@ export enum FeatureFlag {
   Matrixify = 'MATRIXIFY',
   ScheduledQueries = 'SCHEDULED_QUERIES',
   SemanticLayers = 'SEMANTIC_LAYERS',
+  SoftDelete = 'SOFT_DELETE',
   SqllabBackendPersistence = 'SQLLAB_BACKEND_PERSISTENCE',
   SqlValidatorsByEngine = 'SQL_VALIDATORS_BY_ENGINE',
   SshTunneling = 'SSH_TUNNELING',

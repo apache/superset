@@ -35,6 +35,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDeletedStateFilter,
     ChartFavoriteFilter,
     ChartFilter,
     ChartHasCreatedByFilter,
@@ -64,12 +65,14 @@ from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartInvalidError,
     ChartNotFoundError,
+    ChartRestoreFailedError,
     ChartUpdateFailedError,
     DashboardsForbiddenError,
 )
 from superset.commands.chart.export import ExportChartsCommand
 from superset.commands.chart.fave import AddFavoriteChartCommand
 from superset.commands.chart.importers.dispatcher import ImportChartsCommand
+from superset.commands.chart.restore import RestoreChartCommand
 from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
@@ -79,9 +82,12 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
-from superset.exceptions import ScreenshotImageNotAvailableException
+from superset.exceptions import (
+    ScreenshotImageNotAvailableException,
+)
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -95,6 +101,14 @@ from superset.utils.screenshots import (
     StatusValues,
 )
 from superset.utils.urls import get_url_path
+from superset.versioning.api_helpers import (
+    current_entity_etag_uuid,
+    current_entity_version_info,
+    get_version_endpoint,
+    list_versions_endpoint,
+)
+from superset.versioning.etag import set_version_etag
+from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -102,12 +116,23 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import (
+    BaseFilterRelatedUsers,
+    FilterRelatedOwners,
+    SoftDeleteApiMixin,
+)
 
 logger = logging.getLogger(__name__)
 
+_CHART_PURGE_BINDING = SoftDeleteBinding(
+    dao=ChartDAO,
+    not_found=ChartNotFoundError,
+    forbidden=ChartForbiddenError,
+    delete_failed=ChartDeleteFailedError,
+)
 
-class ChartRestApi(BaseSupersetModelRestApi):
+
+class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Slice)
 
     resource_name = "chart"
@@ -124,6 +149,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
+        "restore",
+        "purge",
         "viz_types",
         "favorite_status",
         "add_favorite",
@@ -132,9 +159,23 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "screenshot",
         "cache_screenshot",
         "warm_up_cache",
+        "list_versions",
+        "get_version",
+        "activity",
     }
     class_permission_name = "Chart"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    # Custom methods (``restore``) need an explicit entry; FAB's @protect()
+    # decorator falls back to ``can_<method>_<class>`` (i.e.
+    # ``can_restore_Chart``) when the mapping is missing, which standard
+    # roles don't carry. Mirrors the permission model documented for
+    # ``DELETE`` / ``bulk_delete``: endpoint-level ``can_write`` plus
+    # resource-level ``raise_for_ownership``. See themes/api.py for the
+    # established pattern.
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "restore": "write",
+        "purge": "write",
+    }
 
     list_columns = [
         "is_managed_externally",
@@ -191,6 +232,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "datasource_id",
         "datasource_name",
+        # Exposed so the Recently-Deleted view can sort archived charts by
+        # deletion time (sc-111760).
+        "deleted_at",
         "last_saved_at",
         "last_saved_by.id",
         "last_saved_by.first_name",
@@ -206,6 +250,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "datasource_id",
         "datasource_name",
         "datasource_type",
+        # Exposed so the Recently-Deleted view can filter archived charts by a
+        # deletion-time cutoff (e.g. ``deleted_at`` ``gt`` cutoff) — sc-111760.
+        "deleted_at",
         "description",
         "id",
         "uuid",
@@ -222,6 +269,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "id": [
             ChartFavoriteFilter,
             ChartCertifiedFilter,
+            ChartDeletedStateFilter,
             ChartOwnedCreatedFavoredByMeFilter,
         ],
         "slice_name": [ChartAllTextFilter],
@@ -238,7 +286,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = CHART_SCHEMAS
+    openapi_spec_component_schemas = CHART_SCHEMAS + (VersionListItemSchema,)
 
     apispec_parameter_schemas = {
         "screenshot_query_schema": screenshot_query_schema,
@@ -312,7 +360,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
             result = self.chart_get_response_schema.dump(dash)
             if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
                 result["extra_owners"] = resolver(dash)
-            return self.response(200, result=result)
+
+            return set_version_etag(
+                self.response(200, result=result),
+                current_entity_etag_uuid(Slice, dash.id, dash.uuid),
+            )
         except ChartNotFoundError:
             return self.response_404()
 
@@ -419,6 +471,48 @@ class ChartRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+                      old_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the live row before this
+                          update. Unstable under retention pruning — see
+                          old_transaction_id for a stable identifier.
+                      new_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the newly-live row after
+                          this update. Can equal old_version when no
+                          versioned column changed, or when retention
+                          pruning dropped an older closed row in the same
+                          commit.
+                      old_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: Continuum transaction_id of the live
+                          row before this update. Stable across pruning.
+                      new_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: Continuum transaction_id of the live
+                          row after this update. Differs from
+                          old_transaction_id when the update produced a new
+                          version row.
+                      old_version_uuid:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: Deterministic version_uuid of the live
+                          row before this update. Null when version capture
+                          is disabled or the entity has no version rows yet.
+                      new_version_uuid:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: Deterministic version_uuid of the live
+                          row after this update. Null when version capture
+                          is disabled.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -437,9 +531,29 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        # Live version identifiers before the update (empty + query-free when
+        # ``ENABLE_VERSIONING_CAPTURE`` is off, so this stays inert under the
+        # kill-switch).
+        old_info = current_entity_version_info(Slice, pk)
+
         try:
             changed_model = UpdateChartCommand(pk, item).run()
-            response = self.response(200, id=changed_model.id, result=item)
+            new_info = current_entity_version_info(
+                Slice, changed_model.id, changed_model.uuid
+            )
+            response = self.response(
+                200,
+                id=changed_model.id,
+                result=item,
+                old_version=old_info.version,
+                new_version=new_info.version,
+                old_transaction_id=old_info.transaction_id,
+                new_transaction_id=new_info.transaction_id,
+                old_version_uuid=old_info.version_uuid,
+                new_version_uuid=new_info.version_uuid,
+            )
+            set_version_etag(response, new_info.version_uuid)
         except ChartNotFoundError:
             response = self.response_404()
         except ChartForbiddenError:
@@ -470,10 +584,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Delete a chart.
+        """Soft-delete a chart.
+
+        Marks the chart as deleted (sets ``deleted_at``) and hides it from
+        list/detail endpoints and relationship loads; the row is preserved
+        and recoverable via ``POST /api/v1/chart/<uuid>/restore`` by an
+        owner or admin.
         ---
         delete:
-          summary: Delete a chart
+          summary: Delete a chart (soft delete; recoverable via restore)
           parameters:
           - in: path
             schema:
@@ -526,10 +645,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Bulk delete charts.
+        """Bulk soft-delete charts.
+
+        Marks each chart as deleted (sets ``deleted_at``) and hides it from
+        list/detail endpoints and relationship loads; rows are preserved
+        and recoverable via ``POST /api/v1/chart/<uuid>/restore`` by an
+        owner or admin.
         ---
         delete:
-          summary: Bulk delete charts
+          summary: Bulk delete charts (soft delete; recoverable via restore)
           parameters:
           - in: query
             name: q
@@ -572,6 +696,121 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartForbiddenError:
             return self.response_403()
         except ChartDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<uuid>/restore", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.restore",
+        log_to_statsd=False,
+    )
+    def restore(self, uuid: str) -> Response:
+        """Restore a soft-deleted chart.
+        ---
+        post:
+          summary: Restore a soft-deleted chart
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Chart restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            RestoreChartCommand(uuid).run()
+            return self.response(200, message="OK")
+        except ChartNotFoundError:
+            return self.response_404()
+        except ChartForbiddenError:
+            return self.response_403()
+        except ChartRestoreFailedError as ex:
+            logger.error(
+                "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
+    @expose("/<uuid>/purge", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.purge",
+        log_to_statsd=False,
+    )
+    def purge(self, uuid: str) -> Response:
+        """Permanently delete a soft-deleted (archived) chart.
+        ---
+        post:
+          summary: Permanently delete a soft-deleted chart
+          description: >-
+            Irreversibly remove an archived chart and its dependents. Limited to
+            owners and admins (same audience as restore).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Chart permanently deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            PurgeArchivedCommand(uuid, _CHART_PURGE_BINDING).run()
+            return self.response(200, message="OK")
+        except ChartNotFoundError:
+            return self.response_404()
+        except ChartForbiddenError:
+            return self.response_403()
+        except ChartDeleteFailedError as ex:
+            logger.error(
+                "Error purging model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
             return self.response_422(message=str(ex))
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
@@ -1214,3 +1453,183 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/<uuid_str>/versions/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
+        log_to_statsd=False,
+    )
+    def list_versions(self, uuid_str: str) -> Response:
+        """List version history for a chart.
+        ---
+        get:
+          summary: Return the version history for a chart
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Chart UUID
+          responses:
+            200:
+              description: Version history ordered by oldest first
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VersionListItemSchema'
+                      count:
+                        type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return list_versions_endpoint(self, Slice, uuid_str)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/",
+        methods=("GET",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
+        log_to_statsd=False,
+    )
+    def get_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Return the chart's state at a specific version.
+        ---
+        get:
+          summary: Read-only snapshot of the chart at a given version
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Chart UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: Version UUID as returned by the list endpoint
+          responses:
+            200:
+              description: Snapshot of the chart at the target version
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        description: >-
+                          The chart's scalar fields at the target version
+                          (entity-specific keys), plus a `_version` block
+                          with the version-level metadata.
+                        properties:
+                          _version:
+                            $ref: '#/components/schemas/VersionListItemSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return get_version_endpoint(self, Slice, uuid_str, version_uuid_str)
+
+    @expose("/<uuid_str>/activity/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
+        log_to_statsd=False,
+    )
+    def activity(self, uuid_str: str) -> Response:
+        """Return the cross-entity activity stream for a chart.
+        ---
+        get:
+          summary: Activity stream — chart own edits + datasets the
+            chart pointed at during association
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Chart UUID
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: since
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: until
+          - in: query
+            schema:
+              type: string
+              enum: [self, related, all]
+              default: all
+            name: include
+          - in: query
+            schema:
+              type: string
+            name: q
+            description: >-
+              Case-insensitive search over the full history (summary,
+              entity name, kind, path, values) — applied before
+              pagination, so `count` reflects the matches.
+          - in: query
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            name: page
+          - in: query
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 200
+              default: 25
+            name: page_size
+          responses:
+            200:
+              description: Activity stream ordered newest-first
+              content:
+                application/json:
+                  schema: ActivityResponseSchema
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.activity import activity_endpoint
+
+        return activity_endpoint(self, Slice, uuid_str, request.args)

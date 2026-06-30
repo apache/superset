@@ -657,6 +657,18 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
+    # Temporary rollout / kill-switch gate for soft delete. Default off. When
+    # off: DELETE hard-deletes (legacy) and
+    # the read-path visibility filter is inactive, so the substrate ships dark;
+    # the import pipeline's existing-row detection inherits this via the same
+    # listener (no separate check); restore has nothing to act on because no row
+    # carries deleted_at. Flipping ON->OFF after rows were soft-deleted RESURRECTS
+    # them (they become visible/active again) — an emergency stop, not a clean
+    # rollback. Not a permanent toggle: REMOVE this flag and its two gate points
+    # (BaseDAO.delete routing; the do_orm_execute visibility listener) once soft
+    # delete is stable.
+    # @lifecycle: development
+    "SOFT_DELETE": False,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
@@ -1307,7 +1319,11 @@ CORS_OPTIONS: dict[Any, Any] = {
     "origins": [
         "https://tile.openstreetmap.org",
         "https://tile.osm.ch",
-    ]
+    ],
+    # Make the entity-version-history `ETag` header readable by cross-origin
+    # browser clients. Without this, `fetch()` callers cannot read the header
+    # even when CORS is otherwise permissive.
+    "expose_headers": ["ETag"],
 }
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
@@ -1487,6 +1503,33 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
+# Master switch for entity-version-history capture. Ships defaulted ``False``
+# so the versioning infrastructure (schema + Continuum wiring) lands inert:
+# no save writes shadow rows or a ``version_transaction``/``version_changes``
+# record, while the /versions/ endpoints stay available read-only (returning
+# empty). Set to ``True`` in ``superset_config.py`` (or via the env var of the
+# same name) to enable the before-flush listeners that drive capture.
+# Capture is activated by flipping this default to on once validated in
+# production. It is an operational escape hatch — for use when a
+# versioning-induced regression needs a 30-second recovery instead of
+# revert-and-redeploy — not a feature flag, and remains as the permanent
+# kill-switch.
+ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
+)
+
+# Retention window (days) for entity version history. Version rows
+# whose owning ``version_transaction.issued_at`` is older than this
+# value are pruned by the ``version_history.prune_old_versions``
+# Celery beat task (registered below in ``CeleryConfig.beat_schedule``).
+# Only the live row (``end_transaction_id IS NULL``) is preserved
+# unconditionally; baseline rows (``operation_type=0``) and any
+# historical row age out alongside the rest. ``0`` disables pruning.
+# Read from environment variable of the same name.
+SUPERSET_VERSION_HISTORY_RETENTION_DAYS: int = int(
+    os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "30")
+)
+
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
@@ -1550,6 +1593,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "reports.prune_log": {
             "task": "reports.prune_log",
             "schedule": crontab(minute=0, hour=0),
+        },
+        # Entity version-history retention. Daily at 03:00; the task
+        # itself short-circuits when SUPERSET_VERSION_HISTORY_RETENTION_DAYS
+        # is 0 (disabled).
+        "version_history.prune_old_versions": {
+            "task": "version_history.prune_old_versions",
+            "schedule": crontab(minute=0, hour=3),
         },
         # Uncomment to enable pruning of the query table
         # "prune_query": {

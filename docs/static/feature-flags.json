@@ -88,6 +88,12 @@
         "description": "Enable semantic layers and show semantic views alongside datasets"
       },
       {
+        "name": "SOFT_DELETE",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Temporary rollout / kill-switch gate for soft delete. Default off. When off: DELETE hard-deletes (legacy) and the read-path visibility filter is inactive, so the substrate ships dark; the import pipeline's existing-row detection inherits this via the same listener (no separate check); restore has nothing to act on because no row carries deleted_at. Flipping ON->OFF after rows were soft-deleted RESURRECTS them (they become visible/active again) \u2014 an emergency stop, not a clean rollback. Not a permanent toggle: REMOVE this flag and its two gate points (BaseDAO.delete routing; the do_orm_execute visibility listener) once soft delete is stable."
+      },
+      {
         "name": "TABLE_V2_TIME_COMPARISON_ENABLED",
         "default": false,
         "lifecycle": "development",

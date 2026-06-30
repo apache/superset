@@ -67,6 +67,47 @@ ALTER TABLE tagged_object DROP CONSTRAINT <constraint_name>;
 -- MySQL: find names via `SHOW CREATE TABLE tagged_object;`
 ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
 ```
+### Entity version-history infrastructure (gated off by default)
+
+Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. This ships **inert**: a new config flag `ENABLE_VERSIONING_CAPTURE` defaults to `False`, so no save writes any version rows and the endpoints return empty. It is an operational kill-switch (a release toggle that becomes a permanent ops switch), not a feature flag — set it to `True` to enable capture once validated. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
+
+A few save- and import-path internals change **unconditionally** (independent of the flag), because the versioned mappers must behave correctly whether or not capture is enabled:
+
+- `DatasetDAO` column/metric updates move from bulk operations to per-row ORM operations, and a metadata refresh now preserves column primary keys via a natural-key (`column_name`) upsert instead of delete-and-reinsert — so charts that reference dataset columns by id keep working across a refresh (previously such references could be invalidated).
+- `ImportExportMixin.reset_ownership` stamps the current user onto `created_by`/`changed_by` when a request context is present (previously left null for the column default to fill).
+- `UpdateDashboardCommand` runs its body under `no_autoflush`.
+
+These are behavior changes that take effect on upgrade regardless of `ENABLE_VERSIONING_CAPTURE`; no operator action is required.
+
+### Version-history retention (pruning)
+
+Entity version history (the `version_transaction` / `*_version` shadow tables that back version capture) is aged out by a nightly Celery beat task, `version_history.prune_old_versions` (`superset.tasks.version_history_retention`).
+
+| Key | Default | Purpose |
+|---|---|---|
+| `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` to disable pruning. |
+
+The task ships in the default `CELERYBEAT_SCHEDULE`; a deployment that overrides `CELERY_CONFIG` without inheriting the default will log a startup warning that the prune task is absent (so it never silently stops running). Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
+### Cross-entity version activity stream
+
+A read-only companion to the version-history endpoints: each entity type gains a `GET /api/v1/{chart,dashboard,dataset}/<uuid>/activity/` endpoint returning a chronological, access-filtered stream of edits — the entity's own edits plus, for charts and dashboards, transitive edits to related entities during their association windows.
+
+| Param | Type | Default | Purpose |
+|---|---|---|---|
+| `since` / `until` | ISO 8601 | — | Bound `issued_at` |
+| `include` | `self` \| `related` \| `all` | `all` | Own edits, related edits, or both |
+| `q` | string | — | Case-insensitive search over the full history, applied before pagination (so `count` reflects matches) |
+| `page` / `page_size` | integer | `0` / `25` | Pagination (`page_size` clamped to 200) |
+
+Authorization reuses the resource's `can_read` permission and per-object `raise_for_access`; related-entity rows are visibility-filtered to what the caller may see. The stream is empty unless version capture is on (`ENABLE_VERSIONING_CAPTURE`).
+
+### Deletion retention (soft-deleted entities are eventually purged)
+
+Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SUPERSET_SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
+
+The introducing release **defaults to dry-run** (`SUPERSET_SOFT_DELETE_PURGE_DRY_RUN=True`): the task logs `would_purge` counts but deletes nothing, so operators can validate against production before activating real purging by setting it to `False`. The task only acts while the temporary `SOFT_DELETE` rollout flag is on.
+
+Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified). Every purge writes an immutable, content-free audit record to the new `purge_audit_log` table that survives the entity it names.
 
 ### Webhook alerts/reports block private/internal hosts by default
 
@@ -227,6 +268,56 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
 Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
 
 The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
+### Soft delete and restore for charts
+
+`DELETE /api/v1/chart/<id>` no longer hard-deletes the chart (the bulk-delete endpoint behaves the same way). The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints. Charts in this state are excluded from default queries and from relationship loads (e.g. `dashboard.slices`).
+
+**New endpoint** — `POST /api/v1/chart/<uuid>/restore` clears `deleted_at` and returns the chart to active state. Requires `can_write on Chart` and ownership of the row (or admin). Soft-deleted charts can also be surfaced in the list endpoint via the new `chart_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored. For non-admin users, soft-deleted rows are limited to charts they own — the same audience that can restore them.
+
+**Permissions migration:** existing role grants of `can_write on Chart` cover the new restore endpoint automatically; no role migration is required.
+
+**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_slices_deleted_at`) to the `slices` table. The column add is instant; the index build runs inline (no `CONCURRENTLY`) and may briefly block writes on the `slices` table (INSERT/UPDATE/DELETE are queued while the index builds; reads are unaffected) on large Postgres deployments. MySQL InnoDB builds the index online (no blocking).
+
+**Rollback note:** if the application code is rolled back after charts have been soft-deleted, the older code path's visibility filter no longer applies and previously hidden rows become visible to the older code. Pair the rollback with a data decision (restore the rows, hard-delete them, or also downgrade the migration) rather than assuming the old hard-delete semantics still hold.
+
+**Importer behavior:** importing a chart YAML whose UUID matches an existing **soft-deleted** chart is treated as an implicit restore-with-update. The owner (or an admin) gets the chart back in place — `deleted_at` is cleared and the contents from the upload are applied — preserving the original PK and all out-of-archive references (`dashboard_slices` junctions, `report.chart_id`, tag rows). Non-owners get `ImportFailedError`. Callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
+
+### Soft delete and restore for dashboards
+
+`DELETE /api/v1/dashboard/<id>` no longer hard-deletes the dashboard (the bulk-delete endpoint behaves the same way). The row is marked with a `deleted_at` timestamp and hidden from the dashboard API's list, detail, and lookup endpoints, which return 404 for soft-deleted dashboards. The embedded-dashboard iframe URL (`/embedded/<uuid>`) keeps rendering because it reads only `embedded.allowed_domains` and `embedded.dashboard_id` (the FK column) without dereferencing the parent dashboard; the frontend's subsequent dashboard-API fetch is what sees the 404 and surfaces "dashboard not found" to the user.
+
+**New endpoint** — `POST /api/v1/dashboard/<uuid>/restore` clears `deleted_at` and returns the dashboard to active state. Requires `can_write on Dashboard` and ownership of the row (or admin). Soft-deleted dashboards can also be surfaced in the list endpoint via the new `dashboard_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored. For non-admin users, soft-deleted rows are limited to dashboards they own — the same audience that can restore them.
+
+**Permissions migration:** existing role grants of `can_write on Dashboard` cover the new restore endpoint automatically; no role migration is required.
+
+**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_dashboards_deleted_at`) to the `dashboards` table, and **replaces the full unique constraint on `slug`** with a partial unique index (`ix_dashboards_active_slug`) enforcing slug uniqueness only among active (non-soft-deleted) rows. The column add is instant. On Postgres the constraint swap briefly blocks reads and writes during `ALTER TABLE ... DROP CONSTRAINT` (acquires `ACCESS EXCLUSIVE`), then blocks writes only during `CREATE UNIQUE INDEX` (acquires `ShareLock`); reads pass through during the index build. Both windows are sub-second on a typical `dashboards` table. MySQL InnoDB builds the functional index online (no blocking).
+
+**Rollback note:** the downgrade restores the original full unique constraint on `slug`. If the partial-index window allowed slug reuse (a soft-deleted row and an active row holding the same slug), `ALTER TABLE ... ADD CONSTRAINT idx_unique_slug UNIQUE (slug)` will abort with a unique-constraint violation. Before downgrading, hard-delete the soft-deleted duplicates (or rename one side) so each slug appears at most once across all rows. Rolling back the application code while leaving the new migration in place is also possible but exposes soft-deleted rows to the older code path; pair the rollback with a data decision (restore, hard-delete, or migrate-down).
+
+The partial-index replacement is dialect-dependent: PostgreSQL uses a native `WHERE deleted_at IS NULL` partial index; MySQL 8.0.13+ uses a functional index over `(CASE WHEN deleted_at IS NULL THEN slug END)` (8.0.13 is the first release with functional key parts). **MySQL <8.0.13, MariaDB, and SQLite keep the original full unique constraint** (functional indexes / column-level UNIQUE recreation aren't supported cleanly — MariaDB is excluded even at 10.x because its `CASE`-expression index semantics differ), so on those backends a soft-deleted dashboard continues to reserve its slug for the lifetime of the row.
+
+**Slug semantics:** on PostgreSQL and MySQL 8.0.13+, the slug of a soft-deleted dashboard is **free for reuse**. A new active dashboard can claim it immediately. Restoring a soft-deleted dashboard whose slug has since been claimed returns **422 with a clean error** (`DashboardSlugConflictError`) — rename one of the dashboards and retry; the restore is not silently rejected by a database-level constraint violation.
+
+**Importer behavior:** importing a dashboard YAML whose UUID matches an existing **soft-deleted** dashboard is treated as an implicit restore-with-update. The owner (or an admin) gets the dashboard back in place — `deleted_at` is cleared and the contents from the upload are applied — preserving the original PK and all relationship rows (`dashboard_slices` junctions, role grants, owners, tags). Non-owners get `ImportFailedError`. Callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
+### Soft delete and restore for datasets
+
+`DELETE /api/v1/dataset/<id>` no longer hard-deletes the dataset (the bulk-delete endpoint behaves the same way). The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints. Datasets in this state are excluded from default queries and from relationship loads (e.g. `database.tables`).
+
+**No cascade in v1.** Soft-delete does not propagate to dependent charts or dashboards: they remain visible. Loading a chart whose dataset is soft-deleted surfaces a "datasource not found" error at chart-load time. Restore the dataset to recover.
+
+**Database deletion is blocked by soft-deleted datasets.** Superset already refuses to delete a database that still has datasets (`DatabaseDeleteDatasetsExistFailedError`); that check now explicitly counts soft-deleted datasets too (it bypasses the visibility filter), since the soft-deleted `tables` rows still reference the database via `database_id` and must not be orphaned. Consequence: because dataset `DELETE` is soft and v1 ships no hard-delete/purge, **a database that has ever had datasets cannot be deleted through the API once those datasets are soft-deleted** — the rows remain and keep blocking the delete. Until a purge capability lands, operators who must remove such a database have to hard-delete the underlying `tables` rows out-of-band first. This is a deliberate trade-off (no orphaned rows / restorable datasets) and is expected to be resolved by the planned purge work.
+
+**Side-effect change for operators.** Because the row is no longer physically deleted, FAB `ab_view_menu` / permission-view rows tied to the dataset are also preserved. Downstream automation that relied on `DELETE /api/v1/dataset/<id>` cleaning up those rows must now react to the new `POST /api/v1/dataset/<uuid>/restore` lifecycle, or call the eventual hard-delete endpoint.
+
+**New endpoint** — `POST /api/v1/dataset/<uuid>/restore` clears `deleted_at` and returns the dataset to active state. Requires `can_write on Dataset` and ownership of the row (or admin). Soft-deleted datasets can also be surfaced in the list endpoint via the new `dataset_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored. For non-admin users, soft-deleted rows are limited to datasets they own — the same audience that can restore them.
+
+**Permissions migration:** existing role grants of `can_write on Dataset` cover the new restore endpoint automatically; no role migration is required.
+
+**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_tables_deleted_at`) to the `tables` table. The column add is instant; the index build runs inline (no `CONCURRENTLY`) and may briefly block writes on the `tables` table (INSERT/UPDATE/DELETE are queued while the index builds; reads are unaffected) on large Postgres deployments. MySQL InnoDB builds the index online (no blocking). Production deployments with many thousands of datasets should run this migration during a maintenance window.
+
+**Rollback note:** if the application code is rolled back after datasets have been soft-deleted, the older code path's visibility filter no longer applies and previously hidden rows become visible to the older code. Pair the rollback with a data decision (restore the rows, hard-delete them, or also downgrade the migration) rather than assuming the old hard-delete semantics still hold.
+
+**Importer behavior:** importing a dataset YAML whose UUID matches an existing **soft-deleted** dataset is treated as an implicit restore-with-update. The owner (or an admin) gets the dataset back in place — `deleted_at` is cleared and the contents from the upload are applied — preserving the original PK, the chart back-reference, `table_columns`, and `sql_metrics`. Non-owners get `ImportFailedError`. Callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
 
 ### Granular Export Controls
 
@@ -516,6 +607,247 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
     }
   }
   ```
+
+### Composite primary keys on many-to-many association tables
+
+The eight M:N association tables listed below have been changed from a synthetic surrogate `id INTEGER PRIMARY KEY` to a composite `PRIMARY KEY (fk1, fk2)` on the two foreign-key columns. The `id` column is dropped, and the two tables that previously carried a redundant `UNIQUE (fk1, fk2)` constraint have that constraint removed (it is now subsumed by the composite primary key).
+
+**Affected tables and their composite-PK column pairs:**
+
+| Table | Composite PK |
+|---|---|
+| `dashboard_roles` | `(dashboard_id, role_id)` |
+| `dashboard_slices` | `(dashboard_id, slice_id)` |
+| `dashboard_user` | `(user_id, dashboard_id)` |
+| `report_schedule_user` | `(user_id, report_schedule_id)` |
+| `rls_filter_roles` | `(role_id, rls_filter_id)` |
+| `rls_filter_tables` | `(table_id, rls_filter_id)` |
+| `slice_user` | `(user_id, slice_id)` |
+| `sqlatable_user` | `(user_id, table_id)` |
+
+**Impact on external readers:** Any BI tool, custom report, backup script, or external integration that references these tables by their old surrogate `id` column (e.g., `SELECT id FROM dashboard_slices WHERE …`, `WHERE dashboard_slices.id IN (…)`) will break. Update such queries to project or filter on the FK pair (`dashboard_id, slice_id`) instead. The FK columns themselves are unchanged.
+
+**Pre-flight inventory queries.** Before applying the upgrade, operators are encouraged to run the queries below against their database to assess what the migration will change. Two classes of pre-existing data are not preserved by the migration: duplicate `(fk1, fk2)` rows (the migration keeps `MIN(id)` and deletes the rest) and rows with `NULL` in either FK column (the migration deletes them, since FK columns are promoted to `NOT NULL` for the composite PK). Compliance- or audit-sensitive operators should also `\copy` (Postgres) or `SELECT … INTO OUTFILE` (MySQL) the affected rows for their own records before upgrading.
+
+```sql
+-- Duplicate (fk1, fk2) pairs (the migration will keep MIN(id) per group, delete the rest)
+SELECT dashboard_id, role_id, COUNT(*) FROM dashboard_roles GROUP BY dashboard_id, role_id HAVING COUNT(*) > 1;
+SELECT dashboard_id, slice_id, COUNT(*) FROM dashboard_slices GROUP BY dashboard_id, slice_id HAVING COUNT(*) > 1;
+SELECT user_id, dashboard_id, COUNT(*) FROM dashboard_user GROUP BY user_id, dashboard_id HAVING COUNT(*) > 1;
+SELECT user_id, report_schedule_id, COUNT(*) FROM report_schedule_user GROUP BY user_id, report_schedule_id HAVING COUNT(*) > 1;
+SELECT role_id, rls_filter_id, COUNT(*) FROM rls_filter_roles GROUP BY role_id, rls_filter_id HAVING COUNT(*) > 1;
+SELECT table_id, rls_filter_id, COUNT(*) FROM rls_filter_tables GROUP BY table_id, rls_filter_id HAVING COUNT(*) > 1;
+SELECT user_id, slice_id, COUNT(*) FROM slice_user GROUP BY user_id, slice_id HAVING COUNT(*) > 1;
+SELECT user_id, table_id, COUNT(*) FROM sqlatable_user GROUP BY user_id, table_id HAVING COUNT(*) > 1;
+
+-- Rows with a NULL in either FK (the migration will delete these)
+SELECT COUNT(*) FROM dashboard_roles WHERE dashboard_id IS NULL OR role_id IS NULL;
+SELECT COUNT(*) FROM dashboard_slices WHERE dashboard_id IS NULL OR slice_id IS NULL;
+SELECT COUNT(*) FROM dashboard_user WHERE user_id IS NULL OR dashboard_id IS NULL;
+SELECT COUNT(*) FROM report_schedule_user WHERE user_id IS NULL OR report_schedule_id IS NULL;
+SELECT COUNT(*) FROM rls_filter_roles WHERE role_id IS NULL OR rls_filter_id IS NULL;
+SELECT COUNT(*) FROM rls_filter_tables WHERE table_id IS NULL OR rls_filter_id IS NULL;
+SELECT COUNT(*) FROM slice_user WHERE user_id IS NULL OR slice_id IS NULL;
+SELECT COUNT(*) FROM sqlatable_user WHERE user_id IS NULL OR table_id IS NULL;
+```
+
+**Sizing the maintenance window on PostgreSQL.** The queries above are dialect-portable but only count rows. Operators on PostgreSQL can run the diagnostic queries below to characterize the migration's runtime cost ahead of time: per-table row count and on-disk size, an aggregated duplicate roll-up, the external-FK pre-flight check (the migration runs the same check and aborts if it returns rows), and a lock-window estimate. On PostgreSQL **all eight tables take the direct-ALTER path** — the two redundant `UNIQUE` constraints are dropped by name (`DROP CONSTRAINT`), avoiding any full-table rewrite; the `recreate="always"` rewrite path applies only on MySQL/SQLite. Note also that Alembic runs the whole upgrade in **one transaction on PostgreSQL: the `ACCESS EXCLUSIVE` locks acquired per table are held cumulatively until commit**, so total unavailability of these RBAC/RLS junction tables is the *sum* of the per-table windows — and a waiting `ACCESS EXCLUSIVE` queues all later reads behind it. Run the migration with the application quiesced.
+
+```sql
+-- Per-table size and row count. Two tables ("dashboard_slices",
+-- "report_schedule_user") carry a redundant UNIQUE constraint; on
+-- PostgreSQL it is dropped by name (DROP CONSTRAINT) and every table
+-- then takes the same direct-ALTER path — no full-table rewrite on
+-- this dialect. has_unique only signals the extra DROP CONSTRAINT.
+WITH affected(name, has_unique) AS (
+  VALUES
+    ('dashboard_roles',       false),
+    ('dashboard_slices',      true),
+    ('dashboard_user',        false),
+    ('report_schedule_user',  true),
+    ('rls_filter_roles',      false),
+    ('rls_filter_tables',     false),
+    ('slice_user',            false),
+    ('sqlatable_user',        false)
+)
+SELECT
+  a.name                                                AS table_name,
+  CASE WHEN a.has_unique THEN 'recreate (full rewrite)'
+       ELSE 'direct ALTER' END                          AS migration_path,
+  c.reltuples::bigint                                   AS estimated_rows,
+  pg_size_pretty(pg_total_relation_size(c.oid))         AS total_size,
+  pg_size_pretty(pg_relation_size(c.oid))               AS heap_size,
+  pg_size_pretty(pg_indexes_size(c.oid))                AS index_size
+FROM affected a
+JOIN pg_class c ON c.relname = a.name AND c.relkind = 'r'
+ORDER BY pg_total_relation_size(c.oid) DESC;
+```
+
+```sql
+-- Aggregated duplicate-row roll-up.
+-- "dup_groups" is the number of (fk1, fk2) pairs that appear more
+-- than once; "rows_dropped" is the total number of rows the
+-- migration will delete during the dedupe pass (it keeps MIN(id) per
+-- group and discards the rest).
+SELECT 'dashboard_roles'      AS t, COUNT(*) AS dup_groups, SUM(c) - COUNT(*) AS rows_dropped
+  FROM (SELECT COUNT(*) c FROM dashboard_roles      GROUP BY dashboard_id, role_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_slices',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_slices     GROUP BY dashboard_id, slice_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_user       GROUP BY user_id, dashboard_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'report_schedule_user',COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM report_schedule_user GROUP BY user_id, report_schedule_id      HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_roles',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_roles     GROUP BY role_id, rls_filter_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_tables',   COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_tables    GROUP BY table_id, rls_filter_id          HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'slice_user',          COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM slice_user           GROUP BY user_id, slice_id                HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'sqlatable_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM sqlatable_user       GROUP BY user_id, table_id                HAVING COUNT(*) > 1) g
+ORDER BY rows_dropped DESC NULLS LAST;
+```
+
+```sql
+-- External-FK pre-flight check.
+-- The migration runs the equivalent check at upgrade time and aborts
+-- if any external FK references one of the soon-to-be-removed `id`
+-- columns. Running it ahead of time lets you discover (and migrate)
+-- any such reference before the maintenance window. On a stock
+-- Superset install this should return zero rows. (Default schema
+-- only; multi-schema deployments need to broaden the lookup.)
+SELECT
+  rc.constraint_name,
+  kcu.table_schema || '.' || kcu.table_name AS referencing_table,
+  kcu.column_name                           AS referencing_column,
+  ccu.table_name                            AS referenced_table,
+  ccu.column_name                           AS referenced_column
+FROM information_schema.referential_constraints rc
+JOIN information_schema.key_column_usage      kcu
+  ON kcu.constraint_name = rc.constraint_name
+ AND kcu.constraint_schema = rc.constraint_schema
+JOIN information_schema.constraint_column_usage ccu
+  ON ccu.constraint_name = rc.constraint_name
+ AND ccu.constraint_schema = rc.constraint_schema
+WHERE ccu.table_name IN (
+        'dashboard_roles','dashboard_slices','dashboard_user',
+        'report_schedule_user','rls_filter_roles','rls_filter_tables',
+        'slice_user','sqlatable_user')
+  AND ccu.column_name = 'id';
+```
+
+```sql
+-- Lock-window estimate, all eight tables. Each direct ALTER takes
+-- ACCESS EXCLUSIVE for the duration of the composite-PK index build
+-- (plus the implicit NOT NULL validation scan) — typically seconds
+-- for tables in the low millions of rows, but the locks are held
+-- cumulatively until the migration's single transaction commits.
+SELECT
+  c.relname                                              AS table_name,
+  pg_size_pretty(pg_relation_size(c.oid))                AS heap_size,
+  pg_relation_size(c.oid) / 1024 / 1024                  AS heap_size_mb,
+  ROUND(pg_relation_size(c.oid) / 1024 / 1024 / 100.0, 1) AS est_seconds_at_100mbs
+FROM pg_class c
+WHERE c.relname IN (
+  'dashboard_roles', 'dashboard_slices', 'dashboard_user',
+  'report_schedule_user', 'rls_filter_roles', 'rls_filter_tables',
+  'slice_user', 'sqlatable_user');
+```
+
+**Sizing the maintenance window on MySQL.** Equivalent diagnostic queries for MySQL/InnoDB. One important difference from PostgreSQL: InnoDB rebuilds the clustered index on every PK change, so *all eight* tables undergo a full table rebuild on MySQL — not just the two that go through the explicit `recreate="always"` path. Additionally, the upgrade emits `DROP COLUMN id` and `ADD PRIMARY KEY (fk1, fk2)` as **separate ALTER statements, so most tables pay the clustered-index rebuild twice** — budget roughly 2× the single-rebuild estimate from the query below. The **downgrade is a comparable maintenance window in its own right** (it re-adds the `id` column and rebuilds every table on both dialects); plan rollback windows with the same sizing, not as a quick undo.
+
+```sql
+-- Per-table size, row count, and which migration path each will take.
+-- TABLE_ROWS is an InnoDB estimate (analogous to PostgreSQL's reltuples);
+-- run SELECT COUNT(*) per table for an exact count if needed.
+SELECT
+  TABLE_NAME AS table_name,
+  CASE WHEN TABLE_NAME IN ('dashboard_slices', 'report_schedule_user')
+       THEN 'recreate (explicit, drops UNIQUE)'
+       ELSE 'direct ALTER (still rebuilds InnoDB clustered index)'
+  END AS migration_path,
+  TABLE_ROWS                                                  AS estimated_rows,
+  CONCAT(ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 1), ' MB') AS total_size,
+  CONCAT(ROUND(DATA_LENGTH / 1024 / 1024, 1), ' MB')          AS heap_size,
+  CONCAT(ROUND(INDEX_LENGTH / 1024 / 1024, 1), ' MB')         AS index_size
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN (
+    'dashboard_roles', 'dashboard_slices', 'dashboard_user',
+    'report_schedule_user', 'rls_filter_roles', 'rls_filter_tables',
+    'slice_user', 'sqlatable_user'
+  )
+ORDER BY (DATA_LENGTH + INDEX_LENGTH) DESC;
+```
+
+```sql
+-- Aggregated duplicate-row roll-up. Same SQL as the PostgreSQL version
+-- (standard SQL); included here for copy-paste convenience.
+SELECT 'dashboard_roles'      AS t, COUNT(*) AS dup_groups, SUM(c) - COUNT(*) AS rows_dropped
+  FROM (SELECT COUNT(*) c FROM dashboard_roles      GROUP BY dashboard_id, role_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_slices',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_slices     GROUP BY dashboard_id, slice_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_user       GROUP BY user_id, dashboard_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'report_schedule_user',COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM report_schedule_user GROUP BY user_id, report_schedule_id      HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_roles',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_roles     GROUP BY role_id, rls_filter_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_tables',   COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_tables    GROUP BY table_id, rls_filter_id          HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'slice_user',          COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM slice_user           GROUP BY user_id, slice_id                HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'sqlatable_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM sqlatable_user       GROUP BY user_id, table_id                HAVING COUNT(*) > 1) g
+ORDER BY rows_dropped DESC;
+```
+
+```sql
+-- External-FK pre-flight check. KEY_COLUMN_USAGE on MySQL carries
+-- both sides of the FK in a single row, so this is simpler than the
+-- PostgreSQL version. Should return zero rows on a stock install.
+SELECT
+  CONSTRAINT_NAME,
+  CONCAT(TABLE_SCHEMA, '.', TABLE_NAME)        AS referencing_table,
+  COLUMN_NAME                                  AS referencing_column,
+  REFERENCED_TABLE_NAME                        AS referenced_table,
+  REFERENCED_COLUMN_NAME                       AS referenced_column
+FROM information_schema.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = DATABASE()
+  AND REFERENCED_TABLE_NAME IN (
+    'dashboard_roles', 'dashboard_slices', 'dashboard_user',
+    'report_schedule_user', 'rls_filter_roles', 'rls_filter_tables',
+    'slice_user', 'sqlatable_user'
+  )
+  AND REFERENCED_COLUMN_NAME = 'id';
+```
+
+```sql
+-- Lock-window estimate for ALL EIGHT tables (InnoDB rebuilds the
+-- clustered index on PK change, so even "direct ALTER" is a rewrite).
+-- ADD PRIMARY KEY is INPLACE but not LOCK=NONE — it allows concurrent
+-- reads but blocks writes. Use heap size combined with your effective
+-- rebuild throughput (~100-200 MB/s on commodity SSD; higher on NVMe).
+SELECT
+  TABLE_NAME                                            AS table_name,
+  CONCAT(ROUND(DATA_LENGTH / 1024 / 1024, 1), ' MB')    AS heap_size,
+  ROUND(DATA_LENGTH / 1024 / 1024, 1)                   AS heap_size_mb,
+  ROUND(DATA_LENGTH / 1024 / 1024 / 100.0, 1)           AS est_rewrite_seconds_at_100mbs
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN (
+    'dashboard_roles', 'dashboard_slices', 'dashboard_user',
+    'report_schedule_user', 'rls_filter_roles', 'rls_filter_tables',
+    'slice_user', 'sqlatable_user'
+  )
+ORDER BY DATA_LENGTH DESC;
+```
+
+**Restoring an old `pg_dump` (or equivalent) against the new schema.** A dump taken before the migration includes `INSERT` statements that populate the now-removed `id` column. Restoring such a dump against the post-migration schema will fail. The supported workaround is to dump only the schema and reference data, then re-create the M:N associations from application data after restore — for example with `pg_dump --exclude-table-data` (or per-table `--exclude-table-data=dashboard_slices` etc.) for the eight junction tables, restore the rest, then run a one-shot script that re-INSERTs `(fk1, fk2)` pairs derived from your application export. Operators who need to restore an old dump verbatim should restore against a pre-migration Superset and then re-run the upgrade.
+
+**Intentional downgrade asymmetry.** The migration's `downgrade()` restores the surrogate `id` column and (for `dashboard_slices` and `report_schedule_user`) the original `UNIQUE (fk1, fk2)` constraint, but it does **not** restore the original `NULL`-allowed state on the FK columns — they remain `NOT NULL`. This is intentional: under SQLAlchemy's `secondary=` semantics, a `NULL` in either FK column of a junction table is meaningless (it cannot participate in either side of the relationship). Operators downgrading are not expected to need this restored. The asymmetry is documented for completeness so that round-trip schema diffs are not mistaken for migration bugs.
+
+**Constraint-name divergence between upgrade and downgrade.** The composite primary key created on upgrade is named `pk_<table>` (Alembic's default for `op.create_primary_key("pk_<table>", ...)`), while the surrogate `id` primary key restored on downgrade is named `<table>_pkey` (PostgreSQL's default convention for `PrimaryKeyConstraint("id")`). The two names alternate so that a round-trip (upgrade → downgrade → upgrade) does not collide on a pre-existing constraint name. Operators using schema-comparison tools (e.g. `pg_diff`, `migra`) against a downgraded database may see this as drift versus a fresh-install schema. It is cosmetic — no application code references either constraint name.
 
 ## 6.0.0
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.

@@ -52,6 +52,16 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
     @transaction(on_error=partial(on_error, reraise=DatasetDuplicateFailedError))
     def run(self) -> Model:
         self.validate()
+        # Declare the high-level avenue before the duplicate touches
+        # the session. The change-record listener stamps
+        # ``version_transaction.action_kind = 'clone'`` so the new
+        # dataset's baseline records read as a clone in the timeline.
+        # Method-scoped import — defers the versioning bootstrap path
+        # out of this command's module-load graph; see ``changes.py``
+        # module docstring for the broader init-order rationale.
+        from superset.versioning.changes import ACTION_KIND_CLONE, ACTION_KIND_KEY
+
+        db.session.info[ACTION_KIND_KEY] = ACTION_KIND_CLONE
         database_id = self._base_model.database_id
         table_name = self._properties["table_name"]
         owners = self._properties["owners"]
@@ -121,7 +131,19 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         if self._base_model and self._base_model.kind != "virtual":
             exceptions.append(DatasourceTypeInvalidError())
 
-        if DatasetDAO.find_one_or_none(table_name=duplicate_name):
+        # Use the shared uniqueness check (same as create/update) rather than a
+        # name-only filtered lookup: it scopes to the base model's
+        # database/schema, is catalog-NULL-aware, and bypasses the soft-delete
+        # visibility filter. A filtered lookup misses a soft-deleted twin, so
+        # the duplicate would proceed and either hit a DB constraint as an
+        # opaque IntegrityError or — where no constraint applies (the
+        # model-level UniqueConstraint is metadata-only and the legacy
+        # _customer_location_uc is NULL-leaky) — create an active twin that
+        # permanently blocks restore of the soft-deleted dataset.
+        if base_model and not DatasetDAO.validate_uniqueness(
+            base_model.database,
+            Table(duplicate_name, base_model.schema),
+        ):
             exceptions.append(DatasetExistsValidationError(table=Table(duplicate_name)))
 
         try:

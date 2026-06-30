@@ -5236,6 +5236,9 @@ msgstr "ไม่สามารถสร้างแผนภูมิได้
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, fuzzy
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "ไม่สามารถอัปเดตแผนภูมิได้"
 
@@ -7613,6 +7616,9 @@ msgstr "ไม่สามารถลบแดชบอร์ดได้"
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, fuzzy
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "ไม่สามารถอัปเดตแดชบอร์ดได้"
 
@@ -8082,6 +8088,9 @@ msgstr "ไม่สามารถทำสำเนาชุดข้อมู
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 #, fuzzy
+msgid "Dataset could not be restored."
+msgstr ""
+
 msgid "Dataset could not be updated."
 msgstr "ไม่สามารถอัปเดตชุดข้อมูลได้"
 

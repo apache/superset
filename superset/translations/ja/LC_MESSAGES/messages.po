@@ -2866,6 +2866,9 @@ msgstr "チャートの変更"
 msgid "Chart could not be created."
 msgstr "チャートを作成できませんでした。"
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "チャートを更新できませんでした。"
 
@@ -4093,6 +4096,9 @@ msgstr "ダッシュボードの配色設定を更新できませんでした。
 msgid "Dashboard could not be deleted."
 msgstr "ダッシュボードを削除できませんでした。"
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "ダッシュボードを更新できませんでした。"
 
@@ -4331,6 +4337,9 @@ msgstr "データセットを作成できませんでした。"
 
 msgid "Dataset could not be duplicated."
 msgstr "データセットを複製できませんでした。"
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "データセットを更新できませんでした。"

@@ -2982,6 +2982,9 @@ msgstr ""
 msgid "Chart could not be created."
 msgstr "차트를 생성할 수 없습니다."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "차트를 업데이트할 수 없습니다."
 
@@ -4322,6 +4325,9 @@ msgstr "대시보드를 업데이트할 수 없습니다."
 msgid "Dashboard could not be deleted."
 msgstr "대시보드를 삭제할 수 없습니다."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "대시보드를 업데이트할 수 없습니다."
 
@@ -4577,6 +4583,9 @@ msgstr ""
 #, fuzzy
 msgid "Dataset could not be duplicated."
 msgstr "데이터베이스를 업데이트할 수 없습니다."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr ""

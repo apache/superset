@@ -3063,6 +3063,9 @@ msgstr "Huringa kauwhata"
 msgid "Chart could not be created."
 msgstr "Kāore i taea te hanga i te kauwhata."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Kāore i taea te whakahou i te kauwhata."
 
@@ -4372,6 +4375,9 @@ msgstr "Kāore i taea te whakahou i te whirihora tae papatohu."
 msgid "Dashboard could not be deleted."
 msgstr "Kāore i taea te muku i te papatohu."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Kāore i taea te whakahou i te papatohu."
 
@@ -4617,6 +4623,9 @@ msgstr "Kāore i taea te hanga i te rārangi raraunga."
 
 msgid "Dataset could not be duplicated."
 msgstr "Kāore i taea te tārua i te rārangi raraunga."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Kāore i taea te whakahou i te rārangi raraunga."

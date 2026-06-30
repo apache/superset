@@ -3030,6 +3030,9 @@ msgstr "圖表變化"
 msgid "Chart could not be created."
 msgstr "您的圖表無法創建。"
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "您的圖表無法更新。"
 
@@ -4386,6 +4389,9 @@ msgstr "看板無法更新。"
 msgid "Dashboard could not be deleted."
 msgstr "看板無法被删除。"
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "看板無法更新。"
 
@@ -4642,6 +4648,9 @@ msgstr "無法創建數據集。"
 #, fuzzy
 msgid "Dataset could not be duplicated."
 msgstr "數據集無法複製。"
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "無法更新數據集。"

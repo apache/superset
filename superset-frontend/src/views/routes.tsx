@@ -59,6 +59,10 @@ const ChartList = lazy(
   () => import(/* webpackChunkName: "ChartList" */ 'src/pages/ChartList'),
 );
 
+const ArchivedList = lazy(
+  () => import(/* webpackChunkName: "ArchivedList" */ 'src/pages/ArchivedList'),
+);
+
 const CssTemplateList = lazy(
   () =>
     import(
@@ -242,6 +246,14 @@ export const routes: Routes = [
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({ path: RoutePaths.ALL_ENTITIES, Component: AllEntities });
   routes.push({ path: RoutePaths.TAGS, Component: Tags });
+}
+
+// Recently-Archived view — gated by the soft-delete feature (T007).
+if (isFeatureEnabled(FeatureFlag.SoftDelete)) {
+  routes.push({
+    path: '/archived/',
+    Component: ArchivedList,
+  });
 }
 
 const user = getBootstrapData()?.user;

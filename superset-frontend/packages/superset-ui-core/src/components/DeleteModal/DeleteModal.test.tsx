@@ -75,6 +75,42 @@ test('Calling "onHide"', async () => {
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
 });
 
+test('Recoverable (soft-delete) mode drops the type-to-confirm input and confirms immediately', async () => {
+  const props = {
+    title: <div data-test="test-title">Title</div>,
+    description: <div data-test="test-description">Description</div>,
+    onConfirm: jest.fn(),
+    onHide: jest.fn(),
+    open: true,
+    recoverable: true,
+  };
+  render(<DeleteModal {...props} />);
+
+  // No "type DELETE to confirm" input in recoverable mode.
+  expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+
+  // The primary action is labelled "Archive" and fires straight away.
+  await userEvent.click(screen.getByText('Archive'));
+  expect(props.onConfirm).toHaveBeenCalledTimes(1);
+});
+
+test('requireConfirmationText=false is a plain danger confirm (no input, fires immediately)', async () => {
+  const props = {
+    title: <div data-test="test-title">Title</div>,
+    description: <div data-test="test-description">Description</div>,
+    onConfirm: jest.fn(),
+    onHide: jest.fn(),
+    open: true,
+    requireConfirmationText: false,
+  };
+  render(<DeleteModal {...props} />);
+
+  // No "type DELETE to confirm" input, but still the danger "Delete" button.
+  expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByText('Delete'));
+  expect(props.onConfirm).toHaveBeenCalledTimes(1);
+});
+
 test('Calling "onConfirm" only after typing "delete" in the input', async () => {
   const props = {
     title: <div data-test="test-title">Title</div>,
