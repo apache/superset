@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, useState, ReactNode, MouseEvent } from 'react';
+import {
+  forwardRef,
+  ForwardedRef,
+  useState,
+  ReactNode,
+  MouseEvent,
+} from 'react';
 
 import { Button } from '../Button';
 import { Modal } from '../Modal';
@@ -54,7 +60,7 @@ export interface ModalTriggerRef {
 }
 
 export const ModalTrigger = forwardRef(
-  (props: ModalTriggerProps, ref: ModalTriggerRef | null) => {
+  (props: ModalTriggerProps, ref: ForwardedRef<ModalTriggerRef['current']>) => {
     const [showModal, setShowModal] = useState(false);
     const {
       beforeOpen = () => {},
@@ -87,8 +93,14 @@ export const ModalTrigger = forwardRef(
       setShowModal(true);
     };
 
-    if (ref) {
-      ref.current = { close, open, showModal }; // eslint-disable-line
+    // Forward both callback refs (e.g. `(value) => setRef(value)`) and
+    // object refs. Without the callback-ref branch, parents that pass a
+    // function ref get silently no-op'd and can't call close/open/showModal.
+    const refValue = { close, open, showModal };
+    if (typeof ref === 'function') {
+      ref(refValue);
+    } else if (ref) {
+      ref.current = refValue; // eslint-disable-line
     }
 
     /* eslint-disable jsx-a11y/interactive-supports-focus */
