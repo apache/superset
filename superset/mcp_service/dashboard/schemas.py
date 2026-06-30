@@ -2142,9 +2142,9 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
         datasource_type = getattr(slc, "datasource_type", None) or ""
         if datasource_id is None:
             continue
-        slices_by_datasource.setdefault(
-            (datasource_id, datasource_type), []
-        ).append(slc)
+        slices_by_datasource.setdefault((datasource_id, datasource_type), []).append(
+            slc
+        )
 
     datasets: List[DashboardDatasetSummary] = []
     inaccessible_count: int = 0
