@@ -179,7 +179,9 @@ def test_build_native_filter_option_form_data_uses_filter_level_prefilters() -> 
     assert result["granularity_sqla"] == "ds"
 
 
-def test_build_native_filter_option_form_data_falls_back_to_default_time_range() -> None:
+def test_build_native_filter_option_form_data_falls_back_to_default_time_range() -> (
+    None
+):
     result: dict[str, Any] | None = build_native_filter_option_form_data(
         _dashboard(json_metadata=None),
         _filter_config(),
@@ -323,9 +325,7 @@ def test_build_native_filter_option_query_context_with_adhoc_filters() -> None:
     assert result == expected
     payload: dict[str, Any] = schema_class.return_value.load.call_args.args[0]
     query: dict[str, Any] = payload["queries"][0]
-    assert query["filters"] == [
-        {"col": "region", "op": "IN", "val": ["EMEA", "APAC"]}
-    ]
+    assert query["filters"] == [{"col": "region", "op": "IN", "val": ["EMEA", "APAC"]}]
     assert "adhoc_filters" not in query
 
 
