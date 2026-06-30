@@ -821,3 +821,86 @@ test('temporal x coltype wires the time formatter and Time axis', () => {
   expect(typeof label).toBe('string');
   expect(label).not.toMatch(/NaN/);
 });
+
+test('regression #37921: multi-metric Query A with groupby does not duplicate first metric in series names', () => {
+  // Repro for https://github.com/apache/superset/issues/37921
+  // ("Residual" follow-up to #37055).
+  //
+  // When Query A has multiple metrics + at least one Group By dimension,
+  // every series whose extractSeries name does not literally contain the
+  // FIRST metric's display name gets that first metric prepended:
+  //   name: `${MetricDisplayNameA}, ${entryName}`
+  // (transformProps.ts ~ line 441). For series belonging to the *second*
+  // metric, this produces a cross-contaminated label like
+  // `score_one, score_two, A` — the user-visible "first metric duplicated"
+  // symptom in the legend / tooltip.
+  //
+  // This test fails on a buggy build (scoreTwo series come back with
+  // `score_one, ...` prepended) and passes once the per-series metric
+  // display name is computed correctly.
+  const multiMetricRows = [
+    {
+      'score_one, A': 1,
+      'score_one, B': 2,
+      'score_two, A': 3,
+      'score_two, B': 4,
+      ds: 599616000000,
+    },
+    {
+      'score_one, A': 5,
+      'score_one, B': 6,
+      'score_two, A': 7,
+      'score_two, B': 8,
+      ds: 599916000000,
+    },
+  ];
+  const multiMetricLabelMap = {
+    ds: ['ds'],
+    'score_one, A': ['score_one', 'A'],
+    'score_one, B': ['score_one', 'B'],
+    'score_two, A': ['score_two', 'A'],
+    'score_two, B': ['score_two', 'B'],
+  };
+
+  const queryAData = createTestQueryData(multiMetricRows, {
+    label_map: multiMetricLabelMap,
+  });
+  // Query B keeps the existing single-metric shape — the bug is on
+  // Query A's path so we just need a valid Query B alongside.
+  const queryBData = createTestQueryData(defaultQueryRows, {
+    label_map: defaultLabelMap,
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryAData, queryBData],
+    formData: {
+      ...formData,
+      metrics: ['score_one', 'score_two'],
+      groupby: ['category'],
+    },
+    queriesData: [queryAData, queryBData],
+  });
+  const transformed = transformProps(chartProps);
+
+  const queryASeriesNames = (transformed.echartOptions.series as any[])
+    .map((s: any) => String(s.name))
+    .filter((n: string) => n.includes('score_'));
+
+  // Each (metric, dim_value) combo from Query A should appear exactly once
+  // with the *correct* metric prefix — not the first-metric-prepended-to-
+  // everything-else form.
+  expect(queryASeriesNames).toContain('score_one, A');
+  expect(queryASeriesNames).toContain('score_one, B');
+  expect(queryASeriesNames).toContain('score_two, A');
+  expect(queryASeriesNames).toContain('score_two, B');
+
+  // And explicitly: no series name should contain *both* metric names —
+  // that's the smoking gun for the duplication bug.
+  for (const name of queryASeriesNames) {
+    expect(name).not.toMatch(/score_one,\s+score_two/);
+  }
+});
