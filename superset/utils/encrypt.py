@@ -430,7 +430,7 @@ class SecretsMigrator:
         re_encrypted_columns = {}
 
         for column_name, encrypted_type in columns.items():
-            raw_value = self._read_bytes(column_name, row[column_name])
+            raw_value = self._read_bytes(column_name, row._mapping[column_name])
 
             # NULL values aren't encrypted; there is nothing to migrate.
             if raw_value is None:
@@ -508,13 +508,12 @@ class SecretsMigrator:
 
         set_cols = ",".join(f"{name} = :{name}" for name in re_encrypted_columns)
         where_clause = " AND ".join(f"{pk} = :_pk_{pk}" for pk in pk_columns)
-        pk_bind = {f"_pk_{pk}": row[pk] for pk in pk_columns}
+        pk_bind = {f"_pk_{pk}": row._mapping[pk] for pk in pk_columns}
         conn.execute(
             text(
                 f"UPDATE {table_name} SET {set_cols} WHERE {where_clause}"  # noqa: S608
             ),
-            **pk_bind,
-            **re_encrypted_columns,
+            {**pk_bind, **re_encrypted_columns},
         )
 
     def run(self) -> ReEncryptStats:
