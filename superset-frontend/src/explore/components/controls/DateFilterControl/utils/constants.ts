@@ -120,9 +120,9 @@ export const UNTIL_MODE_OPTIONS: SelectOptionType[] =
   SINCE_MODE_OPTIONS.slice();
 
 /** @deprecated Use {@link COMMON_RANGE_REGEX} for open-ended pattern matching. */
-export const COMMON_RANGE_SET = {
-  has: (value: string) => COMMON_RANGE_REGEX.test(value),
-} as const;
+export const COMMON_RANGE_SET: Set<string> = new Set(
+  COMMON_RANGE_OPTIONS.map(option => option.value),
+);
 
 export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([
   PreviousCalendarWeek,
