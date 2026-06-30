@@ -23,7 +23,7 @@ def _fake_app(config: Optional[dict[str, Any]] = None) -> mock.MagicMock:
     base: dict[str, Any] = {"WEBDRIVER_TYPE": "chrome"}
     if config:
         base.update(config)
-    app = mock.MagicMock()
+    app: mock.MagicMock = mock.MagicMock()
     app.config = base
     return app
 
@@ -83,7 +83,7 @@ def test_cache_warmup_happy_path(app_context: None) -> None:
     from superset.tasks.cache import cache_warmup
 
     urls = ["http://localhost/dash/1", "http://localhost/dash/2"]
-    user = mock.MagicMock()
+    user: mock.MagicMock = mock.MagicMock()
 
     with (
         mock.patch(
@@ -109,7 +109,7 @@ def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
     from superset.tasks.cache import cache_warmup
 
     urls = ["http://localhost/dash/ok", "http://localhost/dash/boom"]
-    user = mock.MagicMock()
+    user: mock.MagicMock = mock.MagicMock()
 
     def side_effect(url: str, _element: str) -> None:
         if url.endswith("boom"):
@@ -140,11 +140,11 @@ def test_native_filter_options_strategy_returns_tasks_for_eligible_filters() -> 
     """Eligible native filters are converted into cache warm-up tasks."""
     from superset.tasks.cache import NativeFilterOptionsStrategy
 
-    dashboard = mock.MagicMock()
+    dashboard: mock.MagicMock = mock.MagicMock()
     dashboard.id = 10
     filter_configs = [{"id": "filter-1"}, {"id": "filter-2"}]
     form_data = [{"groupby": ["country"]}, {"groupby": ["state"]}]
-    query_contexts = [mock.MagicMock(), mock.MagicMock()]
+    query_contexts: list[mock.MagicMock] = [mock.MagicMock(), mock.MagicMock()]
 
     with (
         mock.patch(
@@ -195,10 +195,10 @@ def test_native_filter_options_strategy_skips_when_form_data_is_none() -> None:
     """Filters without form data are skipped without raising."""
     from superset.tasks.cache import NativeFilterOptionsStrategy
 
-    dashboard = mock.MagicMock()
+    dashboard: mock.MagicMock = mock.MagicMock()
     dashboard.id = 10
     filter_configs = [{"id": "filter-1"}, {"id": "filter-2"}]
-    query_context = mock.MagicMock()
+    query_context: mock.MagicMock = mock.MagicMock()
 
     with (
         mock.patch(
@@ -229,7 +229,7 @@ def test_native_filter_options_strategy_skips_when_query_context_is_none() -> No
     """Filters without a query context are skipped without raising."""
     from superset.tasks.cache import NativeFilterOptionsStrategy
 
-    dashboard = mock.MagicMock()
+    dashboard: mock.MagicMock = mock.MagicMock()
     dashboard.id = 10
 
     with (
@@ -253,6 +253,139 @@ def test_native_filter_options_strategy_skips_when_query_context_is_none() -> No
         tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
 
     assert tasks == []
+
+
+def test_native_filter_options_strategy_uses_real_filter_helpers() -> None:
+    """Eligible filter config is handled by real helper functions."""
+    from superset.tasks.cache import NativeFilterOptionsStrategy
+    from superset.utils import json
+
+    dashboard: mock.MagicMock = mock.MagicMock()
+    dashboard.id = 10
+    dashboard.json_metadata = json.dumps(
+        {
+            "native_filter_configuration": [
+                "bad-entry",
+                {
+                    "id": "filter-1",
+                    "filterType": "filter_select",
+                    "type": "NATIVE_FILTER",
+                    "targets": [{"datasetId": 7, "column": {"name": "country"}}],
+                    "adhocFilters": [
+                        {
+                            "expressionType": "SIMPLE",
+                            "subject": "region",
+                            "operator": "==",
+                            "comparator": "EMEA",
+                        }
+                    ],
+                },
+                {
+                    "id": "range-filter",
+                    "filterType": "filter_range",
+                    "type": "NATIVE_FILTER",
+                    "targets": [{"datasetId": 7, "column": {"name": "value"}}],
+                },
+            ]
+        }
+    )
+    query_context: mock.MagicMock = mock.MagicMock()
+
+    with (
+        mock.patch(
+            "superset.tasks.cache.DashboardDAO.find_by_id",
+            return_value=dashboard,
+        ),
+        mock.patch(
+            "superset.tasks.cache.build_native_filter_option_query_context",
+            return_value=query_context,
+        ) as mock_build_query_context,
+    ):
+        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+
+    assert len(tasks) == 1
+    assert tasks[0].dashboard_id == 10
+    assert tasks[0].native_filter_id == "filter-1"
+    assert tasks[0].query_context == query_context
+    mock_build_query_context.assert_called_once()
+    form_data = mock_build_query_context.call_args.args[0]
+    assert form_data["datasource"] == "7__table"
+    assert form_data["groupby"] == ["country"]
+    assert form_data["adhoc_filters"] == [
+        {
+            "expressionType": "SIMPLE",
+            "subject": "region",
+            "operator": "==",
+            "comparator": "EMEA",
+        }
+    ]
+
+
+def test_native_filter_options_strategy_skips_filter_helper_exceptions() -> None:
+    """A failing filter config is skipped while remaining filters are processed."""
+    from superset.tasks.cache import NativeFilterOptionsStrategy
+
+    dashboard: mock.MagicMock = mock.MagicMock()
+    dashboard.id = 10
+    filter_configs = [{"missing_id": True}, {"id": "filter-2"}]
+    query_context: mock.MagicMock = mock.MagicMock()
+
+    with (
+        mock.patch(
+            "superset.tasks.cache.DashboardDAO.find_by_id",
+            return_value=dashboard,
+        ),
+        mock.patch(
+            "superset.tasks.cache.get_eligible_native_filters",
+            return_value=filter_configs,
+        ),
+        mock.patch(
+            "superset.tasks.cache.build_native_filter_option_form_data",
+            side_effect=[RuntimeError("boom"), {"groupby": ["country"]}],
+        ),
+        mock.patch(
+            "superset.tasks.cache.build_native_filter_option_query_context",
+            return_value=query_context,
+        ),
+    ):
+        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10]).get_tasks()
+
+    assert len(tasks) == 1
+    assert tasks[0].native_filter_id == "filter-2"
+    assert tasks[0].query_context == query_context
+
+
+def test_native_filter_options_strategy_skips_dashboard_lookup_exceptions() -> None:
+    """A dashboard-level failure is caught and does not stop other dashboard ids."""
+    from superset.tasks.cache import NativeFilterOptionsStrategy
+
+    dashboard: mock.MagicMock = mock.MagicMock()
+    dashboard.id = 11
+    query_context: mock.MagicMock = mock.MagicMock()
+
+    with (
+        mock.patch(
+            "superset.tasks.cache.DashboardDAO.find_by_id",
+            side_effect=[RuntimeError("boom"), dashboard],
+        ),
+        mock.patch(
+            "superset.tasks.cache.get_eligible_native_filters",
+            return_value=[{"id": "filter-1"}],
+        ),
+        mock.patch(
+            "superset.tasks.cache.build_native_filter_option_form_data",
+            return_value={"groupby": ["country"]},
+        ),
+        mock.patch(
+            "superset.tasks.cache.build_native_filter_option_query_context",
+            return_value=query_context,
+        ),
+    ):
+        tasks = NativeFilterOptionsStrategy(dashboard_ids=[10, 11]).get_tasks()
+
+    assert len(tasks) == 1
+    assert tasks[0].dashboard_id == 11
+    assert tasks[0].native_filter_id == "filter-1"
 
 
 def test_native_filter_options_strategy_registered() -> None:

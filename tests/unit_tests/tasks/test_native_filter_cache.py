@@ -30,7 +30,7 @@ from superset.utils import json
 
 
 def _dashboard(json_metadata: str | None, dashboard_id: int = 1) -> mock.MagicMock:
-    dashboard = mock.MagicMock()
+    dashboard: mock.MagicMock = mock.MagicMock()
     dashboard.id = dashboard_id
     dashboard.json_metadata = json_metadata
     return dashboard
@@ -65,6 +65,22 @@ def test_get_eligible_native_filters_returns_only_filter_select() -> None:
     result = get_eligible_native_filters(_dashboard(json.dumps(metadata)))
 
     assert result == [filter_select]
+
+
+def test_get_eligible_native_filters_skips_non_dict_entries() -> None:
+    valid_filter = _filter_config(filter_id="valid")
+    metadata = {
+        "native_filter_configuration": [
+            "not-a-filter",
+            valid_filter,
+            None,
+            ["also", "not", "a", "filter"],
+        ]
+    }
+
+    result = get_eligible_native_filters(_dashboard(json.dumps(metadata)))
+
+    assert result == [valid_filter]
 
 
 def test_get_eligible_native_filters_skips_missing_target() -> None:
@@ -157,7 +173,7 @@ def test_build_native_filter_option_query_context_returns_query_context() -> Non
         _dashboard(json_metadata=None),
         _filter_config(),
     )
-    datasource = mock.MagicMock()
+    datasource: mock.MagicMock = mock.MagicMock()
     datasource.cache_timeout = None
     datasource.type = "table"
     datasource.data = {"id": 10}
@@ -192,26 +208,151 @@ def test_build_native_filter_option_query_context_groupby_in_payload() -> None:
         _dashboard(json_metadata=None),
         {
             **_filter_config(),
-            "adhocFilters": [{"col": "region", "op": "==", "val": "EMEA"}],
+            "adhocFilters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": "WHERE",
+                    "subject": "region",
+                    "operator": "==",
+                    "comparator": "EMEA",
+                }
+            ],
         },
     )
-    expected = mock.MagicMock(spec=QueryContext)
+    expected: mock.MagicMock = mock.MagicMock(spec=QueryContext)
 
-    with mock.patch(
-        "superset.tasks.native_filter_cache.ChartDataQueryContextSchema"
-    ) as schema_class:
+    with (
+        mock.patch(
+            "superset.tasks.native_filter_cache.ChartDataQueryContextSchema"
+        ) as schema_class,
+        mock.patch(
+            "superset.tasks.native_filter_cache._resolve_datasource_engine",
+            return_value="postgresql",
+        ) as mock_resolve_engine,
+    ):
         schema_class.return_value.load.return_value = expected
         result = build_native_filter_option_query_context(form_data or {})
 
+    mock_resolve_engine.assert_not_called()
     assert result == expected
     payload = schema_class.return_value.load.call_args.args[0]
     query = payload["queries"][0]
     assert query["groupby"] == ["country"]
     assert "columns" not in query
     assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
+    assert "adhoc_filters" not in query
+
+
+def test_build_native_filter_option_query_context_with_adhoc_filters() -> None:
+    adhoc_filters = [
+        {
+            "expressionType": "SIMPLE",
+            "clause": "WHERE",
+            "subject": "region",
+            "operator": "IN",
+            "comparator": ["EMEA", "APAC"],
+        }
+    ]
+    form_data = build_native_filter_option_form_data(
+        _dashboard(json_metadata=None),
+        {
+            **_filter_config(),
+            "adhocFilters": adhoc_filters,
+        },
+    )
+    expected: mock.MagicMock = mock.MagicMock(spec=QueryContext)
+
+    with (
+        mock.patch(
+            "superset.tasks.native_filter_cache.ChartDataQueryContextSchema"
+        ) as schema_class,
+        mock.patch(
+            "superset.tasks.native_filter_cache._resolve_datasource_engine",
+            return_value="postgresql",
+        ) as mock_resolve_engine,
+    ):
+        schema_class.return_value.load.return_value = expected
+        result = build_native_filter_option_query_context(form_data or {})
+
+    mock_resolve_engine.assert_not_called()
+    assert result == expected
+    payload = schema_class.return_value.load.call_args.args[0]
+    query = payload["queries"][0]
+    assert query["filters"] == [
+        {"col": "region", "op": "IN", "val": ["EMEA", "APAC"]}
+    ]
+    assert "adhoc_filters" not in query
+
+
+def test_resolve_datasource_engine_only_called_for_sql_filters() -> None:
+    simple_form_data = build_native_filter_option_form_data(
+        _dashboard(json_metadata=None),
+        {
+            **_filter_config(),
+            "adhocFilters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": "WHERE",
+                    "subject": "region",
+                    "operator": "==",
+                    "comparator": "EMEA",
+                }
+            ],
+        },
+    )
+    sql_form_data = build_native_filter_option_form_data(
+        _dashboard(json_metadata=None),
+        {
+            **_filter_config(),
+            "adhocFilters": [
+                {
+                    "expressionType": "SQL",
+                    "clause": "WHERE",
+                    "sqlExpression": "region = 'EMEA'",
+                }
+            ],
+        },
+    )
+    expected: mock.MagicMock = mock.MagicMock(spec=QueryContext)
+
+    with (
+        mock.patch(
+            "superset.tasks.native_filter_cache.ChartDataQueryContextSchema"
+        ) as schema_class,
+        mock.patch(
+            "superset.tasks.native_filter_cache._resolve_datasource_engine",
+            return_value="postgresql",
+        ) as mock_resolve_engine,
+    ):
+        schema_class.return_value.load.return_value = expected
+
+        build_native_filter_option_query_context(simple_form_data or {})
+        mock_resolve_engine.assert_not_called()
+
+        build_native_filter_option_query_context(sql_form_data or {})
+        mock_resolve_engine.assert_called_once_with(10)
 
 
 def test_build_native_filter_option_query_context_missing_groupby() -> None:
     result = build_native_filter_option_query_context({"datasource": "10__table"})
 
     assert result is None
+
+
+def test_build_native_filter_option_query_context_malformed_groupby() -> None:
+    malformed_groupby_values: list[Any] = [
+        "country",
+        [{"label": "country"}],
+        [None],
+        [],
+    ]
+
+    for groupby in malformed_groupby_values:
+        result = build_native_filter_option_query_context(
+            {
+                "datasource": "10__table",
+                "groupby": groupby,
+            }
+        )
+
+        assert result is None

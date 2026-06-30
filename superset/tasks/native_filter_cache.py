@@ -26,12 +26,28 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.models.dashboard import Dashboard
 from superset.utils import json
-from superset.utils.core import DatasourceType
+from superset.utils.core import DatasourceType, split_adhoc_filters_into_base_filters
 
 logger = logging.getLogger(__name__)
 
 NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 NO_FILTER_TIME_RANGE = "No filter"
+
+
+def _resolve_datasource_engine(datasource_id: int) -> str:
+    """Return the datasource engine name, or ``"base"`` if it cannot be resolved."""
+    try:
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.datasource import DatasourceDAO
+
+        datasource = DatasourceDAO.get_datasource(
+            datasource_type=DatasourceType.TABLE,
+            database_id_or_uuid=datasource_id,
+        )
+        return datasource.database.db_engine_spec.engine
+    except Exception:  # noqa: BLE001
+        logger.debug("Could not resolve engine for datasource %s", datasource_id)
+        return "base"
 
 
 def _get_filter_target(filter_config: dict[str, Any]) -> tuple[int | str, str] | None:
@@ -59,7 +75,7 @@ def get_eligible_native_filters(dashboard: Dashboard) -> list[dict[str, Any]]:
         return []
 
     try:
-        metadata = json.loads(dashboard.json_metadata)
+        metadata: dict[str, Any] = json.loads(dashboard.json_metadata)
     except (TypeError, ValueError):
         logger.warning(
             "Dashboard %s has malformed json_metadata; skipping native filter warm-up",
@@ -76,10 +92,10 @@ def get_eligible_native_filters(dashboard: Dashboard) -> list[dict[str, Any]]:
         )
         return []
 
-    print(
-        f"[DEBUG] Dashboard {dashboard.id} native_filter_configuration count: "
-        f"{len(native_filter_config)}",
-        flush=True,
+    logger.debug(
+        "Dashboard %s native_filter_configuration count: %s",
+        dashboard.id,
+        len(native_filter_config),
     )
 
     eligible_filters: list[dict[str, Any]] = []
@@ -95,10 +111,10 @@ def get_eligible_native_filters(dashboard: Dashboard) -> list[dict[str, Any]]:
 
         eligible_filters.append(filter_config)
 
-    print(
-        f"[DEBUG] Dashboard {dashboard.id} eligible filters: "
-        f"{[f.get('id') for f in eligible_filters]}",
-        flush=True,
+    logger.debug(
+        "Dashboard %s eligible filters: %s",
+        dashboard.id,
+        [filter_config.get("id") for filter_config in eligible_filters],
     )
 
     return eligible_filters
@@ -147,7 +163,11 @@ def build_native_filter_option_query_context(
     """Build a query context for a native filter option query."""
     datasource = form_data.get("datasource")
     groupby = form_data.get("groupby") or []
-    column_name = groupby[0] if groupby else None
+    column_name = (
+        groupby[0]
+        if isinstance(groupby, list) and groupby and isinstance(groupby[0], str)
+        else None
+    )
 
     if not datasource or not column_name:
         logger.warning(
@@ -169,6 +189,13 @@ def build_native_filter_option_query_context(
     sort_ascending = form_data.get("sortAscending", True)
     metrics = [sort_metric] if sort_metric else []
     orderby = [[sort_metric or column_name, bool(sort_ascending)]]
+    adhoc_filters = form_data.get("adhoc_filters") or []
+    has_sql_filter = any(
+        isinstance(filter_, dict) and filter_.get("expressionType") == "SQL"
+        for filter_ in adhoc_filters
+    )
+    engine = _resolve_datasource_engine(datasource_id) if has_sql_filter else "base"
+    split_adhoc_filters_into_base_filters(form_data, engine)
 
     payload = {
         "datasource": {
@@ -179,7 +206,7 @@ def build_native_filter_option_query_context(
         "queries": [
             {
                 "groupby": [column_name],
-                "filters": form_data.get("adhoc_filters", []),
+                "filters": form_data.get("filters", []),
                 "extras": {},
                 "metrics": metrics,
                 "orderby": orderby,
@@ -196,10 +223,10 @@ def build_native_filter_option_query_context(
     }
 
     try:
-        print(
-            "[DEBUG] Built query context payload for "
-            f"datasource={datasource_id} groupby={column_name}",
-            flush=True,
+        logger.debug(
+            "Built query context payload for datasource=%s groupby=%s",
+            datasource_id,
+            column_name,
         )
         return ChartDataQueryContextSchema().load(payload)
     except (KeyError, ValidationError, ValueError) as ex:

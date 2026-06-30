@@ -90,8 +90,8 @@ class Strategy:  # pylint: disable=too-few-public-methods
 
     """
 
-    name = ""
-    uses_webdriver = True
+    name: str = ""
+    uses_webdriver: bool = True
 
     def __init__(self) -> None:
         pass
@@ -229,8 +229,8 @@ class NativeFilterOptionsStrategy(Strategy):  # pylint: disable=too-few-public-m
     Build chart data query tasks for native filter option cache warm-up.
     """
 
-    name = "native_filter_options"
-    uses_webdriver = False
+    name: str = "native_filter_options"
+    uses_webdriver: bool = False
 
     def __init__(self, dashboard_ids: list[int]) -> None:
         super().__init__()
@@ -310,7 +310,7 @@ class NativeFilterOptionsStrategy(Strategy):  # pylint: disable=too-few-public-m
         return tasks
 
 
-strategies = [
+strategies: list[type[Strategy]] = [
     DummyStrategy,
     TopNDashboardsStrategy,
     DashboardTagsStrategy,
@@ -373,7 +373,7 @@ def cache_warmup(
         from superset.utils.core import override_user
 
         with override_user(user, force=False):
-            tasks = strategy.get_tasks()
+            tasks: list[CacheWarmupTask] = strategy.get_tasks()
             for task in tasks:
                 task_name = (
                     f"dashboard:{task.dashboard_id}:"
