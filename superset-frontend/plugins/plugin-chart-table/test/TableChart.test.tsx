@@ -2534,3 +2534,33 @@ test('sorts genuinely string columns alphanumerically', () => {
   const values = Array.from(cells).map(td => td.textContent);
   expect(values).toEqual(['apple', 'banana', 'cherry']);
 });
+
+test('TableChart should NOT emit cross-filter when clicking a cell in a not-filterable column', () => {
+  const setDataMask = jest.fn();
+  const props = transformProps({
+    ...testData.basic,
+    datasource: {
+      ...testData.basic.datasource,
+      columns: [{ column_name: 'name', filterable: false } as any],
+    },
+    hooks: { setDataMask },
+    emitCrossFilters: true,
+  });
+  render(
+    <ProviderWrapper>
+      <TableChart
+        {...props}
+        emitCrossFilters
+        setDataMask={setDataMask}
+        sticky={false}
+      />
+    </ProviderWrapper>,
+  );
+
+  fireEvent.click(screen.getByText('Michael'));
+
+  const crossFilterCall = setDataMask.mock.calls.find(
+    (call: any[]) => call[0]?.filterState?.filters,
+  );
+  expect(crossFilterCall).toBeUndefined();
+});
