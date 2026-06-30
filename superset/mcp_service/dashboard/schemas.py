@@ -1987,10 +1987,12 @@ class DashboardDatasetDatabaseInfo(BaseModel):
 class DashboardDatasetSummary(BaseModel):
     """A dataset used by a dashboard's charts, with columns and metrics."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     id: int | None = Field(None, description="Dataset ID")
     uuid: str | None = Field(None, description="Dataset UUID")
     table_name: str | None = Field(None, description="Table name")
-    schema_name: str | None = Field(None, description="Schema name")
+    schema_name: str | None = Field(None, description="Schema name", alias="schema")
     database: DashboardDatasetDatabaseInfo | None = Field(
         None, description="Database the dataset belongs to"
     )
