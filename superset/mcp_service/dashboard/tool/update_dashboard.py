@@ -115,8 +115,7 @@ def _merge_json_metadata(dashboard: Any, overrides: dict[str, Any]) -> str:
     existing: dict[str, Any] = {}
     if dashboard.json_metadata:
         try:
-            parsed = json.loads(dashboard.json_metadata)
-            if isinstance(parsed, dict):
+            if isinstance(parsed := json.loads(dashboard.json_metadata), dict):
                 existing = parsed
         except (ValueError, TypeError):
             pass
@@ -124,13 +123,50 @@ def _merge_json_metadata(dashboard: Any, overrides: dict[str, Any]) -> str:
     return json.dumps(existing)
 
 
+# Typed json_metadata convenience fields. Each maps 1:1 to a json_metadata
+# key but is exposed as a validated field so an LLM does not have to hand-build
+# the raw ``json_metadata_overrides`` dict for common toggles.
+_TYPED_METADATA_FIELDS: tuple[str, ...] = (
+    "cross_filters_enabled",
+    "refresh_frequency",
+    "filter_bar_orientation",
+)
+
+
+def _collect_metadata_overrides(request: UpdateDashboardRequest) -> dict[str, Any]:
+    """Combine the generic ``json_metadata_overrides`` with the typed fields.
+
+    A key set via both a typed field and the generic dict is ambiguous, so a
+    collision raises ``ValueError``. Otherwise the typed fields are layered on
+    top of the generic overrides. The generic dict stays as an escape hatch for
+    keys without a typed field.
+    """
+    overrides: dict[str, Any] = dict(request.json_metadata_overrides or {})
+    typed: dict[str, Any] = {
+        field: value
+        for field in _TYPED_METADATA_FIELDS
+        if (value := getattr(request, field)) is not None
+    }
+    if clashes := sorted(set(overrides) & set(typed)):
+        raise ValueError(
+            "Conflicting metadata for "
+            + ", ".join(clashes)
+            + ": set via both a typed field and json_metadata_overrides. "
+            + "Pass each key only once."
+        )
+    overrides.update(typed)
+    return overrides
+
+
 def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> list[str]:
     """Apply each explicitly-passed field to the dashboard.
 
     Returns the names of fields actually changed. Mutates ``dashboard``
-    in place. ``json_metadata_overrides`` is merged shallowly with the
-    existing ``json_metadata``; an empty string in ``slug`` or ``css``
-    clears the underlying value.
+    in place. ``json_metadata_overrides`` (plus the typed metadata fields) is
+    merged shallowly with the existing ``json_metadata``; an empty string in
+    ``slug`` or ``css`` clears the underlying value; ``tags`` fully replaces the
+    dashboard's custom tags. Inputs are assumed pre-validated by
+    ``_validate_update_request``.
     """
     changed: list[str] = []
 
@@ -154,23 +190,88 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
         dashboard.position_json = json.dumps(request.position_json)
         changed.append("position_json")
 
-    if request.json_metadata_overrides is not None:
-        dashboard.json_metadata = _merge_json_metadata(
-            dashboard, request.json_metadata_overrides
-        )
+    metadata_overrides: dict[str, Any] = _collect_metadata_overrides(request)
+    if metadata_overrides:
+        dashboard.json_metadata = _merge_json_metadata(dashboard, metadata_overrides)
         changed.append("json_metadata")
 
     if request.css is not None:
         dashboard.css = request.css or None
         changed.append("css")
 
+    if request.tags is not None:
+        # Reuse the same helper the REST UpdateDashboardCommand uses so tag
+        # association semantics (custom-tag full replacement) stay identical.
+        from superset.commands.utils import update_tags
+        from superset.tags.models import ObjectType
+
+        update_tags(ObjectType.dashboard, dashboard.id, dashboard.tags, request.tags)
+        changed.append("tags")
+
     return changed
+
+
+def _validate_update_request(
+    dashboard: Any, request: UpdateDashboardRequest
+) -> DashboardError | None:
+    """Pre-flight validation mirroring the REST update path.
+
+    Runs before any mutation so the tool rejects the same payloads the REST
+    ``DashboardPutSchema`` / ``UpdateDashboardCommand`` would — invalid CSS,
+    conflicting metadata keys, and unauthorized or unknown tag IDs — returning a
+    structured error instead of failing deep inside the commit.
+    """
+    from marshmallow import ValidationError as MarshmallowValidationError
+
+    from superset.commands.exceptions import (
+        TagForbiddenError,
+        TagNotFoundValidationError,
+    )
+    from superset.commands.utils import validate_tags
+    from superset.dashboards.schemas import validate_css
+    from superset.tags.models import ObjectType
+
+    # Empty string clears CSS (no validation needed); only validate real content.
+    if request.css:
+        try:
+            validate_css(request.css)
+        except MarshmallowValidationError as ex:
+            detail = (
+                "; ".join(str(m) for m in ex.messages)
+                if isinstance(ex.messages, list)
+                else str(ex.messages)
+            )
+            return DashboardError(
+                error=f"Dashboard CSS is invalid: {detail}",
+                error_type="InvalidCSS",
+            )
+
+    try:
+        _collect_metadata_overrides(request)
+    except ValueError as ex:
+        return DashboardError(error=str(ex), error_type="InvalidRequest")
+
+    if request.tags is not None:
+        try:
+            validate_tags(ObjectType.dashboard, dashboard.tags, request.tags)
+        except TagForbiddenError as ex:
+            return DashboardError(error=str(ex), error_type="TagForbidden")
+        except TagNotFoundValidationError as ex:
+            return DashboardError(error=str(ex), error_type="TagNotFound")
+        except SQLAlchemyError:
+            logger.warning("Database error during tag validation", exc_info=True)
+            return DashboardError(
+                error="Failed to validate tags due to a database error.",
+                error_type="DatabaseError",
+            )
+
+    return None
 
 
 @mcp.tool(
     tags=["mutate"],
     annotations=ToolAnnotations(
-        title="Update dashboard layout/theme/CSS",
+        title="Update dashboard layout/theme/CSS/metadata",
         readOnlyHint=False,
         destructiveHint=False,
     ),
@@ -179,31 +280,32 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
 def update_dashboard(
     request: UpdateDashboardRequest, ctx: Context
 ) -> UpdateDashboardResponse | DashboardError:
-    """Patch an existing dashboard's layout, theme, or styling.
+    """Patch an existing dashboard's layout, theme, styling, or metadata.
 
-    Companion to ``generate_dashboard`` for incremental edits. Accepts
-    the same layout/theme/CSS fields that ``generate_dashboard`` does, so
-    an LLM can:
+    Companion to ``generate_dashboard`` for incremental edits. An LLM can:
 
       - Set or replace ``position_json`` after auto-generation
       - Apply brand ``label_colors`` and ``color_scheme`` via
         ``json_metadata_overrides``
-      - Toggle ``cross_filters_enabled`` via ``json_metadata_overrides``
       - Inject ``css`` to hide chrome on print-ready dashboards
       - Update ``dashboard_title``, ``description``, ``slug``, ``published``
+      - Replace the dashboard's ``tags`` (FULL list of IDs; find them with
+        ``list_tags``)
+      - Toggle ``cross_filters_enabled``, ``refresh_frequency``, or
+        ``filter_bar_orientation`` via typed fields (no need to hand-build
+        ``json_metadata_overrides``)
 
     Only the fields explicitly passed are applied; other fields are left
     unchanged. ``json_metadata_overrides`` is merged shallowly with the
-    existing json_metadata — pass only the keys you want to change.
+    existing json_metadata — pass only the keys you want to change. A key may
+    not be set via both a typed field and ``json_metadata_overrides``.
 
     Example::
 
         update_dashboard(request={
             "identifier": 42,
-            "json_metadata_overrides": {
-                "label_colors": {"Electronics": "#4C78A8"},
-                "cross_filters_enabled": False,
-            },
+            "tags": [3, 7],
+            "refresh_frequency": 300,
             "css": ".header-controls {display: none;}",
         })
     """
@@ -212,6 +314,12 @@ def update_dashboard(
     dashboard, auth_error = _find_and_authorize_dashboard(request.identifier)
     if auth_error is not None:
         return auth_error
+
+    validation_error: DashboardError | None = _validate_update_request(
+        dashboard, request
+    )
+    if validation_error is not None:
+        return validation_error
 
     changed_fields: list[str] = []
     warnings: list[str] = list(request.sanitization_warnings)

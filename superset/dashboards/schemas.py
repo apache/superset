@@ -115,6 +115,51 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
         raise ValidationError(errors)
 
 
+# Patterns for CSS constructs that can be abused to execute scripts or pull in
+# remote stylesheets/resources. The custom CSS is stored verbatim and re-served
+# into the dashboard page, so these are rejected at validation time. Ordinary
+# styling (including ``url(...)`` referencing relative paths or ``data:`` image
+# URIs) is left untouched.
+_CSS_SCRIPT_SCHEME = r"(?:javascript|vbscript|livescript|mocha)\s*:"
+_DANGEROUS_CSS_PATTERNS: tuple[tuple[str, "re.Pattern[str]"], ...] = (
+    # Legacy IE dynamic expressions, e.g. ``width: expression(alert(1))``.
+    ("expression(", re.compile(r"expression\s*\(", re.IGNORECASE)),
+    # Inline script schemes anywhere in the declaration.
+    ("script scheme", re.compile(_CSS_SCRIPT_SCHEME, re.IGNORECASE)),
+    # Remote stylesheet imports.
+    ("@import", re.compile(r"@import\b", re.IGNORECASE)),
+    # url(...) pointing at a script scheme. Legitimate image/relative/data URLs
+    # are intentionally not matched here.
+    (
+        "url() with script scheme",
+        re.compile(r"url\(\s*['\"]?\s*" + _CSS_SCRIPT_SCHEME, re.IGNORECASE),
+    ),
+)
+
+
+def validate_css(value: Union[bytes, bytearray, str, None]) -> None:
+    """Reject custom dashboard CSS containing known-dangerous constructs.
+
+    Lightweight input hardening for the user-supplied ``css`` field, which is
+    persisted and re-served into the dashboard page. Blocks ``expression(``,
+    script-scheme URIs (e.g. ``javascript:``), ``@import``, and ``url(...)``
+    referencing a script scheme, while leaving ordinary styling intact.
+
+    CSS escape sequences (e.g. ``\\6a avascript:``) are not expanded before
+    matching, so this validator is a first-line filter and not a complete XSS
+    sanitiser; it should not be treated as a substitute for other defences.
+    """
+    if not value:
+        return
+    if isinstance(value, (bytes, bytearray)):
+        text = value.decode("utf-8", errors="ignore")
+    else:
+        text = value
+    for label, pattern in _DANGEROUS_CSS_PATTERNS:
+        if pattern.search(text):
+            raise ValidationError(f"CSS contains a disallowed construct ({label}).")
+
+
 class SharedLabelsColorsField(fields.Field):
     """
     A custom field that accepts either a list of strings or a dictionary.
