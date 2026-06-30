@@ -118,9 +118,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       filter_select_enabled: datasource.filter_select_enabled,
       fetch_values_predicate: datasource.fetch_values_predicate,
       schema:
-        datasource.tableSelector?.schema ||
-        datasource.databaseSelector?.schema ||
-        datasource.schema,
+        datasource.tableSelector?.schema ??
+        datasource.databaseSelector?.schema ??
+        datasource.schema ?? null,
       description: datasource.description,
       main_dttm_col: datasource.main_dttm_col,
       currency_code_column: datasource.currency_code_column ?? null,
