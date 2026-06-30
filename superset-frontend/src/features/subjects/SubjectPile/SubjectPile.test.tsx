@@ -38,7 +38,7 @@ test('renders subjects and overflow avatars using compact size', () => {
     within(avatarGroup as HTMLElement).getByText('AS'),
   ).toBeInTheDocument();
   expect(
-    within(avatarGroup as HTMLElement).getByText('AD'),
+    within(avatarGroup as HTMLElement).getByText('BJ'),
   ).toBeInTheDocument();
   expect(
     within(avatarGroup as HTMLElement).getByText('+2'),
@@ -51,10 +51,53 @@ test('renders subjects and overflow avatars using compact size', () => {
   });
 });
 
-test('uses square avatars for role subjects', () => {
-  const { container } = render(<SubjectPile subjects={[subjects[1]]} />);
+test('orders subjects by type and label without mutating input', () => {
+  const unorderedSubjects = [
+    { id: 1, label: 'Beta Role', type: SubjectType.Role },
+    { id: 2, label: 'Zen Group', type: SubjectType.Group },
+    { id: 3, label: 'Ada User', type: SubjectType.User },
+    { id: 4, label: 'Alpha Group', type: SubjectType.Group },
+    { id: 5, label: 'Bob User', type: SubjectType.User },
+    { id: 6, label: 'Alpha Role', type: SubjectType.Role },
+  ];
+
+  const { container } = render(
+    <SubjectPile subjects={unorderedSubjects} maxCount={6} />,
+  );
+
+  expect(
+    [...container.querySelectorAll('.ant-avatar-string')].map(
+      avatar => avatar.textContent,
+    ),
+  ).toEqual(['AU', 'BU', 'AG', 'ZG', 'AR', 'BR']);
+  expect(
+    [...container.querySelectorAll('.ant-avatar')].map(
+      avatar => avatar.style.zIndex,
+    ),
+  ).toEqual(['6', '5', '4', '3', '2', '1']);
+  expect(unorderedSubjects.map(subject => subject.label)).toEqual([
+    'Beta Role',
+    'Zen Group',
+    'Ada User',
+    'Alpha Group',
+    'Bob User',
+    'Alpha Role',
+  ]);
+});
+
+test('uses square avatars for group subjects', () => {
+  const { container } = render(<SubjectPile subjects={[subjects[2]]} />);
 
   expect(container.querySelector('.ant-avatar')).toHaveClass(
     'ant-avatar-square',
   );
+});
+
+test('uses octagon avatars for role subjects', () => {
+  const { container } = render(<SubjectPile subjects={[subjects[1]]} />);
+  const avatar = container.querySelector('.ant-avatar');
+
+  expect(avatar).not.toHaveClass('ant-avatar-square');
+  expect(avatar).toHaveStyleRule('clip-path', /polygon/);
+  expect(avatar).toHaveStyleRule('border-radius', '0');
 });

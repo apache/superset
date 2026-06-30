@@ -24,11 +24,17 @@ import {
   type AvatarProps,
 } from '@superset-ui/core/components';
 import { styled } from '@apache-superset/core/theme';
+import type { CSSProperties } from 'react';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import Subject, { SubjectType } from 'src/types/Subject';
 
 const colorList = getCategoricalSchemeRegistry().get()?.colors ?? [];
 const AVATAR_SIZE: AvatarProps['size'] = 'small';
+const SUBJECT_TYPE_ORDER: Record<SubjectType, number> = {
+  [SubjectType.User]: 0,
+  [SubjectType.Group]: 1,
+  [SubjectType.Role]: 2,
+};
 
 // https://en.wikipedia.org/wiki/Linear_congruential_generator
 function stringAsciiPRNG(value: string, m: number) {
@@ -56,7 +62,7 @@ function getInitials(label: string): string {
   return label.slice(0, 2).toLocaleUpperCase();
 }
 
-const OctagonAvatar = styled(Avatar)`
+const RoleAvatar = styled(Avatar)`
   clip-path: polygon(
     29.3% 0%,
     70.7% 0%,
@@ -71,8 +77,23 @@ const OctagonAvatar = styled(Avatar)`
 `;
 
 function getAvatarShape(type?: SubjectType): 'circle' | 'square' | undefined {
-  if (type === SubjectType.Role) return 'square';
+  if (type === SubjectType.Group) return 'square';
   return undefined;
+}
+
+function sortSubjectsForPile(subjects: Subject[]): Subject[] {
+  return [...subjects].sort((subjectA, subjectB) => {
+    const typeOrder =
+      SUBJECT_TYPE_ORDER[subjectA.type] - SUBJECT_TYPE_ORDER[subjectB.type];
+    if (typeOrder !== 0) return typeOrder;
+
+    const labelOrder = (subjectA.label ?? '').localeCompare(
+      subjectB.label ?? '',
+    );
+    if (labelOrder !== 0) return labelOrder;
+
+    return subjectA.id - subjectB.id;
+  });
 }
 
 export function SubjectPile({
@@ -82,18 +103,25 @@ export function SubjectPile({
   subjects: Subject[];
   maxCount?: number;
 }) {
+  const sortedSubjects = sortSubjectsForPile(subjects);
+
   return (
     <AvatarGroup max={{ count: maxCount }} size={AVATAR_SIZE}>
-      {subjects.map(subject => {
+      {sortedSubjects.map((subject, index) => {
         const displayName = subject.label ?? '';
         const uniqueKey = `${subject.id}-${displayName}`;
         const color = getRandomColor(uniqueKey, colorList);
         const avatarUrl = subject.img ? ensureAppRoot(subject.img) : undefined;
         const initials = getInitials(displayName);
-        const avatarStyle = { backgroundColor: color, borderColor: color };
+        const avatarStyle: CSSProperties = {
+          backgroundColor: color,
+          borderColor: color,
+          position: 'relative',
+          zIndex: sortedSubjects.length - index,
+        };
 
         const AvatarComponent =
-          subject.type === SubjectType.Group ? OctagonAvatar : Avatar;
+          subject.type === SubjectType.Role ? RoleAvatar : Avatar;
 
         return (
           <Tooltip key={uniqueKey} title={displayName} placement="top">
