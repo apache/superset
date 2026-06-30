@@ -388,6 +388,10 @@ export const DropdownContainer = forwardRef(
 
         pendingConfirmForLengthRef.current = -1;
         confirmationScheduledRef.current = false;
+        // Clear the "had content at last change" flag on a normal settle so a
+        // stale value can't keep the trigger mounted in a later recalculation
+        // window (the guard reads it while `recalculating` is true).
+        hadContentAtLastChangeRef.current = false;
         if (rafIdRef.current) {
           cancelAnimationFrame(rafIdRef.current);
           rafIdRef.current = 0;

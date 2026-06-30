@@ -61,6 +61,11 @@ const buildRect = (left: number, right: number): DOMRect =>
     toJSON: () => ({}),
   }) as DOMRect;
 
+// Captured once at module load so the prototype override below can be fully
+// reverted in afterEach — otherwise the mock leaks into other test files.
+const originalGetBoundingClientRect =
+  HTMLElement.prototype.getBoundingClientRect;
+
 const installLayoutMock = () => {
   HTMLElement.prototype.getBoundingClientRect = function mockRect(
     this: HTMLElement,
@@ -144,6 +149,7 @@ afterEach(() => {
   resizeSpy?.mockRestore();
   rafSpy?.mockRestore();
   cancelRafSpy?.mockRestore();
+  HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
 });
 
 const makeItem = (id: string, label: string) => ({
