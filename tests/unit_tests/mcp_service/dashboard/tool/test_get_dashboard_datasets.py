@@ -93,9 +93,10 @@ def _build_datasource_mock(
     return datasource
 
 
-def _build_slice_mock(datasource: Mock) -> Mock:
+def _build_slice_mock(datasource: Mock, datasource_type: str = "table") -> Mock:
     slc = Mock()
     slc.datasource_id = datasource.id
+    slc.datasource_type = datasource_type
     slc.datasource = datasource
     return slc
 

@@ -2136,12 +2136,15 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
     """
     from superset.mcp_service.auth import has_dataset_access
 
-    slices_by_datasource: Dict[int, List[Any]] = {}
+    slices_by_datasource: Dict[tuple[int, str], List[Any]] = {}
     for slc in getattr(dashboard, "slices", None) or []:
         datasource_id = getattr(slc, "datasource_id", None)
+        datasource_type = getattr(slc, "datasource_type", None) or ""
         if datasource_id is None:
             continue
-        slices_by_datasource.setdefault(datasource_id, []).append(slc)
+        slices_by_datasource.setdefault(
+            (datasource_id, datasource_type), []
+        ).append(slc)
 
     datasets: List[DashboardDatasetSummary] = []
     inaccessible_count: int = 0
