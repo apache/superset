@@ -40,6 +40,14 @@ apsw==3.50.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   shillelagh
+argon2-cffi==25.1.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
+argon2-cffi-bindings==25.1.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   argon2-cffi
 astroid==3.3.10
     # via pylint
 attrs==25.3.0
@@ -67,6 +75,7 @@ backports-tarfile==1.2.0
 bcrypt==4.3.0
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   paramiko
 beartype==0.22.5
     # via py-key-value-aio
@@ -122,6 +131,7 @@ certifi==2026.5.20
 cffi==2.0.0
     # via
     #   -c requirements/base-constraint.txt
+    #   argon2-cffi-bindings
     #   cryptography
     #   pynacl
 cfgv==3.4.0

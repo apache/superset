@@ -25,7 +25,10 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHash, VerifyMismatchError
 from werkzeug.security import check_password_hash
 
-from superset.utils.auth_db_password import get_auth_db_password_hash_algorithm
+from superset.utils.auth_db_password import (
+    BCRYPT_MAX_PASSWORD_BYTES,
+    get_auth_db_password_hash_algorithm,
+)
 
 _BCRYPT_HASH_RE = re.compile(r"^\$2[aby]\$\d{2}\$")
 _ARGON2_HASH_PREFIX = "$argon2"
@@ -53,7 +56,12 @@ def hash_auth_db_password(password: str, algorithm: str | None = None) -> str:
     if resolved == "argon2":
         return _argon2_hasher.hash(password)
     if resolved == "bcrypt":
-        return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        encoded = password.encode("utf-8")
+        if len(encoded) > BCRYPT_MAX_PASSWORD_BYTES:
+            raise ValueError(
+                f"Password exceeds bcrypt's {BCRYPT_MAX_PASSWORD_BYTES}-byte limit."
+            )
+        return bcrypt.hashpw(encoded, bcrypt.gensalt()).decode("utf-8")
     raise ValueError(f"Unsupported AUTH_DB hash algorithm: {resolved}")
 
 

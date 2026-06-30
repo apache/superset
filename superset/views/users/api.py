@@ -46,6 +46,7 @@ from superset.utils.auth_db_password_hash import (
 from superset.utils.auth_session_stamp import (
     bump_user_session_auth_stamp,
     clear_flask_login_remember_cookie,
+    sync_session_auth_stamp_on_login,
 )
 from superset.utils.decorators import transaction
 from superset.utils.slack import get_user_avatar, SlackClientError
@@ -148,6 +149,9 @@ def _commit_user_password_change(
         raise PasswordChangeConflictError
 
     bump_user_session_auth_stamp(user_id)
+    from superset.security.password_change import clear_password_must_change
+
+    clear_password_must_change(user_id)
     user_after = db.session.get(User, user_id)
     if user_after is None:
         logger.error("User missing after password update for id=%s", user_id)
@@ -160,6 +164,9 @@ def _reestablish_login_session(user: User) -> None:
     for key in list(session.keys()):
         session.pop(key)
     login_user(user)
+    # ``login_user`` does not run ``on_user_login``; copy the post-commit stamp
+    # into the rebuilt session so the next request passes stamp validation.
+    sync_session_auth_stamp_on_login(user)
     clear_flask_login_remember_cookie()
 
 

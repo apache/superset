@@ -167,6 +167,7 @@ class TestCurrentUserApi(SupersetTestCase):
                 },
             )
             assert rv.status_code == 200
+            assert self.client.get(meUri).status_code == 200
 
             rv2 = self.client.put(
                 mePasswordUri,
@@ -278,6 +279,7 @@ class TestCurrentUserApi(SupersetTestCase):
         assert "password_hash_algorithm" in data["message"]
 
     def test_put_my_password_unavailable_when_not_auth_db(self) -> None:
+        """Reject PUT /me/password with a 400 when AUTH_TYPE is not AUTH_DB."""
         self.login(ADMIN_USERNAME)
         original_auth = superset_integration_app.config["AUTH_TYPE"]
         try:
@@ -297,6 +299,7 @@ class TestCurrentUserApi(SupersetTestCase):
         assert "AUTH_TYPE is AUTH_DB" in data["message"]
 
     def test_get_my_password_policy_success(self) -> None:
+        """Return the public AUTH_DB password policy from GET /me/password/policy."""
         self.login(ADMIN_USERNAME)
         rv = self.client.get("/api/v1/me/password/policy")
         assert rv.status_code == 200
@@ -304,6 +307,7 @@ class TestCurrentUserApi(SupersetTestCase):
         assert data["result"] == get_public_auth_db_password_policy()
 
     def test_get_my_password_policy_unavailable_when_not_auth_db(self) -> None:
+        """Reject GET /me/password/policy with a 400 when AUTH_TYPE is not AUTH_DB."""
         self.login(ADMIN_USERNAME)
         original_auth = superset_integration_app.config["AUTH_TYPE"]
         try:

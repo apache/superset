@@ -269,12 +269,13 @@ export function generateAuthDbPassword(
   policy: AuthDbPasswordPolicy = AUTH_DB_DEFAULT_PASSWORD_POLICY,
 ): string {
   const minLen = resolveAuthDbPasswordMinLength(policy.password_min_length);
+  const targetLen = Math.max(minLen, 1);
   const requiredPools = getRequiredCharacterPools(policy);
   const generationPool = getGenerationPool(policy);
   const maxAttempts = 64;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const chars: string[] = requiredPools.map(pool => pick(pool));
-    while (getCodePointLength(chars.join('')) < minLen) {
+    while (getCodePointLength(chars.join('')) < targetLen) {
       chars.push(pick(generationPool));
     }
     shuffleInPlace(chars);

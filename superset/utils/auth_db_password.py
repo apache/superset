@@ -52,6 +52,9 @@ _PUBLIC_PASSWORD_POLICY_KEYS = (
 
 _SUPPORTED_HASH_ALGORITHMS = frozenset({"bcrypt", "argon2"})
 
+# bcrypt silently truncates input beyond this UTF-8 byte limit.
+BCRYPT_MAX_PASSWORD_BYTES = 72
+
 _COMMON_PASSWORDS = frozenset(
     password.lower()
     for password in {
@@ -185,20 +188,15 @@ def resolve_password_min_length(cfg: dict[str, Any]) -> int:
     return max(min_len, 0)
 
 
-def validate_auth_db_password(password: str, cfg: dict[str, Any] | None = None) -> None:
-    """
-    Enforce AUTH_DB password policy.
-
-    :param password: Candidate password (plaintext).
-    :param cfg: Optional merged config; loaded from the current app when omitted.
-    :raises marshmallow.ValidationError: When validation fails.
-    """
-    cfg = cfg if cfg is not None else get_merged_auth_db_config()
-    errors: list[str] = []
-
+def _password_length_errors(password: str, cfg: dict[str, Any]) -> list[str]:
     min_len = resolve_password_min_length(cfg)
     if len(password) < min_len:
-        errors.append(f"Password must be at least {min_len} characters long.")
+        return [f"Password must be at least {min_len} characters long."]
+    return []
+
+
+def _password_character_errors(password: str, cfg: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
 
     if cfg.get("password_require_uppercase", True) and not re.search(
         r"[A-Z]", password
@@ -221,10 +219,43 @@ def validate_auth_db_password(password: str, cfg: dict[str, Any] | None = None) 
             "(not a letter, digit, or space)."
         )
 
-    if cfg.get("password_common_list_check", True):
-        lowered = password.lower().strip()
-        if lowered in _COMMON_PASSWORDS:
-            errors.append("This password is too common. Choose a stronger password.")
+    return errors
 
+
+def _common_password_errors(password: str, cfg: dict[str, Any]) -> list[str]:
+    if not cfg.get("password_common_list_check", True):
+        return []
+    lowered = password.lower().strip()
+    if lowered in _COMMON_PASSWORDS:
+        return ["This password is too common. Choose a stronger password."]
+    return []
+
+
+def _bcrypt_byte_limit_errors(password: str, cfg: dict[str, Any]) -> list[str]:
+    if get_auth_db_password_hash_algorithm(cfg) != "bcrypt":
+        return []
+    if len(password.encode("utf-8")) > BCRYPT_MAX_PASSWORD_BYTES:
+        return [
+            f"Password must be at most {BCRYPT_MAX_PASSWORD_BYTES} bytes when "
+            "using the bcrypt hash algorithm."
+        ]
+    return []
+
+
+def validate_auth_db_password(password: str, cfg: dict[str, Any] | None = None) -> None:
+    """
+    Enforce AUTH_DB password policy.
+
+    :param password: Candidate password (plaintext).
+    :param cfg: Optional merged config; loaded from the current app when omitted.
+    :raises marshmallow.ValidationError: When validation fails.
+    """
+    cfg = cfg if cfg is not None else get_merged_auth_db_config()
+    errors = [
+        *_password_length_errors(password, cfg),
+        *_password_character_errors(password, cfg),
+        *_common_password_errors(password, cfg),
+        *_bcrypt_byte_limit_errors(password, cfg),
+    ]
     if errors:
         raise ValidationError({"new_password": errors})

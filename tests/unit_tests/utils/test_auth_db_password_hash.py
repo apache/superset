@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import pytest
+
+from superset.utils.auth_db_password import BCRYPT_MAX_PASSWORD_BYTES
 from superset.utils.auth_db_password_hash import (
     hash_auth_db_password,
     is_argon2_password_hash,
@@ -39,3 +42,8 @@ def test_argon2_hash_round_trip() -> None:
 
 def test_verify_rejects_empty_hash() -> None:
     assert not verify_auth_db_password("", "password")
+
+
+def test_bcrypt_hash_rejects_password_over_max_bytes() -> None:
+    with pytest.raises(ValueError, match="72-byte"):
+        hash_auth_db_password("a" * (BCRYPT_MAX_PASSWORD_BYTES + 1), algorithm="bcrypt")

@@ -104,3 +104,20 @@ test('getAuthDbPasswordPolicyChecks accepts any length when min length is zero',
   expect(getAuthDbPasswordPolicyChecks('a', policy).minLength).toBe(true);
   expect(getAuthDbPasswordPolicyError('a', policy)).toBeNull();
 });
+
+test('generateAuthDbPassword never returns empty when policy allows zero length', () => {
+  const policy = {
+    ...AUTH_DB_DEFAULT_PASSWORD_POLICY,
+    password_min_length: 0,
+    password_require_uppercase: false,
+    password_require_lowercase: false,
+    password_require_digit: false,
+    password_require_special: false,
+    password_common_list_check: false,
+  };
+  for (let i = 0; i < 10; i += 1) {
+    const pwd = generateAuthDbPassword(policy);
+    expect(pwd.length).toBeGreaterThanOrEqual(1);
+    expect(getAuthDbPasswordPolicyError(pwd, policy)).toBeNull();
+  }
+});
