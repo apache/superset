@@ -63,9 +63,18 @@ metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(
     "slice_user",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
+    Column(
+        "user_id",
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "slice_id",
+        Integer,
+        ForeignKey("slices.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 logger = logging.getLogger(__name__)
 
@@ -78,6 +87,38 @@ class Slice(  # pylint: disable=too-many-public-methods
     query_context_factory: QueryContextFactory | None = None
 
     __tablename__ = "slices"
+    # query_context is excluded: it is a cached/regenerated field, not user-authored.
+    # deleted_at exclusion will be added when soft delete is merged.
+    # Exclude M2M association relationships: Continuum only captures FK columns on
+    # association INSERTs (not the auto-increment id), which breaks the NOT NULL PK.
+    # Ownership changes are administrative metadata, not user-authored content.
+    # Audit / save-marker columns are auto-bumped on every save. Excluding
+    # them lets Continuum's is_modified() return False on no-op saves
+    # (e.g. owners-only edits) so we don't create empty version rows.
+    # version_transaction.user_id / issued_at preserve "who/when".
+    # The perm-string class (perm / schema_perm / catalog_perm) is derived
+    # security state, not user-authored content: permission maintenance
+    # rewrites it in bulk, and versioning it produced phantom transactions
+    # flooding the activity stream (10 "Chart updated" rows for one user
+    # save — surfaced by the version-history UI). Excluding it
+    # also means a restore can't resurrect stale permission strings; the
+    # live, derived values stay authoritative.
+    __versioned__: dict[str, Any] = {
+        "exclude": [
+            "query_context",
+            "owners",
+            "dashboards",
+            "changed_on",
+            "created_on",
+            "changed_by_fk",
+            "created_by_fk",
+            "last_saved_at",
+            "last_saved_by_fk",
+            "perm",
+            "schema_perm",
+            "catalog_perm",
+        ]
+    }
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
     datasource_id = Column(Integer)
@@ -332,7 +373,11 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def slice_link(self) -> Markup:
         name = escape(self.chart)
-        return Markup(f'<a href="{self.url}">{name}</a>')
+        # ``self.url`` is ``/explore/?slice_id=<int>``; the only
+        # interpolation is the integer primary key, so the URL has no
+        # user-controlled segment to escape (unlike ``Dashboard.url``
+        # which embeds the user-set slug). ``noqa: S704`` is safe.
+        return Markup(f'<a href="{self.url}">{name}</a>')  # noqa: S704
 
     @property
     def icons(self) -> str:

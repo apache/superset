@@ -946,6 +946,15 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
     __tablename__ = "table_columns"
     __table_args__ = (UniqueConstraint("table_id", "column_name"),)
+    # SPIKE (full-Continuum): Continuum-versioned
+    # again, with audit-field exclusions to suppress the per-column-per-save
+    # noise rows that ADR-004 flagged as Failure 3. ``changed_on`` refreshes
+    # on every parent dataset save even when the column itself wasn't user-
+    # edited; capturing it produced one shadow row per column per save with
+    # no user signal.
+    __versioned__: dict[str, Any] = {
+        "exclude": ["changed_on", "created_on", "changed_by_fk", "created_by_fk"]
+    }
 
     id = Column(Integer, primary_key=True)
     column_name = Column(String(255), nullable=False)
@@ -1191,6 +1200,10 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
 
     __tablename__ = "sql_metrics"
     __table_args__ = (UniqueConstraint("table_id", "metric_name"),)
+    # SPIKE: same audit-field exclusions as TableColumn (see above).
+    __versioned__: dict[str, Any] = {
+        "exclude": ["changed_on", "created_on", "changed_by_fk", "created_by_fk"]
+    }
 
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(255), nullable=False)
@@ -1286,9 +1299,18 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
 sqlatable_user = DBTable(
     "sqlatable_user",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE")),
+    Column(
+        "user_id",
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "table_id",
+        Integer,
+        ForeignKey("tables.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -1320,6 +1342,33 @@ class SqlaTable(
     owner_class = security_manager.user_model
 
     __tablename__ = "tables"
+    # Exclude M2M association relationships: Continuum only captures FK columns on
+    # association INSERTs (not the auto-increment id), which breaks the NOT NULL PK.
+    # deleted_at exclusion will be added when soft delete is merged.
+    # Audit columns are auto-bumped on every save. Excluding them lets
+    # Continuum's is_modified() return False on no-op saves (e.g. owners-only
+    # edits) so we don't create empty version rows. version_transaction.user_id
+    # / issued_at preserve "who/when".
+    # The perm-string class (perm / schema_perm / catalog_perm) is derived
+    # security state, not user-authored content: permission maintenance
+    # rewrites it in bulk, and versioning it produced phantom transactions
+    # flooding the activity stream (one "updated" row per touched entity
+    # with no user edit — surfaced by the version-history UI).
+    # Excluding it also means a restore can't resurrect stale permission
+    # strings; the live, derived values stay authoritative.
+    __versioned__: dict[str, Any] = {
+        "exclude": [
+            "owners",
+            "row_level_security_filters",
+            "changed_on",
+            "created_on",
+            "changed_by_fk",
+            "created_by_fk",
+            "perm",
+            "schema_perm",
+            "catalog_perm",
+        ]
+    }
 
     # Note this uniqueness constraint is not part of the physical schema, i.e., it does
     # not exist in the migrations, but is required by `import_from_dict` to ensure the
@@ -1448,7 +1497,7 @@ class SqlaTable(
         name = escape(self.name)
         url = escape(self.explore_url)
         anchor = f'<a target="_blank" href="{url}">{name}</a>'
-        return Markup(anchor)
+        return Markup(anchor)  # noqa: S704
 
     def get_catalog_perm(self) -> str | None:
         """Returns catalog permission if present, database one otherwise."""
@@ -2220,17 +2269,25 @@ sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 RLSFilterRoles = DBTable(
     "rls_filter_roles",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
-    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column("role_id", Integer, ForeignKey("ab_role.id"), primary_key=True),
+    Column(
+        "rls_filter_id",
+        Integer,
+        ForeignKey("row_level_security_filters.id"),
+        primary_key=True,
+    ),
 )
 
 RLSFilterTables = DBTable(
     "rls_filter_tables",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("table_id", Integer, ForeignKey("tables.id")),
-    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column("table_id", Integer, ForeignKey("tables.id"), primary_key=True),
+    Column(
+        "rls_filter_id",
+        Integer,
+        ForeignKey("row_level_security_filters.id"),
+        primary_key=True,
+    ),
 )
 
 

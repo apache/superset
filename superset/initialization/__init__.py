@@ -619,6 +619,229 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         extension.manifest.id,
                     )
 
+    @staticmethod
+    def _remove_continuum_write_listeners() -> None:
+        """Detach SQLAlchemy-Continuum's own write listeners.
+
+        ``make_versioned()`` runs unconditionally at import of
+        ``superset.extensions`` and registers Continuum's mapper, session,
+        and engine listeners — the ones that write shadow rows and
+        ``version_transaction`` rows on every flush. Skipping only the
+        custom baseline/change-record listeners would leave those running,
+        so with the kill-switch off the shadow tables would silently keep
+        accumulating, contradicting the documented contract.
+
+        This is deliberately a *targeted subset* of
+        ``sqlalchemy_continuum.remove_versioning()``: that helper also
+        calls ``manager.reset()``, which clears ``version_class_map`` —
+        and ``version_class()`` would then silently return the live model
+        class, breaking the read-only ``/versions/`` endpoints this flag
+        promises to keep working.
+
+        Idempotent: guarded on a representative listener so repeated app
+        initializations in one process (test fixtures) don't raise on
+        double-removal.
+        """
+        # pylint: disable=import-outside-toplevel
+        import sqlalchemy as sa
+        from sqlalchemy_continuum import versioning_manager
+
+        if not sa.event.contains(
+            sa.orm.Mapper, "after_insert", versioning_manager.track_inserts
+        ):
+            return  # already detached by a prior init
+        versioning_manager.remove_operations_tracking(sa.orm.Mapper)
+        versioning_manager.remove_session_tracking(sa.orm.session.Session)
+        sa.event.remove(
+            sa.engine.Engine,
+            "before_execute",
+            versioning_manager.track_association_operations,
+        )
+        sa.event.remove(
+            sa.engine.Engine, "rollback", versioning_manager.clear_connection
+        )
+        sa.event.remove(
+            sa.engine.Engine,
+            "set_connection_execution_options",
+            versioning_manager.track_cloned_connections,
+        )
+
+        # Belt-and-suspenders: flip Continuum's master option off as well.
+        # Every write listener checks ``manager.options['versioning']`` before
+        # doing work (manager.py / unit_of_work.py), so if a future Continuum
+        # version registers an additional write listener this detach does not
+        # know to remove, that listener still no-ops. ``version_class()`` reads
+        # from ``version_class_map`` and ignores this option, so the read-only
+        # ``/versions/`` endpoints are unaffected.
+        versioning_manager.options["versioning"] = False
+
+        # Verify the known write listeners are actually gone. A Continuum
+        # upgrade that renamed a handler would make the removals above silently
+        # miss, leaving capture half-on while we report "disabled"; surface
+        # that rather than booting in a contradictory state.
+        if sa.event.contains(
+            sa.orm.Mapper, "after_insert", versioning_manager.track_inserts
+        ):
+            logger.warning(
+                "versioning: Continuum write listeners still attached after "
+                "detach; capture may not be fully disabled. This usually means "
+                "the pinned sqlalchemy-continuum version changed how it "
+                "registers listeners."
+            )
+
+    def init_versioning(self) -> None:
+        """Register SQLAlchemy-Continuum baseline and retention listeners.
+
+        Must be called after all versioned model classes have been imported so
+        that VERSIONED_MODELS can be populated and configure_mappers() has run.
+
+        ``ENABLE_VERSIONING_CAPTURE`` (ships default ``False``) gates the two
+        before-flush listener registrations. The flag is operational, not
+        feature: with it off the infrastructure is inert (no save writes
+        shadow rows); flipping it on activates capture. The switch also lets
+        an operator who observes a versioning-induced regression (e.g. a
+        save-path slowdown attributable to the change-record listener)
+        disable capture in ``superset_config.py`` and restart workers — a
+        30-second recovery instead of revert-and-redeploy. Shadow tables
+        already created by the migration stay; they just stop accumulating
+        new rows.
+
+        The fallback here is ``False`` so that any app-factory path that
+        does not load ``superset.config`` (some test factories, embedded
+        use) stays inert by default rather than silently enabling capture.
+        """
+        # Beat-schedule check first: the retention task is independent of
+        # save-path capture and remains useful for ageing-out rows already
+        # written by prior deploys. An operator hitting the kill-switch in
+        # anger may also be running a hand-rolled ``CeleryConfig`` that
+        # silently dropped the prune entry; surfacing both misconfigurations
+        # at the same restart is the cheap, observability-positive shape.
+        self._warn_if_retention_beat_missing()
+
+        if not self.config.get("ENABLE_VERSIONING_CAPTURE", False):
+            logger.warning(
+                "versioning: ENABLE_VERSIONING_CAPTURE is False; "
+                "skipping baseline + change-record listener registration "
+                "and detaching Continuum's write listeners. Save-path "
+                "capture is disabled; existing shadow tables and "
+                "/versions/ endpoints continue to work read-only."
+            )
+            self._remove_continuum_write_listeners()
+            return
+
+        # Symmetric with the OFF branch's ``options['versioning'] = False``:
+        # re-assert it on here so capture is restored even if a prior app
+        # init in the same process (multi-app / test reentrancy) flipped the
+        # process-global Continuum option off. Without this, an OFF app
+        # initialized before an ON app would leave the option False and the
+        # baseline listener — which gates on it — would silently write no
+        # baselines despite capture being "enabled".
+        from sqlalchemy_continuum import versioning_manager
+
+        versioning_manager.options["versioning"] = True
+
+        from sqlalchemy.orm import Session  # noqa: F401
+        from sqlalchemy_continuum import version_class
+
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
+        from superset.versioning.baseline import (
+            register_baseline_listener,
+            VERSIONED_MODELS,
+        )
+
+        # Note: previously this block called ``configure_mappers()`` before
+        # importing the snapshot modules, believing their Table declarations
+        # needed ``version_transaction`` to exist. That's not actually the
+        # case — the snapshot tables reference ``version_transaction.id``
+        # only at the DB level (via the migration); the SQLAlchemy Table
+        # objects here intentionally declare ``transaction_id`` as a plain
+        # ``BigInteger`` without a FK to avoid the resolution dependency.
+        # Removing the global ``configure_mappers()`` avoids eagerly
+        # resolving relationships in other unrelated models (notably
+        # Flask-AppBuilder's AuditMixin on classes like Tag, whose
+        # ``created_by`` primaryjoin only resolves under specific class
+        # registry states in SQLAlchemy 1.4).
+        from superset.versioning.changes import (  # noqa: E402
+            register_change_record_listener,
+        )
+
+        # All versioned models — Dashboard / Slice / SqlaTable plus their
+        # children (TableColumn / SqlMetric) and the dashboard_slices
+        # M2M — go through Continuum's shadow tables. The JSON-snapshot
+        # path that previously backed dataset / dashboard child diffs
+        # has been removed (full-Continuum spike).
+        for model_cls in (Dashboard, Slice, SqlaTable):
+            try:
+                version_class(model_cls)  # ensure Continuum wired this model
+                # Dedup guard: VERSIONED_MODELS is module-level state, and
+                # test fixtures initialize multiple Superset apps per
+                # process — without the check each re-init appends
+                # duplicate entries.
+                if model_cls not in VERSIONED_MODELS:
+                    VERSIONED_MODELS.append(model_cls)
+            except Exception:  # pylint: disable=broad-except
+                # Continuum failed to wire versioning for this model. We
+                # boot in degraded mode rather than failing startup, but a
+                # silent skip would hide that change capture has stopped for
+                # the model — so surface it at WARNING with the traceback.
+                logger.warning(
+                    "Versioning is not wired for %s; change capture will be "
+                    "skipped for it. This usually means Continuum did not "
+                    "register a version class for the model.",
+                    model_cls.__name__,
+                    exc_info=True,
+                )
+
+        register_baseline_listener()
+        register_change_record_listener()
+
+        # Retention is time-based and runs out-of-band as a Celery beat
+        # task — see ``superset/tasks/version_history_retention.py``
+        # and the ``version_history.prune_old_versions`` entry in
+        # ``CELERYBEAT_SCHEDULE`` (``superset/config.py``). The previous
+        # synchronous after_commit listener was retired so retention
+        # work doesn't add latency to user saves.
+
+    _RETENTION_TASK_NAME = "version_history.prune_old_versions"
+
+    def _warn_if_retention_beat_missing(self) -> None:
+        """WARN at startup when the resolved Celery beat schedule has no
+        ``version_history.prune_old_versions`` entry.
+
+        Operators who redefine ``CeleryConfig`` in ``superset_config.py``
+        — instead of subclassing or merging the default — silently lose
+        the retention task. Capture continues writing rows; the prune
+        never runs; disk grows until paged. The default config carries
+        the entry; this check makes the misconfiguration visible in the
+        deploy log before disk pressure makes it visible at 03:00.
+
+        Handles three shapes of ``CELERY_CONFIG``:
+        * ``None`` — Celery deliberately disabled, no retention either
+          way; return without warning.
+        * a class or module with a ``beat_schedule`` attribute — the
+          default ``CeleryConfig`` shape.
+        * a dict — Celery's documented "config as dict" shape, supported
+          by ``celery_app.config_from_object``.
+        """
+        celery_config = self.config.get("CELERY_CONFIG")
+        if celery_config is None:
+            return  # Celery disabled entirely; no retention task to warn about.
+        beat_schedule = (
+            celery_config.get("beat_schedule")
+            if isinstance(celery_config, dict)
+            else getattr(celery_config, "beat_schedule", None)
+        )
+        if not beat_schedule or self._RETENTION_TASK_NAME not in beat_schedule:
+            logger.warning(
+                "versioning: CELERY_CONFIG.beat_schedule is missing the "
+                "%r entry — the retention task will not fire and shadow "
+                "tables will grow unbounded. Either inherit from the "
+                "default CeleryConfig or add the entry to your override.",
+                self._RETENTION_TASK_NAME,
+            )
+
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -644,6 +867,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.init_views()
 
         self.init_all_dependencies_and_extensions()
+
+        # Must run after all versioned models are imported and mappers configured.
+        self.init_versioning()
 
     @staticmethod
     def _log_config_warning(message: str) -> None:

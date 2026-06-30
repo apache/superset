@@ -179,6 +179,8 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "put_colors": "write",
     "sync_permissions": "write",
     "restore": "write",
+    "list_versions": "read",
+    "get_version": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

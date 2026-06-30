@@ -26,7 +26,6 @@ from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.core import Database
 from superset.models.dashboard import (
     Dashboard,
-    dashboard_slices,
     dashboard_user,
     DashboardRoles,
 )
@@ -236,9 +235,17 @@ def delete_dashboard_roles_associations(dashboard: Dashboard) -> None:
 
 
 def delete_dashboard_slices_associations(dashboard: Dashboard) -> None:
-    db.session.execute(
-        dashboard_slices.delete().where(dashboard_slices.c.dashboard_id == dashboard.id)
-    )
+    # Clear the M2M through the ORM relationship rather than a Core-level
+    # ``dashboard_slices.delete()``. ``dashboard_slices`` is a Continuum-tracked
+    # (versioned) association table: a raw Core delete fires Continuum's engine
+    # ``before_execute`` listener with no unit-of-work registered for the
+    # connection (no ORM flush happened), which raises ``KeyError`` when version
+    # capture is on. Clearing via the relationship routes through the ORM flush —
+    # the same path production dashboard deletes take — so capture tracks it
+    # cleanly. The other association helpers stay Core-level: their tables are
+    # not versioned, so Continuum ignores them.
+    dashboard.slices = []
+    db.session.flush()
 
 
 def delete_all_inserted_slices():
