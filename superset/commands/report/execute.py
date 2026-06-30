@@ -1169,6 +1169,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             )
             user = security_manager.find_user(username)
 
+            start_time = datetime.utcnow()
             with override_user(user):
                 # Pre-commit any permalink rows before the state machine's
                 # @transaction() opens. When called inside a transaction,
@@ -1183,9 +1184,6 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                     BaseReportState(
                         self._model, self._scheduled_dttm, self._execution_id
                     ).get_dashboard_urls()
-
-            start_time = datetime.utcnow()
-            with override_user(user):
                 ReportScheduleStateMachine(
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()
