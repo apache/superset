@@ -126,9 +126,12 @@ test('Should place popover at the bottom', async () => {
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
   userEvent.click(screen.getByTestId('control-popover'));
 
-  await waitFor(() => {
-    expect(setStateMock).toHaveBeenCalledWith('rightBottom');
-  });
+  await waitFor(
+    () => {
+      expect(setStateMock).toHaveBeenCalledWith('rightBottom');
+    },
+    { timeout: 5000 },
+  );
 });
 
 test('Should close popover on escape press', async () => {

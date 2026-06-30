@@ -39,7 +39,6 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { css, useTheme, styled } from '@apache-superset/core/theme';
-import { useSelector } from 'react-redux';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import {
   NoAnimationDropdown,
@@ -55,7 +54,8 @@ import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import { useDrillDetailMenuItems } from 'src/components/Chart/useDrillDetailMenuItems';
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
-import { MenuKeys, RootState } from 'src/dashboard/types';
+import { MenuKeys } from 'src/dashboard/types';
+import { useCanEditDashboard } from 'src/dashboard/stores';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
@@ -180,9 +180,7 @@ const SliceHeaderControls = (
   const theme = useTheme();
 
   const canEditCrossFilters =
-    useSelector<RootState, boolean>(
-      ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
-    ) &&
+    useCanEditDashboard() &&
     getChartMetadataRegistry()
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.InteractiveChart);

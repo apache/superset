@@ -26,14 +26,12 @@ import {
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
-import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
   getCategoricalSchemeRegistry,
-  SupersetClient,
   getClientErrorObject,
 } from '@superset-ui/core';
 
@@ -46,10 +44,15 @@ import {
 } from 'src/utils/colorScheme';
 import { useDispatch } from 'react-redux';
 import {
+  useDashboardQuery,
+  useThemes,
+  useSaveDashboardProperties,
+} from 'src/dashboard/queries';
+import {
   setColorScheme,
-  setDashboardMetadata,
-} from 'src/dashboard/actions/dashboardState';
-import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
+  setDashboardInfo as setStoreDashboardInfo,
+} from 'src/dashboard/stores';
+import { setDashboardMetadata } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
 import { validateRefreshFrequency } from '../RefreshFrequency';
@@ -112,7 +115,21 @@ const PropertiesModal = ({
   show = false,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
+  const saveProperties = useSaveDashboardProperties(dashboardId);
   const [form] = Form.useForm();
+
+  // TanStack Query: only fetch when modal is open and the caller didn't pass dashboardInfo.
+  // Reads from cache if the dashboard was already hydrated by the page.
+  const { data: queryDashboard, error: queryError } = useDashboardQuery(
+    dashboardId,
+    {
+      enabled: show && !currentDashboardInfo,
+      staleTime: 60_000,
+      // A focus refetch while the modal is open would re-seed the form and
+      // wipe in-progress edits.
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
@@ -132,20 +149,18 @@ const PropertiesModal = ({
   const [refreshFrequency, setRefreshFrequency] = useState(0);
   const [selectedThemeId, setSelectedThemeId] = useState<number | null>(null);
   const [showChartTimestamps, setShowChartTimestamps] = useState(false);
-  const [themes, setThemes] = useState<
-    Array<{
-      id: number;
-      theme_name: string;
-      json_data?: string;
-    }>
-  >([]);
+  const { data: themes = [], error: themesError } = useThemes({
+    enabled: show,
+  });
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   const originalDashboardMetadata = useRef<Record<string, any>>({});
   const originalCss = useRef<string | null>(null);
   const cssDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleErrorResponse = async (response: Response) => {
-    const { error, statusText, message } = await getClientErrorObject(response);
+  const handleErrorResponse = async (response: unknown) => {
+    const { error, statusText, message } = await getClientErrorObject(
+      response as Parameters<typeof getClientErrorObject>[0],
+    );
     let errorText = error || statusText || t('An error has occurred');
     if (
       typeof message === 'object' &&
@@ -219,27 +234,16 @@ const PropertiesModal = ({
     [form],
   );
 
-  const fetchDashboardDetails = useCallback(() => {
-    // We fetch the dashboard details because not all code
-    // that renders this component have all the values we need.
-    // At some point when we have a more consistent frontend
-    // datamodel, the dashboard could probably just be passed as a prop.
-    SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${dashboardId}`,
-    }).then(response => {
-      const dashboard = response.json.result;
-      const jsonMetadataObj = dashboard.json_metadata?.length
-        ? JSON.parse(dashboard.json_metadata)
-        : {};
-
-      handleDashboardData({
-        ...dashboard,
-        metadata: jsonMetadataObj,
-      });
-
-      setIsLoading(false);
-    }, handleErrorResponse);
-  }, [dashboardId, handleDashboardData]);
+  // useDashboardQuery handles the fetch; surface errors via toast.
+  useEffect(() => {
+    if (queryError) {
+      addDangerToast(
+        queryError instanceof Error
+          ? queryError.message
+          : t('Failed to load dashboard properties'),
+      );
+    }
+  }, [queryError, addDangerToast]);
 
   const getJsonMetadata = () => {
     try {
@@ -275,10 +279,8 @@ const PropertiesModal = ({
       cssDebounceTimer.current = null;
     }
     if (originalCss.current !== null) {
-      dispatch(dashboardInfoChanged({ css: originalCss.current }));
-      dispatch(
-        setColorScheme(originalDashboardMetadata.current.color_scheme ?? ''),
-      );
+      setStoreDashboardInfo({ css: originalCss.current });
+      setColorScheme(originalDashboardMetadata.current.color_scheme ?? '');
     }
     onHide();
   };
@@ -302,7 +304,7 @@ const PropertiesModal = ({
     jsonMetadataObj.label_colors = jsonMetadataObj.label_colors || {};
 
     setCurrentColorScheme(colorScheme);
-    dispatch(setColorScheme(colorScheme));
+    setColorScheme(colorScheme);
 
     // update metadata to match selection
     if (updateMetadata) {
@@ -436,15 +438,14 @@ const PropertiesModal = ({
         ...morePutProps,
       };
 
-      SupersetClient.put({
-        endpoint: `/api/v1/dashboard/${dashboardId}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(saveData),
-      }).then(() => {
-        onSubmit(onSubmitProps);
-        onHide();
-        addSuccessToast(t('The dashboard has been saved'));
-      }, handleErrorResponse);
+      saveProperties.mutate(saveData, {
+        onSuccess: () => {
+          onSubmit(onSubmitProps);
+          onHide();
+          addSuccessToast(t('The dashboard has been saved'));
+        },
+        onError: error => handleErrorResponse(error),
+      });
     }
   };
 
@@ -461,43 +462,23 @@ const PropertiesModal = ({
       // Reset loading state when modal opens
       setIsLoading(true);
 
-      if (!currentDashboardInfo) {
-        fetchDashboardDetails();
-      } else {
+      if (currentDashboardInfo) {
         handleDashboardData(currentDashboardInfo);
-        // Data is immediately available, so we can stop loading
+        setIsLoading(false);
+      } else if (queryDashboard) {
+        // useDashboardQuery already parsed json_metadata into metadata
+        handleDashboardData(queryDashboard);
         setIsLoading(false);
       }
-
-      // Fetch themes (excluding system themes)
-      const themeQuery = rison.encode({
-        columns: ['id', 'theme_name', 'is_system', 'json_data'],
-        filters: [
-          {
-            col: 'is_system',
-            opr: 'eq',
-            value: false,
-          },
-        ],
-      });
-      SupersetClient.get({ endpoint: `/api/v1/theme/?q=${themeQuery}` })
-        .then(({ json }) => {
-          const fetchedThemes = json.result;
-          setThemes(fetchedThemes);
-        })
-        .catch(() => {
-          addDangerToast(
-            t('An error occurred while fetching available themes'),
-          );
-        });
+      // Else: waiting on useDashboardQuery; isLoading stays true until it resolves.
     }
-  }, [
-    currentDashboardInfo,
-    fetchDashboardDetails,
-    handleDashboardData,
-    show,
-    addDangerToast,
-  ]);
+  }, [currentDashboardInfo, queryDashboard, handleDashboardData, show]);
+
+  useEffect(() => {
+    if (themesError) {
+      addDangerToast(t('An error occurred while fetching available themes'));
+    }
+  }, [themesError, addDangerToast]);
 
   useEffect(() => {
     // the title can be changed inline in the dashboard, this catches it
@@ -625,19 +606,16 @@ const PropertiesModal = ({
 
   // Debounced live CSS preview so changes are reflected on the dashboard
   // without clicking Apply. Called only on user edits, not on data load.
-  const handleCustomCssChange = useCallback(
-    (css: string) => {
-      setCustomCss(css);
-      if (cssDebounceTimer.current) {
-        clearTimeout(cssDebounceTimer.current);
-        cssDebounceTimer.current = null;
-      }
-      cssDebounceTimer.current = setTimeout(() => {
-        dispatch(dashboardInfoChanged({ css }));
-      }, 500);
-    },
-    [dispatch],
-  );
+  const handleCustomCssChange = useCallback((css: string) => {
+    setCustomCss(css);
+    if (cssDebounceTimer.current) {
+      clearTimeout(cssDebounceTimer.current);
+      cssDebounceTimer.current = null;
+    }
+    cssDebounceTimer.current = setTimeout(() => {
+      setStoreDashboardInfo({ css });
+    }, 500);
+  }, []);
 
   useEffect(
     () => () => {

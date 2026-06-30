@@ -19,6 +19,8 @@
 
 import { getExtensionsRegistry } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { DndProvider } from 'react-dnd';
@@ -27,6 +29,7 @@ import { DynamicPluginProvider } from 'src/components';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
+import { queryClient } from 'src/queries/queryClient';
 import { store } from './store';
 import '../preamble';
 import querystring from 'query-string';
@@ -42,32 +45,35 @@ export const RootContextProviders: React.FC<{ children?: React.ReactNode }> = ({
   );
 
   return (
-    <SupersetThemeProvider themeController={themeController}>
-      <ReduxProvider store={store}>
-        {/* @ts-expect-error react-dnd types not updated for React 18 */}
-        <DndProvider backend={HTML5Backend}>
-          <EmbeddedUiConfigProvider>
-            <DynamicPluginProvider>
-              <QueryParamProvider
-                adapter={ReactRouter5Adapter}
-                options={{
-                  searchStringToObject: querystring.parse,
-                  objectToSearchString: (object: Record<string, any>) =>
-                    querystring.stringify(object, { encode: false }),
-                }}
-              >
-                {RootContextProviderExtension ? (
-                  <RootContextProviderExtension>
-                    {children}
-                  </RootContextProviderExtension>
-                ) : (
-                  children
-                )}
-              </QueryParamProvider>
-            </DynamicPluginProvider>
-          </EmbeddedUiConfigProvider>
-        </DndProvider>
-      </ReduxProvider>
-    </SupersetThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <SupersetThemeProvider themeController={themeController}>
+        <ReduxProvider store={store}>
+          {/* @ts-expect-error react-dnd types not updated for React 18 */}
+          <DndProvider backend={HTML5Backend}>
+            <EmbeddedUiConfigProvider>
+              <DynamicPluginProvider>
+                <QueryParamProvider
+                  adapter={ReactRouter5Adapter}
+                  options={{
+                    searchStringToObject: querystring.parse,
+                    objectToSearchString: (object: Record<string, any>) =>
+                      querystring.stringify(object, { encode: false }),
+                  }}
+                >
+                  {RootContextProviderExtension ? (
+                    <RootContextProviderExtension>
+                      {children}
+                    </RootContextProviderExtension>
+                  ) : (
+                    children
+                  )}
+                </QueryParamProvider>
+              </DynamicPluginProvider>
+            </EmbeddedUiConfigProvider>
+          </DndProvider>
+        </ReduxProvider>
+      </SupersetThemeProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   );
 };

@@ -19,13 +19,9 @@
 import { useCallback, useMemo, ReactNode } from 'react';
 import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
-import {
-  JsonResponse,
-  ClientErrorObject,
-  getClientErrorObject,
-} from '@superset-ui/core';
+import { ClientErrorObject, getClientErrorObject } from '@superset-ui/core';
 import { AsyncSelect } from '@superset-ui/core/components';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import { fetchDatasetList } from 'src/dashboard/queries';
 import {
   Dataset,
   DatasetSelectLabel,
@@ -64,33 +60,30 @@ export const loadDatasetOptions = async (
     order_column: 'table_name',
     order_direction: 'asc',
   });
-  return cachedSupersetGet({
-    endpoint: `/api/v1/dataset/?q=${query}`,
-  })
-    .then((response: JsonResponse) => {
-      const filteredResult = response.json.result.filter(
-        (item: Dataset) => !excludeDatasetIds.includes(item.id),
-      );
+  try {
+    const { result: datasets, count } = await fetchDatasetList<Dataset>(query);
+    const filteredResult = datasets.filter(
+      (item: Dataset) => !excludeDatasetIds.includes(item.id),
+    );
 
-      const list: {
-        label: string | ReactNode;
-        value: string | number;
-        table_name: string;
-      }[] = filteredResult.map((item: Dataset) => ({
-        ...item,
-        label: DatasetSelectLabel(item),
-        value: item.id,
-        table_name: item.table_name,
-      }));
-      return {
-        data: list,
-        totalCount: response.json.count ?? 0,
-      };
-    })
-    .catch(async error => {
-      const errorMessage = getErrorMessage(await getClientErrorObject(error));
-      throw new Error(errorMessage);
-    });
+    const list: {
+      label: string | ReactNode;
+      value: string | number;
+      table_name: string;
+    }[] = filteredResult.map((item: Dataset) => ({
+      ...item,
+      label: DatasetSelectLabel(item),
+      value: item.id,
+      table_name: item.table_name,
+    }));
+    return {
+      data: list,
+      totalCount: count,
+    };
+  } catch (error) {
+    const errorMessage = getErrorMessage(await getClientErrorObject(error));
+    throw new Error(errorMessage);
+  }
 };
 
 const DatasetSelect = ({

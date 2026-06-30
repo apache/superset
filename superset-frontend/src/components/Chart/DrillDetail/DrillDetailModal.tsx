@@ -29,7 +29,7 @@ import { Button, Modal } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
-import { Slice } from 'src/types/Chart';
+import { useDashboardSlicesStore } from 'src/dashboard/stores';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { Dataset } from '../types';
@@ -100,10 +100,8 @@ export default function DrillDetailModal({
   const theme = useTheme();
   const history = useHistory();
   const dashboardPageId = useContext(DashboardPageIdContext);
-  const { slice_name: chartName } = useSelector(
-    (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
-      state.sliceEntities?.slices?.[chartId] || {},
-  );
+  const { slice_name: chartName } =
+    useDashboardSlicesStore(s => s.slices[chartId]) || {};
   const canExplore = useSelector((state: RootState) =>
     findPermission('can_explore', 'Superset', state.user?.roles),
   );

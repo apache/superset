@@ -26,12 +26,24 @@ import {
   type Ref,
 } from 'react';
 import classNames from 'classnames';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
-import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
+import {
+  flagTitleUnsavedChanges,
+  resetTitleDirtyFlag,
+} from 'src/dashboard/util/flagTitleUnsavedChanges';
+import { onRefresh } from 'src/dashboard/actions/dashboardState';
+import {
+  useDashboardLayout,
+  useLastRefreshTime,
+  useTabActivationTime,
+  setEditMode,
+  useCanEditDashboard,
+  useDashboardInfo,
+} from 'src/dashboard/stores';
 import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
@@ -45,7 +57,7 @@ import {
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
-import type { LayoutItem, RootState } from 'src/dashboard/types';
+import type { LayoutItem } from 'src/dashboard/types';
 import type {
   DropResult,
   DragItem,
@@ -151,19 +163,11 @@ interface DragDropChildProps {
 
 const Tab = (props: TabProps): ReactElement => {
   const dispatch = useDispatch();
-  const canEdit = useSelector(
-    (state: RootState) => state.dashboardInfo.dash_edit_perm,
-  );
-  const dashboardLayout = useSelector(
-    (state: RootState) => state.dashboardLayout.present,
-  );
-  const lastRefreshTime = useSelector(
-    (state: RootState) => state.dashboardState.lastRefreshTime,
-  );
-  const tabActivationTime = useSelector(
-    (state: RootState) => state.dashboardState.tabActivationTimes?.[props.id],
-  );
-  const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
+  const canEdit = useCanEditDashboard();
+  const dashboardLayout = useDashboardLayout();
+  const lastRefreshTime = useLastRefreshTime();
+  const tabActivationTime = useTabActivationTime(props.id);
+  const dashboardInfo = useDashboardInfo();
   const isAutoRefreshing = useIsAutoRefreshing();
   const isRefreshInFlight = useIsRefreshInFlight();
 
@@ -235,6 +239,26 @@ const Tab = (props: TabProps): ReactElement => {
       }
     },
     [props.updateComponents, props.component],
+  );
+
+  const titleDirtyRef = useRef<boolean | undefined>(undefined);
+  const handleTitleChange = useCallback(
+    (value: string) =>
+      flagTitleUnsavedChanges(
+        props.component.meta.text ?? '',
+        value,
+        titleDirtyRef,
+      ),
+    [props.component.meta.text],
+  );
+  const handleTitleEditingChange = useCallback(
+    (isEditing: boolean) => {
+      props.onTabTitleEditingChange(isEditing);
+      if (!isEditing) {
+        resetTitleDirtyFlag(titleDirtyRef);
+      }
+    },
+    [props.onTabTitleEditingChange],
   );
 
   const handleDrop = useCallback(
@@ -347,7 +371,7 @@ const Tab = (props: TabProps): ReactElement => {
                         <span
                           role="button"
                           tabIndex={0}
-                          onClick={() => dispatch(setEditMode(true))}
+                          onClick={() => setEditMode(true)}
                         >
                           {t('edit mode')}
                         </span>
@@ -434,7 +458,6 @@ const Tab = (props: TabProps): ReactElement => {
         isHighlighted,
         dashboardId,
         embeddedMode,
-        onTabTitleEditingChange,
       } = props;
       return (
         <TabTitleContainer
@@ -448,9 +471,10 @@ const Tab = (props: TabProps): ReactElement => {
             placeholder={component.meta.placeholder}
             canEdit={editMode}
             onSaveTitle={handleChangeText}
+            onChange={handleTitleChange}
             showTooltip={false}
             editing={editMode && isFocused}
-            onEditingChange={onTabTitleEditingChange}
+            onEditingChange={handleTitleEditingChange}
           />
           {!editMode && !embeddedMode && (
             <AnchorLink
@@ -476,8 +500,9 @@ const Tab = (props: TabProps): ReactElement => {
       props.isFocused,
       props.isHighlighted,
       props.dashboardId,
-      props.onTabTitleEditingChange,
       handleChangeText,
+      handleTitleChange,
+      handleTitleEditingChange,
     ],
   );
 

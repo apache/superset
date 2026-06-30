@@ -16,19 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useState, useMemo, useEffect } from 'react';
-import rison from 'rison';
+import { useCallback, useMemo, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
-import {
-  Column,
-  ensureIsArray,
-  useChangeEffect,
-  getClientErrorObject,
-} from '@superset-ui/core';
+import { Column, ensureIsArray, useChangeEffect } from '@superset-ui/core';
 import { type FormInstance, Select } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import {
+  useDatasetMetadata,
+  getClientErrorFromUnknown,
+} from 'src/dashboard/queries';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
+
+const COLUMN_SELECT_PROJECTION = [
+  'columns.column_name',
+  'columns.is_dttm',
+  'columns.type_generic',
+  'columns.filterable',
+];
 
 interface ColumnSelectProps {
   allowClear?: boolean;
@@ -55,14 +59,19 @@ export function ColumnSelect({
   onChange,
   mode,
 }: ColumnSelectProps) {
-  const [columns, setColumns] = useState<Column[]>();
-  const [loading, setLoading] = useState(false);
   const { addDangerToast } = useToasts();
   const resetColumnField = useCallback(() => {
     form.setFields([
       { name: ['filters', filterId, formField], touched: false, value: null },
     ]);
   }, [form, filterId, formField]);
+
+  const {
+    data: dataset,
+    isFetching: loading,
+    error,
+  } = useDatasetMetadata(datasetId, COLUMN_SELECT_PROJECTION);
+  const columns = dataset?.columns as Column[] | undefined;
 
   const options = useMemo(
     () =>
@@ -84,50 +93,42 @@ export function ColumnSelect({
     if (currentColumn && !filterValues(currentColumn)) {
       resetColumnField();
     }
-  }, [currentColumn, currentFilterType, resetColumnField]);
+  }, [currentColumn, currentFilterType, resetColumnField, filterValues]);
 
+  // Reset the selection when the dataset changes.
   useChangeEffect(datasetId, previous => {
     if (previous != null) {
-      setColumns([]);
       resetColumnField();
     }
-    if (datasetId != null) {
-      setLoading(true);
-      cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
-          columns: [
-            'columns.column_name',
-            'columns.is_dttm',
-            'columns.type_generic',
-            'columns.filterable',
-          ],
-        })}`,
-      })
-        .then(
-          ({ json: { result } }) => {
-            const lookupValue = Array.isArray(value) ? value : [value];
-            const valueExists = result.columns.some((column: Column) =>
-              lookupValue?.includes(column.column_name),
-            );
-            if (!valueExists) {
-              resetColumnField();
-            }
-            setColumns(result.columns);
-          },
-          async badResponse => {
-            const { error, message } = await getClientErrorObject(badResponse);
-            let errorText = message || error || t('An error has occurred');
-            if (message === 'Forbidden') {
-              errorText = t(
-                'You do not have permission to edit this dashboard',
-              );
-            }
-            addDangerToast(errorText);
-          },
-        )
-        .finally(() => setLoading(false));
-    }
   });
+
+  // When the loaded columns don't contain the current value, clear it.
+  useEffect(() => {
+    if (!columns) {
+      return;
+    }
+    const lookupValue = Array.isArray(value) ? value : [value];
+    const valueExists = columns.some((column: Column) =>
+      lookupValue?.includes(column.column_name),
+    );
+    if (!valueExists) {
+      resetColumnField();
+    }
+  }, [columns, value, resetColumnField]);
+
+  // Surface dataset fetch errors as a toast.
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+    getClientErrorFromUnknown(error).then(({ error: errorDetail, message }) => {
+      let errorText = message || errorDetail || t('An error has occurred');
+      if (message === 'Forbidden') {
+        errorText = t('You do not have permission to edit this dashboard');
+      }
+      addDangerToast(errorText);
+    });
+  }, [error, addDangerToast]);
 
   return (
     <Select

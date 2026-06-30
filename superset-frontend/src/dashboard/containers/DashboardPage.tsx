@@ -21,8 +21,7 @@ import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
-import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from '@reduxjs/toolkit';
+import { useDispatch } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Loading } from '@superset-ui/core/components';
 import {
@@ -31,9 +30,9 @@ import {
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
-import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
+import { dropHydrationSnapshot } from 'src/dashboard/util/rebaselineHydrationDashboardInfo';
 import {
   getAllActiveFilters,
   getRelevantDataMask,
@@ -43,19 +42,21 @@ import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
-import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import {
-  getFilterValue,
-  getPermalinkValue,
-} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+  useDashboardStateStore,
+  useNativeFiltersStore,
+  useDashboardInfoStore,
+  useDashboardLayoutStore,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import { getFilterValue, getPermalinkValue } from 'src/dashboard/queries';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 
 import { nanoid } from 'nanoid';
 import type { ActiveFilters } from '../types';
-import { RootState } from '../types';
 import {
   chartContextMenuStyles,
   filterCardPopoverStyle,
@@ -65,7 +66,7 @@ import {
 } from '../styles';
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
-} from '../components/SyncDashboardState';
+} from './SyncDashboardState';
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
 import { Filter, PartialFilters } from '@superset-ui/core';
 import {
@@ -95,49 +96,15 @@ type PageProps = {
   idOrSlug: string;
 };
 
-// TODO: move to Dashboard.jsx when it's refactored to functional component
-const selectRelevantDatamask = createSelector(
-  (state: RootState) => state.dataMask, // the first argument accesses relevant data from global state
-  dataMask => getRelevantDataMask(dataMask, 'ownState'), // the second parameter conducts the transformation
-);
-
-const selectChartConfiguration = (state: RootState) =>
-  state.dashboardInfo.metadata?.chart_configuration;
-const selectNativeFilters = (state: RootState) => state.nativeFilters.filters;
-const selectDataMask = (state: RootState) => state.dataMask;
-const selectAllSliceIds = (state: RootState) => state.dashboardState.sliceIds;
-// TODO: move to Dashboard.jsx when it's refactored to functional component
-const selectActiveFilters = createSelector(
-  [
-    selectChartConfiguration,
-    selectNativeFilters,
-    selectDataMask,
-    selectAllSliceIds,
-  ],
-  (chartConfiguration, nativeFilters, dataMask, allSliceIds) => ({
-    ...getActiveFilters(),
-    ...getAllActiveFilters({
-      // eslint-disable-next-line camelcase
-      chartConfiguration,
-      nativeFilters,
-      dataMask,
-      allSliceIds,
-    }),
-  }),
-);
-
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const history = useHistory();
   const dashboardPageId = useMemo(() => nanoid(), []);
-  const hasDashboardInfoInitiated = useSelector<RootState, boolean>(
-    ({ dashboardInfo }) =>
-      dashboardInfo && Object.keys(dashboardInfo).length > 0,
+  const hasDashboardInfoInitiated = useDashboardInfoStore(
+    s => Object.keys(s.dashboardInfo).length > 0,
   );
-  const reduxTheme = useSelector(
-    (state: RootState) => state.dashboardInfo.theme,
-  );
+  const reduxTheme = useDashboardInfoStore(s => s.dashboardInfo.theme);
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
@@ -154,27 +121,33 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, id = 0 } = dashboard || {};
 
-  // The live title is edited in Redux and persisted via an in-SPA save with no
-  // full reload, so the useDashboard() API result can be stale. Track the live
-  // title so the browser tab stays in sync after a rename.
-  const liveDashboardTitle = useSelector<RootState, string | undefined>(
-    state => state.dashboardLayout?.present?.[DASHBOARD_HEADER_ID]?.meta?.text,
+  // The live title lives in the layout store and is persisted via an in-SPA
+  // save with no full reload, so the useDashboard() API result can be stale.
+  // Track the live title so the browser tab stays in sync after a rename.
+  const liveDashboardTitle = useDashboardLayoutStore(
+    s => s.layout?.[DASHBOARD_HEADER_ID]?.meta?.text,
   );
   // Only trust the live layout title once the layout belongs to the dashboard
   // being shown. During SPA dashboard-to-dashboard navigation the previous
   // dashboard's layout lingers until the new one hydrates, so fall back to the
   // freshly fetched API title until the hydrated dashboard matches.
-  const hydratedDashboardId = useSelector<RootState, number | undefined>(
-    state => state.dashboardInfo?.id,
-  );
+  const hydratedDashboardId = useDashboardInfoStore(s => s.dashboardInfo?.id);
   const pageTitle =
     (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
     dashboard_title;
 
   // Get CSS from dashboardInfo (unified properties location)
-  const css =
-    useSelector((state: RootState) => state.dashboardInfo.css) ||
-    dashboard?.css;
+  const css = useDashboardInfoStore(s => s.dashboardInfo.css) || dashboard?.css;
+
+  // Release the in-place-discard snapshot when leaving the dashboard. It is
+  // cached with gcTime Infinity, so without this it accumulates one full payload
+  // per dashboard visited across an SPA session.
+  useEffect(
+    () => () => {
+      if (id) dropHydrationSnapshot(id);
+    },
+    [id],
+  );
 
   useEffect(() => {
     // mark tab id as redundant when user closes browser tab - a new id will be
@@ -196,8 +169,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [dashboardPageId]);
 
   useEffect(() => {
-    dispatch(setDatasetsStatus(status));
-  }, [dispatch, status]);
+    useDashboardStateStore.getState().setDatasetsStatus(status);
+  }, [status]);
 
   useEffect(() => {
     // eslint-disable-next-line consistent-return
@@ -313,7 +286,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             chartStates: chartStates ?? null,
           } as unknown as Parameters<typeof hydrateDashboard>[0]),
         );
-        dispatch(clearDashboardHistory());
 
         // Scroll to anchor element if specified in permalink state
         if (anchor) {
@@ -373,8 +345,29 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
   }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
-  const relevantDataMask = useSelector(selectRelevantDatamask);
-  const activeFilters = useSelector(selectActiveFilters);
+  const dataMask = useDataMaskStore(s => s.dataMask);
+  const nativeFiltersMap = useNativeFiltersStore(s => s.filters);
+  const chartConfiguration = useDashboardInfoStore(
+    s => s.dashboardInfo.metadata?.chart_configuration,
+  );
+  const allSliceIds = useDashboardStateStore(s => s.sliceIds);
+
+  const relevantDataMask = useMemo(
+    () => getRelevantDataMask(dataMask, 'ownState'),
+    [dataMask],
+  );
+  const activeFilters = useMemo(
+    () => ({
+      ...getActiveFilters(),
+      ...getAllActiveFilters({
+        chartConfiguration,
+        nativeFilters: nativeFiltersMap,
+        dataMask,
+        allSliceIds,
+      }),
+    }),
+    [chartConfiguration, nativeFiltersMap, dataMask, allSliceIds],
+  );
 
   if (error) throw error; // caught in error boundary
 

@@ -50,6 +50,8 @@ import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
@@ -985,7 +987,8 @@ export function refreshChart(
       return Promise.resolve();
     }
     const timeout =
-      getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+      useDashboardInfoStore.getState().dashboardInfo.common.conf
+        .SUPERSET_WEBSERVER_TIMEOUT;
 
     if (
       !chart.latestQueryFormData ||
@@ -1000,7 +1003,7 @@ export function refreshChart(
         timeout,
         chart.id,
         dashboardId,
-        getState().dataMask[chart.id]?.ownState,
+        useDataMaskStore.getState().dataMask[chart.id]?.ownState,
       ),
     ) as unknown as Promise<void>;
   };

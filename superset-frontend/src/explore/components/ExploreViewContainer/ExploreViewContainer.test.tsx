@@ -38,6 +38,7 @@ import {
 import { Store } from '@reduxjs/toolkit';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import * as exploreActions from 'src/explore/actions/exploreActions';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import ExploreViewContainer from '.';
 
 jest.doMock('@superset-ui/core', () => ({
@@ -923,4 +924,44 @@ test('automatic axis title margin adjustment handles both X and Y axis titles be
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
   }
+});
+
+test('merges ownState from useDataMaskStore into form_data.extra_form_data', async () => {
+  getChartControlPanelRegistry().registerValue('table', {
+    controlPanelSections: [],
+  });
+
+  useDataMaskStore.setState({
+    dataMask: {
+      1: {
+        id: '1',
+        ownState: {
+          time_range: 'Last week',
+          clientView: 'should-be-omitted',
+        },
+        extraFormData: {},
+        filterState: {},
+      },
+    },
+  });
+
+  fetchMock.callHistory.clear();
+  await waitFor(() => renderWithRouter({ search: SEARCH }));
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls(/api\/v1\/explore\/form_data/);
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const formDataCalls = fetchMock.callHistory.calls(
+    /api\/v1\/explore\/form_data/,
+  );
+  const body = JSON.parse(
+    formDataCalls[formDataCalls.length - 1].options?.body as string,
+  );
+  const formData = JSON.parse(body.form_data);
+  expect(formData.extra_form_data?.time_range).toBe('Last week');
+  expect(formData.extra_form_data?.clientView).toBeUndefined();
+
+  getChartControlPanelRegistry().remove('table');
 });

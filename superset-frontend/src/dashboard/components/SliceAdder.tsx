@@ -46,9 +46,9 @@ import {
   NEW_CHART_ID,
   NEW_COMPONENTS_SOURCE_ID,
 } from 'src/dashboard/util/constants';
-import { debounce, pickBy } from 'lodash-es';
-import { Dispatch } from 'redux';
+import { debounce } from 'lodash-es';
 import { Slice } from 'src/dashboard/types';
+import type { SlicesListParams } from 'src/dashboard/queries';
 import { navigateTo } from 'src/utils/navigationUtils';
 import type { ConnectDragSource } from 'react-dnd';
 import AddSliceCard from './AddSliceCard';
@@ -57,14 +57,7 @@ import { DragDroppable } from './dnd/DragDroppable';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 export type SliceAdderProps = {
-  fetchSlices: (
-    userId?: number,
-    filter_value?: string,
-    sortColumn?: string,
-  ) => Promise<void>;
-  updateSlices: (slices: {
-    [id: number]: Slice;
-  }) => (dispatch: Dispatch) => void;
+  setQueryParams: (params: SlicesListParams) => void;
   isLoading: boolean;
   slices: Record<number, Slice>;
   lastUpdated: number;
@@ -166,8 +159,7 @@ function getFilteredSortedSlices(
 }
 
 function SliceAdder({
-  fetchSlices,
-  updateSlices,
+  setQueryParams,
   isLoading,
   slices,
   errorMessage = '',
@@ -177,29 +169,15 @@ function SliceAdder({
   dashboardId,
 }: SliceAdderProps) {
   const theme = useTheme();
-  const slicesRequestRef = useRef<AbortController | Promise<void>>();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<keyof Slice>(DEFAULT_SORT_KEY);
   const [selectedSliceIdsSet, setSelectedSliceIdsSet] = useState(
     () => new Set(selectedSliceIds),
   );
-
-  // Refs to track latest values for cleanup effect
-  const latestSlicesRef = useRef(slices);
-  const latestSelectedSliceIdsSetRef = useRef(selectedSliceIdsSet);
   const [showOnlyMyCharts, setShowOnlyMyCharts] = useState(() =>
     getItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, true),
   );
-
-  // Keep refs updated with latest values
-  useEffect(() => {
-    latestSlicesRef.current = slices;
-  }, [slices]);
-
-  useEffect(() => {
-    latestSelectedSliceIdsSetRef.current = selectedSliceIdsSet;
-  }, [selectedSliceIdsSet]);
 
   const filteredSlices = useMemo(
     () =>
@@ -230,43 +208,14 @@ function SliceAdder({
     userIdForFetchRef.current = userIdForFetch;
   }, [userIdForFetch]);
 
-  // componentDidMount
-  useEffect(() => {
-    slicesRequestRef.current = fetchSlices(userIdForFetch(), '', sortBy);
-    // Only run on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Update selectedSliceIdsSet when selectedSliceIds prop changes
   useEffect(() => {
     setSelectedSliceIdsSet(new Set(selectedSliceIds));
   }, [selectedSliceIds]);
 
-  // componentWillUnmount
-  useEffect(
-    () => () => {
-      // Clears the redux store keeping only selected items
-      // Use refs to get latest values on unmount
-      const selectedSlices = pickBy(latestSlicesRef.current, (value: Slice) =>
-        latestSelectedSliceIdsSetRef.current.has(value.slice_id),
-      );
-
-      updateSlices(selectedSlices);
-      if (slicesRequestRef.current instanceof AbortController) {
-        slicesRequestRef.current.abort();
-      }
-    },
-    [updateSlices],
-  );
-
   const searchUpdated = useCallback((term: string) => {
     setSearchTerm(term);
   }, []);
-
-  const fetchSlicesRef = useRef(fetchSlices);
-  useEffect(() => {
-    fetchSlicesRef.current = fetchSlices;
-  }, [fetchSlices]);
 
   // Create the debounce once (stable identity) so a pending search isn't
   // dropped when sortBy/userIdForFetch change mid-typing. The debounced
@@ -275,13 +224,13 @@ function SliceAdder({
     () =>
       debounce((value: string) => {
         searchUpdated(value);
-        slicesRequestRef.current = fetchSlicesRef.current(
-          userIdForFetchRef.current(),
-          value,
-          sortByRef.current,
-        );
+        setQueryParams({
+          userId: userIdForFetchRef.current(),
+          filterValue: value,
+          sortColumn: sortByRef.current,
+        });
       }, 300),
-    [searchUpdated],
+    [searchUpdated, setQueryParams],
   );
 
   useEffect(
@@ -294,24 +243,28 @@ function SliceAdder({
   const handleSelect = useCallback(
     (newSortBy: keyof Slice) => {
       setSortBy(newSortBy);
-      slicesRequestRef.current = fetchSlices(
-        userIdForFetch(),
-        searchTerm,
-        newSortBy,
-      );
+      setQueryParams({
+        userId: userIdForFetch(),
+        filterValue: searchTerm,
+        sortColumn: newSortBy,
+      });
     },
-    [fetchSlices, searchTerm, userIdForFetch],
+    [setQueryParams, searchTerm, userIdForFetch],
   );
 
   const onShowOnlyMyCharts = useCallback(
     (checked: boolean) => {
       if (!checked) {
-        slicesRequestRef.current = fetchSlices(undefined, searchTerm, sortBy);
+        setQueryParams({
+          userId: undefined,
+          filterValue: searchTerm,
+          sortColumn: sortBy,
+        });
       }
       setShowOnlyMyCharts(checked);
       setItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, checked);
     },
-    [fetchSlices, searchTerm, sortBy],
+    [setQueryParams, searchTerm, sortBy],
   );
 
   const rowRenderer = useCallback(

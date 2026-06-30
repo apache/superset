@@ -21,8 +21,21 @@ import fetchMock from 'fetch-mock';
 import { waitFor, render, screen, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
-import * as mockedMessageActions from 'src/components/MessageToasts/actions';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
 import FilterBarSettings from '.';
+
+const mockAddDangerToast = jest.fn();
+jest.mock('src/components/MessageToasts/withToasts', () => {
+  const actual = jest.requireActual('src/components/MessageToasts/withToasts');
+  return {
+    __esModule: true,
+    ...actual,
+    useToasts: () => ({
+      addSuccessToast: jest.fn(),
+      addDangerToast: mockAddDangerToast,
+    }),
+  };
+});
 
 const initialState: { dashboardInfo: DashboardInfo } = {
   dashboardInfo: {
@@ -41,15 +54,13 @@ const initialState: { dashboardInfo: DashboardInfo } = {
       label_colors: {},
       shared_label_colors: [],
       map_label_colors: {},
-      cross_filters_enabled: false,
+      cross_filters_enabled: true,
     },
     json_metadata: '',
     dash_edit_perm: true,
-    filterBarOrientation: FilterBarOrientation.Vertical,
     common: {
       conf: {},
     },
-    crossFiltersEnabled: true,
     created_on_delta_humanized: '',
     changed_on_delta_humanized: '',
     owners: [],
@@ -57,22 +68,26 @@ const initialState: { dashboardInfo: DashboardInfo } = {
   },
 };
 
-const setup = (dashboardInfoOverride: Partial<DashboardInfo> = {}) =>
-  waitFor(() =>
+const setup = (dashboardInfoOverride: Partial<DashboardInfo> = {}) => {
+  const dashboardInfo: DashboardInfo = {
+    ...initialState.dashboardInfo,
+    ...dashboardInfoOverride,
+  };
+  useDashboardInfoStore.setState({ dashboardInfo });
+  return waitFor(() =>
     render(<FilterBarSettings />, {
       useRedux: true,
       initialState: {
         ...initialState,
-        dashboardInfo: {
-          ...initialState.dashboardInfo,
-          ...dashboardInfoOverride,
-        },
+        dashboardInfo,
       },
     }),
   );
+};
 
 beforeEach(() => {
   fetchMock.clearHistory().removeRoutes();
+  mockAddDangerToast.mockClear();
 });
 
 test('Dropdown trigger renders', async () => {
@@ -147,7 +162,12 @@ test('Popover opens with "Vertical" selected', async () => {
 });
 
 test('Popover opens with "Horizontal" selected', async () => {
-  await setup({ filterBarOrientation: FilterBarOrientation.Horizontal });
+  await setup({
+    metadata: {
+      ...initialState.dashboardInfo.metadata,
+      filter_bar_orientation: FilterBarOrientation.Horizontal,
+    },
+  });
   const settingsButton = screen.getByRole('button', {
     name: 'setting',
   });
@@ -225,8 +245,6 @@ test('On failed request, restore previous selection', async () => {
     () => new Response('', { status: 400, statusText: 'Bad Request' }),
   );
 
-  const dangerToastSpy = jest.spyOn(mockedMessageActions, 'addDangerToast');
-
   await setup();
   const SettingsIcon = screen.getByRole('img', { name: /setting/i });
 
@@ -252,7 +270,7 @@ test('On failed request, restore previous selection', async () => {
 
   // Verify error toast
   await waitFor(() => {
-    expect(dangerToastSpy).toHaveBeenCalledWith(
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
       'Sorry, there was an error saving this dashboard: Bad Request',
     );
   });

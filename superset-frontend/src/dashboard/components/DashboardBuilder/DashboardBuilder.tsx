@@ -18,11 +18,18 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import { addAlpha, JsonObject, useElementOnScreen } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
-import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
@@ -35,21 +42,7 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import {
-  DashboardLayout,
-  FilterBarOrientation,
-  RootState,
-} from 'src/dashboard/types';
-import {
-  setDirectPathToChild,
-  setEditMode,
-} from 'src/dashboard/actions/dashboardState';
-import {
-  deleteTopLevelTabs,
-  handleComponentDrop,
-  clearDashboardHistory,
-} from 'src/dashboard/actions/dashboardLayout';
-import { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
@@ -57,6 +50,20 @@ import {
   DashboardStandaloneMode,
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
+import {
+  useDashboardLayout,
+  deleteTopLevelTabs,
+  clearLayoutHistory,
+  useFilterBarOrientation,
+  useCanEditDashboard,
+  useDashboardId,
+  useEditMode,
+  useFullSizeChartId,
+  useDashboardIsSaving,
+  setDirectPathToChild,
+  setEditMode,
+} from 'src/dashboard/stores';
+import { useHandleComponentDrop } from 'src/dashboard/hooks/useHandleComponentDrop';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import ResizableSidebar from 'src/components/ResizableSidebar';
 import {
@@ -362,54 +369,36 @@ const ELEMENT_ON_SCREEN_OPTIONS = {
 };
 
 const DashboardBuilder = () => {
-  const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const theme = useTheme();
 
-  const dashboardId = useSelector<RootState, string>(
-    ({ dashboardInfo }) => `${dashboardInfo.id}`,
-  );
-  const dashboardLayout = useSelector<RootState, DashboardLayout>(
-    state => state.dashboardLayout.present,
-  );
-  const editMode = useSelector<RootState, boolean>(
-    state => state.dashboardState.editMode,
-  );
-  const canEdit = useSelector<RootState, boolean>(
-    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
-  );
-  const dashboardIsSaving = useSelector<RootState, boolean>(
-    ({ dashboardState }) => dashboardState.dashboardIsSaving,
-  );
-  const fullSizeChartId = useSelector<RootState, number | null>(
-    state => state.dashboardState.fullSizeChartId,
-  );
-  const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
-  );
+  const dashboardId = `${useDashboardId()}`;
+  const dashboardLayout = useDashboardLayout();
+  const editMode = useEditMode();
+  const fullSizeChartId = useFullSizeChartId();
+  const canEdit = useCanEditDashboard();
+  const dashboardIsSaving = useDashboardIsSaving();
+  const filterBarOrientation = useFilterBarOrientation();
 
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
-      dispatch(setDirectPathToChild(pathToTabIndex));
+      setDirectPathToChild(pathToTabIndex);
       window.scrollTo(0, 0);
     },
-    [dispatch],
+    [],
   );
 
   const handleDeleteTopLevelTabs = useCallback(() => {
-    dispatch(deleteTopLevelTabs());
+    deleteTopLevelTabs();
 
     const firstTab = getDirectPathToTabIndex(
       getRootLevelTabsComponent(dashboardLayout),
       0,
     );
-    dispatch(setDirectPathToChild(firstTab));
-  }, [dashboardLayout, dispatch]);
+    setDirectPathToChild(firstTab);
+  }, [dashboardLayout]);
 
-  const handleDrop = useCallback(
-    (dropResult: DropResult) => dispatch(handleComponentDrop(dropResult)),
-    [dispatch],
-  );
+  const handleDrop = useHandleComponentDrop();
 
   const headerRef = useRef<HTMLDivElement>(null);
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
@@ -429,6 +418,14 @@ const DashboardBuilder = () => {
   const [currentFilterBarWidth, setCurrentFilterBarWidth] = useState(
     CLOSED_FILTER_BAR_WIDTH,
   );
+  // renderChild runs inside ResizableSidebar's render; deferring the setState
+  // here avoids a setState-during-render warning on every dashboard load.
+  const pendingFilterBarWidthRef = useRef(currentFilterBarWidth);
+  useLayoutEffect(() => {
+    if (pendingFilterBarWidthRef.current !== currentFilterBarWidth) {
+      setCurrentFilterBarWidth(pendingFilterBarWidthRef.current);
+    }
+  });
 
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
@@ -503,7 +500,7 @@ const DashboardBuilder = () => {
         getRootLevelTabsComponent(dashboardLayout),
         newTabsLength - 1,
       );
-      dispatch(setDirectPathToChild(lastTab));
+      setDirectPathToChild(lastTab);
     }
 
     currentTopLevelTabs.current = topLevelTabs;
@@ -578,9 +575,7 @@ const DashboardBuilder = () => {
       const filterBarWidth = dashboardFiltersOpen
         ? adjustedWidth
         : CLOSED_FILTER_BAR_WIDTH;
-      if (filterBarWidth !== currentFilterBarWidth) {
-        setCurrentFilterBarWidth(filterBarWidth);
-      }
+      pendingFilterBarWidthRef.current = filterBarWidth;
       return (
         <FiltersPanel
           width={filterBarWidth}
@@ -670,8 +665,8 @@ const DashboardBuilder = () => {
               }
               buttonText={canEdit && t('Edit the dashboard')}
               buttonAction={() => {
-                dispatch(setEditMode(true));
-                dispatch(clearDashboardHistory());
+                setEditMode(true);
+                clearLayoutHistory();
               }}
               image="dashboard.svg"
             />

@@ -27,7 +27,14 @@ import {
 import { usePrevious } from '@superset-ui/core';
 import { useTheme, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { useSelector } from 'react-redux';
+import {
+  useActiveTabs,
+  useDirectPathToChild,
+  useNativeFiltersBarOpen,
+  useFilterEntries,
+  useFocusedFilterId,
+  useHoveredFilterId,
+} from 'src/dashboard/stores';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import { Modal } from '@superset-ui/core/components';
@@ -41,7 +48,7 @@ import { NEW_TAB_ID } from '../../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from '../Tab';
 import { TABS_TYPE, TAB_TYPE } from '../../../util/componentTypes';
 import TabsRenderer from '../TabsRenderer';
-import type { LayoutItem, RootState } from 'src/dashboard/types';
+import type { LayoutItem } from 'src/dashboard/types';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 
 export interface TabsProps {
@@ -120,16 +127,12 @@ interface DraggableChildProps {
 const Tabs = (props: TabsProps): ReactElement => {
   const theme = useTheme();
 
-  const nativeFilters = useSelector((state: RootState) => state.nativeFilters);
-  const activeTabs = useSelector(
-    (state: RootState) => state.dashboardState.activeTabs,
-  );
-  const directPathToChild = useSelector(
-    (state: RootState) => state.dashboardState.directPathToChild,
-  );
-  const nativeFiltersBarOpen = useSelector(
-    (state: RootState) => state.dashboardState.nativeFiltersBarOpen ?? false,
-  );
+  const filters = useFilterEntries();
+  const focusedFilterId = useFocusedFilterId();
+  const hoveredFilterId = useHoveredFilterId();
+  const activeTabs = useActiveTabs();
+  const directPathToChild = useDirectPathToChild();
+  const nativeFiltersBarOpen = useNativeFiltersBarOpen() ?? false;
 
   const { tabIndex: initTabIndex, activeKey: initActiveKey } = useMemo(() => {
     let tabIndex = Math.max(
@@ -442,12 +445,11 @@ const Tabs = (props: TabsProps): ReactElement => {
 
   // Extract tab highlighting logic into a hook
   const useTabHighlighting = useCallback((): string[] | undefined => {
-    const highlightedFilterId =
-      nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
+    const highlightedFilterId = focusedFilterId || hoveredFilterId;
     return highlightedFilterId
-      ? nativeFilters.filters[highlightedFilterId]?.tabsInScope
+      ? filters[highlightedFilterId]?.tabsInScope
       : undefined;
-  }, [nativeFilters]);
+  }, [filters, focusedFilterId, hoveredFilterId]);
 
   const tabsToHighlight = useTabHighlighting();
 

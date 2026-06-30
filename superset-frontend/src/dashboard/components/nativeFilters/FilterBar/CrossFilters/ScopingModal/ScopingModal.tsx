@@ -17,26 +17,30 @@
  * under the License.
  */
 import { useCallback, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { isDefined, NativeFilterScope } from '@superset-ui/core';
 import { Modal } from '@superset-ui/core/components';
 import {
   ChartConfiguration,
-  RootState,
   isCrossFilterScopeGlobal,
-  GlobalChartCrossFilterConfig,
   GLOBAL_SCOPE_POINTER,
   ChartCrossFiltersConfig,
 } from 'src/dashboard/types';
+import {
+  useChartConfiguration,
+  useGlobalChartConfiguration,
+} from 'src/dashboard/stores';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
-import { saveChartConfiguration } from 'src/dashboard/actions/dashboardInfo';
+import { useSaveChartConfiguration } from 'src/dashboard/queries';
 import { DEFAULT_CROSS_FILTER_SCOPING } from 'src/dashboard/constants';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { ScopingModalContent } from './ScopingModalContent';
 import { NEW_CHART_SCOPING_ID } from './constants';
+
+// Stable reference so the Zustand selector doesn't return a fresh object.
+const EMPTY_CHART_CONFIG: ChartConfiguration = {};
 
 const getUpdatedGloballyScopedChartsInScope = (
   configs: ChartConfiguration,
@@ -80,13 +84,12 @@ export const ScopingModal = ({
   isVisible,
   closeModal,
 }: ScopingModalProps) => {
-  const dispatch = useDispatch();
+  const { mutate: saveChartConfiguration } = useSaveChartConfiguration();
   const chartLayoutItems = useChartLayoutItems();
   const chartIds = useChartIds();
   const [currentChartId, setCurrentChartId] = useState(initialChartId);
-  const initialChartConfig = useSelector<RootState, ChartConfiguration>(
-    state => state.dashboardInfo.metadata?.chart_configuration || {},
-  );
+  const chartConfig = useChartConfiguration();
+  const initialChartConfig = chartConfig || EMPTY_CHART_CONFIG;
   const defaultGlobalChartConfig = useMemo(
     () => ({
       scope: DEFAULT_CROSS_FILTER_SCOPING,
@@ -95,14 +98,9 @@ export const ScopingModal = ({
     [chartIds],
   );
 
-  const initialGlobalChartConfig = useSelector<
-    RootState,
-    GlobalChartCrossFilterConfig
-  >(
-    state =>
-      state.dashboardInfo.metadata?.global_chart_configuration ||
-      defaultGlobalChartConfig,
-  );
+  const storedGlobalChartConfig = useGlobalChartConfiguration();
+  const initialGlobalChartConfig =
+    storedGlobalChartConfig || defaultGlobalChartConfig;
 
   const getInitialChartConfig = () => {
     if (
@@ -139,14 +137,12 @@ export const ScopingModal = ({
     if (savedChartConfigs[NEW_CHART_SCOPING_ID]) {
       delete savedChartConfigs[NEW_CHART_SCOPING_ID];
     }
-    dispatch(
-      saveChartConfiguration({
-        chartConfiguration: savedChartConfigs,
-        globalChartConfiguration: globalChartConfig,
-      }),
-    );
+    saveChartConfiguration({
+      chartConfiguration: savedChartConfigs,
+      globalChartConfiguration: globalChartConfig,
+    });
     closeModal();
-  }, [chartConfigs, closeModal, dispatch, globalChartConfig]);
+  }, [chartConfigs, closeModal, saveChartConfiguration, globalChartConfig]);
 
   const handleScopeUpdate = useCallback(
     ({ scope }: { scope: NativeFilterScope }) => {

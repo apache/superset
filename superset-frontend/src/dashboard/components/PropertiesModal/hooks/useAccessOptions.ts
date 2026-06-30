@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
+import { fetchRelatedOptions } from 'src/dashboard/queries';
 import {
   OwnerSelectLabel,
   OWNER_TEXT_LABEL_PROP,
@@ -30,44 +30,42 @@ import {
  */
 export const useAccessOptions = () => {
   const loadAccessOptions = useCallback(
-    (accessType = 'owners', input = '', page: number, pageSize: number) => {
+    async (
+      accessType = 'owners',
+      input = '',
+      page: number,
+      pageSize: number,
+    ) => {
       const query = rison.encode({
         filter: input,
         page,
         page_size: pageSize,
       });
-      return SupersetClient.get({
-        endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
-      }).then(response => ({
-        data: response.json.result
-          .filter((item: { extra: { active: boolean } }) =>
+      const { result, count } = await fetchRelatedOptions(accessType, query);
+      return {
+        data: result
+          .filter(item =>
             item.extra.active !== undefined ? item.extra.active : true,
           )
-          .map(
-            (item: {
-              value: number;
-              text: string;
-              extra: { email?: string };
-            }) => {
-              if (accessType === 'owners') {
-                return {
-                  value: item.value,
-                  label: OwnerSelectLabel({
-                    name: item.text,
-                    email: item.extra?.email,
-                  }),
-                  [OWNER_TEXT_LABEL_PROP]: item.text,
-                  [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
-                };
-              }
+          .map(item => {
+            if (accessType === 'owners') {
               return {
                 value: item.value,
-                label: item.text,
+                label: OwnerSelectLabel({
+                  name: item.text,
+                  email: item.extra?.email,
+                }),
+                [OWNER_TEXT_LABEL_PROP]: item.text,
+                [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
               };
-            },
-          ),
-        totalCount: response.json.count,
-      }));
+            }
+            return {
+              value: item.value,
+              label: item.text,
+            };
+          }),
+        totalCount: count,
+      };
     },
     [],
   );
