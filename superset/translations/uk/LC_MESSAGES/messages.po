@@ -4333,6 +4333,9 @@ msgstr "Не вдалося оновити налаштування кольор
 msgid "Dashboard could not be deleted."
 msgstr "Не вдалося вилучити звіт."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Не вдалось оновити звіт."
 
