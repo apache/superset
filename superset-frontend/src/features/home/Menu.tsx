@@ -76,7 +76,7 @@ const StyledBrandText = styled.div`
     justify-content: center;
 
     span {
-      max-width: ${theme.sizeUnit * 58}px;
+      max-width: 100%;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -177,8 +177,8 @@ const StyledRow = styled(Row)`
 const StyledCol = styled(Col)`
   ${({ theme }) => css`
     display: flex;
-    gap: ${theme.sizeUnit * 4}px;
     flex-wrap: wrap;
+    gap: ${theme.sizeUnit * 4}px;
   `}
 `;
 
