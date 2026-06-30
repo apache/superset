@@ -23,6 +23,7 @@ import { SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import CalHeatMapImport from './vendor/cal-heatmap';
 import { convertUTCTimestampToLocal } from './utils';
+import { removeCalendarTooltips } from './tooltip';
 
 // The vendor file is @ts-nocheck, so its export lacks type info.
 // Define a minimal constructor interface for use in this file.
@@ -78,6 +79,8 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     theme,
   } = props;
 
+  removeCalendarTooltips();
+
   const container = d3Select(element)
     .classed('superset-legacy-chart-calendar', true)
     .style('height', height);
@@ -112,7 +115,7 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     const colorScheme = getSequentialSchemeRegistry().get(linearColorScheme);
     const colorScale = colorScheme
       ? colorScheme.createLinearScale(extents)
-      : (v: number) => '#ccc'; // fallback if scheme not found
+      : () => '#ccc'; // fallback if scheme not found
 
     const legend = d3Range(steps).map(i => extents[0] + step * i);
     const legendColors = legend.map(x => colorScale(x));
