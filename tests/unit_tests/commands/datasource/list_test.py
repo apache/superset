@@ -19,38 +19,27 @@ from unittest.mock import patch
 import pytest
 from sqlalchemy import literal, select
 
-from superset.commands.datasource.list import GetCombinedDatasourceListCommand
+from superset.commands.datasource.list import (
+    _apply_owners_filter,
+    GetCombinedDatasourceListCommand,
+)
 
 
 def test_parse_filters_semantic_view_requires_dataset_operator() -> None:
-    (
-        source_type,
-        name_filter,
-        sql_filter,
-        type_filter,
-        database_id,
-        semantic_layer_uuid,
-    ) = GetCombinedDatasourceListCommand._parse_filters(
+    filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "sql", "opr": "eq", "value": "semantic_view"}]
     )
 
-    assert source_type == "all"
-    assert name_filter is None
-    assert sql_filter is None
-    assert type_filter is None
-    assert database_id is None
-    assert semantic_layer_uuid is None
+    assert filters.source_type == "all"
+    assert filters.name_filter is None
+    assert filters.sql_filter is None
+    assert filters.type_filter is None
+    assert filters.database_id is None
+    assert filters.semantic_layer_uuid is None
 
 
 def test_parse_filters_semantic_view_with_dataset_operator() -> None:
-    (
-        source_type,
-        name_filter,
-        sql_filter,
-        type_filter,
-        database_id,
-        semantic_layer_uuid,
-    ) = GetCombinedDatasourceListCommand._parse_filters(
+    filters = GetCombinedDatasourceListCommand._parse_filters(
         [
             {
                 "col": "sql",
@@ -60,32 +49,91 @@ def test_parse_filters_semantic_view_with_dataset_operator() -> None:
         ]
     )
 
-    assert source_type == "all"
-    assert name_filter is None
-    assert sql_filter is None
-    assert type_filter == "semantic_view"
-    assert database_id is None
-    assert semantic_layer_uuid is None
+    assert filters.source_type == "all"
+    assert filters.name_filter is None
+    assert filters.sql_filter is None
+    assert filters.type_filter == "semantic_view"
+    assert filters.database_id is None
+    assert filters.semantic_layer_uuid is None
 
 
 def test_parse_filters_sql_bool_requires_dataset_operator() -> None:
-    (
-        source_type,
-        name_filter,
-        sql_filter,
-        type_filter,
-        database_id,
-        semantic_layer_uuid,
-    ) = GetCombinedDatasourceListCommand._parse_filters(
+    filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "sql", "opr": "eq", "value": True}]
     )
 
-    assert source_type == "all"
-    assert name_filter is None
-    assert sql_filter is None
-    assert type_filter is None
-    assert database_id is None
-    assert semantic_layer_uuid is None
+    assert filters.source_type == "all"
+    assert filters.name_filter is None
+    assert filters.sql_filter is None
+    assert filters.type_filter is None
+    assert filters.database_id is None
+    assert filters.semantic_layer_uuid is None
+
+
+def test_parse_filters_schema() -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "schema", "opr": "eq", "value": "public"}]
+    )
+
+    assert filters.schema_filter == "public"
+    assert filters.database_id is None
+    assert filters.owners_filter is None
+
+
+def test_parse_filters_owners_scalar() -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "owners", "opr": "rel_m_m", "value": "5"}]
+    )
+
+    assert filters.owners_filter == [5]
+    assert filters.schema_filter is None
+    assert filters.changed_by_filter is None
+
+
+def test_parse_filters_owners_list() -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "owners", "opr": "rel_m_m", "value": ["5", "7"]}]
+    )
+
+    assert filters.owners_filter == [5, 7]
+
+
+def test_parse_filters_owners_none() -> None:
+    assert _apply_owners_filter(None) is None
+
+
+def test_parse_filters_changed_by() -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "changed_by", "opr": "rel_o_m", "value": "3"}]
+    )
+
+    assert filters.changed_by_filter == 3
+    assert filters.owners_filter is None
+    assert filters.schema_filter is None
+
+
+def test_parse_filters_certified_true() -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "id", "opr": "dataset_is_certified", "value": True}]
+    )
+
+    assert filters.certified_filter is True
+
+
+def test_parse_filters_certified_false() -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "id", "opr": "dataset_is_certified", "value": False}]
+    )
+
+    assert filters.certified_filter is False
+
+
+def test_parse_filters_certified_non_bool_ignored() -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "id", "opr": "dataset_is_certified", "value": "false"}]
+    )
+
+    assert filters.certified_filter is None
 
 
 def test_resolve_source_type_semantic_view_filter_forces_semantic_layer() -> None:
