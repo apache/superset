@@ -4372,6 +4372,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return None
         if verify_auth_db_password(user.password, password):
             self.update_user_auth_stat(user, True)
+            self.on_user_login(user)
             return user
         self.update_user_auth_stat(user, False)
         logger.info(LOGMSG_WAR_SEC_LOGIN_FAILED, username)

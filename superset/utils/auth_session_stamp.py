@@ -120,24 +120,22 @@ def bump_user_session_auth_stamp(user_id: int) -> None:
     row.stamp = new_stamp
 
 
-def validate_session_auth_stamp_for_request() -> None:
-    """Drop login when the session cookie carries an outdated stamp for this user."""
+def _resolve_stamp_check_user_id() -> int | None:
+    """Return the integer user id for the stamp check, or None to skip it."""
     from flask import current_app
     from flask_appbuilder.const import AUTH_DB
     from sqlalchemy.orm.exc import DetachedInstanceError
 
-    from superset.models.user_session_auth_stamp import UserSessionAuthStamp
-
     if not has_request_context():
-        return
+        return None
     # The stamp is only ever bumped on AUTH_DB password changes; skip the DB
     # hit for other auth backends where the stamp never changes after login.
     if current_app.config.get("AUTH_TYPE") != AUTH_DB:
-        return
+        return None
     if not getattr(current_user, "is_authenticated", False):
-        return
+        return None
     if getattr(current_user, "is_guest_user", False):
-        return
+        return None
     try:
         raw_id = current_user.get_id()
     except DetachedInstanceError:
@@ -148,14 +146,30 @@ def validate_session_auth_stamp_for_request() -> None:
             "Skipping session auth stamp check: current_user is detached",
             exc_info=True,
         )
-        return
+        return None
     if raw_id is None:
-        return
+        return None
     try:
-        user_id = int(raw_id)
+        return int(raw_id)
     except (TypeError, ValueError):
+        return None
+
+
+def validate_session_auth_stamp_for_request() -> None:
+    """Drop login when the session cookie carries an outdated stamp for this user."""
+    from superset.models.user_session_auth_stamp import UserSessionAuthStamp
+
+    user_id = _resolve_stamp_check_user_id()
+    if user_id is None:
         return
 
+    # Read the stamp as a plain Python string inside the savepoint so the
+    # comparison never touches an expired SQLAlchemy attribute.  In SQLAlchemy
+    # 1.4, releasing a savepoint (exiting begin_nested) can expire all loaded
+    # ORM objects when expire_on_commit is True; accessing row.stamp after the
+    # block would force a reload whose result depends on the outer transaction
+    # state.  Capturing it as a local string avoids that entirely.
+    db_stamp: str | None = None
     try:
         # Use a savepoint so a DB failure (e.g. missing table during a rolling
         # deploy) only rolls back the nested transaction, not the outer one.
@@ -163,6 +177,7 @@ def validate_session_auth_stamp_for_request() -> None:
         # the current_user — and causes DetachedInstanceError in later hooks.
         with db.session.begin_nested():
             row = db.session.get(UserSessionAuthStamp, user_id)
+            db_stamp = row.stamp if row is not None else None
     except SQLAlchemyError:
         # Fail open: skip the check rather than turning every authenticated
         # request into a 500.
@@ -172,7 +187,7 @@ def validate_session_auth_stamp_for_request() -> None:
         )
         return
 
-    if row is None:
+    if db_stamp is None:
         # No stamp row means the session predates stamp tracking. Allow the
         # request without a check — sync_session_auth_stamp_on_login creates
         # the row on every login, so this only occurs for sessions that
@@ -186,6 +201,6 @@ def validate_session_auth_stamp_for_request() -> None:
     # stamped). Once a DB stamp row exists, adopting it silently would let such
     # a session survive a password change, so treat a missing stamp as invalid.
     sess_stamp = session.get(SESSION_AUTH_STAMP_SESSION_KEY)
-    if sess_stamp is None or sess_stamp != row.stamp:
+    if sess_stamp is None or sess_stamp != db_stamp:
         logout_user()
         session.clear()
