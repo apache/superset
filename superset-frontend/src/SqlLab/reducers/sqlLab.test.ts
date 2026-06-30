@@ -36,7 +36,7 @@ describe('sqlLabReducer', () => {
       const existingDb = databases.result[0];
       const incomingDb = databases.result[1];
   
-      const state = {
+      const state: SqlLabState = {
         ...initialState,
         databases: {
           [existingDb.id]: {
@@ -46,14 +46,14 @@ describe('sqlLabReducer', () => {
         },
       };
   
-      const action = actions.setDatabases([
+     const action: SqlLabAction = actions.setDatabases([
         {
           ...incomingDb,
           extra: '{}',
         },
-      ] as any);
+      ]);
   
-      const newState = sqlLabReducer(state as any, action);
+      const newState = sqlLabReducer(state, action);
   
       expect(newState.databases[existingDb.id]).toBeDefined();
       expect(newState.databases[incomingDb.id]).toBeDefined();
