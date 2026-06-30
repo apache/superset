@@ -43,40 +43,40 @@ const StyledEditableTabs = styled(EditableTabs)`
   height: 100%;
   display: flex;
   flex-direction: column;
-  & .ant-tabs-nav::before {
-    border-color: ${({ theme }) => theme.colorBorder} !important;
+  && .ant-tabs-nav::before {
+    border-color: ${({ theme }) => theme.colorBorder};
   }
-  & .ant-tabs-nav-add {
-    border-color: ${({ theme }) => theme.colorBorder} !important;
+  && .ant-tabs-nav-add {
+    border-color: ${({ theme }) => theme.colorBorder};
     height: 34px;
   }
-  & .ant-tabs-nav-list {
+  && .ant-tabs-nav-list {
     align-items: end;
     padding-top: 1px;
     column-gap: ${({ theme }) => theme.sizeUnit}px;
   }
-  & .ant-tabs-tab-active {
-    border-left-color: ${({ theme }) => theme.colorPrimaryActive} !important;
-    border-top-color: ${({ theme }) => theme.colorPrimaryActive} !important;
-    border-right-color: ${({ theme }) => theme.colorPrimaryActive} !important;
-    box-shadow: 0 0 2px ${({ theme }) => theme.colorPrimaryActive} !important;
+  && .ant-tabs-tab-active {
+    border-left-color: ${({ theme }) => theme.colorPrimaryActive};
+    border-top-color: ${({ theme }) => theme.colorPrimaryActive};
+    border-right-color: ${({ theme }) => theme.colorPrimaryActive};
+    box-shadow: 0 0 2px ${({ theme }) => theme.colorPrimaryActive};
     border-top: 2px;
   }
-  & .ant-tabs-tab {
-    border-radius: 2px 2px 0px 0px !important;
+  && .ant-tabs-tab {
+    border-radius: 2px 2px 0px 0px;
     padding: ${({ theme }) => theme.sizeUnit}px
-      ${({ theme }) => theme.sizeUnit * 2}px !important;
+      ${({ theme }) => theme.sizeUnit * 2}px;
     & + .ant-tabs-nav-add {
       margin-right: ${({ theme }) => theme.sizeUnit * 4}px;
     }
     &:not(.ant-tabs-tab-active) {
-      border-color: ${({ theme }) => theme.colorBorder} !important;
-      box-shadow: inset 0 0 1px ${({ theme }) => theme.colorBorder} !important;
+      border-color: ${({ theme }) => theme.colorBorder};
+      box-shadow: inset 0 0 1px ${({ theme }) => theme.colorBorder};
     }
   }
-  & .ant-tabs-nav-add {
-    border-radius: 2px 2px 0px 0px !important;
-    min-height: auto !important;
+  && .ant-tabs-nav-add {
+    border-radius: 2px 2px 0px 0px;
+    min-height: auto;
     align-self: flex-end;
   }
 `;

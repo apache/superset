@@ -59,4 +59,6 @@ export interface TableProps<RecordType> {
   usePagination?: boolean;
 
   striped?: boolean;
+
+  themeOverrides?: Record<string, any>;
 }
