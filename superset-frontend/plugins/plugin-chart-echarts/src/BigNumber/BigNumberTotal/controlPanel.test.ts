@@ -72,6 +72,10 @@ describe('BigNumber Total Control Panel Config', () => {
       row.some((control: any) => control.name === 'conditional_formatting'),
     );
     expect(conditionalFormattingRow).toBeTruthy();
+    const alignmentRow = thirdSection.find(row =>
+      row.some((control: any) => control.name === 'alignment'),
+    );
+    expect(alignmentRow).toBeTruthy();
   });
 
   test('should have y_axis_format override with correct label', () => {

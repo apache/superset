@@ -62,6 +62,7 @@ export default function transformProps(
     currencyFormat,
     subheader,
     subheaderFontSize,
+    alignment = 'center',
   } = formData;
   const refs: Refs = {};
   const {
@@ -135,5 +136,6 @@ export default function transformProps(
     metricName: originalLabel,
     showMetricName,
     metricNameFontSize,
+    alignment,
   };
 }

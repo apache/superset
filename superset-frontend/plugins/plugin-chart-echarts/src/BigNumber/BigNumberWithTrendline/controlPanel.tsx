@@ -35,6 +35,7 @@ import {
   subtitleControl,
   showMetricNameControl,
   metricNameFontSizeWithVisibility,
+  alignmentControl,
 } from '../sharedControls';
 
 const config: ControlPanelConfig = {
@@ -147,6 +148,7 @@ const config: ControlPanelConfig = {
         [subtitleFontSize],
         [showMetricNameControl],
         [metricNameFontSizeWithVisibility],
+        [alignmentControl],
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
           {

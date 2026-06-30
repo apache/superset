@@ -38,6 +38,7 @@ export type BigNumberTotalFormData = QueryFormData & {
   metric?: QueryFormMetric;
   yAxisFormat?: string;
   forceTimestampFormatting?: boolean;
+  alignment?: 'left' | 'center' | 'right';
 };
 
 export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
@@ -97,7 +98,7 @@ export type BigNumberVizProps = {
   subheaderFontSize: number;
   subtitleFontSize: number;
 
-  alignment?: 'left' | 'center' | 'right';  // ✅ NEW PROP
+  alignment?: 'left' | 'center' | 'right';
 
   showTimestamp?: boolean;
   showTrendLine?: boolean;

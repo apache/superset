@@ -84,6 +84,7 @@ describe('BigNumberTotal transformProps', () => {
     expect(result.width).toBe(400);
     expect(result.height).toBe(300);
     expect(result.subtitle).toBe(baseFormData.subheader);
+    expect(result.alignment).toBe('center');
     expect(result.onContextMenu).toBe(onContextMenu);
     expect(result.refs).toEqual({});
     // headerFormatter should be set even if there's no data
@@ -105,6 +106,22 @@ describe('BigNumberTotal transformProps', () => {
       chartProps as unknown as BigNumberTotalChartProps,
     );
     expect(result.subtitle).toBe('test');
+  });
+
+  test('should pass through alignment', () => {
+    const chartProps = {
+      width: 400,
+      height: 300,
+      queriesData: [{ data: [], coltypes: [] }],
+      formData: { ...baseFormData, alignment: 'right' },
+      rawFormData: baseRawFormData,
+      hooks: baseHooks,
+      datasource: baseDatasource,
+    };
+    const result = transformProps(
+      chartProps as unknown as BigNumberTotalChartProps,
+    );
+    expect(result.alignment).toBe('right');
   });
 
   const baseChartProps = {

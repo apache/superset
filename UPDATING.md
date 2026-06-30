@@ -23,11 +23,12 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
-### Big Number chart alignment change
+### Big Number chart alignment control
 
-In Superset 6, the Big Number chart is left-aligned by default due to frontend changes related to the migration to Emotion (CSS-in-JS) and updated component structure. The centered alignment behavior present in Superset 5 is no longer configurable via chart controls.
-
-To center the value and subheader, users must apply custom CSS at the dashboard level or via a CSS template.
+Superset 6 adds an alignment chart control for Big Number charts. The
+default remains centered to preserve the Superset 5 behavior, and users can
+now choose left, center, or right alignment from the chart controls without
+custom CSS.
 
 
 ### WebSocket config for GAQ with Docker
