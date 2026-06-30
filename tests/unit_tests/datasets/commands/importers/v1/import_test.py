@@ -20,6 +20,7 @@ import copy
 import io
 import re
 import uuid
+from datetime import datetime
 from typing import Any
 from unittest.mock import Mock, patch
 from urllib import request
@@ -1075,6 +1076,438 @@ def test_import_dataset_access_check(
 
     with pytest.raises(DatasetAccessDeniedError):
         import_dataset(config)
+
+
+def test_import_soft_deleted_dataset_overwrite_restores_in_place(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Overwrite-importing a soft-deleted dataset must restore the row in
+    place rather than hard-delete-and-replace. A hard delete would
+    cascade through the chart back-reference and table_columns /
+    sql_metrics rows; in-place restore preserves them.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        restored = import_dataset(config, overwrite=True)
+
+    assert restored.id == original_id
+    assert restored.deleted_at is None
+
+
+def test_import_soft_deleted_dataset_non_overwrite_restores_for_owner(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Non-overwrite re-import of a soft-deleted UUID is implicitly a
+    restore-and-update: the user is bringing the dataset back by
+    uploading it again. The same ownership rule as the overwrite path
+    applies, so an owner (or admin) succeeds without setting
+    overwrite=True.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        restored = import_dataset(config, overwrite=False)
+
+    assert restored.id == original_id
+    assert restored.deleted_at is None
+
+
+def test_import_soft_deleted_dataset_non_overwrite_raises_for_non_owner(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Non-overwrite re-import that would resurrect a soft-deleted dataset
+    must respect ownership: a non-owner without admin role cannot
+    restore-via-import. Mirrors the explicit /restore endpoint's check.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    import_dataset(config)
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    non_owner = User(
+        first_name="Bob",
+        last_name="Roe",
+        email="bob@example.org",
+        username="bob",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(non_owner):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dataset(config, overwrite=False)
+    assert "permissions to restore" in str(excinfo.value)
+    # Verify the permission check fired before any mutation: if a regression
+    # cleared ``deleted_at`` before raising, this would silently produce a
+    # half-restored row and the test would still pass on the message check
+    # alone.
+    db.session.refresh(existing)
+    assert existing.deleted_at is not None, (
+        "deleted_at was cleared before the exception — restore mutation "
+        "happened before the ownership check"
+    )
+
+
+def test_import_soft_deleted_dataset_raises_when_caller_lacks_can_write(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Case B: re-import of a soft-deleted UUID by a caller without
+    can_write must raise, not silently return the soft-deleted row.
+
+    Real-world scenario: a user has can_write Dashboard but not
+    can_write Dataset, and they import a dashboard zip that references
+    a soft-deleted dataset. Silently returning the row would let the
+    dashboard importer wire the dashboard's charts to a deleted dataset
+    and produce broken chart loads.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    # Seed a soft-deleted dataset with the matching UUID directly, so the
+    # test doesn't need to flip permissions mid-test.
+    existing = SqlaTable(
+        table_name="soft_deleted_dataset",
+        database_id=database.id,
+        uuid=config["uuid"],
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(config, overwrite=False)
+    assert "can_write" in str(excinfo.value)
+    # Case B contract: deleted_at must remain set after the exception. A
+    # regression that clears deleted_at before the can_write check would
+    # leave the row in a half-restored state and silently pass the message
+    # assertion above.
+    db.session.refresh(existing)
+    assert existing.deleted_at is not None, (
+        "Case B: deleted_at was cleared before raising — mutation happened "
+        "before the can_write check"
+    )
+
+
+def test_import_existing_active_dataset_overwrite_without_can_write_returns_existing(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    An *active* (not soft-deleted) dataset re-imported with overwrite=True by a
+    caller without can_write must fall through to returning the existing row,
+    not raise the restore error. Case B is keyed on ``is_soft_deleted``, so the
+    fused ``needs_mutation`` condition must not pull active rows into the
+    restore-without-permission branch (pre-soft-delete overwrite behaviour).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    existing = SqlaTable(
+        table_name=config["table_name"],
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid=config["uuid"],
+    )
+    db.session.add(existing)
+    db.session.flush()
+    assert existing.deleted_at is None
+
+    result = import_dataset(config, overwrite=True)
+
+    assert result.id == existing.id
+    assert result.deleted_at is None
+
+
+def test_import_blocked_by_soft_deleted_logical_duplicate_with_new_uuid(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Importing a dataset with a fresh UUID but the same physical table as a
+    soft-deleted dataset must raise. ``import_from_dict`` can't see the hidden
+    row (the visibility filter hides soft-deleted rows), so creating would
+    produce an active twin of a soft-deleted dataset. This mirrors the REST
+    create path's ``validate_uniqueness`` block.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    # A soft-deleted dataset with a DIFFERENT UUID but the same physical table.
+    twin = SqlaTable(
+        table_name=config["table_name"],
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid="ffffffff-ffff-ffff-ffff-ffffffffffff",
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    db.session.add(twin)
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(config)
+    assert "same physical table" in str(excinfo.value)
+
+
+def test_import_soft_deleted_dataset_restore_removes_orphan_children(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Restoring a soft-deleted dataset via re-import (non-overwrite,
+    Option C) syncs columns and metrics — children present in the live
+    row but absent from the uploaded config are removed, not silently
+    merged.
+
+    Without forcing sync on the implicit-restore path, ``sync=[]``
+    would mean "upsert by UUID, leave non-matching children alone",
+    so the restored dataset would carry stale columns from before the
+    soft-delete. That's a surprising merge of two states; treating
+    re-import as a clean replacement is what an explicit ``overwrite``
+    would do anyway.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    # Add an orphan column that the upload doesn't know about.
+    orphan = TableColumn(
+        column_name="orphan_col",
+        type="STRING",
+        table=existing,
+    )
+    db.session.add(orphan)
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+    orphan_uuid = orphan.uuid
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        restored = import_dataset(config, overwrite=False)
+
+    assert restored.id == original_id
+    assert restored.deleted_at is None
+    assert orphan_uuid not in {c.uuid for c in restored.columns}, (
+        "orphan column survived restore-via-import; the implicit-restore "
+        "path must force sync so re-import is a clean replacement"
+    )
+
+
+def test_import_dataset_multiple_results_on_soft_delete_match_raises_and_rolls_back(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    When ``find_existing_for_import`` resolves a soft-deleted row by UUID
+    and the subsequent ``import_from_dict`` hits the legacy NULL-schema
+    ambiguity (``MultipleResultsFound``), the importer must:
+
+      1. Roll back the ``deleted_at`` clear it just applied — without
+         the rollback the dataset would be left half-restored
+         (``deleted_at = None`` but no upload content applied).
+      2. Raise ``ImportFailedError`` with the legacy-duplicate message
+         so the operator resolves the duplicate manually before retrying.
+
+    Reproduce: seed a soft-deleted row with the target UUID and monkey-
+    patch ``import_from_dict`` to raise ``MultipleResultsFound``. The
+    importer must surface the guard exception, and the row's
+    ``deleted_at`` must still be set after the call returns.
+    """
+    from sqlalchemy.exc import MultipleResultsFound
+
+    from superset.commands.exceptions import ImportFailedError
+    from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        SqlaTable,
+        "import_from_dict",
+        side_effect=MultipleResultsFound("simulated duplicate"),
+    )
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    original_deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    soft_deleted = SqlaTable(
+        table_name="ambiguous_dataset",
+        database_id=database.id,
+        uuid=config["uuid"],
+        deleted_at=original_deleted_at,
+    )
+    db.session.add(soft_deleted)
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError, match="ambiguous legacy duplicate"):
+        import_dataset(config)
+
+    reloaded = (
+        db.session.query(SqlaTable)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+        .filter_by(uuid=config["uuid"])
+        .one()
+    )
+    assert reloaded.deleted_at == original_deleted_at, (
+        "deleted_at was not rolled back after MultipleResultsFound on "
+        "the soft-delete-match path; the row is left half-restored"
+    )
+
+
+def test_import_soft_deleted_dataset_ignore_permissions_restores_in_place(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    The example loader path: ignore_permissions=True with no logged-in
+    user. Previously the rewrite gated id-preservation on `user`, so this
+    path skipped both branches and INSERT collided on the UUID unique
+    index. The fix restores master's behavior: id is preserved on the
+    fallthrough overwrite path regardless of whether `user` is set.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config, ignore_permissions=True)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    restored = import_dataset(config, overwrite=True, ignore_permissions=True)
+    assert restored.id == original_id
+    assert restored.deleted_at is None
 
 
 @pytest.mark.parametrize(

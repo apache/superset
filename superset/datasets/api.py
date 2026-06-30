@@ -42,13 +42,16 @@ from superset.commands.dataset.exceptions import (
     DatasetDeleteFailedError,
     DatasetForbiddenError,
     DatasetInvalidError,
+    DatasetLogicalDuplicateError,
     DatasetNotFoundError,
     DatasetRefreshFailedError,
+    DatasetRestoreFailedError,
     DatasetUpdateFailedError,
 )
 from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.commands.dataset.importers.dispatcher import ImportDatasetsCommand
 from superset.commands.dataset.refresh import RefreshDatasetCommand
+from superset.commands.dataset.restore import RestoreDatasetCommand
 from superset.commands.dataset.update import UpdateDatasetCommand
 from superset.commands.dataset.warm_up_cache import DatasetWarmUpCacheCommand
 from superset.commands.exceptions import CommandException
@@ -59,7 +62,11 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
 from superset.databases.filters import DatabaseFilter
-from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
+from superset.datasets.filters import (
+    DatasetCertifiedFilter,
+    DatasetDeletedStateFilter,
+    DatasetIsNullOrEmptyFilter,
+)
 from superset.datasets.schemas import (
     DatasetCacheWarmUpRequestSchema,
     DatasetCacheWarmUpResponseSchema,
@@ -87,25 +94,40 @@ from superset.views.base_api import (
     statsd_metrics,
 )
 from superset.views.error_handling import handle_api_exception
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import (
+    BaseFilterRelatedUsers,
+    FilterRelatedOwners,
+    SoftDeleteApiMixin,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class DatasetRestApi(BaseSupersetModelRestApi):
+class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(SqlaTable)
     base_filters = [["id", DatasourceFilter, lambda: []]]
 
     resource_name = "dataset"
     allow_browser_login = True
     class_permission_name = "Dataset"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    # Custom methods (``restore``) need an explicit entry; FAB's @protect()
+    # decorator falls back to ``can_<method>_<class>`` (i.e.
+    # ``can_restore_Dataset``) when the mapping is missing, which standard
+    # roles don't carry. Mirrors the permission model documented for
+    # ``DELETE`` / ``bulk_delete``: endpoint-level ``can_write`` plus
+    # resource-level ``raise_for_ownership``. See themes/api.py for the
+    # established pattern.
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "restore": "write",
+    }
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         RouteMethod.DISTINCT,
         "bulk_delete",
+        "restore",
         "refresh",
         "related_objects",
         "duplicate",
@@ -273,7 +295,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     }
     search_filters = {
         "sql": [DatasetIsNullOrEmptyFilter],
-        "id": [DatasetCertifiedFilter],
+        "id": [DatasetCertifiedFilter, DatasetDeletedStateFilter],
     }
     search_columns = [
         "id",
@@ -470,10 +492,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Delete a Dataset.
+        """Soft-delete a Dataset.
+
+        Marks the dataset as deleted (sets ``deleted_at``) and hides it from
+        list/detail endpoints and relationship loads; the row is preserved
+        and recoverable via ``POST /api/v1/dataset/<uuid>/restore`` by an
+        owner or admin.
         ---
         delete:
-          summary: Delete a dataset
+          summary: Delete a dataset (soft delete; recoverable via restore)
           parameters:
           - in: path
             schema:
@@ -713,9 +740,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.detect_datetime_formats"
-        ),
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        ".detect_datetime_formats",
         log_to_statsd=False,
     )
     def detect_datetime_formats(self, pk: int) -> Response:
@@ -796,9 +822,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.related_objects"
-        ),
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".related_objects",
         log_to_statsd=False,
     )
     def related_objects(self, id_or_uuid: str) -> Response:
@@ -865,10 +890,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Bulk delete datasets.
+        """Bulk soft-delete datasets.
+
+        Marks each dataset as deleted (sets ``deleted_at``) and hides it from
+        list/detail endpoints and relationship loads; rows are preserved and
+        recoverable via ``POST /api/v1/dataset/<uuid>/restore`` by an owner
+        or admin.
         ---
         delete:
-          summary: Bulk delete datasets
+          summary: Bulk delete datasets (soft delete; recoverable via restore)
           parameters:
           - in: query
             name: q
@@ -915,6 +945,64 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetForbiddenError:
             return self.response_403()
         except DatasetDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<uuid>/restore", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.restore",
+        log_to_statsd=False,
+    )
+    def restore(self, uuid: str) -> Response:
+        """Restore a soft-deleted dataset.
+        ---
+        post:
+          summary: Restore a soft-deleted dataset
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Dataset restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            RestoreDatasetCommand(uuid).run()
+            return self.response(200, message="OK")
+        except DatasetNotFoundError:
+            return self.response_404()
+        except DatasetForbiddenError:
+            return self.response_403()
+        except DatasetLogicalDuplicateError as ex:
+            return self.response_422(message=str(ex))
+        except DatasetRestoreFailedError as ex:
+            logger.error(
+                "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
             return self.response_422(message=str(ex))
 
     @expose("/import/", methods=("POST",))
@@ -1056,9 +1144,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.get_or_create_dataset"
-        ),
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".get_or_create_dataset",
         log_to_statsd=False,
     )
     def get_or_create_dataset(self) -> Response:
@@ -1310,9 +1397,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.get_drill_info"
-        ),
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.get_drill_info",
         log_to_statsd=False,
     )
     def get_drill_info(self, pk: int, **kwargs: Any) -> Response:

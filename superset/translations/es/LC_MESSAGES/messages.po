@@ -4851,6 +4851,9 @@ msgstr "No se ha podido crear el conjunto de datos."
 msgid "Dataset could not be duplicated."
 msgstr "No se ha podido duplicar el conjunto de datos."
 
+msgid "Dataset could not be restored."
+msgstr ""
+
 msgid "Dataset could not be updated."
 msgstr "No se ha podido actualizar el conjunto de datos."
 

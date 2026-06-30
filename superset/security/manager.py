@@ -2336,6 +2336,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
+        from superset.models.helpers import (  # pylint: disable=import-outside-toplevel
+            skip_visibility_filter,
+        )
         from superset.models.slice import (  # pylint: disable=import-outside-toplevel
             Slice,
         )
@@ -2344,11 +2347,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
         chart_table = Slice.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
-        datasets = (
-            self.session.query(SqlaTable)
-            .filter(SqlaTable.database_id == target.id)
-            .all()
-        )
+        # Bypass the soft-delete visibility filter: a soft-deleted dataset's perm
+        # strings (and its charts') must still be rewritten on a database rename,
+        # otherwise restoring that dataset later brings back stale dataset/schema/
+        # catalog permission strings referencing the old database name.
+        with skip_visibility_filter(self.session, SqlaTable):
+            datasets = (
+                self.session.query(SqlaTable)
+                .filter(SqlaTable.database_id == target.id)
+                .all()
+            )
         updated_view_menus: list[ViewMenu] = []
         for dataset in datasets:
             old_dataset_vm_name = self.get_dataset_perm(
