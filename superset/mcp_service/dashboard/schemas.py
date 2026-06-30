@@ -927,6 +927,138 @@ class GenerateDashboardResponse(BaseModel):
     )
 
 
+class DuplicateDashboardRequest(BaseModel):
+    """Request schema for duplicating an existing dashboard."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    dashboard_id: Annotated[
+        int | str,
+        Field(
+            description=(
+                "Source dashboard identifier - can be numeric ID, UUID string, or slug"
+            )
+        ),
+    ]
+    dashboard_title: str = Field(
+        ...,
+        description="Title for the new (duplicated) dashboard",
+        validation_alias=AliasChoices("dashboard_title", "title", "name"),
+    )
+    duplicate_slices: bool = Field(
+        default=False,
+        description=(
+            "When true, every chart on the source dashboard is deep-copied "
+            "into a new chart object owned by the caller. When false "
+            "(default), the new dashboard references the same charts as the "
+            "source."
+        ),
+    )
+    sanitization_warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Internal: warnings emitted when user input was altered by "
+            "sanitization. Populated by the ``mode='before'`` validator "
+            "before dashboard_title is rewritten, so the tool can surface "
+            "a notice to the caller instead of silently dropping content."
+        ),
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _detect_dashboard_title_sanitization(cls, data: Any) -> Any:
+        """Reject empty-after-sanitization titles and warn on partial strip.
+
+        Runs before the ``dashboard_title`` field validator rewrites the
+        value. If the caller supplied a title that sanitization would strip
+        entirely (XSS-only content), we raise so the caller gets a clear
+        error instead of a blank-titled dashboard. When the sanitizer only
+        trims part of the title, we record a warning the tool can return
+        alongside the successful result.
+
+        ``sanitization_warnings`` is a server-only field — any value the
+        caller supplied is discarded here so the tool cannot be tricked
+        into echoing attacker-controlled text back through the response.
+        """
+        if not isinstance(data, dict):
+            return data
+        data["sanitization_warnings"] = []
+        for key in ("dashboard_title", "title", "name"):
+            if key in data:
+                raw = data[key]
+                break
+        else:
+            raw = None
+        if not isinstance(raw, str) or not raw.strip():
+            return data
+        sanitized, was_modified = sanitize_user_input_with_changes(
+            raw, "Dashboard title", max_length=500, allow_empty=True
+        )
+        if was_modified and not sanitized:
+            raise ValueError(
+                "dashboard_title contained only disallowed content "
+                "(HTML/script/URL schemes) and was removed entirely by "
+                "sanitization. Provide a dashboard_title with plain text."
+            )
+        if was_modified:
+            data["sanitization_warnings"].append(
+                "dashboard_title was modified during sanitization to "
+                "remove potentially unsafe content; the stored title "
+                "differs from the input."
+            )
+        return data
+
+    @field_validator("dashboard_title")
+    @classmethod
+    def sanitize_dashboard_title(cls, v: str) -> str:
+        """Sanitize dashboard title to prevent XSS."""
+        sanitized = sanitize_user_input(
+            v, "Dashboard title", max_length=500, allow_empty=True
+        )
+        if not sanitized:
+            raise ValueError("dashboard_title cannot be empty")
+        return sanitized
+
+
+class DuplicateDashboardResponse(BaseModel):
+    """Response schema for dashboard duplication."""
+
+    dashboard: DashboardInfo | None = Field(
+        None, description="The newly created dashboard info, if successful"
+    )
+    dashboard_url: str | None = Field(None, description="URL to view the new dashboard")
+    duplicated_slices: bool = Field(
+        default=False,
+        description=(
+            "True when the source dashboard's charts were deep-copied into "
+            "new chart objects; False when the new dashboard references the "
+            "original charts."
+        ),
+    )
+    error: str | None = Field(None, description="Error message, if duplication failed")
+    warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Non-fatal advisory messages about the duplicated dashboard — "
+            "for example, that the supplied title was altered by "
+            "sanitization."
+        ),
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context.
+
+        The error may echo dashboard-controlled content such as the source
+        dashboard title — wrap it so the LLM treats it as data, not
+        instructions.
+        """
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+
 class ChartPosition(BaseModel):
     """Position and identity of a chart within a dashboard layout."""
 
