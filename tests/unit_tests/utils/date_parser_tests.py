@@ -784,3 +784,74 @@ def test_get_since_until_sub_hour_presets() -> None:
     result = get_since_until("Last 1 hour", relative_end="now")
     expected = datetime(2016, 11, 7, 8, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
     assert result == expected
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_get_since_until_granular_units_use_now_by_default() -> None:
+    """Verify that 'Last/Next N <granular_unit>' uses 'now' as the end/start
+    bound when no explicit relative_end/relative_start is provided, so that
+    since is always less than until regardless of the time of day.
+
+    Regression test for the 'From date cannot be larger than to date' error
+    that occurred because the default relative_end='today' (midnight) was
+    earlier than the computed since time (e.g. now - 1 hour).
+    """
+    result: tuple[Optional[datetime], Optional[datetime]]
+
+    # --- Last N <granular_unit> without explicit relative_end ---
+    # All of these must satisfy since < until at any time of day.
+
+    result = get_since_until("Last 1 hour")
+    assert result[0] is not None
+    assert result[1] is not None
+    assert result[0] < result[1], "Last 1 hour: since must be before until"
+    # until should be 'now', not 'today' (midnight)
+    expected_until = datetime(2016, 11, 7, 9, 30, 10)  # mock 'now'
+    assert result[1] == expected_until
+    expected_since = datetime(2016, 11, 7, 8, 30, 10)  # now - 1h
+    assert result[0] == expected_since
+
+    result = get_since_until("Last 30 minutes")
+    assert result[0] is not None
+    assert result[1] is not None
+    assert result[0] < result[1], "Last 30 minutes: since must be before until"
+    assert result[1] == datetime(2016, 11, 7, 9, 30, 10)
+    assert result[0] == datetime(2016, 11, 7, 9, 0, 10)
+
+    result = get_since_until("Last 4 hours")
+    assert result[0] is not None
+    assert result[1] is not None
+    assert result[0] < result[1], "Last 4 hours: since must be before until"
+    assert result[1] == datetime(2016, 11, 7, 9, 30, 10)
+    assert result[0] == datetime(2016, 11, 7, 5, 30, 10)
+
+    result = get_since_until("Last 90 seconds")
+    assert result[0] is not None
+    assert result[1] is not None
+    assert result[0] < result[1], "Last 90 seconds: since must be before until"
+    assert result[1] == datetime(2016, 11, 7, 9, 30, 10)
+
+    # --- Next N <granular_unit> without explicit relative_start ---
+    result = get_since_until("Next 1 hour")
+    assert result[0] is not None
+    assert result[1] is not None
+    assert result[0] < result[1], "Next 1 hour: since must be before until"
+    # since should be 'now', not 'today' (midnight)
+    assert result[0] == datetime(2016, 11, 7, 9, 30, 10)
+
+    result = get_since_until("Next 45 minutes")
+    assert result[0] is not None
+    assert result[1] is not None
+    assert result[0] < result[1], "Next 45 minutes: since must be before until"
+    assert result[0] == datetime(2016, 11, 7, 9, 30, 10)
+
+    # --- Broad units are unaffected: relative_end stays 'today' ---
+    result = get_since_until("Last 1 day")
+    assert result[0] is not None
+    assert result[1] is not None
+    assert result[1] == datetime(2016, 11, 7)  # 'today' midnight, not 'now'
+
+    result = get_since_until("Last week")
+    assert result[0] is not None
+    assert result[1] is not None
+    assert result[1] == datetime(2016, 11, 7)  # 'today' midnight

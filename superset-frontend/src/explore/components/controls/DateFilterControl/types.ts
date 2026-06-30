@@ -71,16 +71,13 @@ export type CustomRangeDecodeType = {
   matchedFlag: boolean;
 };
 
-export type CommonRangeType =
-  | 'Last 5 minutes'
-  | 'Last 15 minutes'
-  | 'Last 30 minutes'
-  | 'Last 1 hour'
-  | 'Last day'
-  | 'Last week'
-  | 'Last month'
-  | 'Last quarter'
-  | 'Last year';
+/**
+ * Any "Last <N> <unit>(s)" time range string.
+ * Validated at runtime by COMMON_RANGE_REGEX rather than an exhaustive union,
+ * so arbitrary values like "Last 4 hours" or "Last 24 hours" are supported
+ * without needing to enumerate every possibility here.
+ */
+export type CommonRangeType = string;
 
 export const PreviousCalendarWeek = 'previous calendar week';
 export const PreviousCalendarMonth = 'previous calendar month';
