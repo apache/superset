@@ -27,7 +27,7 @@ tables with surrogate PKs); also closes the data-integrity hole where six
 of the eight tables lacked DB-level uniqueness.
 
 Revision ID: 2bee73611e32
-Revises: 78a40c08b4be
+Revises: a7d3f1b9c2e4
 Create Date: 2026-05-01 23:36:34.050058
 
 """
@@ -43,7 +43,7 @@ from sqlalchemy.engine import Connection
 
 # revision identifiers, used by Alembic.
 revision = "2bee73611e32"
-down_revision = "78a40c08b4be"
+down_revision = "a7d3f1b9c2e4"
 
 logger = logging.getLogger("alembic.env")
 
