@@ -784,7 +784,11 @@ var CalHeatMap = function () {
       _initCalendar();
     }
 
-    var tooltipClassName = ['d3-tip', CALENDAR_TOOLTIP_CLASS, self.options.tooltipClassName]
+    var tooltipClassName = [
+      'd3-tip',
+      CALENDAR_TOOLTIP_CLASS,
+      self.options.tooltipClassName,
+    ]
       .filter(Boolean)
       .join(' ');
     self.tip.attr('class', tooltipClassName);
