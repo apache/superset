@@ -852,6 +852,151 @@ def test_get_raw_connection_executes_prequeries_exactly_once(
     mock_cursor.close.assert_called_once()
 
 
+def test_prequery_engine_bypasses_shared_cache(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression for the ``deque mutated during iteration`` race.
+
+    ``get_sqla_engine`` attaches (and later removes) a per-call ``connect``
+    listener when prequeries exist. SQLAlchemy stores listeners in an
+    unlocked deque, so mutating a *shared* engine's listeners races with
+    concurrent connection checkouts iterating the same deque. The engine
+    used for prequery calls must therefore be private: never served from,
+    nor stored in, ``_ENGINE_CACHE``.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import _ENGINE_CACHE
+
+    _ENGINE_CACHE.clear()
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    database.id = 1  # saved instance: normally eligible for the cache
+
+    # Control: without prequeries the engine is shared via the cache.
+    with database.get_sqla_engine() as engine_a:
+        with database.get_sqla_engine() as engine_b:
+            assert engine_a is engine_b
+    assert len(_ENGINE_CACHE) == 1
+    cached_engine = next(iter(_ENGINE_CACHE.values()))
+
+    # With prequeries: a private engine per call, and the cache untouched.
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_prequeries",
+        return_value=["SELECT 1"],
+    )
+    with database.get_sqla_engine() as engine_c:
+        with database.get_sqla_engine() as engine_d:
+            assert engine_c is not cached_engine
+            assert engine_d is not cached_engine
+            assert engine_c is not engine_d
+    assert list(_ENGINE_CACHE.values()) == [cached_engine]
+
+
+def test_prequeries_execute_on_real_connections(
+    app_context: None,
+    mocker: MockerFixture,
+    tmp_path: Any,
+) -> None:
+    """
+    Behavioural guard: prequeries still run on every new DBAPI connection
+    even though the prequery path uses a private, uncached engine. Uses a
+    file-backed SQLite database and a table-creating prequery so the effect
+    is observable from a later query on the same connection.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import _ENGINE_CACHE
+
+    _ENGINE_CACHE.clear()
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+    mocker.patch("superset.models.core.get_username", return_value=None)
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_prequeries",
+        return_value=["CREATE TABLE IF NOT EXISTS prequery_marker (x INTEGER)"],
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"sqlite:///{tmp_path / 'prequery.db'}",
+    )
+    database.id = 1
+
+    with database.get_raw_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE name = 'prequery_marker'")
+        assert cursor.fetchone() is not None, (
+            "prequery did not run on the new connection"
+        )
+    assert _ENGINE_CACHE == {}
+
+
+def test_concurrent_prequery_connections_do_not_race(
+    app: Any,
+    app_context: None,
+    mocker: MockerFixture,
+    tmp_path: Any,
+) -> None:
+    """
+    Stress regression for the listener race: with a shared cached engine,
+    concurrent ``get_raw_connection`` calls with prequeries mutated the
+    engine's connect-listener deque (listen on enter, remove on exit) while
+    other threads' connection checkouts iterated it, intermittently raising
+    ``RuntimeError: deque mutated during iteration``. With a private engine
+    per prequery call there is no shared mutation left to race.
+    """
+    import threading
+
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import _ENGINE_CACHE
+
+    _ENGINE_CACHE.clear()
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+    mocker.patch("superset.models.core.get_username", return_value=None)
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_prequeries",
+        return_value=["SELECT 1"],
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"sqlite:///{tmp_path / 'race.db'}",
+    )
+    database.id = 1
+
+    errors: list[Exception] = []
+
+    def worker() -> None:
+        try:
+            with app.app_context():
+                for _ in range(50):
+                    with database.get_raw_connection() as conn:
+                        conn.cursor().execute("SELECT 1")
+        except Exception as ex:  # pylint: disable=broad-except
+            errors.append(ex)
+
+    threads = [threading.Thread(target=worker) for _ in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert not errors, f"concurrent prequery connections raised: {errors!r}"
+
+
 def test_is_oauth2_enabled() -> None:
     """
     Test the `is_oauth2_enabled` method.
@@ -1123,6 +1268,7 @@ def test_engine_context_manager(mocker: MockerFixture, app_context: None) -> Non
         nullpool=True,
         source=None,
         sqlalchemy_uri="trino://",
+        cacheable=True,
     )
 
 
