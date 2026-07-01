@@ -17,9 +17,9 @@
  * under the License.
  */
 /* eslint-disable import/no-extraneous-dependencies */
-import { css, SupersetTheme } from '@apache-superset/core/ui';
 import { RawAntdSelect as Select } from '@superset-ui/core/components';
 import { SearchOption } from '../../types';
+import { SupersetTheme, css } from '@apache-superset/core/theme';
 
 interface SearchSelectDropdownProps {
   /** The currently selected search column value */

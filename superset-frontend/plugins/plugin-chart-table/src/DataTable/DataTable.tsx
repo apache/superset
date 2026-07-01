@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme } from '@apache-superset/core';
-import { css } from '@apache-superset/core/ui';
 /* eslint-disable import/no-extraneous-dependencies */
 import {
   useCallback,
@@ -58,6 +56,7 @@ import { PAGE_SIZE_OPTIONS } from '../consts';
 import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
 import { SearchOption, SortByItem } from '../types';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
+import { SupersetTheme, css } from '@apache-superset/core/theme';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;

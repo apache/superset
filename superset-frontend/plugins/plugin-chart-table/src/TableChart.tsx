@@ -58,7 +58,7 @@ import {
   useTheme,
   SupersetTheme,
 } from '@apache-superset/core/theme';
-import { t, tn } from '@apache-superset/core/translation';
+import { t } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   Input,
