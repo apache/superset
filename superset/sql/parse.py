@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
+from flask import current_app, has_app_context
 from jinja2 import nodes, Template
 from sqlglot import exp
 from sqlglot.dialects.dialect import (
@@ -54,6 +55,44 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def _check_script_length(script: str, engine: str | None) -> None:
+    """
+    Reject scripts whose UTF-8 byte length exceeds the configured maximum
+    before they reach sqlglot. Sits at every code path in this module that
+    hands a string to ``sqlglot.parse`` or ``sqlglot.parse_one`` so the
+    bound cannot be bypassed by a direct caller.
+
+    The check is in bytes, not Unicode code points, because the
+    threat model is parser memory and CPU on the encoded payload that
+    sqlglot ingests.
+    """
+    # Imported lazily to avoid a circular import (``superset.config`` pulls in
+    # ``superset.jinja_context``, which imports this module).
+    from superset import config
+
+    # The live app config wins when a Flask app context is active (honoring any
+    # operator override); otherwise (Alembic migrations, scripts, isolated unit
+    # tests) fall back to the documented default declared in ``superset.config``
+    # so the bound stays sourced from configuration rather than duplicated here.
+    max_length = (
+        current_app.config.get("SQL_MAX_PARSE_LENGTH", config.SQL_MAX_PARSE_LENGTH)
+        if has_app_context()
+        else config.SQL_MAX_PARSE_LENGTH
+    )
+
+    if max_length is None:
+        return
+    if (byte_length := len(script.encode("utf-8"))) > max_length:
+        raise SupersetParseError(
+            script,
+            engine,
+            message=(
+                f"SQL script length ({byte_length} bytes) exceeds the "
+                f"configured maximum of {max_length} bytes."
+            ),
+        )
 
 
 # mapping between DB engine specs and sqlglot dialects
@@ -717,6 +756,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         supports backticks natively. This handles cases like "Other" database type
         where users may have MySQL-compatible syntax with backtick-quoted table names.
         """
+        _check_script_length(script, engine)
         dialect = SQLGLOT_DIALECTS.get(engine)
         try:
             statements = sqlglot.parse(script, dialect=dialect)
@@ -1150,6 +1190,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param predicate: The predicate to parse.
         :return: The parsed predicate.
         """
+        _check_script_length(predicate, self.engine)
         return sqlglot.parse_one(predicate, dialect=self._dialect)
 
     def apply_rls(
@@ -1698,9 +1739,11 @@ def extract_tables_from_statement(
         if not literal:
             return set()
 
+        pseudo_sql = f"SELECT {literal.this}"
         try:
-            pseudo_query = sqlglot.parse_one(f"SELECT {literal.this}", dialect=dialect)
-        except ParseError:
+            _check_script_length(pseudo_sql, None)
+            pseudo_query = sqlglot.parse_one(pseudo_sql, dialect=dialect)
+        except (ParseError, SupersetParseError):
             return set()
         sources = pseudo_query.find_all(exp.Table)
     else:
@@ -1889,6 +1932,7 @@ def transpile_to_dialect(
     source_dialect = SQLGLOT_DIALECTS.get(source_engine) if source_engine else Dialect
 
     try:
+        _check_script_length(sql, source_engine)
         parsed = sqlglot.parse_one(sql, dialect=source_dialect)
         return Dialect.get_or_raise(target_dialect).generate(
             parsed,
