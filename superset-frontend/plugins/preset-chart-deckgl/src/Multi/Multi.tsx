@@ -49,6 +49,7 @@ import {
   DeckGLContainerStyledWrapper,
 } from '../DeckGLContainer';
 import { getExploreLongUrl } from '../utils/explore';
+import { addColorToFeatures } from '../utils/addColor';
 import layerGenerators from '../layers';
 import fitViewport, { Viewport } from '../utils/fitViewport';
 import { getMapboxApiKey } from '../utils/mapbox';
@@ -97,6 +98,18 @@ const MultiWrapper = styled.div<{ height: number; width: number }>`
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
 `;
+
+// Layer types that resolve a per-feature color from the form data's color
+// scheme (categorical palette, fixed color or breakpoints). When rendered on
+// their own these layers get their colors from CategoricalDeckGLContainer; in
+// the Multiple Layers chart we need to apply the same resolution here so the
+// configured categorical colors are preserved instead of falling back to the
+// default point color.
+const COLOR_AWARE_LAYER_TYPES = new Set([
+  'deck_scatter',
+  'deck_path',
+  'deck_arc',
+]);
 
 const selectDataMask = createSelector(
   (state: { dataMask?: DataMaskState }) => state.dataMask,
@@ -225,15 +238,39 @@ const DeckMulti = (props: DeckMultiProps) => {
   );
 
   const createLayerFromData = useCallback(
-    (subslice: JsonObject, json: JsonObject): Layer =>
-      // @ts-expect-error TODO(hainenber): define proper type for `form_data.viz_type` and call signature for functions in layerGenerators.
-      layerGenerators[subslice.form_data.viz_type]({
-        formData: subslice.form_data,
-        payload: json,
-        setTooltip,
-        datasource: props.datasource,
-        onSelect: props.onSelect,
-      }),
+    (subslice: JsonObject, json: JsonObject): Layer => {
+      const { form_data: subsliceFormData } = subslice;
+      let payload = json;
+
+      // Resolve per-feature categorical/fixed/breakpoint colors for layers that
+      // would otherwise get them from CategoricalDeckGLContainer when rendered
+      // standalone. Without this, scatterplot categorical colors are dropped in
+      // the Multiple Layers chart and fall back to the default point color.
+      if (
+        COLOR_AWARE_LAYER_TYPES.has(subsliceFormData.viz_type) &&
+        subsliceFormData.color_scheme_type &&
+        Array.isArray(json?.data?.features)
+      ) {
+        payload = {
+          ...json,
+          data: {
+            ...json.data,
+            features: addColorToFeatures(json.data.features, subsliceFormData),
+          },
+        };
+      }
+
+      return (
+        // @ts-expect-error TODO(hainenber): define proper type for `form_data.viz_type` and call signature for functions in layerGenerators.
+        layerGenerators[subsliceFormData.viz_type]({
+          formData: subsliceFormData,
+          payload,
+          setTooltip,
+          datasource: props.datasource,
+          onSelect: props.onSelect,
+        })
+      );
+    },
     [props.onSelect, props.datasource, setTooltip],
   );
 
