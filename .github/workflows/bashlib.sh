@@ -114,7 +114,7 @@ testdata() {
   say "::group::Load test data"
   # must specify PYTHONPATH to make `tests.superset_test_config` importable
   export PYTHONPATH="$GITHUB_WORKSPACE"
-  pip install -e .
+  uv pip install --system -e .
   superset db upgrade
   superset load_test_users
   superset load_examples --load-test-data
@@ -127,7 +127,7 @@ playwright_testdata() {
   say "::group::Load all examples for Playwright tests"
   # must specify PYTHONPATH to make `tests.superset_test_config` importable
   export PYTHONPATH="$GITHUB_WORKSPACE"
-  pip install -e .
+  uv pip install --system -e .
   superset db upgrade
   superset load_test_users
   superset load_examples

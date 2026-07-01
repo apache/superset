@@ -30,7 +30,7 @@ import type { EChartsCoreOption } from 'echarts/core';
 import type { GaugeSeriesOption } from 'echarts/charts';
 import type { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
-import { range } from 'lodash';
+import { range } from 'lodash-es';
 import { parseNumbersList } from '../utils/controls';
 import {
   DEFAULT_FORM_DATA as DEFAULT_GAUGE_FORM_DATA,

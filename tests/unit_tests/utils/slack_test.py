@@ -17,7 +17,11 @@
 
 import pytest
 
-from superset.utils.slack import get_channels_with_search, SlackChannelTypes
+from superset.utils.slack import (
+    get_channels_with_search,
+    should_use_v2_api,
+    SlackChannelTypes,
+)
 
 
 class MockResponse:
@@ -190,6 +194,73 @@ The server responded with: missing scope: channels:read"""
 
         result = get_channels_with_search(types=types)
         assert {channel["id"] for channel in result} == expected_channel_ids
+
+    def test_passes_team_id_to_conversations_list_when_configured(self, mocker):
+        # When SLACK_TEAM_ID is set (org-scoped token on an Enterprise Grid org),
+        # it must be forwarded to conversations.list so Slack knows which
+        # workspace to target.
+        mock_data = {
+            "channels": [{"name": "general", "id": "C12345"}],
+            "response_metadata": {"next_cursor": None},
+        }
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = MockResponse(mock_data)
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+        mocker.patch.dict(
+            "superset.utils.slack.app.config", {"SLACK_TEAM_ID": "T123456"}
+        )
+
+        get_channels_with_search(force=True)
+
+        assert mock_client.conversations_list.call_args.kwargs["team_id"] == "T123456"
+
+    def test_resolves_callable_team_id(self, mocker):
+        # SLACK_TEAM_ID may be a callable (e.g. to fetch from a secrets store),
+        # mirroring SLACK_API_TOKEN; it is resolved before being forwarded.
+        mock_data = {
+            "channels": [{"name": "general", "id": "C12345"}],
+            "response_metadata": {"next_cursor": None},
+        }
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = MockResponse(mock_data)
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+        mocker.patch.dict(
+            "superset.utils.slack.app.config",
+            {"SLACK_TEAM_ID": lambda: "T999999"},
+        )
+
+        get_channels_with_search(force=True)
+
+        assert mock_client.conversations_list.call_args.kwargs["team_id"] == "T999999"
+
+    def test_omits_team_id_from_conversations_list_when_not_configured(self, mocker):
+        # Default behavior (workspace-level token): no team_id is sent.
+        mock_data = {
+            "channels": [{"name": "general", "id": "C12345"}],
+            "response_metadata": {"next_cursor": None},
+        }
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = MockResponse(mock_data)
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+        mocker.patch.dict("superset.utils.slack.app.config", {"SLACK_TEAM_ID": None})
+
+        get_channels_with_search(force=True)
+
+        assert "team_id" not in mock_client.conversations_list.call_args.kwargs
+
+    def test_should_use_v2_api_passes_team_id_when_configured(self, mocker):
+        mock_client = mocker.Mock()
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+        mocker.patch(
+            "superset.utils.slack.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        )
+        mocker.patch.dict(
+            "superset.utils.slack.app.config", {"SLACK_TEAM_ID": "T123456"}
+        )
+
+        assert should_use_v2_api() is True
+        assert mock_client.conversations_list.call_args.kwargs["team_id"] == "T123456"
 
     def test_handle_pagination_multiple_pages(self, mocker):
         mock_data_page1 = {

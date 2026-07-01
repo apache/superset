@@ -52,6 +52,7 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
+from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
 from superset.db_engine_specs import get_available_engine_specs
@@ -66,7 +67,7 @@ from superset.themes.utils import (
 )
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
-from superset.utils.version import get_version_metadata
+from superset.utils.version import get_version_metadata, visible_version_metadata
 from superset.views.error_handling import json_error_response
 
 from .utils import bootstrap_user_data, get_config_value
@@ -124,6 +125,7 @@ FRONTEND_CONF_KEYS = (
     "MAPBOX_API_KEY",
     "DEFAULT_MAP_RENDERER",
     "CSV_STREAMING_ROW_THRESHOLD",
+    "SCARF_ANALYTICS",
 )
 
 logger = logging.getLogger(__name__)
@@ -279,8 +281,16 @@ def menu_data(user: User) -> dict[str, Any]:
     if callable(brand_text := app.config["LOGO_RIGHT_TEXT"]):
         brand_text = brand_text()
 
-    # Get centralized version metadata
-    version_metadata = get_version_metadata()
+    # Get centralized version metadata. Precise build details (git SHA and
+    # build number) let a viewer map the deployment to a specific commit/build,
+    # so expose them only to admins unless the deployment opts in via
+    # EXPOSE_BUILD_DETAILS_TO_USERS. The release version string is always shown.
+    expose_build_details = (
+        app.config["EXPOSE_BUILD_DETAILS_TO_USERS"] or security_manager.is_admin()
+    )
+    version_metadata = visible_version_metadata(
+        get_version_metadata(), expose_build_details
+    )
 
     return {
         "menu": appbuilder.menu.get_data(),
@@ -375,9 +385,18 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     # Check if UI theme administration is enabled
     enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False)
 
-    # Get config themes to use as fallback
+    # Get config themes, deep-merging partial user overrides with built-in defaults
+    # so that unspecified token fields fall back gracefully.
     config_theme_default = get_config_value("THEME_DEFAULT")
+    if config_theme_default:
+        config_theme_default = _merge_theme_dicts(
+            dict(_THEME_DEFAULT_BASE), dict(config_theme_default)
+        )
     config_theme_dark = get_config_value("THEME_DARK")
+    if config_theme_dark:
+        config_theme_dark = _merge_theme_dicts(
+            dict(_THEME_DARK_BASE), dict(config_theme_dark)
+        )
 
     if enable_ui_admin:
         # Try to load themes from database
