@@ -97,17 +97,9 @@ def upgrade() -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    slices = session.query(Slice).filter(Slice.viz_type == _VIZ_TYPE).all()
-    changed = 0
-    for slc in slices:
-        dirty = _strip_params(slc)
-        dirty = _strip_query_context(slc) or dirty
-        if dirty:
-            changed += 1
-
-    if changed:
-        session.commit()
-    session.close()
+    for slc in session.query(Slice).filter(Slice.viz_type == _VIZ_TYPE):
+        _strip_params(slc)
+        _strip_query_context(slc)
 
 
 def downgrade() -> None:
