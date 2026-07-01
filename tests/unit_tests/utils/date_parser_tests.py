@@ -770,7 +770,10 @@ def test_get_since_until_sub_hour_presets() -> None:
     result: tuple[Optional[datetime], Optional[datetime]]
 
     result = get_since_until("Last 5 minutes", relative_end="now")
-    expected = datetime(2016, 11, 7, 9, 25, 10), datetime(2016, 11, 7, 9, 30, 10)
+    expected: tuple[datetime, datetime] = (
+        datetime(2016, 11, 7, 9, 25, 10),
+        datetime(2016, 11, 7, 9, 30, 10),
+    )
     assert result == expected
 
     result = get_since_until("Last 15 minutes", relative_end="now")
@@ -806,9 +809,9 @@ def test_get_since_until_granular_units_use_now_by_default() -> None:
     assert result[1] is not None
     assert result[0] < result[1], "Last 1 hour: since must be before until"
     # until should be 'now', not 'today' (midnight)
-    expected_until = datetime(2016, 11, 7, 9, 30, 10)  # mock 'now'
+    expected_until: datetime = datetime(2016, 11, 7, 9, 30, 10)  # mock 'now'
     assert result[1] == expected_until
-    expected_since = datetime(2016, 11, 7, 8, 30, 10)  # now - 1h
+    expected_since: datetime = datetime(2016, 11, 7, 8, 30, 10)  # now - 1h
     assert result[0] == expected_since
 
     result = get_since_until("Last 30 minutes")

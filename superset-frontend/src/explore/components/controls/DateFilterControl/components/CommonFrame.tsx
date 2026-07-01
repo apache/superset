@@ -19,7 +19,7 @@
 import { useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { InputNumber, Select } from '@superset-ui/core/components';
-import { Radio } from '@superset-ui/core/components/Radio';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import {
   COMMON_RANGE_OPTIONS,
   COMMON_RANGE_REGEX,
@@ -70,9 +70,9 @@ export function CommonFrame(props: FrameComponentProps) {
   // Local state for the custom inputs — persists across preset ↔ Other switches.
   // Default to 4 hours so the initial "Other" emission ("Last 4 hours") never
   // accidentally matches a preset and causes the radio to snap back.
-  const [customN, setCustomN] = useState<number>(parsedCustom?.n ?? 4);
+  const [customN, setCustomN] = useState<number>(isCustom ? parsedCustom!.n : 4);
   const [customUnit, setCustomUnit] = useState<string>(
-    parsedCustom?.unit ?? 'hour',
+    isCustom ? parsedCustom!.unit : 'hour',
   );
 
   // If the current value doesn't match any known pattern, reset to a default.
@@ -85,7 +85,7 @@ export function CommonFrame(props: FrameComponentProps) {
 
   const radioValue = isCustom ? CUSTOM_SENTINEL : props.value;
 
-  function handleRadioChange(e: any) {
+  function handleRadioChange(e: RadioChangeEvent) {
     const val: string = e.target.value;
     if (val === CUSTOM_SENTINEL) {
       props.onChange(buildLastN(customN, customUnit));
