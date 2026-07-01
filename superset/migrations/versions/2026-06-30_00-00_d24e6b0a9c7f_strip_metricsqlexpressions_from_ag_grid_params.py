@@ -26,7 +26,7 @@ This migration strips the field from existing rows so those records are no
 longer loaded eagerly on every dashboard request.
 
 Revision ID: d24e6b0a9c7f
-Revises: 78a40c08b4be
+Revises: a7d3f1b9c2e4
 Create Date: 2026-06-30 00:00:00.000000
 
 """
@@ -40,7 +40,7 @@ from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "d24e6b0a9c7f"
-down_revision = "78a40c08b4be"
+down_revision = "a7d3f1b9c2e4"
 
 Base = declarative_base()
 
