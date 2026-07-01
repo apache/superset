@@ -175,7 +175,7 @@ export const CronPicker = styled((props: CronProps) => (
 
     .react-js-cron-select.ant-select {
       width: 100%;
-      .ant-select-selector {
+      .ant-select-content {
         flex-wrap: nowrap;
       }
     }

@@ -116,7 +116,7 @@ const StyledTooltip = (props: any) => {
               max-height: 410px;
               overflow-y: scroll;
 
-              .ant-tooltip-inner {
+              .ant-tooltip-container {
                 max-width: ${theme.sizeUnit * 125}px;
                 h3 {
                   font-size: ${theme.fontSize}px;

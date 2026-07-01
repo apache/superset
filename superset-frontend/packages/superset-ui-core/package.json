@@ -100,7 +100,7 @@
     "@types/react-loadable": "*",
     "@types/react-window": "^1.8.8",
     "@types/tinycolor2": "*",
-    "antd": "^5.26.0",
+    "antd": "^6.0.0",
     "nanoid": "^5.0.9",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
