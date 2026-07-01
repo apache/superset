@@ -29,6 +29,7 @@ from superset.mcp_service.system.schemas import (
     FindUsersResponse,
     UserMatch,
 )
+from superset.mcp_service.utils.sanitization import escape_like
 
 logger = logging.getLogger(__name__)
 
@@ -64,15 +65,7 @@ async def find_users(request: FindUsersRequest, ctx: Context) -> FindUsersRespon
     )
 
     user_model = security_manager.user_model
-    # Escape LIKE metacharacters so a query of "%" or "_" cannot enumerate all
-    # users. Backslash must be doubled first to avoid double-escaping.
-    escaped = (
-        request.query.strip()
-        .replace("\\", "\\\\")
-        .replace("%", "\\%")
-        .replace("_", "\\_")
-    )
-    needle = f"%{escaped}%"
+    needle = f"%{escape_like(request.query.strip())}%"
 
     with event_logger.log_context(action="mcp.find_users.query"):
         query = (
