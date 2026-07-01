@@ -65,7 +65,7 @@ async def find_users(request: FindUsersRequest, ctx: Context) -> FindUsersRespon
     )
 
     user_model = security_manager.user_model
-    needle = f"%{escape_like(request.query.strip())}%"
+    needle: str = f"%{escape_like(request.query.strip())}%"
 
     with event_logger.log_context(action="mcp.find_users.query"):
         query = (
