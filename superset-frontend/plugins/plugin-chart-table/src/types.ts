@@ -34,6 +34,8 @@ import type {
   DataColumnMeta,
   ServerPaginationData,
   TableColumnConfig,
+  UrlLinkConfig,
+  UrlLinks,
 } from '@superset-ui/chart-controls';
 
 // Re-export shared types used by internal plugin files that import from './types'
@@ -70,6 +72,7 @@ export type TableChartFormData = QueryFormData & {
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
+  url_link?: UrlLinkConfig[];
 };
 
 export interface TableChartProps extends ChartProps {
@@ -108,6 +111,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   emitCrossFilters?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
   columnColorFormatters?: ColorFormatters;
+  columnUrlLinks?: UrlLinks;
   allowRearrangeColumns?: boolean;
   allowRenderHtml?: boolean;
   onContextMenu?: (
