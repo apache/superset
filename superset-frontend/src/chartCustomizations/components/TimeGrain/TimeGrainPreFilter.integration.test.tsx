@@ -18,15 +18,12 @@
  */
 
 /**
- * Integration Test: Time Grain Pre-filter Feature (End-to-End)
+ * Integration Test: Time Grain Pre-filter Feature (Customization plugin)
  *
- * Tests the full flow:
- * 1. Dashboard config: User enables pre-filter and selects allowed time grains
- * 2. Dashboard persistence: Config is saved with time_grains array
- * 3. Runtime filter: Dashboard displays only the pre-filtered time grains
- *
- * Note: This documents the expected behavior. Full E2E testing requires
- * Playwright/browser tests since it involves dashboard state + filter interactions.
+ * Mirrors src/filters/components/TimeGrain/TimeGrainPreFilter.integration.test.tsx
+ * but targets the customization plugin at
+ * src/chartCustomizations/components/TimeGrain/TimeGrainFilterPlugin and adds
+ * a case for the escape hatch the customization version introduces.
  */
 
 import {
@@ -35,25 +32,37 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import PluginFilterTimegrain from 'src/filters/components/TimeGrain/TimeGrainFilterPlugin';
-import type { PluginFilterTimeGrainProps } from 'src/filters/components/TimeGrain/types';
+import PluginFilterTimegrain from 'src/chartCustomizations/components/TimeGrain/TimeGrainFilterPlugin';
+import type { PluginFilterTimeGrainProps } from 'src/chartCustomizations/components/TimeGrain/types';
+
+const data = [
+  { duration: 'PT1M', name: 'Minute' },
+  { duration: 'PT1H', name: 'Hour' },
+  { duration: 'P1D', name: 'Day' },
+  { duration: 'P1W', name: 'Week' },
+  { duration: 'P1M', name: 'Month' },
+];
+
+const baseConfig = {
+  height: 100,
+  width: 300,
+  setFilterActive: jest.fn(),
+  setHoveredFilter: jest.fn(),
+  unsetHoveredFilter: jest.fn(),
+  setFocusedFilter: jest.fn(),
+  unsetFocusedFilter: jest.fn(),
+  inputRef: { current: null },
+};
 
 /**
  * Scenario: Dashboard owner configures a time grain filter to show only Hour, Day, Week.
  * End-user opens the dashboard and can only select from those three options.
  */
 test('time grain pre-filter restricts dashboard filter options', async () => {
-  // Step 1: Simulate saved dashboard config
-  // (User previously set pre-filter to ['PT1H', 'P1D', 'P1W'])
   const setDataMask = jest.fn();
   const dashboardConfig: PluginFilterTimeGrainProps = {
-    data: [
-      { duration: 'PT1M', name: 'Minute' },
-      { duration: 'PT1H', name: 'Hour' },
-      { duration: 'P1D', name: 'Day' },
-      { duration: 'P1W', name: 'Week' },
-      { duration: 'P1M', name: 'Month' },
-    ],
+    ...baseConfig,
+    data,
     formData: {
       datasource: '3__table',
       height: 100,
@@ -61,7 +70,6 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
       nativeFilterId: 'time_grain_1',
       defaultValue: null,
       viz_type: 'filter_timegrain',
-      // This is what was saved by the config form (camelCased by ChartProps):
       timeGrains: ['PT1H', 'P1D', 'P1W'],
     },
     filterState: {
@@ -69,53 +77,30 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
       validateStatus: undefined,
       validateMessage: undefined,
     },
-    height: 100,
-    width: 300,
     setDataMask,
-    setFilterActive: jest.fn(),
-    setHoveredFilter: jest.fn(),
-    unsetHoveredFilter: jest.fn(),
-    setFocusedFilter: jest.fn(),
-    unsetFocusedFilter: jest.fn(),
-    inputRef: { current: null },
   };
 
-  // Step 2: Render the dashboard filter
   render(<PluginFilterTimegrain {...dashboardConfig} />);
 
   expect(screen.getByText('3 options')).toBeInTheDocument();
 
-  // Ignore initialization updates and validate the explicit user-selection payload.
   setDataMask.mockClear();
 
-  // Step 3: Verify only pre-filtered options appear
-  const select = screen.getByRole('combobox');
-  await userEvent.click(select);
+  await userEvent.click(screen.getByRole('combobox'));
 
   await waitFor(() => {
-    const options = screen.getAllByRole('option');
-    const labels = options.map(o => o.textContent);
-
-    // Should only show Hour, Day, Week (in database order)
+    const labels = screen.getAllByRole('option').map(o => o.textContent);
     expect(labels).toEqual(['Hour', 'Day', 'Week']);
-
-    // Should NOT show Minute or Month
     expect(labels).not.toContain('Minute');
     expect(labels).not.toContain('Month');
   });
 
-  // Step 4: Selecting one allowed option should update runtime payload
   await userEvent.click(screen.getByText('Day'));
 
   await waitFor(() => {
     expect(setDataMask).toHaveBeenCalledWith({
-      extraFormData: {
-        time_grain_sqla: 'P1D',
-      },
-      filterState: {
-        label: 'Day',
-        value: ['P1D'],
-      },
+      extraFormData: { time_grain_sqla: 'P1D' },
+      filterState: { label: 'Day', value: ['P1D'] },
     });
   });
 });
@@ -126,13 +111,8 @@ test('time grain pre-filter restricts dashboard filter options', async () => {
  */
 test('all time grains appear when pre-filter is unchecked', async () => {
   const dashboardConfig: PluginFilterTimeGrainProps = {
-    data: [
-      { duration: 'PT1M', name: 'Minute' },
-      { duration: 'PT1H', name: 'Hour' },
-      { duration: 'P1D', name: 'Day' },
-      { duration: 'P1W', name: 'Week' },
-      { duration: 'P1M', name: 'Month' },
-    ],
+    ...baseConfig,
+    data,
     formData: {
       datasource: '3__table',
       height: 100,
@@ -140,7 +120,6 @@ test('all time grains appear when pre-filter is unchecked', async () => {
       nativeFilterId: 'time_grain_1',
       defaultValue: null,
       viz_type: 'filter_timegrain',
-      // Pre-filter not set (checkbox unchecked in config)
       timeGrains: undefined,
     },
     filterState: {
@@ -148,27 +127,55 @@ test('all time grains appear when pre-filter is unchecked', async () => {
       validateStatus: undefined,
       validateMessage: undefined,
     },
-    height: 100,
-    width: 300,
     setDataMask: jest.fn(),
-    setFilterActive: jest.fn(),
-    setHoveredFilter: jest.fn(),
-    unsetHoveredFilter: jest.fn(),
-    setFocusedFilter: jest.fn(),
-    unsetFocusedFilter: jest.fn(),
-    inputRef: { current: null },
   };
 
   render(<PluginFilterTimegrain {...dashboardConfig} />);
 
-  const select = screen.getByRole('combobox');
-  await userEvent.click(select);
+  await userEvent.click(screen.getByRole('combobox'));
 
   await waitFor(() => {
-    const options = screen.getAllByRole('option');
-    const labels = options.map(o => o.textContent);
-
-    // All 5 options should be available
+    const labels = screen.getAllByRole('option').map(o => o.textContent);
     expect(labels).toEqual(['Minute', 'Hour', 'Day', 'Week', 'Month']);
+  });
+});
+
+/**
+ * Scenario: Dashboard owner narrowed the pre-filter after an end-user had
+ * already selected a value that now falls outside the allowlist.
+ * The current selection stays visible so the filter does not silently drop it.
+ */
+test('current selection stays visible when it is outside the pre-filter allowlist', async () => {
+  const dashboardConfig: PluginFilterTimeGrainProps = {
+    ...baseConfig,
+    data,
+    formData: {
+      datasource: '3__table',
+      height: 100,
+      width: 300,
+      nativeFilterId: 'time_grain_1',
+      defaultValue: null,
+      viz_type: 'filter_timegrain',
+      timeGrains: ['PT1H', 'P1D', 'P1W'],
+    },
+    filterState: {
+      value: ['P1M'],
+      validateStatus: undefined,
+      validateMessage: undefined,
+    },
+    setDataMask: jest.fn(),
+  };
+
+  render(<PluginFilterTimegrain {...dashboardConfig} />);
+
+  await userEvent.click(screen.getByRole('combobox'));
+
+  await waitFor(() => {
+    const labels = screen.getAllByRole('option').map(o => o.textContent);
+    expect(labels).toHaveLength(4);
+    expect(labels).toEqual(
+      expect.arrayContaining(['Hour', 'Day', 'Week', 'Month']),
+    );
+    expect(labels).not.toContain('Minute');
   });
 });
