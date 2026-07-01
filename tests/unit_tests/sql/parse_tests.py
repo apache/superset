@@ -28,6 +28,7 @@ from superset.exceptions import QueryClauseValidationException, SupersetParseErr
 from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     _check_script_length,
+    BaseSQLStatement,
     CTASMethod,
     extract_tables_from_statement,
     JinjaSQLResult,
@@ -1458,7 +1459,12 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
         ("SELECT lo_import('/etc/passwd')", True),
         ("SELECT lo_put(12345, 0, decode('00', 'hex'))", True),
         ("SELECT lo_create(0)", True),
+        # lo_creat is the legacy large-object creator (distinct from lo_create).
+        ("SELECT lo_creat(-1)", True),
         ("SELECT lowrite(12345, decode('00', 'hex'))", True),
+        # lo_truncate/lo_truncate64 shrink an existing large object: a write.
+        ("SELECT lo_truncate(12345, 0)", True),
+        ("SELECT lo_truncate64(12345, 0)", True),
         # lo_unlink deletes a large object outright.
         ("SELECT lo_unlink(12345)", True),
         # PostgreSQL sequence mutators. setval()/nextval() look like reads but
@@ -3511,6 +3517,441 @@ def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
+    "engine, sql, denylist, expected",
+    [
+        # Postgres: schema-qualified denylist entry matches schema-qualified
+        # reference.
+        (
+            "postgresql",
+            "SELECT * FROM information_schema.tables",
+            {"information_schema.tables"},
+            True,
+        ),
+        # ... and is case-insensitive.
+        (
+            "postgresql",
+            "SELECT * FROM INFORMATION_SCHEMA.TABLES",
+            {"information_schema.tables"},
+            True,
+        ),
+        # Schema-qualified denylist entry does NOT match a bare-name table
+        # of the same name in another schema. A user table named `tables`
+        # remains queryable.
+        (
+            "postgresql",
+            "SELECT * FROM public.tables",
+            {"information_schema.tables"},
+            False,
+        ),
+        (
+            "postgresql",
+            "SELECT * FROM tables",
+            {"information_schema.tables"},
+            False,
+        ),
+        # Bare-name denylist entry still matches by table name only
+        # (existing behavior, schema-agnostic).
+        (
+            "postgresql",
+            "SELECT * FROM pg_stat_activity",
+            {"pg_stat_activity"},
+            True,
+        ),
+        (
+            "postgresql",
+            "SELECT * FROM pg_catalog.pg_stat_activity",
+            {"pg_stat_activity"},
+            True,
+        ),
+        # Mixed entries: one schema-qualified, one bare. Match either.
+        (
+            "postgresql",
+            "SELECT * FROM information_schema.columns",
+            {"information_schema.tables", "information_schema.columns"},
+            True,
+        ),
+        (
+            "postgresql",
+            "SELECT * FROM pg_roles",
+            {"information_schema.tables", "pg_roles"},
+            True,
+        ),
+        # Negative control.
+        (
+            "postgresql",
+            "SELECT * FROM my_table",
+            {"information_schema.tables", "pg_roles"},
+            False,
+        ),
+        # MySQL: the shipped DISALLOWED_SQL_TABLES['mysql'] entries are all
+        # schema-qualified (`mysql.user`, `performance_schema.threads`,
+        # `performance_schema.processlist`). Without schema-aware matching
+        # the entries are dead config. These cases pin the fix.
+        (
+            "mysql",
+            "SELECT user, host, authentication_string FROM mysql.user",
+            {"mysql.user"},
+            True,
+        ),
+        (
+            "mysql",
+            "SELECT * FROM performance_schema.threads",
+            {"performance_schema.threads"},
+            True,
+        ),
+        (
+            "mysql",
+            "SELECT * FROM performance_schema.processlist",
+            {"performance_schema.processlist"},
+            True,
+        ),
+        # MySQL must NOT block a user-authored table that shares the leaf
+        # name with the system view.
+        (
+            "mysql",
+            "SELECT * FROM mydb.user",
+            {"mysql.user"},
+            False,
+        ),
+        # MSSQL: same shape, `sys.*` entries are schema-qualified.
+        (
+            "mssql",
+            "SELECT name, password_hash FROM sys.sql_logins",
+            {"sys.sql_logins"},
+            True,
+        ),
+        (
+            "mssql",
+            "SELECT name, sid FROM sys.server_principals",
+            {"sys.server_principals"},
+            True,
+        ),
+        (
+            "mssql",
+            "SELECT * FROM sys.configurations",
+            {"sys.configurations"},
+            True,
+        ),
+        # MSSQL must NOT block a user-authored table sharing the leaf name.
+        (
+            "mssql",
+            "SELECT * FROM mydb.sql_logins",
+            {"sys.sql_logins"},
+            False,
+        ),
+        # Three-part (catalog.schema.table) denylist entries match the
+        # fully-qualified reference, the multi-dot form is indexed rather than
+        # silently dead.
+        (
+            "trino",
+            "SELECT * FROM cat.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            True,
+        ),
+        # ... and a different catalog must NOT match.
+        (
+            "trino",
+            "SELECT * FROM other.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            False,
+        ),
+    ],
+)
+def test_check_tables_present_schema_qualified(
+    engine: str, sql: str, denylist: set[str], expected: bool
+) -> None:
+    """
+    `check_tables_present` must distinguish schema-qualified denylist
+    entries (e.g. `information_schema.tables`, `mysql.user`,
+    `sys.sql_logins`) from bare-name entries (e.g. `pg_stat_activity`).
+    Schema-qualified entries only match schema-qualified references in
+    the SQL; bare entries match the table name regardless of schema.
+
+    Covers Postgres, MySQL, and MSSQL dialects so the shipped
+    DISALLOWED_SQL_TABLES entries for each remain effective.
+    """
+    assert SQLScript(sql, engine).check_tables_present(denylist) == expected
+
+
+@pytest.mark.parametrize(
+    "engine, sql, denylist, expected",
+    [
+        # A schema-qualified match is reported in its original denylist form,
+        # not collapsed to the bare leaf name and not the whole denylist.
+        (
+            "postgresql",
+            "SELECT * FROM information_schema.tables",
+            {"information_schema.tables", "information_schema.columns", "pg_roles"},
+            {"information_schema.tables"},
+        ),
+        # Bare-name match is reported as-is.
+        (
+            "postgresql",
+            "SELECT * FROM pg_catalog.pg_stat_activity",
+            {"pg_stat_activity", "pg_roles"},
+            {"pg_stat_activity"},
+        ),
+        # Multiple references across statements union their matches.
+        (
+            "postgresql",
+            "SELECT * FROM information_schema.tables; SELECT * FROM pg_roles",
+            {"information_schema.tables", "pg_roles", "pg_settings"},
+            {"information_schema.tables", "pg_roles"},
+        ),
+        # No match returns an empty set.
+        (
+            "postgresql",
+            "SELECT * FROM my_table",
+            {"information_schema.tables", "pg_roles"},
+            set(),
+        ),
+        # A three-part (catalog.schema.table) denylist entry matches a
+        # fully-qualified reference, reported in its original form.
+        (
+            "trino",
+            "SELECT * FROM cat.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            {"cat.sys.sql_logins"},
+        ),
+        # ... but only when the catalog lines up: a different catalog does not
+        # match the three-part entry.
+        (
+            "trino",
+            "SELECT * FROM other.sys.sql_logins",
+            {"cat.sys.sql_logins"},
+            set(),
+        ),
+    ],
+)
+def test_get_disallowed_tables(
+    engine: str, sql: str, denylist: set[str], expected: set[str]
+) -> None:
+    """
+    `get_disallowed_tables` returns exactly the denylist entries referenced,
+    in their original (possibly schema-qualified) form, so callers can report
+    precisely which tables were hit instead of echoing the whole denylist.
+    """
+    assert SQLScript(sql, engine).get_disallowed_tables(denylist) == expected
+
+
+@pytest.mark.parametrize(
+    "sql, default_schema, denylist, expected",
+    [
+        # Unqualified reference resolves to the default schema, so it matches
+        # a schema-qualified denylist entry when the schemas line up (e.g. a
+        # connection whose search_path is `information_schema`).
+        (
+            "SELECT * FROM tables",
+            "information_schema",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # ... case-insensitively.
+        (
+            "SELECT * FROM tables",
+            "INFORMATION_SCHEMA",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # The same unqualified name under a user schema must NOT match: a user
+        # table named `tables` stays queryable.
+        (
+            "SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            set(),
+        ),
+        # An explicit schema on the reference wins over the default schema.
+        (
+            "SELECT * FROM public.tables",
+            "information_schema",
+            {"information_schema.tables"},
+            set(),
+        ),
+        # Without a default schema, behavior is unchanged: unqualified
+        # references never match schema-qualified entries.
+        (
+            "SELECT * FROM tables",
+            None,
+            {"information_schema.tables"},
+            set(),
+        ),
+        # Bare-name denylist entries are schema-agnostic and unaffected by the
+        # default schema.
+        (
+            "SELECT * FROM pg_stat_activity",
+            "information_schema",
+            {"pg_stat_activity"},
+            {"pg_stat_activity"},
+        ),
+        # The default schema is forwarded to every statement in a script, so an
+        # unqualified reference in a later statement is resolved too.
+        (
+            "SELECT * FROM my_table; SELECT * FROM tables",
+            "information_schema",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+    ],
+)
+def test_get_disallowed_tables_default_schema(
+    sql: str,
+    default_schema: str | None,
+    denylist: set[str],
+    expected: set[str],
+) -> None:
+    """
+    `get_disallowed_tables` resolves an unqualified reference against the
+    supplied default schema, so a denylisted system view (e.g.
+    `information_schema.tables`) is still caught when reached without an
+    explicit schema under that search_path, without blocking a same-named
+    user table under a different schema.
+    """
+    assert (
+        SQLScript(sql, "postgresql").get_disallowed_tables(denylist, default_schema)
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, default_schema, denylist, expected",
+    [
+        # `SET search_path` rebinds where an unqualified reference resolves, so
+        # the static default schema can no longer be trusted. A qualified
+        # denylist entry must still match the later unqualified reference,
+        # otherwise the block is trivially bypassable.
+        (
+            "SET search_path = information_schema; SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # `SET search_path TO "$user", ...` falls back to an exp.Command (it is
+        # not a structured exp.Set), exercising the same conservative matching
+        # via the command-name detection branch.
+        (
+            'SET search_path TO "$user", information_schema; SELECT * FROM tables',
+            "public",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # `set_config('search_path', ...)` rebinds the search path through a
+        # function call and must trigger the same conservative matching.
+        (
+            "SELECT set_config('search_path', 'information_schema', true);"
+            " SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # The search-path change only affects later statements: a statement that
+        # runs before it keeps resolving against the original default schema, so
+        # its unqualified reference must NOT be widened.
+        (
+            "SELECT * FROM tables; SET search_path = information_schema",
+            "public",
+            {"information_schema.tables"},
+            set(),
+        ),
+        # An explicitly qualified reference is unambiguous and must NOT be
+        # widened to match a different schema's denylist entry.
+        (
+            "SET search_path = information_schema; SELECT * FROM public.tables",
+            "public",
+            {"information_schema.tables"},
+            set(),
+        ),
+        # Without a search_path change, matching is unchanged: an unqualified
+        # reference under a user schema does not match the qualified entry.
+        (
+            "SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            set(),
+        ),
+    ],
+)
+def test_get_disallowed_tables_search_path_change(
+    sql: str,
+    default_schema: str | None,
+    denylist: set[str],
+    expected: set[str],
+) -> None:
+    """
+    A `SET search_path` in the script makes unqualified references resolve to a
+    schema other than the caller's default, so `get_disallowed_tables` matches
+    them against schema-qualified entries too, closing a denylist bypass.
+    """
+    assert (
+        SQLScript(sql, "postgresql").get_disallowed_tables(denylist, default_schema)
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        # Structured `SET search_path` (exp.Set), surfaced via get_settings().
+        ("SET search_path = information_schema", True),
+        # Exotic form that falls back to exp.Command; the leading setting name
+        # is `search_path`.
+        ('SET search_path TO "$user", public', True),
+        # `SET SESSION ...` can also fall back to exp.Command; the optional
+        # SESSION/LOCAL qualifier is skipped before matching the setting name.
+        ("SET SESSION search_path FROM CURRENT", True),
+        # A quoted identifier is equivalent to the unquoted form in Postgres,
+        # so it must be recognized too (both the exp.Set and exp.Command forms).
+        ('SET "search_path" = information_schema', True),
+        ('SET "search_path" TO "$user", public', True),
+        # A `SET` whose value merely contains the substring `search_path` must
+        # not be misclassified (the setting being changed is `ROLE`).
+        ("SET ROLE app_search_path_user", False),
+        # `set_config('search_path', ...)` rebinds the path via a function call.
+        ("SELECT set_config('search_path', 'information_schema', true)", True),
+        # A different setting changed through `set_config` is not a search-path
+        # change.
+        ("SELECT set_config('statement_timeout', '0', true)", False),
+        # An unrelated (non-`set_config`) function call is not a change either.
+        ("SELECT my_custom_func(1)", False),
+        ("SELECT 1", False),
+    ],
+)
+def test_changes_search_path(sql: str, expected: bool) -> None:
+    """
+    `changes_search_path` detects search-path rebinds (via `SET` or
+    `set_config`) without misclassifying unrelated `SET` statements.
+    """
+    assert SQLStatement(sql, "postgresql").changes_search_path() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, denylist, expected",
+    [
+        ("SELECT * FROM pg_stat_activity", {"pg_stat_activity"}, True),
+        ("SELECT * FROM my_table", {"pg_stat_activity"}, False),
+    ],
+)
+def test_statement_check_tables_present(
+    sql: str, denylist: set[str], expected: bool
+) -> None:
+    """
+    `SQLStatement.check_tables_present` is the per-statement entry point that
+    `SQLScript` no longer routes through (it calls `get_disallowed_tables`
+    directly), so exercise it on its own to keep the override covered.
+    """
+    assert SQLStatement(sql, "postgresql").check_tables_present(denylist) == expected
+
+
+def test_kustokql_statement_check_tables_present() -> None:
+    """
+    `KustoKQLStatement.check_tables_present` is unsupported and always reports
+    False; exercise it directly so the override stays covered.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+    assert statement.check_tables_present({"foo"}) is False
+
+
+@pytest.mark.parametrize(
     "kql, expected",
     [
         (
@@ -3699,6 +4140,17 @@ def test_backtick_invalid_sql_still_fails() -> None:
     sql = "SELECT * FROM `table` WHERE"
     with pytest.raises(SupersetParseError):
         SQLScript(sql, "base")
+
+
+def test_base_sql_statement_is_destructive_raises_not_implemented() -> None:
+    """
+    BaseSQLStatement.is_destructive is abstract; both concrete subclasses
+    (SQLStatement and KustoKQLStatement) override it, so calling the base
+    implementation directly must raise. This exercises the abstract stub
+    so it stays exercised under coverage.
+    """
+    with pytest.raises(NotImplementedError):
+        BaseSQLStatement.is_destructive(object())  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------

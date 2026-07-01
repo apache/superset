@@ -270,12 +270,9 @@ describe('SavedQueryList', () => {
 
       await screen.findByTestId('saved_query-list-view');
 
-      // Anchor to the "+ Query" CTA: once the list loads, per-row
-      // "Query preview" buttons also match a loose /query/i and cause a
-      // "Found multiple elements" race under CI load.
-      const queryButton = await screen.findByRole('button', {
-        name: /query$/i,
-      });
+      // Scope to the create button's stable data-test: /query/i also matches the
+      // per-row "Query preview" and "Copy query URL" action buttons.
+      const queryButton = await screen.findByTestId('add-saved-query-button');
       fireEvent.click(queryButton);
 
       await waitFor(() => {
