@@ -143,10 +143,18 @@ def test_round_trip_against_in_memory_sqlite() -> None:
     _run_with_alembic_context(engine, _migration.upgrade)
 
     re_upgrade_shape = {t.name: _shape(engine, t.name) for t in AFFECTED_TABLES}
-    assert re_upgrade_shape == post_upgrade_shape, (
+    # Compare with `!=` on the (unhashable) per-table shapes rather than
+    # set-differencing `.items()` — the latter raises TypeError while
+    # formatting this message and would hide the real regression.
+    shape_diff = {
+        name: (re_upgrade_shape[name], post_upgrade_shape.get(name))
+        for name in re_upgrade_shape
+        if re_upgrade_shape[name] != post_upgrade_shape.get(name)
+    }
+    assert not shape_diff, (
         "Re-upgrade shape differs from initial upgrade shape — "
-        "migration is not idempotent. "
-        f"diff: {set(re_upgrade_shape.items()) ^ set(post_upgrade_shape.items())}"
+        f"migration is not idempotent. Per-table diffs (re-upgrade, initial): "
+        f"{shape_diff}"
     )
 
 

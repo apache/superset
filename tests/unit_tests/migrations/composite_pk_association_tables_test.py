@@ -18,10 +18,12 @@
 2bee73611e32). Verifies the post-migration constraint enforcement: duplicate
 ``(fk1, fk2)`` insertions fail with IntegrityError, distinct pairs succeed.
 
-Schema is built from the live ORM ``Table`` definitions via
-``metadata.create_all(engine)`` against in-memory SQLite. This reflects the
-post-T015–T018 ORM model state (composite-PK), independent of whether the
-Alembic migration has run against the test DB. The two should agree.
+Schema is built *synthetically* from the hardcoded ``AFFECTED_TABLES`` list:
+each junction table is reconstructed as a composite-PK ``sa.Table`` and created
+via ``metadata.create_all(engine)`` against in-memory SQLite (see
+``_build_in_memory_schema``). It does not reflect the live ORM models — the list
+mirrors the post-composite-PK shape the migration targets, so keep it in sync
+with the migration's table set.
 """
 
 import pytest
