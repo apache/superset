@@ -43,6 +43,7 @@ const IconButton = ({ icon, label, onClick }: IconButtonProps) => (
   <StyledDiv
     tabIndex={0}
     role="button"
+    aria-label={label}
     onClick={e => {
       e.preventDefault();
       onClick(e);
