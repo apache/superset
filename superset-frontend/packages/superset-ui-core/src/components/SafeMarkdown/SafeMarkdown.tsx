@@ -22,7 +22,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 // remark-gfm v4+ requires react-markdown v9+, which requires React 18.
 // Currently pinned to v3.0.1 for compatibility with react-markdown v8 and React 17.
 import remarkGfm from 'remark-gfm';
-import { mergeWith } from 'lodash';
+import { cloneDeep, mergeWith } from 'lodash-es';
 import { FeatureFlag, isFeatureEnabled } from '../../utils';
 
 interface SafeMarkdownProps {
@@ -74,7 +74,10 @@ export function transformLinkUri(uri: string): string {
   // "java\tscript:" or "java\x01script:") are ignored by browsers, so strip
   // them before comparing against the blocklist.
   // eslint-disable-next-line no-control-regex
-  const scheme = url.slice(0, colon).replace(/[\u0000-\u0020]/g, '').toLowerCase();
+  const scheme = url
+    .slice(0, colon)
+    .replace(/[\u0000-\u0020]/g, '')
+    .toLowerCase();
   return DANGEROUS_LINK_PROTOCOLS.includes(scheme) ? '' : url;
 }
 
@@ -82,8 +85,15 @@ export function getOverrideHtmlSchema(
   originalSchema: typeof defaultSchema,
   htmlSchemaOverrides: SafeMarkdownProps['htmlSchemaOverrides'],
 ) {
-  return mergeWith(originalSchema, htmlSchemaOverrides, (objValue, srcValue) =>
-    Array.isArray(objValue) ? objValue.concat(srcValue) : undefined,
+  // Merge into a fresh clone: mergeWith mutates its first argument, and the
+  // array customizer concatenates, so merging into the shared defaultSchema
+  // import would progressively widen the sanitization allowlist for every
+  // SafeMarkdown instance app-wide.
+  return mergeWith(
+    cloneDeep(originalSchema),
+    htmlSchemaOverrides,
+    (objValue, srcValue) =>
+      Array.isArray(objValue) ? objValue.concat(srcValue) : undefined,
   );
 }
 

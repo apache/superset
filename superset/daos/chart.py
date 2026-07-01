@@ -44,6 +44,7 @@ CHART_CUSTOM_FIELDS = {
 
 class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
+    filterable_relationships = frozenset({"dashboards"})
 
     @classmethod
     def apply_column_operators(

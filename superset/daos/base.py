@@ -33,6 +33,7 @@ from typing import (
 )
 
 import sqlalchemy as sa
+from flask import current_app
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel, Field
@@ -189,6 +190,16 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
     """
     id_column_name: ClassVar[str] = "id"
     uuid_column_name: ClassVar[str] = "uuid"
+
+    filterable_relationships: ClassVar[frozenset[str]] = frozenset()
+    """
+    Names of collection relationships (m2m / one-to-many) this DAO advertises
+    as filterable via ``get_filterable_columns_and_operators``. Empty means
+    no relationships are advertised — important because consumer tools
+    constrain filter columns via Pydantic ``Literal`` and would silently
+    reject anything advertised here that isn't in their allowlist.
+    Child DAOs override with the relationship names they wish to expose.
+    """
 
     def __init_subclass__(cls) -> None:
         cls.model_cls = get_args(
@@ -580,13 +591,82 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                 )
             column = getattr(cls.model_cls, col)
             try:
-                # Always use ColumnOperatorEnum's apply method
                 operator_enum = ColumnOperatorEnum(opr)
-                query = query.filter(operator_enum.apply(column, value))
+                # Relationship attributes (many-to-many or one-to-many)
+                # can't be compared directly with scalar operators —
+                # SQLAlchemy needs `.any(...)`. Detect the collection
+                # case and dispatch to the related model's primary key
+                # column. This lets callers use the natural shapes
+                # `{col: "<relationship>", opr: "eq", value: <id>}` or
+                # `{opr: "in", value: [<id>, ...]}` etc. to find rows
+                # whose related collection contains those id(s).
+                is_collection_relationship = (
+                    hasattr(column, "property")
+                    and isinstance(column.property, RelationshipProperty)
+                    and column.property.uselist
+                )
+                if is_collection_relationship:
+                    query = cls._apply_relationship_filter(
+                        query, column, col, operator_enum, value
+                    )
+                else:
+                    query = query.filter(operator_enum.apply(column, value))
             except Exception as e:
                 logging.error("Error applying filter on column '%s': %s", col, e)
                 raise
         return query
+
+    @classmethod
+    def _apply_relationship_filter(
+        cls,
+        query: Any,
+        column: Any,
+        col_name: str,
+        operator_enum: "ColumnOperatorEnum",
+        value: Any,
+    ) -> Any:
+        """Apply a filter on a many-to-many or one-to-many relationship column.
+
+        Translates the caller's operator into a SQLAlchemy ``.any()``
+        expression against the related model's primary key. Supports
+        eq / ne / in / nin / is_null / is_not_null. Other operators
+        (sw, like, gt, etc.) don't make sense on a collection of related
+        rows and raise a clear ValueError instead of producing a
+        cryptic SQLAlchemy error at query time.
+        """
+        pk_cols = inspect(column.property.mapper).primary_key
+        if len(pk_cols) != 1:
+            # Composite PKs would need a tuple `.in_()` and per-operator
+            # tuple handling; no Superset model uses one today, so we
+            # fail loudly rather than silently drop the trailing columns.
+            raise ValueError(
+                f"Relationship filter on '{col_name}' requires a "
+                f"single-column primary key on the related model; "
+                f"found {len(pk_cols)} columns."
+            )
+        related_pk = pk_cols[0]
+        if operator_enum == ColumnOperatorEnum.eq:
+            return query.filter(column.any(related_pk == value))
+        if operator_enum == ColumnOperatorEnum.ne:
+            # "no related row has id == value"
+            return query.filter(~column.any(related_pk == value))
+        if operator_enum == ColumnOperatorEnum.in_:
+            values = value if isinstance(value, (list, tuple)) else [value]
+            return query.filter(column.any(related_pk.in_(values)))
+        if operator_enum == ColumnOperatorEnum.nin:
+            values = value if isinstance(value, (list, tuple)) else [value]
+            return query.filter(~column.any(related_pk.in_(values)))
+        if operator_enum == ColumnOperatorEnum.is_null:
+            # "has no related rows at all"
+            return query.filter(~column.any())
+        if operator_enum == ColumnOperatorEnum.is_not_null:
+            # "has at least one related row"
+            return query.filter(column.any())
+        raise ValueError(
+            f"Operator '{operator_enum.value}' is not supported on "
+            f"relationship column '{col_name}'. Use one of: eq, ne, in, "
+            f"nin, is_null, is_not_null."
+        )
 
     @classmethod
     def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
@@ -599,6 +679,17 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         mapper = inspect(cls.model_cls)
         columns = {c.key: c for c in mapper.columns}
+        # Collection relationships (m2m / one-to-many) are filterable via
+        # `.any()` against the related model's primary key. Only advertise
+        # the relationships the DAO has opted into via
+        # ``filterable_relationships`` so schema discovery stays in sync
+        # with the consumer tool's input ``Literal`` allowlist (otherwise
+        # the LLM sees fields it cannot actually pass).
+        relationship_columns = {
+            rel.key: rel
+            for rel in mapper.relationships
+            if rel.uselist and rel.key in cls.filterable_relationships
+        }
         # Add hybrid properties
         hybrids = {
             name: attr
@@ -608,6 +699,17 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         # You may add custom fields here, e.g.:
         # custom_fields = {"tags": ["eq", "in_", "like"], ...}
         custom_fields: Dict[str, List[str]] = {}
+
+        # Operators apply_relationship_filter supports for collection
+        # relationships. Keep in sync with that method.
+        relationship_operators = [
+            ColumnOperatorEnum.eq,
+            ColumnOperatorEnum.ne,
+            ColumnOperatorEnum.in_,
+            ColumnOperatorEnum.nin,
+            ColumnOperatorEnum.is_null,
+            ColumnOperatorEnum.is_not_null,
+        ]
 
         filterable: Dict[str, Any] = {}
         for name, col in columns.items():
@@ -630,6 +732,9 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         # Add hybrid properties as string fields by default
         for name in hybrids:
             filterable[name] = TYPE_OPERATOR_MAP["string"]
+        # Add collection relationships
+        for name in relationship_columns:
+            filterable[name] = relationship_operators
         # Add custom fields
         filterable.update(custom_fields)
 
@@ -772,7 +877,19 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             else:
                 query = query.order_by(asc(column))
         page = page
-        page_size = max(page_size, 1)
+        # Clamp the page size to a sane range: at least 1, and no larger than
+        # the configured upper bound, to keep result sets bounded.
+        # Normalize the configured maximum to a positive integer so that a
+        # misconfigured value (non-int or <= 0) cannot produce a non-positive
+        # page size, which would break pagination or yield unbounded queries.
+        try:
+            max_page_size = int(
+                current_app.config.get("SQLALCHEMY_DAO_MAX_PAGE_SIZE", 1000)
+            )
+        except (TypeError, ValueError):
+            max_page_size = 1000
+        max_page_size = max(max_page_size, 1)
+        page_size = min(max(page_size, 1), max_page_size)
         query = query.offset(page * page_size).limit(page_size)
         items = query.all()
         # If columns are specified, SQLAlchemy returns Row objects (not tuples or

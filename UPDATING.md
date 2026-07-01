@@ -24,6 +24,101 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Guest-token RLS rules reject unknown fields
+
+The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a *global* rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
+
+### MCP service requires `MCP_JWT_AUDIENCE` when JWT auth is enabled
+
+When the MCP service has JWT auth enabled (`MCP_AUTH_ENABLED = True`), an audience must be configured via `MCP_JWT_AUDIENCE` so issued tokens are bound to this service. The service now fails to start with a clear configuration error when the audience is unset, instead of starting with audience validation skipped. Deployments that enable MCP JWT auth must set `MCP_JWT_AUDIENCE` to the audience value their identity provider issues for the MCP service. API-key-only MCP deployments (JWT auth disabled) are unaffected.
+
+### Swagger UI is opt-in (off by default)
+
+`FAB_API_SWAGGER_UI` now defaults to `False` and is driven by the `SUPERSET_ENABLE_SWAGGER_UI` environment variable. The interactive Swagger UI / OpenAPI documentation endpoints (e.g. `/swagger/v1`) are therefore no longer exposed by default. To enable them, set `SUPERSET_ENABLE_SWAGGER_UI=true` (the bundled Docker development environment sets this) or override `FAB_API_SWAGGER_UI = True` in `superset_config.py`.
+
+### Build details (git SHA / build number) are admin-only by default
+
+The git SHA and build number surfaced in the "About" section, the bootstrap payload, and the public `/version` endpoint are now only included for admin users by default; the release version string is still shown to everyone. To expose the build details to all users (the previous behavior), set the `SUPERSET_EXPOSE_BUILD_DETAILS` environment variable (or `EXPOSE_BUILD_DETAILS_TO_USERS = True` in `superset_config.py`).
+
+### Pivot table First/Last aggregations follow data order
+
+The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
+
+### `FetchRetryOptions` callback parameters widened to allow `null`
+
+The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
+
+### `thumbnail_url` removed from dashboard list API response
+
+The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list responses. External consumers relying on this field must now construct the thumbnail URL client-side using `id` and `changed_on_utc`:
+
+```
+/api/v1/dashboard/{id}/thumbnail/{changed_on_utc}/
+```
+
+The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
+
+### Tagging fix for `create_all`-bootstrapped schemas
+
+Only affects deployments whose metadata schema was created with SQLAlchemy's `create_all` (rather than `superset db upgrade`) on a foreign-key-enforcing backend — PostgreSQL, or MySQL with `FOREIGN_KEY_CHECKS=1`. Such schemas carry three invalid foreign keys on `tagged_object.object_id` that break tagging (`TAGGING_SYSTEM = True`) with a `ForeignKeyViolation`. Schemas built via `superset db upgrade` are unaffected.
+
+This release stops the ORM from emitting these constraints, but it cannot drop ones already present in your schema. If affected, drop them manually (names vary by backend, so look them up first):
+
+```sql
+-- PostgreSQL: names are typically tagged_object_object_id_fkey, _fkey1, _fkey2
+ALTER TABLE tagged_object DROP CONSTRAINT <constraint_name>;
+
+-- MySQL: find names via `SHOW CREATE TABLE tagged_object;`
+ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
+```
+
+### Webhook alerts/reports block private/internal hosts by default
+
+Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
+
+Deployments that intentionally point webhooks at internal targets (chatops bridges, internal automation servers, on-premises Mattermost/Rocket.Chat, etc.) can opt out by setting `ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS = True` in `superset_config.py`. This mirrors the existing `DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS` opt-out for dataset imports.
+
+### Impala cancel_query blocks private/internal hosts by default
+
+The Impala engine spec's `cancel_query` issues an HTTP request from the Superset backend to the host configured on the Impala database connection. That host is now validated before the request: if it resolves to a private/internal IP range, the cancel call is refused and a warning is logged. Operators whose Impala cluster runs on an internal network can opt out by setting `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS = True` in `superset_config.py`. This mirrors the dataset-import and webhook opt-out flags.
+### Map chart renderer and OpenStreetMap migration behavior
+
+The MapLibre migration for deck.gl charts preserves saved non-Mapbox styles on
+the MapLibre-compatible path. Saved styles such as OpenStreetMap, `tile://`
+tile templates, generic HTTPS style URLs, and charts without a saved style are
+not reclassified as Mapbox during migration and do not require
+`MAPBOX_API_KEY` only because of the migration.
+
+Saved true Mapbox styles whose value starts with `mapbox://` remain
+Mapbox-backed. If a Superset deployment does not configure `MAPBOX_API_KEY`,
+those saved Mapbox charts keep the existing missing-key message instead of
+silently falling back to MapLibre or another provider. In Explore, deck.gl and
+point-cluster renderer controls preserve saved Mapbox state, but the Mapbox
+choice is not available as a new working renderer without a configured key.
+
+The MapLibre style choices include `Streets (OSM)`, backed by
+`https://tile.openstreetmap.org/{z}/{x}/{y}.png`. This OpenStreetMap tile
+service requires visible `© OpenStreetMap contributors` attribution and should
+be used through normal browser map tile requests and caching; it is not intended
+for bulk prefetch or offline tile downloads.
+
+### Password complexity policy enabled by default
+
+Superset now ships a default password-complexity policy, enforced (via Flask-AppBuilder) across self-registration, the user create/edit/reset forms, and the User REST API. The policy requires a minimum password length of 8 characters and rejects a built-in blocklist of common/guessable passwords.
+
+This is enabled by default (`FAB_PASSWORD_COMPLEXITY_ENABLED = True`), so new or reset passwords that are too short or appear in the blocklist will be rejected where they were previously accepted. Existing stored passwords are unaffected until they are next changed.
+
+Operators can tune or disable the policy via config:
+
+- `AUTH_PASSWORD_MIN_LENGTH` — minimum length (default `8`).
+- `AUTH_PASSWORD_COMMON_BLOCKLIST` — extra passwords to reject, in addition to the built-in list.
+- `FAB_PASSWORD_COMPLEXITY_VALIDATOR` — replace with your own callable for custom rules.
+- `FAB_PASSWORD_COMPLEXITY_ENABLED = False` — disable enforcement entirely.
+
+### Data uploads bounded by UPLOAD_MAX_FILE_SIZE_BYTES
+
+Single data-file uploads (CSV, Excel, columnar) are now bounded by the `UPLOAD_MAX_FILE_SIZE_BYTES` config option, which defaults to `100 * 1024 * 1024` (100 MB). Files larger than this are rejected with a `413` before their contents are buffered into memory. Set `UPLOAD_MAX_FILE_SIZE_BYTES = None` to disable the check and restore unbounded uploads.
+
 ### Duration formatter precision
 
 The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.
@@ -44,6 +139,62 @@ The embedded dashboard page now validates the origin of incoming `postMessage` e
 
 Enforcement only applies when the Allowed Domains list is non-empty. If the list is empty (the default), any origin is accepted, so there is no behavior change for embeds that did not configure Allowed Domains.
 
+### Default guest/async JWT secrets are rejected at startup
+
+Superset already refuses to start in production (non-debug, non-testing) when `SECRET_KEY` is left at its built-in default, and when `GUEST_TOKEN_JWT_SECRET` is left at its default while `EMBEDDED_SUPERSET` is enabled. This behavior is extended to `GLOBAL_ASYNC_QUERIES_JWT_SECRET`: if the `GLOBAL_ASYNC_QUERIES` feature flag is enabled and the secret is still the publicly known default (`test-secret-change-me`), Superset logs a clear error and refuses to start.
+
+As with the existing `SECRET_KEY` check, this only fails in production. In debug mode, testing mode, or under the test runner, a warning is logged instead of exiting, so local development is unaffected.
+
+To resolve the error, set a strong random value in `superset_config.py`:
+
+```python
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "<output of: openssl rand -base64 42>"
+```
+
+The check is only active when the relevant feature is enabled, so deployments that do not use global async queries (or embedding) are not affected.
+
+### Guest token revocation (opt-in)
+
+Embedded guest tokens can be coarsely revoked at runtime via a new opt-in mechanism. A new config flag `GUEST_TOKEN_REVOCATION_ENABLED` (default `False`) gates the feature. When enabled, every minted guest token carries a revocation version, and tokens whose version is below the current expected version (stored in the metadata database) are rejected at validation time.
+
+Bump the expected version with the new CLI command to invalidate all outstanding guest tokens:
+
+```bash
+superset revoke-guest-tokens
+```
+
+This change is backward compatible. The feature is off by default, and even when enabled nothing is revoked until an admin explicitly bumps the version: the expected version starts at `0`, and tokens minted before this change (which carry no version claim) are treated as version `0`. No database migration is required.
+
+### Sessions are terminated when an account is disabled
+
+Disabling a user account (setting `active` to `False`, via the admin UI, REST API, or CLI) now terminates that user's outstanding sessions on their next request, instead of relying on a passive check. This works for both client-side cookie sessions and server-side session stores via a per-user invalidation epoch (`user_attribute.sessions_invalidated_at`, added by a migration). The mechanism is inert for users that were never disabled (NULL epoch), so there is no behavior change for active users. Re-enabling an account and logging in again starts a fresh, valid session. The migration backfills the epoch for accounts that are already disabled at upgrade time, so re-enabling such an account does not revive a session that predates this feature.
+
+### Opt-in SSH tunnel server host key verification
+
+SSH tunnels can now optionally pin the expected SSH server host key as a defense-in-depth measure against man-in-the-middle attacks. paramiko's transport performs no known-hosts checking by default, so previously the SSH server's identity was not verified. This feature is opt-in and off by default; existing tunnels are unaffected.
+
+- A new nullable `server_host_key` column on the `ssh_tunnels` table stores the expected host key in authorized-key form (e.g. `ssh-ed25519 AAAA...`). It is a public key and is stored in plaintext. It can be set via the SSH tunnel POST/PUT payloads (`ssh_tunnel.server_host_key`).
+- When a tunnel has `server_host_key` set, Superset connects to the SSH server, reads the host key it presents, and rejects the tunnel if it does not match.
+- A new config flag `SSH_TUNNEL_STRICT_HOST_KEY_CHECKING` (default `False`) controls fail-closed behavior. When `True`, every tunnel must declare a `server_host_key`; a tunnel without one is rejected.
+
+Runbook to adopt:
+
+1. Capture the SSH server's host key, e.g. `ssh-keyscan -t ed25519 ssh.example.com` (verify it out-of-band).
+2. Set that value on the tunnel's `server_host_key` (via the database/SSH tunnel API or UI payload).
+3. Optionally set `SSH_TUNNEL_STRICT_HOST_KEY_CHECKING = True` in `superset_config.py` to require host-key verification on all tunnels.
+
+### SMTP server certificate validation enabled by default
+
+`SMTP_SSL_SERVER_AUTH` now defaults to `True` (previously `False`). With this default, STARTTLS/SSL connections to the configured SMTP server validate the server's TLS certificate against the system trusted CA store. This makes outbound email (alerts and reports) verify the mail server's identity out of the box.
+
+If your SMTP server presents a self-signed certificate, or a certificate that is not trusted by the system CA store, email delivery may now fail with a certificate verification error. To restore the previous behavior of skipping certificate validation, set the following in `superset_config.py`:
+
+```python
+SMTP_SSL_SERVER_AUTH = False
+```
+
+The recommended fix is to add the SMTP server's certificate (or its issuing CA) to the system trust store rather than disabling validation.
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
@@ -62,6 +213,36 @@ Both default to empty (no behavior change). They apply to both the `LOCAL_EXTENS
 ### Dynamic Group By respects the sort toggle for display values
 
 The Dynamic Group By chart customization now orders its display values according to the "Sort display control values" toggle: ascending (A–Z), descending (Z–A), or the dataset's source order when the toggle is unset. Previously the dropdown always sorted alphabetically. Existing dashboards where the toggle was never set will show options in source order instead of A–Z; open the customization and enable the toggle to restore alphabetical ordering.
+
+### Selectable encryption engine for app-encrypted fields (AES-GCM)
+
+App-encrypted fields (database passwords, SSH tunnel credentials, OAuth tokens, etc.) can now use authenticated **AES-GCM** encryption instead of the historical unauthenticated **AES-CBC**. A new config selects the engine for the default adapter:
+
+```python
+# "aes" (AES-CBC, historical default) | "aes-gcm" (authenticated, recommended for new installs)
+SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
+```
+
+**No action required / no behavior change:** the default remains `"aes"`, so existing installs are unaffected.
+
+**Opting in on an existing install:** flipping the engine on a populated database without re-encrypting first will make stored secrets undecryptable, because the two ciphertext formats are not compatible. A migrator is provided. Recommended runbook:
+
+1. Take a metadata-DB backup.
+2. Re-encrypt existing secrets into the new engine (the `SECRET_KEY` is unchanged):
+   ```bash
+   superset re-encrypt-secrets --engine aes-gcm
+   ```
+3. Set `SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes-gcm"` in your config.
+4. Restart Superset.
+5. Re-run the migrator once more after the restart:
+   ```bash
+   superset re-encrypt-secrets --engine aes-gcm
+   ```
+   A live instance keeps writing *new* secrets as AES-CBC during the window between step 2 and the restart in step 4; this second pass sweeps those up (it is idempotent, so already-migrated values are skipped).
+
+Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
+
+The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
 
 ### Granular Export Controls
 
@@ -92,6 +273,9 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 - The endpoint is available to users with at least one of `can_read` on `Dataset` or `SemanticView`.
 - Semantic views are included only when the `SEMANTIC_LAYERS` feature flag is enabled.
 - The endpoint enforces strict `order_column` validation and returns `400` for invalid sort columns.
+
+## 6.1.0
+
 ### ClickHouse minimum driver version bump
 
 The minimum required version of `clickhouse-connect` has been raised to `>=0.13.0`. If you are using the ClickHouse connector, please upgrade your `clickhouse-connect` package. The `_mutate_label` workaround that appended hash suffixes to column aliases has also been removed, as it is no longer needed with modern versions of the driver.

@@ -305,6 +305,13 @@ class TestBigQueryDbEngineSpec(SupersetTestCase):
 
     @mock.patch("superset.models.core.Database.db_engine_spec", BigQueryEngineSpec)
     @mock.patch("sqlalchemy_bigquery._helpers.create_bigquery_client", mock.Mock)
+    @mock.patch(
+        "superset.db_engine_specs.bigquery.BigQueryEngineSpec.adjust_engine_params",
+        new=lambda uri, connect_args, catalog=None, schema=None, **kw: (
+            uri,
+            connect_args,
+        ),
+    )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_calculated_column_in_order_by(self):
         table = self.get_table(name="birth_names")

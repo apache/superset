@@ -31,7 +31,7 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { useHistory } from 'react-router-dom';
-import { pick } from 'lodash';
+import { pick } from 'lodash-es';
 import {
   Button,
   ButtonGroup,
@@ -425,6 +425,7 @@ const ResultSet = ({
                     url: makeUrl('/api/v1/sqllab/export_streaming/'),
                     payload: { client_id: query.id },
                     exportType: 'csv',
+                    exportSource: 'sqllab',
                     expectedRows: rows,
                   });
                 } else {

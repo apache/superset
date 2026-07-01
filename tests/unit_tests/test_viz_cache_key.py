@@ -97,8 +97,8 @@ def test_cache_query_by_user_flag_yields_distinct_keys(feature_flag_mock):
     """
     Global ``CACHE_QUERY_BY_USER`` flag also reaches the legacy viz path.
     """
-    feature_flag_mock.is_feature_enabled.side_effect = (
-        lambda feature=None: feature == "CACHE_QUERY_BY_USER"
+    feature_flag_mock.is_feature_enabled.side_effect = lambda feature=None: (
+        feature == "CACHE_QUERY_BY_USER"
     )
     database = Database(database_name="d", sqlalchemy_uri="sqlite://")
     obj = _viz_for(database)

@@ -101,6 +101,7 @@ import { RefreshButton } from '../RefreshButton';
 
 type DashboardPropertiesUpdate = {
   slug?: string;
+  description?: string;
   jsonMetadata?: string;
   certifiedBy?: string;
   certificationDetails?: string;
@@ -122,6 +123,7 @@ type DashboardInfoState = RootState['dashboardInfo'] & {
   dash_share_perm?: boolean;
   is_managed_externally?: boolean;
   slug?: string;
+  description?: string;
   last_modified_time?: number;
   certified_by?: string;
   certification_details?: string;
@@ -442,6 +444,7 @@ const Header = (): JSX.Element => {
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
       slug,
+      description: dashboardInfo.description,
       tags: (dashboardInfo.tags || []).filter(
         item => item.type === TagTypeEnum.Custom || !item.type,
       ),
@@ -465,7 +468,9 @@ const Header = (): JSX.Element => {
     if (positionJSONLength >= limit) {
       boundActionCreators.addDangerToast(
         t(
-          'Your dashboard is too large. Please reduce its size before saving it.',
+          'Your dashboard is too large to save: the serialized layout length is %s but the limit is %s. Reduce the dashboard size (for example, split it into multiple dashboards) or raise the SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting.',
+          positionJSONLength.toLocaleString(),
+          limit.toLocaleString(),
         ),
       );
     } else {
@@ -497,6 +502,7 @@ const Header = (): JSX.Element => {
     shouldPersistRefreshFrequency,
     slug,
     themeId,
+    dashboardInfo.description,
   ]);
 
   const {
@@ -555,6 +561,7 @@ const Header = (): JSX.Element => {
     (updates: DashboardPropertiesUpdate) => {
       boundActionCreators.dashboardInfoChanged({
         slug: updates.slug,
+        description: updates.description,
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,

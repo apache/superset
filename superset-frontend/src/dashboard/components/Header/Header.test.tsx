@@ -547,6 +547,34 @@ test('should save', () => {
   expect(onSave).toHaveBeenCalledTimes(1);
 });
 
+test('should block saving and surface the size, limit, and config key when the layout exceeds the limit', () => {
+  const oversizedState = {
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      hasUnsavedChanges: true,
+    },
+    dashboardInfo: {
+      ...editableState.dashboardInfo,
+      common: {
+        conf: {
+          ...editableState.dashboardInfo.common.conf,
+          // any non-empty layout serializes to more than 1 character
+          SUPERSET_DASHBOARD_POSITION_DATA_LIMIT: 1,
+        },
+      },
+    },
+  };
+  setup(oversizedState);
+  userEvent.click(screen.getByText('Save'));
+  expect(onSave).not.toHaveBeenCalled();
+  expect(addDangerToast).toHaveBeenCalledTimes(1);
+  const message = addDangerToast.mock.calls[0][0];
+  expect(message).toContain('too large to save');
+  expect(message).toContain('the limit is 1');
+  expect(message).toContain('SUPERSET_DASHBOARD_POSITION_DATA_LIMIT');
+});
+
 test('should NOT render the "Draft" status', () => {
   const publishedState = {
     ...initialState,
@@ -595,6 +623,35 @@ test('should fave', async () => {
   expect(saveFaveStar).not.toHaveBeenCalled();
   userEvent.click(fave);
   expect(saveFaveStar).toHaveBeenCalledTimes(1);
+});
+
+// FaveStar.onClick passes the *prior* isStarred value to saveFaveStar — the
+// reducer flips it. So favoriting (unstarred → starred) sends `false`, and
+// unfavoriting (starred → unstarred) sends `true`.
+test('should call saveFaveStar with false when favoriting from the header', () => {
+  setup();
+  const header = screen.getByTestId('dashboard-header-container');
+
+  userEvent.click(within(header).getByRole('img', { name: 'unstarred' }));
+  expect(saveFaveStar).toHaveBeenCalledTimes(1);
+  expect(saveFaveStar).toHaveBeenCalledWith(
+    initialState.dashboardInfo.id,
+    false,
+  );
+});
+
+test('should call saveFaveStar with true when unfavoriting from the header', () => {
+  setup({
+    dashboardState: { ...initialState.dashboardState, isStarred: true },
+  });
+  const header = screen.getByTestId('dashboard-header-container');
+
+  userEvent.click(within(header).getByRole('img', { name: 'starred' }));
+  expect(saveFaveStar).toHaveBeenCalledTimes(1);
+  expect(saveFaveStar).toHaveBeenCalledWith(
+    initialState.dashboardInfo.id,
+    true,
+  );
 });
 
 test('should toggle the edit mode', () => {

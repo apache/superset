@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any, Optional, TYPE_CHECKING
 
-from flask import g
+from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role, User
 
 from superset import security_manager
@@ -58,8 +58,11 @@ def populate_owner_list(
     if not owner_ids and default_to_user:
         return [g.user]
     if not (security_manager.is_admin() or get_user_id() in owner_ids):
-        # make sure non-admins can't remove themselves as owner by mistake
-        owners.append(g.user)
+        # Make sure non-admins can't remove themselves as owner by mistake.
+        # Skip auto-add when an EXTRA_OWNERS_RESOLVER is configured — the
+        # resolver handles access independently of the owners list.
+        if not current_app.config.get("EXTRA_OWNERS_RESOLVER"):
+            owners.append(g.user)
     for owner_id in owner_ids:
         owner = security_manager.get_user_by_id(owner_id)
         if not owner:

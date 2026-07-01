@@ -35,7 +35,7 @@ import {
 } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { isChartCustomization } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { areObjectsEqual } from 'src/reduxUtils';
 import {
   isSingleColumnDimensionChart,

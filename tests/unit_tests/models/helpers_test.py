@@ -19,9 +19,10 @@
 
 from __future__ import annotations
 
+import copy
 from contextlib import contextmanager
 from typing import cast, TYPE_CHECKING
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_mock import MockerFixture
@@ -30,7 +31,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.elements import ColumnElement
 
-from superset.superset_typing import AdhocColumn
+from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
 from superset.utils.core import GenericDataType
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -923,6 +924,118 @@ def test_process_orderby_expression_with_template_processor(
     assert call_args["template_processor"] is template_processor
 
     assert result == "processed_column DESC"
+
+
+def _assert_get_sqla_query_does_not_mutate_orderby(
+    database: Database,
+    sql_expression: str,
+    expected_sql_fragment: str,
+) -> None:
+    """
+    Order a query by an ad-hoc SQL metric and assert the caller's orderby
+    dicts are left untouched.
+
+    The processed (Jinja-rendered, sqlglot-normalized) expression must not be
+    written back into the shared dict, which would change the cache key of a
+    rehydrated query context (see issue #37114). ``expected_sql_fragment`` is
+    matched against the whitespace-stripped SQL, as sqlglot may normalize the
+    output slightly.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": sql_expression,
+        "label": "my metric",
+        "hasCustomLabel": True,
+    }
+    orderby: list[OrderBy] = [(copy.deepcopy(adhoc_metric), False)]
+    original_orderby = copy.deepcopy(orderby)
+
+    query = table.get_sqla_query(
+        metrics=[adhoc_metric],
+        orderby=orderby,
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            query.sqla_query.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    assert expected_sql_fragment in sql.replace(" ", "")
+    assert orderby == original_orderby
+    assert cast(AdhocMetric, orderby[0][0])["sqlExpression"] == sql_expression
+
+
+def test_get_sqla_query_does_not_mutate_adhoc_orderby(database: Database) -> None:
+    """
+    Test that `get_sqla_query` does not mutate ad-hoc ORDER BY entries.
+    """
+    _assert_get_sqla_query_does_not_mutate_orderby(
+        database,
+        "SUM(CASE \r\n      WHEN a > 0\r\n      THEN 1\r\n    END)",
+        "ORDERBY",
+    )
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_get_sqla_query_does_not_mutate_adhoc_orderby_with_jinja(
+    database: Database,
+) -> None:
+    """
+    Test that Jinja in an ad-hoc ORDER BY entry is not rendered back.
+    """
+    _assert_get_sqla_query_does_not_mutate_orderby(
+        database,
+        "SUM(CASE WHEN a > {{ 1 + 1 }} THEN 1 END)",
+        "a>2",
+    )
+
+
+def test_cache_key_stable_across_query_build(database: Database) -> None:
+    """
+    Test that `QueryObject.cache_key()` is unchanged by building the query.
+    """
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "SUM(CASE \r\n  WHEN a > 0\r\n  THEN a\r\nEND)",
+        "label": "my metric",
+        "hasCustomLabel": True,
+    }
+    query_obj = QueryObject(
+        datasource=table,
+        columns=[],
+        metrics=[adhoc_metric],
+        orderby=[(copy.deepcopy(adhoc_metric), False)],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    cache_key_before = query_obj.cache_key()
+    table.get_query_str_extended(query_obj.to_dict())
+
+    assert query_obj.cache_key() == cache_key_before
 
 
 def test_process_select_expression_basic(
@@ -2503,6 +2616,239 @@ def test_adhoc_column_to_sqla_skips_probe_when_not_forced(
     assert generic_type is None
 
 
+def _normalize_df_datasource(column: object) -> MagicMock:
+    """Bind ``ExploreMixin.normalize_df`` to a minimal datasource exposing a
+    single temporal ``column`` via ``get_column``."""
+    from superset.models.helpers import ExploreMixin
+
+    datasource = MagicMock()
+    datasource.offset = 0
+    datasource.enforce_numerical_metrics = False
+    datasource.columns = [column]
+    datasource.get_column = lambda name: {"ts": column}.get(name)
+    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+    return datasource
+
+
+def _raw_query_object() -> MagicMock:
+    """A query object for a raw/unaggregated query: ``columns`` holds the plain
+    physical column name (no base-axis adhoc wrapper, no granularity)."""
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = None
+    query_object.time_shift = None
+    return query_object
+
+
+def test_normalize_df_applies_python_date_format_to_unaggregated_columns() -> None:
+    """A temporal column selected in a raw/unaggregated query is a plain column
+    name rather than a base-axis adhoc column, so it is excluded from
+    ``get_base_axis_labels``. It must still receive its ``python_date_format``,
+    so an ``epoch_s`` column is converted to datetimes the same way it is for
+    aggregated charts."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch seconds
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_df_applies_epoch_ms_to_unaggregated_columns() -> None:
+    """``epoch_ms`` is a separate conversion branch from ``epoch_s``; an
+    unaggregated column declaring it must also be converted to datetimes."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_ms",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch milliseconds
+    df = pd.DataFrame({"ts": [1577836800000, 1609459200000, 1640995200000]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
+def test_normalize_df_handles_dict_shaped_columns() -> None:
+    """Some datasources expose columns as dicts rather than objects. The raw
+    temporal-column lookup must read is_dttm and python_date_format from either
+    shape, the same way the base-axis path already does."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = {"column_name": "ts", "is_dttm": True, "python_date_format": "epoch_s"}
+    datasource = _normalize_df_datasource(ts_col)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_leaves_unconfigured_integer_dttm_columns_untouched() -> None:
+    """A column flagged temporal but with no ``python_date_format`` must not be
+    coerced: a plain integer column would otherwise be reinterpreted as
+    nanoseconds since the epoch (1577836800 -> 1970-01-01 00:00:01.5...). Only
+    columns that declare a format are normalized."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    int_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format=None,
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(int_col)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200, 1640995200]
+
+
+def test_normalize_df_without_get_column_is_a_noop() -> None:
+    """Not every datasource exposes ``get_column``; for those, the temporal
+    lookup must short-circuit instead of raising, leaving the data untouched."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.models.helpers import ExploreMixin
+
+    class _NoGetColumnDatasource:
+        """A datasource that does not implement ``get_column``."""
+
+        offset = 0
+        enforce_numerical_metrics = False
+        columns: list[object] = []
+
+    datasource = _NoGetColumnDatasource()
+    for method in ("_python_date_format", "_collect_dttm_labels", "normalize_df"):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, _raw_query_object())  # type: ignore[attr-defined]
+
+    assert not is_datetime64_any_dtype(result["ts"])
+    assert result["ts"].tolist() == [1577836800, 1609459200]
+
+
+def test_normalize_df_normalizes_base_axis_temporal_columns() -> None:
+    """The aggregated path: a base-axis temporal column is normalized, and the
+    raw-column pass does not re-add it (it is already collected)."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = [
+        {"label": "ts", "sqlExpression": "ts", "columnType": "BASE_AXIS"}
+    ]
+    query_object.granularity = None
+    query_object.time_shift = None
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_dedups_column_in_granularity_and_columns() -> None:
+    """When the same temporal column is both the ``granularity`` and a selected
+    column, it is collected once (via the base path) and the raw pass does not
+    re-add it, so it is normalized a single time."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = ["ts"]
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    assert datasource._collect_dttm_labels(query_object) == (("ts", "epoch_s"),)
+
+    df = pd.DataFrame({"ts": [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result["ts"])
+    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
+def test_normalize_df_normalizes_legacy_time_column() -> None:
+    """The legacy ``__timestamp`` column is normalized using the granularity
+    column's python_date_format."""
+    import pandas as pd
+    from pandas.api.types import is_datetime64_any_dtype
+
+    from superset.utils.core import DTTM_ALIAS
+
+    ts_col = MagicMock(
+        column_name="ts",
+        is_dttm=True,
+        python_date_format="epoch_s",
+        datetime_format=None,
+    )
+    datasource = _normalize_df_datasource(ts_col)
+
+    query_object = MagicMock()
+    query_object.columns = []
+    query_object.granularity = "ts"
+    query_object.time_shift = None
+
+    df = pd.DataFrame({DTTM_ALIAS: [1577836800, 1609459200]})
+
+    result = datasource.normalize_df(df, query_object)
+
+    assert is_datetime64_any_dtype(result[DTTM_ALIAS])
+    assert result[DTTM_ALIAS][0].strftime("%Y-%m-%d") == "2020-01-01"
+
+
 def test_adhoc_column_to_sqla_returns_type_from_column_metadata(
     database: Database,
 ) -> None:
@@ -2847,3 +3193,65 @@ def test_process_sql_expression_no_gate_when_denylists_empty(
         template_processor=None,
     )
     assert result is not None
+
+
+def test_get_sqla_query_dotted_struct_column_bigquery(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    SC-111745: a BigQuery STRUCT field registered with a dotted ``column_name``
+    (e.g. ``forecasts.original.total_cost``) must be quoted per-segment in the
+    drill-to-detail / samples SELECT (e.g. ```forecasts`.`original`.`total_cost```),
+    not collapsed into a single quoted identifier (```forecasts.original```),
+    which BigQuery rejects with "Unrecognized name".
+    """
+    bigquery = pytest.importorskip("sqlalchemy_bigquery")
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    dialect = bigquery.BigQueryDialect()
+
+    @contextmanager
+    def fake_engine(*args, **kwargs):
+        engine = MagicMock()
+        engine.dialect = dialect
+        yield engine
+
+    database = Database(database_name="bq", sqlalchemy_uri="bigquery://project")
+    mocker.patch.object(database, "get_sqla_engine", new=fake_engine)
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="orders",
+        columns=[
+            TableColumn(column_name="id", type="INTEGER"),
+            TableColumn(column_name="forecasts.original.total_cost", type="FLOAT"),
+        ],
+    )
+
+    # Mirror the drill-to-detail / samples path: select physical columns with no
+    # groupby/metrics so the column-selection branch in ``get_sqla_query`` runs.
+    sqlaq = table.get_sqla_query(
+        columns=["id", "forecasts.original.total_cost"],
+        is_timeseries=False,
+        row_limit=100,
+    )
+    sql = str(
+        sqlaq.sqla_query.compile(
+            dialect=dialect,
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    # The dotted STRUCT path must be quoted per-segment so BigQuery resolves the
+    # nested field, and must not appear as a single merged identifier.
+    assert "`forecasts`.`original`.`total_cost`" in sql
+    # ```forecasts.original``` is a substring of the broken form
+    # ```forecasts.original`.`total_cost``` (the regression), so this negative
+    # assertion catches the actual failure mode, not just an exact-string match.
+    assert "`forecasts.original`" not in sql
