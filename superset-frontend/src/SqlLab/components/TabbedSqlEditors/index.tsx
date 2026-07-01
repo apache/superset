@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { EditableTabs } from '@superset-ui/core/components/Tabs';
 import { connect } from 'react-redux';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
@@ -24,11 +24,14 @@ import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/theme';
 import { Logger } from 'src/logger/LogUtils';
-import { EmptyState, Tooltip } from '@superset-ui/core/components';
+import { Dropdown, EmptyState, Tooltip } from '@superset-ui/core/components';
+import { MenuItemType } from '@superset-ui/core/components/Menu';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { menus, commands } from 'src/core';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -92,6 +95,114 @@ const TabTitle = styled.span`
 
 // Get the user's OS
 const userOS = detectOS();
+
+const newTabTooltip =
+  userOS === 'Windows' ? t('New tab (Ctrl + q)') : t('New tab (Ctrl + t)');
+
+const PlusIcon = (
+  <Icons.PlusOutlined
+    iconSize="l"
+    css={css`
+      vertical-align: middle;
+    `}
+    data-test="add-tab-icon"
+  />
+);
+
+function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
+  const [open, setOpen] = useState(false);
+
+  const dropdownItems = useMemo<MenuItemType[]>(() => {
+    if (!open) return [];
+    const primaryItems =
+      menus.getMenu(ViewLocations.sqllab.newTab)?.primary ?? [];
+    return [
+      {
+        key: 'sql-editor',
+        label: t('SQL Editor'),
+        icon: <Icons.TableOutlined iconSize="m" />,
+        onClick: () => {
+          setOpen(false);
+          onAddSqlEditor();
+        },
+      },
+      ...primaryItems.flatMap(item => {
+        const command = commands.getCommand(item.command);
+        if (!command) {
+          // An extension contributed this menu item but its command isn't
+          // registered (load is still pending or failed). Skip it so clicking
+          // can't throw "Command not found" and break the add-tab flow.
+          return [];
+        }
+        const Icon = command.icon
+          ? ((Icons as Record<string, typeof Icons.FileOutlined>)[
+              command.icon
+            ] ?? Icons.FileOutlined)
+          : Icons.FileOutlined;
+        return [
+          {
+            key: command.id,
+            label: command.title ?? item.command,
+            icon: <Icon iconSize="m" />,
+            onClick: () => {
+              setOpen(false);
+              commands.executeCommand(item.command);
+            },
+          } as MenuItemType,
+        ];
+      }),
+    ];
+  }, [open, onAddSqlEditor]);
+
+  const activate = useCallback(() => {
+    const primaryItems =
+      menus.getMenu(ViewLocations.sqllab.newTab)?.primary ?? [];
+    if (primaryItems.length === 0) {
+      onAddSqlEditor();
+    } else {
+      setOpen(prev => !prev);
+    }
+  }, [onAddSqlEditor]);
+
+  const anchorRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    // Antd's Tabs wraps addIcon in its own <button onClick={() => onEdit('add')}>,
+    // and that button is the element that actually receives focus and activation.
+    // Intercept on the button itself in the capture phase so the extension
+    // dropdown is reached before antd's default add-tab path runs. A native button
+    // synthesizes a click for both mouse and keyboard (Enter/Space) activation, so
+    // a single capture-phase click listener keeps keyboard and mouse behavior in
+    // sync — a handler on the inner span only fires when the span is the event
+    // target and is bypassed when the button is activated via the keyboard.
+    const button = anchorRef.current?.closest('button');
+    if (!button) {
+      return undefined;
+    }
+    const handleActivate = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      activate();
+    };
+    button.addEventListener('click', handleActivate, true);
+    return () => {
+      button.removeEventListener('click', handleActivate, true);
+    };
+  }, [activate]);
+
+  return (
+    <Tooltip id="add-tab" placement="left" title={newTabTooltip}>
+      <Dropdown
+        open={open}
+        onOpenChange={setOpen}
+        menu={{ items: dropdownItems }}
+        trigger={[]}
+      >
+        <span ref={anchorRef}>{PlusIcon}</span>
+      </Dropdown>
+    </Tooltip>
+  );
+}
 
 type TabbedSqlEditorsProps = ReturnType<typeof mergeProps>;
 
@@ -263,25 +374,7 @@ function TabbedSqlEditors({
       onTabClick={onTabClicked}
       onEdit={handleEdit}
       type={queryEditors?.length === 0 ? 'card' : 'editable-card'}
-      addIcon={
-        <Tooltip
-          id="add-tab"
-          placement="left"
-          title={
-            userOS === 'Windows'
-              ? t('New tab (Ctrl + q)')
-              : t('New tab (Ctrl + t)')
-          }
-        >
-          <Icons.PlusOutlined
-            iconSize="l"
-            css={css`
-              vertical-align: middle;
-            `}
-            data-test="add-tab-icon"
-          />
-        </Tooltip>
-      }
+      addIcon={<NewTabButton onAddSqlEditor={() => newQueryEditor()} />}
       items={tabItems}
     />
   );

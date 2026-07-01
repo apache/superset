@@ -121,6 +121,37 @@ import KeyboardShortcutButton, {
   KeyboardShortcut,
 } from '../KeyboardShortcutButton';
 import SqlEditorTopBar from '../SqlEditorTopBar';
+import {
+  ViewLocations,
+  PENDING_NORTH_PANE_VIEW_KEY,
+} from 'src/SqlLab/contributions';
+import { resolveView, useViews } from 'src/core/views';
+
+/** Per-tab localStorage key storing the active northPane view ID. */
+const NORTH_PANE_VIEW_KEY = (tabId: string) => `sqllab.northPaneView.${tabId}`;
+
+// The northPane keys are dynamic per-tab strings rather than members of the
+// typed LocalStorageKeys enum, so the typed helpers don't apply. Guard the raw
+// access here so a storage-restricted browser can't crash the editor mount.
+const readNorthPaneStorage = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const writeNorthPaneStorage = (key: string, value: string | null): void => {
+  try {
+    if (value === null) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, value);
+    }
+  } catch {
+    // localStorage may be unavailable (blocked/quota/private mode); ignore.
+  }
+};
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -271,6 +302,48 @@ const SqlEditor: FC<Props> = ({
 
   const logAction = useLogAction({ queryEditorId: queryEditor.id });
   const isActive = currentQueryEditorId === queryEditor.id;
+
+  // Re-renders when an extension registers a northPane view after async load.
+  const northPaneViews = useViews(ViewLocations.sqllab.northPane) || [];
+
+  // Resolve the per-tab localStorage key the same way every other SQL Lab
+  // consumer does (`tabViewId ?? id`), so the value written, read back, and
+  // observed via the `storage` event all agree once a tab is backend-persisted.
+  const northPaneStorageId = queryEditor.tabViewId ?? queryEditor.id;
+
+  // ID of the northPane view active for this tab, or null for the default
+  // SQL editor layout.  Set by an extension via PENDING_NORTH_PANE_VIEW_KEY
+  // before calling createTab(); persisted per-tab in localStorage.
+  const [northPaneViewId, setNorthPaneViewId] = useState<string | null>(() => {
+    const pendingViewId = readNorthPaneStorage(PENDING_NORTH_PANE_VIEW_KEY);
+    if (pendingViewId) {
+      writeNorthPaneStorage(PENDING_NORTH_PANE_VIEW_KEY, null);
+      writeNorthPaneStorage(
+        NORTH_PANE_VIEW_KEY(northPaneStorageId),
+        pendingViewId,
+      );
+      return pendingViewId;
+    }
+    return readNorthPaneStorage(NORTH_PANE_VIEW_KEY(northPaneStorageId));
+  });
+
+  useEffect(() => {
+    writeNorthPaneStorage(
+      NORTH_PANE_VIEW_KEY(northPaneStorageId),
+      northPaneViewId,
+    );
+  }, [northPaneStorageId, northPaneViewId]);
+
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === NORTH_PANE_VIEW_KEY(northPaneStorageId)) {
+        setNorthPaneViewId(e.newValue || null);
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, [northPaneStorageId]);
+
   const [autorun, setAutorun] = useState(queryEditor.autorun);
   const [ctas, setCtas] = useState('');
   const [northPercent, setNorthPercent] = useState(
@@ -1046,6 +1119,30 @@ const SqlEditor: FC<Props> = ({
             'Choose one of the available databases from the panel on the left.',
           )}
         />
+      ) : northPaneViewId &&
+        northPaneViews.some(v => v.id === northPaneViewId) ? (
+        <div
+          css={css`
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+          `}
+        >
+          <SqlEditorTopBar
+            queryEditorId={queryEditor.id}
+            defaultPrimaryActions={null}
+            defaultSecondaryActions={[]}
+          />
+          <div
+            css={css`
+              flex: 1;
+              overflow: auto;
+              padding: 0 ${theme.sizeUnit * 4}px;
+            `}
+          >
+            {resolveView(northPaneViewId)}
+          </div>
+        </div>
       ) : (
         queryPane()
       )}

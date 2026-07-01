@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, waitFor, createStore } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import ExtensionsStartup from './ExtensionsStartup';
@@ -260,26 +261,23 @@ test('does not initialize ExtensionsLoader when EnableExtensions feature flag is
   initializeSpy.mockRestore();
 });
 
-test('continues rendering children even when ExtensionsLoader initialization fails', async () => {
+test('renders children and surfaces a warning toast when init fails', async () => {
   // Ensure feature flag is enabled
   mockIsFeatureEnabled.mockReturnValue(true);
 
-  // Mock the initializeExtensions method to reject — ExtensionsLoader handles
-  // its own error logging internally
+  // Mock the initializeExtensions method to reject so the caller's .catch runs.
   const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
   ExtensionsLoader.prototype.initializeExtensions = jest
     .fn()
-    .mockImplementation(() => Promise.resolve());
+    .mockRejectedValue(new Error('boom'));
+
+  const store = createStore(mockInitialState, reducerIndex);
 
   const { container } = render(
     <ExtensionsStartup>
       <div data-testid="child" />
     </ExtensionsStartup>,
-    {
-      useRedux: true,
-      useRouter: true,
-      initialState: mockInitialState,
-    },
+    { store, useRouter: true },
   );
 
   await waitFor(() => {
@@ -289,6 +287,17 @@ test('continues rendering children even when ExtensionsLoader initialization fai
     expect(
       container.querySelector('[data-testid="child"]'),
     ).toBeInTheDocument();
+  });
+
+  // The failure must reach the user as a warning toast rather than being
+  // swallowed silently.
+  await waitFor(() => {
+    const { messageToasts } = store.getState() as unknown as {
+      messageToasts: { text: string }[];
+    };
+    expect(
+      messageToasts.some(toast => /Extensions failed to load/.test(toast.text)),
+    ).toBe(true);
   });
 
   // Restore original method
