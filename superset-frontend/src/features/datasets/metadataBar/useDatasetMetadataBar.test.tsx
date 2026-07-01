@@ -19,7 +19,7 @@
 
 import fetchMock from 'fetch-mock';
 import { renderHook } from '@testing-library/react';
-import { createWrapper, render } from 'spec/helpers/testing-library';
+import { createWrapper, render, userEvent } from 'spec/helpers/testing-library';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import { SubjectType } from 'src/types/Subject';
 import { useDatasetMetadataBar } from './useDatasetMetadataBar';
@@ -56,10 +56,13 @@ test('renders dataset metadata bar with dataset prop', async () => {
   const { findByText, findAllByRole } = render(result.current.metadataBar!);
   expect(await findByText(`This is dataset's name`)).toBeVisible();
   expect(await findByText('This is a dataset description')).toBeVisible();
-  expect(await findByText('Luke Skywalker')).toBeVisible();
-  expect(await findByText('John Doe')).toBeVisible();
+  const createdBy = await findByText('Luke Skywalker');
+  expect(createdBy).toBeVisible();
   expect(await findByText('a month ago')).toBeVisible();
   expect(await findAllByRole('img')).toHaveLength(4);
+
+  await userEvent.hover(createdBy);
+  expect(await findByText('John Doe')).toBeInTheDocument();
 });
 
 test('renders dataset metadata bar with minimal dataset', async () => {

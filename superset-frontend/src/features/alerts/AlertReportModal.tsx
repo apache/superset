@@ -1900,19 +1900,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       setCurrentAlert({
         ...defaultAlert,
-        editors: currentUser
-          ? [
-              {
-                value: currentUser.userId,
-                label: SubjectSelectLabel({
-                  label: `${currentUser.firstName} ${currentUser.lastName}`,
-                  type: 1,
-                }),
-                [SUBJECT_TEXT_LABEL_PROP]: `${currentUser.firstName} ${currentUser.lastName}`,
-                [SUBJECT_DETAIL_PROP]: currentUser.email ?? '',
-              },
-            ]
-          : [],
+        editors:
+          currentUser?.userId !== undefined
+            ? [
+                {
+                  value: currentUser.userId,
+                  label: SubjectSelectLabel({
+                    label: `${currentUser.firstName} ${currentUser.lastName}`,
+                    type: 1,
+                  }),
+                  [SUBJECT_TEXT_LABEL_PROP]: `${currentUser.firstName} ${currentUser.lastName}`,
+                  [SUBJECT_DETAIL_PROP]: currentUser.email ?? '',
+                },
+              ]
+            : [],
       });
       setNotificationSettings([
         {

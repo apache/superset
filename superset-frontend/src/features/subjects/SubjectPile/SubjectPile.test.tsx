@@ -71,7 +71,7 @@ test('orders subjects by type and label without mutating input', () => {
     ),
   ).toEqual(['AU', 'BU', 'AG', 'ZG', 'AR', 'BR']);
   expect(
-    [...container.querySelectorAll('.ant-avatar')].map(
+    [...container.querySelectorAll<HTMLElement>('.ant-avatar')].map(
       avatar => avatar.style.zIndex,
     ),
   ).toEqual(['6', '5', '4', '3', '2', '1']);
