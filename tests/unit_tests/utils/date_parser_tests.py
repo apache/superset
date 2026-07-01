@@ -858,3 +858,12 @@ def test_get_since_until_granular_units_use_now_by_default() -> None:
     assert result[0] is not None
     assert result[1] is not None
     assert result[1] == datetime(2016, 11, 7)  # 'today' midnight
+
+    # --- Numberless granular forms also use 'now' ---
+    # "Last hour" / "Next minute" are valid human inputs that lack an explicit
+    # count; they should receive the same 'now' treatment as their numeric peers.
+    result = get_since_until("Last hour")
+    assert result[1] == datetime(2016, 11, 7, 9, 30, 10)  # 'now', not midnight
+
+    result = get_since_until("Next minute")
+    assert result[0] == datetime(2016, 11, 7, 9, 30, 10)  # 'now', not midnight
