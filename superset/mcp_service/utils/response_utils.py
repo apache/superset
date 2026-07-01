@@ -57,7 +57,10 @@ Usage example::
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict
+from typing import Any, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from superset.mcp_service.chart.schemas import DataColumn
 
 import humanize
 
@@ -161,3 +164,49 @@ class OmittedFieldsBuilder:
     def build(self) -> Dict[str, str]:
         """Return the omission metadata dict."""
         return dict(self._fields)
+
+
+def format_data_columns(
+    data: list[dict[str, Any]], raw_columns: list[str]
+) -> list[DataColumn]:
+    """Build column metadata from query result data.
+
+    Caps statistics at 5000 rows to avoid O(rows*cols) overhead on large
+    result sets.
+    """
+    # Local import breaks the chart.schemas ↔ response_utils circular dependency.
+    from superset.mcp_service.chart.schemas import DataColumn  # noqa: PLC0415
+
+    stats_rows = data[:5000]
+    columns_meta: list[DataColumn] = []
+    for col_name in raw_columns:
+        sample_values = [
+            row.get(col_name) for row in data[:3] if row.get(col_name) is not None
+        ]
+        data_type = "string"
+        if sample_values:
+            if all(isinstance(v, bool) for v in sample_values):
+                data_type = "boolean"
+            elif all(isinstance(v, (int, float)) for v in sample_values):
+                data_type = "numeric"
+
+        null_count = 0
+        unique_vals: set[str] = set()
+        for row in stats_rows:
+            val = row.get(col_name)
+            if val is None:
+                null_count += 1
+            else:
+                unique_vals.add(str(val))
+
+        columns_meta.append(
+            DataColumn(
+                name=col_name,
+                display_name=col_name.replace("_", " ").title(),
+                data_type=data_type,
+                sample_values=sample_values[:3],
+                null_count=null_count,
+                unique_count=len(unique_vals),
+            )
+        )
+    return columns_meta
