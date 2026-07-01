@@ -91,7 +91,7 @@ export const databasesPage = {
     preferredBlockSheets: '.preferred > :nth-child(6)',
     supportedDatabasesText: '.control-label',
     orChoose: '.available-label',
-    dbDropdown: '[class="ant-select-selection-search-input"]',
+    dbDropdown: '.ant-select-input',
     dbDropdownMenu: '.rc-virtual-list-holder-inner',
     dbDropdownMenuItem: '[class="ant-select-item-option-content"]',
     infoAlert: '.ant-alert',
@@ -277,7 +277,7 @@ export const chartListView = {
   header: {
     cardView: '[aria-label="card-view"]',
     listView: '[aria-label="list-view"]',
-    sort: '[class="ant-select-selection-search-input"][aria-label="Sort"]',
+    sort: '.ant-select-input[aria-label="Sort"]',
     sortRecentlyModifiedMenuOption: '[label="Recently modified"]',
     sortAlphabeticalMenuOption: '[label="Alphabetical"]',
     sortDropdown: '.Select__menu',
@@ -338,20 +338,20 @@ export const nativeFilters = {
   filtersPanel: {
     filterName: dataTestLocator('filters-config-modal__name-input'),
     datasetName: dataTestLocator('filters-config-modal__datasource-input'),
-    filterInfoInput: '.ant-select-selection-search-input',
+    filterInfoInput: '.ant-select-input',
     inputDropdown: '.ant-select-item-option-content',
-    columnEmptyInput: '.ant-select-selection-placeholder',
+    columnEmptyInput: '.ant-select-placeholder',
     filterTypeInput: dataTestLocator('filters-config-modal__filter-type'),
     fieldInput: dataTestLocator('field-input'),
-    filterTypeItem: '.ant-select-selection-item',
+    filterTypeItem: '.ant-select-content-has-value, .ant-select-selection-item',
     filterGear: dataTestLocator('filterbar-orientation-icon'),
   },
   filterFromDashboardView: {
-    filterValueInput: '[class="ant-select-selection-search-input"]',
+    filterValueInput: '.ant-select-input',
     expand: dataTestLocator('filter-bar__expand-button'),
     collapse: dataTestLocator('filter-bar__collapse-button'),
     filterName: dataTestLocator('filter-control-name'),
-    filterContent: '.ant-select-selection-item',
+    filterContent: '.ant-select-content-has-value, .ant-select-selection-item',
     createFilterButton: dataTestLocator('filter-bar__create-filter'),
     timeRangeFilterContent: dataTestLocator('time-range-trigger'),
   },
@@ -365,7 +365,7 @@ export const nativeFilters = {
     checkedCheckbox: '.ant-checkbox-wrapper-checked',
     infoTooltip: '[aria-label="Show info tooltip"]',
     parentFilterInput: dataTestLocator('parent-filter-input'),
-    filterPlaceholder: '.ant-select-selection-placeholder',
+    filterPlaceholder: '.ant-select-placeholder',
     collapsedSectionContainer: '[class="ant-collapse-content-box"]',
   },
   filtersList: {
@@ -376,7 +376,7 @@ export const nativeFilters = {
     removeIcon: '[aria-label="delete"]',
   },
   filterItem: dataTestLocator('form-item-value'),
-  filterItemDropdown: '.ant-select-selection-search',
+  filterItemDropdown: '.ant-select-input',
   applyFilter: dataTestLocator('filter-bar__apply-button'),
   defaultInput: dataTestLocator('default-input'),
   filterIcon: dataTestLocator('filter-icon'),
@@ -484,7 +484,7 @@ export const exploreView = {
   saveModal: {
     modal: '.ant-modal-content',
     chartNameInput: dataTestLocator('new-chart-name'),
-    dashboardNameInput: '.ant-select-selection-search-input',
+    dashboardNameInput: '.ant-select-input',
     addToDashboardInput: dataTestLocator(
       'save-chart-modal-select-dashboard-form',
     ),
@@ -594,7 +594,7 @@ export const exploreView = {
   },
 };
 export const createChartView = {
-  chooseDatasetInput: '.ant-select-selection-search-input',
+  chooseDatasetInput: '.ant-select-input',
   chooseDatasetOption: '.ant-select-item-option-content',
   chooseDatasetList: '.rc-virtual-list-holder-inner',
   tableVizType: "[alt='Table']",
@@ -641,7 +641,7 @@ export const dashboardView = {
     secondTabSalesDashboard: dataTestLocator('dragdroppable-object'),
   },
   timeRangeModal: {
-    rangeTypeField: '.ant-select-selection-item',
+    rangeTypeField: '.ant-select-content-has-value, .ant-select-selection-item',
     startTimeInputNumber: '.ant-input-number-input',
     datePicker: '.ant-picker-input',
     applyButton: dataTestLocator('date-filter-control__apply-button'),
