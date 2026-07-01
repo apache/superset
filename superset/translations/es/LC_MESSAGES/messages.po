@@ -1018,7 +1018,7 @@ msgstr "El informe se ha creado"
 
 #, fuzzy
 msgid "API key name is required"
-msgstr "El nombre del rol es obligatorio"
+msgstr "El nombre de la clave API es obligatorio"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
