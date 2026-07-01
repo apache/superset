@@ -552,7 +552,7 @@ msgid ""
 "\n"
 msgstr ""
 "-- Remarque: À moins que vous ne sauvegardiez votre requête, ces onglets "
-"ne persisteront PAS si vous effacez vos témoins ou si vous changez de "
+"ne persisteront PAS si vous effacez vos cookies ou si vous changez de "
 "navigateur.\n"
 "\n"
 
@@ -2295,12 +2295,12 @@ msgstr "Zoom automatique"
 
 #, python-format
 msgid "Auto refresh paused (set to %s seconds)"
-msgstr "[CHECK] Actualisation automatique mis en pause (valeur à %s secondes)"
+msgstr "[CHECK] Actualisation automatique mise en pause (valeur à %s secondes)"
 
 #, python-format
 msgid "Auto refresh paused - tab inactive (set to %s seconds)"
 msgstr ""
-"[CHECK] Actualisation automatique mis en pause - onglet inactif (valeur à"
+"[CHECK] Actualisation automatique mise en pause - onglet inactif (valeur à"
 " %s secondes)"
 
 #, python-format
@@ -4407,7 +4407,7 @@ msgid "Dashboard name is required"
 msgstr "Le nom du tableau de bord est obligatoire"
 
 msgid "Dashboard native filters could not be patched."
-msgstr "[CHEK] Le tableau de bord n'a pas pu être mis à jour."
+msgstr "[CHECK] Le tableau de bord n'a pas pu être mis à jour."
 
 msgid "Dashboard parameters are invalid."
 msgstr "Les paramètres du tableau de bord ne sont pas valides."
@@ -6036,7 +6036,7 @@ msgid "Enter a new title for the tab"
 msgstr "Saisir un nouveau titre pour l'onglet"
 
 msgid "Enter a part of the object name"
-msgstr "Saisir un nom pour une partie de l'objet"
+msgstr "Saisir une partie du nom de l'objet"
 
 msgid "Enter alert name"
 msgstr "Saisir un nom pour l'alerte"
