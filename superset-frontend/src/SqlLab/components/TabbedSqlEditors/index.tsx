@@ -38,6 +38,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import { locationContext } from 'src/pages/SqlLab/LocationContext';
 import { navigateWithState } from 'src/utils/navigationUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { SQLLAB_TAB_OVERFLOW_POPUP_CLASS } from 'src/SqlLab/SqlLabGlobalStyles';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -290,6 +291,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
         hideAdd={this.props.offline}
         onTabClick={this.onTabClicked}
         onEdit={this.handleEdit}
+        popupClassName={SQLLAB_TAB_OVERFLOW_POPUP_CLASS}
         type={this.props.queryEditors?.length === 0 ? 'card' : 'editable-card'}
         addIcon={
           <Tooltip

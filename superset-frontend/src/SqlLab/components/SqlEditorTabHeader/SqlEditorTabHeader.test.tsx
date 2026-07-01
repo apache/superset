@@ -64,6 +64,15 @@ describe('SqlEditorTabHeader', () => {
     expect(queryByText(extraQueryEditor2.name)).not.toBeInTheDocument();
   });
 
+  it('exposes the name on a dedicated node the overflow dropdown can truncate', () => {
+    // The overflow ("...") menu reuses this label and styles the title node by
+    // its data-test to keep very long names from rendering blank.
+    const { getByTestId } = setup(defaultQueryEditor, mockStore(initialState));
+    expect(getByTestId('sql-editor-tab-title')).toHaveTextContent(
+      defaultQueryEditor.name,
+    );
+  });
+
   it('renders name from unsaved changes', () => {
     const expectedTitle = 'updated title';
     const { queryByText } = setup(
