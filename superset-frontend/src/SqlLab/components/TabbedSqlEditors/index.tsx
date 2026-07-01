@@ -263,7 +263,7 @@ function TabbedSqlEditors({
       hideAdd={offline}
       onTabClick={onTabClicked}
       onEdit={handleEdit}
-      more={{ overlayClassName: SQLLAB_TAB_OVERFLOW_POPUP_CLASS }}
+      popupClassName={SQLLAB_TAB_OVERFLOW_POPUP_CLASS}
       type={queryEditors?.length === 0 ? 'card' : 'editable-card'}
       addIcon={
         <Tooltip
