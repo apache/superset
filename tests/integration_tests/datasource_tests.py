@@ -23,6 +23,7 @@ from unittest import mock
 import pytest
 import rison
 from flask import current_app
+from sqlalchemy import text
 
 from superset import db, security_manager as sm
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -63,15 +64,26 @@ def create_test_table_context(database: Database):
 
     with database.get_sqla_engine() as engine:
         engine.execute(
-            f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"  # noqa: E501
+            text(f"""
+            CREATE TABLE IF NOT EXISTS {full_table_name} AS
+            SELECT 1 as first, 2 as second
+            """)
         )
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")  # noqa: S608
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")  # noqa: S608
+        engine.execute(
+            text(f"""
+            INSERT INTO {full_table_name} (first, second) VALUES (1, 2)
+            """)  # noqa: S608
+        )
+        engine.execute(
+            text(f"""
+            INSERT INTO {full_table_name} (first, second) VALUES (3, 4)
+            """)  # noqa: S608
+        )
 
     yield db.session
 
     with database.get_sqla_engine() as engine:
-        engine.execute(f"DROP TABLE {full_table_name}")
+        engine.execute(text(f"DROP TABLE {full_table_name}"))
 
 
 @contextmanager
@@ -844,3 +856,20 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     assert rv.json["result"]["per_page"] == 2
     assert rv.json["result"]["total_count"] == 10
     assert [row["col1"] for row in rv.json["result"]["data"]] == []
+
+
+def test_dataset_editor_show_redirects_to_welcome(test_client, login_as_admin):
+    """``DatasetEditor.show`` without ``?testing`` redirects via ``url_for``,
+    not a bare ``"/"`` (which would escape the application root under
+    subdirectory deployments). ``show`` never dereferences ``pk``."""
+    rv = test_client.get("/dataset/1")
+    assert rv.status_code == 302
+    assert rv.headers["Location"] == "/welcome/"
+
+
+def test_dataset_editor_show_redirect_honors_script_name(test_client, login_as_admin):
+    """Under a subdirectory deployment ``AppRootMiddleware`` sets
+    ``SCRIPT_NAME``; the redirect target must carry the application root."""
+    rv = test_client.get("/dataset/1", environ_overrides={"SCRIPT_NAME": "/myapp"})
+    assert rv.status_code == 302
+    assert rv.headers["Location"] == "/myapp/welcome/"

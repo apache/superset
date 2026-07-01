@@ -62,10 +62,11 @@ import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import copyTextToClipboard from 'src/utils/copy';
+import type Owner from 'src/types/Owner';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
-import { makeUrl } from 'src/utils/pathUtils';
+import { getShareableUrl, openInNewTab } from 'src/utils/navigationUtils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -90,6 +91,15 @@ interface SavedQueryListProps {
     lastName: string;
   };
 }
+
+type SavedQueryCellProps = {
+  row: {
+    original: SavedQueryObject & {
+      changed_by?: Owner | null;
+      created_by?: Owner | null;
+    };
+  };
+};
 
 const StyledTableLabel = styled.div`
   .count {
@@ -222,6 +232,7 @@ function SavedQueryList({
     icon: <Icons.PlusOutlined iconSize="m" />,
     name: t('Query'),
     buttonStyle: 'primary',
+    'data-test': 'add-saved-query-button',
     onClick: () => {
       // React Router's basename already includes the application root; passing
       // a relative path ensures correct navigation under subdirectory deployments.
@@ -233,11 +244,8 @@ function SavedQueryList({
 
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
-    copyTextToClipboard(() =>
-      Promise.resolve(
-        `${window.location.origin}${makeUrl(`/sqllab?savedQueryId=${id}`)}`,
-      ),
-    )
+    const path = `/sqllab?savedQueryId=${id}`;
+    copyTextToClipboard(() => Promise.resolve(getShareableUrl(path)))
       .then(() => {
         addSuccessToast(t('Link Copied!'));
       })
@@ -245,11 +253,11 @@ function SavedQueryList({
         addDangerToast(t('Sorry, your browser does not support copying.'));
       });
     if (openInNewWindow) {
-      window.open(makeUrl(`/sqllab?savedQueryId=${id}`));
+      openInNewTab(path);
     } else {
       // React Router's basename already includes the application root; passing
       // a relative path ensures correct navigation under subdirectory deployments.
-      history.push(`/sqllab?savedQueryId=${id}`);
+      history.push(path);
     }
   };
 
@@ -435,11 +443,29 @@ function SavedQueryList({
               changed_on_delta_humanized: changedOn,
             },
           },
-        }: any) => <ModifiedInfo user={changedBy} date={changedOn} />,
+        }: SavedQueryCellProps) => (
+          <ModifiedInfo user={changedBy ?? undefined} date={changedOn} />
+        ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
         id: 'changed_on_delta_humanized',
+      },
+      {
+        accessor: 'created_by.first_name',
+        Header: t('Created by'),
+        disableSortBy: true,
+        size: 'xl',
+        Cell: ({
+          row: {
+            original: { created_by: createdBy },
+          },
+        }: SavedQueryCellProps) =>
+          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
+      },
+      {
+        accessor: 'created_by',
+        hidden: true,
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -583,6 +609,28 @@ function SavedQueryList({
             t(
               'An error occurred while fetching dataset datasource values: %s',
               errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Created by'),
+        key: 'created_by',
+        id: 'created_by',
+        input: 'select',
+        operator: FilterOperator.RelationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'saved_query',
+          'created_by',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching created by values: %s',
+                errMsg,
+              ),
             ),
           ),
           user,

@@ -2406,6 +2406,9 @@ msgstr ""
 msgid "COPY QUERY"
 msgstr ""
 
+msgid "Copy query"
+msgstr ""
+
 msgid "CREATE TABLE AS"
 msgstr ""
 
@@ -5947,6 +5950,9 @@ msgid "FEB"
 msgstr ""
 
 msgid "FIT DATA"
+msgstr ""
+
+msgid "Fit data"
 msgstr ""
 
 msgid "FRI"
@@ -13516,6 +13522,9 @@ msgid ""
 "and positions by using drag & drop in the dashboard view"
 msgstr ""
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -14231,6 +14240,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format

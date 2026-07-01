@@ -20,7 +20,6 @@ import logging
 import secrets
 from typing import Any, Dict, Optional, Sequence
 
-from authlib.jose.errors import JoseError
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from flask import Flask
 
@@ -32,6 +31,17 @@ from superset.mcp_service.constants import (
 from superset.mcp_service.jwt_verifier import DetailedJWTVerifier, MCPJWTVerifier
 
 logger = logging.getLogger(__name__)
+
+
+class MCPAuthConfigError(ValueError):
+    """Raised when MCP auth is enabled but configured in an unusable state.
+
+    Distinct from the generic build errors (e.g. malformed key material) that
+    the auth bootstrap intentionally swallows: a configuration error of this
+    kind must propagate so the MCP service fails to start rather than silently
+    coming up without the protection the operator asked for.
+    """
+
 
 # MCP Service Configuration
 # Note: MCP_DEV_USERNAME MUST be configured in superset_config.py
@@ -212,6 +222,7 @@ MCP_CACHE_CONFIG: Dict[str, Any] = {
     "excluded_tools": [  # Tools that should never be cached (side effects, dynamic)
         "execute_sql",
         "generate_dashboard",
+        "duplicate_dashboard",
         "generate_chart",
         "update_chart",
     ],
@@ -360,6 +371,20 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     if not (auth_enabled or api_key_enabled):
         return None
 
+    # When JWT auth is enabled, an audience must be configured so issued tokens
+    # are bound to this service. Without it the verifier accepts any otherwise
+    # valid same-issuer token, regardless of which service it was minted for.
+    # Treat a missing audience as a fatal configuration error so the service
+    # fails to start instead of coming up in a permissive state — the
+    # surrounding bootstrap would otherwise turn a None/raised provider into an
+    # unauthenticated server.
+    if auth_enabled and not app.config.get("MCP_JWT_AUDIENCE"):
+        raise MCPAuthConfigError(
+            "MCP_JWT_AUDIENCE must be set when MCP_AUTH_ENABLED is True so that "
+            "tokens are bound to this service. Set MCP_JWT_AUDIENCE to the "
+            "audience value your identity provider issues for the MCP service."
+        )
+
     jwt_verifier: Any | None = None
 
     if auth_enabled:
@@ -379,7 +404,7 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                     public_key=public_key,
                     secret=secret,
                 )
-            except (ValueError, JoseError):
+            except Exception:
                 # Do not log the exception — it may contain secrets (e.g., key material)
                 logger.error("Failed to create MCP JWT verifier")
                 if not api_key_enabled:
