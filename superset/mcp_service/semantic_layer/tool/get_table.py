@@ -200,6 +200,7 @@ async def get_table(  # noqa: C901
                 )
             display_name = dataset.table_name
             valid_columns = {c.column_name for c in dataset.columns}
+            valid_dttm_columns = {c.column_name for c in dataset.columns if c.is_dttm}
             valid_metrics = {m.metric_name for m in dataset.metrics}
             if time_col is None and request.time_range:
                 time_col = getattr(dataset, "main_dttm_col", None)
@@ -211,6 +212,21 @@ async def get_table(  # noqa: C901
                         ),
                         error_type="ValidationError",
                     )
+            if time_col is not None and time_col not in valid_dttm_columns:
+                if time_col in valid_columns:
+                    error_msg = (
+                        f"time_column '{time_col}' on dataset '{display_name}' is "
+                        "not marked as a datetime column."
+                    )
+                else:
+                    error_msg = (
+                        f"Unknown time_column: '{time_col}' on dataset "
+                        f"'{display_name}'."
+                    )
+                return SemanticLayerError.create(
+                    error=error_msg,
+                    error_type="ValidationError",
+                )
         else:
             from superset.daos.semantic_layer import SemanticViewDAO
             from superset.exceptions import SupersetSecurityException
@@ -231,6 +247,7 @@ async def get_table(  # noqa: C901
                 )
             display_name = view.name
             valid_columns = {c.column_name for c in view.columns}
+            valid_dttm_columns = {c.column_name for c in view.columns if c.is_dttm}
             valid_metrics = {m.metric_name for m in view.metrics}
             if time_col is None and request.time_range:
                 # Use first datetime dimension as the time column
@@ -243,6 +260,20 @@ async def get_table(  # noqa: C901
                         "time filter will not be applied."
                     )
                     time_col = None
+            if time_col is not None and time_col not in valid_dttm_columns:
+                if time_col in valid_columns:
+                    error_msg = (
+                        f"time_column '{time_col}' on view '{display_name}' is "
+                        "not marked as a datetime column."
+                    )
+                else:
+                    error_msg = (
+                        f"Unknown time_column: '{time_col}' on view '{display_name}'."
+                    )
+                return SemanticLayerError.create(
+                    error=error_msg,
+                    error_type="ValidationError",
+                )
 
         # ------------------------------------------------------------------
         # Validate requested metrics and dimensions against the datasource
