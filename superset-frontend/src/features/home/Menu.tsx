@@ -199,6 +199,9 @@ export function Menu({
   isFrontendRoute = () => false,
 }: MenuProps) {
   const screens = useBreakpoint();
+  // screens.md is undefined on the first render before breakpoints are measured;
+  // treat undefined as true so the nav renders horizontal instead of flashing to inline
+  const isMd = screens.md !== false;
   const uiConfig = useUiConfig();
   const theme = useTheme();
 
@@ -301,7 +304,7 @@ export function Menu({
     return {
       key,
       label,
-      ...(screens.md && {
+      ...(isMd && {
         icon: <Icons.DownOutlined iconSize="xs" />,
         popupOffset: NAVBAR_MENU_POPUP_OFFSET,
       }),
@@ -385,7 +388,7 @@ export function Menu({
             </StyledBrandText>
           )}
           <StyledMainNav
-            mode={screens.md ? 'horizontal' : 'inline'}
+            mode={isMd ? 'horizontal' : 'inline'}
             data-test="navbar-top"
             className="main-nav"
             selectedKeys={activeTabs}
@@ -413,7 +416,7 @@ export function Menu({
         </StyledCol>
         <Col md={8} xs={24}>
           <RightMenu
-            align={screens.md ? 'flex-end' : 'flex-start'}
+            align={isMd ? 'flex-end' : 'flex-start'}
             settings={settings}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}
