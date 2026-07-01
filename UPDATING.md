@@ -581,6 +581,10 @@ Note: Pillow is now a required dependency (previously optional) to support image
 - [31590](https://github.com/apache/superset/pull/31590) Marks the beginning of intricate work around supporting dynamic Theming, and breaks support for [THEME_OVERRIDES](https://github.com/apache/superset/blob/732de4ac7fae88e29b7f123b6cbb2d7cd411b0e4/superset/config.py#L671) in favor of a new theming system based on AntD V5. Likely this will be in disrepair until settling over the 5.x lifecycle.
 - [32432](https://github.com/apache/superset/pull/32432) Moves the List Roles FAB view to the frontend and requires `FAB_ADD_SECURITY_API` to be enabled in the configuration and `superset init` to be executed.
 - [34319](https://github.com/apache/superset/pull/34319) Drill to Detail and Drill By is now supported in Embedded mode, and also with the `DASHBOARD_RBAC` FF. If you don't want to expose these features in Embedded / `DASHBOARD_RBAC`, make sure the roles used for Embedded / `DASHBOARD_RBAC`don't have the required permissions to perform D2D actions.
+- If you use **MySQL** as the metadata database, the Security menu that list roles and users might be missing due to case naming changed from 'security' to 'Security'. To fix said issue, run below query on the **MySQL** metadata database:
+  ```sql
+  UPDATE ab_view_menu SET name='Security' WHERE name='security';
+  ```
 
 ## 5.0.0
 
