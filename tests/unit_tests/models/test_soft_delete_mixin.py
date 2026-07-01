@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy import Column, ForeignKey, Integer, String
@@ -88,6 +89,18 @@ def _synthetic_tables(session: Session) -> Generator[None, None, None]:
     _TestBase.metadata.create_all(session.get_bind())
     yield
     _TestBase.metadata.drop_all(session.get_bind())
+
+
+@pytest.fixture(autouse=True)
+def _soft_delete_gate_on() -> Generator[None, None, None]:
+    """The ``do_orm_execute`` visibility listener is gated by the temporary
+    ``SOFT_DELETE`` rollout flag, default off. These tests exercise
+    the listener's filtering, so enable the gate for the whole module. The
+    gate-off (listener-noop) behaviour is pinned separately by
+    ``test_listener_noop_when_gate_off``.
+    """
+    with patch("superset.models.helpers.is_feature_enabled", return_value=True):
+        yield
 
 
 @pytest.mark.usefixtures("_synthetic_tables")
@@ -165,6 +178,31 @@ def test_global_filter_excludes_soft_deleted_rows(
         session.query(_SoftDeletable).filter(_SoftDeletable.id == obj_id).one_or_none()
     )
     assert result is None
+
+
+@pytest.mark.usefixtures("_synthetic_tables")
+def test_listener_noop_when_gate_off(app_context: None, session: Session) -> None:
+    """With the ``SOFT_DELETE`` gate OFF, the listener attaches no criteria, so a
+    soft-deleted row is NOT hidden — the substrate is dark. (While
+    the gate is off the delete path also doesn't create such rows; this pins the
+    listener side.)"""
+    obj: _SoftDeletable = _SoftDeletable(name="visible_when_gate_off")
+    session.add(obj)
+    session.flush()
+    obj_id: int = obj.id
+
+    obj.soft_delete()
+    session.flush()
+    session.expire_all()
+
+    with patch("superset.models.helpers.is_feature_enabled", return_value=False):
+        result: _SoftDeletable | None = (
+            session.query(_SoftDeletable)
+            .filter(_SoftDeletable.id == obj_id)
+            .one_or_none()
+        )
+    assert result is not None
+    assert result.id == obj_id
 
 
 @pytest.mark.usefixtures("_synthetic_tables")
