@@ -82,6 +82,7 @@ DASHBOARDS_FIXTURE_COUNT = 10
 
 class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
     resource_name = "dashboard"
+    subject_types_config_key = "SUBJECTS_RELATED_TYPES_DASHBOARDS"
 
     dashboards: list[Dashboard] = []
     dashboard_data = {
@@ -3240,7 +3241,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         API: Test get filter related viewers
         """
         self.login(ADMIN_USERNAME)
-        argument = {"filter": "Alpha"}
+        argument = {"filter": "admin"}
         uri = f"api/v1/dashboard/related/viewers?q={rison.dumps(argument)}"
 
         rv = self.client.get(uri)
@@ -3248,7 +3249,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         response = json.loads(rv.data.decode("utf-8"))
         assert response["count"] >= 1
         response_labels = [result["text"] for result in response["result"]]
-        assert any("Alpha" in label for label in response_labels)
+        assert any("admin" in label.lower() for label in response_labels)
 
     def test_get_all_related_viewers_with_extra_filters(self):
         """

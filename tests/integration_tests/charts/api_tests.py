@@ -86,6 +86,7 @@ CHARTS_FIXTURE_COUNT = 10
 
 class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
     resource_name = "chart"
+    subject_types_config_key = "SUBJECTS_RELATED_TYPES_CHARTS"
 
     @pytest.fixture(autouse=True)
     def clear_data_cache(self):

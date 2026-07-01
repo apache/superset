@@ -19,6 +19,7 @@
 from unittest.mock import patch
 
 import rison
+from flask import current_app
 
 from superset import db
 from superset.subjects.models import Subject
@@ -74,6 +75,27 @@ class ApiEditorsTestCaseMixin:
     """Implements shared tests for the editors related field endpoint."""
 
     resource_name: str = ""
+    subject_types_config_key: str = ""
+
+    def get_expected_related_editor_subjects(self) -> list[Subject]:
+        """
+        Return the subjects expected in the default editors picker.
+
+        Related editors are constrained by the same Subject type config used by
+        the API. Entity-specific settings override the global default.
+        """
+        allowed_types = (
+            current_app.config.get(self.subject_types_config_key)
+            if self.subject_types_config_key
+            else None
+        )
+        if allowed_types is None:
+            allowed_types = current_app.config.get("SUBJECTS_RELATED_TYPES")
+
+        query = db.session.query(Subject)
+        if allowed_types is not None:
+            query = query.filter(Subject.type.in_(allowed_types))
+        return query.all()
 
     def test_get_related_editors(self):
         """
@@ -84,7 +106,7 @@ class ApiEditorsTestCaseMixin:
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        subjects = db.session.query(Subject).all()
+        subjects = self.get_expected_related_editor_subjects()
         assert response["count"] == len(subjects)
         assert len(response["result"]) == len(subjects)
 
@@ -99,7 +121,7 @@ class ApiEditorsTestCaseMixin:
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        subjects = db.session.query(Subject).all()
+        subjects = self.get_expected_related_editor_subjects()
         assert response["count"] == len(subjects)
         assert len(response["result"]) == min(page_size, len(subjects))
 
