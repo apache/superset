@@ -28,6 +28,7 @@ from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleCsvFailedError,
+    ReportScheduleExecutorNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
@@ -268,21 +269,21 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["mock_tab_anchor_1", "mock_tab_anchor_2"],
             ["url1", "url2"],
             [
-                "superset/dashboard/p/url1/",
-                "superset/dashboard/p/url2/",
+                "dashboard/p/url1/",
+                "dashboard/p/url2/",
             ],
         ),
         # Test user select one tab to export in a dashboard report
         (
             "mock_tab_anchor_1",
             ["url1"],
-            ["superset/dashboard/p/url1/"],
+            ["dashboard/p/url1/"],
         ),
         # Test JSON scalar string anchor falls back to single tab
         (
             json.dumps("mock_tab_anchor_1"),
             ["url1"],
-            ["superset/dashboard/p/url1/"],
+            ["dashboard/p/url1/"],
         ),
     ],
 )
@@ -497,8 +498,8 @@ def test_get_dashboard_urls_with_filters_and_tabs(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/key1/"),
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/key2/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key1/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key2/"),
     ]
     mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
     assert mock_permalink_cls.call_count == 2
@@ -507,6 +508,107 @@ def test_get_dashboard_urls_with_filters_and_tabs(
         assert state["urlParams"] == [["native_filters", native_filter_rison]]
     assert mock_permalink_cls.call_args_list[0].kwargs["state"]["anchor"] == "TAB-1"
     assert mock_permalink_cls.call_args_list[1].kwargs["state"]["anchor"] == "TAB-2"
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_with_filters_and_tabs_preserves_existing_url_params(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "dataMask": {"NATIVE_FILTER-1": {"filterState": {"value": ["Sales"]}}},
+            "activeTabs": ["TAB-1", "TAB-2"],
+            "urlParams": [("standalone", "true"), ("show_filters", "0")],
+            "nativeFilters": [  # type: ignore[typeddict-unknown-key]
+                {
+                    "nativeFilterId": "NATIVE_FILTER-1",
+                    "filterType": "filter_select",
+                    "columnName": "department",
+                    "filterValues": ["Sales"],
+                }
+            ],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
+    mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    class_instance.get_dashboard_urls()
+
+    for call in mock_permalink_cls.call_args_list:
+        state = call.kwargs["state"]
+        assert state["urlParams"] == [
+            ["standalone", "true"],
+            ["show_filters", "0"],
+            ["native_filters", native_filter_rison],
+        ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_with_filters_and_tabs_deduplicates_stale_native_filters(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(new:value))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "dataMask": {},
+            "activeTabs": ["TAB-1", "TAB-2"],
+            "urlParams": [
+                ("standalone", "true"),
+                ("native_filters", "(old:stale_value)"),
+            ],
+            "nativeFilters": [],  # type: ignore[typeddict-unknown-key]
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
+    mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    class_instance.get_dashboard_urls()
+
+    for call in mock_permalink_cls.call_args_list:
+        state = call.kwargs["state"]
+        assert state["urlParams"] == [
+            ["standalone", "true"],
+            ["native_filters", native_filter_rison],
+        ]
 
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
@@ -558,7 +660,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/key1/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key1/"),
     ]
     mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
     assert mock_permalink_cls.call_count == 1
@@ -691,8 +793,8 @@ def test_get_tab_urls(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri1/"),
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri2/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/uri1/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/uri2/"),
     ]
 
 
@@ -781,7 +883,47 @@ def test_get_tab_url(
     import urllib.parse
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
-    assert result == urllib.parse.urljoin(base_url, "superset/dashboard/p/uri/")
+    assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/")
+
+
+@patch("superset.commands.report.execute.db.session")
+@patch(
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+)
+def test_get_tab_url_commits_permalink_before_returning(
+    mock_run,
+    mock_session,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Regression test for #40996.
+
+    The report-generation flow runs inside an outer ``@transaction`` block,
+    so ``CreateDashboardPermalinkCommand``'s inner ``@transaction`` decorator
+    skips its own commit and leaves the permalink row flushed but uncommitted.
+    Playwright then opens the permalink on a separate database connection and
+    404s. ``_get_tab_url`` must therefore commit explicitly **after** the
+    permalink command returns so the row is visible across connections.
+    """
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.dashboard_id = 123
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_run.return_value = "uri"
+    dashboard_state = DashboardPermalinkState(
+        anchor="1",
+        dataMask=None,
+        activeTabs=None,
+        urlParams=None,
+    )
+
+    class_instance._get_tab_url(dashboard_state)
+
+    mock_run.assert_called_once()
+    mock_session.commit.assert_called_once()
 
 
 @patch(
@@ -995,6 +1137,103 @@ def test_screenshot_width_calculation(
                 )
 
 
+def _executor_report_state(mocker: MockerFixture) -> BaseReportState:
+    report_schedule = create_report_schedule(mocker)
+    # _get_csv_data/_get_embedded_data build a chart-data URL from chart_id
+    # before resolving the executor; give it a concrete value so URL building
+    # succeeds and the executor resolution is actually reached.
+    report_schedule.chart_id = 1
+    report_schedule.force_screenshot = False
+    return BaseReportState(
+        report_schedule=report_schedule,
+        scheduled_dttm=datetime.now(),
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+    )
+
+
+@pytest.mark.parametrize(
+    "method_name",
+    ["_get_screenshots", "_get_csv_data", "_get_embedded_data"],
+)
+def test_get_content_raises_when_executor_user_missing(
+    app: SupersetApp, mocker: MockerFixture, method_name: str
+) -> None:
+    """
+    When the configured executor user cannot be resolved
+    (``security_manager.find_user`` returns ``None``), each content path raises a
+    dedicated ``ReportScheduleExecutorNotFoundError`` naming the username at the
+    resolution boundary, rather than passing ``None`` further into the
+    webdriver/auth flow.
+    """
+    app.config.update(
+        {
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 1600,
+            "WEBDRIVER_WINDOW": {"slice": (800, 600), "dashboard": (800, 600)},
+            "ALERT_REPORTS_EXECUTORS": {},
+        }
+    )
+    report_state = _executor_report_state(mocker)
+
+    with (
+        patch("superset.commands.report.execute.security_manager") as mock_sm,
+        patch("superset.commands.report.execute.get_executor") as mock_get_executor,
+        patch("superset.commands.report.execute.machine_auth_provider_factory"),
+    ):
+        mock_get_executor.return_value = ("executor", "ghost_user")
+        mock_sm.find_user = mocker.MagicMock(return_value=None)
+
+        with pytest.raises(ReportScheduleExecutorNotFoundError, match="ghost_user"):
+            getattr(report_state, method_name)()
+
+
+def test_executor_not_found_error_message_without_username() -> None:
+    """
+    When no username is available, the message falls back to ``(unknown)``
+    rather than leaving a double space ("...executor user  was not found.").
+    """
+    message = str(ReportScheduleExecutorNotFoundError().message)
+
+    assert "(unknown)" in message
+    assert "user  was" not in message
+
+
+def test_executor_not_found_error_status_is_server_error() -> None:
+    """
+    The executor-not-found error is a 5xx so ``get_logger_from_status`` marks the
+    Celery task ``FAILURE`` (a missing executor is a server-side misconfiguration
+    that ops task-state alerting must still see), not a 4xx that would log a
+    ``WARNING`` and leave the task non-``FAILURE``.
+    """
+    assert ReportScheduleExecutorNotFoundError().status == 500
+
+
+def test_resolve_executor_user_returns_user_and_username(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """
+    Happy path: when the executor user exists, the helper returns the
+    ``(user, username)`` tuple unchanged — locking the no-behavior-change exit
+    criterion for the three call sites.
+    """
+    from superset.commands.report.execute import resolve_executor_user
+
+    app.config.update({"ALERT_REPORTS_EXECUTORS": {}})
+    report_schedule = create_report_schedule(mocker)
+    mock_user = mocker.MagicMock()
+
+    with (
+        patch("superset.commands.report.execute.security_manager") as mock_sm,
+        patch("superset.commands.report.execute.get_executor") as mock_get_executor,
+    ):
+        mock_get_executor.return_value = ("executor", "real_user")
+        mock_sm.find_user = mocker.MagicMock(return_value=mock_user)
+
+        user, username = resolve_executor_user(report_schedule)
+
+    assert user is mock_user
+    assert username == "real_user"
+
+
 def test_update_recipient_to_slack_v2(mocker: MockerFixture):
     """
     Test converting a Slack recipient to Slack v2 format.
@@ -1068,6 +1307,122 @@ def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
     )
     with pytest.raises(UpdateFailedError):
         mock_cmmd.update_report_schedule_slack_v2()
+
+
+def test_update_recipient_to_slack_v2_reverts_all_on_partial_failure(
+    mocker: MockerFixture,
+) -> None:
+    """
+    When the second of two Slack recipients fails channel resolution, BOTH
+    recipients are fully reverted — type AND exact original
+    ``recipient_config_json`` string — not just the loop variable's type. This
+    prevents the intervening ``create_log`` commit from flushing a half-migrated,
+    inconsistent state.
+    """
+
+    def channels_side_effect(search_string, types, exact_match):
+        if search_string == "Channel-1":
+            return [
+                {
+                    "id": "id_channel_1",
+                    "name": "Channel-1",
+                    "is_member": True,
+                    "is_private": False,
+                }
+            ]
+        # Second recipient: no channel found → length mismatch → UpdateFailedError
+        return []
+
+    mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+        side_effect=channels_side_effect,
+    )
+    original_config_1 = json.dumps({"target": "Channel-1"})
+    original_config_2 = json.dumps({"target": "Channel-2"})
+    mock_report_schedule = ReportSchedule(
+        name="Test Report",
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=original_config_1,
+            ),
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=original_config_2,
+            ),
+        ],
+    )
+
+    mock_cmmd = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+
+    with pytest.raises(UpdateFailedError):
+        mock_cmmd.update_report_schedule_slack_v2()
+
+    first, second = mock_report_schedule.recipients
+    # The first recipient was mutated to v2 before the second failed; it must be
+    # reverted to its exact original type AND config string.
+    assert first.type == ReportRecipientType.SLACK
+    assert first.recipient_config_json == original_config_1
+    assert second.type == ReportRecipientType.SLACK
+    assert second.recipient_config_json == original_config_2
+
+
+def test_update_recipient_to_slack_v2_pre_iteration_failure(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A failure raised while accessing/iterating the recipients (before the loop
+    variable is bound) surfaces as ``UpdateFailedError``, not a ``NameError``
+    that would mask the real error.
+    """
+
+    class _ExplodingRecipients:
+        def __iter__(self):
+            raise RuntimeError("recipients exploded")
+
+    mock_report_schedule = mocker.MagicMock()
+    mock_report_schedule.recipients = _ExplodingRecipients()
+
+    mock_cmmd = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+
+    with pytest.raises(UpdateFailedError):
+        mock_cmmd.update_report_schedule_slack_v2()
+
+
+def test_update_recipient_to_slack_v2_no_slack_recipients_is_noop(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With no SLACK recipients there is nothing to migrate: the method returns
+    without raising and leaves the non-Slack recipients untouched.
+    """
+    mock_search = mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+    )
+    mock_report_schedule = ReportSchedule(
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json=json.dumps({"target": "user@example.com"}),
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    mock_cmmd.update_report_schedule_slack_v2()
+
+    assert mock_cmmd._report_schedule.recipients[0].type == ReportRecipientType.EMAIL
+    assert (
+        mock_cmmd._report_schedule.recipients[0].recipient_config_json
+        == '{"target": "user@example.com"}'
+    )
+    mock_search.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -1406,7 +1761,7 @@ def test_get_dashboard_urls_no_state_fallback(
     result = state.get_dashboard_urls()
 
     assert len(result) == 1
-    assert "superset/dashboard/" in result[0]
+    assert "dashboard/" in result[0]
     assert "dashboard/p/" not in result[0]  # not a permalink
 
 

@@ -50,7 +50,10 @@ import {
   getGuestToken,
 } from '../../helpers/api/embedded';
 import { apiPost, apiPut } from '../../helpers/api/requests';
-import { apiPostDashboard, apiDeleteDashboard } from '../../helpers/api/dashboard';
+import {
+  apiPostDashboard,
+  apiDeleteDashboard,
+} from '../../helpers/api/dashboard';
 import { apiDeleteChart } from '../../helpers/api/chart';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
 import { EMBEDDED } from '../../utils/constants';

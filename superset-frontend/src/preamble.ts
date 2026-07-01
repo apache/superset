@@ -26,7 +26,7 @@ import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
 import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
-import { makeUrl } from './utils/pathUtils';
+import { makeUrl } from './utils/navigationUtils';
 import './hooks/useLocale';
 
 // Import dayjs plugin types for global TypeScript support
@@ -78,7 +78,7 @@ export default function initPreamble(): Promise<void> {
       }, LANGUAGE_PACK_REQUEST_TIMEOUT_MS);
 
       try {
-        const languagePackUrl = makeUrl(`/superset/language_pack/${lang}/`);
+        const languagePackUrl = makeUrl(`/language_pack/${lang}/`);
         const resp = await fetch(languagePackUrl, {
           signal: abortController.signal,
         });

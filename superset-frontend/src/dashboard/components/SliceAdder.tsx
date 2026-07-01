@@ -46,7 +46,7 @@ import {
   NEW_CHART_ID,
   NEW_COMPONENTS_SOURCE_ID,
 } from 'src/dashboard/util/constants';
-import { debounce, pickBy } from 'lodash';
+import { debounce, pickBy } from 'lodash-es';
 import { Dispatch } from 'redux';
 import { Slice } from 'src/dashboard/types';
 import { navigateTo } from 'src/utils/navigationUtils';

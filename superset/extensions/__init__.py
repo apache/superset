@@ -108,7 +108,16 @@ class UIManifestProcessor:
             "js_manifest": lambda bundle: get_files(bundle, "js"),
             "css_manifest": lambda bundle: get_files(bundle, "css"),
             "assets_prefix": (  # type: ignore
-                self.app.config["STATIC_ASSETS_PREFIX"] if self.app else ""
+                self.app.config.get("STATIC_ASSETS_PREFIX", "") if self.app else ""
+            ),
+            # rstripped APPLICATION_ROOT for templates that build app-rooted
+            # URLs (e.g. spa.html's `<link rel="manifest">`). `/` → ``,
+            # `/superset` → `/superset`, `/superset/` → `/superset` so
+            # `f"{application_root_rstrip}/path"` is single-prefixed.
+            "application_root_rstrip": (  # type: ignore
+                (self.app.config.get("APPLICATION_ROOT") or "").rstrip("/")
+                if self.app
+                else ""
             ),
         }
 

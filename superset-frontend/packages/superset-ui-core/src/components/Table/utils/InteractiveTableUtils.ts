@@ -29,7 +29,7 @@ interface IInteractiveColumn extends HTMLElement {
 export default class InteractiveTableUtils {
   tableRef: HTMLTableElement | null;
 
-  columnRef: IInteractiveColumn | null;
+  columnRef: IInteractiveColumn | null = null;
 
   setDerivedColumns: Function;
 

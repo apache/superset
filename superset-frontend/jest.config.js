@@ -25,6 +25,9 @@ module.exports = {
     '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
     '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',
     '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.tsx',
+    // lodash-es is ESM (type: module) which jest.mock cannot intercept; alias to
+    // the CJS lodash build (identical API) so module mocks work in tests.
+    '^lodash-es$': '<rootDir>/node_modules/lodash',
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
     // mapping plugins of superset-ui to source code

@@ -37,7 +37,7 @@ def test_rejected_form_data_keys_cover_all_js_control_keys() -> None:
 
 def test_get_form_data_strips_js_control_keys() -> None:
     """get_form_data drops all JS-executed keys when the flag is disabled."""
-    initial_form_data = {key: "data => data" for key in JS_CONTROL_FORM_DATA_KEYS}
+    initial_form_data = dict.fromkeys(JS_CONTROL_FORM_DATA_KEYS, "data => data")
     initial_form_data["viz_type"] = "deck_geojson"
 
     form_data, _ = get_form_data(initial_form_data=initial_form_data)

@@ -16,6 +16,7 @@
 # under the License.
 """Tests for superset.views.base module"""
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -73,6 +74,68 @@ def test_default_map_renderer_is_exposed_to_frontend_config() -> None:
     from superset.views.base import FRONTEND_CONF_KEYS
 
     assert "DEFAULT_MAP_RENDERER" in FRONTEND_CONF_KEYS
+
+
+_FULL_METADATA = {
+    "version_string": "4.0.0",
+    "version_sha": "abcdef12",
+    "build_number": "build-42",
+    "full_sha": "abcdef1234567890",
+}
+
+
+def _menu_data_navbar(*, is_admin: bool, config_opt_in: bool) -> dict[str, Any]:
+    """Call menu_data with appbuilder isolated, returning navbar_right."""
+    from superset.views import base as base_module
+
+    with (
+        patch.object(
+            base_module, "get_version_metadata", return_value=dict(_FULL_METADATA)
+        ),
+        patch.object(base_module, "security_manager") as mock_sm,
+        patch.object(base_module, "get_environment_tag", return_value={}),
+        patch.object(base_module, "appbuilder") as mock_appbuilder,
+        base_module.app.test_request_context(),
+    ):
+        mock_sm.is_admin = MagicMock(return_value=is_admin)
+        mock_appbuilder.languages = {}
+        mock_appbuilder.menu.get_data.return_value = {}
+        with patch.dict(
+            base_module.app.config,
+            {"EXPOSE_BUILD_DETAILS_TO_USERS": config_opt_in},
+        ):
+            return base_module.menu_data(MagicMock())["navbar_right"]
+
+
+def test_menu_data_exposes_build_details_to_admin() -> None:
+    """Admins see the precise build details in the navbar payload."""
+    navbar_right = _menu_data_navbar(is_admin=True, config_opt_in=False)
+    assert navbar_right["version_sha"] == "abcdef12"
+    assert navbar_right["build_number"] == "build-42"
+
+
+def test_menu_data_redacts_build_details_for_non_admin() -> None:
+    """Non-admins get the version string but redacted build details."""
+    navbar_right = _menu_data_navbar(is_admin=False, config_opt_in=False)
+    assert navbar_right["version_string"] == "4.0.0"
+    assert navbar_right["version_sha"] == ""
+    assert navbar_right["build_number"] is None
+
+
+def test_menu_data_exposes_build_details_when_config_opts_in() -> None:
+    """The config opt-in exposes build details even for non-admins."""
+    navbar_right = _menu_data_navbar(is_admin=False, config_opt_in=True)
+    assert navbar_right["version_sha"] == "abcdef12"
+    assert navbar_right["build_number"] == "build-42"
+
+
+def test_scarf_analytics_is_exposed_to_frontend_config() -> None:
+    """Verify SCARF_ANALYTICS is exposed in the frontend config keys."""
+    # Exposed at runtime so pre-built images can opt out via the SCARF_ANALYTICS
+    # config/env var (the webpack build-time flag cannot be changed there).
+    from superset.views.base import FRONTEND_CONF_KEYS
+
+    assert "SCARF_ANALYTICS" in FRONTEND_CONF_KEYS
 
 
 def _extract_language(
