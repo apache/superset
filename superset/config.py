@@ -1793,9 +1793,14 @@ SMTP_USER = "superset"
 SMTP_PORT = 25
 SMTP_PASSWORD = "superset"  # noqa: S105
 SMTP_MAIL_FROM = "superset@superset.com"
-# If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
-# default system root CA certificates.
-SMTP_SSL_SERVER_AUTH = False
+# If True creates a default SSL context with ssl.Purpose.SERVER_AUTH using the
+# default system root CA certificates. This makes STARTTLS/SSL connections to the
+# SMTP server validate the server's certificate against the trusted CA store.
+# Defaults to True so the mail server identity is verified out of the box. Set to
+# False to restore the previous behavior of skipping certificate validation (for
+# example, when using a self-signed certificate that is not in the system CA
+# store).
+SMTP_SSL_SERVER_AUTH = True
 # Socket timeout (in seconds) for the SMTP connection used when sending
 # alert/report emails. Without a timeout the underlying socket blocks
 # indefinitely if the SMTP server becomes unreachable, which leaves report
@@ -2192,6 +2197,12 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
+# Slack workspace (team) ID, either a string or a callable. Required when using
+# an org-scoped token on an Enterprise Grid org so that workspace-scoped methods
+# (e.g. conversations.list) know which workspace to target. It is accepted but
+# ignored for workspace-level tokens, so leaving it as None preserves the default
+# single-workspace behavior.
+SLACK_TEAM_ID: Callable[[], str] | str | None = None
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Maximum number of retries when Slack API returns rate limit errors

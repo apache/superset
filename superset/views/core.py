@@ -853,7 +853,11 @@ class Superset(BaseSupersetView):
     ) -> FlaskResponse:
         try:
             value = GetDashboardPermalinkCommand(key).run()
-        except (DashboardPermalinkGetFailedError, DashboardAccessDeniedError) as ex:
+        except DashboardAccessDeniedError as ex:
+            if not get_current_user():
+                return redirect_to_login()
+            return json_error_response(__("Error: %(msg)s", msg=ex.message), status=404)
+        except DashboardPermalinkGetFailedError as ex:
             return json_error_response(__("Error: %(msg)s", msg=ex.message), status=404)
         if not value:
             return json_error_response(_("permalink state not found"), status=404)

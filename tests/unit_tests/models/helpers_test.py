@@ -3193,3 +3193,65 @@ def test_process_sql_expression_no_gate_when_denylists_empty(
         template_processor=None,
     )
     assert result is not None
+
+
+def test_get_sqla_query_dotted_struct_column_bigquery(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    SC-111745: a BigQuery STRUCT field registered with a dotted ``column_name``
+    (e.g. ``forecasts.original.total_cost``) must be quoted per-segment in the
+    drill-to-detail / samples SELECT (e.g. ```forecasts`.`original`.`total_cost```),
+    not collapsed into a single quoted identifier (```forecasts.original```),
+    which BigQuery rejects with "Unrecognized name".
+    """
+    bigquery = pytest.importorskip("sqlalchemy_bigquery")
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    dialect = bigquery.BigQueryDialect()
+
+    @contextmanager
+    def fake_engine(*args, **kwargs):
+        engine = MagicMock()
+        engine.dialect = dialect
+        yield engine
+
+    database = Database(database_name="bq", sqlalchemy_uri="bigquery://project")
+    mocker.patch.object(database, "get_sqla_engine", new=fake_engine)
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="orders",
+        columns=[
+            TableColumn(column_name="id", type="INTEGER"),
+            TableColumn(column_name="forecasts.original.total_cost", type="FLOAT"),
+        ],
+    )
+
+    # Mirror the drill-to-detail / samples path: select physical columns with no
+    # groupby/metrics so the column-selection branch in ``get_sqla_query`` runs.
+    sqlaq = table.get_sqla_query(
+        columns=["id", "forecasts.original.total_cost"],
+        is_timeseries=False,
+        row_limit=100,
+    )
+    sql = str(
+        sqlaq.sqla_query.compile(
+            dialect=dialect,
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    # The dotted STRUCT path must be quoted per-segment so BigQuery resolves the
+    # nested field, and must not appear as a single merged identifier.
+    assert "`forecasts`.`original`.`total_cost`" in sql
+    # ```forecasts.original``` is a substring of the broken form
+    # ```forecasts.original`.`total_cost``` (the regression), so this negative
+    # assertion catches the actual failure mode, not just an exact-string match.
+    assert "`forecasts.original`" not in sql
