@@ -44,6 +44,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleScreenshotTimeout,
     ReportScheduleStateNotFoundError,
     ReportScheduleSystemErrorsException,
+    ReportScheduleTargetChartDeletedError,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
@@ -262,6 +263,22 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
+        # Soft delete removed the FK-level guarantee that a report's target
+        # chart exists: ``chart`` is a visibility-filtered relationship, so a
+        # chart soft-deleted after this report was created (or attached via a
+        # validate/commit race with DeleteChartCommand) loads as ``None``
+        # while ``chart_id`` is still set. Without this guard the branch
+        # below silently falls through to the dashboard path and fails
+        # opaquely; raising here surfaces a clear, actionable error inside
+        # the state-machine envelope (ERROR log row + owner notification).
+        # Every content path (_get_screenshots, _get_csv_data,
+        # _get_embedded_data, _get_notification_content) funnels through this
+        # method, so this is the single choke point.
+        if (
+            self._report_schedule.chart_id is not None
+            and self._report_schedule.chart is None
+        ):
+            raise ReportScheduleTargetChartDeletedError()
         force = "true" if self._report_schedule.force_screenshot else "false"
         if self._report_schedule.chart:
             if result_format in {

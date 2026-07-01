@@ -1976,3 +1976,30 @@ def test_get_url_for_csv_uses_post_processed_type(
         f"CSV report URL must use type=post_processed so chart filters "
         f"(incl. time filters) are applied; got: {url}; see issue #25538"
     )
+
+
+def test_get_url_raises_when_target_chart_soft_deleted(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """A dangling chart reference must fail loudly, not fall through.
+
+    Soft delete removed the FK-level guarantee that a report's target chart
+    exists: ``ReportSchedule.chart`` is a visibility-filtered relationship,
+    so a chart soft-deleted after the report was created loads as ``None``
+    while ``chart_id`` is still set. Pre-guard, ``_get_url`` silently fell
+    through to the dashboard branch (``dashboard`` also ``None``) and failed
+    opaquely; it must instead raise the dedicated, actionable error inside
+    the state-machine envelope.
+    """
+    from superset.commands.report.exceptions import (
+        ReportScheduleTargetChartDeletedError,
+    )
+
+    report_schedule = mocker.MagicMock()
+    report_schedule.chart_id = 42
+    report_schedule.chart = None
+
+    state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
+    with pytest.raises(ReportScheduleTargetChartDeletedError):
+        state._get_url()

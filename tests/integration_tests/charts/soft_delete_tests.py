@@ -277,16 +277,18 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         _hard_delete_chart(chart_id)
 
     @with_feature_flags(SOFT_DELETE=True)
-    def test_delete_chart_blocked_when_active_report_references_it(self) -> None:
+    def test_delete_chart_blocked_when_report_references_it(self) -> None:
         """DELETE /api/v1/chart/<id> returns 422 when a report references it.
 
         Pins down the existing API protection in `DeleteChartCommand.validate()`:
-        when a `report_schedule` row references the chart, the validation
-        raises `ChartDeleteFailedReportsExistError` *before* `ChartDAO.delete()`
-        is invoked, so no soft-delete routing happens. This is the contract
-        soft-delete inherits from the pre-existing API and is what makes the
-        "report-execution against soft-deleted target" crash class
-        (commands/report/execute.py:_get_url) unreachable through the API.
+        when *any* `report_schedule` row references the chart — active or
+        paused; `ReportScheduleDAO.find_by_chart_ids` has no active-only
+        predicate — the validation raises `ChartDeleteFailedReportsExistError`
+        *before* `ChartDAO.delete()` is invoked, so no soft-delete routing
+        happens. This is the contract soft-delete inherits from the
+        pre-existing API; the validate/commit race and flag-toggle windows it
+        cannot close are handled by the defensive guard in
+        `commands/report/execute.py:_get_url`.
         """
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("blocked_by_report_test", [admin_id], 1)
