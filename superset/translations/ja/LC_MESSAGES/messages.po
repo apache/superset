@@ -918,11 +918,8 @@ msgstr "ロールを正常に作成しました。"
 msgid "API key name is required"
 msgstr "テーブル名は必須です"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "API key revoked successfully"
-msgstr "API キーが正常に失効されました"
+msgstr "APIキーが正常に無効化されました"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -2063,10 +2060,9 @@ msgid ""
 "will fall back to the configuration file default."
 msgstr "システムの既定テーマを削除してもよろしいですか？削除すると、設定ファイルの既定の設定に戻ります。"
 
-#, fuzzy
 msgid ""
 "Are you sure you want to revoke this API key? This action cannot be undone."
-msgstr "選択した注釈を削除してもよろしいですか？"
+msgstr "このAPIキーを本当に無効化してもよろしいですか？この操作は元に戻せません。"
 
 msgid "Are you sure you want to save and apply changes?"
 msgstr "変更を保存して適用してもよろしいですか？"
@@ -4667,12 +4663,10 @@ msgstr "2つのデータポイント間において、ステップ(段差)を最
 msgid "Definition"
 msgstr "偏差"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, python-format, fuzzy
+#, python-format
 msgid "Delayed (missed %s refresh)"
 msgid_plural "Delayed (missed %s refreshes)"
-msgstr[0] "遅延（%s 回の更新を見逃しました）"
+msgstr[0] "遅延（%s 回の更新が失敗しました）"
 
 msgid "Delete"
 msgstr "削除"
@@ -6208,9 +6202,8 @@ msgstr "システムの既定テーマ削除に失敗しました: %s"
 msgid "Failed to retrieve advanced type"
 msgstr "高度な型の取得に失敗しました"
 
-#, fuzzy
 msgid "Failed to revoke API key"
-msgstr "クエリの停止に失敗しました。"
+msgstr "APIキーの無効化に失敗しました"
 
 msgid "Failed to save chart customization"
 msgstr "チャートカスタマイズ設定の保存に失敗しました"
@@ -10402,23 +10395,17 @@ msgstr "緯度と経度を反転"
 msgid "Reverse lat/long "
 msgstr "緯度と経度を反転"
 
-#, fuzzy
 msgid "Revoke"
-msgstr "削除"
+msgstr "無効化"
 
-#, fuzzy
 msgid "Revoke API Key"
-msgstr "グループキー"
+msgstr "APIキーの無効化"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
 msgid "Revoke this API key"
-msgstr "この API キーを失効させる"
+msgstr "この APIキーを無効化する"
 
-#, fuzzy
 msgid "Revoked"
-msgstr "線あり (ストローク)"
+msgstr "無効化した"
 
 msgid "Rich Tooltip"
 msgstr "詳細なツールチップ"
