@@ -38,6 +38,32 @@ F = TypeVar("F", bound=Callable[..., Any])
 logger = logging.getLogger(__name__)
 
 
+def _resolve_tool_name(base_name: str, replaces: Optional[str]) -> tuple[str, str]:
+    """Return (tool_name, context_type) for registration.
+
+    When *replaces* is set the tool is replacing a host tool, so the name is
+    used as-is and context_type is always "host".
+    """
+    if replaces is not None:
+        return replaces, "host"
+    return _get_prefixed_id_with_context(base_name)
+
+
+def _remove_tool_for_replacement(mcp: Any, name: str) -> None:
+    """Remove *name* from the MCP registry before registering a replacement.
+
+    Logs a warning (rather than raising) when the tool is not found, which
+    can happen if registration order changes or in partial-init environments.
+    """
+    try:
+        mcp.remove_tool(name)
+    except KeyError:
+        logger.warning(
+            "Tool %r not found for replacement — it may not have been registered yet",
+            name,
+        )
+
+
 def _get_prefixed_id_with_context(base_id: str) -> tuple[str, str]:
     """
     Get ID with extension prefixing based on ambient context.
@@ -68,6 +94,7 @@ def create_tool_decorator(
     class_permission_name: Optional[str] = None,
     method_permission_name: Optional[str] = None,
     annotations: ToolAnnotations | None = None,
+    replaces: Optional[str] = None,
 ) -> Callable[[F], F] | F:
     """
     Create the concrete MCP tool decorator implementation.
@@ -89,6 +116,8 @@ def create_tool_decorator(
         method_permission_name: FAB action name (e.g., "read", "write").
             Defaults to "write" if tags has "mutate", else "read".
         annotations: MCP tool annotations (title, readOnlyHint, destructiveHint, etc.)
+        replaces: Name of an existing host tool to replace. The decorated function
+            is registered under this exact name and the original tool is removed first.
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,
@@ -105,8 +134,9 @@ def create_tool_decorator(
             tool_description = description or func.__doc__ or f"Tool: {base_tool_name}"
             tool_tags = tags or []
 
-            # Get prefixed ID based on ambient context
-            tool_name, context_type = _get_prefixed_id_with_context(base_tool_name)
+            tool_name, context_type = _resolve_tool_name(base_tool_name, replaces)
+            if replaces is not None:
+                _remove_tool_for_replacement(mcp, replaces)
 
             # Store RBAC permission metadata on the function so
             # mcp_auth_hook can read them at call time.
@@ -132,19 +162,20 @@ def create_tool_decorator(
 
             from fastmcp.tools import Tool
 
-            tool = Tool.from_function(
+            new_tool = Tool.from_function(
                 wrapped_func,
                 name=tool_name,
                 description=tool_description,
                 tags=tool_tags,
                 annotations=annotations,
             )
-            mcp.add_tool(tool)
+            mcp.add_tool(new_tool)
 
             protected_status = "protected" if protect else "public"
             logger.info(
-                "Registered MCP tool: %s (%s, %s)",
+                "Registered MCP tool: %s (replaces=%s, %s, %s)",
                 tool_name,
+                replaces,
                 protected_status,
                 context_type,
             )
