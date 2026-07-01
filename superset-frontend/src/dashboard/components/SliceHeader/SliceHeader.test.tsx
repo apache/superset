@@ -32,6 +32,7 @@ jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
       data-slice={JSON.stringify(props.slice)}
       data-is-cached={props.isCached}
       data-is-expanded={props.isExpanded}
+      data-is-description-expanded={props.isDescriptionExpanded}
       data-cached-dttm={props.cachedDttm}
       data-updated-dttm={props.updatedDttm}
       data-superset-can-explore={props.supersetCanExplore}
@@ -452,6 +453,10 @@ test('Correct props to "SliceHeaderControls"', () => {
   );
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
     'data-is-expanded',
+    'false',
+  );
+  expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
+    'data-is-description-expanded',
     'false',
   );
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
