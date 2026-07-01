@@ -32,6 +32,7 @@ import { useState } from 'react';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ReactCAPTCHA from 'react-google-recaptcha';
 import { useParams } from 'react-router-dom';
+import { makeUrl } from 'src/utils/pathUtils';
 
 interface RegisterForm {
   username: string;
@@ -91,7 +92,7 @@ export default function Login() {
             'Your account is activated. You can log in with your credentials.',
           )}
           extra={[
-            <Button type="default" href="/login/" data-test="login-button">
+            <Button type="default" href={makeUrl('/login/')} data-test="login-button">
               {t('Login')}
             </Button>,
           ]}
