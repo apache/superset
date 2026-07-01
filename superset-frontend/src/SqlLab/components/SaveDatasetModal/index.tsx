@@ -411,7 +411,7 @@ export const SaveDatasetModal = ({
 
   const disableSaveAndExploreBtn =
     (newOrOverwrite === DatasetRadioState.SaveNew &&
-      datasetName.length === 0) ||
+      datasetName.trim().length === 0) ||
     (newOrOverwrite === DatasetRadioState.OverwriteDataset &&
       isEmpty(selectedDatasetToOverwrite));
 
