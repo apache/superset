@@ -968,9 +968,9 @@ class TestCore(SupersetTestCase):
     ):
         get_dashboard_permalink_mock.side_effect = DashboardAccessDeniedError()
 
-        resp = self.client.get("/superset/dashboard/p/123/")
+        resp = self.client.get("/dashboard/p/123/")
 
-        expected_url = "/login/?next=%2Fsuperset%2Fdashboard%2Fp%2F123%2F"
+        expected_url = "/login/?next=%2Fdashboard%2Fp%2F123%2F"
 
         assert resp.status_code == 302
         assert resp.headers["Location"] == expected_url
@@ -984,7 +984,7 @@ class TestCore(SupersetTestCase):
     ):
         get_dashboard_permalink_mock.return_value = None
 
-        resp = self.client.get("/superset/dashboard/p/123/")
+        resp = self.client.get("/dashboard/p/123/")
 
         assert resp.status_code == 404
         assert "Location" not in resp.headers
