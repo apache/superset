@@ -90,4 +90,4 @@ export const DropdownButton = ({
   return button;
 };
 
-export type { DropdownButtonProps };
+export type { DropdownButtonProps, DropdownButtonStyleConfig } from './types';
