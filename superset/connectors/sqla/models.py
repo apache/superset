@@ -25,6 +25,7 @@ from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Callable, cast, Optional, Union
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import pandas as pd
 import sqlalchemy as sa
@@ -1513,7 +1514,26 @@ class SqlaTable(
 
     @property
     def sql_url(self) -> str:
-        return self.database.sql_url + "?table_name=" + str(self.table_name)
+        # `Database.sql_url` returns `/sqllab/?dbid=N` — the base
+        # already carries a query string, so the historical string concat
+        # `+ "?table_name=" + str(...)` produced a second literal `?` and
+        # corrupted the query parser. Parse + append + re-encode so
+        # `table_name` is a real query param. `urlencode(quote_via=quote)`
+        # delegates per-value escaping to `quote(safe="")`, which encodes
+        # `/`, `&`, `=`, `#`, space, etc. — load-bearing for table names
+        # containing those characters (regression tested).
+        parts = urlsplit(self.database.sql_url)
+        query = parse_qsl(parts.query, keep_blank_values=True)
+        query.append(("table_name", str(self.table_name)))
+        return urlunsplit(
+            (
+                parts.scheme,
+                parts.netloc,
+                parts.path,
+                urlencode(query, quote_via=quote),
+                parts.fragment,
+            )
+        )
 
     def external_metadata(self) -> list[ResultSetColumnType]:
         # todo(yongjie): create a physical table column type in a separate PR
