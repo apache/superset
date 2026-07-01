@@ -321,6 +321,8 @@ const FiltersConfigForm = (
   const filters = form.getFieldValue('filters');
   const formValues = filters?.[filterId];
   const formFilter = formValues || undoFormValues || defaultFormFilter;
+  const savedTimeGrains =
+    filterToEdit?.time_grains ?? customizationToEdit?.time_grains;
 
   const handleModifyFilter = useCallback(() => {
     if (onModifyFilter) {
@@ -584,7 +586,7 @@ const FiltersConfigForm = (
     !!filterToEdit?.time_range;
 
   const hasTimeGrainPreFilter = !!(
-    formFilter?.time_grains?.length || filterToEdit?.time_grains?.length
+    formFilter?.time_grains?.length || savedTimeGrains?.length
   );
 
   const hasEnableSingleValue =
@@ -1245,7 +1247,9 @@ const FiltersConfigForm = (
                                     </CollapsibleControl>
                                   </FormItem>
                                 )}
-                                {itemTypeField === 'filter_timegrain' &&
+                                {(itemTypeField === 'filter_timegrain' ||
+                                  itemTypeField ===
+                                    'chart_customization_timegrain') &&
                                   hasDataset &&
                                   datasetDetails?.time_grain_sqla &&
                                   datasetDetails.time_grain_sqla.length > 0 && (
@@ -1280,9 +1284,7 @@ const FiltersConfigForm = (
                                             filterId,
                                             'time_grains',
                                           ]}
-                                          initialValue={
-                                            filterToEdit?.time_grains
-                                          }
+                                          initialValue={savedTimeGrains}
                                           {...getFiltersConfigModalTestId(
                                             'time-grain-allowlist',
                                           )}
