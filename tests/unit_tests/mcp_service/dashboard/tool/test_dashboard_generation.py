@@ -2013,7 +2013,8 @@ class TestDashboardSerializationEagerLoading:
             dash = data["dashboard"]
             assert dash["id"] == 10
             assert dash["dashboard_title"] == "Rollback Test"
-            assert "/superset/dashboard/test-dashboard-10/" in data["dashboard_url"]
+            assert data["dashboard_url"].endswith("/dashboard/test-dashboard-10/")
+            assert "/superset/superset/dashboard/" not in data["dashboard_url"]
             # Access-list fields should not be returned.
             assert "editors" not in dash
             assert dash["tags"] == []
@@ -2130,7 +2131,8 @@ class TestDashboardSerializationEagerLoading:
             dash = data["dashboard"]
             assert dash["id"] == 1
             assert dash["dashboard_title"] == "Dashboard"
-            assert "/superset/dashboard/1/" in data["dashboard_url"]
+            assert data["dashboard_url"].endswith("/dashboard/1/")
+            assert "/superset/superset/dashboard/" not in data["dashboard_url"]
             # Position info should still be returned
             assert data["position"] is not None
             assert "chart_key" in data["position"]
