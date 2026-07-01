@@ -18,7 +18,7 @@
  */
 
 import exploreReducer, { ExploreState } from './exploreReducer';
-import { setStashFormData } from '../actions/exploreActions';
+import { setStashFormData, sliceUpdated } from '../actions/exploreActions';
 import { QueryFormData } from '@superset-ui/core';
 
 test('reset hiddenFormData on SET_STASH_FORM_DATA', () => {
@@ -51,4 +51,50 @@ test('skips updates when the field is already updated on SET_STASH_FORM_DATA', (
   >[1];
   const newState = exploreReducer(initialState, restoreAction);
   expect(newState).toBe(initialState);
+});
+
+test('normalizes API owner objects to id array on SLICE_UPDATED', () => {
+  const initialState: ExploreState = {
+    form_data: {} as unknown as QueryFormData,
+    controls: {},
+    slice: { slice_id: 1, owners: [1] },
+  } as ExploreState;
+  // The chart API returns owners as objects: {id, first_name, last_name}
+  const action = sliceUpdated({
+    slice_id: 1,
+    slice_name: 'My chart',
+    owners: [{ id: 5, first_name: 'Superset', last_name: 'Admin' }],
+  } as never) as Parameters<typeof exploreReducer>[1];
+  const newState = exploreReducer(initialState, action);
+  expect(newState.slice?.owners).toEqual([5]);
+  expect(newState.metadata?.owners).toEqual(['Superset Admin']);
+});
+
+test('normalizes select control owners ({value, label}) on SLICE_UPDATED', () => {
+  const initialState: ExploreState = {
+    form_data: {} as unknown as QueryFormData,
+    controls: {},
+    slice: { slice_id: 1, owners: [1] },
+  } as ExploreState;
+  const action = sliceUpdated({
+    slice_id: 1,
+    owners: [{ value: 7, label: 'Jane Doe' }],
+  } as never) as Parameters<typeof exploreReducer>[1];
+  const newState = exploreReducer(initialState, action);
+  expect(newState.slice?.owners).toEqual([7]);
+  expect(newState.metadata?.owners).toEqual(['Jane Doe']);
+});
+
+test('keeps numeric owner ids on SLICE_UPDATED', () => {
+  const initialState: ExploreState = {
+    form_data: {} as unknown as QueryFormData,
+    controls: {},
+    slice: { slice_id: 1, owners: [1] },
+  } as ExploreState;
+  const action = sliceUpdated({
+    slice_id: 1,
+    owners: [3, 4],
+  } as never) as Parameters<typeof exploreReducer>[1];
+  const newState = exploreReducer(initialState, action);
+  expect(newState.slice?.owners).toEqual([3, 4]);
 });
