@@ -41,6 +41,28 @@ assists people when migrating to a new version.
 - **`SqlaTable.sql_url` query-string format.** `SqlaTable.sql_url` now URL-encodes `table_name` and joins it as a query parameter rather than concatenating a second `?`. Previously, with `Database.sql_url` returning `/sqllab/?dbid=<id>`, the concatenation produced `/sqllab/?dbid=<id>?table_name=<raw>` — a malformed second `?` that broke the query parser. External code that parsed the legacy `<base>?table_name=<raw>` shape now sees properly percent-encoded values (e.g. `/` → `%2F`, ` ` → `+` or `%20`); decode with `urllib.parse.parse_qsl`.
 
 - **New config flag `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default `False`).** Share/permalink URLs now substitute `window.location.origin` for the backend-supplied origin so a proxied or subdirectory-deployed Superset never hands the user an unreachable internal hostname. Operators whose reverse proxy correctly forwards `X-Forwarded-Host` *and* who want permalinks to carry the backend's literal origin can opt out by setting `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True` in `superset_config.py`. Default `False` (rewrite is on); flipping the default would regress the dominant proxied/subdir deployment to an unreachable host.
+
+### SQL Lab denies large-object and information_schema access by default
+
+`DISALLOWED_SQL_FUNCTIONS` and `DISALLOWED_SQL_TABLES` now ship with additional default entries, so SQL Lab and chart-data queries that reference them are rejected where they were previously allowed:
+
+- PostgreSQL large-object routines (`lo_from_bytea`, `lo_export`, `lo_import`, `lo_put`, `lo_create`, `lo_creat`, `lowrite`, `lo_get`, `loread`, `lo_unlink`), which read and write bytes on the database server's filesystem.
+- The SQL-standard `information_schema` views (`tables`, `columns`, `routines`, `views`, the privilege/grant views, etc.), which expose table, column, privilege, and view-definition metadata across the whole database.
+
+Deployments that legitimately query these (for example tooling that introspects `information_schema`) can restore the previous behavior by overriding `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` in `superset_config.py` to drop the entries they need.
+
+Because the denylist now resolves the effective schema through the query-aware path, PostgreSQL queries that change the `search_path` (e.g. `SET search_path = ...`) are rejected on the SQL Lab execution and cost-estimate paths whenever any `DISALLOWED_SQL_TABLES` entry is configured (the default for PostgreSQL), matching the behavior previously applied only when `RLS_IN_SQLLAB` was enabled.
+
+### SQL parser input length cap (SQL_MAX_PARSE_LENGTH)
+
+The SQL parser now rejects scripts whose UTF-8 byte length exceeds the new
+`SQL_MAX_PARSE_LENGTH` config option (default `1_000_000` bytes) before they are
+handed to sqlglot, which bounds parser memory and CPU usage. A single query
+larger than the cap (for example a very large `IN (...)` list or a big
+virtual-dataset SQL) raises a parse error in SQL Lab and dashboard-generated
+queries. Deployments that legitimately run queries above this size should raise
+the value, and `SQL_MAX_PARSE_LENGTH = None` disables the check entirely.
+
 ### Guest-token RLS rules reject unknown fields
 
 The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a *global* rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
@@ -60,6 +82,10 @@ The git SHA and build number surfaced in the "About" section, the bootstrap payl
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
+
+### `FetchRetryOptions` callback parameters widened to allow `null`
+
+The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
 
 ### `thumbnail_url` removed from dashboard list API response
 
@@ -132,6 +158,11 @@ Operators can tune or disable the policy via config:
 ### Data uploads bounded by UPLOAD_MAX_FILE_SIZE_BYTES
 
 Single data-file uploads (CSV, Excel, columnar) are now bounded by the `UPLOAD_MAX_FILE_SIZE_BYTES` config option, which defaults to `100 * 1024 * 1024` (100 MB). Files larger than this are rejected with a `413` before their contents are buffered into memory. Set `UPLOAD_MAX_FILE_SIZE_BYTES = None` to disable the check and restore unbounded uploads.
+### Currency symbol position follows the locale when unset
+
+When a chart's currency control leaves the **Prefix or suffix** field empty, the currency symbol position is now derived from the deployment locale's own convention via `Intl.NumberFormat` instead of always defaulting to a suffix. For example, under the default `en-US` locale `USD`, `GBP`, and `EUR` render as a prefix (`$ 1,000`), while eurozone locales such as `fr-FR` render `EUR` as a suffix (`1 000 €`). An explicit Prefix/Suffix selection is always honored and is unaffected.
+
+Charts that relied on the previous always-suffix default for an unset position will render the symbol on the locale-appropriate side instead; set the position explicitly on the metric's currency control to pin it.
 
 ### Duration formatter precision
 
@@ -196,6 +227,18 @@ Runbook to adopt:
 1. Capture the SSH server's host key, e.g. `ssh-keyscan -t ed25519 ssh.example.com` (verify it out-of-band).
 2. Set that value on the tunnel's `server_host_key` (via the database/SSH tunnel API or UI payload).
 3. Optionally set `SSH_TUNNEL_STRICT_HOST_KEY_CHECKING = True` in `superset_config.py` to require host-key verification on all tunnels.
+
+### SMTP server certificate validation enabled by default
+
+`SMTP_SSL_SERVER_AUTH` now defaults to `True` (previously `False`). With this default, STARTTLS/SSL connections to the configured SMTP server validate the server's TLS certificate against the system trusted CA store. This makes outbound email (alerts and reports) verify the mail server's identity out of the box.
+
+If your SMTP server presents a self-signed certificate, or a certificate that is not trusted by the system CA store, email delivery may now fail with a certificate verification error. To restore the previous behavior of skipping certificate validation, set the following in `superset_config.py`:
+
+```python
+SMTP_SSL_SERVER_AUTH = False
+```
+
+The recommended fix is to add the SMTP server's certificate (or its issuing CA) to the system trust store rather than disabling validation.
 
 ### Dataset import validates catalog against the target connection
 

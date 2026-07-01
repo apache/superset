@@ -1212,7 +1212,6 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self._scheduled_dttm = scheduled_dttm
         self._execution_id = UUID(task_id)
 
-    @transaction()
     def run(self) -> None:
         try:
             self.validate()
@@ -1238,6 +1237,19 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
 
             start_time = datetime.utcnow()
             with override_user(user):
+                # Pre-commit any permalink rows before the state machine's
+                # @transaction() opens. When called inside a transaction,
+                # CreateDashboardPermalinkCommand only flushes (not commits),
+                # leaving the row invisible to Playwright's separate DB
+                # connection. Running get_dashboard_urls() here — outside any
+                # transaction — lets the command commit normally. The state
+                # machine's inner call to get_dashboard_urls() hits get_entry()
+                # for the same deterministic UUID and returns the
+                # already-committed row without a second INSERT.
+                if self._model.dashboard_id:
+                    BaseReportState(
+                        self._model, self._scheduled_dttm, self._execution_id
+                    ).get_dashboard_urls()
                 ReportScheduleStateMachine(
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()

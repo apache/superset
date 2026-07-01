@@ -76,7 +76,7 @@
     "caniuse-lite": "^1.0.30001799",
     "docusaurus-plugin-openapi-docs": "^5.0.2",
     "docusaurus-theme-openapi-docs": "^5.0.2",
-    "js-yaml": "^5.0.0",
+    "js-yaml": "^5.1.0",
     "js-yaml-loader": "^1.2.2",
     "json-bigint": "^1.0.0",
     "prism-react-renderer": "^2.4.1",
@@ -89,7 +89,7 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.2.0",
     "storybook": "^8.6.18",
-    "swagger-ui-react": "^5.32.7",
+    "swagger-ui-react": "^5.32.8",
     "swc-loader": "^0.2.7",
     "tinycolor2": "^1.4.2",
     "unist-util-visit": "^5.1.0"
@@ -106,10 +106,10 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
     "eslint-plugin-react": "^7.37.5",
-    "globals": "^17.6.0",
+    "globals": "^17.7.0",
     "prettier": "^3.8.4",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.61.1",
+    "typescript-eslint": "^8.62.0",
     "webpack": "^5.107.2"
   },
   "browserslist": {

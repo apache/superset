@@ -724,3 +724,57 @@ describe('openInNewTab — sibling-site coverage', () => {
 //
 // Note: the mock factory is hoisted, so `mockApplicationRoot` must be
 // `mock`-prefixed to satisfy Jest's out-of-scope-variable check.
+
+// Duplicate-assign suppression (master PR #40833): a double-click that fires
+// two identical `navigateTo(..., { assign: true })` calls within 1s must reach
+// `window.location.assign` only once. The dedupe is keyed on the final,
+// app-root-prefixed sink value. These exercise the real `navigateTo` (not an
+// identity stub) so app-root prefixing and the assign barrier run end to end.
+describe('navigateTo duplicate-assign suppression', () => {
+  let originalLocation: Location;
+  let assignMock: jest.Mock;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    originalLocation = window.location;
+    delete (window as unknown as { location?: Location }).location;
+    assignMock = jest.fn();
+    (
+      window as unknown as { location: { href: string; assign: jest.Mock } }
+    ).location = { href: '', assign: assignMock };
+  });
+
+  afterEach(() => {
+    (window as unknown as { location: Location }).location = originalLocation;
+    jest.useRealTimers();
+  });
+
+  test('ignores a repeated assign to the same URL within the dedupe window', async () => {
+    await withApplicationRoot('/superset/', async () => {
+      const { navigateTo } = await import('src/utils/navigationUtils');
+      navigateTo('/dashboard/new/', { assign: true });
+      navigateTo('/dashboard/new/', { assign: true });
+      expect(assignMock).toHaveBeenCalledTimes(1);
+      expect(assignMock).toHaveBeenCalledWith('/superset/dashboard/new/');
+    });
+  });
+
+  test('assigns different URLs in quick succession', async () => {
+    await withApplicationRoot('/superset/', async () => {
+      const { navigateTo } = await import('src/utils/navigationUtils');
+      navigateTo('/dashboard/new/', { assign: true });
+      navigateTo('/chart/add/', { assign: true });
+      expect(assignMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test('assigns the same URL again once the dedupe window has elapsed', async () => {
+    await withApplicationRoot('/superset/', async () => {
+      const { navigateTo } = await import('src/utils/navigationUtils');
+      navigateTo('/dashboard/new/', { assign: true });
+      jest.advanceTimersByTime(1000);
+      navigateTo('/dashboard/new/', { assign: true });
+      expect(assignMock).toHaveBeenCalledTimes(2);
+    });
+  });
+});

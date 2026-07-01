@@ -45,6 +45,30 @@ export { ensureAppRoot, makeUrl, stripAppRoot };
 
 const NEW_TAB_FEATURES = 'noopener noreferrer';
 
+// Duplicate-navigation suppression for `assign`-mode navigations (master
+// PR #40833: prevents a double-click on "create dashboard" from firing two
+// identical `window.location.assign` calls and creating duplicate objects).
+// Keyed on the final, already-sanitised sink value so the dedupe decision is
+// made on exactly what would reach `window.location.assign`. This is pure
+// bookkeeping — it never touches the sink, so the inline CodeQL barriers on
+// each `assign` branch below remain intact.
+const DUPLICATE_NAV_WINDOW_MS = 1000;
+let lastAssignUrl: string | null = null;
+let lastAssignAt = 0;
+
+function shouldSkipDuplicateAssign(sinkValue: string): boolean {
+  const now = Date.now();
+  if (
+    lastAssignUrl === sinkValue &&
+    now - lastAssignAt < DUPLICATE_NAV_WINDOW_MS
+  ) {
+    return true;
+  }
+  lastAssignUrl = sinkValue;
+  lastAssignAt = now;
+  return false;
+}
+
 // Constant base for the URL-constructor barrier in the router-relative
 // branches below. Using a constant (rather than `window.location.origin`)
 // keeps the parse fully deterministic — test mocks that supply only
@@ -249,7 +273,9 @@ export function navigateTo(
         if (options?.newWindow) {
           window.open(sinkValue, '_blank', NEW_TAB_FEATURES);
         } else if (options?.assign) {
-          window.location.assign(sinkValue);
+          if (!shouldSkipDuplicateAssign(sinkValue)) {
+            window.location.assign(sinkValue);
+          }
         } else {
           window.location.href = sinkValue;
         }
@@ -290,7 +316,9 @@ export function navigateTo(
     if (options?.newWindow) {
       window.open(safeExternal, '_blank', NEW_TAB_FEATURES);
     } else if (options?.assign) {
-      window.location.assign(safeExternal);
+      if (!shouldSkipDuplicateAssign(safeExternal)) {
+        window.location.assign(safeExternal);
+      }
     } else {
       window.location.href = safeExternal;
     }
