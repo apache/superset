@@ -1133,14 +1133,18 @@ class DashboardRestApi(
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Soft-delete a dashboard.
+        """Delete a dashboard.
 
-        Marks the dashboard as deleted (sets ``deleted_at``) and hides it
-        from list/detail endpoints; the row is preserved and recoverable
-        via ``POST /api/v1/dashboard/<uuid>/restore`` by an owner or admin.
+        When the ``SOFT_DELETE`` feature flag is enabled, marks the dashboard
+        as deleted (sets ``deleted_at``) and hides it from list/detail
+        endpoints; the row is preserved and recoverable via
+        ``POST /api/v1/dashboard/<uuid>/restore`` by an owner or admin.
+        With the flag disabled (the default), the dashboard is permanently
+        hard-deleted and is not recoverable.
         ---
         delete:
-          summary: Delete a dashboard (soft delete; recoverable via restore)
+          summary: Delete a dashboard (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: path
             schema:
@@ -1193,14 +1197,18 @@ class DashboardRestApi(
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Bulk soft-delete dashboards.
+        """Bulk delete dashboards.
 
-        Marks each dashboard as deleted (sets ``deleted_at``) and hides it
-        from list/detail endpoints; rows are preserved and recoverable via
+        When the ``SOFT_DELETE`` feature flag is enabled, marks each dashboard
+        as deleted (sets ``deleted_at``) and hides it from list/detail
+        endpoints; rows are preserved and recoverable via
         ``POST /api/v1/dashboard/<uuid>/restore`` by an owner or admin.
+        With the flag disabled (the default), the dashboards are permanently
+        hard-deleted and are not recoverable.
         ---
         delete:
-          summary: Bulk delete dashboards (soft delete; recoverable via restore)
+          summary: Bulk delete dashboards (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: query
             name: q
@@ -1960,6 +1968,15 @@ class DashboardRestApi(
     @requires_form_data
     def import_(self) -> Response:
         """Import dashboard(s) with associated charts/datasets/databases.
+
+        When the ``SOFT_DELETE`` feature flag is enabled and an imported
+        dashboard's UUID matches an existing **soft-deleted** dashboard, the
+        import restores that dashboard and applies the upload's contents —
+        **even when ``overwrite`` is not set**. Active dashboards keep the
+        usual contract (never mutated without ``overwrite=true``); a
+        soft-deleted UUID match is treated as an explicit request to bring
+        the dashboard back. Requires ``can_write`` and ownership of the
+        deleted row (or admin). See UPDATING.md for details.
         ---
         post:
           summary: Import dashboard(s) with associated charts/datasets/databases
