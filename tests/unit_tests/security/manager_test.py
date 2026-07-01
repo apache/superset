@@ -20,8 +20,11 @@
 import json  # noqa: TID251
 from types import SimpleNamespace
 from typing import Any, Optional
+from unittest.mock import MagicMock
 
 import pytest
+from flask import Flask
+from flask_appbuilder.security.manager import AuthOAuthView
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
@@ -39,6 +42,7 @@ from superset.security.manager import (
 from superset.sql.parse import Table
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils.core import DatasourceName, override_user
+from superset.views.auth import SupersetOAuthView
 
 
 def test_security_manager(app_context: None) -> None:
@@ -49,20 +53,96 @@ def test_security_manager(app_context: None) -> None:
     assert sm
 
 
-@pytest.fixture
-def stored_metrics() -> list[AdhocMetric]:
+def test_superset_oauth_view_oauth_oauth_single_provider(
+    mocker: MockerFixture, app: Flask, app_context: None
+) -> None:
     """
-    Return a list of metrics.
+    Test that SupersetOAuthView auto-selects the provider and delegates
+    to the parent login method when only a single OAuth provider is configured.
     """
-    return [
+    from superset.views.auth import SupersetOAuthView
+
+    mock_provider = MagicMock()
+    mock_remotes = {"google": mock_provider}
+
+    mocker.patch.object(app.appbuilder.sm, "oauth_remotes", mock_remotes)
+
+    mock_super_login = mocker.patch(
+        "superset.views.auth.AuthOAuthView.login", return_value="mocked_response"
+    )
+
+    oauth_view = SupersetOAuthView()
+
+    oauth_view.appbuilder = app.appbuilder
+
+    oauth_view.login()
+
+    mock_super_login.assert_called_once_with("google")
+
+
+def test_superset_oauth_view_oauth_multiple_providers(
+    mocker: MockerFixture, app: Flask, app_context: None
+) -> None:
+    """
+    Test that SupersetOAuthView does NOT auto-select when multiple OAuth
+    providers are configured, and instead calls parent login without provider.
+    """
+    from superset.views.auth import SupersetOAuthView
+
+    mock_provider1 = MagicMock()
+    mock_provider2 = MagicMock()
+    mock_remotes = {"google": mock_provider1, "github": mock_provider2}
+
+    mocker.patch.object(app.appbuilder.sm, "oauth_remotes", mock_remotes)
+
+    mock_super_login = mocker.patch(
+        "superset.views.auth.AuthOAuthView.login", return_value="mocked_response"
+    )
+
+    oauth_view = SupersetOAuthView()
+
+    oauth_view.appbuilder = app.appbuilder
+
+    oauth_view.login()
+
+    mock_super_login.assert_called_once_with(None)
+
+
+def test_security_manager_with_oauth_auth_type(
+    mocker: MockerFixture, app: Flask, app_context: None
+) -> None:
+    """
+    Test that SupersetSecurityManager login works correctly when
+    AUTH_TYPE is set to AUTH_OAUTH with a single provider.
+    """
+    from flask_appbuilder.security.manager import AUTH_OAUTH
+
+    app.config["AUTH_TYPE"] = AUTH_OAUTH
+    app.config["OAUTH_PROVIDERS"] = [
         {
-            "column": None,
-            "expressionType": "SQL",
-            "hasCustomLabel": False,
-            "label": "COUNT(*) + 1",
-            "sqlExpression": "COUNT(*) + 1",
-        },
+            "name": "google",
+            "icon": "fa-google",
+            "token_key": "access_token",
+            "remote_app": {
+                "client_id": "test_client_id",
+                "client_secret": "test_client_secret",
+                "api_base_url": "https://accounts.google.com/o/oauth2/v2/auth",
+                "client_kwargs": {"scope": "email profile"},
+            },
+        }
     ]
+
+    mock_provider = mocker.Mock()
+    mock_remotes = {"google": mock_provider}
+    mocker.patch.object(app.appbuilder.sm, "oauth_remotes", mock_remotes)
+    mock_super_login = mocker.patch.object(AuthOAuthView, "login")
+
+    oauth_view = SupersetOAuthView()
+    oauth_view.appbuilder = app.appbuilder
+
+    oauth_view.login()
+
+    mock_super_login.assert_called_once_with("google")
 
 
 @pytest.fixture
