@@ -654,7 +654,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         logger.warning(bottom_banner)
 
     def check_secret_key(self) -> None:
-        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+        secret_key = self.config["SECRET_KEY"]
+        # A missing/empty SECRET_KEY is as insecure as the well-known default
+        # placeholder: both are treated as insecure and handled identically. An
+        # empty key is reachable when a deployment explicitly sets SECRET_KEY to
+        # an empty value (the env fallback only substitutes the placeholder).
+        if secret_key and secret_key != CHANGE_ME_SECRET_KEY:
+            return
+        if not secret_key:
+            warning = (
+                "An empty SECRET_KEY was detected, please use superset_config.py "
+                "to set a non-empty value.\n"
+                "Use a strong complex alphanumeric string and use a tool to help"
+                " you generate \n"
+                "a sufficiently random sequence, ex: openssl rand -base64 42 \n"
+                "For more info, see: https://superset.apache.org/docs/"
+                "configuration/configuring-superset#specifying-a-secret_key"
+            )
+        else:
             warning = (
                 "A Default SECRET_KEY was detected, please use superset_config.py "
                 "to override it.\n"
@@ -664,17 +681,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "For more info, see: https://superset.apache.org/docs/"
                 "configuration/configuring-superset#specifying-a-secret_key"
             )
-            if (
-                self.superset_app.debug
-                or self.superset_app.config["TESTING"]
-                or is_test()
-            ):
-                logger.warning("Debug mode identified with default secret key")
-                self._log_config_warning(warning)
-                return
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            logger.warning("Debug mode identified with insecure secret key")
             self._log_config_warning(warning)
-            logger.error("Refusing to start due to insecure SECRET_KEY")
-            sys.exit(1)
+            return
+        self._log_config_warning(warning)
+        logger.error("Refusing to start due to insecure SECRET_KEY")
+        sys.exit(1)
 
     def check_guest_token_secret(self) -> None:
         """Refuse to start with default guest JWT secret when embedding is enabled."""
@@ -815,7 +828,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         try:
             with self.superset_app.app_context():
                 # Simple connection test
-                db.engine.execute(text("SELECT 1"))
+                with db.engine.connect() as connection:
+                    connection.execute(text("SELECT 1"))
         except Exception:
             db_uri = self.database_uri
 

@@ -160,6 +160,15 @@ VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 # can be replaced at build time to expose build information.
 BUILD_NUMBER = None
 
+# Whether to expose precise build details (the git SHA and build number) to
+# all users via the "About" section and the bootstrap payload. When False
+# (default), these are only included for admins, so non-admin/anonymous viewers
+# cannot read the exact commit/build of the deployment. The release version
+# string is always included. Enable with SUPERSET_EXPOSE_BUILD_DETAILS.
+EXPOSE_BUILD_DETAILS_TO_USERS = utils.cast_to_boolean(
+    os.environ.get("SUPERSET_EXPOSE_BUILD_DETAILS", False)
+)
+
 # default viz used in chart explorer & SQL Lab explore
 DEFAULT_VIZ_TYPE = "table"
 
@@ -434,7 +443,13 @@ LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
-FAB_API_SWAGGER_UI = True
+# Disabled by default so the interactive API documentation surface is opt-in.
+# Enable it by setting the SUPERSET_ENABLE_SWAGGER_UI environment variable
+# (e.g. for local development) or by overriding FAB_API_SWAGGER_UI in
+# superset_config.py.
+FAB_API_SWAGGER_UI = utils.cast_to_boolean(
+    os.environ.get("SUPERSET_ENABLE_SWAGGER_UI", False)
+)
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -642,6 +657,13 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
+    # Temporary rollout / kill-switch gate for soft delete (default off = legacy
+    # hard delete). An emergency stop, not a clean rollback: flipping ON->OFF
+    # resurrects already-soft-deleted rows. Removed (along with its two gate
+    # points — BaseDAO.delete routing and the do_orm_execute visibility listener)
+    # once soft delete is stable.
+    # @lifecycle: development
+    "SOFT_DELETE": False,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
@@ -1010,7 +1032,12 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # Default theme configuration - foundation for all themes
 # This acts as the base theme for all users
-THEME_DEFAULT: Theme = {
+#
+# _THEME_DEFAULT_BASE is a private copy of the built-in defaults.
+# It is NOT overridden by ``from superset_config import *`` (underscore prefix)
+# and is used to deep-merge partial user overrides so that unspecified token
+# fields gracefully fall back to the built-in values.
+_THEME_DEFAULT_BASE: Theme = {
     "token": {
         # Brand
         # Application name for window titles
@@ -1050,18 +1077,22 @@ THEME_DEFAULT: Theme = {
     "algorithm": "default",
 }
 
+THEME_DEFAULT: Theme = _THEME_DEFAULT_BASE
+
 # Dark theme configuration - foundation for dark mode
 # Inherits all tokens from THEME_DEFAULT and adds dark algorithm
 # Set to None to disable dark mode
-THEME_DARK: Optional[Theme] = {
-    **THEME_DEFAULT,
+_THEME_DARK_BASE: Theme = {
+    **_THEME_DEFAULT_BASE,
     "token": {
-        **THEME_DEFAULT["token"],
+        **_THEME_DEFAULT_BASE["token"],
         # Darker selection color for dark mode
         "colorEditorSelection": "#5c4d1a",
     },
     "algorithm": "dark",
 }
+
+THEME_DARK: Optional[Theme] = _THEME_DARK_BASE
 
 
 def sync_theme_logo_href(
@@ -1168,6 +1199,9 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
+# How long to treat a COMPUTING cache entry as an active lease before considering
+# the worker stuck.  Should exceed the task soft_time_limit (300 s) by a margin.
+THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
 
 # Cache warmup user — must be set explicitly before enabling the cache-warmup
 # Celery task. Intentionally defaults to None so operators pick a dedicated
@@ -1766,9 +1800,14 @@ SMTP_USER = "superset"
 SMTP_PORT = 25
 SMTP_PASSWORD = "superset"  # noqa: S105
 SMTP_MAIL_FROM = "superset@superset.com"
-# If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
-# default system root CA certificates.
-SMTP_SSL_SERVER_AUTH = False
+# If True creates a default SSL context with ssl.Purpose.SERVER_AUTH using the
+# default system root CA certificates. This makes STARTTLS/SSL connections to the
+# SMTP server validate the server's certificate against the trusted CA store.
+# Defaults to True so the mail server identity is verified out of the box. Set to
+# False to restore the previous behavior of skipping certificate validation (for
+# example, when using a self-signed certificate that is not in the system CA
+# store).
+SMTP_SSL_SERVER_AUTH = True
 # Socket timeout (in seconds) for the SMTP connection used when sending
 # alert/report emails. Without a timeout the underlying socket blocks
 # indefinitely if the SMTP server becomes unreachable, which leaves report
@@ -2207,6 +2246,12 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
+# Slack workspace (team) ID, either a string or a callable. Required when using
+# an org-scoped token on an Enterprise Grid org so that workspace-scoped methods
+# (e.g. conversations.list) know which workspace to target. It is accepted but
+# ignored for workspace-level tokens, so leaving it as None preserves the default
+# single-workspace behavior.
+SLACK_TEAM_ID: Callable[[], str] | str | None = None
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Maximum number of retries when Slack API returns rate limit errors
@@ -2350,6 +2395,13 @@ DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
+
+# Superset uses Scarf (https://about.scarf.sh/) to collect anonymous, aggregated
+# telemetry via a pixel rendered in the UI. Set the SCARF_ANALYTICS environment
+# variable to "false" to opt out. This value is exposed to the frontend through
+# the bootstrap payload so it takes effect at runtime, including in pre-built
+# images where the webpack build-time flag of the same name cannot be changed.
+SCARF_ANALYTICS = utils.cast_to_boolean(os.environ.get("SCARF_ANALYTICS", True))
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))

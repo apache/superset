@@ -37,10 +37,12 @@ jobs:
           node-version: "20"
 
       - name: Install Dependencies
-        run: npm install -g @action-validator/core @action-validator/cli --save-dev
+        # Versions are pinned to avoid ad-hoc, unpinned package installs
+        # (zizmor adhoc-packages). Bump deliberately when upgrading.
+        run: npm install -g @action-validator/core@0.6.0 @action-validator/cli@0.6.0
 
       - name: Run Script
         run: bash .github/workflows/github-action-validator.sh
 
       - name: Check for security issues on GHA workflows
-        uses: zizmorcore/zizmor-action@5f14fd08f7cf1cb1609c1e344975f152c7ee938d # v0.5.6
+        uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7

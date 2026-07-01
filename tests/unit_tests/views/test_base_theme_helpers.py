@@ -358,10 +358,10 @@ class TestGetThemeBootstrapData:
 
         result = get_theme_bootstrap_data()
 
-        # Verify
+        # Verify user overrides are applied (merged with base defaults)
         assert result["theme"]["enableUiThemeAdministration"] is False
-        assert result["theme"]["default"] == {"token": {"colorPrimary": "#config1"}}
-        assert result["theme"]["dark"] == {"token": {"colorPrimary": "#config2"}}
+        assert result["theme"]["default"]["token"]["colorPrimary"] == "#config1"
+        assert result["theme"]["dark"]["token"]["colorPrimary"] == "#config2"
 
     @patch("superset.views.base.app")
     @patch("superset.views.base.get_config_value")
@@ -466,10 +466,10 @@ class TestGetThemeBootstrapData:
 
         result = get_theme_bootstrap_data()
 
-        # Should fall back to config themes
+        # Should fall back to config themes (merged with base defaults)
         assert result["theme"]["enableUiThemeAdministration"] is True
-        assert result["theme"]["default"] == {"token": {"colorPrimary": "#config1"}}
-        assert result["theme"]["dark"] == {"token": {"colorPrimary": "#config2"}}
+        assert result["theme"]["default"]["token"]["colorPrimary"] == "#config1"
+        assert result["theme"]["dark"]["token"]["colorPrimary"] == "#config2"
 
     @patch("superset.views.base.app")
     @patch("superset.views.base.get_config_value")
@@ -505,8 +505,8 @@ class TestGetThemeBootstrapData:
         with patch("superset.views.base.logger") as mock_logger:
             result = get_theme_bootstrap_data()
 
-            # Should fall back to config theme and log error
-            assert result["theme"]["default"] == {"token": {"colorPrimary": "#config1"}}
+            # Should fall back to config theme (merged with base defaults)
+            assert result["theme"]["default"]["token"]["colorPrimary"] == "#config1"
             mock_logger.error.assert_called_once()
 
     @patch("superset.views.base.app")
@@ -530,6 +530,64 @@ class TestGetThemeBootstrapData:
         assert result["theme"]["enableUiThemeAdministration"] is False
         assert result["theme"]["default"] == {}
         assert result["theme"]["dark"] == {}
+
+    @patch("superset.views.base.app")
+    @patch("superset.views.base.get_config_value")
+    def test_partial_theme_override_preserves_base_tokens(
+        self, mock_get_config, mock_app
+    ):
+        """Regression test for #40375: partial THEME_DEFAULT override must
+        preserve unspecified token fields from the built-in defaults so the
+        frontend does not crash on undefined values."""
+        from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
+
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "ENABLE_UI_THEME_ADMINISTRATION": False,
+        }.get(k, d)
+
+        # Simulate a minimal user override in superset_config.py
+        partial_default = {
+            "token": {"colorPrimary": "#ff0000"},
+            "algorithm": "default",
+        }
+        partial_dark = {
+            "token": {"colorPrimary": "#00ff00"},
+            "algorithm": "dark",
+        }
+        mock_get_config.side_effect = lambda k: {
+            "THEME_DEFAULT": partial_default,
+            "THEME_DARK": partial_dark,
+        }.get(k)
+
+        result = get_theme_bootstrap_data()
+
+        default_theme = result["theme"]["default"]
+        dark_theme = result["theme"]["dark"]
+
+        # User overrides must be applied
+        assert default_theme["token"]["colorPrimary"] == "#ff0000"
+        assert dark_theme["token"]["colorPrimary"] == "#00ff00"
+
+        # All built-in base tokens must still be present
+        for key in _THEME_DEFAULT_BASE["token"]:
+            assert key in default_theme["token"], (
+                f"Missing base token '{key}' in default theme after partial override"
+            )
+        for key in _THEME_DARK_BASE["token"]:
+            assert key in dark_theme["token"], (
+                f"Missing base token '{key}' in dark theme after partial override"
+            )
+
+        # Spot-check a few critical fields that caused the original crash
+        assert (
+            default_theme["token"]["fontFamily"]
+            == (_THEME_DEFAULT_BASE["token"]["fontFamily"])
+        )
+        assert (
+            default_theme["token"]["colorLink"]
+            == (_THEME_DEFAULT_BASE["token"]["colorLink"])
+        )
 
 
 class TestBrandAppNameFallback:
