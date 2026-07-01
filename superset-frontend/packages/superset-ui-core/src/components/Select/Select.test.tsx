@@ -1415,6 +1415,32 @@ describe('grouped options search', () => {
   });
 });
 
+test('calls onSearch with typed text before unmount', async () => {
+  const mockOnSearch = jest.fn();
+  const { unmount, rerender } = render(
+    <Select
+      {...defaultProps}
+      allowNewOptions
+      mode="multiple"
+      onSearch={mockOnSearch}
+    />,
+  );
+  await type('12', 0);
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).toHaveBeenCalledWith('12');
+  rerender(
+    <Select
+      {...defaultProps}
+      allowNewOptions
+      mode="multiple"
+      onSearch={mockOnSearch}
+    />,
+  );
+  await type('1234', 0);
+  unmount();
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).toHaveBeenCalledWith('1234');
+});
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available

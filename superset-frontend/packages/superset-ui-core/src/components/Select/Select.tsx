@@ -466,7 +466,15 @@ const Select = forwardRef(
       onSearch?.(searchValue);
     }, Constants.FAST_DEBOUNCE);
 
-    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+    const memoizedHandleOnSearch = useMemo(
+      () => handleOnSearch,
+      [handleOnSearch],
+    );
+    useEffect(() => {
+      if (memoizedHandleOnSearch?.cancel) {
+        memoizedHandleOnSearch.cancel();
+      }
+    }, [memoizedHandleOnSearch]);
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
