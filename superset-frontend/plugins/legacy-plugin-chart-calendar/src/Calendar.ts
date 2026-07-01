@@ -23,12 +23,23 @@ import { SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import CalHeatMapImport from './vendor/cal-heatmap';
 import { convertUTCTimestampToLocal } from './utils';
-import { removeCalendarTooltips } from './tooltip';
+import {
+  getCalendarTooltipClassName,
+  removeDisconnectedCalendarTooltips,
+} from './tooltip';
 
 // The vendor file is @ts-nocheck, so its export lacks type info.
 // Define a minimal constructor interface for use in this file.
 interface CalHeatMapInstance {
   init(config: Record<string, unknown>): void;
+  destroy(): null;
+}
+
+const calendarInstances = new WeakMap<HTMLElement, CalHeatMapInstance[]>();
+
+function destroyCalendarInstances(element: HTMLElement) {
+  calendarInstances.get(element)?.forEach(calendar => calendar.destroy());
+  calendarInstances.delete(element);
 }
 const CalHeatMap = CalHeatMapImport as unknown as new () => CalHeatMapInstance;
 
@@ -79,7 +90,11 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     theme,
   } = props;
 
-  removeCalendarTooltips();
+  destroyCalendarInstances(element);
+  removeDisconnectedCalendarTooltips();
+
+  const tooltipClassName = getCalendarTooltipClassName(element);
+  const instances: CalHeatMapInstance[] = [];
 
   const container = d3Select(element)
     .classed('superset-legacy-chart-calendar', true)
@@ -133,6 +148,7 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
       legendCellPadding: 2,
       legendCellRadius: cellRadius,
       tooltip: true,
+      tooltipClassName,
       domain: domainGranularity,
       subDomain: subdomainGranularity,
       range: data.range,
@@ -150,7 +166,12 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
       timeFormatter,
       subDomainTextFormat,
     });
+    instances.push(cal);
   });
+
+  if (instances.length > 0) {
+    calendarInstances.set(element, instances);
+  }
 }
 
 Calendar.displayName = 'Calendar';

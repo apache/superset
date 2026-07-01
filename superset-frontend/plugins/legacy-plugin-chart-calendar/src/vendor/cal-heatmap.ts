@@ -275,6 +275,8 @@ var CalHeatMap = function () {
 
     tooltip: false,
 
+    tooltipClassName: null,
+
     // ================================================
     // EVENTS CALLBACK
     // ================================================
@@ -781,6 +783,12 @@ var CalHeatMap = function () {
     if (self.options.paintOnLoad) {
       _initCalendar();
     }
+
+    var tooltipClassName = ['d3-tip', CALENDAR_TOOLTIP_CLASS, self.options.tooltipClassName]
+      .filter(Boolean)
+      .join(' ');
+    self.tip.attr('class', tooltipClassName);
+    self.legendTip.attr('class', tooltipClassName);
     self.root.call(self.tip);
     self.root.call(self.legendTip);
 

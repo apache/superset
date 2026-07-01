@@ -20,7 +20,7 @@ import { reactify } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 import Component from './Calendar';
-import { removeCalendarTooltips } from './tooltip';
+import { scheduleCalendarTooltipCleanup } from './tooltip';
 
 // Type-erase the render function to allow flexible prop spreading in the wrapper.
 // The Calendar render function has typed props, but the wrapper passes props via spread
@@ -30,7 +30,7 @@ const ReactComponent = reactify(
     container: HTMLDivElement,
     props: Record<string, unknown>,
   ) => void,
-  { componentWillUnmount: removeCalendarTooltips },
+  { componentWillUnmount: scheduleCalendarTooltipCleanup },
 );
 
 interface CalendarWrapperProps {
