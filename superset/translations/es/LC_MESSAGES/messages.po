@@ -16819,7 +16819,7 @@ msgstr "Desanclar"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unpin from the result panel"
-msgstr "Fijar en el panel de resultados"
+msgstr "Desanclar en el panel de resultados"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
