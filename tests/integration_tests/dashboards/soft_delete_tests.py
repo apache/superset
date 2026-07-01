@@ -25,6 +25,7 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -60,6 +61,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         db.session.commit()
         return dashboard
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_delete_dashboard_soft_deletes(self) -> None:
         """DELETE should set deleted_at instead of removing the row."""
         dashboard = self._create_dashboard("sd_test_1")
@@ -81,6 +83,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_soft_deleted_dashboard_excluded_from_list(self) -> None:
         """GET /api/v1/dashboard/ should not include soft-deleted."""
         dashboard = self._create_dashboard("sd_list_test")
@@ -97,6 +100,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_soft_deleted_dashboard_included_in_list_when_requested(self) -> None:
         """GET /api/v1/dashboard/ with dashboard_deleted_state=include returns deleted dashboards."""  # noqa: E501
         dashboard = self._create_dashboard("sd_list_with_deleted")
@@ -120,6 +124,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_only_filter_returns_only_soft_deleted_dashboards(self) -> None:
         """dashboard_deleted_state=only excludes live rows and returns only deleted ones."""  # noqa: E501
         live_dashboard = self._create_dashboard("only_live_dash")
@@ -143,6 +148,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         _hard_delete_dashboard(live_id)
         _hard_delete_dashboard(deleted_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_deleted_state_list_shows_owner_their_own_deleted(self) -> None:
         """A non-admin owner can still enumerate their own soft-deleted
         dashboards. Deleted-state scoping mirrors the restore audience, so it
@@ -173,6 +179,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_deleted_state_list_hides_non_owned_from_read_access_user(self) -> None:
         """A read-access non-owner must not be able to enumerate a dashboard
         once it is soft-deleted.
@@ -259,6 +266,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
             db.session.delete(database)
             db.session.commit()
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_embedded_dashboard_with_soft_deleted_parent(self) -> None:
         """Embedded URL keeps loading after the parent dashboard is soft-deleted.
 
@@ -354,6 +362,7 @@ class TestDashboardRestore(SupersetTestCase):
         db.session.commit()
         return dashboard
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_soft_deleted_dashboard(self) -> None:
         """POST /api/v1/dashboard/<uuid>/restore makes it visible again."""
         dashboard = self._create_dashboard("restore_sd_test")
@@ -371,6 +380,7 @@ class TestDashboardRestore(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_failure_returns_422(self) -> None:
         """A failure during restore surfaces as a clean 422 via the
         ``DashboardRestoreFailedError`` handler rather than an unhandled 500.
@@ -401,6 +411,7 @@ class TestDashboardRestore(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_uses_can_write_permission(self) -> None:
         """Non-admin owner with ``can_write_Dashboard`` can hit the restore
         endpoint.
@@ -444,6 +455,7 @@ class TestDashboardRestore(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_preserves_chart_associations(self) -> None:
         """Restoring a dashboard reconnects to its charts (T028)."""
         from superset.models.slice import Slice
@@ -482,6 +494,7 @@ class TestDashboardRestore(SupersetTestCase):
         db.session.delete(chart)
         _hard_delete_dashboard(dashboard_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_blocked_by_active_slug_twin(self) -> None:
         """Restore returns 422 when another active dashboard now owns the slug.
 
@@ -552,6 +565,7 @@ class TestDashboardRestore(SupersetTestCase):
         _hard_delete_dashboard(first_id)
         _hard_delete_dashboard(second_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_partial_index_allows_multiple_soft_deleted_with_same_slug(self) -> None:
         """On dialects with the partial index, two soft-deleted dashboards can share a slug.
 
@@ -611,6 +625,7 @@ class TestDashboardRestore(SupersetTestCase):
         _hard_delete_dashboard(first_id)
         _hard_delete_dashboard(second_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_via_import_with_slug_rename(self) -> None:
         """Restore-via-import succeeds when the upload changes the slug to a
         free value, even when the soft-deleted dashboard's old slug is now
