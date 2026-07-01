@@ -34,10 +34,12 @@ an explicit conflict error. See UPDATING.md for the user-facing change.
 
 Dialect support for the partial index:
 - PostgreSQL: native ``WHERE deleted_at IS NULL`` partial index
-- MySQL 8.0+: functional index over
+- MySQL 8.0.13+ (excluding MariaDB): functional index over
   ``(CASE WHEN deleted_at IS NULL THEN slug END)``
-- MySQL <8.0: keeps the original full unique constraint (documented
-  limitation; functional indexes are not supported on these versions)
+- MySQL <8.0.13 and MariaDB: keeps the original full unique constraint
+  (documented limitation; functional key parts require MySQL 8.0.13+, and
+  MariaDB's functional-index semantics differ — see
+  ``_mysql_supports_functional_index``)
 - SQLite: keeps the original full unique constraint (column-level
   ``UNIQUE`` cannot be dropped without recreating the table, which is
   not worth the migration complexity for a test-only dialect). Tests
