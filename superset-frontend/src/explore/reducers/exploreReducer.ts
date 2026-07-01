@@ -152,9 +152,13 @@ interface SetStashFormDataAction {
   isHidden: boolean;
 }
 
-// Owner can be either a number (user ID) or an object with value/label
-// This handles both Slice format (number[]) and select control format ({value, label}[])
-type OwnerItem = number | { value: number; label: string };
+// Owner can be a number (user ID), a select control option ({value, label}),
+// or an API entity object ({id, first_name, last_name}). This handles the Slice
+// format (number[]), select control format, and the raw chart API response format.
+type OwnerItem =
+  | number
+  | { value: number; label: string }
+  | { id: number; first_name?: string; last_name?: string };
 
 interface SliceUpdatedAction {
   type: typeof actions.SLICE_UPDATED;
@@ -601,11 +605,20 @@ export default function exploreReducer(
     },
     [actions.SLICE_UPDATED]() {
       const typedAction = action as SliceUpdatedAction;
-      // Handle owners that can be either number[] or Array<{value, label}>
-      const getOwnerId = (owner: OwnerItem): number =>
-        typeof owner === 'number' ? owner : owner.value;
-      const getOwnerLabel = (owner: OwnerItem): string | null =>
-        typeof owner === 'number' ? null : owner.label;
+      // Handle owners in number[], {value, label}[], or API {id, first_name, ...}[] form
+      const getOwnerId = (owner: OwnerItem): number => {
+        if (typeof owner === 'number') return owner;
+        return 'value' in owner ? owner.value : owner.id;
+      };
+      const getOwnerLabel = (owner: OwnerItem): string | null => {
+        if (typeof owner === 'number') return null;
+        if ('value' in owner) return owner.label;
+        const name = [owner.first_name, owner.last_name]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+        return name || null;
+      };
       return {
         ...state,
         slice: {

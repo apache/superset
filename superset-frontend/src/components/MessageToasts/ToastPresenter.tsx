@@ -39,6 +39,11 @@ const StyledToastPresenter = styled.div<VisualProps>(
 
     height: calc(100vh - 100px);
 
+    /* The container spans a tall region on the right edge of the screen.
+       Let clicks pass through its empty area so it doesn't block underlying
+       controls (e.g. the Explore Save button); toasts re-enable pointer events. */
+    pointer-events: none;
+
     display: flex;
     flex-direction: ${position === 'bottom' ? 'column-reverse' : 'column'};
     align-items: stretch;
@@ -107,6 +112,8 @@ const StyledToastPresenter = styled.div<VisualProps>(
       transition:
         transform ${theme.motionDurationMid},
         opacity ${theme.motionDurationMid};
+      /* Off-screen/hidden toasts must not capture clicks; only visible ones do. */
+      pointer-events: none;
       &:after {
         content: '';
         position: absolute;
@@ -125,6 +132,7 @@ const StyledToastPresenter = styled.div<VisualProps>(
     .toast--visible {
       opacity: 1;
       transform: translateY(0);
+      pointer-events: auto;
     }
   `,
 );
