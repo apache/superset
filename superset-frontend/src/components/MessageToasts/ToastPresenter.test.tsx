@@ -47,3 +47,11 @@ test('should pass removeToast to the Toast component', async () => {
   fireEvent.click(getAllByTestId('close-button')[0]);
   await waitFor(() => expect(removeToast).toHaveBeenCalledTimes(1));
 });
+
+test('presenter container does not capture pointer events over its empty area', () => {
+  const { container } = setup();
+  const presenter = container.querySelector('#toast-presenter');
+  // The container spans a tall fixed region; its empty area must let clicks
+  // pass through to underlying controls (e.g. the Explore Save button).
+  expect(presenter).toHaveStyle('pointer-events: none');
+});
