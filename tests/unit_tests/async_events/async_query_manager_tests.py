@@ -222,6 +222,44 @@ def test_parse_channel_id_from_request_as_guest_user_differs_per_token(
     assert first != second
 
 
+@mock.patch("superset.is_feature_enabled")
+def test_parse_channel_id_from_request_as_guest_user_differs_per_scope(
+    is_feature_enabled_mock, async_query_manager
+):
+    """
+    Tokens that differ only in the optional ``datasets`` allowlist or ``rev``
+    revocation version must still derive distinct channel ids, otherwise two
+    differently scoped embedded sessions would collide on the same stream.
+    """
+    is_feature_enabled_mock.return_value = True
+
+    base_token = {
+        "user": {},
+        "resources": [{"type": "dashboard", "id": "some-uuid"}],
+        "rls_rules": [{"clause": '"STATEID" = 3'}],
+        "iat": 1700000000.0,
+        "exp": 1700000300.0,
+        "aud": "http://0.0.0.0:8080/",
+        "type": "guest",
+    }
+
+    request = Mock()
+    request.cookies = {}
+
+    g.user = security_manager.get_guest_user_from_token(dict(base_token))
+    baseline = async_query_manager.parse_channel_id_from_request(request)
+
+    g.user = security_manager.get_guest_user_from_token({**base_token, "datasets": [1]})
+    with_datasets = async_query_manager.parse_channel_id_from_request(request)
+
+    g.user = security_manager.get_guest_user_from_token({**base_token, "rev": 1})
+    with_rev = async_query_manager.parse_channel_id_from_request(request)
+
+    assert baseline != with_datasets
+    assert baseline != with_rev
+    assert with_datasets != with_rev
+
+
 @mark.parametrize(
     "cache_type, cache_backend",
     [

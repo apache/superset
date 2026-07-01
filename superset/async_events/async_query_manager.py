@@ -249,6 +249,11 @@ class AsyncQueryManager:
                 "iat": token.get("iat"),
                 "exp": token.get("exp"),
                 "aud": token.get("aud"),
+                # ``datasets`` and ``rev`` are optional scope claims, so tokens
+                # that differ only in their dataset allowlist or revocation
+                # version still derive distinct channels.
+                "datasets": token.get("datasets"),
+                "rev": token.get("rev"),
             },
             sort_keys=True,
         ).encode("utf-8")
