@@ -54,7 +54,7 @@ import {
 } from 'spec/fixtures/mockSliceEntities';
 import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
-import { navigateTo } from 'src/utils/navigationUtils';
+import { navigateTo, navigateWithState } from 'src/utils/navigationUtils';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -72,6 +72,7 @@ jest.mock('src/utils/navigationUtils', () => ({
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 const mockNavigateTo = navigateTo as jest.Mock;
+const mockNavigateWithState = navigateWithState as jest.Mock;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardState actions', () => {
@@ -253,7 +254,48 @@ describe('dashboardState actions', () => {
 
       await waitFor(() => expect(postStub.mock.calls.length).toBe(1));
       expect(mockNavigateTo).toHaveBeenCalledWith(
-        `/superset/dashboard/${newDashboardId}/`,
+        `/dashboard/${newDashboardId}/`,
+      );
+    });
+
+    // `navigateWithState` regression for the
+    // dashboard-properties-changed save path. Two assertions in one shape:
+    //   (a) the emitted path is router-relative (`/dashboard/<id>/`), not
+    //       the pre-migration `/superset/dashboard/<id>/` literal that under
+    //       subdirectory deployment would double-prefix to
+    //       `/superset/superset/dashboard/<id>/`;
+    //   (b) the `event: 'dashboard_properties_changed'` history-state arg is
+    //       preserved verbatim. A previous attempt to swap `navigateWithState`
+    //       for a plain `navigateTo` would silently drop this state object and
+    //       the dashboard would lose its post-save UX cue.
+    test('saves dashboard properties via navigateWithState with state preserved', async () => {
+      const updatedId = 777;
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      mockNavigateWithState.mockClear();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, id: updatedId, slug: null },
+          last_modified_time: 0,
+        },
+      } as any);
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        updatedId,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+      await waitFor(() => expect(mockNavigateWithState).toHaveBeenCalled());
+
+      expect(mockNavigateWithState).toHaveBeenCalledWith(
+        `/dashboard/${updatedId}/`,
+        { event: 'dashboard_properties_changed' },
       );
     });
   });
@@ -513,13 +555,11 @@ describe('dashboardState actions', () => {
       });
 
       getStub.mockRestore();
-      getStub = jest
-        .spyOn(SupersetClient, 'get')
-        .mockRejectedValue(
-          new Response(JSON.stringify({ message: 'Not found' }), {
-            status: 404,
-          }),
-        );
+      getStub = jest.spyOn(SupersetClient, 'get').mockRejectedValue(
+        new Response(JSON.stringify({ message: 'Not found' }), {
+          status: 404,
+        }),
+      );
 
       await fetchFaveStar(id)(dispatch, getState);
 
@@ -536,13 +576,11 @@ describe('dashboardState actions', () => {
       });
 
       getStub.mockRestore();
-      getStub = jest
-        .spyOn(SupersetClient, 'get')
-        .mockRejectedValue(
-          new Response(JSON.stringify({ message: 'Server error' }), {
-            status: 500,
-          }),
-        );
+      getStub = jest.spyOn(SupersetClient, 'get').mockRejectedValue(
+        new Response(JSON.stringify({ message: 'Server error' }), {
+          status: 500,
+        }),
+      );
 
       await fetchFaveStar(id)(dispatch, getState);
 

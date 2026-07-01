@@ -47,10 +47,7 @@ logger = logging.getLogger(__name__)
 
 def _build_dashboard_url(dashboard: Any) -> str:
     """Build the user-facing dashboard URL, preferring slug over id."""
-    return (
-        f"{get_superset_base_url()}/superset/dashboard/"
-        f"{dashboard.slug or dashboard.id}/"
-    )
+    return f"{get_superset_base_url()}/dashboard/{dashboard.slug or dashboard.id}/"
 
 
 def _find_and_authorize_dashboard(
