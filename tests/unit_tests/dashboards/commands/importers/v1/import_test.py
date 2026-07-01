@@ -683,3 +683,9 @@ def test_import_soft_deleted_dashboard_slug_collision_raises(
     # The conflict was caught by the pre-check, before any flush could
     # surface a DB-level error.
     assert "another active dashboard" in str(excinfo.value)
+    # Check-before-mutate: the twin check must run BEFORE ``restore()`` —
+    # mutating first would let the validation query's autoflush emit the
+    # restoring UPDATE into the partial unique index (IntegrityError on
+    # Postgres / MySQL 8.0.13+) and leave the row half-restored in the
+    # session. A failed import must leave the row still soft-deleted.
+    assert existing.deleted_at is not None

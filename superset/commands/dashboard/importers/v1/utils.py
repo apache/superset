@@ -365,6 +365,29 @@ def import_dashboard(  # noqa: C901
             # then finds the now-live row (the listener filters
             # ``deleted_at IS NULL``) and ``import_from_dict`` applies the
             # config as field updates on the existing object, preserving the PK.
+            # Same active-slug-twin check as the explicit restore
+            # (``RestoreDashboardCommand``): the common re-import carries the
+            # pre-deletion slug, which another active dashboard may have
+            # claimed during the soft-deleted window. Check the *effective*
+            # post-restore slug BEFORE mutating the row: the validation query
+            # triggers the session's autoflush, so if the row were already
+            # marked restored, the flush would emit the ``deleted_at = NULL``
+            # UPDATE mid-validation and hit the partial unique index as an
+            # opaque IntegrityError-wrapped import failure on exactly the
+            # dialects (Postgres / MySQL 8.0.13+) this readable error exists
+            # for. Checking first also leaves the row untouched on failure.
+            effective_slug = config.get("slug", existing.slug)
+            if effective_slug is not None and not (
+                DashboardDAO.validate_update_slug_uniqueness(
+                    existing.id, effective_slug
+                )
+            ):
+                raise ImportFailedError(
+                    f"Dashboard cannot be restored via re-import because its "
+                    f"slug {effective_slug!r} is now used by another active "
+                    f"dashboard. Upload a YAML with a different slug, or "
+                    f"rename the active dashboard, and retry."
+                )
             existing.restore()
             # Apply the incoming slug to the existing row before flushing. On
             # the partial-index dialects (Postgres / MySQL 8.0.13+) the
@@ -376,22 +399,6 @@ def import_dashboard(  # noqa: C901
             # though the upload was supposed to fix it.
             if "slug" in config:
                 existing.slug = config["slug"]
-            # Same active-slug-twin check as the explicit restore
-            # (``RestoreDashboardCommand``): the common re-import carries the
-            # pre-deletion slug, which another active dashboard may have
-            # claimed during the soft-deleted window. Checking the effective
-            # post-restore slug here surfaces a readable error naming the
-            # conflict instead of the flush below hitting the partial unique
-            # index as an opaque IntegrityError-wrapped import failure.
-            if existing.slug is not None and not (
-                DashboardDAO.validate_update_slug_uniqueness(existing.id, existing.slug)
-            ):
-                raise ImportFailedError(
-                    f"Dashboard cannot be restored via re-import because its "
-                    f"slug {existing.slug!r} is now used by another active "
-                    f"dashboard. Upload a YAML with a different slug, or "
-                    f"rename the active dashboard, and retry."
-                )
             db.session.flush()
             config["id"] = existing.id
         else:
