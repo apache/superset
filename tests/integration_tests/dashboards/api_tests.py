@@ -582,7 +582,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 "viewers": [],
                 "position_json": "",
                 "published": False,
-                "url": "/superset/dashboard/slug1/",
+                "url": "/dashboard/slug1/",
                 "slug": "slug1",
                 "tags": [],
                 "thumbnail_url": dashboard.thumbnail_url,
@@ -1229,11 +1229,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         expected_results = [
             {
                 "dashboard_title": "create_title1",
-                "url": "/superset/dashboard/create_slug1/",
+                "url": "/dashboard/create_slug1/",
             },
             {
                 "dashboard_title": "create_title0",
-                "url": "/superset/dashboard/create_slug0/",
+                "url": "/dashboard/create_slug0/",
             },
         ]
         for idx, response_item in enumerate(data["result"]):

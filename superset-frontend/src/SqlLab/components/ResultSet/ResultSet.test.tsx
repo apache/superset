@@ -53,7 +53,28 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: jest.fn().mockReturnValue(false),
 }));
 
+// Mock openInNewTab so the Create-chart "new window" branch can be asserted
+// without spawning a real window. The rest of navigationUtils stays real so
+// existing CSV-download tests keep using the genuine `redirect`/`makeUrl`.
+jest.mock('src/utils/navigationUtils', () => ({
+  ...jest.requireActual('src/utils/navigationUtils'),
+  openInNewTab: jest.fn(),
+}));
+// eslint-disable-next-line import/order, import/first
+import { openInNewTab } from 'src/utils/navigationUtils';
+
+// Stub postFormData so the Create-chart click resolves quickly; this lets
+// the test focus on the URL composition that happens after the resolve.
+jest.mock('src/explore/exploreUtils/formData', () => ({
+  ...jest.requireActual('src/explore/exploreUtils/formData'),
+  postFormData: jest.fn(),
+}));
+// eslint-disable-next-line import/order, import/first
+import { postFormData } from 'src/explore/exploreUtils/formData';
+
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockOpenInNewTab = openInNewTab as jest.Mock;
+const mockPostFormData = postFormData as jest.Mock;
 
 jest.mock('src/components/ErrorMessage', () => ({
   ErrorMessageWithStackTrace: () => <div data-test="error-message">Error</div>,
@@ -160,6 +181,9 @@ describe('ResultSet', () => {
   beforeEach(() => {
     applicationRootMock.mockReturnValue('');
     mockStartExport.mockClear();
+    mockOpenInNewTab.mockClear();
+    mockPostFormData.mockReset();
+    mockPostFormData.mockResolvedValue('test-form-data-key');
   });
 
   // Add cleanup after each test
@@ -1008,5 +1032,104 @@ describe('ResultSet', () => {
     expect(
       screen.getByRole('button', { name: 'Results Action' }),
     ).toBeInTheDocument();
+  });
+
+  test('Create chart in new window opens single-prefixed explore URL under subdirectory deployment', async () => {
+    // When the user metaKey-clicks "Create chart", the SQL-Lab result handoff
+    // composes an explore URL via mountExploreUrl(..., includeAppRoot=true).
+    // Under SUPERSET_APP_ROOT=/superset, the resulting URL must contain the
+    // prefix exactly once. A doubled prefix (/superset/superset/explore/…)
+    // produces a blank Explore page.
+    const appRoot = '/superset';
+    applicationRootMock.mockReturnValue(appRoot);
+
+    const queryWithId = {
+      ...queries[0],
+      results: {
+        ...queries[0].results,
+        query_id: 42,
+      },
+    };
+
+    const { getByTestId } = setup(
+      {
+        ...mockedProps,
+        queryId: queryWithId.id,
+        database: { allows_subquery: true, allows_virtual_table_explore: true },
+      },
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queryWithId.id]: queryWithId,
+          },
+        },
+      }),
+    );
+
+    const exploreButton = await waitFor(() =>
+      getByTestId('explore-results-button'),
+    );
+    fireEvent.click(exploreButton, { metaKey: true });
+
+    await waitFor(() => {
+      expect(mockOpenInNewTab).toHaveBeenCalledTimes(1);
+    });
+    const url = mockOpenInNewTab.mock.calls[0][0] as string;
+    expect(url).toMatch(/^\/superset\/explore\/\?.*form_data_key=/);
+    expect(url).not.toMatch(/\/superset\/superset\//);
+  });
+
+  test('Create chart in same window pushes router-relative explore URL under subdirectory deployment', async () => {
+    // Same-tab click (no metaKey) goes through history.push under the SPA
+    // basename Router, so mountExploreUrl is called with includeAppRoot=false.
+    // The composed URL must NOT carry an app-root prefix — the router applies
+    // it once via <Router basename={applicationRoot()}>. A premature prefix
+    // here would compound with the basename and yield /superset/superset/…
+    const appRoot = '/superset';
+    applicationRootMock.mockReturnValue(appRoot);
+
+    const queryWithId = {
+      ...queries[0],
+      results: {
+        ...queries[0].results,
+        query_id: 99,
+      },
+    };
+
+    const store = mockStore({
+      ...initialState,
+      user,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [queryWithId.id]: queryWithId,
+        },
+      },
+    });
+
+    const { getByTestId } = render(
+      <ResultSet
+        {...mockedProps}
+        queryId={queryWithId.id}
+        database={{
+          allows_subquery: true,
+          allows_virtual_table_explore: true,
+        }}
+      />,
+      { useRedux: true, store, useRouter: true },
+    );
+
+    const exploreButton = await waitFor(() =>
+      getByTestId('explore-results-button'),
+    );
+    fireEvent.click(exploreButton);
+
+    await waitFor(() => {
+      expect(mockPostFormData).toHaveBeenCalledTimes(1);
+    });
+    expect(mockOpenInNewTab).not.toHaveBeenCalled();
   });
 });

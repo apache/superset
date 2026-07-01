@@ -2558,6 +2558,16 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 
+# Opt-OUT for the frontend permalink-origin rewrite. By default the frontend
+# substitutes `window.location.origin` for the backend-supplied origin on
+# share/permalink URLs so a proxied or subdirectory-deployed Superset does not
+# hand the user an unreachable internal hostname. Operators whose reverse proxy
+# correctly forwards `X-Forwarded-Host` AND who *want* permalinks to carry the
+# backend's literal origin can set this flag to True to disable the rewrite.
+# Default False (rewrite is on) — flipping the default to True would regress
+# the dominant proxied/subdir deployment to an unreachable internal host.
+EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = False
+
 # Define a list of allowed URL patterns (regex) for dataset data imports (v1).
 # Simple example to only allow URLs that belong to certain domains:
 # DATASET_IMPORT_ALLOWED_DATA_URLS = [

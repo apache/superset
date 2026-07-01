@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sanitizeUrl } from '@braintree/sanitize-url';
 import { useCallback, useState, FormEvent } from 'react';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
@@ -59,6 +58,7 @@ import { URL_PARAMS } from 'src/constants';
 import { isEmpty } from 'lodash-es';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import type Subject from 'src/types/Subject';
+import { openInNewTab, redirect } from 'src/utils/navigationUtils';
 
 interface QueryDatabase {
   id?: number;
@@ -249,10 +249,12 @@ export const SaveDatasetModal = ({
     useState(false);
 
   const createWindow = (url: string) => {
+    // `url` is from `mountExploreUrl(..., includeAppRoot=true)`; the
+    // navigationUtils helpers re-apply `ensureAppRoot` idempotently.
     if (openWindow) {
-      window.open(sanitizeUrl(url), '_blank', 'noreferrer');
+      openInNewTab(url);
     } else {
-      window.location.href = sanitizeUrl(url);
+      redirect(url);
     }
   };
   const formDataWithDefaults = {

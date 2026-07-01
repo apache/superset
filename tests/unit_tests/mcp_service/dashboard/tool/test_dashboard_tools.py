@@ -1319,9 +1319,8 @@ async def test_list_dashboards_sanitizes_dashboard_descriptions_and_filter_text(
         ]
         assert dashboard_payload["slug"] == "quarterly-dashboard"
         assert dashboard_payload["uuid"] == "uuid-quarterly-3"
-        assert dashboard_payload["url"].endswith(
-            "/superset/dashboard/quarterly-dashboard/"
-        )
+        assert dashboard_payload["url"].endswith("/dashboard/quarterly-dashboard/")
+        assert "/superset/superset/dashboard/" not in dashboard_payload["url"]
 
         assert "uuid" in data["columns_requested"]
         assert "slug" in data["columns_requested"]

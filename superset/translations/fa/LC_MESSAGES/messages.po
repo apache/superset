@@ -15044,6 +15044,9 @@ msgstr ""
 "پویا هنگام تنظیم اندازه و موقعیت ویدجت‌ها با استفاده از drag & drop در "
 "نمای داشبورد生成 می‌شود."
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -15845,6 +15848,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format

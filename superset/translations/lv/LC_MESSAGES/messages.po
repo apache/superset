@@ -14982,6 +14982,9 @@ msgstr ""
 "dinamiski ģenerēts, pielāgojot logrīku izmērus un pozīcijas, izmantojot "
 "vilkšanu un nomešanu paneļa skatā"
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15816,6 +15819,9 @@ msgstr "Piespraust rezultātu panelī"
 #, fuzzy
 msgid "Unpin from top"
 msgstr "Atspraust no augšas"
+
+msgid "Unsafe link blocked"
+msgstr ""
 
 #, python-format
 msgid "Unsafe return type for function %(func)s: %(value_type)s"

@@ -55,6 +55,7 @@ import {
 } from 'src/components';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -1032,7 +1033,7 @@ function DatabaseList({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/superset/dashboard/${result.id}`}
+                              href={ensureAppRoot(`/dashboard/${result.id}`)}
                               target="_atRiskItem"
                             >
                               {result.title}
@@ -1075,7 +1076,9 @@ function DatabaseList({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/explore/?slice_id=${result.id}`}
+                              href={ensureAppRoot(
+                                `/explore/?slice_id=${result.id}`,
+                              )}
                               target="_atRiskItem"
                             >
                               {result.slice_name}

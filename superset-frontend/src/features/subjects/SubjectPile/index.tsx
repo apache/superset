@@ -25,7 +25,7 @@ import {
 } from '@superset-ui/core/components';
 import { styled } from '@apache-superset/core/theme';
 import type { CSSProperties } from 'react';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import Subject, { SubjectType } from 'src/types/Subject';
 
 const colorList = getCategoricalSchemeRegistry().get()?.colors ?? [];

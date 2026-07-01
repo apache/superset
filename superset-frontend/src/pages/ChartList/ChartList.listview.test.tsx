@@ -566,7 +566,7 @@ test('renders dashboard crosslinks as navigable links', async () => {
       within(crosslinks).getByRole('link', {
         name: new RegExp(dashboard.dashboard_title),
       }),
-    ).toHaveAttribute('href', `/superset/dashboard/${dashboard.id}`);
+    ).toHaveAttribute('href', `/dashboard/${dashboard.id}`);
   });
 });
 
@@ -606,7 +606,7 @@ test('shows tag column when TAGGING_SYSTEM is enabled', async () => {
 
   // Tag should be a link to all_entities page
   const tagLink = within(tag).getByRole('link');
-  expect(tagLink).toHaveAttribute('href', '/superset/all_entities/?id=1');
+  expect(tagLink).toHaveAttribute('href', '/all_entities/?id=1');
   expect(tagLink).toHaveAttribute('target', '_blank');
 });
 

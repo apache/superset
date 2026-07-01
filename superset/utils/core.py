@@ -59,7 +59,7 @@ from typing import (
     TypedDict,
     TypeVar,
 )
-from urllib.parse import unquote_plus
+from urllib.parse import unquote_plus, urlparse
 from zipfile import ZipFile
 
 import markdown as md
@@ -2187,11 +2187,21 @@ def to_int(v: Any, value_if_invalid: int = 0) -> int:
 def get_query_source_from_request() -> QuerySource | None:
     if not request or not request.referrer:
         return None
-    if "/superset/dashboard/" in request.referrer:
+    # Match on the referrer's path only, so query-string payloads (e.g.
+    # /explore/?next=/dashboard/1/) cannot misattribute the source. The bare
+    # segment covers legacy /superset/dashboard/ referrers and any
+    # application-root prefix (e.g. /myapp/dashboard/1/).
+    try:
+        referrer_path = urlparse(request.referrer).path
+    except ValueError:
+        # Client-controlled header; e.g. "http://[" raises on the IPv6
+        # bracket check and must not 500 the query path.
+        return None
+    if "/dashboard/" in referrer_path:
         return QuerySource.DASHBOARD
-    if "/explore/" in request.referrer:
+    if "/explore/" in referrer_path:
         return QuerySource.CHART
-    if "/sqllab/" in request.referrer:
+    if "/sqllab/" in referrer_path:
         return QuerySource.SQL_LAB
     return None
 
