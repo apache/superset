@@ -35,6 +35,7 @@ import {
   ListView,
   ModifiedInfo,
   ListViewFilterOperator as FilterOperator,
+  type ListViewFilter,
   type ListViewFilters,
   type ListViewProps,
 } from 'src/components';
@@ -268,6 +269,23 @@ function TagList(props: TagListProps) {
     ],
   );
 
+  const favoritesFilter: ListViewFilter = useMemo(
+    () => ({
+      Header: t('Favorite'),
+      key: 'favorite',
+      id: 'id',
+      urlDisplay: 'favorite',
+      input: 'select',
+      operator: FilterOperator.TagIsFav,
+      unfilteredLabel: t('Any'),
+      selects: [
+        { label: t('Yes'), value: true },
+        { label: t('No'), value: false },
+      ],
+    }),
+    [],
+  );
+
   const filters: ListViewFilters = useMemo(() => {
     const filters_list = [
       {
@@ -277,6 +295,7 @@ function TagList(props: TagListProps) {
         operator: FilterOperator.Contains,
         inputName: 'tag_list_search',
       },
+      ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Modified by'),
         key: 'changed_by',
@@ -299,7 +318,7 @@ function TagList(props: TagListProps) {
       },
     ] as ListViewFilters;
     return filters_list;
-  }, [addDangerToast, props.user]);
+  }, [addDangerToast, props.user, userId, favoritesFilter]);
 
   const sortTypes = [
     {

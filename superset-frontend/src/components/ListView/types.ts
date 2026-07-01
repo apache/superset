@@ -129,6 +129,7 @@ export enum ListViewFilterOperator {
   Between = 'between',
   DashboardIsFav = 'dashboard_is_favorite',
   ChartIsFav = 'chart_is_favorite',
+  TagIsFav = 'tag_is_favorite',
   ChartIsCertified = 'chart_is_certified',
   DashboardIsCertified = 'dashboard_is_certified',
   DatasetIsCertified = 'dataset_is_certified',
