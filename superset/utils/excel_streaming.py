@@ -15,12 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Streaming, constant-memory XLSX writer for multi-sheet dashboard exports.
+Streaming XLSX writer for multi-sheet dashboard exports.
 
-Unlike :mod:`superset.utils.excel`, which materializes a whole DataFrame in
-memory, this writer streams rows one at a time into an ``xlsxwriter`` workbook
-opened in ``constant_memory`` mode, so a dashboard with many large charts never
-holds more than one row per sheet in memory at once.
+Unlike :mod:`superset.utils.excel`, which builds an in-memory DataFrame per
+sheet and hands the whole thing to ``xlsxwriter`` at once, this writer opens the
+workbook in ``constant_memory`` mode and writes rows one at a time, so
+``xlsxwriter`` keeps at most one row per sheet buffered on the writer side. The
+source records may still be materialized upstream (e.g. by the chart query
+response); this bounds only the writer's own footprint, not the caller's.
 """
 
 from __future__ import annotations
@@ -52,6 +54,37 @@ _FORMULA_PREFIXES = {"=", "+", "-", "@"}
 
 # Excel cannot represent integers beyond 10**15 without precision loss.
 _MAX_EXCEL_INT = 10**15
+
+
+def _quote_if_formula(text: str) -> str:
+    """
+    Prefix formula-like text with an apostrophe so spreadsheet apps treat it as
+    literal text (defense against formula injection).
+
+    Leading whitespace is ignored when detecting a formula, because spreadsheet
+    apps still evaluate a cell whose formula prefix is preceded by spaces or
+    tabs (e.g. ``" =cmd"`` or ``"\\t=cmd"``).
+    """
+    stripped = text.lstrip()
+    return f"'{text}" if stripped and stripped[0] in _FORMULA_PREFIXES else text
+
+
+def _coerce_float_cell(value: Any) -> Any:
+    """
+    Convert a ``Decimal``/real value to something ``xlsxwriter`` accepts.
+
+    ``float()`` on a non-finite ``Decimal`` ("NaN"/"Infinity") yields a value
+    xlsxwriter rejects, and an over-large value can raise ``OverflowError``;
+    blank the former and stringify the latter, and stringify magnitudes Excel
+    cannot represent precisely.
+    """
+    try:
+        number = float(value)
+    except (OverflowError, ValueError):
+        return str(value)
+    if not math.isfinite(number):
+        return ""
+    return str(number) if abs(number) > _MAX_EXCEL_INT else number
 
 
 def sanitize_sheet_name(raw: str, used: set[str]) -> str:
@@ -104,24 +137,19 @@ def _sanitize_cell(value: Any) -> Any:
     if isinstance(value, bool):
         return value
     if isinstance(value, str):
-        return f"'{value}" if value and value[0] in _FORMULA_PREFIXES else value
+        return _quote_if_formula(value)
     if isinstance(value, (datetime, date)):
         return value.isoformat()
     if isinstance(value, Decimal):
-        number = float(value)
-        return str(number) if abs(number) > _MAX_EXCEL_INT else number
+        return _coerce_float_cell(value)
     if isinstance(value, numbers.Integral):
         number = int(value)
         return str(number) if abs(number) > _MAX_EXCEL_INT else number
     if isinstance(value, numbers.Real):
-        number = float(value)
-        if not math.isfinite(number):
-            return ""
-        return str(number) if abs(number) > _MAX_EXCEL_INT else number
+        return _coerce_float_cell(value)
     # Anything else (lists, dicts, custom objects) is stringified, still guarding
     # against formula injection on the resulting text.
-    text = str(value)
-    return f"'{text}" if text and text[0] in _FORMULA_PREFIXES else text
+    return _quote_if_formula(str(value))
 
 
 class StreamingXlsxWriter:
@@ -153,19 +181,33 @@ class StreamingXlsxWriter:
         :param name: Desired sheet name (sanitized/de-duplicated automatically)
         :param columns: Column headers
         :param rows: Iterable of row sequences, streamed one at a time
-        :returns: The number of data rows actually written (capped at Excel's
-            per-sheet limit)
+        :returns: The number of data rows actually written (capped just below
+            Excel's per-sheet limit; when the data is larger a final notice row
+            is appended and the dropped rows are not counted)
         """
         sheet_name = sanitize_sheet_name(name, self._used_sheet_names)
         worksheet = self._workbook.add_worksheet(sheet_name)
         worksheet.write_row(0, 0, [_sanitize_cell(col) for col in columns])
 
+        # Reserve the final row for a truncation notice, so when the data
+        # exceeds the sheet's capacity the user can see rows were dropped
+        # instead of silently losing them.
+        row_cap = MAX_DATA_ROWS_PER_SHEET - 1
         written = 0
+        truncated = False
         for row in rows:
-            if written >= MAX_DATA_ROWS_PER_SHEET:
+            if written >= row_cap:
+                truncated = True
                 break
             worksheet.write_row(written + 1, 0, [_sanitize_cell(cell) for cell in row])
             written += 1
+
+        if truncated:
+            worksheet.write_string(
+                written + 1,
+                0,
+                f"[Truncated: only first {written:,} rows exported]",
+            )
 
         self.sheet_count += 1
         return written

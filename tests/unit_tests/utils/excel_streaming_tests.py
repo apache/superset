@@ -99,6 +99,38 @@ def test_sanitize_cell_non_finite_floats_blanked() -> None:
     assert _sanitize_cell(float("inf")) == ""
 
 
+def test_sanitize_cell_non_finite_decimals_blanked() -> None:
+    # float(Decimal("NaN")) is nan and float(Decimal("Infinity")) is inf, both
+    # of which xlsxwriter rejects; they must be blanked rather than crash.
+    assert _sanitize_cell(Decimal("NaN")) == ""
+    assert _sanitize_cell(Decimal("Infinity")) == ""
+    assert _sanitize_cell(Decimal("-Infinity")) == ""
+
+
+def test_sanitize_cell_out_of_range_decimal_is_blanked() -> None:
+    # A Decimal too large for a float becomes inf (or, in edge cases, raises
+    # OverflowError); either way it must be neutralized rather than crash
+    # xlsxwriter or emit a bogus value.
+    assert _sanitize_cell(Decimal("1E10000")) == ""
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (" =SUM(A1)", "' =SUM(A1)"),
+        ("\t=SUM(A1)", "'\t=SUM(A1)"),
+        ("  +1", "'  +1"),
+        ("\t@handle", "'\t@handle"),
+    ],
+)
+def test_sanitize_cell_quotes_formula_behind_whitespace(
+    value: str, expected: str
+) -> None:
+    # Spreadsheet apps evaluate formulas even when preceded by spaces/tabs, so
+    # the formula guard must look past leading whitespace.
+    assert _sanitize_cell(value) == expected
+
+
 # --- StreamingXlsxWriter (round-trip via openpyxl) ---
 
 
@@ -139,16 +171,34 @@ def test_writer_quotes_formula_cells(tmp_path: Path) -> None:
 def test_writer_caps_rows_per_sheet(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(excel_streaming, "MAX_DATA_ROWS_PER_SHEET", 2)
+    monkeypatch.setattr(excel_streaming, "MAX_DATA_ROWS_PER_SHEET", 3)
     path = str(tmp_path / "out.xlsx")
     writer = StreamingXlsxWriter(path)
     written = writer.add_sheet("data", ["col"], [[i] for i in range(5)])
     writer.close()
 
+    # One row is reserved for the truncation notice, so only 2 data rows fit.
     assert written == 2
     sheets = _read_workbook(path)
-    # header + 2 data rows
-    assert len(sheets["data"]) == 3
+    # header + 2 data rows + 1 truncation notice
+    assert len(sheets["data"]) == 4
+    assert sheets["data"][-1][0] == "[Truncated: only first 2 rows exported]"
+
+
+def test_writer_no_truncation_notice_when_data_fits(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(excel_streaming, "MAX_DATA_ROWS_PER_SHEET", 3)
+    path = str(tmp_path / "out.xlsx")
+    writer = StreamingXlsxWriter(path)
+    # Exactly fills the reserved capacity (MAX - 1) with no leftover rows.
+    written = writer.add_sheet("data", ["col"], [[i] for i in range(2)])
+    writer.close()
+
+    assert written == 2
+    sheets = _read_workbook(path)
+    # header + 2 data rows, no notice
+    assert sheets["data"] == [["col"], [0], [1]]
 
 
 def test_writer_empty_workbook_is_valid(tmp_path: Path) -> None:
