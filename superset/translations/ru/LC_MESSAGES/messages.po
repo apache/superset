@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-01 11:59+0300\n"
+"POT-Creation-Date: 2026-07-01 13:08+0300\n"
 "PO-Revision-Date: 2026-07-01 11:59+0300\n"
 "Last-Translator: innovark\n"
 "Language: ru\n"
@@ -11315,10 +11315,6 @@ msgstr "Прокрутите вниз до конца для активации 
 msgid "Search"
 msgstr "Поиск"
 
-#, python-format
-msgid "Search %s records"
-msgstr "Искать среди %s записи(ей)"
-
 msgid "Search / Filter"
 msgstr "Поиск / Фильтр"
 
@@ -11367,6 +11363,9 @@ msgstr "Поиск по мерам и столбцам"
 
 msgid "Search owners"
 msgstr "Поиск владельцев"
+
+msgid "Search records"
+msgstr "Искать записи"
 
 msgid "Search roles"
 msgstr "Поиск ролей"
