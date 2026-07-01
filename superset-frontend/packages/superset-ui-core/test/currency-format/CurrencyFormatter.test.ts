@@ -285,3 +285,23 @@ test('CurrencyFormatter AUTO mode falls back to plain value when getCurrencySymb
 
   expect(result).toBe('1,000.00');
 });
+
+test('CurrencyFormatter static mode returns plain value when getCurrencySymbol returns undefined', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'USD', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  const OrigNumberFormat = Intl.NumberFormat;
+  // formatToParts without a 'currency' entry → getCurrencySymbol returns
+  // undefined, exercising the `if (!symbol)` guard in the static branch.
+  Intl.NumberFormat = jest.fn().mockImplementation(() => ({
+    formatToParts: () => [{ type: 'integer', value: '1' }],
+  })) as unknown as typeof Intl.NumberFormat;
+
+  const result = formatter.format(1000);
+
+  Intl.NumberFormat = OrigNumberFormat;
+
+  expect(result).toBe('1,000.00');
+});

@@ -53,6 +53,21 @@ test('resolveSymbolPosition falls back to prefix for unknown currencies', () => 
   );
 });
 
+test('resolveSymbolPosition falls back to prefix when locale parts lack a currency', () => {
+  const OrigNumberFormat = Intl.NumberFormat;
+  // formatToParts without a 'currency' part → currencyIndex is -1, so the
+  // position cannot be derived and the default prefix is returned. Use a
+  // locale/currency pair not exercised elsewhere so the memoization cache
+  // does not short-circuit this call.
+  Intl.NumberFormat = jest.fn().mockImplementation(() => ({
+    formatToParts: () => [{ type: 'integer', value: '1' }],
+  })) as unknown as typeof Intl.NumberFormat;
+
+  expect(resolveSymbolPosition('USD', undefined, 'zz-mock')).toEqual('prefix');
+
+  Intl.NumberFormat = OrigNumberFormat;
+});
+
 test('formatWithSymbolPosition places the symbol according to the position', () => {
   expect(formatWithSymbolPosition('$', '1,000', 'prefix')).toEqual('$ 1,000');
   expect(formatWithSymbolPosition('€', '1,000', 'suffix')).toEqual('1,000 €');
