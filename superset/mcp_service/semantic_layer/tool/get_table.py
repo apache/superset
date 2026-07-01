@@ -400,4 +400,7 @@ async def get_table(  # noqa: C901
             "Unexpected error in get_table: %s: %s", type(exc).__name__, str(exc)
         )
         await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
-        raise
+        return SemanticLayerError.create(
+            error=f"Internal error executing get_table: {exc}",
+            error_type="InternalError",
+        )

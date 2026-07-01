@@ -220,4 +220,7 @@ async def get_compatible_metrics(
             str(exc),
         )
         await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
-        raise
+        return SemanticLayerError.create(
+            error=f"Internal error in get_compatible_metrics: {exc}",
+            error_type="InternalError",
+        )

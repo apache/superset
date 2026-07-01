@@ -241,6 +241,12 @@ async def list_metrics(
             error_type=DATA_MODEL_METADATA_ERROR_TYPE,
         )
 
+    if request.dataset_id is not None and request.view_id is not None:
+        return SemanticLayerError.create(
+            error="Provide only one of dataset_id or view_id to scope the search, not both.",
+            error_type="ValidationError",
+        )
+
     try:
         all_metrics: list[MetricInfo] = []
 
@@ -276,4 +282,7 @@ async def list_metrics(
             "Unexpected error in list_metrics: %s: %s", type(exc).__name__, str(exc)
         )
         await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
-        raise
+        return SemanticLayerError.create(
+            error=f"Internal error listing metrics: {exc}",
+            error_type="InternalError",
+        )

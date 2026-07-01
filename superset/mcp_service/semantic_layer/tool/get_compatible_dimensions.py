@@ -64,9 +64,10 @@ async def get_compatible_dimensions(
 
     Provide exactly one of ``dataset_id`` (built-in) or ``view_id`` (external).
 
-    For built-in datasets, returns all groupby-enabled columns from the same
-    dataset as the selected metrics, filtered to those whose datasets intersect
-    with all selected metrics.
+    For built-in datasets, returns all groupby-enabled columns from the dataset.
+    SQL datasets have no semantic compatibility constraints between metrics and
+    dimensions, so all groupby columns are always returned regardless of the
+    selected metrics.
 
     For external semantic views, delegates to the view's
     ``get_compatible_dimensions`` implementation.
@@ -220,4 +221,7 @@ async def get_compatible_dimensions(
             str(exc),
         )
         await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
-        raise
+        return SemanticLayerError.create(
+            error=f"Internal error in get_compatible_dimensions: {exc}",
+            error_type="InternalError",
+        )

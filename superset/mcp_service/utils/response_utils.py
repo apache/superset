@@ -57,11 +57,12 @@ Usage example::
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from superset.mcp_service.chart.schemas import DataColumn
 
 import humanize
-
-from superset.mcp_service.chart.schemas import DataColumn
 
 
 def humanize_timestamp(dt: datetime | None) -> str | None:
@@ -173,6 +174,9 @@ def format_data_columns(
     Caps statistics at 5000 rows to avoid O(rows*cols) overhead on large
     result sets.
     """
+    # Local import breaks the chart.schemas ↔ response_utils circular dependency.
+    from superset.mcp_service.chart.schemas import DataColumn  # noqa: PLC0415
+
     stats_rows = data[:5000]
     columns_meta: list[DataColumn] = []
     for col_name in raw_columns:
