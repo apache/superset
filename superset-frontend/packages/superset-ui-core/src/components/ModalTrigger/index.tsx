@@ -27,6 +27,15 @@ import {
 import { Button } from '../Button';
 import { Modal } from '../Modal';
 
+const MENU_NAVIGATION_KEYS = new Set([
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'ArrowDown',
+  'Home',
+  'End',
+]);
+
 export interface ModalTriggerProps {
   dialogClassName?: string;
   triggerNode: ReactNode;
@@ -140,7 +149,15 @@ export const ModalTrigger = forwardRef(
           draggableConfig={draggableConfig}
           destroyOnHidden={destroyOnHidden}
         >
-          {modalBody}
+          <div
+            onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+              if (MENU_NAVIGATION_KEYS.has(e.key)) {
+                e.stopPropagation();
+              }
+            }}
+          >
+            {modalBody}
+          </div>
         </Modal>
       </>
     );

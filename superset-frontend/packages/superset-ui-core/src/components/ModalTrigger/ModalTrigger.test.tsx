@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from '@superset-ui/core/spec';
+import { Menu } from 'antd';
 import { ModalTrigger } from '.';
 
 const mockedProps = {
@@ -73,4 +74,68 @@ test('should render a modal after click', async () => {
   render(<ModalTrigger {...mockedProps} />);
   await userEvent.click(screen.getByRole('button'));
   expect(screen.getByRole('dialog')).toBeInTheDocument();
+});
+
+test('trigger click should preventDefault to allow dropdown to close', async () => {
+  render(<ModalTrigger {...mockedProps} />);
+  const trigger = screen.getByTestId('span-modal-trigger');
+
+  const clickEvent = new MouseEvent('click', {
+    bubbles: true,
+    cancelable: true,
+  });
+  const preventSpy = jest.spyOn(clickEvent, 'preventDefault');
+
+  trigger.dispatchEvent(clickEvent);
+
+  expect(preventSpy).toHaveBeenCalled();
+});
+
+test('should not block arrow key default behavior inside modal input when rendered in a menu', async () => {
+  render(
+    <Menu>
+      <Menu.Item key="1">
+        <ModalTrigger
+          triggerNode={<span data-test="trigger">Trigger</span>}
+          modalBody={<input aria-label="test-input" defaultValue="abcd" />}
+        />
+      </Menu.Item>
+    </Menu>,
+  );
+
+  // Open the modal
+  await userEvent.click(screen.getByTestId('trigger'));
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+  const input = screen.getByRole('textbox', {
+    name: 'test-input',
+  }) as HTMLInputElement;
+
+  // Focus and place cursor
+  input.focus();
+  input.setSelectionRange(2, 2);
+
+  // Simulate pressing navigation keys
+  const keys = [
+    'ArrowLeft',
+    'ArrowRight',
+    'ArrowUp',
+    'ArrowDown',
+    'Home',
+    'End',
+  ];
+
+  keys.forEach(key => {
+    const arrowEvent = new KeyboardEvent('keydown', {
+      key,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    const wasPrevented = !input.dispatchEvent(arrowEvent);
+
+    // jsdom might not fully support native cursor movement, so we check defaultPrevented
+    // meaning our wrapper successfully stopped propagation before it reached rc-menu.
+    expect(wasPrevented).toBe(false);
+  });
 });
