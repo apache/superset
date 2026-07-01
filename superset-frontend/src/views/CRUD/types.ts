@@ -49,7 +49,7 @@ export interface DashboardTableProps {
   otherTabData?: Array<Dashboard>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
-  onActivityRefresh?: () => void; 
+  onActivityRefresh?: () => void;
 }
 
 export interface Dashboard {
@@ -135,12 +135,7 @@ export enum QueryObjectColumns {
 }
 
 export type ImportResourceName =
-  | 'chart'
-  | 'dashboard'
-  | 'database'
-  | 'dataset'
-  | 'saved_query'
-  | 'theme';
+  'chart' | 'dashboard' | 'database' | 'dataset' | 'saved_query' | 'theme';
 
 export interface Tag {
   changed_on_delta_humanized: string;

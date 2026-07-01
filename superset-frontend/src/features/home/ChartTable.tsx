@@ -81,7 +81,6 @@ function ChartTable({
 
   const filteredOtherTabData = otherTabData?.filter(obj => 'viz_type' in obj);
 
-
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
     setResourceCollection: setCharts,
@@ -218,8 +217,8 @@ function ChartTable({
               const target =
                 activeTab === TableTab.Favorite
                   ? `/chart/list/?filters=(favorite:(label:${t(
-                    'Yes',
-                  )},value:!t))`
+                      'Yes',
+                    )},value:!t))`
                   : '/chart/list/';
               history.push(target);
             },

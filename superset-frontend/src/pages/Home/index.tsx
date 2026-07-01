@@ -179,8 +179,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   };
 
   const handleRefreshActivity = () => {
-  setRefreshKey(prev => prev + 1);
-};
+    setRefreshKey(prev => prev + 1);
+  };
 
   const SubmenuExtension = extensionsRegistry.get('home.submenu');
   const WelcomeMessageExtension = extensionsRegistry.get('welcome.message');
