@@ -494,7 +494,7 @@ test('calls build tooltip', async () => {
       hasErrors: true,
     },
     generalSection: {
-      errors: ['name'],
+      errors: ['name', 'editors'],
       name: 'General information',
       hasErrors: true,
     },
@@ -1551,7 +1551,20 @@ test('create mode submits POST and calls onAdd with response', async () => {
   const onAdd = jest.fn();
   const createProps = { ...props, onAdd };
 
-  render(<AlertReportModal {...createProps} />, { useRedux: true });
+  render(<AlertReportModal {...createProps} />, {
+    useRedux: true,
+    initialState: {
+      user: {
+        userId: 1,
+        firstName: 'Superset',
+        lastName: 'Admin',
+        email: 'admin@example.com',
+        username: 'admin',
+        roles: { Admin: [] },
+        permissions: {},
+      },
+    },
+  });
 
   expect(screen.getByText('Add report')).toBeInTheDocument();
 
@@ -1609,6 +1622,7 @@ test('create mode submits POST and calls onAdd with response', async () => {
   expect(body.type).toBe('Report');
   expect(body.name).toBe('My New Report');
   expect(body.chart).toBe(1);
+  expect(body.editors).toEqual([1]);
   // Chart content type means dashboard is null (mutually exclusive)
   expect(body.dashboard).toBeNull();
   expect(body.recipients).toBeDefined();
