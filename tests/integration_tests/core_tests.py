@@ -904,6 +904,24 @@ class TestCore(SupersetTestCase):
         )
         assert rv.headers["Location"] == f"/explore/?form_data_key={random_key}"
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @mock.patch("superset.security.SupersetSecurityManager.raise_for_access")
+    def test_explore_view_checks_datasource_access(
+        self, mock_raise_for_access: mock.Mock
+    ) -> None:
+        """The explore view runs the per-datasource access check on the loaded
+        datasource, consistent with the explore command, before rendering its
+        metadata."""
+        self.login(ADMIN_USERNAME)
+        tbl_id = self.table_ids.get("energy_usage")
+        mock_raise_for_access.reset_mock()
+
+        self.client.post(f"/superset/explore/table/{tbl_id}/")
+
+        mock_raise_for_access.assert_called_once()
+        _, kwargs = mock_raise_for_access.call_args
+        assert kwargs["datasource"].id == tbl_id
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_has_table(self):
         if backend() in ("sqlite", "mysql"):
