@@ -34,6 +34,10 @@ import {
   DragStartEvent,
   DragEndEvent,
   UniqueIdentifier,
+  CollisionDetection,
+  closestCenter,
+  pointerWithin,
+  rectIntersection,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { DatasourcePanelDndItem } from '../DatasourcePanel/types';
@@ -133,7 +137,6 @@ export function resolveDragEnd(
   ) {
     const reorderCallback = activeData.onShiftOptions || activeData.onMoveLabel;
     reorderCallback?.(activeData.dragIndex, overData.dragIndex);
-    activeData.onDropLabel?.();
     return;
   }
 
@@ -151,6 +154,92 @@ export function resolveDragEnd(
     }
   }
 }
+
+/**
+ * Type guard for a drag that reorders an existing pill within a control, as
+ * opposed to a new item dragged in from the DatasourcePanel. Reorder sources
+ * (pills) register through `useSortable`, which stamps a numeric `dragIndex`
+ * onto the drag data.
+ */
+export const isReorderDrag = (data?: Partial<ActiveDragData> | null): boolean =>
+  typeof data?.dragIndex === 'number';
+
+/**
+ * `useSortable` stamps a `sortable.containerId` (one per enclosing
+ * `SortableContext`) onto every sortable's droppable data. It uniquely
+ * identifies the control a pill belongs to, letting us tell sibling pills
+ * apart from same-type pills in a *different* control rendered on the same
+ * page — e.g. Mixed Timeseries' `adhoc_filters` + `adhoc_filters_b`, or a
+ * plugin's `metrics` + `percent_metrics`, all of which share one unscoped
+ * `type`.
+ */
+type SortableMeta = { sortable?: { containerId?: UniqueIdentifier } };
+const getSortableContainerId = (data: unknown): UniqueIdentifier | undefined =>
+  (data as SortableMeta | undefined)?.sortable?.containerId;
+
+/**
+ * Collision detection tuned for the Explore DnD tree, where two kinds of
+ * droppables overlap in space:
+ * - each control registers a large parent dropzone (`dropzone-<name>`) that
+ *   accepts items dragged in from the DatasourcePanel, and
+ * - each selected pill registers a sortable droppable used for reordering.
+ *
+ * The default `rectIntersection` strategy ranks droppables by intersection
+ * ratio, but the parent dropzone encloses every pill, so during a reorder it
+ * can still out-rank the sibling pill the pointer is over. `over` then
+ * resolves to the parent dropzone, which carries no `dragIndex`, so the
+ * reorder is dropped (and for pills that also carry a `value` the parent's
+ * external-drop `onDrop` can even misfire). This broke pill reordering when
+ * Explore controls migrated from react-dnd to @dnd-kit.
+ *
+ * We scope the candidate droppables to the drag's intent:
+ * - reordering an existing pill only collides with pills in its own
+ *   `SortableContext` (matched by `containerId`, not merely by `type` —
+ *   same-type controls can coexist on one page), resolved by proximity; and
+ * - dragging a new item in from the panel only collides with the parent
+ *   dropzones that expose an `onDrop` handler.
+ *
+ * Because a reorder drag is scoped to sortables, dragging an existing pill
+ * *onto another control's dropzone* no longer registers. In practice this only
+ * affected the legacy MetricsControl gesture of dropping a metric pill into a
+ * filter control; it is intentionally left unsupported so reorder and
+ * cross-control drops can't compete for the same drag (see PR discussion).
+ */
+export const exploreCollisionDetection: CollisionDetection = args => {
+  const activeData = args.active.data.current as ActiveDragData | undefined;
+
+  if (isReorderDrag(activeData)) {
+    const activeContainerId = getSortableContainerId(args.active.data.current);
+    const sortableContainers = args.droppableContainers.filter(container => {
+      const data = container.data.current as
+        | Partial<ActiveDragData>
+        | undefined;
+      if (!isReorderDrag(data)) {
+        return false;
+      }
+      const containerId = getSortableContainerId(container.data.current);
+      // Prefer SortableContext identity. Fall back to type only when neither
+      // endpoint carries sortable metadata (no known reorder source omits it).
+      if (activeContainerId != null || containerId != null) {
+        return containerId === activeContainerId;
+      }
+      return data?.type === activeData?.type;
+    });
+    return closestCenter({ ...args, droppableContainers: sortableContainers });
+  }
+
+  const dropzoneContainers = args.droppableContainers.filter(container => {
+    const data = container.data.current as DroppableData | undefined;
+    return typeof data?.onDrop === 'function';
+  });
+  const pointerCollisions = pointerWithin({
+    ...args,
+    droppableContainers: dropzoneContainers,
+  });
+  return pointerCollisions.length > 0
+    ? pointerCollisions
+    : rectIntersection({ ...args, droppableContainers: dropzoneContainers });
+};
 
 interface ExploreDndContextProps {
   children: React.ReactNode;
@@ -190,7 +279,7 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
     const data = active.data.current as ActiveDragData | undefined;
 
     // Don't set dragging state for reordering within a list
-    if (data && 'dragIndex' in data) {
+    if (isReorderDrag(data)) {
       return;
     }
 
@@ -218,6 +307,7 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={exploreCollisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
