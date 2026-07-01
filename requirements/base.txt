@@ -243,7 +243,7 @@ marshmallow-sqlalchemy==1.5.0
     # via
     #   -r requirements/base.in
     #   flask-appbuilder
-marshmallow-union==0.1.15
+marshmallow-union==0.1.15.post1
     # via apache-superset (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py

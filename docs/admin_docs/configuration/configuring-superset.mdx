@@ -617,6 +617,24 @@ CELERY_BEAT_SCHEDULE = {
 
 Adjust `retention_period_days` to control how long query rows are kept. Companion opt-in tasks (`prune_logs`, `prune_tasks`) exist for pruning the logs and tasks tables; see the commented-out examples in `superset/config.py`. Without enabling these tasks, the metadata database will grow unbounded over time.
 
+## Dashboard Layout Size Limit
+
+Each dashboard stores its layout (the position, size, and nesting of every chart, row, and tab) as a JSON blob in the metadata database. Superset caps the length of this serialized blob with `SUPERSET_DASHBOARD_POSITION_DATA_LIMIT`, which defaults to `65535`:
+
+```python
+SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
+```
+
+This is a Python-level cap (65535 is 2¹⁶ − 1), independent of the database column capacity — the `position_json` column is a `MEDIUMTEXT`, which holds far more. When the serialized layout reaches this limit, the editor blocks the save and reports the current length, the limit, and this setting's name. A warning is shown once the layout passes 90% of the limit.
+
+Large dashboards — for example, many charts spread across nested tabs — can exceed the default. Because the underlying column comfortably stores larger values, you can safely raise the limit:
+
+```python
+SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 131072  # double the default
+```
+
+Alternatively, split a very large dashboard into several smaller ones. Note that this check is enforced when saving layout edits in the UI; a dashboard imported from a ZIP with an oversized layout will load and render, but cannot be edited and re-saved until the limit is raised.
+
 :::resources
 - [Blog: Feature Flags in Apache Superset](https://preset.io/blog/feature-flags-in-apache-superset-and-preset/)
 :::
