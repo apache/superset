@@ -76,7 +76,7 @@ def _strip_params(slc: Slice) -> bool:
 
 
 def _strip_query_context(slc: Slice) -> bool:
-    """Remove _FIELD from query_context.form_data.extra_form_data. Returns True if changed."""
+    """Remove _FIELD from query_context.form_data.extra_form_data."""
     if not slc.query_context:
         return False
     try:
