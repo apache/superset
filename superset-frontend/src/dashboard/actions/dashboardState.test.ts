@@ -555,13 +555,11 @@ describe('dashboardState actions', () => {
       });
 
       getStub.mockRestore();
-      getStub = jest
-        .spyOn(SupersetClient, 'get')
-        .mockRejectedValue(
-          new Response(JSON.stringify({ message: 'Not found' }), {
-            status: 404,
-          }),
-        );
+      getStub = jest.spyOn(SupersetClient, 'get').mockRejectedValue(
+        new Response(JSON.stringify({ message: 'Not found' }), {
+          status: 404,
+        }),
+      );
 
       await fetchFaveStar(id)(dispatch, getState);
 
@@ -578,13 +576,11 @@ describe('dashboardState actions', () => {
       });
 
       getStub.mockRestore();
-      getStub = jest
-        .spyOn(SupersetClient, 'get')
-        .mockRejectedValue(
-          new Response(JSON.stringify({ message: 'Server error' }), {
-            status: 500,
-          }),
-        );
+      getStub = jest.spyOn(SupersetClient, 'get').mockRejectedValue(
+        new Response(JSON.stringify({ message: 'Server error' }), {
+          status: 500,
+        }),
+      );
 
       await fetchFaveStar(id)(dispatch, getState);
 
