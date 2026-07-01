@@ -21,7 +21,14 @@ import pytest
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm.session import Session
 
-from superset.charts.client_processing import apply_client_processing, pivot_df, table
+from superset.charts.client_processing import (
+    apply_client_processing,
+    apply_pivot_number_formats,
+    format_column,
+    pivot_df,
+    pivot_table_v2,
+    table,
+)
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import GenericDataType
 from tests.conftest import with_config
@@ -1846,6 +1853,125 @@ def test_table():
     )
 
 
+def test_table_applies_currency_format():
+    """
+    Table reports honor a column's `currencyFormat`.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["amount"].tolist() == ["$ 1,234.50"]
+
+
+def test_table_applies_si_number_format():
+    """
+    Table reports honor d3 formats that Python's str.format cannot express.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.0}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"amount": {"d3NumberFormat": ".3s"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["amount"].tolist() == ["1.23k"]
+
+
+def test_pivot_table_v2_applies_value_format():
+    """
+    Pivot table reports honor `valueFormat` and per-metric `columnFormats`.
+    """
+    df = pd.DataFrame(
+        {"region": ["A", "B"], "sales": [1234.5, 6789.0], "qty": [10.0, 20.0]}
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales", "qty"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "COLUMNS",
+        "valueFormat": ",.2f",
+        "columnFormats": {"qty": ",d"},
+    }
+    formatted = pivot_table_v2(df, form_data)
+    assert formatted[("sales",)].tolist() == ["1,234.50", "6,789.00"]
+    assert formatted[("qty",)].tolist() == ["10", "20"]
+
+
+def test_pivot_table_v2_applies_per_metric_format_when_metrics_combined():
+    """
+    Per-metric formats apply when `combineMetric` moves the metric to the last
+    column level.
+    """
+    df = pd.DataFrame(
+        {
+            "dept": ["A", "B"],
+            "region": ["x", "x"],
+            "sales": [100.0, 200.0],
+            "qty": [1111.0, 2222.0],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["dept"],
+        "groupbyColumns": ["region"],
+        "metrics": ["sales", "qty"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "COLUMNS",
+        "combineMetric": True,
+        "valueFormat": ",.2f",
+        "columnFormats": {"qty": ",d"},
+    }
+    formatted = pivot_table_v2(df, form_data)
+    assert formatted[("x", "qty")].tolist() == ["1,111", "2,222"]
+    assert formatted[("x", "sales")].tolist() == ["100.00", "200.00"]
+
+
+def test_format_column_applies_d3_and_currency():
+    df = pd.DataFrame({"amount": [1234.5, 6789.0]})
+    format_column(df, "amount", ",.2f", {})
+    assert df["amount"].tolist() == ["1,234.50", "6,789.00"]
+
+    df = pd.DataFrame({"amount": [1234.5]})
+    format_column(df, "amount", ",.2f", {"symbol": "USD", "symbolPosition": "prefix"})
+    assert df["amount"].tolist() == ["$ 1,234.50"]
+
+
+def test_format_column_is_noop_without_format():
+    df = pd.DataFrame({"amount": [1234.5]})
+    format_column(df, "amount", None, {})
+    assert df["amount"].tolist() == [1234.5]
+
+
+def test_apply_pivot_number_formats_resolves_metric_level():
+    df = pd.DataFrame({("sales",): [1234.5], ("qty",): [10.0]})
+    df.columns = pd.MultiIndex.from_tuples([("sales",), ("qty",)])
+    apply_pivot_number_formats(
+        df, {"valueFormat": ",.2f", "columnFormats": {"qty": ",d"}}
+    )
+    assert df[("sales",)].tolist() == ["1,234.50"]
+    assert df[("qty",)].tolist() == ["10"]
+
+
+def test_apply_pivot_number_formats_metric_at_last_level_when_combined():
+    df = pd.DataFrame({("x", "sales"): [100.0], ("x", "qty"): [1111.0]})
+    df.columns = pd.MultiIndex.from_tuples([("x", "sales"), ("x", "qty")])
+    apply_pivot_number_formats(
+        df,
+        {"combineMetric": True, "valueFormat": ",.2f", "columnFormats": {"qty": ",d"}},
+    )
+    assert df[("x", "sales")].tolist() == ["100.00"]
+    assert df[("x", "qty")].tolist() == ["1,111"]
+
+
 def test_apply_client_processing_no_form_invalid_viz_type():
     """
     Test with invalid viz type. It should just return the result
@@ -2633,10 +2759,10 @@ def test_apply_client_processing_verbose_map(session: Session):
         "queries": [
             {
                 "result_format": ChartDataResultFormat.JSON,
-                "data": {"COUNT(*)": {"Total (Sum)": 4725}},
+                "data": {"COUNT(*)": {"Total (Sum)": "4.73k"}},
                 "colnames": [("COUNT(*)",)],
                 "indexnames": [("Total (Sum)",)],
-                "coltypes": [GenericDataType.NUMERIC],
+                "coltypes": [GenericDataType.STRING],
                 "rowcount": 1,
             }
         ]
