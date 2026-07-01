@@ -422,9 +422,11 @@ def test_impersonate_user_with_token(mocker: MockerFixture) -> None:
     assert kwargs["connect_args"]["access_token"] == "user-oauth-token"  # noqa: S105
 
 
-def test_impersonate_user_without_token(mocker: MockerFixture) -> None:
+def test_impersonate_user_without_token_forces_oauth2(mocker: MockerFixture) -> None:
     """
-    Test impersonate_user method without OAuth2 token.
+    Without a user token, impersonate_user clears any stored credential so the
+    driver fails authentication and the OAuth2 dance is bootstrapped, rather than
+    silently connecting with a stale credential.
     """
     database = mocker.MagicMock()
     original_url = make_url(
@@ -441,9 +443,9 @@ def test_impersonate_user_without_token(mocker: MockerFixture) -> None:
         engine_kwargs=engine_kwargs,
     )
 
-    # Check that nothing was changed
-    assert url.password == "original-token"  # noqa: S105
-    assert kwargs["connect_args"]["access_token"] == "original-token"  # noqa: S105
+    # The stored credential is cleared in both the URL and connect_args
+    assert url.password == ""  # noqa: S105
+    assert kwargs["connect_args"]["access_token"] == ""  # noqa: S105
 
 
 def test_impersonate_user_python_connector(mocker: MockerFixture) -> None:
@@ -469,6 +471,129 @@ def test_impersonate_user_python_connector(mocker: MockerFixture) -> None:
     assert url.password == "user-oauth-token"  # noqa: S105
     # Check that access_token was updated in connect_args
     assert kwargs["connect_args"]["access_token"] == "user-oauth-token"  # noqa: S105
+
+
+def test_impersonate_user_python_connector_without_token_forces_oauth2(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The Python connector path also clears the credential when no user token is
+    available, so per-user OAuth2 is enforced rather than falling back to a stale
+    connection-level token.
+    """
+    database = mocker.MagicMock()
+    original_url = make_url(
+        "databricks://token:original-token@host:443?http_path=path&catalog=main&schema=default"
+    )
+    engine_kwargs = {"connect_args": {"access_token": "original-token"}}
+
+    url, kwargs = DatabricksPythonConnectorEngineSpec.impersonate_user(
+        database=database,
+        username="user1",
+        user_token=None,
+        url=original_url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    assert url.password == ""  # noqa: S105
+    assert kwargs["connect_args"]["access_token"] == ""  # noqa: S105
+
+
+def test_impersonate_user_without_connect_args_token(mocker: MockerFixture) -> None:
+    """
+    When ``connect_args`` carries no ``access_token`` (the URL-only auth path), the
+    token is applied to the URL password and no spurious ``access_token`` key is
+    introduced into ``connect_args``.
+    """
+    database = mocker.MagicMock()
+    original_url = make_url(
+        "databricks+connector://token:original-token@host:443/database"
+    )
+    engine_kwargs: dict[str, Any] = {"connect_args": {"http_path": "/sql/path"}}
+
+    url, kwargs = DatabricksNativeEngineSpec.impersonate_user(
+        database=database,
+        username="user1",
+        user_token="user-oauth-token",  # noqa: S106
+        url=original_url,
+        engine_kwargs=engine_kwargs,
+    )
+
+    assert url.password == "user-oauth-token"  # noqa: S105
+    assert "access_token" not in kwargs["connect_args"]
+    # Unrelated connect_args are preserved
+    assert kwargs["connect_args"]["http_path"] == "/sql/path"
+
+
+def test_update_params_strips_oauth2_client_info(mocker: MockerFixture) -> None:
+    """
+    ``oauth2_client_info`` is the per-database OAuth2 client config consumed by
+    ``Database.get_oauth2_config``; it must not leak into the driver connection
+    params, while the rest of ``encrypted_extra`` is still merged.
+    """
+    database = mocker.MagicMock()
+    database.encrypted_extra = json.dumps(
+        {
+            "oauth2_client_info": {
+                "id": "client-id",
+                "secret": "client-secret",
+                "authorization_request_uri": "https://host/oidc/v1/authorize",
+                "token_request_uri": "https://host/oidc/v1/token",
+            },
+            "http_headers": [["X-Custom", "value"]],
+        }
+    )
+    params: dict[str, Any] = {}
+
+    DatabricksNativeEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert "oauth2_client_info" not in params
+    assert params == {"http_headers": [["X-Custom", "value"]]}
+
+
+def test_update_params_no_encrypted_extra(mocker: MockerFixture) -> None:
+    """
+    A database without ``encrypted_extra`` leaves the params untouched.
+    """
+    database = mocker.MagicMock()
+    database.encrypted_extra = None
+    params: dict[str, Any] = {"existing": "value"}
+
+    DatabricksNativeEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert params == {"existing": "value"}
+
+
+def test_update_params_merges_when_no_oauth2_client_info(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``encrypted_extra`` without an ``oauth2_client_info`` block is merged in full,
+    so the strip never removes legitimate driver params.
+    """
+    database = mocker.MagicMock()
+    database.encrypted_extra = json.dumps(
+        {"http_headers": [["X-Custom", "value"]], "_tls_verify_hostname": True}
+    )
+    params: dict[str, Any] = {}
+
+    DatabricksNativeEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert params == {
+        "http_headers": [["X-Custom", "value"]],
+        "_tls_verify_hostname": True,
+    }
+
+
+def test_update_params_invalid_encrypted_extra_raises(mocker: MockerFixture) -> None:
+    """
+    Malformed ``encrypted_extra`` JSON raises rather than silently connecting.
+    """
+    database = mocker.MagicMock()
+    database.encrypted_extra = "{not valid json"
+
+    with pytest.raises(json.JSONDecodeError):
+        DatabricksNativeEngineSpec.update_params_from_encrypted_extra(database, {})
 
 
 @pytest.fixture

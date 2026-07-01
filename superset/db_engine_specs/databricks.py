@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
@@ -51,6 +52,9 @@ if TYPE_CHECKING:
         OAuth2State,
         OAuth2TokenResponse,
     )
+
+
+logger = logging.getLogger(__name__)
 
 
 try:
@@ -403,18 +407,48 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         engine_kwargs: dict[str, Any],
     ) -> tuple[URL, dict[str, Any]]:
         """
-        Update connection with OAuth2 access token for user impersonation.
-        """
-        if user_token:
-            # Replace the access token in the URL with the user's OAuth2 token
-            url = url.set(password=user_token)
+        Update connection with the user's OAuth2 access token for impersonation.
 
-            # Also update connect_args if they contain access token
-            connect_args = engine_kwargs.setdefault("connect_args", {})
-            if "access_token" in connect_args:
-                connect_args["access_token"] = user_token
+        When impersonation is enabled but no user token is available yet (e.g. the
+        first connection, before the OAuth2 dance has run), the stored credential
+        is cleared rather than left in place. The driver then raises a "no valid
+        authentication settings" error, which ``needs_oauth2`` catches to bootstrap
+        the OAuth2 flow instead of silently connecting with a stale credential.
+        """
+        # Replace the credential in the URL with the user's OAuth2 token, falling
+        # back to an empty string to force re-authentication when none is set.
+        url = url.set(password=user_token or "")
+
+        # The Python connector passes the token via ``connect_args`` instead of the
+        # URL password, so keep it in sync (clearing it likewise forces re-auth).
+        connect_args = engine_kwargs.setdefault("connect_args", {})
+        if "access_token" in connect_args:
+            connect_args["access_token"] = user_token or ""
 
         return url, engine_kwargs
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database, params: dict[str, Any]
+    ) -> None:
+        """
+        Merge ``encrypted_extra`` into the connection params, dropping the
+        ``oauth2_client_info`` block.
+
+        ``oauth2_client_info`` holds the per-database OAuth2 client configuration
+        consumed by ``Database.get_oauth2_config``; it is not a Databricks driver
+        connection argument, so it must be stripped here to avoid poisoning the
+        connection when OAuth2 is configured on the database itself.
+        """
+        if not database.encrypted_extra:
+            return
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise
+        encrypted_extra.pop("oauth2_client_info", None)
+        params.update(encrypted_extra)
 
     @staticmethod
     def get_extra_params(
