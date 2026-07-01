@@ -158,9 +158,15 @@ def _resolve_stamp_check_user_id() -> int | None:
 def validate_session_auth_stamp_for_request() -> None:
     """Drop login when the session cookie carries an outdated stamp for this user."""
     from superset.models.user_session_auth_stamp import UserSessionAuthStamp
+    from flask import request as flask_request
 
     user_id = _resolve_stamp_check_user_id()
     if user_id is None:
+        logger.debug(
+            "Stamp validation skipped: no user_id for %s %s",
+            flask_request.method,
+            flask_request.path,
+        )
         return
 
     # Read the stamp as a plain Python string inside the savepoint so the
@@ -195,12 +201,36 @@ def validate_session_auth_stamp_for_request() -> None:
         # Committing inside a before_request hook would expire SQLAlchemy
         # objects loaded by earlier hooks and can cause DetachedInstanceError
         # in route handlers, so we never create the row here.
+        logger.debug(
+            "Session auth stamp check skipped: no DB stamp row for user_id=%s on %s %s",
+            user_id,
+            flask_request.method,
+            flask_request.path,
+        )
         return
 
     # A missing stamp means the session predates stamp tracking (or was never
     # stamped). Once a DB stamp row exists, adopting it silently would let such
     # a session survive a password change, so treat a missing stamp as invalid.
     sess_stamp = session.get(SESSION_AUTH_STAMP_SESSION_KEY)
+    logger.debug(
+        "Validating session stamp for user_id=%s on %s %s: sess_stamp=%s, db_stamp=%s",
+        user_id,
+        flask_request.method,
+        flask_request.path,
+        sess_stamp,
+        db_stamp,
+    )
     if sess_stamp is None or sess_stamp != db_stamp:
+        logger.info(
+            "Session stamp mismatch for user_id=%s on %s %s: invalidating session",
+            user_id,
+            flask_request.method,
+            flask_request.path,
+        )
         logout_user()
         session.clear()
+        # Immediately return 401 Unauthorized to reject the request with
+        # an invalid session, rather than relying on the @protect() decorator
+        from werkzeug.exceptions import Unauthorized
+        raise Unauthorized("Session invalidated")
