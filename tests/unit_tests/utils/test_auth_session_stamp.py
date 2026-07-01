@@ -18,6 +18,7 @@
 from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
+import pytest
 from flask import session
 from flask_appbuilder.const import AUTH_DB
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -30,6 +31,7 @@ from superset.utils.auth_session_stamp import (
     ensure_user_session_stamp_value,
     validate_session_auth_stamp_for_request,
 )
+from werkzeug.exceptions import Unauthorized
 
 
 @contextmanager
@@ -170,3 +172,55 @@ def test_ensure_user_session_stamp_value_retries_insert_after_integrity_error(
 
     assert result == "race-winner-stamp"
     mock_session.commit.assert_called_once()
+
+
+def test_validate_stamp_adopts_missing_session_stamp(app: SupersetApp) -> None:
+    """Adopt the DB stamp when the signed session cookie omits it."""
+    app.config["AUTH_TYPE"] = AUTH_DB
+    mock_user = MagicMock()
+    mock_user.is_authenticated = True
+    mock_user.is_guest_user = False
+    mock_user.get_id.return_value = "42"
+
+    mock_session = MagicMock()
+    mock_row = MagicMock()
+    mock_row.stamp = "db-stamp"
+    mock_session.get.return_value = mock_row
+    nested = MagicMock()
+    mock_session.begin_nested.return_value = nested
+
+    with (
+        app.test_request_context(),
+        patch("superset.utils.auth_session_stamp.current_user", mock_user),
+        _mock_db_session(mock_session),
+    ):
+        validate_session_auth_stamp_for_request()
+        assert session["_auth_session_stamp"] == "db-stamp"
+
+
+def test_validate_stamp_invalidates_outdated_session_stamp(app: SupersetApp) -> None:
+    """Reject sessions that still carry a stamp rotated by a password change."""
+    app.config["AUTH_TYPE"] = AUTH_DB
+    mock_user = MagicMock()
+    mock_user.is_authenticated = True
+    mock_user.is_guest_user = False
+    mock_user.get_id.return_value = "42"
+
+    mock_session = MagicMock()
+    mock_row = MagicMock()
+    mock_row.stamp = "new-db-stamp"
+    mock_session.get.return_value = mock_row
+    nested = MagicMock()
+    mock_session.begin_nested.return_value = nested
+
+    with (
+        app.test_request_context("/api/v1/me/"),
+        patch("superset.utils.auth_session_stamp.current_user", mock_user),
+        patch("superset.utils.auth_session_stamp.logout_user") as mock_logout,
+        _mock_db_session(mock_session),
+    ):
+        session["_auth_session_stamp"] = "old-session-stamp"
+        with pytest.raises(Unauthorized, match="Session invalidated"):
+            validate_session_auth_stamp_for_request()
+
+    mock_logout.assert_called_once()
