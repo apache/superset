@@ -21,7 +21,6 @@ import { t } from '@apache-superset/core/translation';
 import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-
 type ValidationError = string;
 
 export type ControlHeaderProps = {
@@ -95,15 +94,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       >
         {description && (
           <span>
-            <Tooltip
-              id="description-tooltip"
-              title={description}
-              placement="top"
-            >
-              <Icons.InfoCircleOutlined
-                css={iconStyles}
-                onClick={tooltipOnClick}
-              />
+            <Tooltip title={description}>
+              <Icons.InfoCircleOutlined css={iconStyles} />
             </Tooltip>{' '}
           </span>
         )}
