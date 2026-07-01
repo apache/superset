@@ -24,6 +24,7 @@ import {
 import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGridReact';
 import { BasicColorFormatterType, InputColumn, ValueRange } from '../types';
 import { useIsDark } from '../utils/useTableTheme';
+import getRowBasicColorFormatter from '../utils/getRowBasicColorFormatter';
 
 const StyledTotalCell = styled.div`
   ${() => `
@@ -163,13 +164,13 @@ export const NumericCellRenderer = (
   let arrow = '';
   let arrowColor = '';
   if (hasBasicColorFormatters && col?.metricName) {
-    arrow =
-      basicColorFormatters?.[node?.rowIndex as number]?.[col.metricName]
-        ?.mainArrow;
-    arrowColor =
-      basicColorFormatters?.[node?.rowIndex as number]?.[
-        col.metricName
-      ]?.arrowColor?.toLowerCase();
+    const rowFormatter = getRowBasicColorFormatter(
+      node,
+      node?.rowIndex,
+      basicColorFormatters,
+    )?.[col.metricName];
+    arrow = rowFormatter?.mainArrow;
+    arrowColor = rowFormatter?.arrowColor?.toLowerCase();
   }
 
   const alignment =

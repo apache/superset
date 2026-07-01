@@ -44,3 +44,8 @@ export const FILTER_CONDITION_BODY_INDEX = {
 } as const;
 
 export const ROW_NUMBER_COL_ID = '__row_number__';
+
+// Non-enumerable key used to attach a row's basic (increase/decrease) color
+// formatter to the row data object so it travels with the row through AG Grid
+// client-side sorting (#105973).
+export const BASIC_COLOR_FORMATTERS_ROW_KEY = '__basicColorFormatters__';
