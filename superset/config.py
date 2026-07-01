@@ -657,6 +657,13 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
+    # Temporary rollout / kill-switch gate for soft delete (default off = legacy
+    # hard delete). An emergency stop, not a clean rollback: flipping ON->OFF
+    # resurrects already-soft-deleted rows. Removed (along with its two gate
+    # points — BaseDAO.delete routing and the do_orm_execute visibility listener)
+    # once soft delete is stable.
+    # @lifecycle: development
+    "SOFT_DELETE": False,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
@@ -1493,6 +1500,13 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 # Max payload size (MB) for SQL Lab to prevent browser hangs with large results.
 SQLLAB_PAYLOAD_MAX_MB = None
+
+# Maximum UTF-8 byte length of a SQL script accepted by the SQL parser.
+# Scripts longer than this are rejected before being handed to sqlglot, which
+# bounds parser memory and CPU usage. The bound is in bytes (not Unicode
+# code points) so multi-byte payloads cannot exceed the intended memory cap.
+# Set to None to disable the check.
+SQL_MAX_PARSE_LENGTH: int | None = 1_000_000
 
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"

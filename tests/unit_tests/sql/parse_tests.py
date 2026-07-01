@@ -20,12 +20,14 @@
 import logging
 
 import pytest
+import sqlglot
 from pytest_mock import MockerFixture
 from sqlglot import Dialects, exp, parse_one
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
+    _check_script_length,
     CTASMethod,
     extract_tables_from_statement,
     JinjaSQLResult,
@@ -43,6 +45,7 @@ from superset.sql.parse import (
     SQLStatement,
     Table,
     tokenize_kql,
+    transpile_to_dialect,
 )
 from tests.integration_tests.conftest import with_feature_flags
 
@@ -3696,6 +3699,113 @@ def test_backtick_invalid_sql_still_fails() -> None:
     sql = "SELECT * FROM `table` WHERE"
     with pytest.raises(SupersetParseError):
         SQLScript(sql, "base")
+
+
+# ---------------------------------------------------------------------------
+# SQL_MAX_PARSE_LENGTH gate
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def _small_parse_cap(mocker: MockerFixture) -> None:
+    """
+    Pin the parse-length cap to 100 bytes and force the no-app-context
+    fallback path so tests are decoupled from the suite's Flask config.
+    """
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 100)
+    mocker.patch("superset.sql.parse.has_app_context", return_value=False)
+
+
+@pytest.mark.usefixtures("_small_parse_cap")
+def test_check_script_length_accepts_at_boundary() -> None:
+    """A script exactly at the configured cap is accepted."""
+    _check_script_length("a" * 100, "postgresql")
+
+
+@pytest.mark.usefixtures("_small_parse_cap")
+def test_check_script_length_rejects_one_over() -> None:
+    """One byte above the cap is rejected before sqlglot runs."""
+    with pytest.raises(SupersetParseError) as excinfo:
+        _check_script_length("a" * 101, "postgresql")
+    assert "exceeds the configured maximum" in str(excinfo.value)
+
+
+def test_check_script_length_counts_utf8_bytes(mocker: MockerFixture) -> None:
+    """
+    The cap is in UTF-8 bytes, not code points. A multi-byte char string
+    whose char-count is under the cap but byte-count is over must reject.
+    """
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 30)
+    mocker.patch("superset.sql.parse.has_app_context", return_value=False)
+    # 20 emoji = 20 code points (under the 30-byte cap) but 80 UTF-8 bytes (over)
+    payload = "\U0001f600" * 20
+    with pytest.raises(SupersetParseError):
+        _check_script_length(payload, "postgresql")
+
+
+def test_check_script_length_disabled_when_config_none(
+    mocker: MockerFixture,
+) -> None:
+    """Setting SQL_MAX_PARSE_LENGTH=None disables the check entirely."""
+    fake_app = mocker.MagicMock()
+    fake_app.config = {"SQL_MAX_PARSE_LENGTH": None}
+    mocker.patch("superset.sql.parse.has_app_context", return_value=True)
+    mocker.patch("superset.sql.parse.current_app", fake_app)
+    _check_script_length("a" * 10_000_000, "postgresql")
+
+
+def test_check_script_length_uses_app_config_when_present(
+    mocker: MockerFixture,
+) -> None:
+    """When an app context is active, the runtime config value wins."""
+    fake_app = mocker.MagicMock()
+    fake_app.config = {"SQL_MAX_PARSE_LENGTH": 50}
+    mocker.patch("superset.sql.parse.has_app_context", return_value=True)
+    mocker.patch("superset.sql.parse.current_app", fake_app)
+    with pytest.raises(SupersetParseError):
+        _check_script_length("a" * 51, "postgresql")
+
+
+@pytest.mark.usefixtures("_small_parse_cap")
+def test_sqlscript_gate_short_circuits_before_sqlglot(
+    mocker: MockerFixture,
+) -> None:
+    """
+    SQLScript construction must reject an over-cap script before any call
+    to sqlglot.parse, including the MySQL-backtick fallback path. Captures
+    the original behaviour the PR is closing: the previous code parsed
+    twice on backtick failures, so the cap MUST short-circuit both.
+    """
+    spy = mocker.spy(sqlglot, "parse")
+    over_cap_with_backtick = "SELECT * FROM `t` -- " + "x" * 200
+    with pytest.raises(SupersetParseError):
+        SQLScript(over_cap_with_backtick, "base")
+    assert spy.call_count == 0, "length gate failed to short-circuit sqlglot.parse"
+
+
+@pytest.mark.usefixtures("_small_parse_cap")
+def test_parse_predicate_length_check() -> None:
+    """SQLStatement.parse_predicate also goes through the length gate."""
+    stmt = SQLStatement("SELECT 1", "postgresql")
+    with pytest.raises(SupersetParseError):
+        stmt.parse_predicate("x" * 101)
+
+
+@pytest.mark.usefixtures("_small_parse_cap")
+def test_transpile_to_dialect_length_check() -> None:
+    """
+    The standalone ``transpile_to_dialect`` entry point also gates input.
+
+    The cap-exceeded error surfaces as ``QueryClauseValidationException`` to
+    preserve the function's existing error contract (callers such as
+    ``transpile_virtual_dataset_sql`` only catch that type and fall back to
+    the original SQL). The underlying ``SupersetParseError`` is attached as
+    ``__cause__`` so over-cap input is still distinguishable from a generic
+    parse failure.
+    """
+    with pytest.raises(QueryClauseValidationException) as excinfo:
+        transpile_to_dialect("x" * 101, target_engine="mysql")
+    assert isinstance(excinfo.value.__cause__, SupersetParseError)
 
 
 def test_backtick_fallback_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
