@@ -60,7 +60,7 @@ const tablesApiRoute = 'glob:*/api/v1/database/*/tables/*';
 
 const getSelectItemContainer = (select: HTMLElement) =>
   select.parentElement?.parentElement?.getElementsByClassName(
-    'ant-select-selection-item',
+    'ant-select-content-has-value',
   );
 
 // Add cleanup and increase timeout

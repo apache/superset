@@ -48,7 +48,7 @@ export function isSerializableConfig(
 export function deserializeThemeConfig(
   config: SerializableThemeConfig,
 ): AntdThemeConfig {
-  const { algorithm, ...rest } = config;
+  const { algorithm, cssVar, ...rest } = config;
   const algorithmMap: Record<string, any> = {
     default: antdThemeImport.defaultAlgorithm,
     dark: antdThemeImport.darkAlgorithm,
@@ -74,9 +74,17 @@ export function deserializeThemeConfig(
     resolvedAlgorithm = antdThemeImport.defaultAlgorithm;
   }
 
+  // Ant Design v6 dropped `boolean` from ThemeConfig['cssVar'] (it is now
+  // object-only, and CSS variables are enabled by default). Superset keeps a
+  // boolean-friendly serializable API, so coerce at the antd boundary:
+  // `true` -> `{}` (defaults), `false`/undefined -> omit (antd default).
+  const normalizedCssVar =
+    typeof cssVar === 'boolean' ? (cssVar ? {} : undefined) : cssVar;
+
   return {
     ...rest,
     algorithm: resolvedAlgorithm,
+    ...(normalizedCssVar !== undefined ? { cssVar: normalizedCssVar } : {}),
   };
 }
 
