@@ -194,6 +194,7 @@ export interface InputColumn {
     | CurrencyFormatter;
   originalLabel?: string;
   metricName?: string;
+  description?: string;
 }
 
 export type ValueRange = [number, number] | null;
