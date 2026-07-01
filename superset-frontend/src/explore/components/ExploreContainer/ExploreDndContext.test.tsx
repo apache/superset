@@ -69,6 +69,19 @@ test('reorder fires the active item onShiftOptions callback', () => {
 
 test('reorder falls back to onMoveLabel when onShiftOptions is absent', () => {
   const onMoveLabel = jest.fn();
+  resolveDragEnd(
+    active({ type: METRIC, dragIndex: 1, onMoveLabel }, 'sortable-metric-1'),
+    over({ type: METRIC, dragIndex: 0 }, 'sortable-metric-0'),
+  );
+  expect(onMoveLabel).toHaveBeenCalledWith(1, 0);
+});
+
+test('reorder does NOT fire onDropLabel (reorder callback commits itself)', () => {
+  // onDropLabel was the react-dnd commit-on-drop hook. The reorder callback
+  // (onMoveLabel/onShiftOptions) now persists the new order itself, so firing
+  // onDropLabel here would re-commit the stale pre-move value captured in its
+  // render-time closure — snapping the pill back. It must not be called.
+  const onMoveLabel = jest.fn();
   const onDropLabel = jest.fn();
   resolveDragEnd(
     active(
@@ -78,7 +91,7 @@ test('reorder falls back to onMoveLabel when onShiftOptions is absent', () => {
     over({ type: METRIC, dragIndex: 0 }, 'sortable-metric-0'),
   );
   expect(onMoveLabel).toHaveBeenCalledWith(1, 0);
-  expect(onDropLabel).toHaveBeenCalled();
+  expect(onDropLabel).not.toHaveBeenCalled();
 });
 
 test('reorder does not fire across mismatched types', () => {

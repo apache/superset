@@ -137,7 +137,6 @@ export function resolveDragEnd(
   ) {
     const reorderCallback = activeData.onShiftOptions || activeData.onMoveLabel;
     reorderCallback?.(activeData.dragIndex, overData.dragIndex);
-    activeData.onDropLabel?.();
     return;
   }
 
