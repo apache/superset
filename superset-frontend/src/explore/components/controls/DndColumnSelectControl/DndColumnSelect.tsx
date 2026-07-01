@@ -53,18 +53,19 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     disabledTabs,
   } = props;
 
-  // Semantic-view dimensions are pre-defined items in the semantic model;
-  // there is no notion of a physical column to wrap (Simple) or an ad-hoc
-  // SQL expression (Custom SQL), so both of those popover tabs are
-  // disabled. Only the "Saved" tab — which lists the SV's dimensions —
-  // is offered, mirroring how SV metrics behave.
+  // Semantic-view dimensions are pre-defined items in the semantic model,
+  // so the Custom SQL tab (ad-hoc SQL expressions) doesn't apply and is
+  // disabled. The Simple tab stays enabled: dimensions land there because
+  // ``expression`` is left unset (a truthy ``expression`` triggers fx-icon
+  // treatment in the popover and hides the time-grain selector, which we
+  // need to keep reachable).
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource?.type,
   );
   const effectiveDisabledTabs = useMemo(
     () =>
       datasourceType === 'semantic_view'
-        ? new Set([...(disabledTabs ?? []), 'simple', 'sqlExpression'])
+        ? new Set([...(disabledTabs ?? []), 'sqlExpression'])
         : disabledTabs,
     [datasourceType, disabledTabs],
   );
