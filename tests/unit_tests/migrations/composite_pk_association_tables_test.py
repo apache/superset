@@ -26,9 +26,16 @@ mirrors the post-composite-PK shape the migration targets, so keep it in sync
 with the migration's table set.
 """
 
+from importlib import import_module
+
 import pytest
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
+
+_migration = import_module(
+    "superset.migrations.versions."
+    "2026-05-01_23-36_2bee73611e32_composite_pk_association_tables"
+)
 
 # (table_name, fk1_col, fk2_col, fk1_parent_table, fk2_parent_table)
 # Parent-table names are needed to build the FK targets in the in-memory schema.
@@ -144,3 +151,20 @@ def test_distinct_pairs_accepted(
             sa.text(f"SELECT COUNT(*) FROM {table}")  # noqa: S608
         ).scalar_one()
         assert result == 2
+
+
+def test_assert_fks_present_raises_on_empty() -> None:
+    """The MySQL resumability guard fails loudly when a junction table has
+    already lost its foreign keys — signalling a prior interrupted attempt —
+    rather than silently rebuilding it without them."""
+    with pytest.raises(RuntimeError, match="no foreign keys"):
+        _migration._assert_fks_present([], "dashboard_slices", "upgrade")
+
+
+def test_assert_fks_present_passes_when_fks_exist() -> None:
+    """A normal run (FKs reflected) passes the guard without raising."""
+    _migration._assert_fks_present(
+        [{"name": "fk_dashboard_slices_dashboard_id", "constrained_columns": ["x"]}],
+        "dashboard_slices",
+        "downgrade",
+    )

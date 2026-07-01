@@ -33,7 +33,7 @@ Create Date: 2026-05-01 23:36:34.050058
 """
 
 import logging
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import sqlalchemy as sa
 from alembic import op
@@ -339,6 +339,30 @@ def _enforce_not_null_for_sqlite(
         batch_op.alter_column(t.fk2, existing_type=sa.Integer, nullable=False)
 
 
+def _assert_fks_present(fks: list[dict[str, Any]], table_name: str, phase: str) -> None:
+    """Abort loudly if a junction table has already lost its foreign keys.
+
+    On MySQL every DDL statement auto-commits (no transactional rollback),
+    so a run interrupted after the FK-drop loop but before the (slower)
+    table recreate that re-adds them leaves the table FK-less. Both the
+    upgrade and downgrade capture the FK set by *reflecting the live table*,
+    so a naive retry would rebuild with the empty reflected set and silently
+    strip the foreign keys. A junction table always carries FK constraints,
+    so an empty reflection here signals that interrupted state — fail with a
+    recovery message instead of proceeding. (PostgreSQL/SQLite wrap the
+    migration in a transaction, so they roll back and never reach this.)
+    """
+    if not fks:
+        raise RuntimeError(
+            f"{table_name}: no foreign keys reflected before the composite-PK "
+            f"{phase}, but a junction table should always have them. A prior "
+            "attempt was likely interrupted after dropping the FKs on MySQL "
+            "(non-transactional DDL). Restore the metadata database from a "
+            "backup and re-run — continuing would rebuild the table without "
+            "its foreign keys."
+        )
+
+
 def upgrade() -> None:
     conn = op.get_bind()
     _check_no_external_fks_to_id(conn)
@@ -412,6 +436,7 @@ def upgrade() -> None:
                 # per-instance info_cache (see _build_pre_upgrade_table).
                 pre_drop_fks = insp.get_foreign_keys(t.name)
                 if conn.dialect.name == "mysql":
+                    _assert_fks_present(pre_drop_fks, t.name, "upgrade")
                     for fk in pre_drop_fks:
                         if fk_name := fk.get("name"):
                             op.drop_constraint(fk_name, t.name, type_="foreignkey")
@@ -524,6 +549,7 @@ def _downgrade_mysql_table(
         )
 
     fks = insp.get_foreign_keys(t.name)
+    _assert_fks_present(fks, t.name, "downgrade")
 
     for fk in fks:
         if fk_name := fk.get("name"):
