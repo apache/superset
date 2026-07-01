@@ -19,22 +19,121 @@
 
 import {
   CALENDAR_TOOLTIP_CLASS,
-  removeCalendarTooltips,
+  getCalendarTooltipClassName,
+  removeDisconnectedCalendarTooltips,
 } from '../src/tooltip';
 
-test('removeCalendarTooltips removes only calendar d3-tip nodes', () => {
-  const calendarTooltip = document.createElement('div');
-  calendarTooltip.className = `d3-tip ${CALENDAR_TOOLTIP_CLASS}`;
-  document.body.appendChild(calendarTooltip);
+afterEach(() => {
+  document.body.innerHTML = '';
+});
+
+test('getCalendarTooltipClassName creates stable owner-specific class names', () => {
+  const firstCalendar = document.createElement('div');
+  const secondCalendar = document.createElement('div');
+
+  const firstClassName = getCalendarTooltipClassName(firstCalendar);
+  const secondClassName = getCalendarTooltipClassName(secondCalendar);
+
+  expect(firstClassName).toContain(CALENDAR_TOOLTIP_CLASS);
+  expect(secondClassName).toContain(CALENDAR_TOOLTIP_CLASS);
+  expect(firstClassName).not.toEqual(secondClassName);
+  expect(getCalendarTooltipClassName(firstCalendar)).toEqual(firstClassName);
+});
+
+test('removeDisconnectedCalendarTooltips preserves mounted calendar tooltips', () => {
+  const firstCalendar = document.createElement('div');
+  const secondCalendar = document.createElement('div');
+  document.body.append(firstCalendar, secondCalendar);
+
+  const firstClassName = getCalendarTooltipClassName(firstCalendar);
+  const secondClassName = getCalendarTooltipClassName(secondCalendar);
+
+  const firstTooltip = document.createElement('div');
+  firstTooltip.className = `d3-tip ${CALENDAR_TOOLTIP_CLASS} ${firstClassName}`;
+  document.body.appendChild(firstTooltip);
+
+  const secondTooltip = document.createElement('div');
+  secondTooltip.className = `d3-tip ${CALENDAR_TOOLTIP_CLASS} ${secondClassName}`;
+  document.body.appendChild(secondTooltip);
+
+  removeDisconnectedCalendarTooltips();
+
+  expect(document.querySelector(`.${firstClassName}`)).toBe(firstTooltip);
+  expect(document.querySelector(`.${secondClassName}`)).toBe(secondTooltip);
+});
+
+test('removeDisconnectedCalendarTooltips removes only disconnected calendar tooltips', () => {
+  const firstCalendar = document.createElement('div');
+  const secondCalendar = document.createElement('div');
+  document.body.append(firstCalendar, secondCalendar);
+
+  const firstClassName = getCalendarTooltipClassName(firstCalendar);
+  const secondClassName = getCalendarTooltipClassName(secondCalendar);
+  firstCalendar.remove();
+
+  const firstTooltip = document.createElement('div');
+  firstTooltip.className = `d3-tip ${CALENDAR_TOOLTIP_CLASS} ${firstClassName}`;
+  document.body.appendChild(firstTooltip);
+
+  const secondTooltip = document.createElement('div');
+  secondTooltip.className = `d3-tip ${CALENDAR_TOOLTIP_CLASS} ${secondClassName}`;
+  document.body.appendChild(secondTooltip);
 
   const otherTooltip = document.createElement('div');
   otherTooltip.className = 'd3-tip tooltip-other-chart';
   document.body.appendChild(otherTooltip);
 
-  removeCalendarTooltips();
+  removeDisconnectedCalendarTooltips();
 
-  expect(document.querySelector(`.${CALENDAR_TOOLTIP_CLASS}`)).toBeNull();
+  expect(document.querySelector(`.${firstClassName}`)).toBeNull();
+  expect(document.querySelector(`.${secondClassName}`)).toBe(secondTooltip);
   expect(document.querySelector('.tooltip-other-chart')).toBe(otherTooltip);
+});
 
-  otherTooltip.remove();
+test('CalHeatMap tags tips per instance without removing other mounted calendars', () => {
+  const firstCalendar = document.createElement('div');
+  const secondCalendar = document.createElement('div');
+  document.body.append(firstCalendar, secondCalendar);
+
+  const firstClassName = getCalendarTooltipClassName(firstCalendar);
+  const secondClassName = getCalendarTooltipClassName(secondCalendar);
+
+  Object.defineProperty(window.SVGSVGElement.prototype, 'createSVGPoint', {
+    configurable: true,
+    value: () => ({
+      matrixTransform: () => ({ x: 0, y: 0 }),
+    }),
+  });
+
+  // eslint-disable-next-line global-require
+  const CalHeatMap = require('../src/vendor/cal-heatmap').default;
+
+  const firstHeatmap = new CalHeatMap();
+  firstHeatmap.init({
+    itemSelector: firstCalendar,
+    paintOnLoad: false,
+    tooltip: true,
+    tooltipClassName: firstClassName,
+    valueFormatter: String,
+    timeFormatter: String,
+  });
+
+  const secondHeatmap = new CalHeatMap();
+  secondHeatmap.init({
+    itemSelector: secondCalendar,
+    paintOnLoad: false,
+    tooltip: true,
+    tooltipClassName: secondClassName,
+    valueFormatter: String,
+    timeFormatter: String,
+  });
+
+  expect(document.querySelectorAll(`.${CALENDAR_TOOLTIP_CLASS}`)).toHaveLength(4);
+  expect(document.querySelectorAll(`.${firstClassName}`)).toHaveLength(2);
+  expect(document.querySelectorAll(`.${secondClassName}`)).toHaveLength(2);
+
+  firstHeatmap.destroy();
+
+  expect(document.querySelectorAll(`.${firstClassName}`)).toHaveLength(0);
+  expect(document.querySelectorAll(`.${secondClassName}`)).toHaveLength(2);
 });

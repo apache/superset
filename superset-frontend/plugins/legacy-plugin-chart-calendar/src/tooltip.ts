@@ -19,8 +19,38 @@
 
 export const CALENDAR_TOOLTIP_CLASS = 'superset-legacy-chart-calendar-tooltip';
 
-export function removeCalendarTooltips() {
+const tooltipOwners = new Map<string, HTMLElement>();
+const tooltipClassNames = new WeakMap<HTMLElement, string>();
+let tooltipId = 0;
+
+function removeTooltipsByClassName(className: string) {
   document
-    .querySelectorAll(`.${CALENDAR_TOOLTIP_CLASS}`)
+    .querySelectorAll(`.${className}`)
     .forEach(tooltip => tooltip.remove());
+}
+
+export function getCalendarTooltipClassName(element: HTMLElement) {
+  const existingClassName = tooltipClassNames.get(element);
+  if (existingClassName) {
+    return existingClassName;
+  }
+
+  tooltipId += 1;
+  const className = `${CALENDAR_TOOLTIP_CLASS}-${tooltipId}`;
+  tooltipClassNames.set(element, className);
+  tooltipOwners.set(className, element);
+  return className;
+}
+
+export function removeDisconnectedCalendarTooltips() {
+  tooltipOwners.forEach((element, className) => {
+    if (!element.isConnected) {
+      removeTooltipsByClassName(className);
+      tooltipOwners.delete(className);
+    }
+  });
+}
+
+export function scheduleCalendarTooltipCleanup() {
+  window.setTimeout(removeDisconnectedCalendarTooltips, 0);
 }
