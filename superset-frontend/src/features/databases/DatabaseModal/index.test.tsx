@@ -77,18 +77,22 @@ const databaseFixture: DatabaseObject = {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatabaseModal', () => {
   beforeEach(() => {
-    fetchMock.post(DATABASE_CONNECT_ENDPOINT, {
-      id: 10,
-      result: {
-        configuration_method: 'sqlalchemy_form',
-        database_name: 'Other2',
-        driver: 'apsw',
-        expose_in_sqllab: true,
-        extra: '{"allows_virtual_table_explore":true}',
-        sqlalchemy_uri: 'gsheets://',
+    fetchMock.post(
+      DATABASE_CONNECT_ENDPOINT,
+      {
+        id: 10,
+        result: {
+          configuration_method: 'sqlalchemy_form',
+          database_name: 'Other2',
+          driver: 'apsw',
+          expose_in_sqllab: true,
+          extra: '{"allows_virtual_table_explore":true}',
+          sqlalchemy_uri: 'gsheets://',
+        },
+        json: 'foo',
       },
-      json: 'foo',
-    });
+      { name: 'database-connect' },
+    );
 
     fetchMock.get(DATABASE_FETCH_ENDPOINT, {
       result: {
@@ -311,9 +315,13 @@ describe('DatabaseModal', () => {
         },
       ],
     });
-    fetchMock.post(VALIDATE_PARAMS_ENDPOINT, {
-      message: 'OK',
-    });
+    fetchMock.post(
+      VALIDATE_PARAMS_ENDPOINT,
+      {
+        message: 'OK',
+      },
+      { name: 'validate-params' },
+    );
   });
 
   beforeEach(() => {
@@ -1367,14 +1375,16 @@ describe('DatabaseModal', () => {
         const textboxes = screen.getAllByRole('textbox');
         const hostField = textboxes[0];
         const portField = screen.getByRole('spinbutton');
-        const databaseNameField = textboxes[1];
+        // textboxes[1] is the connection `database` field; the engine display
+        // name (`database_name`) auto-fills and is asserted separately.
+        const databaseField = textboxes[1];
         const usernameField = textboxes[2];
         const passwordField = textboxes[3];
         const connectButton = screen.getByRole('button', { name: 'Connect' });
 
         expect(hostField).toHaveValue('');
         expect(portField).toHaveValue(null);
-        expect(databaseNameField).toHaveValue('');
+        expect(databaseField).toHaveValue('');
         expect(usernameField).toHaveValue('');
         expect(passwordField).toHaveValue('');
 
@@ -1382,7 +1392,7 @@ describe('DatabaseModal', () => {
 
         userEvent.type(hostField, 'localhost');
         userEvent.type(portField, '5432');
-        userEvent.type(databaseNameField, 'postgres');
+        userEvent.type(databaseField, 'postgres');
         userEvent.type(usernameField, 'testdb');
         userEvent.type(passwordField, 'demoPassword');
 
@@ -1391,7 +1401,7 @@ describe('DatabaseModal', () => {
         expect(await screen.findByDisplayValue(/5432/i)).toBeInTheDocument();
         expect(hostField).toHaveValue('localhost');
         expect(portField).toHaveValue(5432);
-        expect(databaseNameField).toHaveValue('postgres');
+        expect(databaseField).toHaveValue('postgres');
         expect(usernameField).toHaveValue('testdb');
         expect(passwordField).toHaveValue('demoPassword');
 
@@ -1581,6 +1591,135 @@ describe('DatabaseModal', () => {
       ).toBeInTheDocument();
     });
   });
+
+  // Tests migrated from the deprecated Cypress suite
+  // (cypress-base/cypress/e2e/database/modal.test.ts). The two "error alert"
+  // cases originally relied on a real backend connection attempt (real DNS /
+  // socket behaviour), which made them flaky. They are reproduced here by
+  // mocking the validate_parameters response: the frontend's responsibility is
+  // to map an `extra.invalid` field error onto the matching form field, which
+  // is exactly what these assertions exercise. Whether a bad host/port really
+  // fails to connect is a backend concern, covered by backend tests.
+  const selectPostgres = async () => {
+    userEvent.click(await screen.findByRole('button', { name: /postgresql/i }));
+    // Dynamic form (step 2 of 3) is now visible
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+  };
+
+  // The modal renders into a portal on document.body, so fields are queried
+  // from the document rather than the render container.
+  const fieldByName = (name: string) =>
+    document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
+
+  const fillDynamicForm = () => {
+    const values: Record<string, string> = {
+      host: 'badhost',
+      port: '5432',
+      database: 'testdb',
+      username: 'testusername',
+      password: 'testpass',
+    };
+    Object.entries(values).forEach(([name, value]) =>
+      userEvent.type(fieldByName(name), value),
+    );
+  };
+
+  test('defaults the display name to the selected engine', async () => {
+    setup();
+    await selectPostgres();
+
+    // The display name field auto-fills with the selected engine's name. The
+    // empty initial state of the connection fields (host/port/database/…) is
+    // already covered by the "enters form credentials" test above.
+    expect(fieldByName('database_name')).toHaveValue('PostgreSQL');
+  });
+
+  test('switches to the SQLAlchemy URI form via the connect link', async () => {
+    setup();
+    await selectPostgres();
+
+    userEvent.click(screen.getByTestId('sqla-connect-btn'));
+
+    expect(await screen.findByTestId('database-name-input')).toBeVisible();
+    expect(screen.getByTestId('sqlalchemy-uri-input')).toBeVisible();
+  });
+
+  test.each([
+    {
+      field: 'host',
+      errorType: 'CONNECTION_INVALID_HOSTNAME_ERROR',
+      message: "The hostname provided can't be resolved.",
+    },
+    {
+      field: 'port',
+      errorType: 'CONNECTION_PORT_CLOSED_ERROR',
+      message: 'The port is closed.',
+    },
+  ])(
+    'surfaces a $field validation error returned by validate_parameters',
+    async ({ field, errorType, message }) => {
+      const createResource = jest.fn();
+      const useSingleViewResourceMock = jest
+        .spyOn(hooks, 'useSingleViewResource')
+        .mockReturnValue({
+          state: {
+            loading: false,
+            resource: null,
+            error: null,
+          },
+          fetchResource: jest.fn(),
+          createResource,
+          updateResource: jest.fn(),
+          clearError: jest.fn(),
+          setResource: jest.fn(),
+        });
+
+      setup();
+      await selectPostgres();
+      fillDynamicForm();
+
+      const submitButton = screen.getByTestId('btn-submit-connection');
+      // Blur the last field and let the (default, passing) validation settle
+      // so its async onBlur result can't race with — and overwrite — the
+      // submit-time validation below. Mirrors the Cypress `body.click(0, 0)`.
+      userEvent.click(document.body);
+      await waitFor(() => expect(submitButton).toBeEnabled());
+
+      // Make validation fail the way a real backend would for an unreachable
+      // host / closed port. The frontend's job is to map `extra.invalid:
+      // [field]` onto the matching form field. The 422 short-circuits the
+      // submit before the create (database-connect) request fires, so only
+      // this validate_parameters mock drives the rendered error.
+      fetchMock.modifyRoute('validate-params', {
+        response: {
+          status: 422,
+          body: {
+            errors: [
+              {
+                message,
+                error_type: errorType,
+                level: 'error',
+                extra: { invalid: [field] },
+              },
+            ],
+          },
+        },
+      });
+
+      userEvent.click(submitButton);
+
+      // Wait for the async error to render, then confirm it surfaced as an
+      // antd inline field error (not a general alert)...
+      const errorText = await screen.findByText(message);
+      expect(errorText.closest('.ant-form-item-explain-error')).not.toBeNull();
+      // ...and that it belongs to the form item for the field named in
+      // `extra.invalid` — i.e. that input lives in the same `.ant-form-item`.
+      const formItem = errorText.closest('.ant-form-item') as HTMLElement;
+      expect(formItem.querySelector(`input[name="${field}"]`)).not.toBeNull();
+      expect(createResource).not.toHaveBeenCalled();
+      useSingleViewResourceMock.mockRestore();
+    },
+  );
 });
 
 test('handleChangeWithValidation function clears validation errors when called', () => {
@@ -1760,6 +1899,122 @@ describe('dbReducer', () => {
       masked_encrypted_extra: '{"foo":"bar"}',
     });
   });
+
+  test('EncryptedExtraInputChange stores empty value verbatim (does not delete)', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.EncryptedExtraInputChange,
+      payload: { name: 'service_account_info', value: '' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          service_account_info: { type: 'service_account' },
+          other: 'keep-me',
+        }),
+      },
+      action,
+    );
+
+    // Generic input change must not delete keys — that's reserved for the
+    // explicit `ClearEncryptedExtraKey` action used by the public/private
+    // toggle. Backends may distinguish absent-key from empty-string.
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"service_account_info":"","other":"keep-me"}',
+    });
+  });
+
+  test.each([
+    ['the literal string "null"', 'null'],
+    ['malformed JSON', 'not json'],
+    ['a JSON primitive', '42'],
+    ['a JSON array', '[1,2,3]'],
+  ])(
+    'EncryptedExtraInputChange recovers when masked_encrypted_extra is %s',
+    (_label, value) => {
+      const action: DBReducerActionType = {
+        type: ActionType.EncryptedExtraInputChange,
+        payload: { name: 'foo', value: 'bar' },
+      };
+      const currentState = dbReducer(
+        { ...databaseFixture, masked_encrypted_extra: value },
+        action,
+      );
+
+      // Reducer recovers and starts fresh — no crash, no leaked bad value.
+      expect(currentState).toEqual({
+        ...databaseFixture,
+        masked_encrypted_extra: '{"foo":"bar"}',
+      });
+    },
+  );
+
+  test('ClearEncryptedExtraKey removes the named key from masked_encrypted_extra', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ClearEncryptedExtraKey,
+      payload: { name: 'service_account_info' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          service_account_info: { type: 'service_account' },
+          other: 'keep-me',
+        }),
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"other":"keep-me"}',
+    });
+  });
+
+  test('ClearEncryptedExtraKey is a no-op when the key is already absent', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ClearEncryptedExtraKey,
+      payload: { name: 'missing' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: '{"other":"keep-me"}',
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"other":"keep-me"}',
+    });
+  });
+
+  test.each([
+    ['the literal string "null"', 'null'],
+    ['malformed JSON', 'not json'],
+    ['a JSON primitive', '42'],
+    ['a JSON array', '[1,2,3]'],
+  ])(
+    'ClearEncryptedExtraKey recovers when masked_encrypted_extra is %s',
+    (_label, value) => {
+      const action: DBReducerActionType = {
+        type: ActionType.ClearEncryptedExtraKey,
+        payload: { name: 'service_account_info' },
+      };
+      const currentState = dbReducer(
+        { ...databaseFixture, masked_encrypted_extra: value },
+        action,
+      );
+
+      // Recovery path produces a clean `{}` rather than crashing.
+      expect(currentState).toEqual({
+        ...databaseFixture,
+        masked_encrypted_extra: '{}',
+      });
+    },
+  );
 
   test('it will set state to payload from extra input change when checkbox', () => {
     const action: DBReducerActionType = {
@@ -2129,6 +2384,43 @@ describe('dbReducer', () => {
       extra: '{"allows_virtual_table_explore":true}',
       is_managed_externally: false,
       name: 'PostgresDB',
+    });
+  });
+
+  // Regression test for https://github.com/apache/superset/issues/30504
+  // When creating a database, the POST response doesn't include engine_information,
+  // but it should be preserved from the state populated when the user selects a
+  // database engine.
+  test('it preserves engine_information when Fetched action payload lacks it', () => {
+    const initialState: Partial<DatabaseObject> = {
+      database_name: 'TestDB',
+      engine: 'postgresql',
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
+      engine_information: {
+        supports_file_upload: true,
+        disable_ssh_tunneling: false,
+      },
+    };
+
+    // Simulate POST response that doesn't include engine_information
+    const action: DBReducerActionType = {
+      type: ActionType.Fetched,
+      payload: {
+        id: 123,
+        database_name: 'TestDB',
+        backend: 'postgresql',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+        // Note: engine_information is NOT in POST response
+      },
+    };
+
+    const currentState = dbReducer(initialState, action);
+
+    // engine_information should be preserved from initialState
+    expect(currentState).not.toBeNull();
+    expect(currentState!.engine_information).toEqual({
+      supports_file_upload: true,
+      disable_ssh_tunneling: false,
     });
   });
 

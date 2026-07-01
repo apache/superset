@@ -105,6 +105,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     series_limit: int
     series_limit_metric: Metric | None
     time_offsets: list[str]
+    time_compare_full_range: bool
     time_shift: str | None
     time_range: str | None
     to_dttm: datetime | None
@@ -162,6 +163,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.to_dttm = kwargs.get("to_dttm")
         self.result_type = kwargs.get("result_type")
         self.time_offsets = kwargs.get("time_offsets", [])
+        self.time_compare_full_range = kwargs.get("time_compare_full_range", False)
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
         self.inner_to_dttm = kwargs.get("inner_to_dttm")
         self._rename_deprecated_fields(kwargs)
@@ -360,11 +362,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     engine = database.db_engine_spec.engine
 
                     if needs_transpilation:
-                        clause = transpile_to_dialect(clause, engine)
+                        # source_engine=engine ensures idempotency: this
+                        # method can run more than once (validate() is called
+                        # from both raise_for_access and get_df_payload), so
+                        # the second pass must be able to re-parse the
+                        # dialect-specific output (e.g. BigQuery backticks)
+                        # produced by the first pass.
+                        clause = transpile_to_dialect(
+                            clause, engine, source_engine=engine, identify=True
+                        )
 
                     sanitized_clause = sanitize_clause(clause, engine)
-                    if sanitized_clause != clause:
-                        self.extras[param] = sanitized_clause
+                    self.extras[param] = sanitized_clause
                 except QueryClauseValidationException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
 
@@ -403,6 +412,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "group_others_when_limit_reached": self.group_others_when_limit_reached,
             "to_dttm": self.to_dttm,
             "time_shift": self.time_shift,
+            "time_compare_full_range": self.time_compare_full_range,
         }
         return query_object_dict
 

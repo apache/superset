@@ -35,9 +35,9 @@
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
-    "fs-extra": "^11.3.4",
-    "jest": "^30.3.0",
-    "yeoman-test": "^11.4.2"
+    "fs-extra": "^11.3.5",
+    "jest": "^30.4.2",
+    "yeoman-test": "^11.6.0"
   },
   "engines": {
     "npm": ">= 4.0.0",

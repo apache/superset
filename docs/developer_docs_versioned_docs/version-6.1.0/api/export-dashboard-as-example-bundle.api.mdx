@@ -1,0 +1,68 @@
+---
+id: export-dashboard-as-example-bundle
+title: "Export dashboard as example bundle"
+description: "Exports a dashboard with its charts and datasets in the example format used by the Superset example loading system. The export includes Parquet data files and YAML configuration files."
+sidebar_label: "Export dashboard as example bundle"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVV21v2zYQ/iuHw4AlmBonWwcUKvoh69LXrAtqF10XBSktnS02EqmSlBNX0H8fjpTkl7hBuw0r9skWX+6e53h3fNhgRjY1snJSK4zx5KbSxlkQkAmbT7UwGVxLl4N0FtJc+DmVQSacsOQsSAUuJ6AbUVYFwUybUjioLWUwXfqpcV2RseSGNYUWmVRzsEvrqDyAid/PfkGqtKgzsnAmzMeanPcDM1lQcPvu+LdTSLWayXltBGMOkwcYYSWMKMmRsRifN1u82MeKkcwwQsnjlXA5RqhESfx1hREa+lhLQxnGztQUoU1zKgXGDbplxaukcjQng20bbbt5m5PLyYDTPZUdTHrfH2syy5XzEIJLXofrXjOaibpwPZwOxFTrgoTaBeJUlrLz14XVaXC5tFAKtQSjry1UZPoz/Awc6w/rklfjnUG44JDZSitLlhf8eHjIP6lWjpTjv6KqCpn64xp9khUPreyFjGFGUgkPoPNgnZFqjm3bRreSNCTStFZZQfDn8zMfWGwjvH94dIfzD5b3r3uvjK7IOBmgl2StmNMazQHEAEtPP1Dq2FeXzxsb8Y0Stcu1kZ8oi+G4djkp1/mHIbV2kFrfGJj89G2ZPNFmKrOMVAzvdA2ZVt87yMWCOHlKaS0zchpEmpK1IcEMWV2blHYRHOwFdve/LbtX2sFM1yqLff/hkyHrKBsoQKbJgtLct6R1uxgNNtjLz3em/X/A6LlyZJQowJJZkAEyRpsYjhXUim4qSpmdHwSdprX5TB4+EU4UYZ13bimtjXRL31Q/XDuMzy+45p2Yc6PFX/uuavEiwpt7qc5o7OGFPlwINccY0zevTzHCQkypWH122RJjWpsC7v0BT08mkGDuXBWPRoVORZFr6+IHhw8ejEQlR4uj0dDGR0ejrmcKe9mFZJQgJEmiAO49gwSPu5LyhxDDLyQMGfju+PHjk/H4cvL7y5NXCSK30A7m2dLlWq0BHQYGqLL0PbXLGJuoRPX9Dx4NwwdzcnuMA/4pnyhYyUlkZOyjZotVgjEk2DFLEH7oCvLS6StSbaL2E1UZqdxej/KAk3Fvf3+d9wuxEGOfBWvcNwZXR6WVZfoDZXEtpIMZuTT3jP8Nvs0G6bj/hu0zZfbv+2NtAvOJJ/4+7Gj5h6PwMFEBub8Ye9RbMekW6YIOCj3f46X7D5HTvSSX6wxjnPsb0+uGGG9zaqqrdgctDqAvy1AUteH47gwTbhfkKU9DRgsqdFWScl2B++MLhprKaKdTXbTxaNSwqTZuGEJ7y9rj2jpd9iYiXAgjxbQIXag3syE7PEyMkFRdcsF3n/zjS37T/rPJ5AwGO22EjGbT3sD3Frhx6Fw8xyoEtIHnZ2yEuWwa2Rmqbr9f3Xpl0nevMffdQNL3sAanPmme9OrjxdtJL3O8vPKzKzHiSbcRb740NDNk879rpGW9NdOBzgb6TijzBum4va8Pce6EdYujEBLrSuEvlU6xBe2+JnOFHTR3kErbAVu7rv7Pyr8Lr6MbN6oKIb3C8JXRdIV6jqKSHMQjDkHPDyOMveS/Va8YIad2yN1zbJqpsPTGFG3Lw0Ep+0eGtFw8GcYzUVi6I7xf+jLYyeWKlrceCAtR1LzSt4Evx/H1j4M7EG2+EVaILlZ95SvDtPe6k8j7sOPJthNKNyjUch1DD7G6wvaC25C/STyaMHGcpuQvtn7L9itlo+s/PeHKZoW+JtGG+u7+sPGdaJomrAg3UzuA81c042vbvwA/ZGS5
+sidebar_class_name: "get api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Export dashboard as example bundle"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/dashboard/{pk}/export_as_example/"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Exports a dashboard with its charts and datasets in the example format used by the Superset example loading system. The export includes Parquet data files and YAML configuration files.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  {...require("./export-dashboard-as-example-bundle.ParamsDetails.json")}
+>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./export-dashboard-as-example-bundle.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./export-dashboard-as-example-bundle.StatusCodes.json")}
+>
+
+</StatusCodes>

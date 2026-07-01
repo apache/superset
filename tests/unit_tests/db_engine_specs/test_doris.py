@@ -36,6 +36,7 @@ from superset.db_engine_specs.doris import (
     TINYINT,
 )
 from superset.utils.core import GenericDataType
+from tests.common.assert_utils import assert_called_once_with_text
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
@@ -271,7 +272,10 @@ def test_get_catalog_names(
     catalogs = DorisEngineSpec.get_catalog_names(database, inspector)
 
     # Verify the SQL query
-    inspector.bind.execute.assert_called_once_with("SHOW CATALOGS")
+    assert_called_once_with_text(
+        inspector.bind.execute,
+        "SHOW CATALOGS",
+    )
 
     # Verify the returned catalog names
     assert catalogs == expected_result

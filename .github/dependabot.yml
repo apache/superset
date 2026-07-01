@@ -1,24 +1,15 @@
 version: 2
 enable-beta-ecosystems: true
 updates:
-
   - package-ecosystem: "github-actions"
     directory: "/"
-    ignore:
-      # Ignore temporarily as release schedule is too mentally taxing for dep-handling maintainers
-      # Additionally, very few PRs are reviewed by this action.
-      - dependency-name: anthropics/claude-code-action
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     ignore:
-      # TODO: remove below entries until React >= 18.0.0
-      - dependency-name: "storybook"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
-      - dependency-name: "@storybook*"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
-      - dependency-name: "eslint-plugin-storybook"
       - dependency-name: "react-error-boundary"
       - dependency-name: "@rjsf/*"
       # remark-gfm v4+ requires react-markdown v9+, which needs React 18
@@ -41,14 +32,13 @@ updates:
       # and confirm the issue https://github.com/apache/superset/issues/39600 is fixed
       - dependency-name: "react-checkbox-tree"
         update-types: ["version-update:semver-major"]
-    groups:
-      storybook:
-        applies-to: version-updates
-        patterns:
-          - "@storybook*"
-          - "storybook"
-        update-types:
-          - "patch"
+      # Babel 8 (7.x -> 8.x) is blocked on the surrounding ecosystem: @emotion/babel-plugin
+      # (NodePath#hoist), babel-plugin-jsx-remove-data-test-id (t.jSXOpeningElement), and
+      # ts-jest all rely on Babel APIs removed in v8 and have not shipped Babel 8 support.
+      # Ignore the coordinated major bump until the ecosystem catches up; it must be done
+      # as a single manual upgrade anyway. TODO: remove when Babel 8 support is viable.
+      - dependency-name: "@babel/*"
+        update-types: ["version-update:semver-major"]
     directory: "/superset-frontend/"
     schedule:
       interval: "daily"
@@ -57,16 +47,25 @@ updates:
       - dependabot
     open-pull-requests-limit: 30
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
 
   - package-ecosystem: "pip"
     directory: "/"
     open-pull-requests-limit: 10
+    # Bump the lower bound to the new version, not just widen the upper
+    # bound. Without this, a `sqlglot>=28.10.0, <29` constraint upgraded
+    # to `<30` would keep the stale lower bound forever, dragging
+    # transitively-resolved versions with it. See #40186 (review thread).
+    versioning-strategy: increase
     schedule:
       interval: "weekly"
     labels:
       - pip
       - dependabot
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: ".github/actions"
@@ -74,29 +73,19 @@ updates:
       interval: "daily"
     open-pull-requests-limit: 10
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/docs/"
     ignore:
-      # TODO: remove below entries until React >= 18.0.0 in superset-frontend
-      - dependency-name: "storybook"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
-      - dependency-name: "@storybook*"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
-      - dependency-name: "eslint-plugin-storybook"
       - dependency-name: "react-error-boundary"
-    groups:
-      storybook:
-        applies-to: version-updates
-        patterns:
-          - "@storybook*"
-          - "storybook"
-        update-types:
-          - "patch"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-websocket/"
@@ -106,6 +95,8 @@ updates:
       - npm
       - dependabot
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-websocket/utils/client-ws-app/"
@@ -116,6 +107,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 10
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   # Now for all of our plugins and packages!
 
@@ -128,6 +121,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-partition/"
@@ -138,6 +133,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-world-map/"
@@ -148,6 +145,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-pivot-table/"
@@ -161,6 +160,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-chord/"
@@ -171,6 +172,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-horizon/"
@@ -181,6 +184,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-rose/"
@@ -191,6 +196,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-preset-chart-deckgl/"
@@ -201,6 +208,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-table/"
@@ -214,6 +223,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-country-map/"
@@ -224,6 +235,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-map-box/"
@@ -234,6 +247,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-preset-chart-nvd3/"
@@ -244,6 +259,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-word-cloud/"
@@ -254,6 +271,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-paired-t-test/"
@@ -264,6 +283,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-echarts/"
@@ -274,6 +295,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-ag-grid-table/"
@@ -284,6 +307,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-cartodiagram/"
@@ -294,6 +319,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/"
@@ -304,6 +331,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-handlebars/"
@@ -318,6 +347,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/generator-superset/"
@@ -328,6 +359,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-chart-controls/"
@@ -338,6 +371,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-core/"
@@ -353,6 +388,8 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-switchboard/"
@@ -363,3 +400,5 @@ updates:
       - dependabot
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    cooldown:
+      default-days: 7

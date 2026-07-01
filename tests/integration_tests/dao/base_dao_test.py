@@ -809,6 +809,75 @@ def test_base_dao_list_search(user_with_data: Session) -> None:
     user_with_data.commit()
 
 
+def test_base_dao_list_search_wildcard_injection(user_with_data: Session) -> None:
+    """Verify that search='%' is treated literally and does not match all rows."""
+    users = []
+    for i in range(3):
+        user = User(
+            id=420 + i,
+            username=f"nowildcard_{i}",
+            first_name=f"NoWild{i}",
+            last_name="Card",
+            email=f"nowild{i}@example.com",
+            active=True,
+        )
+        users.append(user)
+        user_with_data.add(user)
+    user_with_data.commit()
+
+    # '%' must be escaped; it should not match any of our plain-name users
+    results, total = UserDAO.list(search="%", search_columns=["username", "first_name"])
+    result_usernames = {r.username for r in results}
+    for user in users:
+        assert user.username not in result_usernames, (
+            f"search='%' should not match '{user.username}' — LIKE wildcard injection"
+        )
+
+    for user in users:
+        user_with_data.delete(user)
+    user_with_data.commit()
+
+
+def test_base_dao_list_column_operator_wildcard_injection(
+    user_with_data: Session,
+) -> None:
+    """Verify that column_operators with '%' values are treated literally."""
+    users = []
+    for i in range(3):
+        user = User(
+            id=430 + i,
+            username=f"opwildcard_{i}",
+            first_name=f"OpWild{i}",
+            last_name="Card",
+            email=f"opwild{i}@example.com",
+            active=True,
+        )
+        users.append(user)
+        user_with_data.add(user)
+    user_with_data.commit()
+
+    # Each wildcard operator with '%' as the value must not match plain-name rows
+    for opr in (
+        ColumnOperatorEnum.ct,
+        ColumnOperatorEnum.like,
+        ColumnOperatorEnum.ilike,
+        ColumnOperatorEnum.sw,
+        ColumnOperatorEnum.ew,
+    ):
+        results, _ = UserDAO.list(
+            column_operators=[ColumnOperator(col="username", opr=opr, value="%")]
+        )
+        result_usernames = {r.username for r in results}
+        for user in users:
+            assert user.username not in result_usernames, (
+                f"opr={opr!r} with value='%' should not match '{user.username}'"
+            )
+
+    for user in users:
+        user_with_data.delete(user)
+    user_with_data.commit()
+
+
 def test_base_dao_list_custom_filter(user_with_data: Session) -> None:
     """Test BaseDAO.list with custom filters."""
     # Create users with specific attributes

@@ -19,13 +19,13 @@
 import React, {
   ReactElement,
   useCallback,
+  useDeferredValue,
   useMemo,
   useState,
   Dispatch,
   SetStateAction,
 } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -213,10 +213,7 @@ export const useExploreAdditionalActionsMenu = (
   const dispatch = useDispatch();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [dashboardSearchTerm, setDashboardSearchTerm] = useState('');
-  const debouncedDashboardSearchTerm = useDebounceValue(
-    dashboardSearchTerm,
-    300,
-  );
+  const deferredDashboardSearchTerm = useDeferredValue(dashboardSearchTerm);
   const chart = useSelector<ExploreState, ChartState | undefined>(state =>
     state.explore ? state.charts?.[getChartKey(state.explore)] : undefined,
   );
@@ -304,7 +301,7 @@ export const useExploreAdditionalActionsMenu = (
   const dashboardMenuItems = useDashboardsMenuItems({
     chartId: slice?.slice_id,
     dashboards,
-    searchTerm: debouncedDashboardSearchTerm,
+    searchTerm: deferredDashboardSearchTerm,
   });
 
   const showDashboardSearch = (dashboards?.length ?? 0) > SEARCH_THRESHOLD;
@@ -342,7 +339,34 @@ export const useExploreAdditionalActionsMenu = (
     }
   }, [addDangerToast, latestQueryFormData, permalinkChartState]);
 
-  const exportCSV = useCallback(() => {
+  const handleExportError = useCallback(
+    (error: unknown) => {
+      const exportError = error as Error & {
+        status?: number;
+        statusText?: string;
+        response?: { status?: number };
+      };
+      const status = exportError.status || exportError.response?.status;
+      if (status === 413) {
+        addDangerToast(
+          t(
+            'The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns.',
+          ),
+        );
+      } else {
+        const errorMessage =
+          exportError.message ||
+          exportError.statusText ||
+          t(
+            'Failed to export chart data. Please try again or contact your administrator.',
+          );
+        addDangerToast(errorMessage);
+      }
+    },
+    [addDangerToast],
+  );
+
+  const exportCSV = useCallback(async () => {
     if (!canDownloadCSV) return null;
 
     // Determine row count for streaming threshold check
@@ -381,26 +405,31 @@ export const useExploreAdditionalActionsMenu = (
       filename = `${safeChartName}${timestamp}.csv`;
     }
 
-    return exportChart({
-      formData: latestQueryFormData as QueryFormData,
-      ownState,
-      resultType: 'full',
-      resultFormat: 'csv',
-      onStartStreamingExport: shouldUseStreaming
-        ? exportParams => {
-            if (exportParams.url) {
-              setIsStreamingModalVisible(true);
-              startExport({
-                ...exportParams,
-                url: exportParams.url,
-                filename,
-                expectedRows: actualRowCount,
-                exportType: exportParams.exportType as 'csv' | 'xlsx',
-              });
+    try {
+      await exportChart({
+        formData: latestQueryFormData as QueryFormData,
+        ownState,
+        resultType: 'full',
+        resultFormat: 'csv',
+        onStartStreamingExport: shouldUseStreaming
+          ? exportParams => {
+              if (exportParams.url) {
+                setIsStreamingModalVisible(true);
+                startExport({
+                  ...exportParams,
+                  url: exportParams.url,
+                  filename,
+                  expectedRows: actualRowCount,
+                  exportType: exportParams.exportType as 'csv' | 'xlsx',
+                });
+              }
             }
-          }
-        : null,
-    });
+          : null,
+      });
+    } catch (error) {
+      handleExportError(error);
+    }
+    return null;
   }, [
     canDownloadCSV,
     latestQueryFormData,
@@ -409,46 +438,59 @@ export const useExploreAdditionalActionsMenu = (
     streamingThreshold,
     slice,
     startExport,
+    handleExportError,
   ]);
 
-  const exportCSVPivoted = useCallback(
-    () =>
-      canDownloadCSV
-        ? exportChart({
-            formData: latestQueryFormData as QueryFormData,
-            ownState,
-            resultType: 'post_processed',
-            resultFormat: 'csv',
-          })
-        : null,
-    [canDownloadCSV, latestQueryFormData, ownState],
-  );
+  const exportCSVPivoted = useCallback(async () => {
+    if (!canDownloadCSV) {
+      return null;
+    }
+    try {
+      await exportChart({
+        formData: latestQueryFormData as QueryFormData,
+        ownState,
+        resultType: 'post_processed',
+        resultFormat: 'csv',
+      });
+    } catch (error) {
+      handleExportError(error);
+    }
+    return null;
+  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
 
-  const exportJson = useCallback(
-    () =>
-      canDownloadCSV
-        ? exportChart({
-            formData: latestQueryFormData as QueryFormData,
-            ownState,
-            resultType: 'results',
-            resultFormat: 'json',
-          })
-        : null,
-    [canDownloadCSV, latestQueryFormData, ownState],
-  );
+  const exportJson = useCallback(async () => {
+    if (!canDownloadCSV) {
+      return null;
+    }
+    try {
+      await exportChart({
+        formData: latestQueryFormData as QueryFormData,
+        ownState,
+        resultType: 'results',
+        resultFormat: 'json',
+      });
+    } catch (error) {
+      handleExportError(error);
+    }
+    return null;
+  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
 
-  const exportExcel = useCallback(
-    () =>
-      canDownloadCSV
-        ? exportChart({
-            formData: latestQueryFormData as QueryFormData,
-            ownState,
-            resultType: 'results',
-            resultFormat: 'xlsx',
-          })
-        : null,
-    [canDownloadCSV, latestQueryFormData, ownState],
-  );
+  const exportExcel = useCallback(async () => {
+    if (!canDownloadCSV) {
+      return null;
+    }
+    try {
+      await exportChart({
+        formData: latestQueryFormData as QueryFormData,
+        ownState,
+        resultType: 'results',
+        resultFormat: 'xlsx',
+      });
+    } catch (error) {
+      handleExportError(error);
+    }
+    return null;
+  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
 
   const copyLink = useCallback(async () => {
     try {
@@ -808,7 +850,7 @@ export const useExploreAdditionalActionsMenu = (
         label: dataExportLabel(t('Export to .CSV')),
         icon: <Icons.FileOutlined />,
         disabled: !canDownloadCSV,
-        onClick: () => {
+        onClick: async () => {
           // Use 'results' to export the *current view* (as opposed to 'full').
           // Pass ownState so client/UI state (e.g., filters) can be respected when supported.
           if (
@@ -823,12 +865,16 @@ export const useExploreAdditionalActionsMenu = (
               slice?.slice_name || 'current_view',
             );
           } else {
-            exportChart({
-              formData: latestQueryFormData as QueryFormData,
-              ownState,
-              resultType: 'results',
-              resultFormat: 'csv',
-            });
+            try {
+              await exportChart({
+                formData: latestQueryFormData as QueryFormData,
+                ownState,
+                resultType: 'results',
+                resultFormat: 'csv',
+              });
+            } catch (error) {
+              handleExportError(error);
+            }
           }
           setIsDropdownVisible(false);
           dispatch(
@@ -1054,13 +1100,14 @@ export const useExploreAdditionalActionsMenu = (
     dashboards,
     dashboardMenuItems,
     dashboardSearchTerm,
-    debouncedDashboardSearchTerm,
+    deferredDashboardSearchTerm,
     datasource,
     dispatch,
     exportCSV,
     exportCSVPivoted,
     exportExcel,
     exportJson,
+    handleExportError,
     latestQueryFormData,
     onOpenInEditor,
     onOpenPropertiesModal,

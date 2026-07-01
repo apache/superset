@@ -32,7 +32,8 @@
     "memoize-one": "^6.0.0",
     "react-table": "^7.8.0",
     "regenerator-runtime": "^0.14.1",
-    "xss": "^1.0.15"
+    "xss": "^1.0.15",
+    "lodash-es": "^4.17.21"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.6.1",
@@ -45,8 +46,8 @@
     "@testing-library/user-event": "*",
     "@types/react": "*",
     "match-sorter": "^8.2.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
   },
   "publishConfig": {
     "access": "public"

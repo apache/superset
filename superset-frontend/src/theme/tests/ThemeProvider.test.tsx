@@ -75,6 +75,7 @@ describe('SupersetThemeProvider', () => {
     mockThemeController = {
       getTheme: jest.fn().mockReturnValue(mockTheme),
       getCurrentMode: jest.fn().mockReturnValue(ThemeMode.DEFAULT),
+      getCurrentModeResolved: jest.fn().mockReturnValue('dark'),
       setTheme: jest.fn(),
       setThemeMode: jest.fn(),
       resetTheme: jest.fn(),
@@ -85,6 +86,7 @@ describe('SupersetThemeProvider', () => {
       clearLocalOverrides: jest.fn(),
       getCurrentCrudThemeId: jest.fn().mockReturnValue(null),
       hasDevOverride: jest.fn().mockReturnValue(false),
+      hasThemeConfigOverride: jest.fn().mockReturnValue(false),
       canSetMode: jest.fn().mockReturnValue(true),
       canSetTheme: jest.fn().mockReturnValue(true),
       canDetectOSPreference: jest.fn().mockReturnValue(true),
@@ -275,5 +277,60 @@ describe('SupersetThemeProvider', () => {
         42,
       );
     });
+  });
+
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-theme-mode');
+  });
+
+  test('should set data-theme-mode="light" on mount when resolved mode is light', () => {
+    mockThemeController.getCurrentModeResolved.mockReturnValue('light');
+
+    render(
+      <SupersetThemeProvider themeController={mockThemeController}>
+        <div>Content</div>
+      </SupersetThemeProvider>,
+    );
+
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'light',
+    );
+  });
+
+  test('should set data-theme-mode="dark" on mount when resolved mode is dark', () => {
+    mockThemeController.getCurrentModeResolved.mockReturnValue('dark');
+
+    render(
+      <SupersetThemeProvider themeController={mockThemeController}>
+        <div>Content</div>
+      </SupersetThemeProvider>,
+    );
+
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'dark',
+    );
+  });
+
+  test('should update data-theme-mode when theme changes', () => {
+    mockThemeController.getCurrentModeResolved.mockReturnValue('light');
+
+    render(
+      <SupersetThemeProvider themeController={mockThemeController}>
+        <div>Content</div>
+      </SupersetThemeProvider>,
+    );
+
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'light',
+    );
+
+    act(() => {
+      mockThemeController.getCurrentModeResolved.mockReturnValue('dark');
+      mockOnChangeCallback(mockDarkTheme);
+    });
+
+    expect(document.documentElement.getAttribute('data-theme-mode')).toBe(
+      'dark',
+    );
   });
 });

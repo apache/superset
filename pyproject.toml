@@ -38,14 +38,20 @@ dependencies = [
     # no bounds for apache-superset-core until we have a stable version
     "apache-superset-core",
     "backoff>=1.8.0",
+    # cachetools is used directly by ``superset.db_engine_specs.aws_iam`` (TTLCache).
+    # It used to be installed transitively via ``google-auth`` (<2.53), but
+    # ``google-auth`` 2.53+ dropped it, so Superset must declare it
+    # explicitly to keep fresh ``pip install apache-superset`` working
+    # without the ``base.txt`` lock file (#40962).
+    "cachetools>=6.2.1, <7",
     "celery>=5.3.6, <6.0.0",
-    "click>=8.0.3",
+    "click>=8.4.0",
     "click-option-group",
     "colorama",
-    "flask-cors>=6.0.0, <7.0",
-    "croniter>=0.3.28",
+    "flask-cors>=6.0.5, <7.0",
+    "croniter>=6.2.2",
     "cron-descriptor",
-    "cryptography>=42.0.4, <47.0.0",
+    "cryptography>=48.0.0, <49.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <4.0.0",
     "flask-appbuilder>=5.2.1, <6.0.0",
@@ -53,25 +59,27 @@ dependencies = [
     "flask-compress>=1.13, <2.0",
     "flask-talisman>=1.0.0, <2.0",
     "flask-login>=0.6.0, < 1.0",
-    "flask-migrate>=3.1.0, <4.0",
+    "flask-migrate>=4.1.0, <5.0",
     "flask-session>=0.4.0, <1.0",
-    "flask-wtf>=1.1.0, <2.0",
+    "flask-wtf>=1.3.0, <2.0",
     "geopy",
-    "greenlet>=3.0.3, <=3.1.1",
-    "gunicorn>=22.0.0; sys_platform != 'win32'",
+    "greenlet<=3.5.1, >=3.5.1",
+    "gunicorn>=25.3.0, <26; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # holidays>=0.45 required for security fix
     "holidays>=0.45, <1",
     "humanize",
     "isodate",
-    "jsonpath-ng>=1.6.1, <2",
+    "jsonpath-ng>=1.8.0, <2",
     "Mako>=1.2.2",
-    "markdown>=3.0",
-    # marshmallow>=4 has issues: https://github.com/apache/superset/issues/33162
-    "marshmallow>=3.0, <4",
-    "marshmallow-union>=0.1",
-    "msgpack>=1.0.0, <1.2",
-    "nh3>=0.2.11, <0.3",
+    "markdown>=3.10.2",
+    # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
+    # Flask-AppBuilder workaround. Tracking issue:
+    # https://github.com/apache/superset/issues/33162
+    "marshmallow>=3.0, <5",
+    "marshmallow-union>=0.1.15.post1",
+    "msgpack>=1.2.0, <1.3",
+    "nh3>=0.3.5, <0.4",
     "numpy>1.23.5, <2.3",
     "packaging",
     # --------------------------
@@ -80,7 +88,7 @@ dependencies = [
     "bottleneck", # recommended performance dependency for pandas, see https://pandas.pydata.org/docs/getting_started/install.html#performance-dependencies-recommended
     # --------------------------
     "parsedatetime",
-    "paramiko>=3.4.0",
+    "paramiko>=3.4.0, <4.0", # 4.0 removed DSSKey, still referenced by sshtunnel
     "pgsanity",
     "Pillow>=11.0.0, <13",
     "polyline>=2.0.0, <3.0",
@@ -89,41 +97,41 @@ dependencies = [
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
     "pygeohash",
-    "pyarrow>=16.1.0, <21", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
-    "pyyaml>=6.0.0, <7.0.0",
+    "pyarrow>=24.0.0, <25", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
+    "pyyaml>=6.0.3, <7.0.0",
     "PyJWT>=2.4.0, <3.0",
     "redis>=5.0.0, <6.0",
     "rison>=2.0.0, <3.0",
-    "selenium>=4.14.0, <5.0",
-    "shillelagh[gsheetsapi]>=1.4.3, <2.0",
+    "selenium>=4.45.0, <5.0",
+    "shillelagh[gsheetsapi]>=1.4.4, <2.0",
     "sshtunnel>=0.4.0, <0.5",
-    "simplejson>=3.15.0",
-    "slack_sdk>=3.19.0, <4",
+    "simplejson>=4.1.1",
+    "slack_sdk>=3.42.0, <4",
     "sqlalchemy>=1.4, <2",
-    "sqlalchemy-utils>=0.38.0, <0.43", # expanding lowerbound to work with pydoris
-    "sqlglot>=28.10.0, <29",
+    "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
+    "sqlglot>=30.8.0, <31",
     # newer pandas needs 0.9+
-    "tabulate>=0.9.0, <1.0",
+    "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4, <5",
     "waitress; sys_platform == 'win32'",
     "watchdog>=6.0.0",
-    "wtforms>=2.3.3, <4",
+    "wtforms>=3.2.2, <4",
     "wtforms-json",
-    "xlsxwriter>=3.0.7, <3.3",
+    "xlsxwriter>=3.2.9, <3.3",
 ]
 
 [project.optional-dependencies]
 
-athena = ["pyathena[pandas]>=2, <3"]
+athena = ["pyathena[pandas]>=2, <4"]
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
 bigquery = [
     "pandas-gbq>=0.19.1",
-    "sqlalchemy-bigquery>=1.15.0",
+    "sqlalchemy-bigquery>=1.17.0",
     "google-cloud-bigquery>=3.10.0",
 ]
-clickhouse = ["clickhouse-connect>=0.13.0, <1.0"]
+clickhouse = ["clickhouse-connect>=1.1.1, <2.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
-crate = ["sqlalchemy-cratedb>=0.40.1, <1"]
+crate = ["sqlalchemy-cratedb>=0.41.0, <1"]
 d1 = [
     "superset-engine-d1>=0.1.0",
     "sqlalchemy-d1>=0.1.0",
@@ -131,78 +139,84 @@ d1 = [
 ]
 databend = ["databend-sqlalchemy>=0.3.2, <1.0"]
 databricks = [
-    "databricks-sql-connector==4.1.2",
+    "databricks-sql-connector==4.2.6",
     "databricks-sqlalchemy==1.0.5",
 ]
-db2 = ["ibm-db-sa>0.3.8, <=0.4.0"]
-denodo = ["denodo-sqlalchemy~=1.0.6"]
+db2 = ["ibm-db-sa>0.3.8, <=0.4.4"]
+denodo = ["denodo-sqlalchemy>=2.0.5,<2.1.0"]
 dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
-drill = ["sqlalchemy-drill>=1.1.4, <2"]
+drill = ["sqlalchemy-drill>=1.1.10, <2"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb>=1.4.2,<2", "duckdb-engine>=0.17.0"]
+duckdb = ["duckdb>=1.5.4,<2", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.4.2"]
-solr = ["sqlalchemy-solr >= 0.2.0"]
-elasticsearch = ["elasticsearch-dbapi>=0.2.12, <0.3.0"]
-exasol = ["sqlalchemy-exasol >= 2.4.0, <3.0"]
-excel = ["xlrd>=1.2.0, <1.3"]
-fastmcp = ["fastmcp>=3.2.4,<4.0"]
-firebird = ["sqlalchemy-firebird>=0.7.0, <0.8"]
+solr = ["sqlalchemy-solr >= 0.2.4.3"]
+elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
+exasol = ["sqlalchemy-exasol>=2.4.0, <8.0"]
+excel = ["xlrd>=2.0.2, <2.1"]
+fastmcp = [
+    "fastmcp>=3.2.4,<4.0",
+    # tiktoken backs the response-size-guard token estimator. Without
+    # it, the middleware falls back to a coarser character-based
+    # heuristic that under-counts JSON-heavy MCP responses.
+    "tiktoken>=0.13.0,<1.0",
+]
+firebird = ["sqlalchemy-firebird>=0.7.0, <2.2"]
 firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
-gevent = ["gevent>=23.9.1"]
-gsheets = ["shillelagh[gsheetsapi]>=1.4.3, <2"]
-hana = ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"]
+gevent = ["gevent>=26.4.0"]
+gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
+hana = ["hdbcli==2.28.21", "sqlalchemy_hana==0.4.0"]
 hive = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
-    "thrift>=0.14.1, <1.0.0",
+    "thrift>=0.23.0, <1.0.0",
     "thrift_sasl>=0.4.3, < 1.0.0",
 ]
-impala = ["impyla>0.16.2, <0.17"]
-kusto = ["sqlalchemy-kusto>=3.0.0, <4"]
+impala = ["impyla>0.16.2, <0.23"]
+kusto = ["sqlalchemy-kusto>=3.1.2, <4"]
 kylin = ["kylinpy>=2.8.1, <2.9"]
-mssql = ["pymssql>=2.2.8, <3"]
+mssql = ["pymssql>=2.3.13, <3"]
 # motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
 motherduck = ["apache-superset[duckdb]"]
 mysql = ["mysqlclient>=2.1.0, <3"]
 ocient = [
     "sqlalchemy-ocient>=1.0.0",
-    "pyocient>=1.0.15, <2",
+    "pyocient>=1.0.15, <4",
     "shapely",
     "geojson",
 ]
-oracle = ["cx-Oracle>8.0.0, <8.1"]
+oracle = ["oracledb>=2.0.0, <5"]
 parseable = ["sqlalchemy-parseable>=0.1.3,<0.2.0"]
-pinot = ["pinotdb>=5.0.0, <6.0.0"]
-playwright = ["playwright>=1.37.0, <2"]
+pinot = ["pinotdb>=5.0.0, <10.0.0"]
+playwright = ["playwright>=1.60.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
-trino = ["trino>=0.328.0"]
+trino = ["trino>=0.337.0"]
 prophet = ["prophet>=1.1.6, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 risingwave = ["sqlalchemy-risingwave"]
-shillelagh = ["shillelagh[all]>=1.4.3, <2"]
+shillelagh = ["shillelagh[all]>=1.4.4, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]
-snowflake = ["snowflake-sqlalchemy>=1.2.4, <2"]
-sqlite = ["syntaqlite>=0.1.0"]
+snowflake = ["snowflake-sqlalchemy>=1.10.2, <2"]
+sqlite = ["syntaqlite>=0.1.0,<0.5.0"]
 spark = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7",
     "tableschema",
-    "thrift>=0.14.1, <1",
+    "thrift>=0.23.0, <1",
 ]
 tdengine = [
-    "taospy>=2.7.21",
-    "taos-ws-py>=0.3.8"
+    "taospy>=2.8.9",
+    "taos-ws-py>=0.6.9"
 ]
 teradata = ["teradatasql>=16.20.0.23"]
 thumbnails = [] # deprecated, will be removed in 7.0
-vertica = ["sqlalchemy-vertica-python>=0.5.9, < 0.6"]
-netezza = ["nzalchemy>=11.0.2"]
-starrocks = ["starrocks>=1.0.0"]
+vertica = ["sqlalchemy-vertica-python>= 0.6.3, < 0.7"]
+netezza = ["nzalchemy>=11.0.2, < 11.2"]
+starrocks = ["starrocks>=1.3.3, <2"]
 doris = ["pydoris>=1.0.0, <2.0.0"]
-oceanbase = ["oceanbase_py>=0.0.1"]
-ydb = ["ydb-sqlalchemy>=0.1.2"]
+oceanbase = ["oceanbase_py>=0.0.1.2"]
+ydb = ["ydb-sqlalchemy>=0.1.22", "ydb-sqlglot-plugin>=0.2.5"]
 development = [
     # no bounds for apache-superset-extensions-cli until a stable version
     "apache-superset-extensions-cli",
@@ -210,25 +224,26 @@ development = [
     "docker",
     "flask-testing",
     "freezegun",
-    "grpcio>=1.55.3",
+    "grpcio>=1.81.1",
     "openapi-spec-validator",
     "parameterized",
     "pip",
+    "polib",  # used by scripts/translations/ and their unit tests
     "pre-commit",
-    "progress>=1.5,<2",
+    "progress>=1.6.1,<2",
     "psutil",
     "pyfakefs",
-    "pyinstrument>=4.0.2,<5",
+    "pyinstrument>=5.1.2,<6",
     "pylint",
     "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
     "pytest-asyncio",
     "pytest-cov",
     "pytest-mock",
-    "python-ldap>=3.4.4",
+    "python-ldap>=3.4.7",
     "ruff",
     "sqloxide",
     "statsd",
-    "syntaqlite>=0.1.0",
+    "syntaqlite>=0.4.2,<0.5.0",
 ]
 
 [project.urls]
@@ -288,6 +303,7 @@ module = [
     "superset.tags.filters",
     "superset.commands.security.update",
     "superset.commands.security.create",
+    "superset.semantic_layers.api",
 ]
 warn_unused_ignores = false
 
@@ -359,7 +375,7 @@ select = [
 
 ignore = [
     "S101",
-    "PT004",  # Fixtures that don't return values - underscore prefix conflicts with pytest usage
+    "PT001",  # pytest-fixture-incorrect-parentheses-style: different ruff versions disagree
     "PT006",
     "T201",
     "N999",
@@ -376,6 +392,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
 "superset/mcp_service/app.py" = ["S608", "E501"]  # LLM instruction text: SQL examples (S608) and long lines in multiline string (E501)
+"superset/mcp_service/*/tool/list_*.py" = ["E501"]  # LLM docstring examples show full request shapes which exceed line length
 "scripts/*" = ["TID251"]
 "setup.py" = ["TID251"]
 "superset/config.py" = ["TID251"]
@@ -438,6 +455,7 @@ requirement_txt_file = "requirements/base.txt"
 authorized_licenses = [
     "academic free license (afl)",
     "any-osi",
+    "apache-2.0",
     "apache license 2.0",
     "apache software",
     "apache software, bsd",
@@ -447,6 +465,7 @@ authorized_licenses = [
     "isc license (iscl)",
     "isc license",
     "mit",
+    "mit and psf-2.0",
     "mit-cmu",
     "mozilla public license 2.0 (mpl 2.0)",
     "osi approved",

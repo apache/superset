@@ -34,15 +34,14 @@ Frontend contribution types allow extensions to extend Superset's user interface
 
 Extensions can add new views or panels to the host application, such as custom SQL Lab panels, dashboards, or other UI components. Contribution areas are uniquely identified (e.g., `sqllab.panels` for SQL Lab panels), enabling seamless integration into specific parts of the application.
 
-```tsx
-import React from 'react';
+```typescript
 import { views } from '@apache-superset/core';
 import MyPanel from './MyPanel';
 
 views.registerView(
   { id: 'my-extension.main', name: 'My Panel Name' },
   'sqllab.panels',
-  () => <MyPanel />,
+  MyPanel,
 );
 ```
 
@@ -110,7 +109,25 @@ editors.registerEditor(
 );
 ```
 
-See [Editors Extension Point](./extension-points/editors) for implementation details.
+See [Editors Extension Point](./extension-points/editors.md) for implementation details.
+
+### Chat
+
+Extensions can add a chat interface to Superset by registering a trigger component and a panel component. The host owns the layout, open/close state, and display mode — the extension only provides the UI. The panel can be displayed as a floating overlay or docked as a resizable sidebar beside the page content, and the user's preference is persisted across reloads.
+
+```tsx
+import { chat } from '@apache-superset/core';
+import ChatTrigger from './ChatTrigger';
+import ChatPanel from './ChatPanel';
+
+chat.registerChat(
+  { id: 'my-org.my-chat', name: 'My Chat' },
+  ChatTrigger,
+  ChatPanel,
+);
+```
+
+See [Chat](./extension-points/chat.md) for implementation details.
 
 ## Backend
 
@@ -146,7 +163,7 @@ class MyExtensionAPI(RestApi):
 from .api import MyExtensionAPI
 ```
 
-**Note**: The [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects context and generates appropriate paths:
+**Note**: The [`@api`](https://github.com/apache/superset/blob/master/superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects context and generates appropriate paths:
 
 - **Extension context**: `/extensions/{publisher}/{name}/` with ID prefixed as `extensions.{publisher}.{name}.{id}`
 - **Host context**: `/api/v1/` with original ID
@@ -193,7 +210,7 @@ def get_summary() -> dict:
     return {"status": "success", "result": {"queries_today": 42}}
 ```
 
-See [MCP Integration](./mcp) for implementation details.
+See [MCP Integration](./mcp.md) for implementation details.
 
 ### MCP Prompts
 
@@ -223,4 +240,53 @@ async def analysis_guide(ctx: Context) -> str:
     """
 ```
 
-See [MCP Integration](./mcp) for implementation details.
+See [MCP Integration](./mcp.md) for implementation details.
+
+### Semantic Layers
+
+Extensions can register custom semantic layer implementations that allow Superset to connect to external data modeling frameworks. Each semantic layer defines how to authenticate, discover semantic views (tables/metrics/dimensions), and execute queries against the external system.
+
+```python
+from superset_core.semantic_layers.decorators import semantic_layer
+from superset_core.semantic_layers.layer import SemanticLayer
+
+from my_extension.config import MyConfig
+from my_extension.view import MySemanticView
+
+
+@semantic_layer(
+    id="my_platform",
+    name="My Data Platform",
+    description="Connect to My Data Platform's semantic layer",
+)
+class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
+    configuration_class = MyConfig
+
+    @classmethod
+    def from_configuration(cls, configuration: dict) -> "MySemanticLayer":
+        config = MyConfig.model_validate(configuration)
+        return cls(config)
+
+    @classmethod
+    def get_configuration_schema(cls, configuration=None) -> dict:
+        return MyConfig.model_json_schema()
+
+    @classmethod
+    def get_runtime_schema(cls, configuration=None, runtime_data=None) -> dict:
+        return {"type": "object", "properties": {}}
+
+    def get_semantic_views(self, runtime_configuration: dict) -> set[MySemanticView]:
+        # Return available views from the external platform
+        ...
+
+    def get_semantic_view(self, name: str, additional_configuration: dict) -> MySemanticView:
+        # Return a specific view by name
+        ...
+```
+
+**Note**: The `@semantic_layer` decorator automatically detects context and applies appropriate ID prefixing:
+
+- **Extension context**: ID prefixed as `extensions.{publisher}.{name}.{id}`
+- **Host context**: Original ID used as-is
+
+The decorator registers the class in the semantic layers registry, making it available in the UI for users to create connections. The `configuration_class` should be a Pydantic model that defines the fields needed to connect (credentials, project, database, etc.). Superset uses the model's JSON schema to render the configuration form dynamically.

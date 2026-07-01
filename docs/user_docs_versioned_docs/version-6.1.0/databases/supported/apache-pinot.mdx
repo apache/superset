@@ -1,0 +1,31 @@
+---
+title: Apache Pinot
+sidebar_label: Apache Pinot
+description: "Apache Pinot is a real-time distributed OLAP datastore."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"apache_pinot","engine_name":"Apache Pinot","module":"pinot","documentation":{"description":"Apache Pinot is a real-time distributed OLAP datastore.","logo":"apache-pinot.svg","homepage_url":"https://pinot.apache.org/","categories":["APACHE_PROJECTS","TIME_SERIES","OPEN_SOURCE"],"pypi_packages":["pinotdb"],"connection_string":"pinot+http://{broker_host}:{broker_port}/query?controller=http://{controller_host}:{controller_port}/","default_port":8099,"connection_examples":[{"description":"With authentication","connection_string":"pinot://{username}:{password}@{broker_host}:{broker_port}/query/sql?controller=http://{controller_host}:{controller_port}/verify_ssl=true"}],"engine_parameters":[{"name":"Multi-stage Query Engine","description":"Enable for Explore view, joins, window functions","json":{"connect_args":{"use_multistage_engine":"true"}},"docs_url":"https://docs.pinot.apache.org/reference/multi-stage-engine"}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":false,"THIRTY_SECONDS":false,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":true,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":false,"WEEK_STARTING_MONDAY":false,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":32,"max_score":201,"joins":false,"subqueries":false,"supports_dynamic_schema":false,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":false,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Apache Pinot" database={databaseInfo} />

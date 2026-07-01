@@ -104,9 +104,9 @@ jest.mock(
   }),
 );
 
-jest.mock('lodash/debounce', () => ({
-  __esModule: true,
-  default: (fuc: Function) => fuc,
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fuc: Function) => fuc,
 }));
 
 fetchMock.post('glob:*/api/v1/explore/form_data*', { key: KEY });
@@ -120,6 +120,11 @@ fetchMock.get('glob:*/api/v1/chart/*', {
 });
 
 const defaultPath = '/explore/';
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 const renderWithRouter = ({
   search = '',
   overridePathname,
@@ -134,11 +139,10 @@ const renderWithRouter = ({
   history?: ReturnType<typeof createMemoryHistory>;
 } = {}) => {
   const path = overridePathname ?? defaultPath;
-  Object.defineProperty(window, 'location', {
-    get() {
-      return { pathname: path, search };
-    },
-  });
+  jest.spyOn(window, 'location', 'get').mockReturnValue({
+    pathname: path,
+    search,
+  } as Location);
   const history =
     existingHistory ??
     createMemoryHistory({ initialEntries: [`${path}${search}`] });

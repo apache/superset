@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"tags":{"description":"list of tag names to add to object","items":{"type":"string"},"type":"array"}},"type":"object"},"example":{"tags":["string"]}}},"description":"Tag schema","required":true}}

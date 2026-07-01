@@ -21,7 +21,11 @@ from typing import Any
 from superset import security_manager
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.tag.exceptions import TagCreateFailedError, TagInvalidError
-from superset.commands.tag.utils import to_object_model, to_object_type
+from superset.commands.tag.utils import (
+    current_user_can_modify_object,
+    to_object_model,
+    to_object_type,
+)
 from superset.daos.tag import TagDAO
 from superset.exceptions import SupersetSecurityException
 from superset.tags.models import ObjectType, TagType
@@ -60,8 +64,43 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
             exceptions.append(
                 TagCreateFailedError(f"invalid object type {self._object_type}")
             )
+
+        # Validate user has access to the target object
+        if object_type:
+            self._validate_object_access(object_type, self._object_id, exceptions)
+
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)
+
+    def _validate_object_access(
+        self, object_type: ObjectType, object_id: int, exceptions: list[Any]
+    ) -> None:
+        """Validate that the current user has access to the target object."""
+        # Skip base filter so we can distinguish "not found" from "no access"
+        target_object = to_object_model(object_type, object_id, skip_base_filter=True)
+        if not target_object:
+            # Allow operation on stale references; no object to authorize against
+            return
+
+        try:
+            if object_type == ObjectType.dashboard:
+                security_manager.raise_for_access(dashboard=target_object)
+            elif object_type == ObjectType.chart:
+                security_manager.raise_for_access(chart=target_object)
+            elif object_type == ObjectType.query:
+                security_manager.raise_for_access(query=target_object)
+            elif object_type == ObjectType.dataset:
+                security_manager.raise_for_access(datasource=target_object)
+            else:
+                exceptions.append(
+                    TagCreateFailedError(
+                        f"Access validation not supported for {object_type}"
+                    )
+                )
+        except SupersetSecurityException:
+            exceptions.append(
+                TagCreateFailedError(f"Access denied for {object_type} {object_id}")
+            )
 
 
 class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
@@ -98,16 +137,14 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                 continue
 
             try:
-                if model := to_object_model(object_type, obj_id):
-                    try:
-                        security_manager.raise_for_ownership(model)
-                    except SupersetSecurityException:
-                        if (
-                            not model.created_by
-                            or model.created_by != security_manager.current_user
-                        ):
-                            # skip the object if the user doesn't have access
-                            self._skipped_tagged_objects.add((obj_type, obj_id))
+                # Look the object up bypassing the access base filter, so an
+                # object the user cannot access resolves to a model and is
+                # checked here. Without skip_base_filter it returns None for an
+                # inaccessible object and the tag write would pass through
+                # unchecked. Skip objects the user has no access to.
+                model = to_object_model(object_type, obj_id, skip_base_filter=True)
+                if model and not current_user_can_modify_object(model):
+                    self._skipped_tagged_objects.add((obj_type, obj_id))
             except Exception as e:
                 exceptions.append(TagInvalidError(str(e)))
 

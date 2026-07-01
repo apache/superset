@@ -18,6 +18,7 @@
  */
 import {
   forwardRef,
+  ForwardedRef,
   FocusEvent,
   ReactElement,
   RefObject,
@@ -38,10 +39,12 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import {
+  BaseOptionType,
+  DefaultOptionType,
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
 } from 'antd/es/select';
-import { debounce, isEqual, uniq } from 'lodash';
+import { debounce, isEqual, uniq } from 'lodash-es';
 import { Constants, Icons } from '@superset-ui/core/components';
 import { Space } from '../Space';
 import {
@@ -113,7 +116,7 @@ const AsyncSelect = forwardRef(
       allowClear,
       allowNewOptions = false,
       ariaLabel,
-      autoClearSearchValue = false,
+      autoClearSearchValue = true,
       fetchOnlyOnSearch,
       filterOption = true,
       header = null,
@@ -146,7 +149,7 @@ const AsyncSelect = forwardRef(
       maxTagCount: propsMaxTagCount,
       ...props
     }: AsyncSelectProps,
-    ref: RefObject<AsyncSelectRef>,
+    ref: ForwardedRef<AsyncSelectRef>,
   ) => {
     const isSingleMode = mode === 'single';
     const [selectValue, setSelectValue] = useState(value);
@@ -160,6 +163,13 @@ const AsyncSelect = forwardRef(
     const [allValuesLoaded, setAllValuesLoaded] = useState(false);
     const selectValueRef = useRef(selectValue);
     const fetchedQueries = useRef(new Map<string, number>());
+    const initialOptionsRef = useRef<SelectOptionsType>(EMPTY_OPTIONS);
+    const inputValueRef = useRef('');
+    // Counts fetches whose `.finally` has not yet run. Loading is cleared only
+    // when this drops to 0, so a stale response (which returns early without
+    // updating selectOptions) cannot flip the spinner off while a newer
+    // request is still pending.
+    const inFlightFetchesRef = useRef(0);
     const mappedMode = isSingleMode ? undefined : 'multiple';
     const allowFetch = !fetchOnlyOnSearch || inputValue;
     const [maxTagCount, setMaxTagCount] = useState(
@@ -182,6 +192,10 @@ const AsyncSelect = forwardRef(
     useEffect(() => {
       selectValueRef.current = selectValue;
     }, [selectValue]);
+
+    useEffect(() => {
+      inputValueRef.current = inputValue;
+    }, [inputValue]);
 
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
@@ -256,6 +270,12 @@ const AsyncSelect = forwardRef(
         });
         fireOnChange();
       }
+      if (autoClearSearchValue) {
+        setInputValue('');
+        if (fetchOnlyOnSearch) {
+          setSelectOptions([]);
+        }
+      }
       onSelect?.(selectedItem, option);
     };
 
@@ -307,7 +327,14 @@ const AsyncSelect = forwardRef(
             mergedData = prevOptions
               .filter(previousOption => !dataValues.has(previousOption.value))
               .concat(data)
-              .sort(sortComparatorForNoSearch);
+              // Forward-compat: TS 6.0 infers stricter antd option types; widen
+              // the comparator to accept the broader DefaultOptionType shape.
+              .sort(
+                sortComparatorForNoSearch as unknown as (
+                  a: BaseOptionType | DefaultOptionType,
+                  b: BaseOptionType | DefaultOptionType,
+                ) => number,
+              );
             return mergedData;
           });
         }
@@ -333,22 +360,78 @@ const AsyncSelect = forwardRef(
         setIsLoading(true);
 
         const fetchOptions = options as SelectOptionsPagePromise;
+        inFlightFetchesRef.current += 1;
         fetchOptions(search, page, pageSize)
           .then(({ data, totalCount }: SelectOptionsTypePage) => {
-            const mergedData = mergeData(data);
-            fetchedQueries.current.set(key, totalCount);
-            setTotalCount(totalCount);
-            if (
-              !fetchOnlyOnSearch &&
-              search === '' &&
-              mergedData.length >= totalCount
-            ) {
-              setAllValuesLoaded(true);
+            // Drop responses whose search arg no longer matches the user's
+            // current input — otherwise a slow base fetch can land after a
+            // search fetch (or a stale debounced search after a clear) and
+            // re-pollute the dropdown via mergeData / search-replace. Search
+            // responses are never cached in fetchedQueries: the cache stores
+            // only totalCount, so a cache hit would short-circuit the fetch
+            // and leave selectOptions stale (e.g. after restore-on-clear).
+            // Re-issuing the search is cheap and correct.
+            const matchesCurrentSearch = inputValueRef.current === search;
+            if (search && !matchesCurrentSearch) {
+              return;
+            }
+            if (!search) {
+              // Accumulate base pages in a ref independent of selectOptions
+              // (during an active search, selectOptions holds search results
+              // and is not a safe accumulator). The accumulator is kept up
+              // to date even when this response landed during a search, so
+              // restore-on-clear has a complete snapshot. We don't sort here
+              // — restore-on-clear sorts a copy at consumption time, and the
+              // live selectOptions path below goes through mergeData which
+              // sorts there. Sorting here too would double the per-page sort
+              // cost on large cached option sets.
+              const dataValues = new Set(data.map(opt => opt.value));
+              const accumulated = initialOptionsRef.current
+                .filter(opt => !dataValues.has(opt.value))
+                .concat(data);
+              initialOptionsRef.current = accumulated;
+              if (!fetchOnlyOnSearch && accumulated.length >= totalCount) {
+                setAllValuesLoaded(true);
+              }
+              fetchedQueries.current.set(key, totalCount);
+              if (matchesCurrentSearch) {
+                // No active search — push to live selectOptions and update
+                // totalCount. When matchesCurrentSearch is false, the user
+                // is mid-search; leave the search's totalCount in place so
+                // pagination math stays correct.
+                mergeData(data);
+                setTotalCount(totalCount);
+              }
+            } else if (page === 0) {
+              // Replace cached options with server results; preserve
+              // optimistic isNewOption entries inserted by handleOnSearch
+              // so allowNewOptions users can still click the value they
+              // typed when the server returns no match.
+              setSelectOptions(prevOptions => {
+                const dataValues = new Set(data.map(opt => opt.value));
+                const preservedNew = prevOptions.filter(
+                  opt => opt.isNewOption && !dataValues.has(opt.value),
+                );
+                return preservedNew
+                  .concat(data)
+                  .sort(sortComparatorForNoSearch);
+              });
+              setTotalCount(totalCount);
+            } else {
+              // page > 0 during an active search — append normally.
+              mergeData(data);
+              setTotalCount(totalCount);
             }
           })
           .catch(internalOnError)
           .finally(() => {
-            setIsLoading(false);
+            inFlightFetchesRef.current = Math.max(
+              0,
+              inFlightFetchesRef.current - 1,
+            );
+            if (inFlightFetchesRef.current === 0) {
+              setIsLoading(false);
+            }
           });
       },
       [
@@ -358,6 +441,7 @@ const AsyncSelect = forwardRef(
         internalOnError,
         options,
         pageSize,
+        sortComparatorForNoSearch,
       ],
     );
 
@@ -435,7 +519,13 @@ const AsyncSelect = forwardRef(
       if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
         const sortedOptions = selectOptions
           .slice()
-          .sort(sortComparatorForNoSearch);
+          // Forward-compat: see note in mergeData above.
+          .sort(
+            sortComparatorForNoSearch as unknown as (
+              a: BaseOptionType | DefaultOptionType,
+              b: BaseOptionType | DefaultOptionType,
+            ) => number,
+          );
         if (!isEqual(sortedOptions, selectOptions)) {
           setSelectOptions(sortedOptions);
         }
@@ -500,6 +590,7 @@ const AsyncSelect = forwardRef(
       fetchedQueries.current.clear();
       setAllValuesLoaded(false);
       setSelectOptions(EMPTY_OPTIONS);
+      initialOptionsRef.current = EMPTY_OPTIONS;
     }, [options]);
 
     useEffect(() => {
@@ -514,16 +605,36 @@ const AsyncSelect = forwardRef(
       [debouncedFetchPage],
     );
 
+    const previousInputValue = usePrevious(inputValue, '');
     useEffect(() => {
       if (loadingEnabled && allowFetch) {
         // trigger fetch every time inputValue changes
         if (inputValue) {
           debouncedFetchPage(inputValue, 0);
         } else {
+          // Cancel any pending debounced search fetch so it can't fire after
+          // we've already restored the base list.
+          debouncedFetchPage.cancel();
+          // On returning to empty input after a search, restore the cached
+          // base options so the dropdown shows the original page-0 list
+          // instead of the stale search results.
+          if (previousInputValue && initialOptionsRef.current.length > 0) {
+            setSelectOptions(
+              [...initialOptionsRef.current].sort(sortComparatorForNoSearch),
+            );
+          }
           fetchPage('', 0);
         }
       }
-    }, [loadingEnabled, fetchPage, allowFetch, inputValue, debouncedFetchPage]);
+    }, [
+      loadingEnabled,
+      fetchPage,
+      allowFetch,
+      inputValue,
+      previousInputValue,
+      debouncedFetchPage,
+      sortComparatorForNoSearch,
+    ]);
 
     useEffect(() => {
       if (loading !== undefined && loading !== isLoading) {
@@ -531,16 +642,22 @@ const AsyncSelect = forwardRef(
       }
     }, [isLoading, loading]);
 
-    const clearCache = () => fetchedQueries.current.clear();
+    const clearCache = () => {
+      fetchedQueries.current.clear();
+      initialOptionsRef.current = EMPTY_OPTIONS;
+      setAllValuesLoaded(false);
+    };
 
-    useImperativeHandle(
-      ref,
-      () => ({
-        ...(ref.current as RefSelectProps),
+    useImperativeHandle(ref, () => {
+      const current =
+        ref && typeof ref !== 'function' && ref.current
+          ? (ref.current as RefSelectProps)
+          : ({} as RefSelectProps);
+      return {
+        ...current,
         clearCache,
-      }),
-      [ref],
-    );
+      };
+    }, [ref]);
 
     const getPastedTextValue = useCallback(
       async (text: string) => {
@@ -606,8 +723,21 @@ const AsyncSelect = forwardRef(
           data-test={ariaLabel || name}
           autoClearSearchValue={autoClearSearchValue}
           popupRender={popupRender}
-          filterOption={handleFilterOption}
-          filterSort={sortComparatorWithSearch}
+          // Forward-compat: TS 6.0 infers stricter antd option types; local
+          // helpers typed against AntdLabeledValue are behaviorally compatible
+          // with the broader BaseOptionType/DefaultOptionType antd expects.
+          filterOption={
+            handleFilterOption as unknown as (
+              search: string,
+              option?: BaseOptionType | DefaultOptionType,
+            ) => boolean
+          }
+          filterSort={
+            sortComparatorWithSearch as unknown as (
+              a: BaseOptionType | DefaultOptionType,
+              b: BaseOptionType | DefaultOptionType,
+            ) => number
+          }
           getPopupContainer={
             getPopupContainer || (triggerNode => triggerNode.parentNode)
           }
@@ -617,13 +747,26 @@ const AsyncSelect = forwardRef(
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onBlur={handleOnBlur}
-          onDeselect={handleOnDeselect}
+          // Forward-compat: TS 6.0 narrows the Select value type handed to
+          // SelectHandler; our local handlers already accept the broader union.
+          onDeselect={
+            handleOnDeselect as unknown as (
+              value: unknown,
+              option: BaseOptionType | DefaultOptionType,
+            ) => void
+          }
           onOpenChange={handleOnDropdownVisibleChange}
-          // @ts-expect-error
+          // @ts-expect-error antd Select does not declare onPaste on its prop
+          // surface, but the underlying input accepts it and we rely on that.
           onPaste={onPaste}
           onPopupScroll={handlePagination}
           onSearch={showSearch ? handleOnSearch : undefined}
-          onSelect={handleOnSelect}
+          onSelect={
+            handleOnSelect as unknown as (
+              value: unknown,
+              option: BaseOptionType | DefaultOptionType,
+            ) => void
+          }
           onClear={handleClear}
           options={fullSelectOptions}
           optionRender={option => <Space>{option.label || option.value}</Space>}
