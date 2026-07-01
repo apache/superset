@@ -243,6 +243,68 @@ class TestSupersetAppInitializer:
                 )
 
 
+class TestInitVersioning:
+    """Structural coverage for the ``ENABLE_VERSIONING_CAPTURE`` gate.
+
+    Drives ``init_versioning`` through the real config branch (rather than
+    calling the detach helper directly) so a future inversion of the gate —
+    or of its default — is caught cheaply, without a DB. The behavioral
+    "zero rows when off" proof lives in
+    ``tests/integration_tests/versioning/capture_disabled_tests.py``.
+    """
+
+    def test_capture_flag_off_detaches_and_skips_registration(self):
+        """Flag explicitly False → detach Continuum, register nothing."""
+        fake = MagicMock()
+        fake.config = {"ENABLE_VERSIONING_CAPTURE": False}
+
+        with (
+            patch(
+                "superset.versioning.baseline.register_baseline_listener"
+            ) as reg_baseline,
+            patch(
+                "superset.versioning.changes.register_change_record_listener"
+            ) as reg_changes,
+        ):
+            SupersetAppInitializer.init_versioning(fake)
+
+        fake._remove_continuum_write_listeners.assert_called_once()
+        reg_baseline.assert_not_called()
+        reg_changes.assert_not_called()
+
+    def test_capture_flag_absent_defaults_to_off(self):
+        """Flag absent → fallback MUST be off, so any app-factory path that
+        doesn't load ``superset.config`` stays inert rather than silently
+        enabling capture."""
+        fake = MagicMock()
+        fake.config = {}
+
+        SupersetAppInitializer.init_versioning(fake)
+
+        fake._remove_continuum_write_listeners.assert_called_once()
+
+    def test_capture_flag_on_registers_listeners_without_detaching(self):
+        """Flag True → register both before-flush listeners, never detach."""
+        fake = MagicMock()
+        fake.config = {"ENABLE_VERSIONING_CAPTURE": True}
+
+        with (
+            patch(
+                "superset.versioning.baseline.register_baseline_listener"
+            ) as reg_baseline,
+            patch("superset.versioning.baseline.VERSIONED_MODELS", []),
+            patch(
+                "superset.versioning.changes.register_change_record_listener"
+            ) as reg_changes,
+            patch("sqlalchemy_continuum.version_class"),
+        ):
+            SupersetAppInitializer.init_versioning(fake)
+
+        reg_baseline.assert_called_once()
+        reg_changes.assert_called_once()
+        fake._remove_continuum_write_listeners.assert_not_called()
+
+
 class TestCreateAppRoot:
     """Test app root resolution precedence in create_app."""
 
