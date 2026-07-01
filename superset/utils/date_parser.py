@@ -431,7 +431,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         # "From date cannot be larger than to date" error. Always use "now" for
         # sub-day units so that the until bound is consistent with the since bound.
         _granular_last_pattern: str = (
-            r"^Last\s+(?:[0-9]+\s+)?(second|minute|hour)s?$"
+            r"^Last\s+(?:[0-9]+\s+)?(?:seconds?|minutes?|hours?)$"
         )
         if re.search(_granular_last_pattern, time_range, re.IGNORECASE):
             time_range = time_range + separator + "now"
@@ -441,7 +441,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     if time_range and time_range.startswith("Next") and separator not in time_range:
         # Mirror the same logic for Next: granular units should start from "now".
         _granular_next_pattern: str = (
-            r"^Next\s+(?:[0-9]+\s+)?(second|minute|hour)s?$"
+            r"^Next\s+(?:[0-9]+\s+)?(?:seconds?|minutes?|hours?)$"
         )
         if re.search(_granular_next_pattern, time_range, re.IGNORECASE):
             time_range = "now" + separator + time_range
