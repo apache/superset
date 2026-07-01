@@ -59,8 +59,7 @@ test('styleConfig values are reflected in generated CSS', () => {
       Click
     </DropdownButton>,
   );
-  const btnGroup = container.querySelector('.ant-btn-group');
-  expect(btnGroup).toMatchSnapshot();
+  expect(container.firstChild).toMatchSnapshot();
 });
 
 test('renders tooltip when tooltip prop is provided', () => {
