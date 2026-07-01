@@ -66,7 +66,7 @@ import type Owner from 'src/types/Owner';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
-import { makeUrl } from 'src/utils/pathUtils';
+import { getShareableUrl, openInNewTab } from 'src/utils/navigationUtils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -244,11 +244,8 @@ function SavedQueryList({
 
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
-    copyTextToClipboard(() =>
-      Promise.resolve(
-        `${window.location.origin}${makeUrl(`/sqllab?savedQueryId=${id}`)}`,
-      ),
-    )
+    const path = `/sqllab?savedQueryId=${id}`;
+    copyTextToClipboard(() => Promise.resolve(getShareableUrl(path)))
       .then(() => {
         addSuccessToast(t('Link Copied!'));
       })
@@ -256,11 +253,11 @@ function SavedQueryList({
         addDangerToast(t('Sorry, your browser does not support copying.'));
       });
     if (openInNewWindow) {
-      window.open(makeUrl(`/sqllab?savedQueryId=${id}`));
+      openInNewTab(path);
     } else {
       // React Router's basename already includes the application root; passing
       // a relative path ensures correct navigation under subdirectory deployments.
-      history.push(`/sqllab?savedQueryId=${id}`);
+      history.push(path);
     }
   };
 

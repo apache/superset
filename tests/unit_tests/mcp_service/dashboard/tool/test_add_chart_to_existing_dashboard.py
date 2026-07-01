@@ -292,7 +292,8 @@ async def test_successful_add(
     assert content["error"] is None
     assert content["permission_denied"] is False
     assert content["dashboard_url"] is not None
-    assert "/superset/dashboard/1/" in content["dashboard_url"]
+    assert content["dashboard_url"].endswith("/dashboard/1/")
+    assert "/superset/superset/dashboard/" not in content["dashboard_url"]
     assert content["position"] is not None
     assert "chart_key" in content["position"]
 

@@ -1296,7 +1296,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def sql_url(self) -> str:
-        return f"/superset/sql/{self.id}/"
+        # SQL Lab moved to its own blueprint at /sqllab/; the legacy
+        # /superset/sql/<id>/ route was removed when Superset.route_base
+        # collapsed to "". Deep-link by databaseId instead so this property
+        # resolves to a live route under any application_root.
+        return f"/sqllab/?dbid={self.id}"
 
     @hybrid_property
     def perm(self) -> str:

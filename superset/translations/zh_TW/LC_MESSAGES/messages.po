@@ -14954,6 +14954,9 @@ msgid ""
 "and positions by using drag & drop in the dashboard view"
 msgstr "這個 JSON 對象描述了部件在看板中的位置。它是動態生成的，可以通過拖放，在看板中調整整部件的大小和位置"
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -15718,6 +15721,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
