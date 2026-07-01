@@ -2251,7 +2251,14 @@ class URLPreview(BaseModel):
     """URL-based preview format."""
 
     type: Literal["url"] = "url"
-    preview_url: str = Field(..., description="Explore URL for opening the chart")
+    preview_url: str = Field(
+        ...,
+        description=(
+            "Explore URL for opening the chart. "
+            "The scheme matches the configured instance URL "
+            "(HTTPS in production/staging, HTTP in local development)."
+        ),
+    )
     width: int = Field(..., description="Requested Explore viewport width in pixels")
     height: int = Field(..., description="Requested Explore viewport height in pixels")
     supports_interaction: bool = Field(

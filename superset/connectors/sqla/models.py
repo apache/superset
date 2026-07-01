@@ -2234,9 +2234,13 @@ RLSFilterSubjects = DBTable(
 RLSFilterTables = DBTable(
     "rls_filter_tables",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("table_id", Integer, ForeignKey("tables.id")),
-    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column("table_id", Integer, ForeignKey("tables.id"), primary_key=True),
+    Column(
+        "rls_filter_id",
+        Integer,
+        ForeignKey("row_level_security_filters.id"),
+        primary_key=True,
+    ),
 )
 
 

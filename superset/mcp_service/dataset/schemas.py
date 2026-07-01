@@ -379,10 +379,17 @@ class GetDatasetInfoRequest(MetadataCacheControl):
         Field(
             default_factory=lambda: list(DEFAULT_GET_DATASET_INFO_COLUMNS),
             description=(
-                "Top-level fields to include in the response. Defaults to a lean "
-                "set that excludes verbose fields like params, template_params, "
-                "extra, tags, certification_details. Pass an explicit list to "
-                "override (e.g. ['id','table_name','columns'] for minimal output)."
+                "Top-level fields to include in the response. "
+                "Default set: 'id', 'table_name', 'schema', 'database_name', "
+                "'database_id', 'uuid', 'is_virtual', 'description', "
+                "'main_dttm_col', 'sql', 'url', 'columns', 'metrics'. "
+                "Additional available fields: 'certified_by', "
+                "'certification_details', 'changed_on', 'changed_on_humanized', "
+                "'created_on', 'created_on_humanized', 'tags', 'schema_perm', "
+                "'offset', 'cache_timeout', 'params', 'template_params', "
+                "'extra', 'is_favorite'. "
+                "Pass an explicit list to select only what you need "
+                "(e.g. ['id', 'table_name', 'columns', 'metrics'])."
             ),
         ),
     ]

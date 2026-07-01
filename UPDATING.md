@@ -642,6 +642,29 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
   }
   ```
 
+### Composite primary keys on many-to-many association tables
+
+Eight M:N association tables move from a synthetic `id INTEGER PRIMARY KEY` to a composite `PRIMARY KEY (fk1, fk2)` on their two foreign-key columns. The surrogate `id` is dropped, and the redundant `UNIQUE (fk1, fk2)` on the two tables that carried one is removed (now subsumed by the PK).
+
+| Table | Composite PK |
+|---|---|
+| `dashboard_roles` | `(dashboard_id, role_id)` |
+| `dashboard_slices` | `(dashboard_id, slice_id)` |
+| `dashboard_user` | `(user_id, dashboard_id)` |
+| `report_schedule_user` | `(user_id, report_schedule_id)` |
+| `rls_filter_roles` | `(role_id, rls_filter_id)` |
+| `rls_filter_tables` | `(table_id, rls_filter_id)` |
+| `slice_user` | `(user_id, slice_id)` |
+| `sqlatable_user` | `(user_id, table_id)` |
+
+**Before upgrading:**
+
+- The migration **deletes** two classes of pre-existing rows the composite PK cannot accommodate: duplicate `(fk1, fk2)` pairs (it keeps the lowest `id` and removes the rest) and rows with `NULL` in either FK column. Both are meaningless for `secondary=` association tables, but export the affected rows first if you need an audit record.
+- External tooling (BI tools, backup scripts) that references the surrogate `id` on these tables will break; no application code references it.
+- Downgrade restores the `id` column (and the original `UNIQUE` on the two tables that had it) but leaves the FK columns `NOT NULL` (intentional — a `NULL` FK in a junction row is meaningless).
+
+For large `dashboard_slices` / `report_schedule_user` tables, see the operator runbook in [#39859](https://github.com/apache/superset/pull/39859) — pre-flight inventory queries, per-dialect lock-window sizing, and the duplicate / NULL-FK roll-up — to plan the maintenance window.
+
 ## 6.0.0
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
 - [34871](https://github.com/apache/superset/pull/34871): Fixed Jest test hanging issue from Ant Design v5 upgrade. MessageChannel is now mocked in test environment to prevent rc-overflow from causing Jest to hang. Test environment only - no production impact.
