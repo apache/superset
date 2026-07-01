@@ -183,6 +183,13 @@
         "docs": "https://superset.apache.org/user-docs/databases/supported/superset-meta-database"
       },
       {
+        "name": "ENABLE_VIEWERS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Subject-based viewer access control for dashboards and charts. When enabled, resources can have explicit viewer Subject assignments.",
+        "category": "security"
+      },
+      {
         "name": "ESTIMATE_QUERY_COST",
         "default": false,
         "lifecycle": "testing",
@@ -254,14 +261,6 @@
         "default": true,
         "lifecycle": "stable",
         "description": "Enables CSS Templates in Settings menu and dashboard forms",
-        "category": "runtime_config"
-      },
-      {
-        "name": "DASHBOARD_RBAC",
-        "default": false,
-        "lifecycle": "stable",
-        "description": "Role-based access control for dashboards",
-        "docs": "https://superset.apache.org/docs/using-superset/creating-your-first-dashboard",
         "category": "runtime_config"
       },
       {

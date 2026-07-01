@@ -37,7 +37,7 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
       - ``dao``: the DAO class (e.g. ``ChartDAO``)
       - ``not_found_exc``: raised when the row doesn't exist OR isn't
         soft-deleted
-      - ``forbidden_exc``: raised when the caller doesn't have ownership
+      - ``forbidden_exc``: raised when the caller doesn't have editorship
       - ``restore_failed_exc``: re-raised by the transactional wrapper
         when an underlying SQLAlchemy error aborts the commit
 
@@ -78,7 +78,7 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
         # entity's RBAC ``base_filter`` stays in effect, matching the
         # behavior of ``find_by_ids`` on the existing delete paths.
         # Restore should not see rows the user cannot see in the live
-        # UI; ownership is then verified by ``raise_for_ownership``.
+        # UI; editorship is then verified by ``raise_for_editorship``.
         model = self.dao.find_by_id(
             self._model_uuid,
             id_column="uuid",
@@ -92,7 +92,7 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
                 "nothing to restore"
             )
         try:
-            security_manager.raise_for_ownership(model)
+            security_manager.raise_for_editorship(model)
         except SupersetSecurityException as ex:
             raise self.forbidden_exc() from ex
         return model

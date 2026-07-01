@@ -130,7 +130,7 @@ Dashboard Management:
 - get_dashboard_layout: Get parsed tabs and chart positions for a dashboard (companion to get_dashboard_info when its omitted_fields hint flags position_json)
 - get_dashboard_datasets: List the datasets used by a dashboard's charts, with columns and metrics (context for configuring native filters)
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
-- update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; ownership-checked per-instance)
+- update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; editorship-checked per-instance)
 - duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
@@ -158,7 +158,7 @@ User and Role Management:
 
 Row Level Security (Admin only):
 - list_rls_filters: List RLS filters with filtering and search (1-based pagination)
-- get_rls_filter_info: Get detailed RLS filter info by ID (tables, roles, clause)
+- get_rls_filter_info: Get detailed RLS filter info by ID (tables, subjects, clause)
 
 Alerts & Reports:
 - list_reports: List alerts and reports with filtering and search (1-based pagination)
@@ -277,18 +277,18 @@ To find your own charts/dashboards/datasets/databases:
 - list_datasets(request={{"created_by_me": true}})    — items you created
 - list_databases(request={{"created_by_me": true}})   — items you created
 
-To find items where you are listed as an owner (edit access):
-- list_charts(request={{"owned_by_me": true}})
-- list_dashboards(request={{"owned_by_me": true}})
-- list_datasets(request={{"owned_by_me": true}})
+To find items where you are listed as an editor:
+- list_charts(request={{"edited_by_me": true}})
+- list_dashboards(request={{"edited_by_me": true}})
+- list_datasets(request={{"edited_by_me": true}})
 
-To find all items you have any connection to (created OR own):
-- list_charts(request={{"created_by_me": true, "owned_by_me": true}})
-- list_dashboards(request={{"created_by_me": true, "owned_by_me": true}})
-- list_datasets(request={{"created_by_me": true, "owned_by_me": true}})
+To find all items you have any connection to (created OR edit):
+- list_charts(request={{"created_by_me": true, "edited_by_me": true}})
+- list_dashboards(request={{"created_by_me": true, "edited_by_me": true}})
+- list_datasets(request={{"created_by_me": true, "edited_by_me": true}})
 
-Use created_by_me for authorship, owned_by_me for edit ownership, or both
-together for the union. All flags can be combined with 'filters' but not
+Use created_by_me for authorship, edited_by_me for edit access, or both
+together for the union. These flags can be combined with 'filters' but not
 with 'search'.
 
 To query a dataset's semantic layer (metrics, dimensions):
@@ -437,17 +437,17 @@ Input format:
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
   from write access. A user may have SQL Lab access without having write access to charts
   or dashboards, and vice versa.
-- Do NOT disclose dashboard access lists, dashboard owners, chart owners, dataset
-  owners, workspace admins, or other users' names, usernames, email addresses,
-  contact details, roles, admin status, ownership, or access-list information.
+- Do NOT disclose dashboard access lists, dashboard editors, chart editors, dataset
+  editors, workspace admins, or other users' names, usernames, email addresses,
+  contact details, roles, admin status, editorship, or access-list information.
 - Do NOT infer access-list answers from dashboard metadata such as published status,
-  role restrictions, empty owner lists, or schema fields.
+  role restrictions, empty editor lists, or schema fields.
 - find_users is sanctioned ONLY for resolving a name the user supplied into a
   user ID for filtering (e.g., "what is <name> working on" -> filter
   list_dashboards by created_by_fk). Do NOT use find_users to answer "who owns
   X", "who can access X", "is <name> an admin", or to enumerate the directory.
   Never return find_users output to the user verbatim.
-- Do NOT use execute_sql to query user, role, owner, or access-list tables for this
+- Do NOT use execute_sql to query user, role, editor, or access-list tables for this
   information.
 - You may reference the current user's own identity details when appropriate, such
   as confirming their own username.

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-06-23 03:46-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -795,6 +795,9 @@ msgstr "已存在同名的資料庫。"
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+msgid "A description for your dashboard"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
@@ -819,15 +822,20 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+msgid "A list of subjects who can alter the chart. Searchable by name."
+msgstr "有權處理該圖表的用戶列表。可按名稱或用戶名搜索。"
+
+#, fuzzy
+msgid "A list of subjects who can view the chart. Searchable by name."
+msgstr "有權處理該圖表的用戶列表。可按名稱或用戶名搜索。"
+
+#, fuzzy
 msgid "A list of tags that have been applied to this chart."
 msgstr "已應用於此圖表的標籤列表。"
 
 #, fuzzy
 msgid "A list of tags that have been applied to this dashboard."
 msgstr "已應用於此圖表的標籤列表。"
-
-msgid "A list of users who can alter the chart. Searchable by name or username."
-msgstr "有權處理該圖表的用戶列表。可按名稱或用戶名搜索。"
 
 msgid "A map of the world, that can indicate values in different countries."
 msgstr "一張世界地圖，可以顯示不同國家的價值觀。"
@@ -839,6 +847,11 @@ msgstr ""
 
 msgid "A metric to use for color"
 msgstr "用於颜色的指標"
+
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr ""
 
 #, fuzzy
 msgid "A new chart and dashboard will be created."
@@ -953,8 +966,9 @@ msgstr "正在執行"
 msgid "About"
 msgstr "關於"
 
-msgid "Access & ownership"
-msgstr ""
+#, fuzzy
+msgid "Access"
+msgstr "成功"
 
 #, fuzzy
 msgid "Access token"
@@ -1644,10 +1658,6 @@ msgid "An error occurred while fetching %s info: %s"
 msgstr "獲取%s看板時出錯：%s"
 
 #, fuzzy, python-format
-msgid "An error occurred while fetching %s owner values: %s"
-msgstr "獲取圖表所有者時出錯 %s"
-
-#, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr "獲取數據集相關數據時出錯"
 
@@ -1675,8 +1685,12 @@ msgid "An error occurred while fetching available views"
 msgstr "獲取可用的CSS模板時出錯"
 
 #, python-format
-msgid "An error occurred while fetching chart owners values: %s"
-msgstr "獲取圖表所有者時出錯 %s"
+msgid "An error occurred while fetching chart editor values: %s"
+msgstr "取得圖表編輯者值時發生錯誤：%s"
+
+#, python-format
+msgid "An error occurred while fetching chart viewer values: %s"
+msgstr "取得圖表檢視者值時發生錯誤：%s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -1687,8 +1701,12 @@ msgid "An error occurred while fetching created by values: %s"
 msgstr "獲取結構訊息時出錯：%s"
 
 #, python-format
-msgid "An error occurred while fetching dashboard owner values: %s"
-msgstr "獲取看板所有者時出錯：%s"
+msgid "An error occurred while fetching dashboard editor values: %s"
+msgstr "取得儀表板編輯者值時發生錯誤：%s"
+
+#, python-format
+msgid "An error occurred while fetching dashboard viewer values: %s"
+msgstr "取得儀表板檢視者值時發生錯誤：%s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "獲取看板時出錯"
@@ -1710,15 +1728,19 @@ msgid "An error occurred while fetching dataset datasource values: %s"
 msgstr "獲取數據集數據源訊息時出錯： %s"
 
 #, python-format
+msgid "An error occurred while fetching dataset editor values: %s"
+msgstr "取得資料集編輯者值時發生錯誤：%s"
+
+#, python-format
 msgid "An error occurred while fetching dataset related data: %s"
 msgstr "獲取數據集相關數據時出錯：%s"
 
+#, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr "取得編輯者值時發生錯誤：%s"
+
 msgid "An error occurred while fetching function names."
 msgstr "獲取函數名稱時出錯。"
-
-#, fuzzy, python-format
-msgid "An error occurred while fetching owners values: %s"
-msgstr "獲取圖表所有者時出錯 %s"
 
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
@@ -1735,17 +1757,9 @@ msgstr "獲取結構訊息時出錯：%s"
 msgid "An error occurred while fetching tab state"
 msgstr "獲取選項卡狀態時出錯"
 
-msgid "An error occurred while fetching table metadata"
-msgstr "獲取表格元數據時發生錯誤"
-
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "獲取表格元數據時發生錯誤"
-
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr "獲取表格元數據時發生錯誤。請與管理員聯繫。"
 
 #, fuzzy
 msgid "An error occurred while fetching the configuration schema"
@@ -1782,6 +1796,11 @@ msgstr "創建數據源時發生錯誤"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "導入時出錯 %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while loading dashboard information."
@@ -2983,6 +3002,11 @@ msgstr "圖表 %(id)s 没有找到"
 msgid "Chart Data: %s"
 msgstr "上次更新 %s"
 
+#, python-format
+msgid "Chart Editor: %s"
+msgid_plural "Chart Editors: %s"
+msgstr[0] "圖表編輯者：%s"
+
 msgid "Chart ID"
 msgstr "圖表 ID"
 
@@ -2992,11 +3016,6 @@ msgstr "圖表選項"
 #, fuzzy
 msgid "Chart Orientation"
 msgstr "方向"
-
-#, fuzzy, python-format
-msgid "Chart Owner: %s"
-msgid_plural "Chart Owners: %s"
-msgstr[0] "圖表所有者：%s"
 
 #, fuzzy
 msgid "Chart Source"
@@ -3043,6 +3062,9 @@ msgstr "過濾器制是必須的"
 msgid "Chart does not exist"
 msgstr "圖表没有找到"
 
+msgid "Chart editors"
+msgstr "圖表編輯者"
+
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr "圖表未保存任何查詢上下文。請重新保存圖表。"
 
@@ -3067,10 +3089,6 @@ msgstr "圖表 %(id)s 没有找到"
 
 msgid "Chart options"
 msgstr "圖表選項"
-
-#, fuzzy
-msgid "Chart owners"
-msgstr "圖表所有者：%s"
 
 msgid "Chart parameters are invalid."
 msgstr "圖表参數無效。"
@@ -3543,10 +3561,6 @@ msgid "Column Configuration"
 msgstr "列配置"
 
 #, fuzzy
-msgid "Column Formatting"
-msgstr "列格式"
-
-#, fuzzy
 msgid "Column Settings"
 msgstr "多邊形設定"
 
@@ -3682,6 +3696,9 @@ msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Last number should match the value provided for MAX."
 msgstr "逗號分隔的區間界限，例如 0-2, 2-4 和 4-5 區間的 2,4,5。最後一個數字應與為 Max 提供的值匹配。"
+
+msgid "Common (unit per pixel at zoom 0)"
+msgstr ""
 
 msgid "Comparator option"
 msgstr "比較器選項"
@@ -3981,6 +3998,9 @@ msgstr "無法獲取所有保存的圖表"
 
 msgid "Could not find viz object"
 msgstr "找不到可視化對象"
+
+msgid "Could not load SQL Lab"
+msgstr ""
 
 msgid "Could not load database driver"
 msgstr "無法加载資料庫驱動程序"
@@ -5819,11 +5839,29 @@ msgstr "編輯時間範圍"
 msgid "Edit user"
 msgstr "編輯查詢"
 
+#, fuzzy
+msgid "Editable"
+msgstr "編輯警報"
+
 msgid "Edited"
 msgstr "已編輯"
 
 msgid "Editing 1 filter:"
 msgstr "編輯 1 個過濾條件："
+
+msgid "Editor"
+msgstr "編輯者"
+
+msgid "Editors"
+msgstr "編輯者"
+
+msgid "Editors is a list of subjects who can alter the dashboard."
+msgstr "編輯者是可以修改儀表板的主體清單。"
+
+msgid ""
+"Editors is a list of subjects who can alter the dashboard. Searchable by "
+"name."
+msgstr "編輯者是可以修改儀表板的主體清單，可依名稱搜尋。"
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "資料庫拼寫不正確或不存在。"
@@ -6312,8 +6350,8 @@ msgid "Exclude selected values"
 msgstr "排除選定的值"
 
 #, fuzzy
-msgid "Excluded roles"
-msgstr "排除角色"
+msgid "Excluded subjects"
+msgstr "選擇主題"
 
 msgid "Executed SQL"
 msgstr "已執行的 SQL"
@@ -6941,10 +6979,11 @@ msgid ""
 "function, refer to the"
 msgstr "要了解在此函數作用域中上下文中的對象的更多訊息，請参阅"
 
+#, fuzzy
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr "對於常規過濾，這些是此過濾將應用於的角色。對於基本過濾，這些是過濾不適用的角色，例如Admin代表admin應該查看所有數據。"
 
 msgid "Forbidden"
@@ -7040,10 +7079,6 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "郵件中附上格式化好的CSV"
-
-#, fuzzy
-msgid "Formatted date"
-msgstr "格式日期"
 
 #, fuzzy
 msgid "Formatted value"
@@ -7972,9 +8007,6 @@ msgstr "鍵盘快捷鍵"
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
 
-msgid "Keys for table"
-msgstr "表的鍵"
-
 #, fuzzy
 msgid "Kilometers"
 msgstr "千米"
@@ -8535,8 +8567,8 @@ msgstr "格式錯誤的請求。需要使用 slice_id 或 table_name 和 db_name
 msgid "Manage"
 msgstr "管理"
 
-msgid "Manage dashboard owners and access permissions"
-msgstr ""
+msgid "Manage dashboard editors and access permissions"
+msgstr "管理儀表板編輯者與存取權限"
 
 #, fuzzy
 msgid "Manage email report"
@@ -9056,9 +9088,9 @@ msgid "Multiplier"
 msgstr "倍數"
 
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr ""
+msgstr "你必須是圖表編輯者才能覆寫此圖表。請另存為新圖表。"
 
 msgid "Must be unique"
 msgstr "需要唯一"
@@ -9773,6 +9805,12 @@ msgstr "打開數據源 tab"
 msgid "Open SQL Lab in a new tab"
 msgstr "在新選項卡中運行查詢"
 
+msgid "Open chart in new tab"
+msgstr ""
+
+msgid "Open dashboard in new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr "在 SQL 工具箱中打開"
 
@@ -9856,9 +9894,6 @@ msgstr "樹的方向"
 msgid "Original"
 msgstr "起點"
 
-msgid "Original table column order"
-msgstr "原始表列順序"
-
 msgid "Original value"
 msgstr "原始值"
 
@@ -9939,23 +9974,6 @@ msgstr "使用該表上的查詢覆盖編輯器中的文本"
 msgid "Owned Created or Favored"
 msgstr "已拥有、已創建或已收藏"
 
-msgid "Owner"
-msgstr "所有者"
-
-msgid "Owners"
-msgstr "所有者"
-
-msgid "Owners are invalid"
-msgstr "所有者無效"
-
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr "所有者是一個用戶列表，這些用戶有權限修改仪表板。"
-
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr "所有者是一個用戶列表，這些用戶有權限修改仪表板。可按名稱或用戶名搜索。"
-
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "圖片發送失敗，請刷新或重試"
@@ -10032,6 +10050,10 @@ msgstr "密碼"
 #, fuzzy
 msgid "Password is required"
 msgstr "類型是必需的"
+
+#, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr ""
 
 #, fuzzy
 msgid "Password:"
@@ -10339,10 +10361,9 @@ msgstr "請重新输入密碼。"
 msgid "Please re-export your file and try importing again"
 msgstr ""
 
-#, fuzzy
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
-msgstr[0] "請聯繫圖表所有者寻求帮助。"
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
+msgstr[0] "請聯絡圖表編輯者以取得協助。"
 
 msgid "Please save your chart first, then try creating a new email report."
 msgstr "請先保存您的圖表，然後嘗試創建一個新的電子郵件報告。"
@@ -10396,6 +10417,9 @@ msgstr "點半徑比例尺"
 
 msgid "Point Radius Unit"
 msgstr "點半徑單位"
+
+msgid "Point Radius Units"
+msgstr ""
 
 #, fuzzy
 msgid "Point Size"
@@ -10872,6 +10896,9 @@ msgstr "相對量"
 msgid "Reload"
 msgstr "重新加载"
 
+msgid "Reload SQL Lab"
+msgstr ""
+
 msgid "Remove"
 msgstr "删除"
 
@@ -10899,9 +10926,6 @@ msgstr "删除項"
 
 msgid "Remove query from log"
 msgstr "從日誌中删除查詢"
-
-msgid "Remove table preview"
-msgstr "删除表格預覽"
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -10993,6 +11017,9 @@ msgstr "啟用郵件報告"
 msgid "Report name"
 msgstr "報告名稱"
 
+msgid "Report not yet run"
+msgstr ""
+
 #, fuzzy
 msgid "Report schedule client error"
 msgstr "報告計劃任務客戶端錯誤"
@@ -11049,6 +11076,10 @@ msgstr "必需的控件值已被移除"
 msgid "Resample"
 msgstr "重新採樣"
 
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
+
 #, fuzzy
 msgid "Resample method should be in "
 msgstr "重採樣方法應該有"
@@ -11098,7 +11129,7 @@ msgstr ""
 msgid "Resource was not found."
 msgstr "資源没有找到"
 
-msgid "Resource was removed before ownership could be verified"
+msgid "Resource was removed before editorship could be verified"
 msgstr ""
 
 msgid "Restore filter"
@@ -11202,20 +11233,6 @@ msgstr "需要名稱"
 
 msgid "Roles"
 msgstr "角色"
-
-#, fuzzy
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr "角色是一個定義對看板訪問權限的列表。授予角色對看板的訪問權限將绕過數據集級别的檢查。如果未定義角色，则看板對所有角色都可用。"
-
-#, fuzzy
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
-msgstr "角色是一個定義對看板訪問權限的列表。授予角色對看板的訪問權限將绕過數據集級别的檢查。如果未定義角色，则看板對所有角色都可用。"
 
 msgid "Rolling Function"
 msgstr "滚動函數"
@@ -11694,9 +11711,8 @@ msgstr "按查詢文本搜索"
 msgid "Search calculated columns by name"
 msgstr "計算列"
 
-#, fuzzy
-msgid "Search charts by name, owner, or dashboard"
-msgstr "此看板中没有增加圖表。"
+msgid "Search charts by name, editor, or dashboard"
+msgstr "依名稱、編輯者或儀表板搜尋圖表"
 
 #, fuzzy
 msgid "Search columns"
@@ -11710,6 +11726,9 @@ msgstr "使用列"
 msgid "Search columns..."
 msgstr "使用列"
 
+msgid "Search editors"
+msgstr "搜尋編輯者"
+
 #, fuzzy
 msgid "Search in filters"
 msgstr "搜索 / 過濾"
@@ -11719,16 +11738,11 @@ msgid "Search metrics by key or label"
 msgstr "搜索指標和列"
 
 #, fuzzy
-msgid "Search owners"
-msgstr "選擇所有者"
-
-#, fuzzy
-msgid "Search roles"
-msgstr "使用列"
-
-#, fuzzy
 msgid "Search tags"
 msgstr "選擇標籤"
+
+msgid "Search viewers"
+msgstr "搜尋檢視者"
 
 msgid "Search..."
 msgstr "搜索..."
@@ -12023,6 +12037,9 @@ msgstr "選擇维度"
 msgid "Select dimension values"
 msgstr "選擇维度"
 
+msgid "Select editors"
+msgstr "選取編輯者"
+
 #, fuzzy
 msgid "Select file"
 msgstr "選擇文件"
@@ -12086,9 +12103,6 @@ msgstr "選擇或输入貨幣符號"
 #, fuzzy
 msgid "Select or type dataset name"
 msgstr "選擇表或输入數據集名稱"
-
-msgid "Select owners"
-msgstr "選擇所有者"
 
 #, fuzzy
 msgid "Select page size"
@@ -13187,6 +13201,9 @@ msgstr "街道"
 msgid "Streets (Carto)"
 msgstr "樹狀圖"
 
+msgid "Streets (OSM)"
+msgstr ""
+
 msgid "Strength to pull the graph toward center"
 msgstr "將圖形拉向中心"
 
@@ -13224,6 +13241,22 @@ msgstr "分類"
 
 msgid "Subdomain"
 msgstr "子域"
+
+#, fuzzy
+msgid "Subject"
+msgstr "選擇主題"
+
+#, fuzzy
+msgid "Subject type"
+msgstr "每階類型"
+
+#, fuzzy
+msgid "Subjects"
+msgstr "選擇主題"
+
+#, fuzzy
+msgid "Subjects are invalid"
+msgstr "所有者無效"
 
 msgid "Submit"
 msgstr "提交"
@@ -13639,6 +13672,9 @@ msgid ""
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
+msgstr ""
+
+msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
 
 msgid ""
@@ -14192,6 +14228,11 @@ msgid ""
 " cluster"
 msgstr "單個點的半徑（不在聚合群中的點）。一個數值列或 “AUTO”，它根据最大的聚合群來縮放點。"
 
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+
 msgid "The report has been created"
 msgstr "報告已創建"
 
@@ -14367,6 +14408,11 @@ msgid "The unit for icon size"
 msgstr "氣泡尺寸"
 
 msgid "The unit for label size"
+msgstr ""
+
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
 msgstr ""
 
 msgid "The unit of measure for the specified point radius"
@@ -14991,6 +15037,9 @@ msgid ""
 " is not the case."
 msgstr ""
 
+msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
 #, fuzzy
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -15310,6 +15359,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "為看板生成一個可讀的 URL"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 #, fuzzy
@@ -16128,10 +16189,6 @@ msgstr "查看樣例"
 msgid "View in SQL Lab"
 msgstr "在 SQL 工具箱中公開"
 
-#, python-format
-msgid "View keys & indexes (%s)"
-msgstr "查看鍵和索引（%s）"
-
 msgid "View query"
 msgstr "查看查詢語句"
 
@@ -16145,6 +16202,18 @@ msgstr "已查看"
 #, python-format
 msgid "Viewed %s"
 msgstr "已查看 %s"
+
+msgid "Viewer"
+msgstr "檢視者"
+
+msgid "Viewers"
+msgstr "檢視者"
+
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
+msgstr ""
 
 msgid "Viewport"
 msgstr "視口"
@@ -16975,6 +17044,9 @@ msgstr "您没有編輯此看板的權限。"
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "您没有編輯此圖表的權限"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 #, fuzzy
 msgid "You don't have access to this chart."
 msgstr "您没有訪問此圖表的權限。"
@@ -17059,13 +17131,16 @@ msgstr ""
 
 #, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
-msgstr ""
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
+msgstr "你必須是 %s 編輯者才能編輯。請聯絡 %s 編輯者以請求修改或編輯權限。"
 
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr "你必須是資料集編輯者才能編輯。請聯絡資料集編輯者以請求修改或編輯權限。"
+
+msgid "You must change your password before continuing."
 msgstr ""
 
 msgid "You must pick a name for the new dashboard"
@@ -17073,6 +17148,12 @@ msgstr "您必須為新的看板選擇一個名稱"
 
 msgid "You must run the query successfully first"
 msgstr "必須先成功運行查詢"
+
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
+msgstr ""
 
 msgid "You need to"
 msgstr ""
@@ -17139,6 +17220,9 @@ msgstr "您的查詢已更新"
 
 msgid "Your report could not be deleted"
 msgstr "這個報告無法被删除"
+
+msgid "Your session has ended. Please sign in again."
+msgstr ""
 
 #, fuzzy
 msgid "Your user information"
@@ -17240,6 +17324,9 @@ msgstr "`行偏移量` 必須大於或等於 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`寬度` 必須大於或等於 0"
 
+msgid "`window` must be between 1 and 10000"
+msgstr ""
+
 #, fuzzy
 msgid "a few seconds"
 msgstr "5 秒"
@@ -17273,6 +17360,9 @@ msgstr "注释"
 msgid "annotation_layer"
 msgstr "注释層"
 
+msgid "apple"
+msgstr ""
+
 msgid "asfreq"
 msgstr ""
 
@@ -17289,6 +17379,9 @@ msgstr "背景"
 #, fuzzy
 msgid "background color"
 msgstr "背景"
+
+msgid "banana"
+msgstr ""
 
 #, fuzzy
 msgid "basis"
@@ -17594,6 +17687,9 @@ msgstr ""
 #, fuzzy
 msgid "edit mode"
 msgstr "編輯模式"
+
+msgid "editors"
+msgstr "編輯者"
 
 #, fuzzy
 msgid "email subject"
@@ -17920,10 +18016,6 @@ msgstr "起點"
 #, fuzzy
 msgid "overall"
 msgstr "全部"
-
-#, fuzzy
-msgid "owners"
-msgstr "所有者"
 
 msgid "p-value precision"
 msgstr "P 值精度"

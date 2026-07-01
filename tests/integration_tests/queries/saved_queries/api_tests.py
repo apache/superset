@@ -800,11 +800,12 @@ class TestSavedQueryApi(SupersetTestCase):
     @patch(
         "superset.queries.saved_queries.filters.security_manager.can_access_all_queries"
     )
-    def test_delete_bulk_saved_query_all_query_access_keeps_owner_filter(
+    def test_delete_bulk_saved_query_all_query_access_keeps_creator_filter(
         self, mock_can_access_all_queries: Mock
     ) -> None:
         """
-        Saved Query API: Test all_query_access does not bypass ownership for delete
+        Saved Query API: Test all_query_access does not bypass creator scoping
+        for delete.
         """
         mock_can_access_all_queries.return_value = True
         admin = self.get_user("admin")

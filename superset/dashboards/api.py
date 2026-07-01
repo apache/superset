@@ -88,12 +88,12 @@ from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
     DashboardCreatedByMeFilter,
+    DashboardEditableFilter,
     DashboardFavoriteFilter,
     DashboardHasCreatedByFilter,
     DashboardTagIdFilter,
     DashboardTagNameFilter,
     DashboardTitleOrSlugFilter,
-    FilterRelatedRoles,
 )
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.dashboards.schemas import (
@@ -124,6 +124,11 @@ from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
+from superset.security.manager import get_extra_editor_subject_ids
+from superset.subjects.filters import (
+    FilterRelatedSubjects,
+    subject_type_filter,
+)
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
     cache_dashboard_thumbnail,
@@ -150,9 +155,8 @@ from superset.views.base_api import (
 from superset.views.custom_tags_api_mixin import CustomTagsOptimizationMixin
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
-    BaseFilterRelatedRoles,
     BaseFilterRelatedUsers,
-    FilterRelatedOwners,
+    FilterRelatedUsers,
 )
 
 logger = logging.getLogger(__name__)
@@ -201,12 +205,12 @@ BASE_LIST_COLUMNS = [
     "created_by.id",
     "created_by.last_name",
     "dashboard_title",
-    "owners.id",
-    "owners.first_name",
-    "owners.last_name",
-    "owners.email",
-    "roles.id",
-    "roles.name",
+    "editors.id",
+    "editors.label",
+    "editors.type",
+    "viewers.id",
+    "viewers.label",
+    "viewers.type",
     "is_managed_externally",
     "uuid",
 ]
@@ -353,8 +357,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "dashboard_title",
         "slug",
         "description",
-        "owners",
-        "roles",
+        "editors",
+        "viewers",
         "position_json",
         "css",
         "theme_id",
@@ -369,9 +373,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "dashboard_title",
         "id",
         "uuid",
-        "owners",
+        "editors",
+        "viewers",
         "published",
-        "roles",
         "slug",
         "description",
         "tags",
@@ -379,7 +383,11 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
-        "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
+        "id": [
+            DashboardFavoriteFilter,
+            DashboardCertifiedFilter,
+            DashboardEditableFilter,
+        ],
         "created_by": [DashboardCreatedByMeFilter, DashboardHasCreatedByFilter],
         "tags": [DashboardTagIdFilter, DashboardTagNameFilter],
     }
@@ -406,23 +414,48 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
 
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
-        "owners": ("first_name", "asc"),
-        "roles": ("name", "asc"),
+        "editors": ("label", "asc"),
+        "viewers": ("label", "asc"),
+    }
+    text_field_rel_fields = {
+        "editors": "label",
+        "viewers": "label",
     }
     base_related_field_filters = {
-        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
-        "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
+        "editors": [
+            [
+                "type",
+                subject_type_filter("SUBJECTS_RELATED_TYPES_DASHBOARDS"),
+                lambda: [],
+            ]
+        ],
+        "viewers": [
+            [
+                "type",
+                subject_type_filter("SUBJECTS_RELATED_TYPES_DASHBOARDS"),
+                lambda: [],
+            ]
+        ],
     }
 
     related_field_filters = {
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "roles": RelatedFieldFilter("name", FilterRelatedRoles),
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
+        "viewers": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
-    allowed_rel_fields = {"owners", "roles", "created_by", "changed_by"}
+    allowed_rel_fields = {
+        "created_by",
+        "changed_by",
+        "editors",
+        "viewers",
+    }
+    extra_fields_rel_fields = {
+        "editors": ["type", "active", "secondary_label", "img"],
+        "viewers": ["type", "active", "secondary_label", "img"],
+    }
 
     openapi_spec_tag = "Dashboards"
     """ Override the name set for this collection of endpoints """
@@ -521,8 +554,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             schema = self.dashboard_get_response_schema
 
         result = schema.dump(dash)
-        if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
-            result["extra_owners"] = resolver(dash)
+        if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+            result["extra_editors"] = get_extra_editor_subject_ids(dash)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )

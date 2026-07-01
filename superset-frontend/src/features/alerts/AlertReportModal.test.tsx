@@ -32,6 +32,7 @@ import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import * as navigationUtils from 'src/utils/navigationUtils';
 import { AlertObject, NotificationMethodOption } from './types';
+import { SubjectType } from 'src/types/Subject';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -51,6 +52,12 @@ jest.mock('src/components/Chart/chartAction', () => ({
   ...jest.requireActual('src/components/Chart/chartAction'),
   getChartDataRequest: (...args: unknown[]) => mockGetChartDataRequest(...args),
 }));
+
+const mockEditorSubject = {
+  id: 1,
+  label: 'Superset Admin',
+  type: SubjectType.User,
+};
 
 const generateMockPayload = (dashboard = true) => {
   const mockPayload = {
@@ -75,13 +82,7 @@ const generateMockPayload = (dashboard = true) => {
     last_value_row_json: null,
     log_retention: 90,
     name: 'Test Alert',
-    owners: [
-      {
-        first_name: 'Superset',
-        id: 1,
-        last_name: 'Admin',
-      },
-    ],
+    editors: [mockEditorSubject],
     recipients: [
       {
         id: 1,
@@ -210,10 +211,8 @@ fetchMock.get(FETCH_REPORT_INVALID_ANCHOR_ENDPOINT, {
   },
 });
 
-// Related mocks — component uses /api/v1/report/related/* endpoints for both
-// alerts and reports, so we mock both the legacy alert paths and the actual
-// report paths used by the component.
-const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
+// Related mocks
+const editorsEndpoint = 'glob:*/api/v1/report/related/editors?*';
 const databaseEndpoint = 'glob:*/api/v1/alert/related/database?*';
 const dashboardEndpoint = 'glob:*/api/v1/alert/related/dashboard?*';
 const chartEndpoint = 'glob:*/api/v1/alert/related/chart?*';
@@ -221,7 +220,7 @@ const reportDashboardEndpoint = 'glob:*/api/v1/report/related/dashboard?*';
 const reportChartEndpoint = 'glob:*/api/v1/report/related/chart?*';
 const tabsEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
 
-fetchMock.get(ownersEndpoint, { result: [] });
+fetchMock.get(editorsEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
 fetchMock.get(dashboardEndpoint, { result: [] });
 fetchMock.get(chartEndpoint, { result: [{ text: 'table chart', value: 1 }] });
@@ -318,13 +317,7 @@ const validAlert: AlertObject = {
   force_screenshot: false,
   last_state: 'Not triggered',
   name: 'Test Alert',
-  owners: [
-    {
-      first_name: 'Superset',
-      id: 1,
-      last_name: 'Admin',
-    },
-  ],
+  editors: [mockEditorSubject],
   recipients: [
     {
       type: NotificationMethodOption.Email,
@@ -501,7 +494,7 @@ test('calls build tooltip', async () => {
       hasErrors: true,
     },
     generalSection: {
-      errors: ['name'],
+      errors: ['name', 'editors'],
       name: 'General information',
       hasErrors: true,
     },
@@ -530,14 +523,14 @@ test('renders all fields in General Section', () => {
     useRedux: true,
   });
   const name = screen.getByPlaceholderText(/enter alert name/i);
-  const owners = screen.getByTestId('owners-select');
+  const editors = screen.getByTestId('editors-select');
   const description = screen.getByPlaceholderText(
     /include description to be sent with alert/i,
   );
   const activeSwitch = screen.getByRole('switch');
 
   expect(name).toBeInTheDocument();
-  expect(owners).toBeInTheDocument();
+  expect(editors).toBeInTheDocument();
   expect(description).toBeInTheDocument();
   expect(activeSwitch).toBeInTheDocument();
 });
@@ -694,7 +687,9 @@ test('open chart button opens explore with slice_id', async () => {
   });
   expect(openChartButton).toBeInTheDocument();
 
-  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  const navSpy = jest
+    .spyOn(navigationUtils, 'navigateTo')
+    .mockImplementation(() => null);
   try {
     await userEvent.click(openChartButton);
     expect(navSpy).toHaveBeenCalledWith(
@@ -721,7 +716,9 @@ test('open dashboard button opens dashboard url', async () => {
   });
   expect(openDashButton).toBeInTheDocument();
 
-  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  const navSpy = jest
+    .spyOn(navigationUtils, 'navigateTo')
+    .mockImplementation(() => null);
   try {
     await userEvent.click(openDashButton);
     expect(navSpy).toHaveBeenCalledWith(
@@ -1554,7 +1551,20 @@ test('create mode submits POST and calls onAdd with response', async () => {
   const onAdd = jest.fn();
   const createProps = { ...props, onAdd };
 
-  render(<AlertReportModal {...createProps} />, { useRedux: true });
+  render(<AlertReportModal {...createProps} />, {
+    useRedux: true,
+    initialState: {
+      user: {
+        userId: 1,
+        firstName: 'Superset',
+        lastName: 'Admin',
+        email: 'admin@example.com',
+        username: 'admin',
+        roles: { Admin: [] },
+        permissions: {},
+      },
+    },
+  });
 
   expect(screen.getByText('Add report')).toBeInTheDocument();
 
@@ -1612,6 +1622,7 @@ test('create mode submits POST and calls onAdd with response', async () => {
   expect(body.type).toBe('Report');
   expect(body.name).toBe('My New Report');
   expect(body.chart).toBe(1);
+  expect(body.editors).toEqual([1]);
   // Chart content type means dashboard is null (mutually exclusive)
   expect(body.dashboard).toBeNull();
   expect(body.recipients).toBeDefined();
@@ -1881,7 +1892,7 @@ const setupAnchorMocks = (
   fetchMock.clearHistory();
 
   // Only replace the named routes that need anchor-specific overrides;
-  // unnamed related-endpoint routes (owners, database, etc.) stay intact.
+  // unnamed related-endpoint routes (editors, database, etc.) stay intact.
   fetchMock.removeRoute(FETCH_DASHBOARD_ENDPOINT);
   fetchMock.removeRoute(FETCH_CHART_ENDPOINT);
   fetchMock.removeRoute(tabsEndpoint);

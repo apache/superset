@@ -50,7 +50,7 @@ def test_create_dataset_invalid_sql_parse_error() -> None:
                 ),
             ):
                 with patch(
-                    "superset.commands.dataset.create.CreateDatasetCommand.populate_owners",
+                    "superset.commands.dataset.create.populate_subjects",
                     return_value=[],
                 ):
                     command = CreateDatasetCommand(
@@ -105,7 +105,7 @@ def test_create_dataset_valid_sql_with_access_error() -> None:
                 ),
             ):
                 with patch(
-                    "superset.commands.dataset.create.CreateDatasetCommand.populate_owners",
+                    "superset.commands.dataset.create.populate_subjects",
                     return_value=[],
                 ):
                     command = CreateDatasetCommand(
@@ -158,7 +158,7 @@ def test_create_dataset_physical_table_no_parse_error(
                 return_value=True,
             ):
                 with patch(
-                    "superset.commands.dataset.create.CreateDatasetCommand.populate_owners",
+                    "superset.commands.dataset.create.populate_subjects",
                     return_value=[],
                 ):
                     command = CreateDatasetCommand(

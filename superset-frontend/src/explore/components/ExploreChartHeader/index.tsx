@@ -277,7 +277,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         !slice ||
         canOverwrite ||
         (user?.userId !== undefined &&
-          (slice?.owners || []).includes(user.userId)),
+          (slice?.editors || []).includes(user.userId)),
       onSave: actions.updateChartTitle,
       placeholder: t('Add the name of the chart'),
       label: t('Chart title'),

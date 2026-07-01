@@ -24,6 +24,70 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Owners, dashboard roles, and RLS roles replaced by Subjects
+
+Superset now uses subject-based access assignments for dashboards, charts, datasets,
+alerts/reports, and Row Level Security. A Subject can represent a user, role, or group.
+
+This is a breaking API and metadata change:
+
+- `owners` is replaced by `editors` for dashboards, charts, datasets, and alerts/reports.
+- Dashboard `roles` and the `DASHBOARD_RBAC` feature flag are replaced by dashboard/chart
+  `viewers`, enabled with `ENABLE_VIEWERS`.
+- RLS `roles` is replaced by `subjects`.
+- The legacy `dashboard_user`, `slice_user`, `sqlatable_user`, `report_schedule_user`,
+  `dashboard_roles`, and `rls_filter_roles` tables are migrated into subject junction tables
+  and dropped on upgrade.
+
+API clients and automation should send and read `editors`, `viewers`, and `subjects` instead
+of the legacy fields.
+
+Subject pickers support users, groups, and roles, but only users and groups are selectable by
+default. Existing RLS rules saved with role subjects continue to apply, but the recommended path
+is to migrate role-based subject assignments to groups. This keeps roles focused on capability
+grants while users and groups carry resource-specific assignments, which better matches
+attribute-based access control and avoids coupling permission bundles to data access rules. To
+make roles selectable everywhere:
+
+```python
+from superset.subjects.types import SubjectType
+
+SUBJECTS_RELATED_TYPES = [
+    SubjectType.USER,
+    SubjectType.ROLE,
+    SubjectType.GROUP,
+]
+```
+
+To make roles selectable only for RLS, use the RLS-specific override:
+
+```python
+from superset.subjects.types import SubjectType
+
+SUBJECTS_RELATED_TYPES_RLS = [SubjectType.ROLE]
+```
+
+Entity-specific `SUBJECTS_RELATED_TYPES_*` settings replace `SUBJECTS_RELATED_TYPES` for that
+picker.
+
+Deployments using `EXTRA_OWNERS_RESOLVER` must migrate to `EXTRA_EDITORS_RESOLVER`. The new
+resolver should return editor Subjects, subject IDs, or dicts with an `id` key instead of FAB
+User objects. API responses expose these dynamic assignments as `extra_editors` instead of
+`extra_owners`.
+
+`DASHBOARD_RBAC` has been removed. To preserve the previous Dashboard RBAC behavior, enable both
+subject viewers and viewer datasource bypass:
+
+```python
+FEATURE_FLAGS = {
+    "ENABLE_VIEWERS": True,
+}
+VIEWER_PROMISCUOUS_MODE = True
+```
+
+Enabling only `ENABLE_VIEWERS` allows assigning dashboard/chart viewer subjects, but viewers still
+need normal datasource permissions unless `VIEWER_PROMISCUOUS_MODE` is also enabled.
+
 - [39925](https://github.com/apache/superset/pull/39925): URL prefixing for `SUPERSET_APP_ROOT` subdirectory deployments is now handled automatically by helpers in `src/utils/navigationUtils` (`openInNewTab`, `redirect`, `getShareableUrl`, `<AppLink>`). Direct imports of `ensureAppRoot` / `makeUrl` from `src/utils/pathUtils` are forbidden outside `navigationUtils.ts` (enforced by a static-invariant test); contributors writing new code should use the focused helpers instead. No runtime behaviour change for existing callers — all 19 prior call sites have been migrated and four pre-existing double-prefix and missing-prefix bugs are fixed as part of the migration.
 
 - [39925](https://github.com/apache/superset/pull/39925): `SupersetClient.getUrl()` now strips a single leading application-root segment from the supplied `endpoint` before building the request URL, so a caller that accidentally pre-prefixes its endpoint (for example by wrapping it with `ensureAppRoot` before passing it to the client) no longer produces a doubled `/superset/superset/...` URL under subdirectory deployment. The strip is **single-pass** — a genuine `/superset/superset/<slug>` route is preserved, not collapsed — and **silent** (no console warning); the static-invariant test remains the primary signal for pre-prefixing at the call site, and this runtime strip is a safety net beneath it. Code that intentionally targeted a literal `/<app_root>/<app_root>/...` endpoint through `getUrl` (a configuration that has no legitimate use under the prefixing model) would have its first redundant segment removed.

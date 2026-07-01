@@ -30,11 +30,13 @@ import {
 } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import RowLevelSecurityModal from 'src/features/rls/RowLevelSecurityModal';
 import { RLSObject } from 'src/features/rls/types';
+import type Subject from 'src/types/Subject';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
@@ -137,6 +139,20 @@ function RowLevelSecurityList(props: RLSProps) {
         Header: t('Filter Type'),
         size: 'lg',
         id: 'filter_type',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { subjects: subjectsList },
+          },
+        }: {
+          row: { original: { subjects?: Subject[] } };
+        }) => <SubjectPile subjects={subjectsList || []} />,
+        Header: t('Subjects'),
+        accessor: 'subjects',
+        size: 'xl',
+        id: 'subjects',
+        disableSortBy: true,
       },
       {
         accessor: 'group_key',

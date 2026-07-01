@@ -87,7 +87,7 @@ def _mock_chart(id: int = 10, slice_name: str = "Test Chart") -> Mock:
     chart.slice_name = slice_name
     chart.uuid = f"chart-uuid-{id}"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.viz_type = "table"
     chart.datasource_name = None
     chart.description = None
@@ -114,9 +114,8 @@ def _mock_dashboard(
     dashboard.changed_by_name = "test_user"
     dashboard.uuid = f"dashboard-uuid-{id}"
     dashboard.slices = slices or []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
     dashboard.position_json = position_json
     dashboard.json_metadata = json_metadata
     dashboard.css = None
@@ -284,11 +283,11 @@ async def test_dashboard_not_found(mock_find_by_id: Mock, mcp_server: object) ->
     assert "not found" in (content["error"] or "").lower()
 
 
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_permission_denied(
-    mock_find_by_id: Mock, mock_raise_for_ownership: Mock, mcp_server: object
+    mock_find_by_id: Mock, mock_raise_for_editorship: Mock, mcp_server: object
 ) -> None:
     """Returns permission_denied=True when the user cannot edit the dashboard."""
     from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -296,7 +295,7 @@ async def test_permission_denied(
 
     dashboard = _mock_dashboard(id=1, title="Sales Dashboard")
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.side_effect = SupersetSecurityException(
+    mock_raise_for_editorship.side_effect = SupersetSecurityException(
         SupersetError(
             message="Changing this Dashboard is forbidden",
             error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
@@ -313,11 +312,11 @@ async def test_permission_denied(
     assert "permission" in content["error"].lower()
 
 
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_chart_not_in_dashboard(
-    mock_find_by_id: Mock, mock_raise_for_ownership: Mock, mcp_server: object
+    mock_find_by_id: Mock, mock_raise_for_editorship: Mock, mcp_server: object
 ) -> None:
     """Returns an error when the chart is in neither layout nor slices."""
     other_chart = _mock_chart(id=20)
@@ -325,7 +324,7 @@ async def test_chart_not_in_dashboard(
         slices=[other_chart], position_json=json.dumps(_simple_grid_layout())
     )
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
 
     content = await _call_remove(mcp_server, chart_id=99)
 
@@ -342,12 +341,12 @@ async def test_chart_not_in_dashboard(
 
 
 @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_simple_grid_removal_prunes_empty_row(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_update_cmd_cls: Mock,
     mcp_server: object,
 ) -> None:
@@ -360,7 +359,7 @@ async def test_simple_grid_removal_prunes_empty_row(
     )
     updated_dashboard = _mock_dashboard(id=1, slices=[chart_20])
     mock_find_by_id.side_effect = [dashboard, updated_dashboard]
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
 
     mock_update_cmd = Mock()
     mock_update_cmd.run.return_value = updated_dashboard
@@ -387,12 +386,12 @@ async def test_simple_grid_removal_prunes_empty_row(
 
 
 @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_chart_in_column_keeps_sibling(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_update_cmd_cls: Mock,
     mcp_server: object,
 ) -> None:
@@ -405,7 +404,7 @@ async def test_chart_in_column_keeps_sibling(
     )
     updated_dashboard = _mock_dashboard(id=1, slices=[chart_20])
     mock_find_by_id.side_effect = [dashboard, updated_dashboard]
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
 
     mock_update_cmd = Mock()
     mock_update_cmd.run.return_value = updated_dashboard
@@ -424,12 +423,12 @@ async def test_chart_in_column_keeps_sibling(
 
 
 @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_lone_chart_in_column_prunes_column_and_row(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_update_cmd_cls: Mock,
     mcp_server: object,
 ) -> None:
@@ -439,7 +438,7 @@ async def test_lone_chart_in_column_prunes_column_and_row(
     dashboard = _mock_dashboard(slices=[chart_10], position_json=json.dumps(layout))
     updated_dashboard = _mock_dashboard(id=1, slices=[])
     mock_find_by_id.side_effect = [dashboard, updated_dashboard]
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
 
     mock_update_cmd = Mock()
     mock_update_cmd.run.return_value = updated_dashboard
@@ -462,12 +461,12 @@ async def test_lone_chart_in_column_prunes_column_and_row(
 
 
 @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_tabbed_layout_removes_all_occurrences(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_update_cmd_cls: Mock,
     mcp_server: object,
 ) -> None:
@@ -479,7 +478,7 @@ async def test_tabbed_layout_removes_all_occurrences(
     )
     updated_dashboard = _mock_dashboard(id=1, slices=[chart_20])
     mock_find_by_id.side_effect = [dashboard, updated_dashboard]
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
 
     mock_update_cmd = Mock()
     mock_update_cmd.run.return_value = updated_dashboard
@@ -505,12 +504,12 @@ async def test_tabbed_layout_removes_all_occurrences(
 
 
 @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_json_metadata_cleanup(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_update_cmd_cls: Mock,
     mcp_server: object,
 ) -> None:
@@ -537,7 +536,7 @@ async def test_json_metadata_cleanup(
         id=1, slices=[chart_20], json_metadata=json.dumps(metadata)
     )
     mock_find_by_id.side_effect = [dashboard, updated_dashboard]
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
 
     mock_update_cmd = Mock()
     mock_update_cmd.run.return_value = updated_dashboard
@@ -568,12 +567,12 @@ async def test_json_metadata_cleanup(
 
 
 @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_chart_in_slices_but_not_in_layout(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_update_cmd_cls: Mock,
     mcp_server: object,
 ) -> None:
@@ -583,7 +582,7 @@ async def test_chart_in_slices_but_not_in_layout(
     dashboard = _mock_dashboard(slices=[chart_10], position_json="{}")
     updated_dashboard = _mock_dashboard(id=1, slices=[])
     mock_find_by_id.side_effect = [dashboard, updated_dashboard]
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
 
     mock_update_cmd = Mock()
     mock_update_cmd.run.return_value = updated_dashboard
@@ -669,12 +668,12 @@ def test_clean_json_metadata_reserializes_dict_default_filters() -> None:
     assert "20" in remaining
 
 
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_malformed_position_json_returns_error(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mcp_server: object,
 ) -> None:
     """Unparseable position_json returns an error instead of wiping the layout."""
@@ -684,7 +683,7 @@ async def test_malformed_position_json_returns_error(
         position_json="INVALID JSON {{{",
     )
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
 
     content = await _call_remove(mcp_server, chart_id=10)
 
@@ -696,12 +695,12 @@ async def test_malformed_position_json_returns_error(
 @patch(
     "superset.commands.dashboard.update.UpdateDashboardCommand.run",
 )
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_forbidden_error_from_command_returns_permission_denied(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_run: Mock,
     mcp_server: object,
 ) -> None:
@@ -714,7 +713,7 @@ async def test_forbidden_error_from_command_returns_permission_denied(
         position_json=json.dumps(_simple_grid_layout()),
     )
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
     mock_run.side_effect = DashboardForbiddenError()
 
     content = await _call_remove(mcp_server, chart_id=10)

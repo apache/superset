@@ -35,6 +35,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartEditableFilter,
     ChartFavoriteFilter,
     ChartFilter,
     ChartHasCreatedByFilter,
@@ -84,6 +85,11 @@ from superset.daos.chart import ChartDAO
 from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
+from superset.security.manager import get_extra_editor_subject_ids
+from superset.subjects.filters import (
+    FilterRelatedSubjects,
+    subject_type_filter,
+)
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
@@ -102,7 +108,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -166,10 +172,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "last_saved_by.id",
         "last_saved_by.first_name",
         "last_saved_by.last_name",
-        "owners.first_name",
-        "owners.id",
-        "owners.last_name",
-        "owners.email",
+        "editors.id",
+        "editors.label",
+        "editors.type",
+        "viewers.id",
+        "viewers.label",
+        "viewers.type",
         "dashboards.id",
         "dashboards.dashboard_title",
         "params",
@@ -209,7 +217,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description",
         "id",
         "uuid",
-        "owners",
+        "editors",
         "dashboards",
         "slice_name",
         "viz_type",
@@ -222,6 +230,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "id": [
             ChartFavoriteFilter,
             ChartCertifiedFilter,
+            ChartEditableFilter,
             ChartOwnedCreatedFavoredByMeFilter,
         ],
         "slice_name": [ChartAllTextFilter],
@@ -252,20 +261,40 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
-        "owners": ("first_name", "asc"),
+        "editors": ("label", "asc"),
+        "viewers": ("label", "asc"),
+    }
+    text_field_rel_fields = {
+        "editors": "label",
+        "viewers": "label",
     }
     base_related_field_filters = {
-        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "editors": [
+            ["type", subject_type_filter("SUBJECTS_RELATED_TYPES_CHARTS"), lambda: []]
+        ],
+        "viewers": [
+            ["type", subject_type_filter("SUBJECTS_RELATED_TYPES_CHARTS"), lambda: []]
+        ],
     }
     related_field_filters = {
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
+        "viewers": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
 
-    allowed_rel_fields = {"owners", "created_by", "changed_by"}
+    allowed_rel_fields = {
+        "created_by",
+        "changed_by",
+        "editors",
+        "viewers",
+    }
+    extra_fields_rel_fields = {
+        "editors": ["type", "active", "secondary_label", "img"],
+        "viewers": ["type", "active", "secondary_label", "img"],
+    }
 
     @expose("/<id_or_uuid>", methods=["GET"])
     @protect()
@@ -310,8 +339,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             dash = ChartDAO.get_by_id_or_uuid(id_or_uuid)
             result = self.chart_get_response_schema.dump(dash)
-            if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
-                result["extra_owners"] = resolver(dash)
+            if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+                result["extra_editors"] = get_extra_editor_subject_ids(dash)
             return self.response(200, result=result)
         except ChartNotFoundError:
             return self.response_404()
@@ -1030,9 +1059,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         return self.response(200, result="OK")
 
     def _pre_related_check(self, column_name: str) -> Optional[Response]:
-        """Restrict the owners related field to users with write access."""
+        """Restrict the editors related field to users with write access."""
         if (
-            column_name == "owners"
+            column_name == "editors"
             and not security_manager.can_access_all_datasources()
         ):
             return self.response_403()

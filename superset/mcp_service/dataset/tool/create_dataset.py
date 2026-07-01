@@ -95,7 +95,7 @@ async def create_dataset(
       databases without schema namespaces (e.g. SQLite).
     - catalog: Catalog where the table lives. Omit for databases without catalog
       support.
-    - owners: List of user IDs to set as owners (defaults to calling user)
+    - editors: List of subject IDs to set as editors (defaults to calling user)
 
     Example:
     ```json
@@ -127,8 +127,8 @@ async def create_dataset(
             dataset_properties["schema"] = schema
         if catalog is not None:
             dataset_properties["catalog"] = catalog
-        if request.owners is not None:
-            dataset_properties["owners"] = request.owners
+        if request.editors is not None:
+            dataset_properties["editors"] = request.editors
 
         with event_logger.log_context(action="mcp.create_dataset.create"):
             dataset = CreateDatasetCommand(dataset_properties).run()

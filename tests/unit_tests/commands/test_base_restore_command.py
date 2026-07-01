@@ -87,39 +87,39 @@ def test_validate_raises_not_found_when_model_is_live(app_context: None) -> None
         cmd.validate()
 
 
-def test_validate_returns_model_when_owned_and_soft_deleted(
+def test_validate_returns_model_when_editable_and_soft_deleted(
     app_context: None,
 ) -> None:
-    """A soft-deleted row owned by the caller passes the ownership check
+    """A soft-deleted row editable by the caller passes the editorship check
     and is returned to ``run()`` for restoration."""
     soft_deleted = MagicMock()
     soft_deleted.deleted_at = datetime(2026, 1, 1)
     cmd = _make_command(dao_find_result=soft_deleted)
 
     with patch("superset.commands.restore.security_manager") as mock_sec:
-        mock_sec.raise_for_ownership = MagicMock(return_value=None)
+        mock_sec.raise_for_editorship = MagicMock(return_value=None)
         result = cmd.validate()
 
     assert result is soft_deleted
-    mock_sec.raise_for_ownership.assert_called_once_with(soft_deleted)
+    mock_sec.raise_for_editorship.assert_called_once_with(soft_deleted)
 
 
-def test_validate_raises_forbidden_when_ownership_check_fails(
+def test_validate_raises_forbidden_when_editorship_check_fails(
     app_context: None,
 ) -> None:
-    """The security manager's raise_for_ownership raises
-    ``SupersetSecurityException`` for non-owners; validate() translates
+    """The security manager's raise_for_editorship raises
+    ``SupersetSecurityException`` for non-editors; validate() translates
     that to the command's ``forbidden_exc`` (keeping the security-layer
     exception type out of caller code)."""
     soft_deleted = MagicMock()
     soft_deleted.deleted_at = datetime(2026, 1, 1)
     cmd = _make_command(dao_find_result=soft_deleted)
 
-    def reject_ownership(_resource: object) -> None:
+    def reject_editorship(_resource: object) -> None:
         raise SupersetSecurityException(MagicMock())
 
     with patch("superset.commands.restore.security_manager") as mock_sec:
-        mock_sec.raise_for_ownership = reject_ownership
+        mock_sec.raise_for_editorship = reject_editorship
         with pytest.raises(_ForbiddenError):
             cmd.validate()
 
@@ -136,7 +136,7 @@ def test_validate_calls_dao_with_visibility_bypass_only(app_context: None) -> No
     cmd = _make_command(dao_find_result=soft_deleted)
 
     with patch("superset.commands.restore.security_manager") as mock_sec:
-        mock_sec.raise_for_ownership = MagicMock(return_value=None)
+        mock_sec.raise_for_editorship = MagicMock(return_value=None)
         cmd.validate()
 
     cmd.dao.find_by_id.assert_called_once_with(
@@ -156,7 +156,7 @@ def test_run_calls_model_restore_on_success(app_context: None) -> None:
     cmd = _make_command(dao_find_result=soft_deleted)
 
     with patch("superset.commands.restore.security_manager") as mock_sec:
-        mock_sec.raise_for_ownership = MagicMock(return_value=None)
+        mock_sec.raise_for_editorship = MagicMock(return_value=None)
         cmd.run()
 
     soft_deleted.restore.assert_called_once_with()
@@ -182,6 +182,6 @@ def test_run_translates_sqlalchemy_errors_via_restore_failed_exc(
     cmd = _make_command(dao_find_result=soft_deleted)
 
     with patch("superset.commands.restore.security_manager") as mock_sec:
-        mock_sec.raise_for_ownership = MagicMock(return_value=None)
+        mock_sec.raise_for_editorship = MagicMock(return_value=None)
         with pytest.raises(_RestoreFailedError):
             cmd.run()

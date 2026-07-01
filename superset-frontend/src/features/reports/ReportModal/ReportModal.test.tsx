@@ -103,7 +103,7 @@ test('does not allow user to create a report without a name', () => {
 });
 
 test('creates a new email report via modal Add button', async () => {
-  // The modal now calls POST /api/v1/report/subscribe; creation_method, owners, and
+  // The modal calls POST /api/v1/report/subscribe; creation_method, editors, and
   // recipients are derived server-side — the client payload intentionally omits them.
   fetchMock.post(
     'glob:*/api/v1/report/subscribe',
@@ -127,7 +127,7 @@ test('creates a new email report via modal Add button', async () => {
   expect(body.name).toBe('Weekly Report');
   expect(body.type).toBe('Report');
   expect(body.crontab).toBeDefined();
-  // creation_method, owners, and recipients are set server-side; not in the client payload
+  // creation_method, editors, and recipients are set server-side; not in the client payload
   expect(body.creation_method).toBeUndefined();
   expect(body.recipients).toBeUndefined();
 
@@ -219,7 +219,7 @@ test('renders edit mode when report exists in store', () => {
     active: true,
     type: 'Report',
     dashboard: 1,
-    owners: [1],
+    editors: [1],
     recipients: [
       {
         recipient_config_json: { target: 'test@test.com' },
@@ -260,7 +260,7 @@ test('edit mode dispatches editReport via PUT on save', async () => {
     active: true,
     type: 'Report',
     dashboard: 1,
-    owners: [1],
+    editors: [1],
     recipients: [
       {
         recipient_config_json: { target: 'test@test.com' },

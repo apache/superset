@@ -76,6 +76,7 @@ from superset.datasets.schemas import (
 )
 from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
+from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.views.base import DatasourceFilter
@@ -87,7 +88,7 @@ from superset.views.base_api import (
     statsd_metrics,
 )
 from superset.views.error_handling import handle_api_exception
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -131,9 +132,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "explore_url",
         "extra",
         "kind",
-        "owners.id",
-        "owners.first_name",
-        "owners.last_name",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "catalog",
         "schema",
         "sql",
@@ -171,9 +172,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "is_sqllab_view",
         "template_params",
         "select_star",
-        "owners.id",
-        "owners.first_name",
-        "owners.last_name",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "columns.advanced_data_type",
         "columns.changed_on",
         "columns.column_name",
@@ -236,7 +237,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     duplicate_model_schema = DatasetDuplicateSchema()
-    add_columns = ["database", "catalog", "schema", "table_name", "sql", "owners"]
+    add_columns = [
+        "database",
+        "catalog",
+        "schema",
+        "table_name",
+        "sql",
+        "editors",
+    ]
     edit_columns = [
         "table_name",
         "sql",
@@ -254,7 +262,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "is_sqllab_view",
         "template_params",
-        "owners",
+        "editors",
         "columns",
         "metrics",
         "extra",
@@ -262,14 +270,26 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Datasets"
 
     base_related_field_filters = {
-        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
+        "editors": [
+            [
+                "type",
+                subject_type_filter("SUBJECTS_RELATED_TYPES"),
+                lambda: [],
+            ]
+        ],
     }
     related_field_filters = {
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "database": "database_name",
+        "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
+    }
+    text_field_rel_fields = {
+        "editors": "label",
+    }
+    extra_fields_rel_fields = {
+        "editors": ["type", "active", "secondary_label", "img"],
     }
     search_filters = {
         "sql": [DatasetIsNullOrEmptyFilter],
@@ -279,7 +299,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "id",
         "uuid",
         "database",
-        "owners",
+        "editors",
         "catalog",
         "schema",
         "sql",
@@ -288,7 +308,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_by",
         "uuid",
     ]
-    allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
+    allowed_rel_fields = {"database", "created_by", "changed_by", "editors"}
     allowed_distinct_fields = {"catalog", "schema"}
 
     apispec_parameter_schemas = {
@@ -768,9 +788,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             if not dataset:
                 return self.response_404()
 
-            # Check ownership
+            # Check editorship
             try:
-                security_manager.raise_for_ownership(dataset)
+                security_manager.raise_for_editorship(dataset)
             except Exception:  # pylint: disable=broad-except
                 return self.response_403()
 
@@ -1351,8 +1371,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         drill_info_select_columns = [
             "id",
             "table_name",
-            "owners.first_name",
-            "owners.last_name",
+            "editors.label",
+            "editors.type",
             "created_by.first_name",
             "created_by.last_name",
             "created_on_humanized",

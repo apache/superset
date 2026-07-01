@@ -89,7 +89,7 @@ const buildProps = (): SliceHeaderControlsProps =>
       datasource: '58__table',
       description: '',
       description_markeddown: '',
-      owners: [],
+      editors: [],
       modified: '',
       changed_on: 0,
     },

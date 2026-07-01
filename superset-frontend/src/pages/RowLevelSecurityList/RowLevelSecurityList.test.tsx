@@ -46,6 +46,18 @@ const mockRules = [
         name: 'Gamma',
       },
     ],
+    subjects: [
+      {
+        id: 10,
+        label: 'Alpha',
+        type: 2,
+      },
+      {
+        id: 11,
+        label: 'Gamma',
+        type: 2,
+      },
+    ],
     tables: [
       {
         id: 6,
@@ -73,6 +85,18 @@ const mockRules = [
       {
         id: 5,
         name: 'Gamma',
+      },
+    ],
+    subjects: [
+      {
+        id: 10,
+        label: 'Alpha',
+        type: 2,
+      },
+      {
+        id: 11,
+        label: 'Gamma',
+        type: 2,
       },
     ],
     tables: [
@@ -184,6 +208,7 @@ describe('RuleList RTL', () => {
 
     const nameColumn = await within(table).findByTitle('Name');
     const filterTypeColumn = await within(table).findByTitle('Filter Type');
+    const subjectsColumn = await within(table).findByTitle('Subjects');
     const groupKeyColumn = await within(table).findByTitle('Group Key');
     const clauseColumn = await within(table).findByTitle('Clause');
     const modifiedColumn = await within(table).findByTitle('Last modified');
@@ -191,6 +216,7 @@ describe('RuleList RTL', () => {
 
     expect(nameColumn).toBeInTheDocument();
     expect(filterTypeColumn).toBeInTheDocument();
+    expect(subjectsColumn).toBeInTheDocument();
     expect(groupKeyColumn).toBeInTheDocument();
     expect(clauseColumn).toBeInTheDocument();
     expect(modifiedColumn).toBeInTheDocument();

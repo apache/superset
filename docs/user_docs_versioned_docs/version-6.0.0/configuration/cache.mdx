@@ -100,6 +100,10 @@ from superset.tasks.types import FixedExecutor
 THUMBNAIL_EXECUTORS = [FixedExecutor("admin")]
 ```
 
+When using the default `ExecutorType.OWNER` executor, thumbnails are rendered as the primary
+user-type editor of the dashboard or chart. Only user-type subjects are considered from the
+editors list, since tasks can only be executed as actual users (not roles or groups).
+
 For this feature you will need a cache system and celery workers. All thumbnails are stored on cache
 and are processed asynchronously by the workers.
 

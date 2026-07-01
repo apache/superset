@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import type { SubjectPickerValue } from 'src/features/subjects/SubjectPicker';
+
 export enum FilterType {
   Regular = 'Regular',
   Base = 'Base',
@@ -27,7 +29,7 @@ export type RLSObject = {
   name: string;
   filter_type: FilterType;
   tables?: TableObject[];
-  roles?: RoleObject[];
+  subjects?: SubjectPickerValue[];
   group_key?: string;
   clause?: string;
   description?: string;
@@ -40,12 +42,4 @@ export type TableObject = {
   value?: number | string;
   schema?: string;
   table_name?: string;
-};
-
-export type RoleObject = {
-  key: any;
-  id?: number;
-  label?: string;
-  value?: number | string;
-  name?: string;
 };

@@ -29,7 +29,7 @@ def _post_payload(**overrides: Any) -> dict[str, Any]:
         "name": "rule",
         "filter_type": "Regular",
         "tables": [1],
-        "roles": [1],
+        "subjects": [1],
         "clause": "client_id = 9",
     }
     payload.update(overrides)

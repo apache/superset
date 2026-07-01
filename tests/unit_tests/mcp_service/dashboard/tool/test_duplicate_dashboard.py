@@ -108,7 +108,7 @@ def _mock_chart(id: int = 10, slice_name: str = "Test Chart") -> Mock:
     chart.slice_name = slice_name
     chart.uuid = f"chart-uuid-{id}"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.viz_type = "table"
     chart.datasource_name = None
     chart.description = None
@@ -133,9 +133,8 @@ def _mock_dashboard(
     dashboard.changed_on = None
     dashboard.uuid = f"dashboard-uuid-{id}"
     dashboard.slices = slices or []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
     dashboard.position_json = position_json or json.dumps(SOURCE_POSITIONS)
     dashboard.json_metadata = json_metadata
     dashboard.css = None
@@ -357,7 +356,7 @@ async def test_copy_forbidden(
     mcp_server: object,
 ) -> None:
     """Returns an error when the copy command raises DashboardForbiddenError
-    (e.g. DASHBOARD_RBAC requires ownership of the source)."""
+    (e.g. the user lacks permission to duplicate the source)."""
     from superset.commands.dashboard.exceptions import DashboardForbiddenError
 
     mock_get_by_id_or_slug.return_value = _mock_dashboard(id=1)

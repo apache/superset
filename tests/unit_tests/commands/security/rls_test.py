@@ -46,15 +46,11 @@ def test_create_rls_rule_forbidden_when_no_datasource_access() -> None:
     with (
         _patch_query("superset.commands.security.create", tables),
         patch(
-            "superset.commands.security.create.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=False,
         ) as can_access,
     ):
-        command = CreateRLSRuleCommand({"tables": [1], "roles": []})
+        command = CreateRLSRuleCommand({"tables": [1], "subjects": []})
         with pytest.raises(RLSDatasourceForbiddenError):
             command.validate()
 
@@ -67,15 +63,11 @@ def test_create_rls_rule_allowed_when_datasource_access() -> None:
     with (
         _patch_query("superset.commands.security.create", tables),
         patch(
-            "superset.commands.security.create.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=True,
         ) as can_access,
     ):
-        command = CreateRLSRuleCommand({"tables": [1, 2], "roles": []})
+        command = CreateRLSRuleCommand({"tables": [1, 2], "subjects": []})
         command.validate()
 
     # Access is checked for every referenced datasource.
@@ -89,15 +81,11 @@ def test_create_rls_rule_forbidden_if_any_datasource_denied() -> None:
     with (
         _patch_query("superset.commands.security.create", tables),
         patch(
-            "superset.commands.security.create.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             side_effect=[True, False],
         ),
     ):
-        command = CreateRLSRuleCommand({"tables": [1, 2], "roles": []})
+        command = CreateRLSRuleCommand({"tables": [1, 2], "subjects": []})
         with pytest.raises(RLSDatasourceForbiddenError):
             command.validate()
 
@@ -112,15 +100,11 @@ def test_update_rls_rule_forbidden_when_no_datasource_access() -> None:
             return_value=MagicMock(),
         ),
         patch(
-            "superset.commands.security.update.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=False,
         ) as can_access,
     ):
-        command = UpdateRLSRuleCommand(1, {"tables": [1], "roles": []})
+        command = UpdateRLSRuleCommand(1, {"tables": [1], "subjects": []})
         with pytest.raises(RLSDatasourceForbiddenError):
             command.validate()
 
@@ -137,25 +121,21 @@ def test_update_rls_rule_allowed_when_datasource_access() -> None:
             return_value=MagicMock(),
         ),
         patch(
-            "superset.commands.security.update.populate_roles",
-            return_value=[],
-        ),
-        patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=True,
         ) as can_access,
     ):
-        command = UpdateRLSRuleCommand(1, {"tables": [1], "roles": []})
+        command = UpdateRLSRuleCommand(1, {"tables": [1], "subjects": []})
         command.validate()
 
     can_access.assert_called_once_with(datasource=tables[0])
     assert command._properties["tables"] == tables
 
 
-def test_update_rls_rule_partial_update_preserves_tables_and_roles() -> None:
-    """A partial update without tables/roles must not clear those bindings.
+def test_update_rls_rule_partial_update_preserves_tables_and_subjects() -> None:
+    """A partial update without tables/subjects must not clear those bindings.
 
-    When the request body omits ``tables``/``roles``, validate() must not add
+    When the request body omits ``tables``/``subjects``, validate() must not add
     those keys to the properties passed to the DAO, so the existing bindings
     are left untouched instead of being overwritten with empty lists.
     """
@@ -167,8 +147,8 @@ def test_update_rls_rule_partial_update_preserves_tables_and_roles() -> None:
             return_value=rule,
         ),
         patch(
-            "superset.commands.security.update.populate_roles",
-        ) as populate_roles,
+            "superset.commands.security.update.populate_subject_list",
+        ) as populate_subject_list,
         patch("superset.commands.security.update.db.session.query") as query,
         patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
@@ -179,15 +159,15 @@ def test_update_rls_rule_partial_update_preserves_tables_and_roles() -> None:
         command.validate()
 
     # Omitted relationships are not resolved or written back.
-    populate_roles.assert_not_called()
+    populate_subject_list.assert_not_called()
     query.assert_not_called()
     assert "tables" not in command._properties
-    assert "roles" not in command._properties
+    assert "subjects" not in command._properties
     assert command._properties["name"] == "new name"
 
 
-def test_update_rls_rule_only_roles_present_does_not_touch_tables() -> None:
-    """Updating only ``roles`` must not resolve or overwrite ``tables``."""
+def test_update_rls_rule_only_subjects_present_does_not_touch_tables() -> None:
+    """Updating only ``subjects`` must not resolve or overwrite ``tables``."""
     rule = MagicMock()
     rule.tables = _mock_tables(1)
     with (
@@ -196,21 +176,21 @@ def test_update_rls_rule_only_roles_present_does_not_touch_tables() -> None:
             return_value=rule,
         ),
         patch(
-            "superset.commands.security.update.populate_roles",
-            return_value=["resolved-role"],
-        ) as populate_roles,
+            "superset.commands.security.update.populate_subject_list",
+            return_value=["resolved-subject"],
+        ) as populate_subject_list,
         patch("superset.commands.security.update.db.session.query") as query,
         patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
             return_value=True,
         ),
     ):
-        command = UpdateRLSRuleCommand(1, {"roles": [1]})
+        command = UpdateRLSRuleCommand(1, {"subjects": [1]})
         command.validate()
 
-    populate_roles.assert_called_once()
+    populate_subject_list.assert_called_once_with([1], default_to_user=False)
     query.assert_not_called()
-    assert command._properties["roles"] == ["resolved-role"]
+    assert command._properties["subjects"] == ["resolved-subject"]
     assert "tables" not in command._properties
 
 

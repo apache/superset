@@ -21,7 +21,7 @@ export enum MetadataType {
   Dashboards = 'dashboards',
   Description = 'description',
   LastModified = 'lastModified',
-  Owner = 'owner',
+  Editor = 'editor',
   Rows = 'rows',
   Sql = 'sql',
   Table = 'table',
@@ -48,10 +48,10 @@ export type LastModified = {
   onClick?: (type: string) => void;
 };
 
-export type Owner = {
-  type: MetadataType.Owner;
+export type Editor = {
+  type: MetadataType.Editor;
   createdBy: string;
-  owners?: string[] | string;
+  editors?: string[] | string;
   createdOn: string;
   onClick?: (type: string) => void;
 };
@@ -84,7 +84,7 @@ export type ContentType =
   | Dashboards
   | Description
   | LastModified
-  | Owner
+  | Editor
   | Rows
   | Sql
   | Table

@@ -22,7 +22,7 @@ from typing import Any
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.security.utils import raise_for_datasource_access
-from superset.commands.utils import populate_roles
+from superset.commands.utils import populate_subject_list
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.security import RLSDAO
 from superset.extensions import db
@@ -35,7 +35,7 @@ class CreateRLSRuleCommand(BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
         self._tables = self._properties.get("tables", [])
-        self._roles = self._properties.get("roles", [])
+        self._subjects = self._properties.get("subjects", [])
 
     @transaction()
     def run(self) -> Any:
@@ -43,7 +43,13 @@ class CreateRLSRuleCommand(BaseCommand):
         return RLSDAO.create(attributes=self._properties)
 
     def validate(self) -> None:
-        roles = populate_roles(self._roles)
+        if self._subjects:
+            subjects = populate_subject_list(
+                self._subjects,
+                default_to_user=False,
+            )
+            self._properties["subjects"] = subjects
+
         tables = (
             db.session.query(SqlaTable)
             .filter(SqlaTable.id.in_(self._tables))  # type: ignore[attr-defined]
@@ -52,5 +58,4 @@ class CreateRLSRuleCommand(BaseCommand):
         if len(tables) != len(self._tables):
             raise DatasourceNotFoundValidationError()
         raise_for_datasource_access(tables)
-        self._properties["roles"] = roles
         self._properties["tables"] = tables

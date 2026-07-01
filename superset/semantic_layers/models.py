@@ -393,7 +393,7 @@ class SemanticView(AuditMixinNullable, Model):
             "filter_select_enabled": True,
             "sql": None,
             "select_star": None,
-            "owners": [],
+            "editors": [],
             "description": self.description,
             "table_name": self.name,
             "column_types": [

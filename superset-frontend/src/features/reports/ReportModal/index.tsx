@@ -196,12 +196,12 @@ function ReportModal({
     setCurrentReport({ isSubmitting: true, error: undefined });
     try {
       if (isEditMode && currentReport.id) {
-        // Edit path: include all fields, PUT endpoint accepts recipients/owners directly
+        // Edit path: include all fields, PUT endpoint accepts recipients/editors directly
         await dispatch(
           editReport(currentReport.id, {
             ...commonFields,
             creation_method: creationMethod,
-            owners: [userId],
+            editors: [userId],
             recipients: [
               {
                 recipient_config_json: {
@@ -215,7 +215,7 @@ function ReportModal({
           } as ReportObject),
         );
       } else {
-        // Subscribe path: creation_method, owners, and recipients are set server-side.
+        // Subscribe path: creation_method, editors, and recipients are set server-side.
         await dispatch(subscribeReport(commonFields as ReportObject));
       }
       onHide();

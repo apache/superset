@@ -333,7 +333,7 @@ class Explorable(Protocol):
         - catalog: catalog name (if applicable)
         - cache_timeout: default cache timeout
         - offset: timezone offset
-        - owners: list of owner IDs
+        - editors: list of editor IDs
         - verbose_map: dict mapping column/metric names to display names
 
         :return: Dictionary with complete explorable metadata

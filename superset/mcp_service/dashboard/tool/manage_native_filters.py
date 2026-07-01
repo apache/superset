@@ -485,7 +485,7 @@ def manage_native_filters(
             error=(
                 f"You don't have permission to edit dashboard "
                 f"{request.dashboard_id}. Changing native filters requires "
-                "ownership of the dashboard."
+                "editorship of the dashboard."
             ),
         )
     except TagForbiddenError as exc:

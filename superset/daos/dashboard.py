@@ -26,7 +26,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Query
 
-from superset import is_feature_enabled, security_manager
+from superset import security_manager
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardForbiddenError,
@@ -38,7 +38,7 @@ from superset.dashboards.filters import DashboardAccessFilter, is_uuid
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, dashboard_user, id_or_slug_filter
+from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.utils import json
@@ -50,9 +50,8 @@ logger = logging.getLogger(__name__)
 # Custom filterable fields for dashboards
 DASHBOARD_CUSTOM_FIELDS = {
     "tags": ["eq", "in", "like"],
-    "owners": ["eq", "in"],
     "published": ["eq"],
-    "owner": ["eq", "in"],
+    "editor": ["eq", "in"],
     "favorite": ["eq"],
 }
 
@@ -70,9 +69,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
         query: Query,
         column_operators: list[ColumnOperator] | None = None,
     ) -> Query:
-        """Override to handle owner and favorite filters via subqueries.
+        """Override to handle editor and favorite filters via subqueries.
 
-        - owner: filters dashboards by owner user ID via dashboard_user M2M table
+        - editor: filters dashboards by editor user ID via dashboard_editors M2M table
         - favorite: filters dashboards by whether the current user has favorited them
         """
         if not column_operators:
@@ -82,26 +81,46 @@ class DashboardDAO(BaseDAO[Dashboard]):
         for c in column_operators:
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
-            if c.col == "owner":
+            if c.col == "editor":
+                from superset.subjects.models import dashboard_editors, Subject
+
                 operator_enum = ColumnOperatorEnum(c.opr)
-                subq = select(dashboard_user.c.dashboard_id).where(
-                    operator_enum.apply(dashboard_user.c.user_id, c.value)
+                subq = (
+                    select(dashboard_editors.c.dashboard_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == dashboard_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        operator_enum.apply(Subject.__table__.c.user_id, c.value),
+                    )
                 )
                 query = query.filter(
                     Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
                 )
-            elif c.col == "created_by_fk_or_owner":
+            elif c.col == "created_by_fk_or_editor":
                 if c.opr != "eq":
                     raise ValueError(
-                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                        f"created_by_fk_or_editor only supports 'eq'; got '{c.opr}'"
                     )
-                owner_subq = select(dashboard_user.c.dashboard_id).where(
-                    dashboard_user.c.user_id == c.value
+                from superset.subjects.models import dashboard_editors, Subject
+
+                editor_subq = (
+                    select(dashboard_editors.c.dashboard_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == dashboard_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        Subject.__table__.c.user_id == c.value,
+                    )
                 )
                 query = query.filter(
                     or_(
                         Dashboard.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
-                        Dashboard.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                        Dashboard.id.in_(editor_subq),  # type: ignore[attr-defined,unused-ignore]
                     )
                 )
             elif c.col == "favorite":
@@ -141,8 +160,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             query = (
                 db.session.query(Dashboard)
                 .filter(id_or_slug_filter(id_or_slug))
-                .outerjoin(Dashboard.owners)
-                .outerjoin(Dashboard.roles)
+                .outerjoin(Dashboard.editors)
             )
             # Apply dashboard base filters
             query = cls.base_filter("id", SQLAInterface(Dashboard, db.session)).apply(
@@ -368,13 +386,15 @@ class DashboardDAO(BaseDAO[Dashboard]):
     def copy_dashboard(
         cls, original_dash: Dashboard, data: dict[str, Any]
     ) -> Dashboard:
-        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
-            original_dash
-        ):
+        if not security_manager.is_editor(original_dash):
             raise DashboardForbiddenError()
 
         dash = Dashboard()
-        dash.owners = [g.user] if g.user else []
+        if g.user:
+            from superset.subjects.utils import get_user_subject
+
+            user_subject = get_user_subject(g.user.id)
+            dash.editors = [user_subject] if user_subject else []
         dash.dashboard_title = data["dashboard_title"]
         dash.css = data.get("css")
 
@@ -384,7 +404,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # Duplicating slices as well, mapping old ids to new ones
             for slc in original_dash.slices:
                 new_slice = slc.clone()
-                new_slice.owners = [g.user] if g.user else []
+                if g.user:
+                    from superset.subjects.utils import get_user_subject
+
+                    user_subject = get_user_subject(g.user.id)
+                    new_slice.editors = [user_subject] if user_subject else []
                 db.session.add(new_slice)
                 db.session.flush()
                 new_slice.dashboards.append(dash)

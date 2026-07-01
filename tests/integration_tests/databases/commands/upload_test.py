@@ -34,6 +34,7 @@ from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import override_user
 from superset.utils.database import get_or_create_db
+from tests.integration_tests.base_tests import user_is_editor
 from tests.integration_tests.conftest import only_postgresql
 from tests.integration_tests.test_app import app
 from tests.unit_tests.fixtures.common import create_csv_file
@@ -140,7 +141,7 @@ def test_csv_upload_dataset():
         .one_or_none()
     )
     assert dataset is not None
-    assert security_manager.find_user("admin") in dataset.owners
+    assert user_is_editor(security_manager.find_user("admin"), dataset)
 
 
 @pytest.mark.usefixtures("setup_csv_upload_with_context")

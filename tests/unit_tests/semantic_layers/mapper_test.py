@@ -2983,8 +2983,9 @@ def test_coerce_integer_rejects_non_integer_float() -> None:
 
 
 def test_coerce_integer_rejects_other_types() -> None:
+    invalid_value: Any = [1]
     with pytest.raises(ValueError, match="Invalid integer value"):
-        _coerce_scalar_filter_value([1], _dim(pa.int64()))
+        _coerce_scalar_filter_value(invalid_value, _dim(pa.int64()))
 
 
 @pytest.mark.parametrize(
@@ -3008,8 +3009,9 @@ def test_coerce_floating_invalid_string_raises() -> None:
 
 
 def test_coerce_floating_rejects_other_types() -> None:
+    invalid_value: Any = [1.0]
     with pytest.raises(ValueError, match="Invalid numeric value"):
-        _coerce_scalar_filter_value([1.0], _dim(pa.float64()))
+        _coerce_scalar_filter_value(invalid_value, _dim(pa.float64()))
 
 
 def test_coerce_date_from_datetime() -> None:
