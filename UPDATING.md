@@ -36,9 +36,17 @@ When the MCP service has JWT auth enabled (`MCP_AUTH_ENABLED = True`), an audien
 
 `FAB_API_SWAGGER_UI` now defaults to `False` and is driven by the `SUPERSET_ENABLE_SWAGGER_UI` environment variable. The interactive Swagger UI / OpenAPI documentation endpoints (e.g. `/swagger/v1`) are therefore no longer exposed by default. To enable them, set `SUPERSET_ENABLE_SWAGGER_UI=true` (the bundled Docker development environment sets this) or override `FAB_API_SWAGGER_UI = True` in `superset_config.py`.
 
+### Build details (git SHA / build number) are admin-only by default
+
+The git SHA and build number surfaced in the "About" section, the bootstrap payload, and the public `/version` endpoint are now only included for admin users by default; the release version string is still shown to everyone. To expose the build details to all users (the previous behavior), set the `SUPERSET_EXPOSE_BUILD_DETAILS` environment variable (or `EXPOSE_BUILD_DETAILS_TO_USERS = True` in `superset_config.py`).
+
 ### Pivot table First/Last aggregations follow data order
 
 The pivot table chart's `First` and `Last` aggregations now return the first and last value in data (query result) order, instead of effectively returning the minimum and maximum. Existing pivot tables that use these aggregations for totals/subtotals may show different values after upgrading. For deterministic results, ensure the underlying query has a stable sort order.
+
+### `FetchRetryOptions` callback parameters widened to allow `null`
+
+The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
 
 ### `thumbnail_url` removed from dashboard list API response
 
@@ -49,6 +57,20 @@ The `thumbnail_url` field has been removed from `GET /api/v1/dashboard/` list re
 ```
 
 The thumbnail endpoint redirects to the current digest URL regardless of whether the supplied digest is exact. If the image is not yet cached, that digest URL may return `202` and trigger async generation. Using `changed_on_utc` as the digest is sufficient for cache-busting purposes.
+
+### Tagging fix for `create_all`-bootstrapped schemas
+
+Only affects deployments whose metadata schema was created with SQLAlchemy's `create_all` (rather than `superset db upgrade`) on a foreign-key-enforcing backend — PostgreSQL, or MySQL with `FOREIGN_KEY_CHECKS=1`. Such schemas carry three invalid foreign keys on `tagged_object.object_id` that break tagging (`TAGGING_SYSTEM = True`) with a `ForeignKeyViolation`. Schemas built via `superset db upgrade` are unaffected.
+
+This release stops the ORM from emitting these constraints, but it cannot drop ones already present in your schema. If affected, drop them manually (names vary by backend, so look them up first):
+
+```sql
+-- PostgreSQL: names are typically tagged_object_object_id_fkey, _fkey1, _fkey2
+ALTER TABLE tagged_object DROP CONSTRAINT <constraint_name>;
+
+-- MySQL: find names via `SHOW CREATE TABLE tagged_object;`
+ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
+```
 
 ### Webhook alerts/reports block private/internal hosts by default
 
@@ -160,6 +182,18 @@ Runbook to adopt:
 1. Capture the SSH server's host key, e.g. `ssh-keyscan -t ed25519 ssh.example.com` (verify it out-of-band).
 2. Set that value on the tunnel's `server_host_key` (via the database/SSH tunnel API or UI payload).
 3. Optionally set `SSH_TUNNEL_STRICT_HOST_KEY_CHECKING = True` in `superset_config.py` to require host-key verification on all tunnels.
+
+### SMTP server certificate validation enabled by default
+
+`SMTP_SSL_SERVER_AUTH` now defaults to `True` (previously `False`). With this default, STARTTLS/SSL connections to the configured SMTP server validate the server's TLS certificate against the system trusted CA store. This makes outbound email (alerts and reports) verify the mail server's identity out of the box.
+
+If your SMTP server presents a self-signed certificate, or a certificate that is not trusted by the system CA store, email delivery may now fail with a certificate verification error. To restore the previous behavior of skipping certificate validation, set the following in `superset_config.py`:
+
+```python
+SMTP_SSL_SERVER_AUTH = False
+```
+
+The recommended fix is to add the SMTP server's certificate (or its issuing CA) to the system trust store rather than disabling validation.
 
 ### Dataset import validates catalog against the target connection
 

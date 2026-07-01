@@ -257,7 +257,15 @@ function TagList(props: TagListProps) {
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [userId, canDelete, refreshData, addSuccessToast, addDangerToast],
+    [
+      userId,
+      canDelete,
+      refreshData,
+      addSuccessToast,
+      addDangerToast,
+      saveFavoriteStatus,
+      favoriteStatus,
+    ],
   );
 
   const filters: ListViewFilters = useMemo(() => {

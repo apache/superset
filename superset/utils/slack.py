@@ -17,7 +17,7 @@
 
 
 import logging
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from flask import current_app as app
 from slack_sdk import WebClient
@@ -63,22 +63,63 @@ def get_slack_client() -> WebClient:
     return client
 
 
-@cache_util.memoized_func(
-    key="slack_conversations_list",
-    cache=cache_manager.cache,
-)
-def get_channels() -> list[SlackChannelSchema]:
+def get_team_id() -> Optional[str]:
+    """
+    Return the Slack workspace (team) ID to target, or None.
+
+    On an Enterprise Grid org, an org-scoped token spans multiple workspaces, so
+    workspace-scoped methods such as ``conversations.list`` need a ``team_id`` to
+    indicate which workspace to act on. The value is read from the ``SLACK_TEAM_ID``
+    config var, which may be a string or a callable (mirroring ``SLACK_API_TOKEN``);
+    when it is unset (the default for workspace-level tokens) None is returned and
+    no ``team_id`` is sent, preserving the prior behavior.
+    """
+    team_id = app.config.get("SLACK_TEAM_ID")
+    if callable(team_id):
+        team_id = team_id()
+    return team_id or None
+
+
+def get_channels(
+    team_id: Optional[str] = None, **kwargs: Any
+) -> list[SlackChannelSchema]:
     """
     Retrieves a list of all conversations accessible by the bot
     from the Slack API, and caches results (to avoid rate limits).
 
     The Slack API does not provide search so to apply a search use
     get_channels_with_search instead.
+
+    :param team_id: workspace (team) ID to target, required for org-scoped tokens
+        on an Enterprise Grid org. Defaults to the configured ``SLACK_TEAM_ID``
+        (via get_team_id) when not given. When set it also keys the cache so that
+        distinct workspaces never share cached channel lists; when unset, the
+        legacy cache key is used so that upgrading does not invalidate existing
+        caches.
+    :param kwargs: forwarded to the memoized fetch (``force``, ``cache_timeout``,
+        ``cache``).
     """
+    if team_id is None:
+        team_id = get_team_id()
+    cache_key = "slack_conversations_list"
+    if team_id:
+        cache_key = f"{cache_key}_{team_id}"
+    return _get_channels(cache_key, team_id=team_id, **kwargs)
+
+
+@cache_util.memoized_func(
+    key="{cache_key}",
+    cache=cache_manager.cache,
+)
+def _get_channels(
+    cache_key: str, team_id: Optional[str] = None
+) -> list[SlackChannelSchema]:
     client = get_slack_client()
     channel_schema = SlackChannelSchema()
     channels: list[SlackChannelSchema] = []
     extra_params = {"types": ",".join(SlackChannelTypes)}
+    if team_id:
+        extra_params["team_id"] = team_id
     cursor = None
     page_count = 0
 
@@ -188,7 +229,8 @@ def should_use_v2_api() -> bool:
         return False
     try:
         client = get_slack_client()
-        client.conversations_list()
+        team_id = get_team_id()
+        client.conversations_list(**({"team_id": team_id} if team_id else {}))
         logger.info("Slack API v2 is available")
         return True
     except SlackApiError:

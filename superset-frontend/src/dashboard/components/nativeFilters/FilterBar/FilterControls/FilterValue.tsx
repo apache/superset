@@ -44,7 +44,7 @@ import {
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
-import { isEqual, isEqualWith } from 'lodash';
+import { isEqual, isEqualWith } from 'lodash-es';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { Loading, Constants, Flex } from '@superset-ui/core/components';
