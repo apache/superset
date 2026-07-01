@@ -18,6 +18,14 @@
       "types": "./lib/authentication/index.d.ts",
       "default": "./lib/authentication/index.js"
     },
+    "./chat": {
+      "types": "./lib/chat/index.d.ts",
+      "default": "./lib/chat/index.js"
+    },
+    "./navigation": {
+      "types": "./lib/navigation/index.d.ts",
+      "default": "./lib/navigation/index.js"
+    },
     "./commands": {
       "types": "./lib/commands/index.d.ts",
       "default": "./lib/commands/index.js"
@@ -112,5 +120,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21"
   }
 }

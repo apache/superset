@@ -281,6 +281,141 @@ test('clicking export calls handleResourceExport with dataset ID', async () => {
   });
 });
 
+test('bulk export of only semantic-view rows shows danger toast and skips export', async () => {
+  const semanticView = {
+    ...mockDatasets[0],
+    id: 100,
+    table_name: 'sl_only_view',
+    kind: 'semantic_view',
+  };
+  const addDangerToast = jest.fn();
+
+  mockDatasetListEndpoints({ result: [semanticView], count: 1 });
+
+  renderDatasetList(mockAdminUser, {
+    addDangerToast,
+    addSuccessToast: jest.fn(),
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText(semanticView.table_name)).toBeInTheDocument();
+  });
+
+  const bulkSelectButton = screen.getByRole('button', {
+    name: /bulk select/i,
+  });
+  await userEvent.click(bulkSelectButton);
+
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
+
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
+
+  const row = (await within(table).findByText(semanticView.table_name)).closest(
+    'tr',
+  );
+  expect(row).toBeInTheDocument();
+  await userEvent.click(within(row!).getByRole('checkbox'));
+
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
+  });
+
+  const bulkExportButton = await within(bulkSelectControls).findByRole(
+    'button',
+    { name: /^export$/i },
+  );
+  await userEvent.click(bulkExportButton);
+
+  await waitFor(() => {
+    expect(addDangerToast).toHaveBeenCalled();
+  });
+  expect(String(addDangerToast.mock.calls[0][0])).toMatch(/semantic view/i);
+  expect(mockHandleResourceExport).not.toHaveBeenCalled();
+});
+
+test('bulk export of mixed datasets and semantic views warns and exports only datasets', async () => {
+  const physicalDataset = {
+    ...mockDatasets[0],
+    id: 1,
+    table_name: 'physical_table',
+    kind: 'physical',
+  };
+  const semanticView = {
+    ...mockDatasets[1],
+    id: 100,
+    table_name: 'sl_mixed_view',
+    kind: 'semantic_view',
+  };
+  const addDangerToast = jest.fn();
+
+  mockDatasetListEndpoints({
+    result: [physicalDataset, semanticView],
+    count: 2,
+  });
+
+  renderDatasetList(mockAdminUser, {
+    addDangerToast,
+    addSuccessToast: jest.fn(),
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText(physicalDataset.table_name)).toBeInTheDocument();
+    expect(screen.getByText(semanticView.table_name)).toBeInTheDocument();
+  });
+
+  const bulkSelectButton = screen.getByRole('button', {
+    name: /bulk select/i,
+  });
+  await userEvent.click(bulkSelectButton);
+
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
+
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
+
+  const physicalRow = (
+    await within(table).findByText(physicalDataset.table_name)
+  ).closest('tr');
+  await userEvent.click(within(physicalRow!).getByRole('checkbox'));
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
+  });
+
+  const semanticRow = (
+    await within(table).findByText(semanticView.table_name)
+  ).closest('tr');
+  await userEvent.click(within(semanticRow!).getByRole('checkbox'));
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /2 Selected/i,
+    );
+  });
+
+  const bulkExportButton = await within(bulkSelectControls).findByRole(
+    'button',
+    { name: /^export$/i },
+  );
+  await userEvent.click(bulkExportButton);
+
+  await waitFor(() => {
+    expect(addDangerToast).toHaveBeenCalled();
+  });
+  expect(String(addDangerToast.mock.calls[0][0])).toMatch(/skipped/i);
+
+  await waitFor(() => {
+    expect(mockHandleResourceExport).toHaveBeenCalledWith(
+      'dataset',
+      [physicalDataset.id],
+      expect.any(Function),
+    );
+  });
+});
+
 test('clicking duplicate opens modal and submits duplicate request', async () => {
   const datasetToDuplicate = {
     ...mockDatasets[1],

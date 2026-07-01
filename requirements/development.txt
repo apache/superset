@@ -220,7 +220,7 @@ docstring-parser==0.17.0
     # via cyclopts
 docutils==0.22.2
     # via rich-rst
-duckdb==1.5.3
+duckdb==1.5.4
     # via
     #   apache-superset
     #   duckdb-engine
@@ -541,7 +541,7 @@ marshmallow-sqlalchemy==1.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
-marshmallow-union==0.1.15
+marshmallow-union==0.1.15.post1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -769,7 +769,7 @@ pyhive==0.7.0
     # via apache-superset
 pyinstrument==5.1.2
     # via apache-superset
-pyjwt==2.12.0
+pyjwt==2.13.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -919,7 +919,7 @@ s3transfer==0.16.0
     # via boto3
 secretstorage==3.5.0
     # via keyring
-selenium==4.44.0
+selenium==4.45.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -948,7 +948,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.35.0
+slack-sdk==3.42.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -976,7 +976,7 @@ sqlalchemy==1.4.54
     #   sqlalchemy-utils
 sqlalchemy-bigquery==1.17.0
     # via apache-superset
-sqlalchemy-utils==0.42.0
+sqlalchemy-utils==0.42.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

@@ -90,6 +90,10 @@ export default function SemanticLayerModal({
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDepSnapshotRef = useRef<string>('');
   const dynamicDepsRef = useRef<Record<string, string[]>>({});
+  // Tracks the most recent value we auto-populated into the Name field so we
+  // can overwrite it when the user switches type — but leave alone anything
+  // the user has hand-edited.
+  const autoFilledNameRef = useRef<string>('');
 
   const fetchTypes = useCallback(async () => {
     setLoading(true);
@@ -209,12 +213,21 @@ export default function SemanticLayerModal({
       errorsRef.current = [];
       lastDepSnapshotRef.current = '';
       dynamicDepsRef.current = {};
+      autoFilledNameRef.current = '';
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     }
   }, [show, fetchTypes, isEditMode, semanticLayerUuid, fetchExistingLayer]);
 
   const handleStepAdvance = () => {
     if (selectedType) {
+      // Pre-fill the Name with the type's display name so a user who just
+      // wants the defaults doesn't have to invent one. Skip the overwrite
+      // once the user has typed something the auto-fill didn't put there.
+      const type = types.find(t => t.id === selectedType);
+      if (type && (name === '' || name === autoFilledNameRef.current)) {
+        setName(type.name);
+        autoFilledNameRef.current = type.name;
+      }
       fetchConfigSchema(selectedType);
     }
   };
@@ -261,8 +274,13 @@ export default function SemanticLayerModal({
     }
   };
 
+  // Edit mode skips the type-picker step. Gating on this prevents the brief
+  // flash of the Create modal's first step while the existing layer is being
+  // fetched.
+  const isTypeStep = step === 'type' && !isEditMode;
+
   const handleSave = () => {
-    if (step === 'type') {
+    if (isTypeStep) {
       handleStepAdvance();
     } else {
       // Trigger validation UI and submit only from explicit save action.
@@ -284,12 +302,25 @@ export default function SemanticLayerModal({
       const hasSatisfiedDeps = Object.values(dynamicDeps).some(deps =>
         areDependenciesSatisfied(deps, data, configSchema ?? undefined),
       );
-      if (!hasSatisfiedDeps) return;
+      if (!hasSatisfiedDeps) {
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+          debounceTimerRef.current = null;
+        }
+        setRefreshingSchema(false);
+        lastDepSnapshotRef.current = '';
+        return;
+      }
 
       // Only re-fetch if dependency values actually changed
       const snapshot = serializeDependencyValues(dynamicDeps, data);
       if (snapshot === lastDepSnapshotRef.current) return;
       lastDepSnapshotRef.current = snapshot;
+
+      // Flip the loading state immediately so dependent fields are disabled
+      // through the debounce window — otherwise the user keeps seeing the
+      // stale options for ~500ms before the request even fires.
+      setRefreshingSchema(true);
 
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(() => {
@@ -307,12 +338,36 @@ export default function SemanticLayerModal({
       data: Record<string, unknown>;
       errors?: ErrorObject[];
     }) => {
-      setFormData(data);
+      // When a dependency of a dynamic field changes, clear that field's
+      // value so we don't carry a stale selection across the refresh (e.g.
+      // ``schema=PUBLIC`` lingering after the user switches database).
+      const dynamicDeps = dynamicDepsRef.current;
+      let nextData = data;
+      if (Object.keys(dynamicDeps).length > 0) {
+        const cleared: Record<string, unknown> = {};
+        for (const [field, deps] of Object.entries(dynamicDeps)) {
+          // Self-deps don't count — a field shouldn't wipe its own value
+          // every time the user picks something in it.
+          const externalDeps = deps.filter(dep => dep !== field);
+          if (externalDeps.length === 0) continue;
+          const depsChanged = externalDeps.some(
+            dep => JSON.stringify(formData[dep]) !== JSON.stringify(data[dep]),
+          );
+          if (depsChanged && data[field] !== undefined && data[field] !== '') {
+            cleared[field] = undefined;
+          }
+        }
+        if (Object.keys(cleared).length > 0) {
+          nextData = { ...data, ...cleared };
+        }
+      }
+
+      setFormData(nextData);
       errorsRef.current = errors ?? [];
       setHasErrors(errorsRef.current.length > 0);
-      maybeRefreshSchema(data);
+      maybeRefreshSchema(nextData);
     },
-    [maybeRefreshSchema],
+    [maybeRefreshSchema, formData],
   );
 
   const selectedTypeName =
@@ -320,7 +375,7 @@ export default function SemanticLayerModal({
 
   const title = isEditMode
     ? t('Edit %s', selectedTypeName || t('Semantic Layer'))
-    : step === 'type'
+    : isTypeStep
       ? t('New Semantic Layer')
       : t('Configure %s', selectedTypeName);
 
@@ -331,18 +386,16 @@ export default function SemanticLayerModal({
       onSave={handleSave}
       title={title}
       icon={isEditMode ? <Icons.EditOutlined /> : <Icons.PlusOutlined />}
-      width={step === 'type' ? MODAL_STANDARD_WIDTH : MODAL_MEDIUM_WIDTH}
+      width={isTypeStep ? MODAL_STANDARD_WIDTH : MODAL_MEDIUM_WIDTH}
       saveDisabled={
-        step === 'type' ? !selectedType : saving || !name.trim() || hasErrors
+        isTypeStep ? !selectedType : saving || !name.trim() || hasErrors
       }
-      saveText={
-        step === 'type' ? undefined : isEditMode ? t('Save') : t('Create')
-      }
+      saveText={isTypeStep ? undefined : isEditMode ? t('Save') : t('Create')}
       saveLoading={saving}
       contentLoading={loading}
     >
       <ModalContent>
-        {step === 'type' ? (
+        {isTypeStep ? (
           <ModalFormField label={t('Type')}>
             <Select
               ariaLabel={t('Semantic layer type')}

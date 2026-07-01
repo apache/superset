@@ -17,8 +17,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
-"PO-Revision-Date: 2025-11-11 10:38+0300\n"
+"POT-Creation-Date: 2026-07-01 11:59+0300\n"
+"PO-Revision-Date: 2026-07-01 11:59+0300\n"
 "Last-Translator: innovark\n"
 "Language: ru\n"
 "Language-Team: Russian <>\n"
@@ -442,13 +442,6 @@ msgstr "%s вкладка выбрана"
 #, python-format
 msgid "%s recipients"
 msgstr "%s получатели"
-
-#, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] "%s запись"
-msgstr[1] "%s записи..."
-msgstr[2] "%s записей..."
 
 #, fuzzy, python-format
 msgid "%s record..."
