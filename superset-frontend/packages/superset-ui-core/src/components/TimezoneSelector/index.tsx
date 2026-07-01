@@ -20,6 +20,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Select } from '@superset-ui/core/components';
+import type { LabeledValue } from '@superset-ui/core/components';
 import { extendedDayjs } from '../../utils/dates';
 import {
   timezoneOptionsCache,
@@ -156,7 +157,16 @@ export default function TimezoneSelector({
       onOpenChange={handleOpenChange}
       value={selectValue}
       options={timezoneOptions || []}
-      sortComparator={sortComparator}
+      // Forward-compat: TS 6.0 resolves sortComparator against antd's
+      // LabeledValue; our comparator only reads properties that always exist
+      // on TimezoneOption, so the broader shape is safe at runtime.
+      sortComparator={
+        sortComparator as unknown as (
+          a: LabeledValue,
+          b: LabeledValue,
+          search?: string,
+        ) => number
+      }
       loading={isLoadingOptions}
       placeholder={isLoadingOptions ? t('Loading timezones...') : placeholder}
       {...{ placement: 'topLeft', ...rest }}

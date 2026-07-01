@@ -19,6 +19,10 @@
 import { sanitizeUrl } from '@braintree/sanitize-url';
 import { ensureAppRoot } from './pathUtils';
 
+const DUPLICATE_NAV_WINDOW_MS = 1000;
+let lastAssignUrl: string | null = null;
+let lastAssignAt = 0;
+
 export const navigateTo = (
   url: string,
   options?: { newWindow?: boolean; assign?: boolean },
@@ -30,7 +34,17 @@ export const navigateTo = (
       'noopener noreferrer',
     );
   } else if (options?.assign) {
-    window.location.assign(sanitizeUrl(ensureAppRoot(url)));
+    const sanitized = sanitizeUrl(ensureAppRoot(url));
+    const now = Date.now();
+    if (
+      lastAssignUrl === sanitized &&
+      now - lastAssignAt < DUPLICATE_NAV_WINDOW_MS
+    ) {
+      return;
+    }
+    lastAssignUrl = sanitized;
+    lastAssignAt = now;
+    window.location.assign(sanitized);
   } else {
     window.location.href = sanitizeUrl(ensureAppRoot(url));
   }

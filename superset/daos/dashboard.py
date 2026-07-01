@@ -431,36 +431,25 @@ class DashboardDAO(BaseDAO[Dashboard]):
             raise DashboardUpdateFailedError("Dashboard not found")
 
         if attributes:
-            metadata = json.loads(dashboard.json_metadata or "{}")
+            try:
+                _parsed = json.loads(dashboard.json_metadata or "{}")
+            except (json.JSONDecodeError, TypeError):
+                _parsed = {}
+            metadata = _parsed if isinstance(_parsed, dict) else {}
             native_filter_configuration = metadata.get(
                 "native_filter_configuration", []
             )
             reordered_filter_ids: list[int] = attributes.get("reordered", [])
+            deleted_ids = set(attributes.get("deleted", []))
+            modified_map = {f.get("id"): f for f in attributes.get("modified", [])}
             updated_configuration = []
 
             # Modify / Delete existing filters
             for conf in native_filter_configuration:
-                deleted_filter = next(
-                    (f for f in attributes.get("deleted", []) if f == conf.get("id")),
-                    None,
-                )
-                if deleted_filter:
+                conf_id = conf.get("id")
+                if conf_id in deleted_ids:
                     continue
-
-                modified_filter = next(
-                    (
-                        f
-                        for f in attributes.get("modified", [])
-                        if f.get("id") == conf.get("id")
-                    ),
-                    None,
-                )
-                if modified_filter:
-                    # Filter was modified, substitute it
-                    updated_configuration.append(modified_filter)
-                else:
-                    # Filter was not modified, keep it as is
-                    updated_configuration.append(conf)
+                updated_configuration.append(modified_map.get(conf_id, conf))
 
             # Append new filters
             for new_filter in attributes.get("modified", []):
