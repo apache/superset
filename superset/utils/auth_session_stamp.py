@@ -157,8 +157,9 @@ def _resolve_stamp_check_user_id() -> int | None:
 
 def validate_session_auth_stamp_for_request() -> None:
     """Drop login when the session cookie carries an outdated stamp for this user."""
-    from superset.models.user_session_auth_stamp import UserSessionAuthStamp
     from flask import request as flask_request
+
+    from superset.models.user_session_auth_stamp import UserSessionAuthStamp
 
     user_id = _resolve_stamp_check_user_id()
     if user_id is None:
@@ -233,4 +234,5 @@ def validate_session_auth_stamp_for_request() -> None:
         # Immediately return 401 Unauthorized to reject the request with
         # an invalid session, rather than relying on the @protect() decorator
         from werkzeug.exceptions import Unauthorized
+
         raise Unauthorized("Session invalidated")

@@ -86,18 +86,27 @@ class TestCurrentUserApi(SupersetTestCase):
 
     def test_update_me_success(self):
         self.login(ADMIN_USERNAME)
+        admin = security_manager.find_user(username=ADMIN_USERNAME)
+        original_first = admin.first_name
+        original_last = admin.last_name
 
-        payload = {
-            "first_name": "UpdatedFirst",
-            "last_name": "UpdatedLast",
-        }
+        try:
+            payload = {
+                "first_name": "UpdatedFirst",
+                "last_name": "UpdatedLast",
+            }
 
-        rv = self.client.put("/api/v1/me/", json=payload)
-        assert rv.status_code == 200
+            rv = self.client.put("/api/v1/me/", json=payload)
+            assert rv.status_code == 200
 
-        data = json.loads(rv.data.decode("utf-8"))
-        assert data["result"]["first_name"] == "UpdatedFirst"
-        assert data["result"]["last_name"] == "UpdatedLast"
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["result"]["first_name"] == "UpdatedFirst"
+            assert data["result"]["last_name"] == "UpdatedLast"
+        finally:
+            admin = security_manager.find_user(username=ADMIN_USERNAME)
+            admin.first_name = original_first
+            admin.last_name = original_last
+            db.session.commit()
 
     def test_update_me_unauthenticated(self):
         rv = self.client.put("/api/v1/me/", json={"first_name": "Hacker"})
@@ -379,6 +388,20 @@ class TestCurrentUserApi(SupersetTestCase):
 
 
 class TestUserApi(SupersetTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self._clear_admin_avatar()
+
+    def tearDown(self) -> None:
+        self._clear_admin_avatar()
+        super().tearDown()
+
+    def _clear_admin_avatar(self) -> None:
+        from superset.models.user_attributes import UserAttribute
+
+        db.session.query(UserAttribute).filter_by(user_id=1).delete()
+        db.session.commit()
+
     def test_avatar_with_invalid_user(self):
         self.login(ADMIN_USERNAME)
         response = self.client.get("/api/v1/user/NOT_A_USER/avatar.png")
