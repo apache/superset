@@ -146,12 +146,15 @@ class XYChartPlugin(BaseChartPlugin):
             "scatter": "echarts_timeseries_scatter",
         }.get(kind, "echarts_timeseries_line")
 
-    def get_runtime_warnings(self, config: Any, dataset_id: int | str) -> list[str]:
+    def get_runtime_warnings(
+        self, config: Any, dataset_id: int | str
+    ) -> tuple[list[str], list[str]]:
         """Return format-compatibility and cardinality warnings for XY charts."""
         if not isinstance(config, XYChartConfig):
-            return []
+            return [], []
 
         warnings: list[str] = []
+        suggestions: list[str] = []
 
         try:
             _valid, format_warnings = FormatTypeValidator.validate_format_compatibility(
@@ -174,11 +177,11 @@ class XYChartPlugin(BaseChartPlugin):
                 )
                 if not _ok and card_info:
                     warnings.extend(card_info.get("warnings", []))
-                    warnings.extend(card_info.get("suggestions", []))
+                    suggestions.extend(card_info.get("suggestions", []))
         except Exception as exc:  # noqa: BLE001 — DB queries may raise infra errors
             logger.warning("XY cardinality validation failed: %s", exc)
 
-        return warnings
+        return warnings, suggestions
 
     def schema_error_hint(self) -> ChartGenerationError | None:
         return ChartGenerationError(

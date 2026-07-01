@@ -54,9 +54,13 @@ class RuntimeValidator:
         suggestions: List[str] = []
 
         # Per-plugin runtime warnings (format, cardinality, etc.)
-        plugin_warnings = RuntimeValidator._validate_plugin_runtime(config, dataset_id)
+        plugin_warnings, plugin_suggestions = RuntimeValidator._validate_plugin_runtime(
+            config, dataset_id
+        )
         if plugin_warnings:
             warnings.extend(plugin_warnings)
+        if plugin_suggestions:
+            suggestions.extend(plugin_suggestions)
 
         # Chart type appropriateness validation (for all chart types)
         type_warnings, type_suggestions = RuntimeValidator._validate_chart_type(
@@ -87,26 +91,26 @@ class RuntimeValidator:
     @staticmethod
     def _validate_plugin_runtime(
         config: ChartConfig, dataset_id: int | str
-    ) -> List[str]:
+    ) -> Tuple[List[str], List[str]]:
         """Delegate per-chart-type runtime warnings to the plugin registry.
 
         Each plugin's get_runtime_warnings() method returns chart-type-specific
-        warnings (e.g. format/cardinality for XY). The registry dispatch removes
-        the previous isinstance(config, XYChartConfig) hardcoding.
+        warnings and suggestions (e.g. format/cardinality for XY). The registry
+        dispatch removes the previous isinstance(config, XYChartConfig) hardcoding.
         """
         try:
             from superset.mcp_service.chart.registry import get_registry
 
             chart_type = getattr(config, "chart_type", None)
             if chart_type is None:
-                return []
+                return [], []
             plugin = get_registry().get(chart_type)
             if plugin is None:
-                return []
+                return [], []
             return plugin.get_runtime_warnings(config, dataset_id)
         except Exception as exc:  # noqa: BLE001 — plugin code is third-party-extensible
             logger.warning("Plugin runtime validation failed: %s", exc)
-            return []
+            return [], []
 
     @staticmethod
     def _validate_chart_type(

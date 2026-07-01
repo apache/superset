@@ -136,16 +136,16 @@ class ChartTypePlugin(Protocol):
         self,
         config: Any,
         dataset_id: int | str,
-    ) -> list[str]:
+    ) -> tuple[list[str], list[str]]:
         """
-        Return chart-type-specific runtime warnings (performance, compatibility).
+        Return chart-type-specific runtime warnings and suggestions.
 
         Called by RuntimeValidator to collect per-type warnings. Warnings are
         informational only — they never block chart generation. The default
-        implementation returns an empty list; plugins override this to emit
+        implementation returns empty lists; plugins override this to emit
         chart-type-specific warnings (e.g. XY cardinality checks).
 
-        Returns a list of warning message strings (may be empty).
+        Returns a (warnings, suggestions) tuple — both may be empty.
         """
         ...
 
@@ -190,7 +190,7 @@ class BaseChartPlugin:
     Concrete plugins extend this and override only what they need.  Default
     implementations: ``pre_validate`` → None (valid), ``extract_column_refs`` → [],
     ``post_map_validate`` → None, ``normalize_column_refs`` → config unchanged,
-    ``get_runtime_warnings`` → [], ``generate_name`` → "Chart",
+    ``get_runtime_warnings`` → ([], []), ``generate_name`` → "Chart",
     ``resolve_viz_type`` → "unknown", ``schema_error_hint`` → None.
     ``to_form_data`` raises ``NotImplementedError`` and must be overridden.
     """
@@ -240,8 +240,8 @@ class BaseChartPlugin:
         self,
         config: Any,
         dataset_id: int | str,
-    ) -> list[str]:
-        return []
+    ) -> tuple[list[str], list[str]]:
+        return [], []
 
     def generate_name(
         self,

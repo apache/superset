@@ -63,9 +63,10 @@ class TestRuntimeValidatorNonBlocking:
             "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
             "_validate_plugin_runtime"
         ) as mock_plugin:
-            mock_plugin.return_value = [
-                "Currency format '$,.2f' may not display dates correctly"
-            ]
+            mock_plugin.return_value = (
+                ["Currency format '$,.2f' may not display dates correctly"],
+                [],
+            )
 
             is_valid, warnings_metadata = RuntimeValidator.validate_runtime_issues(
                 config, 1
@@ -92,9 +93,10 @@ class TestRuntimeValidatorNonBlocking:
             "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
             "_validate_plugin_runtime"
         ) as mock_plugin:
-            mock_plugin.return_value = [
-                "High cardinality detected: 10000+ unique values"
-            ]
+            mock_plugin.return_value = (
+                ["High cardinality detected: 10000+ unique values"],
+                [],
+            )
 
             is_valid, warnings_metadata = RuntimeValidator.validate_runtime_issues(
                 config, 1
@@ -158,10 +160,10 @@ class TestRuntimeValidatorNonBlocking:
                 "_validate_chart_type"
             ) as mock_type,
         ):
-            mock_plugin.return_value = [
-                "Format mismatch warning",
-                "High cardinality warning",
-            ]
+            mock_plugin.return_value = (
+                ["Format mismatch warning", "High cardinality warning"],
+                [],
+            )
             mock_type.return_value = (
                 ["Chart type warning"],
                 ["Chart type suggestion"],
@@ -197,7 +199,7 @@ class TestRuntimeValidatorNonBlocking:
                 "superset.mcp_service.chart.validation.runtime.logger"
             ) as mock_logger,
         ):
-            mock_plugin.return_value = ["Test warning message"]
+            mock_plugin.return_value = (["Test warning message"], [])
 
             is_valid, warnings_metadata = RuntimeValidator.validate_runtime_issues(
                 config, 1
@@ -263,7 +265,8 @@ class TestRuntimeValidatorNonBlocking:
                 "cardinality_validator.CardinalityValidator.check_cardinality"
             ) as mock_check,
         ):
-            warnings = plugin.get_runtime_warnings(config, dataset_id=1)
+            warnings, suggestions = plugin.get_runtime_warnings(config, dataset_id=1)
 
         assert warnings == []
+        assert suggestions == []
         mock_check.assert_not_called()

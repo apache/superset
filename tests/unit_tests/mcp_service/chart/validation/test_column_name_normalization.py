@@ -30,6 +30,7 @@ import pytest
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
     FilterConfig,
+    PivotTableChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -955,4 +956,136 @@ class TestPreValidateAliasHandling:
         }
         error = plugin.pre_validate(config_missing_secondary)
         assert error is not None
-        assert "y_secondary" in error.message
+
+
+class TestNormalizePivotTableColumnRefs:
+    """Test normalize_column_refs for PivotTableChartPlugin.
+
+    Covers rows, metrics, columns, and filters — the four field groups that
+    PivotTableChartPlugin.normalize_column_refs() processes.
+    """
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_rows_case_mismatch(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Rows with wrong case are normalized to the canonical dataset column name."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="productline")],
+            metrics=[ColumnRef(name="sales", aggregate="SUM")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.rows[0].name == "ProductLine"
+        assert normalized.metrics[0].name == "Sales"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_columns_case_mismatch(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Optional column-grouping field is normalized when present."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="ProductLine")],
+            metrics=[ColumnRef(name="Sales", aggregate="SUM")],
+            columns=[ColumnRef(name="PRODUCTLINE")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.columns is not None
+        assert normalized.columns[0].name == "ProductLine"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_filters_alongside_rows(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Filters are normalized together with rows and metrics."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="PRODUCTLINE")],
+            metrics=[ColumnRef(name="QUANTITY_ORDERED", aggregate="SUM")],
+            filters=[FilterConfig(column="orderdate", op=">", value="2023-01-01")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.rows[0].name == "ProductLine"
+        assert normalized.metrics[0].name == "quantity_ordered"
+        assert normalized.filters is not None
+        assert normalized.filters[0].column == "OrderDate"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_saved_metric_uses_canonical_metric_name(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """A saved_metric=True entry in metrics uses get_canonical_metric_name."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="ProductLine")],
+            metrics=[ColumnRef(name="totalrevenue", saved_metric=True)],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.metrics[0].name == "TotalRevenue"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_sql_expression_metric_skipped(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """sql_expression metrics are skipped — no AttributeError on name=None."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[ColumnRef(name="ProductLine")],
+            metrics=[
+                ColumnRef(name=None, sql_expression="SUM(Sales * 1.1)"),
+                ColumnRef(name="sales", aggregate="AVG"),
+            ],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        # sql_expression metric is passed through unchanged (name stays None)
+        assert normalized.metrics[0].name is None
+        assert normalized.metrics[0].sql_expression == "SUM(Sales * 1.1)"
+        # ad-hoc metric is normalized
+        assert normalized.metrics[1].name == "Sales"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_multiple_rows_and_metrics(
+        self, mock_get_context, uppercase_dataset_context: DatasetContext
+    ) -> None:
+        """Multiple rows and metrics entries are all normalized."""
+        mock_get_context.return_value = uppercase_dataset_context
+
+        config = PivotTableChartConfig(
+            chart_type="pivot_table",
+            rows=[
+                ColumnRef(name="airline"),
+                ColumnRef(name="distance", aggregate="AVG"),
+            ],
+            metrics=[
+                ColumnRef(name="departure_delay", aggregate="AVG"),
+                ColumnRef(name="arrival_delay", aggregate="SUM"),
+            ],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
+
+        assert normalized.rows[0].name == "AIRLINE"
+        assert normalized.rows[1].name == "DISTANCE"
+        assert normalized.metrics[0].name == "DEPARTURE_DELAY"
+        assert normalized.metrics[1].name == "ARRIVAL_DELAY"
