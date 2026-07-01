@@ -176,7 +176,9 @@ describe('ChartClient', () => {
         Promise.reject(new Error('Unexpected all to v1 API')),
       );
 
-      fetchMock.post('glob:*/superset/explore_json/', {
+      // post `Superset.route_base = ""`, the legacy endpoint
+      // collapsed from `/superset/explore_json/` to `/explore_json/`.
+      fetchMock.post('glob:*/explore_json/', {
         field1: 'abc',
         field2: 'def',
       });
@@ -198,13 +200,10 @@ describe('ChartClient', () => {
 
   describe('.loadDatasource(datasourceKey, options)', () => {
     test('fetches datasource', () => {
-      fetchMock.get(
-        'glob:*/superset/fetch_datasource_metadata?datasourceKey=1__table',
-        {
-          field1: 'abc',
-          field2: 'def',
-        },
-      );
+      fetchMock.get('glob:*/fetch_datasource_metadata?datasourceKey=1__table', {
+        field1: 'abc',
+        field2: 'def',
+      });
 
       return expect(chartClient.loadDatasource('1__table')).resolves.toEqual({
         field1: 'abc',
@@ -264,13 +263,10 @@ describe('ChartClient', () => {
         color: 'living-coral',
       });
 
-      fetchMock.get(
-        'glob:*/superset/fetch_datasource_metadata?datasourceKey=1__table',
-        {
-          name: 'transactions',
-          schema: 'staging',
-        },
-      );
+      fetchMock.get('glob:*/fetch_datasource_metadata?datasourceKey=1__table', {
+        name: 'transactions',
+        schema: 'staging',
+      });
 
       fetchMock.post('glob:*/api/v1/chart/data', {
         lorem: 'ipsum',

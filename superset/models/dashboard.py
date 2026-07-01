@@ -22,7 +22,7 @@ from collections import defaultdict, deque
 from typing import Any, Callable
 
 import sqlalchemy as sqla
-from flask import current_app as app
+from flask import current_app as app, has_request_context, url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -35,7 +35,6 @@ from sqlalchemy import (
     String,
     Table,
     Text,
-    UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, subqueryload
@@ -93,37 +92,53 @@ sqla.event.listen(User, "after_insert", copy_dashboard)
 dashboard_slices = Table(
     "dashboard_slices",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
-    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
-    UniqueConstraint("dashboard_id", "slice_id"),
+    Column(
+        "dashboard_id",
+        Integer,
+        ForeignKey("dashboards.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "slice_id",
+        Integer,
+        ForeignKey("slices.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
 dashboard_user = Table(
     "dashboard_user",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
+    Column(
+        "user_id",
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "dashboard_id",
+        Integer,
+        ForeignKey("dashboards.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
 DashboardRoles = Table(
     "dashboard_roles",
     metadata,
-    Column("id", Integer, primary_key=True),
     Column(
         "dashboard_id",
         Integer,
         ForeignKey("dashboards.id", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
     Column(
         "role_id",
         Integer,
         ForeignKey("ab_role.id", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
 )
 
@@ -197,12 +212,12 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
 
     @property
     def url(self) -> str:
-        return f"/superset/dashboard/{self.slug or self.id}/"
+        return f"/dashboard/{self.slug or self.id}/"
 
     @staticmethod
     def get_url(id_: int, slug: str | None = None) -> str:
         # To be able to generate URL's without instantiating a Dashboard object
-        return f"/superset/dashboard/{slug or id_}/"
+        return f"/dashboard/{slug or id_}/"
 
     @property
     def datasources(self) -> set[BaseDatasource]:
@@ -221,10 +236,16 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     @renders("dashboard_title")
     def dashboard_link(self) -> Markup:
         title = escape(self.dashboard_title or "<empty>")
-        # self.url embeds the user-controlled slug; escape it before it is
-        # marked safe via Markup (mirrors SqlaTable.link).
-        url = escape(self.url)
-        return Markup(f'<a href="{url}">{title}</a>')
+        # FAB list view renders this raw HTML; use url_for so Flask prepends
+        # SCRIPT_NAME (the application_root) and the row link works under
+        # subdirectory deployments. `Dashboard.url` itself stays router-
+        # relative so frontend callers can apply ensureAppRoot exactly once.
+        # url_for percent-encodes the user-controlled slug path param; escape
+        # the result before Markup-marking for HTML attribute defence-in-depth.
+        href = escape(
+            url_for("Superset.dashboard", dashboard_id_or_slug=self.slug or self.id)
+        )
+        return Markup(f'<a href="{href}">{title}</a>')
 
     @property
     def digest(self) -> str | None:
@@ -237,7 +258,14 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         if the dashboard has changed
         """
         if digest := self.digest:
-            return f"/api/v1/dashboard/{self.id}/thumbnail/{digest}/"
+            if not has_request_context():
+                # Out-of-request callers (CLI, celery tasks) have no
+                # SCRIPT_NAME to honor; keep the router-relative shape so
+                # the property stays callable anywhere.
+                return f"/api/v1/dashboard/{self.id}/thumbnail/{digest}/"
+            # url_for respects SCRIPT_NAME, so the URL carries the application
+            # root prefix under subdirectory deployments.
+            return url_for("DashboardRestApi.thumbnail", pk=self.id, digest=digest)
 
         return None
 
