@@ -14040,6 +14040,9 @@ msgstr ""
 "この JSON "
 "オブジェクトは、ダッシュボード内のウィジェットの配置を記述します。ダッシュボード表示画面でドラッグ＆ドロップによりサイズや位置を調整すると自動生成されます"
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14812,6 +14815,9 @@ msgstr "結果パネルにピン留め"
 #, fuzzy
 msgid "Unpin from top"
 msgstr "上部からピン留めを解除"
+
+msgid "Unsafe link blocked"
+msgstr ""
 
 #, python-format
 msgid "Unsafe return type for function %(func)s: %(value_type)s"
