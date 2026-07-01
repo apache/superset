@@ -101,9 +101,9 @@ def upgrade() -> None:
     session = Session(bind=bind)
     do_upgrade(session)
     try:
-        session.commit()
+        session.commit()  # pylint: disable=consider-using-transaction
     except SQLAlchemyError as ex:
-        session.rollback()
+        session.rollback()  # pylint: disable=consider-using-transaction
         raise Exception(f"An error occurred while upgrading permissions: {ex}") from ex
 
 
@@ -112,9 +112,9 @@ def downgrade() -> None:
     session = Session(bind=bind)
     do_downgrade(session)
     try:
-        session.commit()
+        session.commit()  # pylint: disable=consider-using-transaction
     except SQLAlchemyError as ex:
-        session.rollback()
+        session.rollback()  # pylint: disable=consider-using-transaction
         raise Exception(
             f"An error occurred while downgrading permissions: {ex}"
         ) from ex

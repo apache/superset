@@ -23,6 +23,7 @@ from flask import session
 from flask_appbuilder.const import AUTH_DB
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import DetachedInstanceError
+from werkzeug.exceptions import Unauthorized
 
 from superset.app import SupersetApp
 from superset.utils.auth_session_stamp import (
@@ -31,7 +32,6 @@ from superset.utils.auth_session_stamp import (
     ensure_user_session_stamp_value,
     validate_session_auth_stamp_for_request,
 )
-from werkzeug.exceptions import Unauthorized
 
 
 @contextmanager

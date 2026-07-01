@@ -46,9 +46,7 @@ def register_session_auth_stamp_hook(app: Flask) -> None:
         app.superset_session_auth_stamp_login_connected = True
 
         @user_logged_in.connect
-        def _sync_stamp_after_login(
-            sender: Flask, user: Any, **extra: Any
-        ) -> None:  # noqa: ARG001
+        def _sync_stamp_after_login(sender: Flask, user: Any, **extra: Any) -> None:  # noqa: ARG001
             """Copy the DB stamp into the session after Flask-Login finalizes it."""
             sync_session_auth_stamp_on_login(user)
 
