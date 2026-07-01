@@ -44,6 +44,13 @@ def test_verify_rejects_empty_hash() -> None:
     assert not verify_auth_db_password("", "password")
 
 
+def test_verify_rejects_malformed_argon2_hash() -> None:
+    """Corrupted argon2 hashes must fail verification, not raise."""
+    garbage_hash = "$argon2id$v=19$m=65536,t=3,p=4$garbage$garbage"
+    assert is_argon2_password_hash(garbage_hash)
+    assert not verify_auth_db_password(garbage_hash, "password")
+
+
 def test_bcrypt_hash_rejects_password_over_max_bytes() -> None:
     with pytest.raises(ValueError, match="72-byte"):
         hash_auth_db_password("a" * (BCRYPT_MAX_PASSWORD_BYTES + 1), algorithm="bcrypt")

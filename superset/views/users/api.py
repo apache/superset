@@ -271,6 +271,8 @@ class CurrentUserRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
+        if not getattr(g.user, "is_authenticated", False):
+            return self.response_401()
         try:
             if (
                 app.config.get("AUTH_TYPE") == AUTH_DB

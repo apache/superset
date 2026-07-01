@@ -467,6 +467,11 @@ AUTH_TYPE = AUTH_DB
 # ``superset_config`` (partial overrides supported).
 AUTH_DB_CONFIG: dict[str, Any] = dict(AUTH_DB_DEFAULTS)
 
+# How often (seconds) to re-check the session auth stamp against the database on
+# read-only requests (GET/HEAD/OPTIONS). State-changing requests always
+# revalidate. Set to 0 to check on every authenticated request.
+SESSION_AUTH_STAMP_REVALIDATION_SECONDS = 300
+
 # Uncomment to setup Full admin role name
 # AUTH_ROLE_ADMIN = 'Admin'
 

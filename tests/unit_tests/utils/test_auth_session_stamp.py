@@ -30,6 +30,8 @@ from superset.utils.auth_session_stamp import (
     bump_user_session_auth_stamp,
     clear_flask_login_remember_cookie,
     ensure_user_session_stamp_value,
+    SESSION_AUTH_STAMP_VALIDATED_AT_KEY,
+    SESSION_AUTH_STAMP_VALIDATED_DB_STAMP_KEY,
     validate_session_auth_stamp_for_request,
 )
 
@@ -224,3 +226,140 @@ def test_validate_stamp_invalidates_outdated_session_stamp(app: SupersetApp) -> 
             validate_session_auth_stamp_for_request()
 
     mock_logout.assert_called_once()
+
+
+def test_validate_stamp_skips_db_on_recent_safe_request(app: SupersetApp) -> None:
+    """Read-only requests skip the DB round-trip when validated recently."""
+    app.config["AUTH_TYPE"] = AUTH_DB
+    app.config["SESSION_AUTH_STAMP_REVALIDATION_SECONDS"] = 300
+    mock_user = MagicMock()
+    mock_user.is_authenticated = True
+    mock_user.is_guest_user = False
+    mock_user.get_id.return_value = "42"
+
+    mock_session = MagicMock()
+
+    with (
+        app.test_request_context(method="GET"),
+        patch("superset.utils.auth_session_stamp.current_user", mock_user),
+        patch(
+            "superset.utils.auth_session_stamp._get_cached_user_session_stamp",
+            return_value="db-stamp",
+        ),
+        _mock_db_session(mock_session),
+    ):
+        session["_auth_session_stamp"] = "db-stamp"
+        session[SESSION_AUTH_STAMP_VALIDATED_AT_KEY] = 1_700_000_000.0
+        session[SESSION_AUTH_STAMP_VALIDATED_DB_STAMP_KEY] = "db-stamp"
+        with patch(
+            "superset.utils.auth_session_stamp.time.time",
+            return_value=1_700_000_100.0,
+        ):
+            validate_session_auth_stamp_for_request()
+
+    mock_session.begin_nested.assert_not_called()
+
+
+def test_validate_stamp_invalidates_when_cached_stamp_rotated_elsewhere(
+    app: SupersetApp,
+) -> None:
+    """A GET must not skip when another session bumped the shared stamp cache."""
+    app.config["AUTH_TYPE"] = AUTH_DB
+    app.config["SESSION_AUTH_STAMP_REVALIDATION_SECONDS"] = 300
+    mock_user = MagicMock()
+    mock_user.is_authenticated = True
+    mock_user.is_guest_user = False
+    mock_user.get_id.return_value = "42"
+
+    mock_session = MagicMock()
+
+    with (
+        app.test_request_context(method="GET", path="/api/v1/me/"),
+        patch("superset.utils.auth_session_stamp.current_user", mock_user),
+        patch("superset.utils.auth_session_stamp.logout_user") as mock_logout,
+        patch(
+            "superset.utils.auth_session_stamp._get_cached_user_session_stamp",
+            return_value="new-db-stamp",
+        ),
+        _mock_db_session(mock_session),
+    ):
+        session["_auth_session_stamp"] = "old-session-stamp"
+        session[SESSION_AUTH_STAMP_VALIDATED_AT_KEY] = 1_700_000_000.0
+        session[SESSION_AUTH_STAMP_VALIDATED_DB_STAMP_KEY] = "old-session-stamp"
+        with patch(
+            "superset.utils.auth_session_stamp.time.time",
+            return_value=1_700_000_100.0,
+        ):
+            with pytest.raises(Unauthorized, match="Session invalidated"):
+                validate_session_auth_stamp_for_request()
+
+    mock_logout.assert_called_once()
+    mock_session.begin_nested.assert_not_called()
+
+
+def test_validate_stamp_rechecks_db_on_state_changing_request(
+    app: SupersetApp,
+) -> None:
+    """POST requests always revalidate even when a recent check is cached."""
+    app.config["AUTH_TYPE"] = AUTH_DB
+    app.config["SESSION_AUTH_STAMP_REVALIDATION_SECONDS"] = 300
+    mock_user = MagicMock()
+    mock_user.is_authenticated = True
+    mock_user.is_guest_user = False
+    mock_user.get_id.return_value = "42"
+
+    mock_session = MagicMock()
+    mock_row = MagicMock()
+    mock_row.stamp = "db-stamp"
+    mock_session.get.return_value = mock_row
+    nested = MagicMock()
+    mock_session.begin_nested.return_value = nested
+
+    with (
+        app.test_request_context(method="POST"),
+        patch("superset.utils.auth_session_stamp.current_user", mock_user),
+        _mock_db_session(mock_session),
+    ):
+        session["_auth_session_stamp"] = "db-stamp"
+        session[SESSION_AUTH_STAMP_VALIDATED_AT_KEY] = 1_700_000_000.0
+        with patch(
+            "superset.utils.auth_session_stamp.time.time",
+            return_value=1_700_000_100.0,
+        ):
+            validate_session_auth_stamp_for_request()
+
+    mock_session.begin_nested.assert_called_once()
+
+
+def test_validate_stamp_rechecks_db_when_revalidation_ttl_expired(
+    app: SupersetApp,
+) -> None:
+    """Read-only requests revalidate once the configured TTL has elapsed."""
+    app.config["AUTH_TYPE"] = AUTH_DB
+    app.config["SESSION_AUTH_STAMP_REVALIDATION_SECONDS"] = 60
+    mock_user = MagicMock()
+    mock_user.is_authenticated = True
+    mock_user.is_guest_user = False
+    mock_user.get_id.return_value = "42"
+
+    mock_session = MagicMock()
+    mock_row = MagicMock()
+    mock_row.stamp = "db-stamp"
+    mock_session.get.return_value = mock_row
+    nested = MagicMock()
+    mock_session.begin_nested.return_value = nested
+
+    with (
+        app.test_request_context(method="GET"),
+        patch("superset.utils.auth_session_stamp.current_user", mock_user),
+        _mock_db_session(mock_session),
+    ):
+        session["_auth_session_stamp"] = "db-stamp"
+        session[SESSION_AUTH_STAMP_VALIDATED_AT_KEY] = 1_700_000_000.0
+        with patch(
+            "superset.utils.auth_session_stamp.time.time",
+            return_value=1_700_000_100.0,
+        ):
+            validate_session_auth_stamp_for_request()
+
+    mock_session.begin_nested.assert_called_once()

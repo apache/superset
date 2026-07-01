@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 from uuid import uuid4
 
@@ -32,6 +33,59 @@ from superset.utils.decorators import transaction
 logger = logging.getLogger(__name__)
 
 SESSION_AUTH_STAMP_SESSION_KEY = "_auth_session_stamp"
+SESSION_AUTH_STAMP_VALIDATED_AT_KEY = "_auth_session_stamp_validated_at"
+SESSION_AUTH_STAMP_VALIDATED_DB_STAMP_KEY = "_auth_session_stamp_validated_db_stamp"
+
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+_STAMP_CACHE_KEY_PREFIX = "auth_session_stamp:"
+_DEFAULT_STAMP_CACHE_TIMEOUT_SECONDS = 300
+
+
+def _stamp_cache_key(user_id: int) -> str:
+    return f"{_STAMP_CACHE_KEY_PREFIX}{user_id}"
+
+
+def _stamp_cache_timeout_seconds() -> int:
+    from flask import current_app
+
+    revalidation_seconds = int(
+        current_app.config.get("SESSION_AUTH_STAMP_REVALIDATION_SECONDS", 0)
+    )
+    if revalidation_seconds > 0:
+        return revalidation_seconds
+    return _DEFAULT_STAMP_CACHE_TIMEOUT_SECONDS
+
+
+def _get_cached_user_session_stamp(user_id: int) -> str | None:
+    try:
+        from superset.extensions import cache_manager
+
+        cached = cache_manager.cache.get(_stamp_cache_key(user_id))
+    except Exception:  # noqa: BLE001
+        logger.debug(
+            "Unable to read session auth stamp cache for user_id=%s",
+            user_id,
+            exc_info=True,
+        )
+        return None
+    return cached if isinstance(cached, str) else None
+
+
+def _cache_user_session_stamp(user_id: int, stamp: str) -> None:
+    try:
+        from superset.extensions import cache_manager
+
+        cache_manager.cache.set(
+            _stamp_cache_key(user_id),
+            stamp,
+            timeout=_stamp_cache_timeout_seconds(),
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug(
+            "Unable to write session auth stamp cache for user_id=%s",
+            user_id,
+            exc_info=True,
+        )
 
 
 def register_session_auth_stamp_hook(app: Flask) -> None:
@@ -102,9 +156,11 @@ def sync_session_auth_stamp_on_login(user: Any) -> None:
     uid = getattr(user, "id", None)
     if uid is None:
         return
-    stamp = ensure_user_session_stamp_value(int(uid))
+    user_id = int(uid)
+    stamp = ensure_user_session_stamp_value(user_id)
     session[SESSION_AUTH_STAMP_SESSION_KEY] = stamp
-    session.modified = True
+    _mark_session_stamp_validated(stamp)
+    _cache_user_session_stamp(user_id, stamp)
 
 
 @transaction()
@@ -118,6 +174,7 @@ def bump_user_session_auth_stamp(user_id: int) -> None:
         try:
             with db.session.begin_nested():
                 db.session.add(UserSessionAuthStamp(user_id=user_id, stamp=new_stamp))
+            _cache_user_session_stamp(user_id, new_stamp)
             return
         except IntegrityError:
             row = db.session.get(UserSessionAuthStamp, user_id)
@@ -129,6 +186,7 @@ def bump_user_session_auth_stamp(user_id: int) -> None:
                 )
                 raise
     row.stamp = new_stamp
+    _cache_user_session_stamp(user_id, new_stamp)
 
 
 def _resolve_stamp_check_user_id() -> int | None:
@@ -166,11 +224,80 @@ def _resolve_stamp_check_user_id() -> int | None:
         return None
 
 
+def _should_skip_stamp_db_lookup(
+    user_id: int, method: str, sess_stamp: str | None
+) -> bool:
+    """Return True when a recent DB check lets us skip another on read-only traffic."""
+    from flask import current_app
+
+    if method not in _SAFE_METHODS or sess_stamp is None:
+        return False
+
+    revalidation_seconds = int(
+        current_app.config.get("SESSION_AUTH_STAMP_REVALIDATION_SECONDS", 0)
+    )
+    if revalidation_seconds <= 0:
+        return False
+
+    validated_at = session.get(SESSION_AUTH_STAMP_VALIDATED_AT_KEY)
+    if validated_at is None:
+        return False
+    try:
+        elapsed = time.time() - float(validated_at)
+    except (TypeError, ValueError):
+        return False
+    if elapsed >= revalidation_seconds:
+        return False
+
+    # Only skip when this session still carries the stamp we last validated and
+    # the shared cache agrees (so password rotation on another client is visible).
+    if session.get(SESSION_AUTH_STAMP_VALIDATED_DB_STAMP_KEY) != sess_stamp:
+        return False
+    cached_stamp = _get_cached_user_session_stamp(user_id)
+    return cached_stamp == sess_stamp
+
+
+def _mark_session_stamp_validated(db_stamp: str | None = None) -> None:
+    session[SESSION_AUTH_STAMP_VALIDATED_AT_KEY] = time.time()
+    if db_stamp is not None:
+        session[SESSION_AUTH_STAMP_VALIDATED_DB_STAMP_KEY] = db_stamp
+    session.modified = True
+
+
+def _load_db_stamp_for_user(
+    user_id: int, *, use_cache: bool = True
+) -> tuple[str | None, bool]:
+    """
+    Return ``(stamp, db_error)``.
+
+    ``db_error`` is True when the database lookup failed and the check should
+    fail open. ``stamp`` is None when no row exists.
+    """
+    from superset.models.user_session_auth_stamp import UserSessionAuthStamp
+
+    cached_stamp = _get_cached_user_session_stamp(user_id)
+    if use_cache and cached_stamp is not None:
+        return cached_stamp, False
+
+    try:
+        with db.session.begin_nested():
+            row = db.session.get(UserSessionAuthStamp, user_id)
+            db_stamp = row.stamp if row is not None else None
+    except SQLAlchemyError:
+        logger.warning(
+            "Skipping session auth stamp check due to a database error",
+            exc_info=True,
+        )
+        return None, True
+
+    if db_stamp is not None:
+        _cache_user_session_stamp(user_id, db_stamp)
+    return db_stamp, False
+
+
 def validate_session_auth_stamp_for_request() -> None:
     """Drop login when the session cookie carries an outdated stamp for this user."""
     from flask import request as flask_request
-
-    from superset.models.user_session_auth_stamp import UserSessionAuthStamp
 
     user_id = _resolve_stamp_check_user_id()
     if user_id is None:
@@ -181,28 +308,22 @@ def validate_session_auth_stamp_for_request() -> None:
         )
         return
 
-    # Read the stamp as a plain Python string inside the savepoint so the
-    # comparison never touches an expired SQLAlchemy attribute.  In SQLAlchemy
-    # 1.4, releasing a savepoint (exiting begin_nested) can expire all loaded
-    # ORM objects when expire_on_commit is True; accessing row.stamp after the
-    # block would force a reload whose result depends on the outer transaction
-    # state.  Capturing it as a local string avoids that entirely.
-    db_stamp: str | None = None
-    try:
-        # Use a savepoint so a DB failure (e.g. missing table during a rolling
-        # deploy) only rolls back the nested transaction, not the outer one.
-        # Rolling back the outer session expires every object in it — including
-        # the current_user — and causes DetachedInstanceError in later hooks.
-        with db.session.begin_nested():
-            row = db.session.get(UserSessionAuthStamp, user_id)
-            db_stamp = row.stamp if row is not None else None
-    except SQLAlchemyError:
-        # Fail open: skip the check rather than turning every authenticated
-        # request into a 500.
-        logger.warning(
-            "Skipping session auth stamp check due to a database error",
-            exc_info=True,
+    sess_stamp = session.get(SESSION_AUTH_STAMP_SESSION_KEY)
+    if _should_skip_stamp_db_lookup(user_id, flask_request.method, sess_stamp):
+        logger.debug(
+            "Session auth stamp DB check skipped (recently validated) for user_id=%s "
+            "on %s %s",
+            user_id,
+            flask_request.method,
+            flask_request.path,
         )
+        return
+
+    db_stamp, db_error = _load_db_stamp_for_user(
+        user_id,
+        use_cache=flask_request.method in _SAFE_METHODS,
+    )
+    if db_error:
         return
 
     if db_stamp is None:
@@ -224,7 +345,6 @@ def validate_session_auth_stamp_for_request() -> None:
     # A missing stamp means the session predates stamp tracking (or was never
     # stamped). Once a DB stamp row exists, adopting it silently would let such
     # a session survive a password change, so treat a missing stamp as invalid.
-    sess_stamp = session.get(SESSION_AUTH_STAMP_SESSION_KEY)
     logger.debug(
         "Validating session stamp for user_id=%s on %s %s: sess_stamp=%s, db_stamp=%s",
         user_id,
@@ -240,7 +360,8 @@ def validate_session_auth_stamp_for_request() -> None:
         # still invalidates sessions that carry an outdated non-null stamp.
         if sess_stamp is None and db_stamp is not None:
             session[SESSION_AUTH_STAMP_SESSION_KEY] = db_stamp
-            session.modified = True
+            _mark_session_stamp_validated(db_stamp)
+            _cache_user_session_stamp(user_id, db_stamp)
             return
         logger.info(
             "Session stamp mismatch for user_id=%s on %s %s: invalidating session",
@@ -255,3 +376,5 @@ def validate_session_auth_stamp_for_request() -> None:
         from werkzeug.exceptions import Unauthorized
 
         raise Unauthorized("Session invalidated")
+
+    _mark_session_stamp_validated(db_stamp)

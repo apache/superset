@@ -22,7 +22,7 @@ import re
 
 import bcrypt
 from argon2 import PasswordHasher
-from argon2.exceptions import InvalidHash, VerifyMismatchError
+from argon2.exceptions import Argon2Error
 from werkzeug.security import check_password_hash
 
 from superset.utils.auth_db_password import (
@@ -86,7 +86,7 @@ def verify_auth_db_password(password_hash: str, password: str) -> bool:
         try:
             _argon2_hasher.verify(password_hash, password)
             return True
-        except (VerifyMismatchError, InvalidHash):
+        except Argon2Error:
             return False
     try:
         return check_password_hash(password_hash, password)
