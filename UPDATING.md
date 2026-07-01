@@ -24,6 +24,17 @@ assists people when migrating to a new version.
 
 ## Next
 
+### SQL Lab denies large-object and information_schema access by default
+
+`DISALLOWED_SQL_FUNCTIONS` and `DISALLOWED_SQL_TABLES` now ship with additional default entries, so SQL Lab and chart-data queries that reference them are rejected where they were previously allowed:
+
+- PostgreSQL large-object routines (`lo_from_bytea`, `lo_export`, `lo_import`, `lo_put`, `lo_create`, `lo_creat`, `lowrite`, `lo_get`, `loread`, `lo_unlink`), which read and write bytes on the database server's filesystem.
+- The SQL-standard `information_schema` views (`tables`, `columns`, `routines`, `views`, the privilege/grant views, etc.), which expose table, column, privilege, and view-definition metadata across the whole database.
+
+Deployments that legitimately query these (for example tooling that introspects `information_schema`) can restore the previous behavior by overriding `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` in `superset_config.py` to drop the entries they need.
+
+Because the denylist now resolves the effective schema through the query-aware path, PostgreSQL queries that change the `search_path` (e.g. `SET search_path = ...`) are rejected on the SQL Lab execution and cost-estimate paths whenever any `DISALLOWED_SQL_TABLES` entry is configured (the default for PostgreSQL), matching the behavior previously applied only when `RLS_IN_SQLLAB` was enabled.
+
 ### SQL parser input length cap (SQL_MAX_PARSE_LENGTH)
 
 The SQL parser now rejects scripts whose UTF-8 byte length exceeds the new

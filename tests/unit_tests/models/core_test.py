@@ -1560,6 +1560,45 @@ def test_database_execute_async_without_options(mocker: MockerFixture) -> None:
     assert result == mock_handle
 
 
+def test_resolve_query_default_schema_builds_probe(mocker: MockerFixture) -> None:
+    """``resolve_query_default_schema`` builds a transient probe Query carrying
+    the request's SQL/schema/catalog and resolves through the query-aware
+    ``get_default_schema_for_query`` (which runs per-query engine security
+    gates), forwarding template params."""
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    resolve_mock = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved_schema"
+    )
+
+    result = database.resolve_query_default_schema(
+        "SELECT 1", "explicit", "cat", {"p": 1}
+    )
+
+    assert result == "resolved_schema"
+    probe, template_params = resolve_mock.call_args.args
+    assert probe.sql == "SELECT 1"
+    assert probe.schema == "explicit"
+    assert probe.catalog == "cat"
+    assert template_params == {"p": 1}
+
+
+def test_resolve_query_default_schema_normalizes_blank_schema(
+    mocker: MockerFixture,
+) -> None:
+    """A blank request schema reaches the probe as ``None`` so the engine spec
+    resolves it, rather than matching on an empty string."""
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    resolve_mock = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="public"
+    )
+
+    database.resolve_query_default_schema("SELECT 1", "", None)
+
+    probe = resolve_mock.call_args.args[0]
+    assert probe.schema is None
+    assert probe.catalog is None
+
+
 def test_clear_bootstrap_cache_logs_warning_on_failure(
     mocker: MockerFixture,
 ) -> None:
