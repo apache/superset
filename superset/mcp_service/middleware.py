@@ -1056,6 +1056,7 @@ class FieldPermissionsMiddleware(Middleware):
         "get_dashboard_info": "dashboard",
         "generate_dashboard": "dashboard",
         "add_chart_to_existing_dashboard": "dashboard",
+        "remove_chart_from_dashboard": "dashboard",
     }
 
     async def on_call_tool(
