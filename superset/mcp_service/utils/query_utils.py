@@ -14,3 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+"""Shared query validation utilities for MCP tools."""
+
+import difflib
+
+
+def validate_names(
+    requested: list[str],
+    valid: set[str],
+    kind: str,
+) -> list[str]:
+    """Return list of error messages for names not found in *valid*.
+
+    Includes close-match suggestions when available.
+    """
+    errors: list[str] = []
+    for name in requested:
+        if name not in valid:
+            suggestions = difflib.get_close_matches(name, valid, n=3, cutoff=0.6)
+            msg = f"Unknown {kind}: '{name}'"
+            if suggestions:
+                msg += f". Did you mean: {', '.join(suggestions)}?"
+            errors.append(msg)
+    return errors

@@ -202,6 +202,29 @@ class SemanticViewDAO(BaseDAO[SemanticView], AbstractSemanticViewDAO):
         )
 
     @classmethod
+    def find_accessible(cls) -> list[SemanticView]:
+        """Return all views the current user can access, filtered at SQL level.
+
+        Mirrors the permission filter in ``DatasourceDAO.build_semantic_view_query``
+        to avoid per-row Python-level access checks when listing all views.
+        """
+        from sqlalchemy import or_
+
+        query = db.session.query(SemanticView)
+        if not security_manager.can_access_all_datasources():
+            perms = security_manager.user_view_menu_names("datasource_access")
+            query = query.outerjoin(
+                SemanticLayer,
+                SemanticLayer.uuid == SemanticView.semantic_layer_uuid,
+            ).filter(
+                or_(
+                    SemanticView.perm.in_(perms),
+                    SemanticLayer.perm.in_(perms),
+                )
+            )
+        return query.all()
+
+    @classmethod
     def find_by_name(cls, name: str, layer_uuid: str) -> SemanticView | None:
         """
         Find semantic view by name within a semantic layer.

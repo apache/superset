@@ -157,6 +157,7 @@ async def get_compatible_metrics(
         # External semantic view path
         # ------------------------------------------------------------------
         from superset.daos.semantic_layer import SemanticViewDAO
+        from superset.exceptions import SupersetSecurityException
 
         view_id: int = request.view_id  # type: ignore[assignment]
         with event_logger.log_context(action="mcp.get_compatible_metrics.external"):
@@ -166,6 +167,14 @@ async def get_compatible_metrics(
             return SemanticLayerError.create(
                 error=f"No semantic view found with id: {view_id}.",
                 error_type="NotFound",
+            )
+
+        try:
+            view.raise_for_access()
+        except SupersetSecurityException as ex:
+            return SemanticLayerError.create(
+                error=str(ex.error.message),
+                error_type="AccessDenied",
             )
 
         compatible_names = view.get_compatible_metrics(

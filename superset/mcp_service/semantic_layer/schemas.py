@@ -25,17 +25,16 @@ from pydantic import BaseModel, Field
 
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.common.cache_schemas import CacheStatus
+from superset.mcp_service.common.error_schemas import MCPBaseError
 
 # ---------------------------------------------------------------------------
 # Shared error schema
 # ---------------------------------------------------------------------------
 
 
-class SemanticLayerError(BaseModel):
+class SemanticLayerError(MCPBaseError):
     """Error response returned by semantic layer tools."""
 
-    error: str
-    error_type: str
     success: Literal[False] = False
 
     @classmethod

@@ -32,7 +32,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
-from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
+from superset.mcp_service.chart.schemas import PerformanceMetadata
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     requires_data_model_metadata_access,
@@ -45,6 +45,8 @@ from superset.mcp_service.semantic_layer.schemas import (
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
+from superset.mcp_service.utils.query_utils import validate_names
+from superset.mcp_service.utils.response_utils import format_data_columns
 
 logger = logging.getLogger(__name__)
 
@@ -76,44 +78,6 @@ def _build_query_dict(
             (col, not request.order_desc) for col in request.order_by
         ]
     return query_dict
-
-
-def _format_columns(
-    data: list[dict[str, Any]], raw_columns: list[str]
-) -> list[DataColumn]:
-    stats_rows = data[:5000]
-    columns_meta: list[DataColumn] = []
-    for col_name in raw_columns:
-        sample_values = [
-            row.get(col_name) for row in data[:3] if row.get(col_name) is not None
-        ]
-        data_type = "string"
-        if sample_values:
-            if all(isinstance(v, bool) for v in sample_values):
-                data_type = "boolean"
-            elif all(isinstance(v, (int, float)) for v in sample_values):
-                data_type = "numeric"
-
-        null_count = 0
-        unique_vals: set[str] = set()
-        for row in stats_rows:
-            val = row.get(col_name)
-            if val is None:
-                null_count += 1
-            else:
-                unique_vals.add(str(val))
-
-        columns_meta.append(
-            DataColumn(
-                name=col_name,
-                display_name=col_name.replace("_", " ").title(),
-                data_type=data_type,
-                sample_values=sample_values[:3],
-                null_count=null_count,
-                unique_count=len(unique_vals),
-            )
-        )
-    return columns_meta
 
 
 @tool(
@@ -208,10 +172,12 @@ async def get_table(  # noqa: C901
         # ------------------------------------------------------------------
         # Resolve datasource for metadata (time column, display name)
         # ------------------------------------------------------------------
-        await ctx.report_progress(1, 4, "Resolving data source")
+        await ctx.report_progress(1, 5, "Resolving data source")
         display_name: str = f"{'Dataset' if is_builtin else 'View'} {datasource_id}"
         time_col: str | None = request.time_column
         warnings: list[str] = []
+        valid_columns: set[str] = set()
+        valid_metrics: set[str] = set()
 
         if is_builtin:
             from sqlalchemy.orm import subqueryload
@@ -233,6 +199,8 @@ async def get_table(  # noqa: C901
                     error_type="NotFound",
                 )
             display_name = dataset.table_name
+            valid_columns = {c.column_name for c in dataset.columns}
+            valid_metrics = {m.metric_name for m in dataset.metrics}
             if time_col is None and request.time_range:
                 time_col = getattr(dataset, "main_dttm_col", None)
                 if not time_col:
@@ -245,6 +213,7 @@ async def get_table(  # noqa: C901
                     )
         else:
             from superset.daos.semantic_layer import SemanticViewDAO
+            from superset.exceptions import SupersetSecurityException
 
             with event_logger.log_context(action="mcp.get_table.resolve_view"):
                 view = SemanticViewDAO.find_by_id(datasource_id)
@@ -253,7 +222,16 @@ async def get_table(  # noqa: C901
                     error=f"No semantic view found with id: {request.view_id}.",
                     error_type="NotFound",
                 )
+            try:
+                view.raise_for_access()
+            except SupersetSecurityException as ex:
+                return SemanticLayerError.create(
+                    error=str(ex.error.message),
+                    error_type="AccessDenied",
+                )
             display_name = view.name
+            valid_columns = {c.column_name for c in view.columns}
+            valid_metrics = {m.metric_name for m in view.metrics}
             if time_col is None and request.time_range:
                 # Use first datetime dimension as the time column
                 dttm_cols = [c for c in view.columns if c.is_dttm]
@@ -267,13 +245,41 @@ async def get_table(  # noqa: C901
                     time_col = None
 
         # ------------------------------------------------------------------
+        # Validate requested metrics and dimensions against the datasource
+        # ------------------------------------------------------------------
+        await ctx.report_progress(2, 5, "Validating metrics and dimensions")
+        validation_errors: list[str] = []
+        validation_errors.extend(
+            validate_names(request.dimensions, valid_columns, "dimension")
+        )
+        validation_errors.extend(
+            validate_names(request.metrics, valid_metrics, "metric")
+        )
+        filter_cols = [f.col for f in request.filters]
+        validation_errors.extend(
+            validate_names(filter_cols, valid_columns, "filter column")
+        )
+        if request.order_by:
+            valid_orderby = valid_columns | valid_metrics
+            validation_errors.extend(
+                validate_names(request.order_by, valid_orderby, "order_by")
+            )
+        if validation_errors:
+            error_msg = "; ".join(validation_errors)
+            await ctx.error("Validation failed: %s" % (error_msg,))
+            return SemanticLayerError.create(
+                error=error_msg,
+                error_type="ValidationError",
+            )
+
+        # ------------------------------------------------------------------
         # Build and execute query
         # ------------------------------------------------------------------
-        await ctx.report_progress(2, 4, "Building query")
+        await ctx.report_progress(3, 5, "Building query")
         query_dict = _build_query_dict(request, time_col)
 
         await ctx.debug("Query dict: %s" % (sorted(query_dict.keys()),))
-        await ctx.report_progress(3, 4, "Executing query")
+        await ctx.report_progress(4, 5, "Executing query")
         start_time = time.time()
 
         with event_logger.log_context(action="mcp.get_table.execute"):
@@ -299,7 +305,7 @@ async def get_table(  # noqa: C901
         # ------------------------------------------------------------------
         # Format response
         # ------------------------------------------------------------------
-        await ctx.report_progress(4, 4, "Formatting results")
+        await ctx.report_progress(5, 5, "Formatting results")
         query_result = result["queries"][0]
         data = query_result.get("data", [])
         raw_columns = query_result.get("colnames", [])
@@ -326,7 +332,7 @@ async def get_table(  # noqa: C901
                 warnings=warnings,
             )
 
-        columns_meta = _format_columns(data, raw_columns)
+        columns_meta = format_data_columns(data, raw_columns)
         cache_status = get_cache_status_from_result(
             query_result, force_refresh=request.force_refresh
         )

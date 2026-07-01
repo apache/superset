@@ -22,7 +22,6 @@ Query a dataset using its semantic layer (saved metrics, calculated columns,
 dimensions) without requiring a saved chart.
 """
 
-import difflib
 import logging
 import time
 from typing import Any
@@ -35,7 +34,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
-from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
+from superset.mcp_service.chart.schemas import PerformanceMetadata
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     QueryDatasetFilter,
@@ -50,6 +49,8 @@ from superset.mcp_service.privacy import (
 from superset.mcp_service.utils import _is_uuid
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
+from superset.mcp_service.utils.query_utils import validate_names
+from superset.mcp_service.utils.response_utils import format_data_columns
 
 logger = logging.getLogger(__name__)
 
@@ -78,26 +79,6 @@ def _resolve_dataset(identifier: int | str, eager_options: list[Any]) -> Any | N
         return DatasetDAO.find_by_id(identifier, id_column="uuid", query_options=opts)
 
     return None
-
-
-def _validate_names(
-    requested: list[str],
-    valid: set[str],
-    kind: str,
-) -> list[str]:
-    """Return list of error messages for names not found in *valid*.
-
-    Includes close-match suggestions when available.
-    """
-    errors: list[str] = []
-    for name in requested:
-        if name not in valid:
-            suggestions = difflib.get_close_matches(name, valid, n=3, cutoff=0.6)
-            msg = f"Unknown {kind}: '{name}'"
-            if suggestions:
-                msg += f". Did you mean: {', '.join(suggestions)}?"
-            errors.append(msg)
-    return errors
 
 
 @requires_data_model_metadata_access
@@ -210,21 +191,21 @@ async def query_dataset(  # noqa: C901
 
         validation_errors: list[str] = []
         validation_errors.extend(
-            _validate_names(request.columns, valid_columns, "column")
+            validate_names(request.columns, valid_columns, "column")
         )
         validation_errors.extend(
-            _validate_names(request.metrics, valid_metrics, "metric")
+            validate_names(request.metrics, valid_metrics, "metric")
         )
         # Validate filter column names against dataset columns
         filter_cols = [f.col for f in request.filters]
         validation_errors.extend(
-            _validate_names(filter_cols, valid_columns, "filter column")
+            validate_names(filter_cols, valid_columns, "filter column")
         )
         # Validate order_by names against columns + metrics
         if request.order_by:
             valid_orderby = valid_columns | valid_metrics
             validation_errors.extend(
-                _validate_names(request.order_by, valid_orderby, "order_by")
+                validate_names(request.order_by, valid_orderby, "order_by")
             )
 
         if validation_errors:
@@ -379,44 +360,7 @@ async def query_dataset(  # noqa: C901
                 warnings=warnings,
             )
 
-        # Build column metadata in a single pass per column.
-        # Cap stats computation at STATS_SAMPLE rows to avoid O(rows*cols)
-        # overhead on large result sets (row_limit allows up to 50k).
-        stats_sample_size = 5000
-        stats_rows = data[:stats_sample_size]
-
-        columns_meta: list[DataColumn] = []
-        for col_name in raw_columns:
-            sample_values = [
-                row.get(col_name) for row in data[:3] if row.get(col_name) is not None
-            ]
-            data_type = "string"
-            if sample_values:
-                if all(isinstance(v, bool) for v in sample_values):
-                    data_type = "boolean"
-                elif all(isinstance(v, (int, float)) for v in sample_values):
-                    data_type = "numeric"
-
-            # Compute null_count and unique non-null values in one pass
-            null_count = 0
-            unique_vals: set[str] = set()
-            for row in stats_rows:
-                val = row.get(col_name)
-                if val is None:
-                    null_count += 1
-                else:
-                    unique_vals.add(str(val))
-
-            columns_meta.append(
-                DataColumn(
-                    name=col_name,
-                    display_name=col_name.replace("_", " ").title(),
-                    data_type=data_type,
-                    sample_values=sample_values[:3],
-                    null_count=null_count,
-                    unique_count=len(unique_vals),
-                )
-            )
+        columns_meta = format_data_columns(data, raw_columns)
 
         cache_status = get_cache_status_from_result(
             query_result, force_refresh=request.force_refresh

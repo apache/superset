@@ -73,6 +73,7 @@ def _collect_builtin_metrics(request: ListMetricsRequest) -> list[MetricInfo]:
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.dataset import DatasetDAO
+    from superset.extensions import db
 
     with event_logger.log_context(action="mcp.list_metrics.builtin_query"):
         if request.dataset_id is not None:
@@ -85,7 +86,13 @@ def _collect_builtin_metrics(request: ListMetricsRequest) -> list[MetricInfo]:
             )
             datasets = [dataset] if dataset else []
         else:
-            datasets = DatasetDAO.find_all()
+            # Use _apply_base_filter with explicit eager loading to avoid
+            # N+1 queries when iterating dataset.metrics / dataset.columns.
+            query = db.session.query(SqlaTable).options(
+                subqueryload(SqlaTable.columns),
+                subqueryload(SqlaTable.metrics),
+            )
+            datasets = DatasetDAO._apply_base_filter(query).all()
 
     results: list[MetricInfo] = []
     for dataset in datasets:
@@ -131,12 +138,17 @@ async def _collect_external_metrics(
             view = SemanticViewDAO.find_by_id(request.view_id)
             views = [view] if view else []
         else:
-            views = SemanticViewDAO.find_all()
+            # find_accessible filters at SQL level, avoiding a per-row
+            # Python permission check and the audit noise of raise_for_access.
+            views = SemanticViewDAO.find_accessible()
 
     await ctx.debug("Found %d semantic views to scan for metrics" % len(views))
 
     results: list[MetricInfo] = []
     for view in views:
+        # raise_for_access must be called outside the broad except block below
+        # so that auth errors are never silently swallowed.
+        view.raise_for_access()
         try:
             raw_metrics = view.metrics
             raw_cols = view.columns if request.include_compatible_dimensions else []
