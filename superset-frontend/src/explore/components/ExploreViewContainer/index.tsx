@@ -1166,8 +1166,12 @@ function mapStateToProps(state: ExploreRootState) {
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
 
-  // exclude clientView from extra_form_data; keep other ownState pieces
-  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, ['clientView']);
+  // exclude clientView and metricSqlExpressions from extra_form_data;
+  // metricSqlExpressions is runtime-only and must not be serialised to chart params
+  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, [
+    'clientView',
+    'metricSqlExpressions',
+  ]);
 
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
