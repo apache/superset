@@ -165,6 +165,11 @@ export class DashboardPage {
     const count = await holders.count();
     for (let i = 0; i < count; i += 1) {
       const chartId = await holders.nth(i).getAttribute('data-test-chart-id');
+      if (!chartId) {
+        throw new Error(
+          `Chart holder ${i} is missing its data-test-chart-id attribute`,
+        );
+      }
       await this.page
         .locator(`#chart-id-${chartId}`)
         .waitFor({ state: 'visible', timeout });

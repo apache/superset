@@ -34,7 +34,7 @@
  * CI red   => the dashboard failed to load or a chart never rendered.
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPost, apiPut } from '../../helpers/api/requests';
+import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { TIMEOUT } from '../../utils/constants';
@@ -86,11 +86,15 @@ testWithAssets(
       },
     ];
 
+    // Parallel-safe suffix so chart/dashboard names never collide across workers.
+    const uniqueSuffix = `${Date.now()}_${testWithAssets.info().parallelIndex}`;
+
     // Create each chart via the API.
-    const chartIds: number[] = [];
+    const charts: { id: number; sliceName: string }[] = [];
     for (const spec of chartSpecs) {
-      const resp = await apiPost(page, 'api/v1/chart/', {
-        slice_name: `load_smoke_${spec.viz_type}_${Date.now()}`,
+      const sliceName = `load_smoke_${spec.viz_type}_${uniqueSuffix}`;
+      const resp = await apiPostChart(page, {
+        slice_name: sliceName,
         viz_type: spec.viz_type,
         datasource_id: datasetId,
         datasource_type: 'table',
@@ -98,10 +102,16 @@ testWithAssets(
       });
       expect(resp.ok()).toBe(true);
       const body = await resp.json();
-      const chartId: number = body.id ?? body.result?.id;
+      const chartId: number = body.result?.id ?? body.id;
+      if (!chartId) {
+        throw new Error(
+          `Chart creation for ${spec.viz_type} returned no id: ${JSON.stringify(body)}`,
+        );
+      }
       testAssets.trackChart(chartId);
-      chartIds.push(chartId);
+      charts.push({ id: chartId, sliceName });
     }
+    const chartIds = charts.map(chart => chart.id);
 
     // Lay all charts out in a single row.
     const chartKeys = chartIds.map(id => `CHART-${id}`);
@@ -132,13 +142,13 @@ testWithAssets(
           chartId,
           width: 4,
           height: 50,
-          sliceName: `load_smoke_${index}`,
+          sliceName: charts[index].sliceName,
         },
       };
     });
 
     const dashResp = await apiPostDashboard(page, {
-      dashboard_title: `load_smoke_${Date.now()}`,
+      dashboard_title: `load_smoke_${uniqueSuffix}`,
       published: true,
       position_json: JSON.stringify(positionJson),
     });
@@ -148,13 +158,8 @@ testWithAssets(
     testAssets.trackDashboard(dashboardId);
 
     // Associate every chart with the dashboard so they actually render.
-    await apiPut(page, `api/v1/chart/${chartIds[0]}`, {
-      dashboards: [dashboardId],
-    });
-    for (let i = 1; i < chartIds.length; i += 1) {
-      await apiPut(page, `api/v1/chart/${chartIds[i]}`, {
-        dashboards: [dashboardId],
-      });
+    for (const chartId of chartIds) {
+      await apiPutChart(page, chartId, { dashboards: [dashboardId] });
     }
 
     // Record the real chart-data round-trips the dashboard makes on load.
