@@ -1051,7 +1051,11 @@ class TestNormalizePivotTableColumnRefs:
             chart_type="pivot_table",
             rows=[ColumnRef(name="ProductLine")],
             metrics=[
-                ColumnRef(name=None, sql_expression="SUM(Sales * 1.1)"),
+                ColumnRef(
+                    name=None,
+                    sql_expression="SUM(Sales * 1.1)",
+                    label="Adjusted Sales",
+                ),
                 ColumnRef(name="sales", aggregate="AVG"),
             ],
         )
