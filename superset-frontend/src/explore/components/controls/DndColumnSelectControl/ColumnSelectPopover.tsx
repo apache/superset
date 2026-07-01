@@ -281,11 +281,20 @@ const ColumnSelectPopover = ({
     [columnMap, metricMap, onSimpleColumnChange, onSimpleMetricChange],
   );
 
-  const defaultActiveTabKey = initialAdhocColumn
-    ? 'sqlExpression'
-    : selectedCalculatedColumn
-      ? 'saved'
-      : 'simple';
+  // Pick the most natural starting tab, but never one that's disabled —
+  // semantic-view contexts disable Simple and Custom SQL, leaving Saved.
+  let defaultActiveTabKey: string;
+  if (initialAdhocColumn && !disabledTabs.has('sqlExpression')) {
+    defaultActiveTabKey = 'sqlExpression';
+  } else if (selectedCalculatedColumn && !disabledTabs.has('saved')) {
+    defaultActiveTabKey = 'saved';
+  } else if (!disabledTabs.has('simple')) {
+    defaultActiveTabKey = 'simple';
+  } else if (!disabledTabs.has('saved')) {
+    defaultActiveTabKey = 'saved';
+  } else {
+    defaultActiveTabKey = 'sqlExpression';
+  }
 
   useEffect(() => {
     getCurrentTab(defaultActiveTabKey);
@@ -501,8 +510,15 @@ const ColumnSelectPopover = ({
                 },
               ]),
           {
+            // The Simple tab is rendered even when disabled (mirroring how
+            // Custom SQL behaves below) so users see all the options that
+            // could exist in another context and understand why they're
+            // unavailable here. Semantic-view contexts disable it because
+            // dimensions there are pre-defined items in the semantic model,
+            // not physical columns to wrap.
             key: TABS_KEYS.SIMPLE,
             label: t('Simple'),
+            disabled: disabledTabs.has('simple'),
             children: (
               <>
                 {isTemporal && simpleColumns.length === 0 ? (

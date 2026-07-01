@@ -128,6 +128,44 @@ test('open with Saved tab selected when there is a saved column selected', () =>
   expect(getByText('Custom SQL')).toHaveAttribute('aria-selected', 'false');
 });
 
+test('disables Custom SQL for semantic views but keeps Simple enabled', () => {
+  // Semantic-view contexts disable the Custom SQL tab (ad-hoc SQL doesn't
+  // apply to pre-defined semantic-model items). Simple stays enabled — SV
+  // dimensions carry ``expression=`` empty, which routes them into the
+  // Simple tab's list, and disabling that tab would leave the dimensions
+  // unreachable in the popover.
+  const store = mockStore({
+    explore: { datasource: { type: 'semantic_view' } },
+  });
+  const { getByText } = render(
+    <ColumnSelectPopover
+      columns={[{ column_name: 'year' }]}
+      editedColumn={undefined}
+      getCurrentTab={jest.fn()}
+      onChange={jest.fn()}
+      hasCustomLabel
+      isTemporal={false}
+      label="Custom Label"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={jest.fn()}
+      disabledTabs={new Set(['sqlExpression'])}
+    />,
+    { store },
+  );
+
+  // Simple is enabled and selected by default (no adhoc/saved column
+  // to steer initial selection elsewhere).
+  expect(getByText('Simple')).not.toHaveAttribute('aria-disabled', 'true');
+  expect(getByText('Simple')).toHaveAttribute('aria-selected', 'true');
+  // Saved remains enabled but is not the initial tab.
+  expect(getByText('Saved')).not.toHaveAttribute('aria-disabled', 'true');
+  expect(getByText('Saved')).toHaveAttribute('aria-selected', 'false');
+  // Custom SQL is greyed out and unselected.
+  expect(getByText('Custom SQL')).toHaveAttribute('aria-disabled', 'true');
+  expect(getByText('Custom SQL')).toHaveAttribute('aria-selected', 'false');
+});
+
 test('open with Custom SQL tab selected when there is a custom SQL selected', () => {
   const { getByText } = renderPopover({
     columns: [{ column_name: 'year' }],
