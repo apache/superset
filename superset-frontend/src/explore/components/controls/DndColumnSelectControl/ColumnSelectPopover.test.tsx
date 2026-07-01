@@ -128,17 +128,18 @@ test('open with Saved tab selected when there is a saved column selected', () =>
   expect(getByText('Custom SQL')).toHaveAttribute('aria-selected', 'false');
 });
 
-test('shows Simple and Custom SQL as disabled when disabledTabs requests it', () => {
-  // Semantic-view contexts disable both Simple and Custom SQL so only
-  // "Saved" is offered, matching how SV metrics behave in the metric
-  // popover. The disabled tabs stay visible (greyed out) so users see all
-  // the options that could exist in another context.
+test('disables Custom SQL for semantic views but keeps Simple enabled', () => {
+  // Semantic-view contexts disable the Custom SQL tab (ad-hoc SQL doesn't
+  // apply to pre-defined semantic-model items). Simple stays enabled — SV
+  // dimensions carry ``expression=`` empty, which routes them into the
+  // Simple tab's list, and disabling that tab would leave the dimensions
+  // unreachable in the popover.
   const store = mockStore({
     explore: { datasource: { type: 'semantic_view' } },
   });
   const { getByText } = render(
     <ColumnSelectPopover
-      columns={[{ column_name: 'year', expression: 'year' } as any]}
+      columns={[{ column_name: 'year' }]}
       editedColumn={undefined}
       getCurrentTab={jest.fn()}
       onChange={jest.fn()}
@@ -148,16 +149,19 @@ test('shows Simple and Custom SQL as disabled when disabledTabs requests it', ()
       onClose={jest.fn()}
       setDatasetModal={jest.fn()}
       setLabel={jest.fn()}
-      disabledTabs={new Set(['simple', 'sqlExpression'])}
+      disabledTabs={new Set(['sqlExpression'])}
     />,
     { store },
   );
 
-  expect(getByText('Saved')).toHaveAttribute('aria-selected', 'true');
-  // Simple and Custom SQL stay rendered but are marked disabled by Antd and
-  // are not the initially selected tab.
-  expect(getByText('Simple')).toHaveAttribute('aria-disabled', 'true');
-  expect(getByText('Simple')).toHaveAttribute('aria-selected', 'false');
+  // Simple is enabled and selected by default (no adhoc/saved column
+  // to steer initial selection elsewhere).
+  expect(getByText('Simple')).not.toHaveAttribute('aria-disabled', 'true');
+  expect(getByText('Simple')).toHaveAttribute('aria-selected', 'true');
+  // Saved remains enabled but is not the initial tab.
+  expect(getByText('Saved')).not.toHaveAttribute('aria-disabled', 'true');
+  expect(getByText('Saved')).toHaveAttribute('aria-selected', 'false');
+  // Custom SQL is greyed out and unselected.
   expect(getByText('Custom SQL')).toHaveAttribute('aria-disabled', 'true');
   expect(getByText('Custom SQL')).toHaveAttribute('aria-selected', 'false');
 });

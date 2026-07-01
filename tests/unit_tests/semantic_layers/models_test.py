@@ -506,11 +506,6 @@ def test_semantic_view_columns(
         assert columns[1].column_name == "category"
         assert columns[1].type == "string"
         assert columns[1].is_dttm is False
-        # ``expression`` carries the dimension definition so the explore
-        # column picker routes SV dimensions to the "Saved" tab, matching
-        # how SV metrics behave (no Simple/Custom SQL path is supported).
-        assert columns[0].expression == "orders.order_date"
-        assert columns[1].expression == "products.category"
 
 
 def test_semantic_view_column_names(
@@ -640,10 +635,6 @@ def test_semantic_view_data(
         assert data["columns"][1]["column_name"] == "category"
         assert data["columns"][1]["type"] == "string"
         assert data["columns"][1]["type_generic"] == GenericDataType.STRING
-        # ``expression`` carries the dimension definition so the explore
-        # column picker routes SV dimensions to the "Saved" tab.
-        assert data["columns"][0]["expression"] == "orders.order_date"
-        assert data["columns"][1]["expression"] == "products.category"
 
         # Check metrics
         assert len(data["metrics"]) == 2
