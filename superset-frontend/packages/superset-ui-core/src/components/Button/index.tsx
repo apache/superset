@@ -155,8 +155,7 @@ function ButtonInner(props: ButtonProps, ref: Ref<HTMLElement>) {
     ctaMinWidth: styleConfig?.ctaMinWidth ?? theme.sizeUnit * 36,
     ctaMinHeight: styleConfig?.ctaMinHeight ?? theme.sizeUnit * 8,
     iconGap: styleConfig?.iconGap ?? theme.sizeUnit * 2,
-    borderRadius:
-      styleConfig?.borderRadius ?? defaultBorderRadius,
+    borderRadius: styleConfig?.borderRadius ?? defaultBorderRadius,
   };
 
   const {
