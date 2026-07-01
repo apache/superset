@@ -31,6 +31,7 @@ def mock_dataset() -> MagicMock:
     dataset = MagicMock(spec=SqlaTable)
     dataset.table_name = "test_table"
     dataset.schema = "test_schema"
+    dataset.catalog = None
     dataset.is_virtual = False
 
     # Mock the database engine and dialect for identifier quoting
@@ -243,7 +244,7 @@ def test_detect_column_format_query_has_no_is_not_null(
     captured_sql: list[str] = []
     original_get_df = mock_dataset.database.get_df
 
-    def capture_sql(sql: str, schema: str) -> pd.DataFrame:
+    def capture_sql(sql: str, catalog: str | None, schema: str | None) -> pd.DataFrame:
         captured_sql.append(sql)
         return original_get_df.return_value
 
