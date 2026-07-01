@@ -86,9 +86,7 @@ def compute_thumbnails(
         # Materialize the id and label up front. Computing a thumbnail below can
         # close/expire the session, which detaches the ORM instances and makes
         # str(model) raise DetachedInstanceError on subsequent iterations.
-        items: list[tuple[int, str]] = [
-            (model.id, str(model)) for model in query.all()
-        ]
+        items: list[tuple[int, str]] = [(model.id, str(model)) for model in query.all()]
         count: int = len(items)
         func: Callable[..., Any]
         action: str
