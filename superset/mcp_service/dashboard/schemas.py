@@ -103,6 +103,7 @@ from superset.mcp_service.system.schemas import (
     SubjectInfo,
     TagInfo,
 )
+from superset.mcp_service.user.schemas import UserInfo
 from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
@@ -1081,6 +1082,261 @@ class UpdateDashboardResponse(BaseModel):
             "title was altered by sanitization."
         ),
     )
+
+
+class ManageDashboardOwnersRequest(BaseModel):
+    """Request schema for explicit add/remove dashboard owner management.
+
+    Unlike ``update_dashboard``'s dropped ``owners`` field (a full-replacement
+    list with no safety guard, so an empty or partial list could silently
+    orphan a dashboard), this tool takes explicit add/remove operations and
+    rejects any change that would leave the dashboard with zero owners.
+    """
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dashboard ID (integer), UUID, or slug. Same identifier shape "
+            "accepted by ``get_dashboard_info``."
+        ),
+    )
+    add_owner_ids: List[int] = Field(
+        default_factory=list,
+        description=(
+            "User IDs to add as dashboard owners. Discover IDs with ``find_users``."
+        ),
+    )
+    remove_owner_ids: List[int] = Field(
+        default_factory=list,
+        description=(
+            "User IDs to remove from dashboard owners. Rejected if it would "
+            "leave the dashboard with zero owners, or if an ID is not "
+            "currently an owner."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _validate_operations(self) -> "ManageDashboardOwnersRequest":
+        if not self.add_owner_ids and not self.remove_owner_ids:
+            raise ValueError(
+                "At least one of add_owner_ids or remove_owner_ids is required."
+            )
+        overlap = sorted(set(self.add_owner_ids) & set(self.remove_owner_ids))
+        if overlap:
+            raise ValueError(
+                "User IDs cannot appear in both add_owner_ids and "
+                f"remove_owner_ids: {overlap}."
+            )
+        return self
+
+
+class ManageDashboardOwnersResponse(BaseModel):
+    """Response schema for ``manage_dashboard_owners``."""
+
+    owners: List[UserInfo] = Field(
+        default_factory=list,
+        description="Full list of dashboard owners after the operation.",
+    )
+    dashboard_url: str | None = Field(None, description="URL to view the dashboard")
+    added_owner_ids: List[int] = Field(
+        default_factory=list,
+        description="User IDs actually added as owners by this call.",
+    )
+    removed_owner_ids: List[int] = Field(
+        default_factory=list,
+        description="User IDs actually removed from owners by this call.",
+    )
+    warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Non-fatal advisory messages, e.g. that a non-admin caller was "
+            "automatically re-added as owner after trying to remove "
+            "themselves."
+        ),
+    )
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=("True when the user lacks edit rights on the target dashboard."),
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context."""
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+
+class ManageDashboardRolesRequest(BaseModel):
+    """Request schema for explicit add/remove dashboard RBAC role management.
+
+    Unlike ``update_dashboard``'s dropped ``roles`` field (a full-replacement
+    access-control list), this tool takes explicit add/remove operations.
+    """
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dashboard ID (integer), UUID, or slug. Same identifier shape "
+            "accepted by ``get_dashboard_info``."
+        ),
+    )
+    add_role_ids: List[int] = Field(
+        default_factory=list,
+        description=(
+            "Role IDs to grant dashboard access to. Discover IDs with ``list_roles``."
+        ),
+    )
+    remove_role_ids: List[int] = Field(
+        default_factory=list,
+        description=(
+            "Role IDs to revoke dashboard access from. Rejected if an ID is "
+            "not currently assigned to the dashboard."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _validate_operations(self) -> "ManageDashboardRolesRequest":
+        if not self.add_role_ids and not self.remove_role_ids:
+            raise ValueError(
+                "At least one of add_role_ids or remove_role_ids is required."
+            )
+        overlap = sorted(set(self.add_role_ids) & set(self.remove_role_ids))
+        if overlap:
+            raise ValueError(
+                "Role IDs cannot appear in both add_role_ids and "
+                f"remove_role_ids: {overlap}."
+            )
+        return self
+
+
+class ManageDashboardRolesResponse(BaseModel):
+    """Response schema for ``manage_dashboard_roles``."""
+
+    roles: List[RoleInfo] = Field(
+        default_factory=list,
+        description="Full list of dashboard access roles after the operation.",
+    )
+    dashboard_url: str | None = Field(None, description="URL to view the dashboard")
+    added_role_ids: List[int] = Field(
+        default_factory=list,
+        description="Role IDs actually added by this call.",
+    )
+    removed_role_ids: List[int] = Field(
+        default_factory=list,
+        description="Role IDs actually removed by this call.",
+    )
+    dashboard_rbac_enabled: bool = Field(
+        default=False,
+        description=(
+            "Whether the DASHBOARD_RBAC feature flag is enabled on this "
+            "instance. When False, dashboard roles are stored but have no "
+            "effect on access control — access still follows normal "
+            "Superset permissions/ownership."
+        ),
+    )
+    warnings: List[str] = Field(
+        default_factory=list, description="Non-fatal advisory messages."
+    )
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=("True when the user lacks edit rights on the target dashboard."),
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context."""
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+
+class ManageDashboardCertificationRequest(BaseModel):
+    """Request schema for setting or clearing dashboard certification.
+
+    ``certified_by`` and ``certification_details`` are independent optional
+    fields: omit (None) to leave a field unchanged, pass an empty string to
+    clear it, or pass a value to set it — mirrors the ``slug``/``css``
+    clear-with-empty-string convention on ``update_dashboard``.
+    """
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dashboard ID (integer), UUID, or slug. Same identifier shape "
+            "accepted by ``get_dashboard_info``."
+        ),
+    )
+    certified_by: str | None = Field(
+        None,
+        max_length=500,
+        description=(
+            "Person or team certifying this dashboard. Pass an empty string "
+            "to clear. Omit (None) to leave unchanged."
+        ),
+    )
+    certification_details: str | None = Field(
+        None,
+        max_length=5000,
+        description=(
+            "Details of the certification (why/how it was certified). Pass "
+            "an empty string to clear. Omit (None) to leave unchanged."
+        ),
+    )
+
+    @field_validator("certified_by")
+    @classmethod
+    def sanitize_certified_by(cls, v: str | None) -> str | None:
+        """Sanitize certified_by to prevent XSS; it renders as a UI badge."""
+        if v is None or v == "":
+            return v
+        return sanitize_user_input(v, "certified_by", max_length=500, allow_empty=True)
+
+
+class ManageDashboardCertificationResponse(BaseModel):
+    """Response schema for ``manage_dashboard_certification``."""
+
+    certified_by: str | None = Field(
+        None, description="Certifying person/team after the operation."
+    )
+    certification_details: str | None = Field(
+        None, description="Certification details after the operation."
+    )
+    dashboard_url: str | None = Field(None, description="URL to view the dashboard")
+    changed_fields: List[str] = Field(
+        default_factory=list,
+        description="Names of fields that were actually applied.",
+    )
+    warnings: List[str] = Field(
+        default_factory=list, description="Non-fatal advisory messages."
+    )
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=("True when the user lacks edit rights on the target dashboard."),
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context."""
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+    @field_validator("certified_by", "certification_details")
+    @classmethod
+    def sanitize_output_for_llm_context(
+        cls, value: str | None, info: Any
+    ) -> str | None:
+        """Wrap dashboard-controlled certification text before LLM exposure."""
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=(info.field_name,))
 
 
 class GenerateDashboardResponse(BaseModel):
