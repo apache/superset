@@ -63,7 +63,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import { FileEncryptedExtraFields } from 'src/views/CRUD/types';
 import { useCommonConf } from 'src/features/databases/state';
-import { isEmpty, pick } from 'lodash';
+import { isEmpty, pick } from 'lodash-es';
 import { OnlyKeyWithType } from 'src/utils/types';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
@@ -940,7 +940,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       const errors = await getValidation(dbToUpdate, true);
-      if (!isEmpty(validationErrors) || errors?.length) {
+      if (!isEmpty(validationErrors) || !isEmpty(errors)) {
         addDangerToast(
           t('Connection failed, please check your connection settings.'),
         );
@@ -1208,9 +1208,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           // For all other options, sort alphabetically
           return String(a.label).localeCompare(String(b.label));
         }}
-        getPopupContainer={triggerNode =>
-          triggerNode.parentElement || document.body
-        }
+        getPopupContainer={() => document.body}
         dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
       />
       <Alert

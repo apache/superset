@@ -17,12 +17,12 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { noop } from 'lodash';
+import { noop } from 'lodash-es';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { css, styled } from '@apache-superset/core/theme';
 import { useComponentDidUpdate } from '@superset-ui/core';
 import { Grid } from '@superset-ui/core/components';
-import { views } from 'src/core';
+import { useViews } from 'src/core';
 import { Splitter } from 'src/components/Splitter';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
@@ -96,7 +96,7 @@ const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
       setRightWidth(possibleRightWidth);
     }
   };
-  const viewItems = views.getViews(ViewLocations.sqllab.rightSidebar) || [];
+  const viewItems = useViews(ViewLocations.sqllab.rightSidebar) || [];
 
   return (
     <StyledContainer>

@@ -10,11 +10,11 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'PR number to sync'
+        description: "PR number to sync"
         required: true
         type: number
       sha:
-        description: 'Specific SHA to deploy (optional, defaults to latest)'
+        description: "Specific SHA to deploy (optional, defaults to latest)"
         required: false
         type: string
 
@@ -152,7 +152,7 @@ jobs:
 
       - name: Checkout PR code (only if build needed)
         if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ steps.check.outputs.target_sha }}
           persist-credentials: false

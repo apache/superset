@@ -58,7 +58,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { navigateWithState, navigateTo } from 'src/utils/navigationUtils';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
@@ -160,27 +160,48 @@ export function toggleFaveStar(isStarred: boolean): ToggleFaveStarAction {
 }
 
 export function fetchFaveStar(id: number) {
-  return function fetchFaveStarThunk(dispatch: AppDispatch) {
+  return function fetchFaveStarThunk(
+    dispatch: AppDispatch,
+    getState: GetState,
+  ) {
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/favorite_status/?q=${rison.encode([id])}`,
     })
       .then(({ json }: { json: JsonObject }) => {
-        dispatch(toggleFaveStar(!!(json?.result as JsonObject[])?.[0]?.value));
+        // Only update state if this is still the current dashboard
+        // This prevents stale responses from affecting the UI after navigation
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            toggleFaveStar(!!(json?.result as JsonObject[])?.[0]?.value),
+          );
+        }
       })
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'There was an issue fetching the favorite status of this dashboard.',
+      .catch(error => {
+        // A 404 means the favorite status isn't available to this user (a
+        // non-owner viewing a draft dashboard, or a dashboard deleted after
+        // navigation) — swallow it silently instead of alarming them.
+        if (error instanceof Response && error.status === 404) {
+          return;
+        }
+        // Only show the error if this is still the current dashboard (prevents
+        // toasts for dashboards the user already navigated away from).
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(
+              t(
+                'There was an issue fetching the favorite status of this dashboard.',
+              ),
             ),
-          ),
-        ),
-      );
+          );
+        }
+      });
   };
 }
 
 export function saveFaveStar(id: number, isStarred: boolean) {
-  return function saveFaveStarThunk(dispatch: AppDispatch) {
+  return function saveFaveStarThunk(dispatch: AppDispatch, getState: GetState) {
     const endpoint = `/api/v1/dashboard/${id}/favorites/`;
     const apiCall = isStarred
       ? SupersetClient.delete({
@@ -190,13 +211,21 @@ export function saveFaveStar(id: number, isStarred: boolean) {
 
     return apiCall
       .then(() => {
-        dispatch(toggleFaveStar(!isStarred));
+        // Only update state if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(toggleFaveStar(!isStarred));
+        }
       })
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('There was an issue favoriting this dashboard.')),
-        ),
-      );
+      .catch(() => {
+        // Only show error if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(t('There was an issue favoriting this dashboard.')),
+          );
+        }
+      });
   };
 }
 
@@ -214,8 +243,11 @@ export function togglePublished(isPublished: boolean): TogglePublishedAction {
 export function savePublished(
   id: number,
   isPublished: boolean,
-): (dispatch: AppDispatch) => Promise<void> {
-  return function savePublishedThunk(dispatch: AppDispatch): Promise<void> {
+): (dispatch: AppDispatch, getState: GetState) => Promise<void> {
+  return function savePublishedThunk(
+    dispatch: AppDispatch,
+    getState: GetState,
+  ): Promise<void> {
     return SupersetClient.put({
       endpoint: `/api/v1/dashboard/${id}`,
       headers: { 'Content-Type': 'application/json' },
@@ -224,21 +256,30 @@ export function savePublished(
       }),
     })
       .then(() => {
-        dispatch(
-          addSuccessToast(
-            isPublished
-              ? t('This dashboard is now published')
-              : t('This dashboard is now hidden'),
-          ),
-        );
-        dispatch(togglePublished(isPublished));
+        // Only update state if this is still the current dashboard
+        // This prevents stale responses from affecting the UI after navigation
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addSuccessToast(
+              isPublished
+                ? t('This dashboard is now published')
+                : t('This dashboard is now hidden'),
+            ),
+          );
+          dispatch(togglePublished(isPublished));
+        }
       })
       .catch(() => {
-        dispatch(
-          addDangerToast(
-            t('You do not have permissions to edit this dashboard.'),
-          ),
-        );
+        // Only show error if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(
+              t('You do not have permissions to edit this dashboard.'),
+            ),
+          );
+        }
       });
   };
 }
@@ -453,6 +494,7 @@ export function saveDashboardRequest(
       owners,
       roles,
       slug,
+      description,
       tags,
     } = data;
 
@@ -485,6 +527,7 @@ export function saveDashboardRequest(
             hasId(r) ? r.id : r,
           ),
       slug: slug || null,
+      description: description || null,
       tags: !isFeatureEnabled(FeatureFlag.TaggingSystem)
         ? undefined
         : ensureIsArray((tags || []) as JsonObject[]).map((r: JsonObject) =>
@@ -636,6 +679,7 @@ export function saveDashboardRequest(
               css: cleanedData.css,
               dashboard_title: cleanedData.dashboard_title,
               slug: cleanedData.slug,
+              description: cleanedData.description,
               owners: cleanedData.owners,
               roles: cleanedData.roles,
               tags: cleanedData.tags || [],

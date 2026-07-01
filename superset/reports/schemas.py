@@ -270,13 +270,14 @@ class ReportSchedulePostSchema(Schema):
         },
         allow_none=True,
         required=False,
-        default=None,
+        dump_default=None,
     )
 
     @validates("custom_width")
     def validate_custom_width(
         self,
         value: Optional[int],
+        **kwargs: Any,
     ) -> None:
         if value is None:
             return
@@ -432,13 +433,14 @@ class ReportSchedulePutSchema(Schema):
         },
         allow_none=True,
         required=False,
-        default=None,
+        dump_default=None,
     )
 
     @validates("custom_width")
     def validate_custom_width(
         self,
         value: Optional[int],
+        **kwargs: Any,
     ) -> None:
         if value is None:
             return
@@ -467,3 +469,15 @@ class SlackChannelSchema(Schema):
     name = fields.String()
     is_member = fields.Boolean()
     is_private = fields.Boolean()
+
+
+class ReportScheduleExecuteResponseSchema(Schema):
+    """Schema for the response when executing a report schedule immediately."""
+
+    class Meta:
+        unknown = EXCLUDE
+
+    execution_id = fields.UUID(
+        metadata={"description": _("UUID to track the execution status")}
+    )
+    message = fields.String(metadata={"description": _("Success message")})

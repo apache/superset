@@ -86,5 +86,10 @@ export default styled(CountryMap)`
       cursor: pointer;
       stroke: ${theme.colorSplit};
     }
+
+    .superset-legacy-chart-country-map .hover-popup.popup-at-bottom {
+      transform: translateY(-150%);
+    }
+
   `}
 `;
