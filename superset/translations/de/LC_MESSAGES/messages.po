@@ -195,15 +195,12 @@ msgstr "\"%s\" ist jetzt das dunkle Systemdesign"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" ist jetzt das Standarddesign des Systems"
 
-#, python-format
 msgid "% calculation"
 msgstr "% Berechnung"
 
-#, python-format
 msgid "% of parent"
 msgstr "% von Elternteil"
 
-#, python-format
 msgid "% of total"
 msgstr "% von Gesamtsumme"
 
@@ -260,7 +257,9 @@ msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s anstelle von \"%(undefinedParameter)s\"?"
+msgstr[0] ""
+"%(firstSuggestions)s oder %(lastSuggestion)s anstelle von "
+"\"%(undefinedParameter)s\"?"
 msgstr[1] ""
 "%(firstSuggestions)s oder %(lastSuggestion)s anstelle von "
 "\"%(undefinedParameter)s\"?"
@@ -1294,13 +1293,13 @@ msgstr "Hinzugefügt"
 #, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Dem virtuellen Datensatz wurde 1 neue Spalte hinzugefügt"
+msgstr[0] "Dem virtuellen Datensatz wurde %s neue Spalte hinzugefügt"
 msgstr[1] "Dem virtuellen Datensatz wurden %s neue Spalten hinzugefügt"
 
 #, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "Zu 1 Dashboard hinzugefügt"
+msgstr[0] "Zu %s Dashboard hinzugefügt"
 msgstr[1] "Zu %s Dashboards hinzugefügt"
 
 msgid "Additional Parameters"
@@ -1404,10 +1403,16 @@ msgstr ""
 "Aggregatfunktion, die auf die Liste der Punkte in jedem Cluster "
 "angewendet wird, um die Clusterbeschriftung zu erstellen."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
+# zh, zh_TW]
+#, fuzzy
 msgid ""
 "Aggregate function to apply when pivoting and computing the total rows "
 "and columns"
 msgstr ""
+"Aggregatfunktion, die beim Pivotieren und Berechnen der Gesamtzeilen und "
+"-spalten angewendet wird"
 
 msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
@@ -1826,6 +1831,13 @@ msgstr "Beim Abrufen des Registerkartenstatus ist ein Fehler aufgetreten"
 #, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "Beim Abrufen von Tabellen-Metadaten für %s ist ein Fehler aufgetreten"
+
+msgid ""
+"An error occurred while fetching table metadata. Please contact your "
+"administrator."
+msgstr ""
+"Beim Abrufen von Tabellen-Metadaten ist ein Fehler aufgetreten. Wenden "
+"Sie sich an Ihre*n Administrator*in."
 
 msgid "An error occurred while fetching the configuration schema"
 msgstr "Beim Abrufen des Konfigurationsschemas ist ein Fehler aufgetreten"
@@ -2696,6 +2708,11 @@ msgstr "CC-Empfänger"
 
 msgid "COPY QUERY"
 msgstr "ABFRAGE KOPIEREN"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Copy query"
+msgstr "Abfrage kopieren"
 
 msgid "CREATE TABLE AS"
 msgstr "CREATE TABLE AS"
@@ -4642,8 +4659,10 @@ msgstr "Datenbankeinstellungen aktualisiert"
 msgid "Database type does not support file uploads."
 msgstr "Der Datenbanktyp unterstützt keine Datei-Uploads."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
 msgid "Database upload file exceeds the maximum allowed size."
-msgstr ""
+msgstr "Die hochgeladene Datenbankdatei überschreitet die maximal zulässige Größe."
 
 msgid "Database upload file failed"
 msgstr "Datenbank-Upload fehlgeschlagen"
@@ -6553,6 +6572,11 @@ msgstr "FEB"
 msgid "FIT DATA"
 msgstr "DATEN EINPASSEN"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Fit data"
+msgstr "An Daten anpassen"
+
 msgid "FRI"
 msgstr "FR"
 
@@ -7930,6 +7954,9 @@ msgstr ""
 "Schlüssel werden bei der Erstellung nur einmal angezeigt. Bewahren Sie "
 "sie sicher auf."
 
+msgid "Keys for table"
+msgstr "Schlüssel für Tabelle"
+
 msgid "Kilometers"
 msgstr "Kilometer"
 
@@ -8878,7 +8905,7 @@ msgstr "Geändert %s"
 #, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Eine Spalte im virtuellen Datensatz geändert"
+msgstr[0] "%s Spalte im virtuellen Datensatz geändert"
 msgstr[1] "%s Spalten im virtuellen Datensatz geändert"
 
 msgid "Modified by"
@@ -10738,7 +10765,7 @@ msgstr "Abfrage aus Protokoll entfernen"
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Eine Spalte aus dem virtuellen Datensatz entfernt"
+msgstr[0] "%s Spalte aus dem virtuellen Datensatz entfernt"
 msgstr[1] "%s Spalten aus dem virtuellen Datensatz entfernt"
 
 msgid "Rename tab"
@@ -17408,9 +17435,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "'operation'-Eigenschaft des Nachbearbeitungsobjekts undefiniert"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy, python-format
 msgid "`periods` must be between 1 and %(max)s"
-msgstr ""
+msgstr "`periods` muss zwischen 1 und %(max)s liegen"
 
 msgid "`prophet` package not installed"
 msgstr "Paket 'prophet' nicht installiert"

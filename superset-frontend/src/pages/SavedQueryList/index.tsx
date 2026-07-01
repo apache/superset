@@ -232,7 +232,7 @@ function SavedQueryList({
     icon: <Icons.PlusOutlined iconSize="m" />,
     name: t('Query'),
     buttonStyle: 'primary',
-    'data-test': 'query-button',
+    'data-test': 'add-saved-query-button',
     onClick: () => {
       // React Router's basename already includes the application root; passing
       // a relative path ensures correct navigation under subdirectory deployments.

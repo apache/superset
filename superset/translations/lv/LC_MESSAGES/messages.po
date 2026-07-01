@@ -213,15 +213,12 @@ msgstr "\"%s\" tagad ir sistēmas tumšais motīvs"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" tagad ir sistēmas noklusējuma motīvs"
 
-#, python-format
 msgid "% calculation"
 msgstr "% aprēķins"
 
-#, python-format
 msgid "% of parent"
 msgstr "% no vecāka"
 
-#, python-format
 msgid "% of total"
 msgstr "% no kopējā"
 
@@ -249,11 +246,15 @@ msgstr "%(object)s neeksistē šajā datubāzē."
 msgid "%(prefix)s %(title)s"
 msgstr "%(prefix)s %(title)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "%(prefix)sResults truncated to %(row_count)s rows due to memory "
 "constraints."
 msgstr ""
+"%(prefix)sRezultāti saīsināti līdz %(row_count)s rindām atmiņas "
+"ierobežojumu dēļ."
 
 #, python-format
 msgid ""
@@ -274,7 +275,9 @@ msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s, nevis \"%(undefinedParameter)s\"?"
+msgstr[0] ""
+"%(firstSuggestions)s vai %(lastSuggestion)s vietā "
+"\"%(undefinedParameter)s\"?"
 msgstr[1] ""
 "%(firstSuggestions)s vai %(lastSuggestion)s vietā "
 "\"%(undefinedParameter)s\"?"
@@ -340,9 +343,11 @@ msgstr "%s atlasīts (fizisks)"
 msgid "%s Selected (Virtual)"
 msgstr "%s atlasīts (virtuāls)"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "%s Semantic View"
-msgstr ""
+msgstr "%s Semantiskais skats"
 
 #, python-format
 msgid "%s URL"
@@ -494,17 +499,23 @@ msgstr[0] "5 sekundes"
 msgstr[1] ""
 msgstr[2] ""
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "%s semantic view(s) added"
-msgstr ""
+msgstr "%s semantiskais(-ie) skats(-i) pievienots(-i)"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "%s semantic view(s) failed to add"
-msgstr ""
+msgstr "Neizdevās pievienot %s semantisko(-os) skatu(-s)"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "%s semantic view(s) failed to add: %s"
-msgstr ""
+msgstr "Neizdevās pievienot %s semantisko(-os) skatu(-s): %s"
 
 #, python-format
 msgid "%s tab selected"
@@ -841,13 +852,19 @@ msgstr "JavaScript funkcija, kas ģenerē apzīmējumu konfigurācijas objektu"
 msgid "A JavaScript function that generates an icon configuration object"
 msgstr "JavaScript funkcija, kas ģenerē ikonas konfigurācijas objektu"
 
-#, python-brace-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-brace-format
 msgid ""
 "A JavaScript object that adheres to the ECharts options specification, "
 "overriding other control options with higher precedence. (i.e. { title: {"
 " text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Details: "
 "https://echarts.apache.org/en/option.html. "
 msgstr ""
+"JavaScript objekts, kas atbilst ECharts opciju specifikācijai un "
+"pārraksta citas vadīklu opcijas ar augstāku prioritāti. (piemēram, { "
+"title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Sīkāka "
+"informācija: https://echarts.apache.org/en/option.html. "
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
@@ -1017,11 +1034,17 @@ msgstr "Loma ir veiksmīgi izveidota."
 msgid "API key name is required"
 msgstr "Tabulas nosaukums ir obligāts"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
+# sr_Latn]
+#, fuzzy
 msgid "API key revoked successfully"
-msgstr ""
+msgstr "API atslēga veiksmīgi atsaukta"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy
 msgid "API keys allow scoped programmatic access to Superset."
-msgstr ""
+msgstr "API atslēgas nodrošina ierobežotu programmatisko piekļuvi Superset."
 
 msgid "APPLY"
 msgstr "LIETOT"
@@ -2111,11 +2134,17 @@ msgstr ""
 "pārliecinieties, ka avota vaicājums atbilst slīdošajā logā definētajam "
 "minimālajam periodu skaitam."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Applies only when \"Cell bars\" formatting is selected: the background of"
 " the histogram columns is displayed if the \"Show cell bars\" flag is "
 "enabled."
 msgstr ""
+"Attiecas tikai tad, kad atlasīts formatēšanas veids \"Šūnu joslas\": "
+"histogrammas kolonnu fons tiek parādīts, ja ir iespējots karogs \"Rādīt "
+"šūnu joslas\"."
 
 msgid "Apply"
 msgstr "Lietot"
@@ -2300,13 +2329,19 @@ msgstr "Automātiski"
 msgid "Auto Zoom"
 msgstr "Automātiskā tālummaiņa"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Auto refresh paused (set to %s seconds)"
-msgstr ""
+msgstr "Automātiskā atsvaidzināšana apturēta (iestatīta uz %s sekundēm)"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Auto refresh paused - tab inactive (set to %s seconds)"
 msgstr ""
+"Automātiskā atsvaidzināšana apturēta – cilne neaktīva (iestatīta uz %s "
+"sekundēm)"
 
 #, fuzzy, python-format
 msgid "Auto refresh set to %s seconds"
@@ -2437,8 +2472,11 @@ msgstr "Bāzes augstums"
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Pamata slāņa kartes stils. Skatīt Mapbox dokumentāciju: %s"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...)."
-msgstr ""
+msgstr "Pamatslāņa kartes stils. Pieņem Mapbox stila URL (mapbox://styles/...)."
 
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
@@ -2702,11 +2740,17 @@ msgstr "CSS veidnes"
 msgid "CSS applied to the chart"
 msgstr "CSS, kas piemērots diagrammai"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "CSS styles may be removed by server-side HTML sanitization. If styles are"
 " not applying, ask your Superset administrator to adjust the HTML "
 "sanitization configuration."
 msgstr ""
+"CSS stili var tikt noņemti servera puses HTML sanitizācijas procesā. Ja "
+"stili netiek piemēroti, lūdziet savam Superset administratoram pielāgot "
+"HTML sanitizācijas konfigurāciju."
 
 msgid "CSS template"
 msgstr "CSS veidne"
@@ -2825,8 +2869,11 @@ msgstr "Atcelt"
 msgid "Cancel query on window unload event"
 msgstr "Atcelt vaicājumu, aizverot logu"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Cancellation not available due to missing abort handler"
-msgstr ""
+msgstr "Atcelšana nav pieejama, jo trūkst pārtraukšanas apstrādātāja"
 
 msgid "Cannot access the query"
 msgstr "Nevar piekļūt vaicājumam"
@@ -3029,9 +3076,11 @@ msgstr "Simbols, ko interpretēt kā decimālpunktu"
 msgid "Chart"
 msgstr "Diagramma"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Chart %(chart_id)s is not on dashboard %(dashboard_id)s"
-msgstr ""
+msgstr "Diagramma %(chart_id)s neatrodas informācijas panelī %(dashboard_id)s"
 
 #, python-format
 msgid "Chart %(id)s not found"
@@ -3512,11 +3561,17 @@ msgstr "Krāsu paletes tips"
 msgid "Color Steps"
 msgstr "Krāsu soļi"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Color bars by x-axis"
-msgstr ""
+msgstr "Krāsot joslas pēc x-ass"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Color bars by y-axis"
-msgstr ""
+msgstr "Krāsot joslas pēc y-ass"
 
 msgid "Color bounds"
 msgstr "Krāsu robežas"
@@ -3527,8 +3582,11 @@ msgstr "Krāsu pārtraukuma punkti"
 msgid "Color by"
 msgstr "Krāsot pēc"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
-msgstr ""
+msgstr "Krāsas laukam jābūt heksadecimālai krāsai (#rrggbb) vai 'rgb(r, g, b)'"
 
 msgid "Color for breakpoint"
 msgstr "Pārtraukuma punkta krāsa"
@@ -3652,8 +3710,11 @@ msgstr "Datu kopā trūkst kolonnu: %(invalid_columns)s"
 msgid "Columns missing in datasource: %(invalid_columns)s"
 msgstr "Datu avotā trūkst kolonnu: %(invalid_columns)s"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Columns should be inside folders"
-msgstr ""
+msgstr "Kolonnām jāatrodas mapēs"
 
 msgid "Columns subtotal position"
 msgstr "Kolonnu starpsummas pozīcija"
@@ -3873,9 +3934,11 @@ msgstr "Savienojums neizdevās, lūdzu, pārbaudiet savienojuma iestatījumus."
 msgid "Contains"
 msgstr "Satur"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Contains text (ILIKE %x%)"
-msgstr ""
+msgstr "Satur tekstu (ILIKE %x%)"
 
 msgid "Content format"
 msgstr "Satura formāts"
@@ -4192,8 +4255,11 @@ msgstr "Pielāgots SQL"
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Pielāgoti SQL ad-hoc rādītāji nav iespējoti šai datu kopai"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
-msgstr ""
+msgstr "Pielāgotos SQL laukus nevar parsēt kā vienu SQL priekšrakstu."
 
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
@@ -4590,8 +4656,10 @@ msgstr "Datubāzes iestatījumi atjaunināti"
 msgid "Database type does not support file uploads."
 msgstr "Datubāzes tips neatbalsta failu augšupielādi."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
 msgid "Database upload file exceeds the maximum allowed size."
-msgstr ""
+msgstr "Datubāzes augšupielādes fails pārsniedz maksimālo atļauto izmēru."
 
 msgid "Database upload file failed"
 msgstr "Datubāzes faila augšupielāde neizdevās"
@@ -4944,12 +5012,14 @@ msgstr ""
 msgid "Definition"
 msgstr "novirze"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Delayed (missed %s refresh)"
 msgid_plural "Delayed (missed %s refreshes)"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "Aizkavēts (nokavēts %s atsvaidzinājums)"
+msgstr[1] "Aizkavēts (nokavēti %s atsvaidzinājumi)"
+msgstr[2] "Aizkavēts (nokavēti %s atsvaidzinājumu)"
 
 msgid "Delete"
 msgstr "Dzēst"
@@ -5202,12 +5272,19 @@ msgstr "Detaļas"
 msgid "Details of the certification"
 msgstr "Sertifikācijas detaļas"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Determines how the filter matches values. \"Exact match\" uses the IN "
 "operator (default). ILIKE options enable partial text matching with a "
 "free-text input. Warning: ILIKE queries may be slow on large datasets as "
 "they cannot use indexes effectively."
 msgstr ""
+"Nosaka, kā filtrs saskaņo vērtības. \"Precīza atbilstība\" izmanto IN "
+"operatoru (noklusējums). ILIKE opcijas iespējo daļēju teksta saskaņošanu "
+"ar brīva teksta ievadi. Brīdinājums: ILIKE vaicājumi var darboties lēni "
+"uz lielām datu kopām, jo tie nevar efektīvi izmantot indeksus."
 
 msgid "Determines how whiskers and outliers are calculated."
 msgstr "Nosaka, kā tiek aprēķināti ūsas un novirzes."
@@ -5232,11 +5309,18 @@ msgstr "Tumši pelēks"
 msgid "Dimension"
 msgstr "Dimensija"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Dimension column emitted as a cross-filter when a feature is clicked. "
 "Other charts on the dashboard match against this column. If unset, falls "
 "back to the geometry column (legacy behavior, often unmatchable)."
 msgstr ""
+"Dimensijas kolonna, kas tiek izstādīta kā šķērsfilts, noklikšķinot uz "
+"elementa. Citas informācijas paneļa diagrammas saskaņojas ar šo kolonnu. "
+"Ja nav iestatīts, tiek izmantota ģeometrijas kolonna (mantotā darbība, "
+"bieži nav saskaņojama)."
 
 msgid "Dimension is required"
 msgstr "Dimensija ir nepieciešama"
@@ -5679,8 +5763,11 @@ msgstr "Dinamiski izvēlēties grupēšanas kolonnas no datu kopas"
 msgid "ECharts"
 msgstr "ECharts"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "ECharts Options (JS object literals)"
-msgstr ""
+msgstr "ECharts opcijas (JS objektu literāļi)"
 
 msgid "EMAIL_REPORTS_CTA"
 msgstr "EMAIL_REPORTS_CTA"
@@ -6119,9 +6206,11 @@ msgstr "Kļūda, iegūstot atzīmētos objektus"
 msgid "Error deleting %s"
 msgstr "Kļūda, dzēšot %s"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Error disabling fullscreen: %s"
-msgstr ""
+msgstr "Kļūda, atspējojot pilnekrāna režīmu: %s"
 
 #, fuzzy, python-format
 msgid "Error enabling fullscreen: %s"
@@ -6250,8 +6339,11 @@ msgstr "Evolūcija"
 msgid "Exact"
 msgstr "Precīzs"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Exact match (IN)"
-msgstr ""
+msgstr "Precīza atbilstība (IN)"
 
 msgid "Example"
 msgstr "Piemērs"
@@ -6433,8 +6525,11 @@ msgstr "Papildinājumi"
 msgid "Extent"
 msgstr "Apjoms"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "External link warning"
-msgstr ""
+msgstr "Brīdinājums par ārēju saiti"
 
 msgid "Extra"
 msgstr "Papildu"
@@ -6894,8 +6989,11 @@ msgstr "Piespiest"
 msgid "Force Time Grain as Max Interval"
 msgstr "Iestatīt laika graudu kā maksimālo intervālu"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Force abort (stops task for all subscribers)"
-msgstr ""
+msgstr "Piespiedu pārtraukšana (aptur uzdevumu visiem abonentiem)"
 
 msgid ""
 "Force all tables and views to be created in this schema when clicking "
@@ -7853,8 +7951,13 @@ msgstr "Prefikss"
 msgid "Keyboard shortcuts"
 msgstr "Tastatūras saīsnes"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Keys are shown only once at creation. Store them securely."
 msgstr ""
+"Atslēgas tiek rādītas tikai vienu reizi izveides laikā. Glabājiet tās "
+"drošā vietā."
 
 msgid "Kilometers"
 msgstr "Kilometri"
@@ -8083,8 +8186,11 @@ msgstr "Mazāks vai vienāds (<=)"
 msgid "Less than (<)"
 msgstr "Mazāks par (<)"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Liberty (OpenFreeMap)"
-msgstr ""
+msgstr "Liberty (OpenFreeMap)"
 
 msgid "Lift percent precision"
 msgstr "Pieauguma procentu precizitāte"
@@ -8371,10 +8477,16 @@ msgstr "Pārvaldīt informācijas paneļa redaktorus un piekļuves atļaujas"
 msgid "Manage email report"
 msgstr "Pārvaldīt e-pasta atskaiti"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Manage filters and customizations to set scoping, descriptions, and "
 "limitations. Create new elements for better dashboard insights."
 msgstr ""
+"Pārvaldiet filtrus un pielāgojumus, lai iestatītu tvērumu, aprakstus un "
+"ierobežojumus. Izveidojiet jaunus elementus labākai informācijas paneļa "
+"izpratnei."
 
 msgid "Manage your databases"
 msgstr "Pārvaldīt savas datubāzes"
@@ -8398,13 +8510,21 @@ msgstr "Tiešsaistes renderēšana"
 msgid "Map Style"
 msgstr "Kartes stils"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "MapLibre (open-source)"
-msgstr ""
+msgstr "MapLibre (atvērtā pirmkoda)"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "MapLibre is open-source and requires no API key. Mapbox requires "
 "MAPBOX_API_KEY to be configured on the server."
 msgstr ""
+"MapLibre ir atvērtā pirmkoda un neprasa API atslēgu. Mapbox prasa, lai "
+"serverī būtu konfigurēts MAPBOX_API_KEY."
 
 msgid "Mapbox"
 msgstr "Mapbox"
@@ -8413,8 +8533,11 @@ msgstr "Mapbox"
 msgid "Mapbox (API key required)"
 msgstr "E-pasts ir obligāts"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
-msgstr ""
+msgstr "Mapbox prasa, lai serverī būtu konfigurēts MAPBOX_API_KEY."
 
 msgid "March"
 msgstr "Marts"
@@ -8678,14 +8801,20 @@ msgstr "Metrikas"
 msgid "Metrics (%s)"
 msgstr "Metrikas"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Metrics can't be used for both rows and columns at the same time"
-msgstr ""
+msgstr "Metrikas nevar vienlaikus izmantot gan rindām, gan kolonnām"
 
 msgid "Metrics folder can only contain metric items"
 msgstr "Metriku mape var saturēt tikai metriku elementus"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Metrics should be inside folders"
-msgstr ""
+msgstr "Metrikām jāatrodas mapēs"
 
 msgid "Metrics to show in the tooltip."
 msgstr "Rādītāji, kas jāparāda rīka padomā."
@@ -8877,6 +9006,9 @@ msgstr ""
 msgid "Multiplier"
 msgstr "Reizinātājs"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
@@ -9114,8 +9246,11 @@ msgstr "Nav filtru"
 msgid "No filters are currently added to this dashboard."
 msgstr "Šim informācijas panelim pašlaik nav pievienotu filtru."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "No filters or customizations created yet"
-msgstr ""
+msgstr "Vēl nav izveidoti filtri vai pielāgojumi"
 
 msgid "No form settings were maintained"
 msgstr "Netika saglabāti veidlapas iestatījumi"
@@ -9506,11 +9641,17 @@ msgstr ""
 "Piemērojams tikai tad, kad \"Apzīmējuma veids\" ir iestatīts rādīt "
 "vērtības."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Only exact match is available for non-string columns."
-msgstr ""
+msgstr "Neteksta kolonnām ir pieejama tikai precīza atbilstība."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Only proceed if you trust the destination or its source."
-msgstr ""
+msgstr "Turpiniet tikai tad, ja uzticaties galamērķim vai tā avotam."
 
 msgid ""
 "Only show the total value on the stacked chart, and not show on the "
@@ -9841,8 +9982,11 @@ msgstr "Punkta izmērs"
 msgid "Pattern"
 msgstr "Šablons"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Pause auto refresh if tab is inactive"
-msgstr ""
+msgstr "Apturēt automātisko atsvaidzināšanu, ja cilne ir neaktīva"
 
 #, fuzzy
 msgid "Pause auto-refresh"
@@ -10314,11 +10458,17 @@ msgstr "Projekta ID"
 msgid "Proportional"
 msgstr "Proporcionāls"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Public and privately shared sheets"
-msgstr ""
+msgstr "Publiski un privāti koplietotās lapas"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Publicly shared sheets only"
-msgstr ""
+msgstr "Tikai publiski koplietotās lapas"
 
 msgid "Published"
 msgstr "Publicēts"
@@ -10873,8 +11023,11 @@ msgstr "Noņemt"
 msgid "Revoke API Key"
 msgstr "Grupas atslēga"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Revoke this API key"
-msgstr ""
+msgstr "Atsaukt šo API atslēgu"
 
 #, fuzzy
 msgid "Revoked"
@@ -11056,11 +11209,17 @@ msgstr "SQL"
 msgid "SQL Lab"
 msgstr "SQL laboratorija"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "SQL Lab cannot authorise a statement that could not be fully parsed. "
 "Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
 "or vendor-specific calls."
 msgstr ""
+"SQL Lab nevar autorizēt priekšrakstu, ko nevarēja pilnībā parsēt. "
+"Norādiet tabulas eksplicitā veidā un izvairieties no dinamiskā SQL "
+"saglabātajās procedūrās vai piegādātājspecifiskajos izsaukumos."
 
 msgid "SQL Lab queries"
 msgstr "SQL laboratorijas vaicājumi"
@@ -11231,8 +11390,11 @@ msgstr "Saglabāt vai pārrakstīt datu kopu"
 msgid "Save query"
 msgstr "Saglabāt vaicājumu"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Save this API key securely"
-msgstr ""
+msgstr "Droši saglabājiet šo API atslēgu"
 
 msgid "Save this query as a virtual dataset to continue exploring"
 msgstr "Saglabāt šo vaicājumu kā virtuālu datu kopu, lai turpinātu izpēti"
@@ -11267,8 +11429,11 @@ msgstr "Saglabā..."
 msgid "Scale and Move"
 msgstr "Mērogot un pārvietot"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Scale factor applied to metric-driven line widths"
-msgstr ""
+msgstr "Mēroga faktors, kas piemērots metriku noteiktajiem līniju platumiem"
 
 msgid "Scale only"
 msgstr "Tikai mērogot"
@@ -11843,15 +12008,25 @@ msgstr "Izvēlieties fiksētu krāsu"
 msgid "Select the geojson column"
 msgstr "Atlasīt GeoJSON kolonnu"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Select the map tile provider. MapLibre is open-source and requires no API"
 " key. Mapbox requires MAPBOX_API_KEY to be configured in Superset."
 msgstr ""
+"Atlasiet karšu flīžu nodrošinātāju. MapLibre ir atvērtā koda un neprasa "
+"API atslēgu. Mapbox prasa, lai Superset būtu konfigurēts MAPBOX_API_KEY."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Select the metric used to determine which color breakpoint range each "
 "path falls into."
 msgstr ""
+"Atlasiet metriku, kas tiek izmantota, lai noteiktu, kurā krāsas pārejas "
+"diapazonā ietilpst katrs ceļš."
 
 msgid "Select the type of color scheme to use."
 msgstr "Izvēlieties izmantojamo krāsu kopu."
@@ -11870,11 +12045,17 @@ msgstr ""
 "Atlasiet vērtības iezīmētajos laukos vadības panelī. Pēc tam izpildiet "
 "vaicājumu, noklikšķinot uz pogas %s."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Select which time grains are available in the filter control. This is a "
 "UI allow list only and does not add extra conditions to the underlying "
 "queries."
 msgstr ""
+"Atlasiet, kuri laika periodi ir pieejami filtra vadīklā. Šis ir tikai "
+"lietotāja saskarnes atļauto opciju saraksts un nepievieno papildu "
+"nosacījumus pamatā esošajiem vaicājumiem."
 
 #, fuzzy
 msgid "Selected"
@@ -11894,11 +12075,17 @@ msgstr "E-pasts"
 msgid "Semantic Layer"
 msgstr "Anotāciju slānis"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic View"
-msgstr ""
+msgstr "Semantiskais skats"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic Views"
-msgstr ""
+msgstr "Semantiskie skati"
 
 #, fuzzy
 msgid "Semantic layer"
@@ -11956,11 +12143,17 @@ msgstr "Datu kopa neeksistē"
 msgid "Semantic view parameters are invalid."
 msgstr "Datu kopas parametri ir nederīgi."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic view updated"
-msgstr ""
+msgstr "Semantiskais skats atjaunināts"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic views"
-msgstr ""
+msgstr "Semantiskie skati"
 
 msgid "Send as CSV"
 msgstr "Sūtīt kā CSV"
@@ -12474,14 +12667,25 @@ msgstr ""
 msgid "Solid"
 msgstr "Ciets"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Some groups could not be resolved and are shown as IDs."
-msgstr ""
+msgstr "Dažas grupas nevarēja tikt atrisinātas un tiek rādītas kā ID."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Some permissions could not be resolved and are shown as IDs."
-msgstr ""
+msgstr "Dažas atļaujas nevarēja tikt atrisinātas un tiek rādītas kā ID."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
+"Dažiem obligātajiem filtriem citās cilnēs ir vērtības, un tie netiks "
+"notīrīti"
 
 msgid "Some roles do not exist"
 msgstr "Dažas lomas nepastāv"
@@ -12615,11 +12819,18 @@ msgstr "Kārtošanas metrika"
 msgid "Sort query by"
 msgstr "Kārtot vaicājumu pēc"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Sort results by series name in ascending order. When combined with \"Sort"
 " by metric\", this acts as a tiebreaker for equal metric values. Adding "
 "this sort may reduce query performance on some databases."
 msgstr ""
+"Kārtojiet rezultātus pēc sērijas nosaukuma augošā secībā. Kombinācijā ar "
+"\"Kārtot pēc metrikas\" tas darbojas kā izšķirošais faktors vienādām "
+"metrikas vērtībām. Šīs kārtošanas pievienošana var samazināt vaicājumu "
+"veiktspēju dažās datu bāzēs."
 
 msgid "Sort rows by"
 msgstr "Kārtot rindas pēc"
@@ -12832,8 +13043,11 @@ msgstr "Ar kontūru"
 msgid "Structural"
 msgstr "Strukturāls"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Structure is managed by the upstream semantic layer and is read-only."
-msgstr ""
+msgstr "Struktūru pārvalda augšupējais semantiskais slānis, un tā ir tikai lasāma."
 
 msgid "Style"
 msgstr "Stils"
@@ -13159,10 +13373,15 @@ msgstr "Birku nevarēja izveidot."
 msgid "Task could not be updated."
 msgstr "Birku nevarēja atjaunināt."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Task is not abortable. The task is in progress but has not registered an "
 "abort handler."
 msgstr ""
+"Uzdevumu nevar pārtraukt. Uzdevums ir procesā, bet nav reģistrēts "
+"pārtraukšanas apstrādātājs."
 
 #, fuzzy
 msgid "Task parameters are invalid."
@@ -13172,8 +13391,11 @@ msgstr "Birkas parametri nav derīgi."
 msgid "Tasks"
 msgstr "birkas"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Tasks will appear here as background operations are executed."
-msgstr ""
+msgstr "Uzdevumi parādīsies šeit, kad tiks izpildītas fona operācijas."
 
 msgid "Template"
 msgstr "Veidne"
@@ -13267,17 +13489,29 @@ msgstr ""
 "GeoJsonLayer pieņem GeoJSON formāta datus un attēlo tos kā interaktīvus "
 "poligonus, līnijas un punktus (apļus, ikonas un/vai tekstus)."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The Global Task Framework is not enabled. Please contact your "
 "administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag."
 msgstr ""
+"Global Task Framework nav iespējots. Lūdzu, sazinieties ar "
+"administratoru, lai iespējotu GLOBAL_TASK_FRAMEWORK funkcijas karogu."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True "
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
 msgstr ""
+"Global Task Framework nav iespējots. Iestatiet GLOBAL_TASK_FRAMEWORK=True"
+" savos funkciju karogos, lai izmantotu @task. Skatiet "
+"https://superset.apache.org/docs/configuration/async-queries-celery "
+"konfigurācijas informācijai."
 
 msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
@@ -13328,8 +13562,11 @@ msgstr ""
 "Avota mezglu kategorija krāsu piešķiršanai. Ja mezgls ir saistīts ar "
 "vairākām kategorijām, tiks izmantota tikai pirmā."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "The chart is still loading. Please wait a moment and try again."
-msgstr ""
+msgstr "Diagramma vēl tiek ielādēta. Lūdzu, uzgaidiet brīdi un mēģiniet vēlreiz."
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -13548,10 +13785,15 @@ msgid ""
 "%(columns)s. "
 msgstr "Šādi `series_columns` ieraksti trūkst `columns`: %(columns)s. "
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The following fields contain sensitive information that was masked during"
 " export. Please provide the values to import this database."
 msgstr ""
+"Šie lauki satur sensitīvu informāciju, kas tika maskēta eksportēšanas "
+"laikā. Lūdzu, norādiet vērtības, lai importētu šo datu bāzi."
 
 #, python-format
 msgid ""
@@ -13813,8 +14055,11 @@ msgstr ""
 "sadaļas \"Drošais papildu\" un \"Sertifikāts\" nav iekļautas eksporta "
 "failos un pēc importa tās jāpievieno manuāli, ja nepieciešams."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "The passwords for the databases below are needed in order to import them."
-msgstr ""
+msgstr "Lai importētu tālāk norādītās datu bāzes, ir nepieciešamas to paroles."
 
 msgid "The pattern of timestamp format. For strings use "
 msgstr "Laika zīmoga formāta šablons. Tekstam izmantojiet "
@@ -14175,10 +14420,15 @@ msgstr "Elementu apmales platums"
 msgid "The width of the lines"
 msgstr "Līniju platums"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The width of the lines as either a fixed value or variable width based on"
 " a metric."
 msgstr ""
+"Līniju platums kā fiksēta vērtība vai mainīgs platums, pamatojoties uz "
+"metriku."
 
 msgid "Theme"
 msgstr "Motīvs"
@@ -14238,11 +14488,15 @@ msgstr ""
 "Šai komponentei nav pietiekami daudz vietas. Mēģiniet samazināt tā "
 "platumu vai palielināt mērķa platumu."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "There was a problem refreshing your dashboard. We'll try again in %s, as "
 "scheduled."
 msgstr ""
+"Radās problēma, atsvaidzinot jūsu informācijas paneli. Mēģināsim vēlreiz "
+"pēc %s, kā plānots."
 
 msgid "There was an error creating the group. Please, try again."
 msgstr "Radās kļūda, veidojot grupu. Lūdzu, mēģiniet vēlreiz."
@@ -14607,12 +14861,19 @@ msgid ""
 "table."
 msgstr "Šī datubāzes tabula nesatur datus. Lūdzu, atlasiet citu tabulu."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "This database uses OAuth2 for authentication. Please click the link above"
 " to grant Apache Superset permission to access the data. Your personal "
 "access token will be stored encrypted and used only for queries run by "
 "you."
 msgstr ""
+"Šī datu bāze izmanto OAuth2 autentifikācijai. Lūdzu, noklikšķiniet uz "
+"iepriekš minētās saites, lai piešķirtu Apache Superset atļauju piekļūt "
+"datiem. Jūsu personīgais piekļuves tokens tiks saglabāts šifrētā veidā un"
+" izmantots tikai jūsu izpildītajiem vaicājumiem."
 
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr "Šī datu kopa tiek pārvaldīta ārēji un nav rediģējama Superset"
@@ -14706,8 +14967,11 @@ msgstr "Šī ir noklusējuma mape"
 msgid "This is the default light theme"
 msgstr "Šis ir noklusējuma gaišais motīvs"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "This is the only time you will see this key. Store it securely."
-msgstr ""
+msgstr "Šī ir vienīgā reize, kad redzēsiet šo atslēgu. Uzglabājiet to drošā vietā."
 
 msgid ""
 "This json object describes the positioning of the widgets in the "
@@ -14718,10 +14982,15 @@ msgstr ""
 "dinamiski ģenerēts, pielāgojot logrīku izmērus un pozīcijas, izmantojot "
 "vilkšanu un nomešanu paneļa skatā"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
 msgstr ""
+"Šī saite aizvedīs jūs uz ārēju vietni. Mēs nevaram garantēt ārējo "
+"galamērķu drošību."
 
 msgid "This markdown component has an error."
 msgstr "Šajā Markdown komponentā ir kļūda."
@@ -14820,9 +15089,11 @@ msgstr[0] "To izraisīja:"
 msgstr[1] "To var izraisīt:"
 msgstr[2] "To var izraisīt:"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
-msgstr ""
+msgstr "Tas pārtrauks (apturēs) uzdevumu visiem %s abonentiem(-am)."
 
 msgid ""
 "This will be applied to the whole table. Arrows (↑ and ↓) will be added "
@@ -14834,8 +15105,11 @@ msgstr ""
 "nosacījumu formatēšanu var pārrakstīt ar zemāk esošo nosacījumu "
 "formatēšanu."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "This will cancel the task."
-msgstr ""
+msgstr "Tas atcels uzdevumu."
 
 msgid "This will remove your current embed configuration."
 msgstr "Tas noņems jūsu pašreizējo iegulšanas konfigurāciju."
@@ -15032,11 +15306,15 @@ msgstr "Laika formāts"
 msgid "Timeline"
 msgstr "Laika skala"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "Timeout configured (%s seconds) but no abort handler defined. Task will "
 "continue running past the timeout."
 msgstr ""
+"Noildze konfigurēta (%s sekundes), bet nav definēts pārtraukšanas "
+"apstrādātājs. Uzdevums turpinās darboties pēc noildzes."
 
 msgid "Timeout error"
 msgstr "Noilguma kļūda"
@@ -15236,8 +15514,11 @@ msgstr "Saīsināt garās šūnas līdz augstāk iestatītajam \"minimālajam pl
 msgid "Truncates the specified date to the accuracy specified by the date unit."
 msgstr "Saīsina norādīto datumu līdz datuma vienības noteiktajai precizitātei."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Trust this URL and don't ask again"
-msgstr ""
+msgstr "Uzticēties šim URL un vairs nejautāt"
 
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
@@ -15273,8 +15554,11 @@ msgstr "Ierakstiet vērtību"
 msgid "Type is required"
 msgstr "Veids ir obligāts"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Type of Google Sheets allowed"
-msgstr ""
+msgstr "Atļautais Google Sheets veids"
 
 msgid "Type of chart to display in sparkline"
 msgstr "Diagrammas veids, kas jāparāda sparkline"
@@ -15286,11 +15570,17 @@ msgstr "Salīdzinājuma veids, vērtību starpība vai procenti"
 msgid "Type to search (contains)..."
 msgstr "Meklēt kolonnas..."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Type to search (ends with)..."
-msgstr ""
+msgstr "Rakstiet, lai meklētu (beidzas ar)..."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Type to search (starts with)..."
-msgstr ""
+msgstr "Rakstiet, lai meklētu (sākas ar)..."
 
 msgid "UI Configuration"
 msgstr "Lietotāja saskarnes konfigurācija"
@@ -15364,8 +15654,11 @@ msgstr "Nevar dekodēt vērtību"
 msgid "Unable to encode value"
 msgstr "Nevar kodēt vērtību"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Unable to fetch semantic views. Check the layer configuration."
-msgstr ""
+msgstr "Nevar ielādēt semantiskos skatus. Pārbaudiet slāņa konfigurāciju."
 
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
@@ -15499,8 +15792,11 @@ msgstr "Nezināma kļūda"
 msgid "Unknown input format"
 msgstr "Nezināms ievades formāts"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Unknown tokens will be highlighted as warnings."
-msgstr ""
+msgstr "Nezināmie tokeni tiks iezīmēti kā brīdinājumi."
 
 msgid "Unknown type"
 msgstr "Nezināms veids"
@@ -15515,8 +15811,11 @@ msgstr "Atspraust"
 msgid "Unpin from the result panel"
 msgstr "Piespraust rezultātu panelī"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Unpin from top"
-msgstr ""
+msgstr "Atspraust no augšas"
 
 #, python-format
 msgid "Unsafe return type for function %(func)s: %(value_type)s"
@@ -15786,8 +16085,11 @@ msgstr ""
 "saprastu, kādus posmus vērtība izgāja. Noderīgs daudzpakāpju, daudz grupu"
 " piltuves un konveijeru vizualizācijai."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Uses the first 25 values if the dimension has more."
-msgstr ""
+msgstr "Izmanto pirmās 25 vērtības, ja dimensijai ir vairāk."
 
 msgid "Valid SQL expression"
 msgstr "Derīga SQL izteiksme"
@@ -16068,8 +16370,11 @@ msgstr "WFS"
 msgid "WMS"
 msgstr "WMS"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Waiting for first refresh"
-msgstr ""
+msgstr "Gaida pirmo atsvaidzināšanu"
 
 #, python-format
 msgid "Waiting on %s"
@@ -16095,10 +16400,15 @@ msgid ""
 "not exist."
 msgstr "Brīdinājums! Datu kopas maiņa var sabojāt diagrammu, ja metadati nepastāv."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
 msgstr ""
+"Brīdinājums: ILIKE vaicājumi var būt lēni lielās datu kopās, jo tie nevar"
+" efektīvi izmantot indeksus."
 
 msgid "Was unable to check your query"
 msgstr "Nevarēja pārbaudīt jūsu vaicājumu"
@@ -16928,7 +17238,7 @@ msgid ""
 msgstr ""
 
 msgid "You need to"
-msgstr ""
+msgstr "Jums ir nepieciešams"
 
 msgid ""
 "You updated the values in the control panel, but the chart was not "
@@ -16939,11 +17249,15 @@ msgstr ""
 "atjaunināta automātiski. Izpildiet vaicājumu, noklikšķinot uz pogas "
 "\"Atjaunināt diagrammu\" vai"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
 "subscriber(s)."
 msgstr ""
+"Jūs tiksiet noņemts no šī uzdevuma. Tas turpinās darboties %s citiem "
+"abonentiem(-am)."
 
 msgid ""
 "You've changed datasets. Any controls with data (columns, metrics) that "
@@ -17082,9 +17396,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Pēcapstrādes objekta `operation` rekvizīts nav definēts"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy, python-format
 msgid "`periods` must be between 1 and %(max)s"
-msgstr ""
+msgstr "`periods` jābūt no 1 līdz %(max)s"
 
 msgid "`prophet` package not installed"
 msgstr "`prophet` pakotne nav instalēta"
@@ -17426,8 +17741,11 @@ msgstr "piem. world_population"
 msgid "e.g. xy12345.us-east-2.aws"
 msgstr "piem. xy12345.us-east-2.aws"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "e.g., CI/CD Pipeline, Analytics Script"
-msgstr ""
+msgstr "piem., CI/CD Pipeline, Analytics Script"
 
 msgid "edit mode"
 msgstr "rediģēšanas režīms"
@@ -17478,14 +17796,20 @@ msgstr "katru mēnesi"
 msgid "expand"
 msgstr "izvērst"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "extra.dashboard must be an object"
-msgstr ""
+msgstr "extra.dashboard jābūt objektam"
 
 msgid "failed"
 msgstr "neizdevās"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "farewell"
-msgstr ""
+msgstr "ardievu"
 
 msgid "fetching"
 msgstr "ielādē"
@@ -17522,8 +17846,11 @@ msgstr "siltumkarte"
 msgid "heatmap: values are normalized across the entire heatmap"
 msgstr "siltumkarte: vērtības ir normalizētas visā siltumkartē"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "hello"
-msgstr ""
+msgstr "sveiki"
 
 msgid "here"
 msgstr "šeit"
@@ -17534,8 +17861,11 @@ msgstr "stunda"
 msgid "in"
 msgstr "iekšā"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "in order to run this operation."
-msgstr ""
+msgstr "lai izpildītu šo operāciju."
 
 msgid "invalid email"
 msgstr "nederīgs e-pasts"
@@ -17668,30 +17998,45 @@ msgstr "jābūt ar vērtību"
 msgid "name"
 msgstr "nosaukums"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "nativeFilters must be a list"
-msgstr ""
+msgstr "nativeFilters jābūt sarakstam"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s] missing required keys: %(keys)s"
-msgstr ""
+msgstr "nativeFilters[%(idx)s] trūkst obligāto atslēgu: %(keys)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s] must be an object"
-msgstr ""
+msgstr "nativeFilters[%(idx)s] jābūt objektam"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s].filterValues must be a list"
-msgstr ""
+msgstr "nativeFilters[%(idx)s].filterValues jābūt sarakstam"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' does not exist on "
 "the dashboard"
 msgstr ""
+"nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' neeksistē "
+"informācijas panelī"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s].nativeFilterId must be a non-empty string"
-msgstr ""
+msgstr "nativeFilters[%(idx)s].nativeFilterId jābūt nestrādājošai virknei"
 
 msgid "no SQL validator is configured"
 msgstr "nav konfigurēts SQL validātors"
@@ -17907,8 +18252,11 @@ msgstr "Teksta krāsa"
 msgid "textarea"
 msgstr "teksta lauks"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "the Handlebars chart documentation"
-msgstr ""
+msgstr "Handlebars diagrammas dokumentācija"
 
 msgid "theme"
 msgstr "motīvs"
@@ -18005,5 +18353,8 @@ msgstr "tālummaiņas zona"
 msgid "© Layer attribution"
 msgstr "© Slāņa attiecinājums"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "№"
-msgstr ""
+msgstr "№"

@@ -151,9 +151,7 @@ describe('table actions', () => {
         fetchMock.callHistory.calls(getTableMetadataEndpoint),
       ).toHaveLength(1),
     );
-    const refreshButton = getByRole('button', {
-      name: 'Refresh table schema',
-    });
+    const refreshButton = getByRole('button', { name: 'Refresh table schema' });
     fireEvent.click(refreshButton);
     await waitFor(() =>
       expect(
