@@ -35,6 +35,16 @@ Deployments that legitimately query these (for example tooling that introspects 
 
 Because the denylist now resolves the effective schema through the query-aware path, PostgreSQL queries that change the `search_path` (e.g. `SET search_path = ...`) are rejected on the SQL Lab execution and cost-estimate paths whenever any `DISALLOWED_SQL_TABLES` entry is configured (the default for PostgreSQL), matching the behavior previously applied only when `RLS_IN_SQLLAB` was enabled.
 
+### SQL parser input length cap (SQL_MAX_PARSE_LENGTH)
+
+The SQL parser now rejects scripts whose UTF-8 byte length exceeds the new
+`SQL_MAX_PARSE_LENGTH` config option (default `1_000_000` bytes) before they are
+handed to sqlglot, which bounds parser memory and CPU usage. A single query
+larger than the cap (for example a very large `IN (...)` list or a big
+virtual-dataset SQL) raises a parse error in SQL Lab and dashboard-generated
+queries. Deployments that legitimately run queries above this size should raise
+the value, and `SQL_MAX_PARSE_LENGTH = None` disables the check entirely.
+
 ### Guest-token RLS rules reject unknown fields
 
 The `rls` rules passed to `POST /api/v1/security/guest_token/` are now validated strictly: a rule may only contain `dataset` and `clause`. Previously unknown fields were silently dropped, so a mistyped or legacy scope key (most commonly `datasource` instead of `dataset`) produced a rule with no `dataset`, which is treated as a *global* rule applied to every dataset the embedded resource can reach. Such a request now returns HTTP 400 identifying the offending field instead of issuing a token with an unintended global rule. Integrators that were sending extra fields in RLS rules must remove them; valid dataset-scoped (`{"dataset": 41, "clause": "..."}`) and global (`{"clause": "..."}`) rules are unaffected.
@@ -92,6 +102,7 @@ Deployments that intentionally point webhooks at internal targets (chatops bridg
 ### Impala cancel_query blocks private/internal hosts by default
 
 The Impala engine spec's `cancel_query` issues an HTTP request from the Superset backend to the host configured on the Impala database connection. That host is now validated before the request: if it resolves to a private/internal IP range, the cancel call is refused and a warning is logged. Operators whose Impala cluster runs on an internal network can opt out by setting `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS = True` in `superset_config.py`. This mirrors the dataset-import and webhook opt-out flags.
+
 ### Map chart renderer and OpenStreetMap migration behavior
 
 The MapLibre migration for deck.gl charts preserves saved non-Mapbox styles on

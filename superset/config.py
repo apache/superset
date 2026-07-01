@@ -1501,6 +1501,13 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 # Max payload size (MB) for SQL Lab to prevent browser hangs with large results.
 SQLLAB_PAYLOAD_MAX_MB = None
 
+# Maximum UTF-8 byte length of a SQL script accepted by the SQL parser.
+# Scripts longer than this are rejected before being handed to sqlglot, which
+# bounds parser memory and CPU usage. The bound is in bytes (not Unicode
+# code points) so multi-byte payloads cannot exceed the intended memory cap.
+# Set to None to disable the check.
+SQL_MAX_PARSE_LENGTH: int | None = 1_000_000
+
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 # Dashboard auto refresh intervals
