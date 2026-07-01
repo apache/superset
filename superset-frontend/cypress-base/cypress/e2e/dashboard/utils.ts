@@ -471,7 +471,7 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
   endRange?: string,
 ) {
   cy.get('.control-label').contains('Range type').should('be.visible');
-  cy.get('.ant-popover-content .ant-select-selector')
+  cy.get('.ant-popover-content .ant-select-content')
     .should('be.visible')
     .click();
   cy.get(`[label="Advanced"]`).should('be.visible').click();
@@ -514,15 +514,14 @@ export function inputNativeFilterDefaultValue(
       )
         .eq(1)
         .within(() => {
-          cy.get('.ant-select-selection-search-input').type(
-            `${defaultValue}{enter}`,
-            { force: true },
-          );
+          cy.get('.ant-select-input').type(`${defaultValue}{enter}`, {
+            force: true,
+          });
         });
     });
   } else {
     cy.getBySel('default-input').within(() => {
-      cy.get('.ant-select-selection-search-input').click();
+      cy.get('.ant-select-input').click();
       cy.get('.ant-select-item-option-content').contains(defaultValue).click();
     });
   }
