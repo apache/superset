@@ -32,6 +32,7 @@
  * (useLayoutEffect → overflowingIndex → notOverflowedItems/overflowedItems →
  * showDropdownButton) rather than mocking the result.
  */
+import { StrictMode } from 'react';
 import { screen, render, waitFor, act } from '@superset-ui/core/spec';
 import * as resizeDetector from 'react-resize-detector';
 import { DropdownContainer } from '..';
@@ -202,6 +203,14 @@ test('control: a clean re-measurement keeps overflowed items reachable after a c
   // the rest stay accessible behind the trigger.
   expect(screen.queryByText('More')).toBeInTheDocument();
   expect(barItemCount()).toBe(3);
+
+  // Identity, not just count: the prepended chip sits in the bar and a later
+  // native filter does not, so a wrong split with the right count can't pass.
+  const bar = screen.getByTestId('container');
+  expect(
+    bar.querySelector('[data-test="item-cross-filter-chip"]'),
+  ).not.toBeNull();
+  expect(bar.querySelector('[data-test="item-native-filter-8"]')).toBeNull();
 });
 
 test('overflowed-to-true-fit: when items genuinely fit after a set change, all are in the bar and the trigger is gone', async () => {
@@ -249,6 +258,11 @@ test('prepending a cross-filter chip must not strand overflowed native filters o
     rerender(<DropdownContainer items={withCrossFilterChip} />);
   });
 
+  // The trigger must not blink out while the confirmation frame is pending: it
+  // was showing before the change and the engine keeps it mounted across the
+  // whole window (the reason hadContentAtLastChangeRef exists).
+  expect(screen.queryByText('More')).toBeInTheDocument();
+
   // The window closes — the filters genuinely overflow the bar again — but no
   // resize/width change occurs, so only the scheduled confirmation frame can
   // rescue the verdict. Fire it.
@@ -262,6 +276,44 @@ test('prepending a cross-filter chip must not strand overflowed native filters o
   // not merely `< total`, so an under-detecting confirmation that strands too
   // many items in the clipped bar also fails this guard.
   expect(barItemCount()).toBe(3);
+  expect(screen.queryByText('More')).toBeInTheDocument();
+});
+
+test('a StrictMode double-invoked mount still settles the confirmation frame', async () => {
+  // React double-invokes mount effects under StrictMode. The confirmation
+  // scheduler must survive that setup -> cleanup -> setup cycle and still
+  // settle, rather than latching a transient "everything fits" verdict.
+  const filters = nativeFilters(8);
+  const wrapped = (items: ReturnType<typeof nativeFilters>) => (
+    <StrictMode>
+      <DropdownContainer items={items} />
+    </StrictMode>
+  );
+
+  const { rerender } = render(wrapped(filters));
+  await act(async () => {
+    mockWidth = BAR_WIDTH;
+    rerender(wrapped(filters));
+  });
+  await waitFor(() => expect(screen.getByText('More')).toBeInTheDocument());
+  expect(barItemCount()).toBe(3);
+
+  // Prepend a chip during a transient "fits" measurement, then close the
+  // window and fire the confirmation frame.
+  containerRight = Number.MAX_SAFE_INTEGER;
+  const withCrossFilterChip = [
+    makeItem('cross-filter-chip', 'Region'),
+    ...filters,
+  ];
+  await act(async () => {
+    rerender(wrapped(withCrossFilterChip));
+  });
+  containerRight = BAR_WIDTH;
+  await act(async () => {
+    flushRAF();
+  });
+
+  await waitFor(() => expect(barItemCount()).toBe(3));
   expect(screen.queryByText('More')).toBeInTheDocument();
 });
 
@@ -308,6 +360,11 @@ test('a second item-set change before the confirmation frame fires still settles
   const { rerender } = await renderOverflowing(filters);
   expect(barItemCount()).toBe(3);
 
+  // Keep superseded frames in the queue (don't let the component's
+  // cancelAnimationFrame remove them) so the stale first frame actually fires
+  // and exercises the version-supersession guard, not just cancellation.
+  cancelRafSpy.mockImplementation(() => {});
+
   containerRight = Number.MAX_SAFE_INTEGER;
   const withOneChip = [makeItem('cross-filter-chip', 'Region'), ...filters];
   await act(async () => {
@@ -322,6 +379,12 @@ test('a second item-set change before the confirmation frame fires still settles
   });
 
   containerRight = BAR_WIDTH;
+  // First flush runs the stale (superseded) frame — the version guard makes it a
+  // no-op — plus the current frame; the second drains anything the settle
+  // re-queued.
+  await act(async () => {
+    flushRAF();
+  });
   await act(async () => {
     flushRAF();
   });
@@ -360,10 +423,46 @@ test('a stale confirmation frame cannot undo a normal overflow settle before it 
   await waitFor(() => expect(barItemCount()).toBe(3));
   expect(screen.queryByText('More')).toBeInTheDocument();
 
+  // The stale frame is still queued (cancel was no-op'd): assert it's exactly
+  // one so a mis-consumed one-shot fails loudly instead of passing vacuously.
+  expect(rafQueue).toHaveLength(1);
   await act(async () => {
     flushRAF();
   });
 
   expect(barItemCount()).toBe(3);
   expect(screen.queryByText('More')).toBeInTheDocument();
+});
+
+test('unmounting during a pending confirmation frame does not error', async () => {
+  const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  const filters = nativeFilters(8);
+  const { rerender, unmount } = render(<DropdownContainer items={filters} />);
+  await act(async () => {
+    mockWidth = BAR_WIDTH;
+    rerender(<DropdownContainer items={filters} />);
+  });
+  await waitFor(() => expect(screen.getByText('More')).toBeInTheDocument());
+
+  // Enter the confirmation window: prepend a chip during a transient "fits".
+  containerRight = Number.MAX_SAFE_INTEGER;
+  await act(async () => {
+    rerender(
+      <DropdownContainer
+        items={[makeItem('cross-filter-chip', 'Region'), ...filters]}
+      />,
+    );
+  });
+
+  // Unmount before the frame fires, then fire any queued frame. The unmount
+  // cleanup cancels the pending frame, so nothing runs and no state update or
+  // console error escapes after unmount.
+  unmount();
+  containerRight = BAR_WIDTH;
+  await act(async () => {
+    flushRAF();
+  });
+
+  expect(errorSpy).not.toHaveBeenCalled();
+  errorSpy.mockRestore();
 });

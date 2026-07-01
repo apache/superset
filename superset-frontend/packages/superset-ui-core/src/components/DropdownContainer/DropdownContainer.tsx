@@ -101,7 +101,6 @@ export const DropdownContainer = forwardRef(
     // the rAF callback before calling setRecalculating(false).
     const hadContentAtLastChangeRef = useRef(false);
     // Guards rAF callbacks from firing after the component unmounts.
-    const mountedRef = useRef(true);
     // Stores the pending confirmation rAF handle so it can be cancelled when a
     // newer item-set change supersedes it, or on unmount.
     const rafIdRef = useRef(0);
@@ -114,7 +113,8 @@ export const DropdownContainer = forwardRef(
     const prevItemsLengthRef = useRef(items.length);
     useEffect(
       () => () => {
-        mountedRef.current = false;
+        // Cancel a queued confirmation frame on unmount so it can never fire
+        // after the component is gone (no post-unmount state update).
         if (rafIdRef.current) {
           cancelAnimationFrame(rafIdRef.current);
           rafIdRef.current = 0;
@@ -329,8 +329,10 @@ export const DropdownContainer = forwardRef(
         // change reset may reflect a transient mid-reflow measurement. When that
         // happens, do NOT settle immediately. Instead:
         //   • If the rAF hasn't been scheduled yet: schedule it (one-shot) and
-        //     return without settling; recalculating stays true so the trigger
-        //     remains mounted throughout the confirmation window.
+        //     return without settling. On the already-overflowing reset path
+        //     recalculating stays true, which keeps the trigger mounted across
+        //     the window; on the fit->overflow path the bar had no trigger to
+        //     preserve, so the transient stays invisible either way.
         //   • If the rAF is already scheduled (a second layout effect run
         //     triggered by the setItemsWidth call above): also return without
         //     settling for the same reason.
@@ -347,7 +349,6 @@ export const DropdownContainer = forwardRef(
             const scheduledVersion = confirmVersionRef.current;
             rafIdRef.current = requestAnimationFrame(() => {
               rafIdRef.current = 0;
-              if (!mountedRef.current) return;
               // A newer item-set change superseded this confirmation while the
               // frame was queued; let the newer one's own confirmation settle.
               if (confirmVersionRef.current !== scheduledVersion) return;
@@ -418,12 +419,13 @@ export const DropdownContainer = forwardRef(
       }
     }, [notOverflowedIds, onOverflowingStateChange, overflowedIds]);
 
-    // During the rAF confirmation window recalculating stays true (the layout
-    // effect returns early without settling). hadContentAtLastChangeRef tracks
-    // whether the trigger was showing when the item-set change was detected; it
-    // stays true across all renders until the rAF callback clears it. Together
-    // they keep the trigger mounted for the full confirmation window without
-    // letting it linger once the rAF has settled.
+    // On the already-overflowing reset path, recalculating stays true during the
+    // rAF confirmation window (the layout effect returns early without settling),
+    // and hadContentAtLastChangeRef records whether the trigger was showing when
+    // the change was detected; together they keep the trigger mounted for the
+    // full window and stop it lingering once the rAF settles. On the
+    // fit->overflow path recalculating is not set, but the bar had no trigger to
+    // preserve there, so nothing flickers.
     const showDropdownButton =
       !!popoverContent || (recalculating && hadContentAtLastChangeRef.current);
 
