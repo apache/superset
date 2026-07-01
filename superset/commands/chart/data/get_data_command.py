@@ -25,6 +25,7 @@ from superset.commands.chart.exceptions import (
     ChartDataQueryFailedError,
 )
 from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data_timing import finalize_timing_payload
 from superset.common.query_context import QueryContext
 from superset.exceptions import CacheLoadError
 
@@ -42,12 +43,22 @@ class ChartDataCommand(BaseCommand):
         # (also evals `force` property)
         cache_query_context = kwargs.get("cache", False)
         force_cached = kwargs.get("force_cached", False)
+        defer_timing = kwargs.get("defer_timing", False)
         try:
             payload = self._query_context.get_payload(
                 cache_query_context=cache_query_context, force_cached=force_cached
             )
         except CacheLoadError as ex:
             raise ChartDataCacheLoadError(ex.message) from ex
+
+        has_query_error = any(
+            query.get("error")
+            and self._query_context.result_type != ChartDataResultType.QUERY
+            for query in payload["queries"]
+        )
+        if not defer_timing or has_query_error:
+            for query in payload["queries"]:
+                finalize_timing_payload(query)
 
         # Skip error check for query-only requests - errors are returned in payload
         # This allows View Query modal to display validation errors

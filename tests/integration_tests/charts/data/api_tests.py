@@ -786,7 +786,10 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             )
             assert rv.status_code == 200
             data = json.loads(rv.data.decode("utf-8"))
-            patched_run.assert_called_once_with(force_cached=True)
+            patched_run.assert_called_once_with(
+                force_cached=True,
+                defer_timing=True,
+            )
             assert data == {
                 "result": [{"query": "select * from foo", "is_cached": True}]
             }
@@ -856,7 +859,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.query_context_payload["result_type"] = ChartDataResultType.FULL
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 200
-        mock_run.assert_called_once_with(force_cached=True)
+        mock_run.assert_called_once_with(force_cached=True, defer_timing=True)
 
         # Reset the mock
         mock_run.reset_mock()

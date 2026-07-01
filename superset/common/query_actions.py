@@ -23,6 +23,7 @@ from typing import Any, Callable, TYPE_CHECKING
 from flask_babel import _
 
 from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data_timing import TIMING_KEY
 from superset.common.db_query_status import QueryStatus
 from superset.exceptions import QueryObjectValidationError, SupersetParseError
 from superset.explorables.base import Explorable
@@ -191,7 +192,7 @@ def _get_full(
     ] + rejected_time_columns
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
-        return {
+        result = {
             "data": payload.get("data"),
             "colnames": payload.get("colnames"),
             "coltypes": payload.get("coltypes"),
@@ -199,6 +200,9 @@ def _get_full(
             "sql_rowcount": payload.get("sql_rowcount"),
             "detected_currency": payload.get("detected_currency"),
         }
+        if TIMING_KEY in payload:
+            result[TIMING_KEY] = payload[TIMING_KEY]
+        return result
     return payload
 
 
