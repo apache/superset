@@ -3117,6 +3117,9 @@ msgstr "Changements de graphique"
 msgid "Chart could not be created."
 msgstr "Le graphique n'a pas pu être créé."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Le graphique n'a pas pu être mis à jour."
 
@@ -4434,6 +4437,9 @@ msgstr "Le tableau de bord n'a pas pu être mis à jour."
 msgid "Dashboard could not be deleted."
 msgstr "Le tableau de bord n'a pas pu être supprimé."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Le tableau de bord n'a pas pu être mis à jour."
 
@@ -4690,6 +4696,9 @@ msgstr "L’ensemble de données n'a pas pu être créé."
 
 msgid "Dataset could not be duplicated."
 msgstr "L’ensemble de données n'a pas pu être dupliqué."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "L’ensemble de données n'a pas pu être mis à jour."

@@ -3118,6 +3118,9 @@ msgstr "Veranderingen in de grafiek"
 msgid "Chart could not be created."
 msgstr "Grafiek kon niet worden aangemaakt."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "De grafiek kon niet worden bijgewerkt."
 
@@ -4466,6 +4469,9 @@ msgstr "Dashboard kon niet worden bijgewerkt."
 msgid "Dashboard could not be deleted."
 msgstr "Dashboard kon niet worden verwijderd."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Dashboard kon niet worden bijgewerkt."
 
@@ -4722,6 +4728,9 @@ msgstr "Dataset kon niet worden aangemaakt."
 
 msgid "Dataset could not be duplicated."
 msgstr "Dataset kon niet worden gedupliceerd."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Dataset kon niet worden bijgewerkt."

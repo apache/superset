@@ -35,7 +35,6 @@ from sqlalchemy import (
     String,
     Table,
     Text,
-    UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, subqueryload
@@ -46,7 +45,11 @@ from superset_core.common.models import Dashboard as CoreDashboard
 from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
-from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+from superset.models.helpers import (
+    AuditMixinNullable,
+    ImportExportMixin,
+    SoftDeleteMixin,
+)
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
@@ -93,45 +96,82 @@ sqla.event.listen(User, "after_insert", copy_dashboard)
 dashboard_slices = Table(
     "dashboard_slices",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
-    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
-    UniqueConstraint("dashboard_id", "slice_id"),
+    Column(
+        "dashboard_id",
+        Integer,
+        ForeignKey("dashboards.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "slice_id",
+        Integer,
+        ForeignKey("slices.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
 dashboard_user = Table(
     "dashboard_user",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
+    Column(
+        "user_id",
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "dashboard_id",
+        Integer,
+        ForeignKey("dashboards.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
 DashboardRoles = Table(
     "dashboard_roles",
     metadata,
-    Column("id", Integer, primary_key=True),
     Column(
         "dashboard_id",
         Integer,
         ForeignKey("dashboards.id", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
     Column(
         "role_id",
         Integer,
         ForeignKey("ab_role.id", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
 )
 
 
-class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
+class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExportMixin):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
+    # deleted_at exclusion will be added when soft delete is merged.
+    # SPIKE (full-Continuum): ``slices`` removed from
+    # the exclude list so Continuum auto-creates an association version table
+    # for ``dashboard_slices`` and ``Reverter(relations=["slices"])`` can
+    # restore chart membership. Owners / roles stay excluded — access metadata,
+    # not user-authored content (ADR-005).
+    # Audit columns (changed_on/created_on/changed_by_fk/created_by_fk) are
+    # auto-bumped by AuditMixin on every save; excluding them lets Continuum's
+    # is_modified() return False on no-op saves (e.g. owners-only edits) so we
+    # don't create empty version rows. version_transaction.user_id /
+    # issued_at preserve "who/when" without per-row duplication.
+    __versioned__: dict[str, Any] = {
+        "exclude": [
+            "owners",
+            "roles",
+            "changed_on",
+            "created_on",
+            "changed_by_fk",
+            "created_by_fk",
+        ]
+    }
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
     position_json = Column(utils.MediumText())
@@ -141,7 +181,13 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     certified_by = Column(Text)
     certification_details = Column(Text)
     json_metadata = Column(utils.MediumText())
-    slug = Column(String(255), unique=True)
+    # Slug uniqueness is enforced via a partial unique index
+    # (``ix_dashboards_active_slug WHERE deleted_at IS NULL``) on
+    # PostgreSQL and MySQL 8.0+, so soft-deleted rows do not reserve
+    # their slug. SQLite and MySQL <8.0 keep the original full unique
+    # constraint via the migration; on those dialects slug reservation
+    # persists across soft-delete. See the 9e1f3b8c4d2a migration for details.
+    slug = Column(String(255))
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
@@ -191,6 +237,27 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         "published",
     ]
     extra_import_fields = ["is_managed_externally", "external_url", "theme_id"]
+
+    @classmethod
+    def _unique_constraints(cls) -> list[set[str]]:
+        """Import identity keys for ``import_from_dict``.
+
+        ``slug`` lost its column-level ``unique=True`` when the full unique
+        constraint was replaced by a partial (active-rows-only) index for
+        soft-delete. ``ImportExportMixin._unique_constraints`` derives import
+        lookup keys from unique columns/constraints, so without this override a
+        re-import whose UUID differs but whose ``slug`` matches an existing
+        active dashboard would no longer be matched-and-updated by slug — it
+        would fall through to an insert and collide on the partial active-slug
+        index at flush. Re-add ``{"slug"}`` here so import keeps matching by
+        slug (the pre-soft-delete behaviour) while DB-level uniqueness stays
+        partial. A ``NULL`` slug is skipped by the importer's filter builder,
+        so this only adds a real lookup when the imported config carries a slug.
+        """
+        constraints = super()._unique_constraints()
+        if {"slug"} not in constraints:
+            constraints.append({"slug"})
+        return constraints
 
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"

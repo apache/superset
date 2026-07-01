@@ -3123,6 +3123,9 @@ msgstr "Spremembe grafikona"
 msgid "Chart could not be created."
 msgstr "Grafikona ni mogoče ustvariti."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Grafikona ni mogoče posodobiti."
 
@@ -4437,6 +4440,9 @@ msgstr "Nadzorne plošče ni mogoče posodobiti."
 msgid "Dashboard could not be deleted."
 msgstr "Nadzorne plošče ni mogoče izbrisati."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Nadzorne plošče ni mogoče posodobiti."
 
@@ -4689,6 +4695,9 @@ msgstr "Podatkovnega niza ni mogoče ustvariti."
 
 msgid "Dataset could not be duplicated."
 msgstr "Podatkovnega niza ni mogoče duplicirati."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Podatkovnega niza ni mogoče posodobiti."

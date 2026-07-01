@@ -170,6 +170,26 @@ class DatasetUpdateFailedError(UpdateFailedError):
     message = _("Dataset could not be updated.")
 
 
+class DatasetRestoreFailedError(UpdateFailedError):
+    # Restore semantically clears ``deleted_at``; it is an UPDATE, not a new
+    # row. ``UpdateFailedError`` is the nearest typed middle-tier base in the
+    # codebase. A dedicated ``RestoreFailedError`` in
+    # ``superset/commands/exceptions.py`` would be more precise across the
+    # entity rollouts but lives in already-merged infrastructure (#39977);
+    # introducing it can be a cross-entity follow-up.
+    message = _("Dataset could not be restored.")
+
+
+class DatasetLogicalDuplicateError(CommandException):
+    status = 422
+    message = _(
+        "Dataset cannot be restored because another active dataset already "
+        "references the same physical table (same database, catalog, schema, "
+        "and table name). Delete the duplicate or rename the table before "
+        "restoring."
+    )
+
+
 class DatasetDeleteFailedError(DeleteFailedError):
     message = _("Datasets could not be deleted.")
 

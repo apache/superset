@@ -61,6 +61,7 @@ import {
 } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -547,9 +548,15 @@ const Header = (): JSX.Element => {
 
   const metadataBar = useDashboardMetadataBar(dashboardInfo);
 
+  const isVersionPreviewActive = useSelector(
+    selectIsDashboardVersionPreviewActive,
+  );
   const userCanEdit =
-    dashboardInfo.dash_edit_perm && !dashboardInfo.is_managed_externally;
-  const userCanShare = !!dashboardInfo.dash_share_perm;
+    dashboardInfo.dash_edit_perm &&
+    !dashboardInfo.is_managed_externally &&
+    !isVersionPreviewActive;
+  const userCanShare =
+    !!dashboardInfo.dash_share_perm && !isVersionPreviewActive;
   const userCanSaveAs = !!dashboardInfo.dash_save_perm;
   const userCanCurate =
     isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
@@ -844,6 +851,7 @@ const Header = (): JSX.Element => {
         menuDropdownProps={{
           open: isDropdownVisible,
           onOpenChange: setIsDropdownVisible,
+          disabled: isVersionPreviewActive,
         }}
         additionalActionsMenu={menu}
         showFaveStar={Boolean(user?.userId && dashboardInfo?.id)}

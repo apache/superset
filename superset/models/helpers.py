@@ -270,6 +270,53 @@ class UUIDMixin:  # pylint: disable=too-few-public-methods
         UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
     )
 
+    @validates("uuid")
+    def _coerce_uuid(self, key: str, value: Any) -> Any:  # noqa: ARG002
+        """Coerce well-formed UUID strings to ``uuid.UUID`` on assignment;
+        pass everything else through untouched.
+
+        **Why coerce.** ``UUIDType`` only converts at SQL bind / SQL
+        result time. Importers and ad-hoc construction
+        (``SqlMetric(uuid="…string…")``) leave the in-memory attribute
+        as a ``str`` until the next DB round-trip refreshes it. With
+        SQLAlchemy-Continuum versioning attached to a child mapper
+        (``TableColumn`` / ``SqlMetric``), the post-INSERT attribute-
+        expire behaviour changes enough that the refresh doesn't happen
+        before the caller reads the attribute — breaking equality
+        assertions like ``test_import_dataset``'s
+        ``metric.uuid == uuid.UUID(...)`` because str ≠ UUID. Coercing
+        defensively here makes the in-memory attribute always a UUID
+        regardless of provenance.
+
+        **Why the non-UUID-string escape hatch.** Tightening this
+        validator to raise on non-UUID strings would break a small set
+        of existing unit tests that use human-readable placeholder
+        strings as fixture uuids (e.g.
+        ``test_dashboard_schemas.py``'s ``"dashboard-uuid-7"`` and
+        analogous placeholders in importer tests). The fixtures use
+        these placeholders for legibility — they're only ever compared
+        by string equality, never written to a real database. Letting
+        them through unchanged keeps the fixtures working at the cost
+        of deferring "real" UUID malformation to the SQL bind layer,
+        which raises a clearer "invalid input syntax for type uuid"
+        error keyed to the actual column.
+
+        **Tightening path** (if amin M1 is ever revisited): replace
+        the ``return value`` in the ``except`` branch with
+        ``raise ValueError(f"Invalid UUID: {value!r}")``, then run the
+        unit test suite and migrate any remaining placeholder fixtures
+        to ``uuid.uuid4()`` (use
+        ``rg '''SqlMetric\\(uuid="[^"]*"|"dashboard-uuid|"slice-uuid'''``
+        to find them). The full migration touches ~5–10 fixture files
+        and is non-breaking outside tests.
+        """
+        if isinstance(value, str):
+            try:
+                return uuid.UUID(value)
+            except ValueError:
+                return value
+        return value
+
     @property
     def short_uuid(self) -> str:
         return str(self.uuid)[:8]
@@ -552,14 +599,23 @@ class ImportExportMixin(UUIDMixin):
 
     def reset_ownership(self) -> None:
         """object will belong to the user the current user"""
-        # make sure the object doesn't have relations to a user
-        # it will be filled by appbuilder on save
-        self.created_by = None
-        self.changed_by = None
-        # flask global context might not exist (in cli or tests for example)
+        # Reset the audit pointers. When a Flask request context is
+        # available we explicitly stamp the current user, otherwise we
+        # leave the attributes unset so Flask-AppBuilder's column
+        # defaults fill them in on save. An explicit assignment is
+        # required because once the ``created_by`` / ``changed_by``
+        # relationships are configured (which happens eagerly on models
+        # registered with SQLAlchemy-Continuum), setting them to
+        # ``None`` propagates to the FK column and suppresses the
+        # ``default=`` callable.
         self.owners = []
-        if g and hasattr(g, "user"):
+        if g and hasattr(g, "user") and g.user:
+            self.created_by = g.user
+            self.changed_by = g.user
             self.owners = [g.user]
+        else:
+            self.created_by = None
+            self.changed_by = None
 
     @property
     def params_dict(self) -> dict[Any, Any]:
@@ -798,8 +854,17 @@ def _should_attach_soft_delete_criteria(execute_state: ORMExecuteState) -> bool:
     relationship-load event closes that gap. The resulting WHERE
     clause may have ``deleted_at IS NULL`` twice when propagation
     DOES work — harmless redundancy, idempotent SQL.
+
+    Gated by the temporary ``SOFT_DELETE`` rollout flag: while it is
+    off, no criteria are attached, so soft-deleted rows (which the delete path
+    does not create while the flag is off) are not filtered. The flag and this
+    gate are removed once soft delete is stable.
     """
-    return execute_state.is_select and not execute_state.is_column_load
+    return (
+        execute_state.is_select
+        and not execute_state.is_column_load
+        and is_feature_enabled("SOFT_DELETE")
+    )
 
 
 def _all_soft_delete_subclasses() -> list[type[SoftDeleteMixin]]:

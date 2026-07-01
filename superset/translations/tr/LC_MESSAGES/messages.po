@@ -3043,6 +3043,9 @@ msgstr "Grafik değişiklikleri"
 msgid "Chart could not be created."
 msgstr "Grafik oluşturulamadı."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Grafik gencellenemedi."
 
@@ -4367,6 +4370,9 @@ msgstr "Gösterim Paneli güncellenemedi."
 msgid "Dashboard could not be deleted."
 msgstr "Gösterim Paneli silinemedi."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Gösterim Paneli güncellenemedi."
 
@@ -4613,6 +4619,9 @@ msgstr "Veriseti oluşturulamadı."
 
 msgid "Dataset could not be duplicated."
 msgstr "Veriseti çoğaltılamadı."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Veriseti güncellenemedi."

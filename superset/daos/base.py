@@ -45,6 +45,7 @@ from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProper
 from superset_core.common.daos import BaseDAO as CoreBaseDAO
 from superset_core.common.models import CoreModel
 
+from superset import is_feature_enabled
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.exceptions import (
     DAOFindFailedError,
@@ -81,9 +82,15 @@ class ColumnOperatorEnum(str, Enum):
         return op_func(column, value)
 
 
-def _escape_like(value: str) -> str:
-    """Escape LIKE/ILIKE wildcards to prevent wildcard injection."""
-    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+def _escape_like(value: Any) -> str:
+    """Escape LIKE/ILIKE wildcards to prevent wildcard injection.
+
+    ``ColumnOperator.value`` is typed ``Any``, so a non-string payload (e.g. a
+    numeric JSON value) can reach a LIKE-family operator. Coerce to ``str`` so
+    such input degrades to a literal match instead of raising ``AttributeError``.
+    """
+    text = "" if value is None else str(value)
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 # Define operator_map as a module-level dict after the enum is defined
@@ -526,16 +533,22 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         soft delete.
 
         For models that include ``SoftDeleteMixin``, this calls
-        ``soft_delete()``. For all other models, this calls ``hard_delete()``
-        (the original behaviour).
+        ``soft_delete()`` — but only while the temporary ``SOFT_DELETE`` rollout
+        gate is enabled. When the gate is off, every model
+        hard-deletes (the original behaviour), so the substrate can ship dark.
+        For all other models, this always calls ``hard_delete()``.
 
         :param items: The items to delete
         """
         from superset.models.helpers import (
-            SoftDeleteMixin,  # pylint: disable=import-outside-toplevel
+            SoftDeleteMixin,  # avoid circular import: models.helpers <-> daos
         )
 
-        if cls.model_cls is not None and issubclass(cls.model_cls, SoftDeleteMixin):
+        if (
+            cls.model_cls is not None
+            and issubclass(cls.model_cls, SoftDeleteMixin)
+            and is_feature_enabled("SOFT_DELETE")
+        ):
             cls.soft_delete(items)
         else:
             cls.hard_delete(items)

@@ -3103,6 +3103,9 @@ msgstr "تغييرات المخطط"
 msgid "Chart could not be created."
 msgstr "تعذر إنشاء مخطط."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "تعذر تحديث المخطط."
 
@@ -4441,6 +4444,9 @@ msgstr "تعذر تحديث لوحة المعلومات."
 msgid "Dashboard could not be deleted."
 msgstr "تعذر حذف لوحة المعلومات."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "تعذر تحديث لوحة المعلومات."
 
@@ -4696,6 +4702,9 @@ msgstr "تعذر إنشاء مجموعة بيانات."
 
 msgid "Dataset could not be duplicated."
 msgstr "تعذر تكرار مجموعة البيانات."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "تعذر تحديث مجموعة البيانات."

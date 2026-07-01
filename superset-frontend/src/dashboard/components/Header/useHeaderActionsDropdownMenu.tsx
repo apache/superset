@@ -18,8 +18,9 @@
  */
 import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
 import { isEmpty } from 'lodash-es';
@@ -37,6 +38,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import { usePermissions } from 'src/hooks/usePermissions';
+import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -73,6 +75,7 @@ export const useHeaderActionsMenu = ({
   Dispatch<SetStateAction<boolean>>,
 ] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const dispatch = useDispatch();
   const { canExportImage } = usePermissions();
   const history = useHistory();
   const location = useLocation();
@@ -117,6 +120,9 @@ export const useHeaderActionsMenu = ({
         case MenuKeys.ManageEmbedded:
           manageEmbedded();
           break;
+        case MenuKeys.VersionHistory:
+          dispatch(openVersionHistoryPanel('dashboard'));
+          break;
         default:
           break;
       }
@@ -128,6 +134,7 @@ export const useHeaderActionsMenu = ({
       showPropertiesModal,
       showRefreshModal,
       manageEmbedded,
+      dispatch,
       history,
       location,
     ],
@@ -315,6 +322,17 @@ export const useHeaderActionsMenu = ({
           />,
         ),
       );
+    }
+
+    if (
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      userCanEdit &&
+      !editMode
+    ) {
+      menuItems.push({
+        key: MenuKeys.VersionHistory,
+        label: t('View version history'),
+      });
     }
 
     return (

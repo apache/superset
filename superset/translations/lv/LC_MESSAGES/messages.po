@@ -3075,6 +3075,9 @@ msgstr "Diagrammas izmaiņas"
 msgid "Chart could not be created."
 msgstr "Diagrammu nevarēja izveidot."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Diagrammu nevarēja atjaunināt."
 
@@ -4362,6 +4365,9 @@ msgstr "Informācijas paneļa krāsu konfigurāciju nevarēja atjaunināt."
 msgid "Dashboard could not be deleted."
 msgstr "Infopaneli nevarēja dzēst."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Infopaneli nevarēja atjaunināt."
 
@@ -4608,6 +4614,9 @@ msgstr "Datu kopu nevarēja izveidot."
 
 msgid "Dataset could not be duplicated."
 msgstr "Datu kopu nevarēja dublēt."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Datu kopu nevarēja atjaunināt."

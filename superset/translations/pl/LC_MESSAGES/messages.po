@@ -3155,6 +3155,9 @@ msgstr "Zmiany wykresu"
 msgid "Chart could not be created."
 msgstr "Nie można utworzyć wykresu."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Nie można zaktualizować wykresu."
 
@@ -4565,6 +4568,9 @@ msgstr "Nie można zaktualizować pulpitu nawigacyjnego."
 msgid "Dashboard could not be deleted."
 msgstr "Nie można usunąć pulpitu nawigacyjnego."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Nie można zaktualizować pulpitu nawigacyjnego."
 
@@ -4835,6 +4841,9 @@ msgstr "Nie udało się utworzyć zestawu danych."
 #, fuzzy
 msgid "Dataset could not be duplicated."
 msgstr "Nie udało się zduplikować zestawu danych."
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Nie udało się zaktualizować zestawu danych."

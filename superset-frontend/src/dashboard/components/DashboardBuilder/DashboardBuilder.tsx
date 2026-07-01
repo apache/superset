@@ -18,9 +18,24 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  lazy,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
-import { addAlpha, JsonObject, useElementOnScreen } from '@superset-ui/core';
+import {
+  addAlpha,
+  isFeatureEnabled,
+  FeatureFlag,
+  JsonObject,
+  useElementOnScreen,
+} from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -68,10 +83,20 @@ import {
   OPEN_FILTER_BAR_WIDTH,
   EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
+import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 import DashboardWrapper from './DashboardWrapper';
+
+// Lazy-loaded so deployments with the VersionHistory flag off never pay
+// the bundle cost of the feature's component graph.
+const DashboardVersionHistory = lazy(
+  () => import('src/features/versionHistory/DashboardVersionHistory'),
+);
+const PreviewBanner = lazy(
+  () => import('src/features/versionHistory/PreviewBanner'),
+);
 
 // @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
@@ -126,6 +151,17 @@ const StyledContent = styled.div<{
   grid-row: 2;
   // @z-index-above-dashboard-header (100) + 1 = 101
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
+`;
+
+// Sticks alongside the page scroll so the panel stays fully visible.
+const VersionHistoryColumn = styled.div`
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  z-index: 99;
 `;
 
 const DashboardContentWrapper = styled.div`
@@ -273,14 +309,29 @@ const DashboardContentWrapper = styled.div`
 const StyledDashboardContent = styled.div<{
   editMode: boolean;
   marginLeft: number;
+  previewGated: boolean;
 }>`
-  ${({ theme, editMode, marginLeft }) => css`
+  ${({ theme, editMode, marginLeft, previewGated }) => css`
     background-color: ${theme.colorBgLayout};
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
     height: auto;
     flex: 1;
+
+    ${previewGated &&
+    `
+      /* Block chart interactions (context menus, cross-filters, drills)
+         while previewing a historical version. Tab bars deliberately stay
+         clickable: previewing a tabbed dashboard requires navigating its
+         tabs, and tab state is ephemeral — exiting the preview re-hydrates
+         and wipes it. Page scrolling is unaffected because the page, not
+         this subtree, owns the scroll. */
+      pointer-events: none;
+      .ant-tabs-nav {
+        pointer-events: auto;
+      }
+    `}
 
     .grid-container .dashboard-component-tabs {
       box-shadow: none;
@@ -386,6 +437,9 @@ const DashboardBuilder = () => {
   );
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
+  );
+  const isVersionPreviewActive = useSelector(
+    selectIsDashboardVersionPreviewActive,
   );
 
   const handleChangeTab = useCallback(
@@ -515,14 +569,35 @@ const DashboardBuilder = () => {
         {!hideDashboardHeader && <DashboardHeader />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
-            <FilterBar
-              orientation={FilterBarOrientation.Horizontal}
-              hidden={isReport}
-            />
+            <div
+              data-test="dashboard-filter-bar-gate"
+              aria-disabled={isVersionPreviewActive}
+              css={css`
+                ${isVersionPreviewActive
+                  ? `
+                    pointer-events: none;
+                    opacity: 0.5;
+                  `
+                  : ''}
+              `}
+              // inert blocks keyboard focus too; React 18 needs the spread form
+              {...(isVersionPreviewActive ? { inert: '' } : {})}
+            >
+              <FilterBar
+                orientation={FilterBarOrientation.Horizontal}
+                hidden={isReport}
+              />
+            </div>
           )}
       </>
     ),
-    [hideDashboardHeader, showFilterBar, filterBarOrientation, isReport],
+    [
+      hideDashboardHeader,
+      showFilterBar,
+      filterBarOrientation,
+      isReport,
+      isVersionPreviewActive,
+    ],
   );
 
   const renderDraggableContent = useCallback(
@@ -589,16 +664,32 @@ const DashboardBuilder = () => {
         >
           <StickyPanel ref={containerRef} width={filterBarWidth}>
             <ErrorBoundary>
-              <FilterBar
-                orientation={FilterBarOrientation.Vertical}
-                verticalConfig={{
-                  filtersOpen: dashboardFiltersOpen,
-                  toggleFiltersBar: toggleDashboardFiltersOpen,
-                  width: filterBarWidth,
-                  height: filterBarHeight,
-                  offset: filterBarOffset,
-                }}
-              />
+              <div
+                data-test="dashboard-filter-bar-gate"
+                aria-disabled={isVersionPreviewActive}
+                css={css`
+                  height: 100%;
+                  ${isVersionPreviewActive
+                    ? `
+                      pointer-events: none;
+                      opacity: 0.5;
+                    `
+                    : ''}
+                `}
+                // inert blocks keyboard focus too; React 18 needs the spread form
+                {...(isVersionPreviewActive ? { inert: '' } : {})}
+              >
+                <FilterBar
+                  orientation={FilterBarOrientation.Vertical}
+                  verticalConfig={{
+                    filtersOpen: dashboardFiltersOpen,
+                    toggleFiltersBar: toggleDashboardFiltersOpen,
+                    width: filterBarWidth,
+                    height: filterBarHeight,
+                    offset: filterBarOffset,
+                  }}
+                />
+              </div>
             </ErrorBoundary>
           </StickyPanel>
         </FiltersPanel>
@@ -610,6 +701,7 @@ const DashboardBuilder = () => {
       filterBarHeight,
       filterBarOffset,
       isReport,
+      isVersionPreviewActive,
     ],
   );
 
@@ -656,6 +748,11 @@ const DashboardBuilder = () => {
         </Droppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
+        {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+          <Suspense fallback={null}>
+            <PreviewBanner entityType="dashboard" />
+          </Suspense>
+        )}
         {!editMode &&
           !topLevelTabs &&
           dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (
@@ -684,6 +781,9 @@ const DashboardBuilder = () => {
             className="dashboard-content"
             editMode={editMode}
             marginLeft={dashboardContentMarginLeft}
+            data-test="dashboard-grid-gate"
+            aria-disabled={isVersionPreviewActive}
+            previewGated={isVersionPreviewActive}
           >
             {showDashboard ? (
               missingInitialFilters.length > 0 ? (
@@ -719,6 +819,13 @@ const DashboardBuilder = () => {
           </StyledDashboardContent>
         </DashboardContentWrapper>
       </StyledContent>
+      {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+        <VersionHistoryColumn>
+          <Suspense fallback={null}>
+            <DashboardVersionHistory />
+          </Suspense>
+        </VersionHistoryColumn>
+      )}
       {dashboardIsSaving && (
         <Loading
           css={css`

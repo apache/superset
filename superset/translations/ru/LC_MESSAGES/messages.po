@@ -3060,6 +3060,9 @@ msgstr "Изменения диаграммы"
 msgid "Chart could not be created."
 msgstr "Не удалось создать диаграмму"
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Не удалось обновить диаграмму"
 
@@ -4345,6 +4348,9 @@ msgstr "Не удалось обновить цветовую конфигура
 msgid "Dashboard could not be deleted."
 msgstr "Не удалось удалить дашборд"
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Не удалось обновить дашборд"
 
@@ -4588,6 +4594,9 @@ msgstr "Не удалось создать датасет"
 
 msgid "Dataset could not be duplicated."
 msgstr "Датасет не может быть дублирован"
+
+msgid "Dataset could not be restored."
+msgstr ""
 
 msgid "Dataset could not be updated."
 msgstr "Не удалось обновить датасет"
