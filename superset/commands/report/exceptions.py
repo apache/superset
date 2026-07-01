@@ -225,6 +225,13 @@ class ReportScheduleExecuteUnexpectedError(CommandException):
     message = _("Report Schedule execution got an unexpected error.")
 
 
+class ReportScheduleTargetChartDeletedError(CommandException):
+    message = _(
+        "The chart this report targets was deleted. Restore the chart, or "
+        "update the report to point at an active chart."
+    )
+
+
 class ReportSchedulePreviousWorkingError(CommandException):
     status = 429
     message = _("Report Schedule is still working, refusing to re-compute.")
