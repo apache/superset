@@ -26,7 +26,9 @@ from typing import Any
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset.daos.dataset import DatasetDAO
+from superset.daos.semantic_layer import SemanticViewDAO
+from superset.extensions import db, event_logger
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     requires_data_model_metadata_access,
@@ -72,11 +74,13 @@ def _collect_builtin_metrics(request: ListMetricsRequest) -> list[MetricInfo]:
     from sqlalchemy.orm import subqueryload
 
     from superset.connectors.sqla.models import SqlaTable
-    from superset.daos.dataset import DatasetDAO
-    from superset.extensions import db
 
     with event_logger.log_context(action="mcp.list_metrics.builtin_query"):
         if request.dataset_id is not None:
+            from sqlalchemy.orm import subqueryload
+
+            from superset.connectors.sqla.models import SqlaTable
+
             dataset = DatasetDAO.find_by_id(
                 request.dataset_id,
                 query_options=[
@@ -86,6 +90,10 @@ def _collect_builtin_metrics(request: ListMetricsRequest) -> list[MetricInfo]:
             )
             datasets = [dataset] if dataset else []
         else:
+            from sqlalchemy.orm import subqueryload
+
+            from superset.connectors.sqla.models import SqlaTable
+
             # Use _apply_base_filter with explicit eager loading to avoid
             # N+1 queries when iterating dataset.metrics / dataset.columns.
             query = db.session.query(SqlaTable).options(
@@ -131,8 +139,6 @@ async def _collect_external_metrics(
     ctx: Context,
 ) -> list[MetricInfo]:
     """Collect metrics from external SemanticView models."""
-    from superset.daos.semantic_layer import SemanticViewDAO
-
     with event_logger.log_context(action="mcp.list_metrics.external_query"):
         if request.view_id is not None:
             view = SemanticViewDAO.find_by_id(request.view_id)
