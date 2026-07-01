@@ -168,6 +168,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     null,
   );
   const [isFetchingActivityData, setIsFetchingActivityData] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const collapseState = getItem(LocalStorageKeys.HomepageCollapseState, []);
   const [activeState, setActiveState] = useState<Array<string>>(collapseState);
@@ -175,6 +176,10 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const handleCollapse = (state: Array<string>) => {
     setActiveState(state);
     setItem(LocalStorageKeys.HomepageCollapseState, state);
+  };
+
+  const handleRefreshActivity = () => {
+    setRefreshKey(prev => prev + 1);
   };
 
   const SubmenuExtension = extensionsRegistry.get('home.submenu');
@@ -290,7 +295,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     ]).then(() => {
       setIsFetchingActivityData(false);
     });
-  }, [otherTabFilters]);
+  }, [otherTabFilters, refreshKey]);
 
   const handleToggle = () => {
     setChecked(!checked);
@@ -394,6 +399,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         otherTabData={activityData?.[TableTab.Other]}
                         otherTabFilters={otherTabFilters}
                         otherTabTitle={otherTabTitle}
+                        onActivityRefresh={handleRefreshActivity}
                       />
                     ),
                 },
@@ -411,6 +417,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         otherTabData={activityData?.[TableTab.Other]}
                         otherTabFilters={otherTabFilters}
                         otherTabTitle={otherTabTitle}
+                        onActivityRefresh={handleRefreshActivity}
                       />
                     ),
                 },
