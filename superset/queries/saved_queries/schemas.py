@@ -19,7 +19,7 @@ from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Length
 
 
-def validate_label(value: str) -> None:
+def validate_label(value: str | None) -> None:
     """Reject blank or whitespace-only saved query labels."""
     if value is None or not value.strip():
         raise ValidationError(_("Label must not be empty."))

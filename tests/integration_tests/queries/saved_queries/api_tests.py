@@ -695,7 +695,7 @@ class TestSavedQueryApi(SupersetTestCase):
             }
             rv = self.client.post(uri, json=post_data)
             data = json.loads(rv.data.decode("utf-8"))
-            assert rv.status_code == 400
+            assert rv.status_code == 422
             assert "label" in data["message"]
 
     def test_create_saved_query_strips_label(self):
@@ -737,7 +737,7 @@ class TestSavedQueryApi(SupersetTestCase):
 
         rv = self.client.put(uri, json={"label": "   "})
         data = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 400
+        assert rv.status_code == 422
         assert "label" in data["message"]
 
     @pytest.mark.usefixtures("create_saved_queries")
