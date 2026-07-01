@@ -31,6 +31,7 @@ from superset.reports.models import (
 )
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -68,6 +69,7 @@ def _hard_delete_dashboard_for_charts_test(dashboard_id: int) -> None:
 class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
     """Tests for chart soft-delete behaviour (T013, T016)."""
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_delete_chart_soft_deletes(self) -> None:
         """DELETE /api/v1/chart/<pk> sets deleted_at instead of removing."""
         admin_id = self.get_user("admin").id
@@ -91,6 +93,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_soft_deleted_chart_excluded_from_get(self) -> None:
         """GET /api/v1/chart/<pk> returns 404 for a soft-deleted chart."""
         admin_id = self.get_user("admin").id
@@ -105,6 +108,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_soft_deleted_chart_excluded_from_list(self) -> None:
         """GET /api/v1/chart/ should not include soft-deleted charts."""
         admin_id = self.get_user("admin").id
@@ -121,6 +125,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_soft_deleted_chart_included_in_list_when_requested(self) -> None:
         """GET /api/v1/chart/ with chart_deleted_state=include returns deleted charts."""  # noqa: E501
         admin_id = self.get_user("admin").id
@@ -145,6 +150,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_only_filter_returns_only_soft_deleted_charts(self) -> None:
         """chart_deleted_state=only excludes live rows and returns only deleted ones."""
         admin_id = self.get_user("admin").id
@@ -169,6 +175,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         _hard_delete_chart(live_id)
         _hard_delete_chart(deleted_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_deleted_state_list_shows_owner_their_own_deleted(self) -> None:
         """A non-admin owner can still enumerate their own soft-deleted charts.
         Deleted-state scoping mirrors the restore audience, so it must not lock
@@ -192,6 +199,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_deleted_state_list_hides_non_owned_from_read_access_user(self) -> None:
         """A read-access non-owner must not enumerate a chart once it is
         soft-deleted.
@@ -252,6 +260,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
             db.session.commit()
             _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_delete_already_soft_deleted_chart_returns_404(self) -> None:
         """DELETE on an already soft-deleted chart returns 404 (FR-008)."""
         admin_id = self.get_user("admin").id
@@ -267,6 +276,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_delete_chart_blocked_when_active_report_references_it(self) -> None:
         """DELETE /api/v1/chart/<id> returns 422 when a report references it.
 
@@ -327,6 +337,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
 class TestChartRestore(InsertChartMixin, SupersetTestCase):
     """Tests for chart restore behaviour (T025)."""
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_soft_deleted_chart(self) -> None:
         """POST /api/v1/chart/<uuid>/restore makes the chart visible again."""
         admin_id = self.get_user("admin").id
@@ -345,6 +356,7 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_failure_returns_422(self) -> None:
         """A failure during restore surfaces as a clean 422 via the
         ``ChartRestoreFailedError`` handler rather than an unhandled 500.
@@ -376,6 +388,7 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_nonexistent_chart_returns_404(self) -> None:
         """POST /api/v1/chart/<uuid>/restore returns 404 for unknown UUID."""
         self.login(ADMIN_USERNAME)
@@ -384,6 +397,7 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         )
         assert rv.status_code == 404
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_active_chart_returns_404(self) -> None:
         """POST /api/v1/chart/<uuid>/restore on active chart returns 404."""
         admin_id = self.get_user("admin").id
@@ -398,6 +412,7 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_uses_can_write_permission(self) -> None:
         """Non-admin owner with ``can_write_Chart`` can hit the restore
         endpoint.
@@ -433,6 +448,7 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_chart_reattaches_to_dashboards(self) -> None:
         """Soft-deleting a chart preserves dashboard_slices junction rows;
         restore makes the chart reappear in its dashboards automatically.
@@ -529,6 +545,7 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         _hard_delete_dashboard_for_charts_test(dashboard_id)
         _hard_delete_chart(chart_id)
 
+    @with_feature_flags(SOFT_DELETE=True)
     def test_restore_chart_by_non_admin_owner(self) -> None:
         """Non-admin owners can restore their own soft-deleted charts.
 
