@@ -193,8 +193,14 @@ class TestDatasetApi(SupersetTestCase):
     @pytest.fixture
     def create_datasets(self):
         with self.create_app().app_context():
-            # Purge any soft-deleted rows that occupy the unique constraint
-            stale = self.get_fixture_datasets()
+            # Purge any soft-deleted rows that occupy the unique constraint.
+            # Restrict to ``deleted_at IS NOT NULL``: ``get_fixture_datasets``
+            # bypasses the visibility filter and matches by table name only,
+            # so an unrestricted purge would also hard-delete *live* datasets
+            # other suites created over the same AB tables.
+            stale = [
+                ds for ds in self.get_fixture_datasets() if ds.deleted_at is not None
+            ]
             for ds in stale:
                 db.session.delete(ds)
             if stale:

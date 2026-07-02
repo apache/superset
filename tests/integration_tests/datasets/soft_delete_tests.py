@@ -185,16 +185,20 @@ class TestDatasetSoftDelete(SupersetTestCase):
         dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
         db.session.commit()
 
-        self.login(ALPHA_USERNAME)
-        rison_query = (
-            "(filters:!((col:id,opr:dataset_deleted_state,value:only)),page_size:200)"
-        )
-        rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
-        assert rv.status_code == 200
-        ids = [r["id"] for r in json.loads(rv.data)["result"]]
-        assert dataset_id in ids
-
-        self._hard_delete_created(dataset_id, database)
+        try:
+            self.login(ALPHA_USERNAME)
+            rison_query = (
+                "(filters:!((col:id,opr:dataset_deleted_state,value:only)),"
+                "page_size:200)"
+            )
+            rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
+            assert rv.status_code == 200
+            ids = [r["id"] for r in json.loads(rv.data)["result"]]
+            assert dataset_id in ids
+        finally:
+            # Matches the sibling tests: a failed assertion must not strand
+            # the soft-deleted dataset/database in the shared test DB.
+            self._hard_delete_created(dataset_id, database)
 
     @with_feature_flags(SOFT_DELETE=True)
     def test_deleted_state_list_hides_non_owned_from_read_access_user(self) -> None:
