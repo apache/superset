@@ -222,8 +222,7 @@ export const useDrillDetailMenuItems = ({
           children: [
             ...filters.map((filter, i) => {
               const isNullVal =
-                isEmpty(filter.formattedVal) ||
-                filter.formattedVal === NULL_STRING;
+                filter.val === null || filter.formattedVal === NULL_STRING;
               const formattedVal = isNullVal
                 ? NULL_STRING
                 : filter.formattedVal;
