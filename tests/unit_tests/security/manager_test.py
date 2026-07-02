@@ -1615,13 +1615,13 @@ def test_query_context_modified_orderby_direction_change_allowed(
         "columns": ["name"],
         "groupby": [],
         "metrics": ["count"],
-        "orderby": [["name", True]],  # Original: DESC
+        "orderby": [["name", True]],  # Original: ASC
     }
     query_context.form_data = {
         "slice_id": 42,
         "columns": ["name"],
         "metrics": ["count"],
-        "orderby": [["name", False]],  # Changed to ASC - should be allowed
+        "orderby": [["name", False]],  # Changed to DESC - should be allowed
     }
     query_context.queries = []
 

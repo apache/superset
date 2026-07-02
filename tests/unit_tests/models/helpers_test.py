@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import copy
 from contextlib import contextmanager
-from typing import cast, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -2096,10 +2096,10 @@ def test_orderby_adhoc_column_label_takes_precedence_over_saved_metric(
     assert "SUM(A)" not in sql
 
 
-@pytest.mark.parametrize("aggregate", [None, "MEDIAN"])
+@pytest.mark.parametrize("aggregate", [None, "MEDIAN", ["SUM"], {"op": "SUM"}])
 def test_adhoc_metric_to_sqla_invalid_simple_aggregate_raises_validation_error(
     database: Database,
-    aggregate: str | None,
+    aggregate: Any,
 ) -> None:
     """
     Test that malformed SIMPLE adhoc metrics fail with a validation error.
@@ -2127,8 +2127,10 @@ def test_adhoc_metric_to_sqla_invalid_simple_aggregate_raises_validation_error(
         table.adhoc_metric_to_sqla(metric, {})
 
 
-def test_adhoc_metric_to_sqla_missing_sql_expression_raises_validation_error(
+@pytest.mark.parametrize("sql_expression", [None, "", "   "])
+def test_adhoc_metric_to_sqla_invalid_sql_expression_raises_validation_error(
     database: Database,
+    sql_expression: str | None,
 ) -> None:
     """
     Test that malformed SQL adhoc metrics fail with a validation error.
@@ -2148,6 +2150,8 @@ def test_adhoc_metric_to_sqla_missing_sql_expression_raises_validation_error(
         "expressionType": "SQL",
         "label": "Invalid metric",
     }
+    if sql_expression is not None:
+        metric["sqlExpression"] = sql_expression
 
     with pytest.raises(QueryObjectValidationError):
         table.adhoc_metric_to_sqla(metric, {})
