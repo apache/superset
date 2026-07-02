@@ -462,3 +462,54 @@ def test_is_do_not_translate_allows_normal_entry() -> None:
     entry = polib.POEntry(msgid="Save dashboard", msgstr="")
     entry.tcomment = "Machine-translated via backfill_po.py (claude-x) [no refs]"
     assert not backfill_po._is_do_not_translate(entry)
+
+
+def test_backfill_skips_do_not_translate_entries_end_to_end(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """End-to-end: ``backfill`` must never hand a do-not-translate entry to the
+    translator, and must leave it untranslated in the written .po, while normal
+    entries are filled. Guards against the filter being applied at the wrong
+    stage or dropped entirely."""
+    lang = "es"
+    po_dir = tmp_path / lang / "LC_MESSAGES"
+    po_dir.mkdir(parents=True)
+    po_path = po_dir / "messages.po"
+    # One curated DNT msgid, one translator-marked DNT entry, one normal entry.
+    po_path.write_text(
+        'msgid ""\nmsgstr ""\n\n'
+        'msgid "bolt"\nmsgstr ""\n\n'
+        '# Не переводить\nmsgid "Keep me literal"\nmsgstr ""\n\n'
+        'msgid "Save dashboard"\nmsgstr ""\n',
+        encoding="utf-8",
+    )
+    index_path = tmp_path / "translation_index.json"
+    index_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(backfill_po, "TRANSLATIONS_DIR", tmp_path)
+
+    seen_msgids: list[str] = []
+
+    def _fake_translate_batch(
+        model: str,
+        target_lang: str,
+        batch: list[dict[str, str]],
+        index: dict[str, object],
+    ) -> dict[int, str]:
+        seen_msgids.extend(it["msgid"] for it in batch)
+        return {i: f"T:{it['msgid']}" for i, it in enumerate(batch)}
+
+    monkeypatch.setattr(backfill_po, "translate_batch", _fake_translate_batch)
+
+    backfill_po.backfill(lang, index_path=index_path, mark_fuzzy=False)
+
+    # DNT entries never reached the translator …
+    assert "bolt" not in seen_msgids
+    assert "Keep me literal" not in seen_msgids
+    assert seen_msgids == ["Save dashboard"]
+
+    # … and stay untranslated in the written file, while the normal one is filled.
+    written = polib.pofile(str(po_path))
+    assert written.find("bolt").msgstr == ""
+    assert written.find("Keep me literal").msgstr == ""
+    assert written.find("Save dashboard").msgstr == "T:Save dashboard"

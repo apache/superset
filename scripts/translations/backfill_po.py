@@ -189,7 +189,7 @@ DO_NOT_TRANSLATE: frozenset[str] = frozenset(
 # Translator comment (in any catalog) explicitly marking an entry off-limits,
 # e.g. the ru catalog's "# Не переводить". Honored so a human translator's
 # deliberate decision to leave a string untranslated is never overridden.
-_DO_NOT_TRANSLATE_COMMENT = re.compile(
+_DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
     r"не\s+переводить|do[\s-]?not[\s-]?translate|don'?t\s+translate",
     re.IGNORECASE,
 )
@@ -701,7 +701,7 @@ def backfill(
     missing: list[polib.POEntry] = [e for e in cat if e.msgid and _is_missing(e)]
     print(f"Found {len(missing)} untranslated entries for '{lang}'.", file=sys.stderr)
 
-    skipped_dnt = [e for e in missing if _is_do_not_translate(e)]
+    skipped_dnt: list[polib.POEntry] = [e for e in missing if _is_do_not_translate(e)]
     if skipped_dnt:
         missing = [e for e in missing if not _is_do_not_translate(e)]
         print(
