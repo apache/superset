@@ -25,6 +25,7 @@ from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Callable, cast, Optional, Union
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import pandas as pd
 import sqlalchemy as sa
@@ -1285,9 +1286,18 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
 sqlatable_user = DBTable(
     "sqlatable_user",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE")),
+    Column(
+        "user_id",
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "table_id",
+        Integer,
+        ForeignKey("tables.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -1513,7 +1523,26 @@ class SqlaTable(
 
     @property
     def sql_url(self) -> str:
-        return self.database.sql_url + "?table_name=" + str(self.table_name)
+        # `Database.sql_url` returns `/sqllab/?dbid=N` — the base
+        # already carries a query string, so the historical string concat
+        # `+ "?table_name=" + str(...)` produced a second literal `?` and
+        # corrupted the query parser. Parse + append + re-encode so
+        # `table_name` is a real query param. `urlencode(quote_via=quote)`
+        # delegates per-value escaping to `quote(safe="")`, which encodes
+        # `/`, `&`, `=`, `#`, space, etc. — load-bearing for table names
+        # containing those characters (regression tested).
+        parts = urlsplit(self.database.sql_url)
+        query = parse_qsl(parts.query, keep_blank_values=True)
+        query.append(("table_name", str(self.table_name)))
+        return urlunsplit(
+            (
+                parts.scheme,
+                parts.netloc,
+                parts.path,
+                urlencode(query, quote_via=quote),
+                parts.fragment,
+            )
+        )
 
     def external_metadata(self) -> list[ResultSetColumnType]:
         # todo(yongjie): create a physical table column type in a separate PR
@@ -2218,17 +2247,25 @@ sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 RLSFilterRoles = DBTable(
     "rls_filter_roles",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
-    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column("role_id", Integer, ForeignKey("ab_role.id"), primary_key=True),
+    Column(
+        "rls_filter_id",
+        Integer,
+        ForeignKey("row_level_security_filters.id"),
+        primary_key=True,
+    ),
 )
 
 RLSFilterTables = DBTable(
     "rls_filter_tables",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("table_id", Integer, ForeignKey("tables.id")),
-    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column("table_id", Integer, ForeignKey("tables.id"), primary_key=True),
+    Column(
+        "rls_filter_id",
+        Integer,
+        ForeignKey("row_level_security_filters.id"),
+        primary_key=True,
+    ),
 )
 
 

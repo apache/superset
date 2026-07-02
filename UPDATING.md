@@ -24,6 +24,24 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [39925](https://github.com/apache/superset/pull/39925): URL prefixing for `SUPERSET_APP_ROOT` subdirectory deployments is now handled automatically by helpers in `src/utils/navigationUtils` (`openInNewTab`, `redirect`, `getShareableUrl`, `<AppLink>`). Direct imports of `ensureAppRoot` / `makeUrl` from `src/utils/pathUtils` are forbidden outside `navigationUtils.ts` (enforced by a static-invariant test); contributors writing new code should use the focused helpers instead. No runtime behaviour change for existing callers — all 19 prior call sites have been migrated and four pre-existing double-prefix and missing-prefix bugs are fixed as part of the migration.
+
+- [39925](https://github.com/apache/superset/pull/39925): `SupersetClient.getUrl()` now strips a single leading application-root segment from the supplied `endpoint` before building the request URL, so a caller that accidentally pre-prefixes its endpoint (for example by wrapping it with `ensureAppRoot` before passing it to the client) no longer produces a doubled `/superset/superset/...` URL under subdirectory deployment. The strip is **single-pass** — a genuine `/superset/superset/<slug>` route is preserved, not collapsed — and **silent** (no console warning); the static-invariant test remains the primary signal for pre-prefixing at the call site, and this runtime strip is a safety net beneath it. Code that intentionally targeted a literal `/<app_root>/<app_root>/...` endpoint through `getUrl` (a configuration that has no legitimate use under the prefixing model) would have its first redundant segment removed.
+
+- **Breaking — `Superset` view class route prefix removed.** The `Superset` view in `superset/views/core.py` now declares `route_base = ""`, overriding Flask-AppBuilder's auto-derived `/superset` prefix. Routes that previously lived at `/superset/welcome/`, `/superset/dashboard/<id>/`, `/superset/dashboard/p/<key>/`, `/superset/explore/`, etc. now respond at `/welcome/`, `/dashboard/<id>/`, `/dashboard/p/<key>/`, `/explore/`, etc. Under subdirectory deployment (`SUPERSET_APP_ROOT=/superset`) the URLs are unchanged from end-user perspective — `AppRootMiddleware` re-applies the prefix via `SCRIPT_NAME`. Under root deployments, any external integration or bookmark that hard-codes `/superset/<endpoint>/` paths must be updated to drop the prefix. This fixes the doubled `/superset/superset/...` URLs that `url_for` emitted for these endpoints under subdirectory deployment and the related 404s on the routes themselves.
+
+- **Breaking — Three sibling view classes route prefix removed.** Following the same rationale as the `Superset` class above, `ExplorePermalinkView` (`superset/views/explore.py`), `TagModelView`, and `TaggedObjectsModelView` (`superset/views/tags.py`, `superset/views/all_entities.py`) now mount at the application root rather than a hard-coded `/superset/...`. The user-visible URLs `/superset/explore/p/<key>/`, `/superset/tags/`, and `/superset/all_entities/` are unchanged under subdirectory deployment; under root deployments these views now serve `/explore/p/<key>/`, `/tags/`, and `/all_entities/`, so any external integration or bookmark must drop the `/superset/` prefix. `Dashboard.url` and `Dashboard.get_url` likewise return `/dashboard/<id>/` instead of the prior `/superset/dashboard/<id>/` literal so downstream consumers (DashboardList row hrefs, MCP service `dashboard_url`) emit a single, deployment-correct prefix.
+
+- **Legacy `/superset/*` path support.** A new outermost WSGI middleware `LegacyPrefixRedirectMiddleware` (`superset/middleware/legacy_prefix_redirect.py`) 308-redirects every enumerated legacy `/superset/<canonical>` path to its post-`route_base=""` canonical location (e.g. `/superset/welcome/` → `/welcome/` under root; → `/superset/welcome/` under `SUPERSET_APP_ROOT=/superset`, because the canonical resolves through `AppRootMiddleware`). Bookmarks, email links, and external integrations survive the route-base collapse for one release cycle. POST against a GET-only canonical returns 410 Gone instead of 308 (308 would 405 on retry). The shim is removed at EOL `5.0.0`, matching the `@deprecated(eol_version="5.0.0")` gate on `Superset.explore` and `Superset.explore_json`.
+
+- **PWA web app manifest served dynamically.** The PWA manifest is now served at `/pwa-manifest.json` (under `APPLICATION_ROOT`) by a new `PwaManifestView` (`superset/views/pwa_manifest.py`) instead of the static file at `/static/assets/pwa-manifest.json`. The legacy static source at `superset-frontend/src/pwa-manifest.json` has been removed (along with its `webpack.config.js` `CopyPlugin` rule). The new endpoint resolves `APPLICATION_ROOT` and `STATIC_ASSETS_PREFIX` at request time so PWA install works under subdirectory deployments and split static-prefix / app-root deployments (where `STATIC_ASSETS_PREFIX` points to a CDN host while the Superset backend stays under `APPLICATION_ROOT`). The `<link rel="manifest">` href in `superset/templates/superset/spa.html` was updated correspondingly (using a new `application_root_rstrip` template global). Operators with a forked `spa.html` should switch any manifest `<link>` to `{{ application_root_rstrip }}/pwa-manifest.json`.
+
+- **Hard re-bookmark break — `/superset/sql/<database_id>/`.** SQL Lab moved to its own blueprint at `/sqllab/`. The legacy `/superset/sql/<id>/` shape changed to a query-string form (`/sqllab/?dbid=<id>`); no 1:1 path mapping exists, so `LegacyPrefixRedirectMiddleware` does **not** redirect this route — it passes through and surfaces a 404. Users with bookmarks to `/superset/sql/<id>/` must update them to `/sqllab/?dbid=<id>`.
+
+- **`SqlaTable.sql_url` query-string format.** `SqlaTable.sql_url` now URL-encodes `table_name` and joins it as a query parameter rather than concatenating a second `?`. Previously, with `Database.sql_url` returning `/sqllab/?dbid=<id>`, the concatenation produced `/sqllab/?dbid=<id>?table_name=<raw>` — a malformed second `?` that broke the query parser. External code that parsed the legacy `<base>?table_name=<raw>` shape now sees properly percent-encoded values (e.g. `/` → `%2F`, ` ` → `+` or `%20`); decode with `urllib.parse.parse_qsl`.
+
+- **New config flag `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default `False`).** Share/permalink URLs now substitute `window.location.origin` for the backend-supplied origin so a proxied or subdirectory-deployed Superset never hands the user an unreachable internal hostname. Operators whose reverse proxy correctly forwards `X-Forwarded-Host` *and* who want permalinks to carry the backend's literal origin can opt out by setting `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True` in `superset_config.py`. Default `False` (rewrite is on); flipping the default would regress the dominant proxied/subdir deployment to an unreachable host.
+
 ### SQL Lab denies large-object and information_schema access by default
 
 `DISALLOWED_SQL_FUNCTIONS` and `DISALLOWED_SQL_TABLES` now ship with additional default entries, so SQL Lab and chart-data queries that reference them are rejected where they were previously allowed:
@@ -270,6 +288,28 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
 Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
 
 The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
+
+### Soft delete and restore for dashboards
+
+**Everything in this section applies only when the `SOFT_DELETE` feature flag is enabled. The flag defaults to `False`** (`@lifecycle: development`), so on a default deployment `DELETE /api/v1/dashboard/<id>` continues to **hard-delete permanently** — nothing is recoverable. Enable `SOFT_DELETE` to get the behavior described below.
+
+**Flag-toggle caveat:** the soft-delete visibility filter is evaluated per query while the flag is on. If dashboards are soft-deleted during a flag-on window and the flag is later turned **off**, those rows reappear as live dashboards in all lists and lookups (including slug lookups — if a soft-deleted dashboard's slug was reused while the flag was on, both rows become visible with the same slug). The `POST /<uuid>/restore` endpoint and the `dashboard_deleted_state` list filter remain functional regardless of the flag, deliberately, so rows soft-deleted during a flag-on window stay discoverable and restorable after a rollback of the flag.
+
+With the flag enabled: `DELETE /api/v1/dashboard/<id>` no longer hard-deletes the dashboard (the bulk-delete endpoint behaves the same way). The row is marked with a `deleted_at` timestamp and hidden from the dashboard API's list, detail, and lookup endpoints, which return 404 for soft-deleted dashboards. The embedded-dashboard iframe URL (`/embedded/<uuid>`) keeps rendering because it reads only `embedded.allowed_domains` and `embedded.dashboard_id` (the FK column) without dereferencing the parent dashboard; the frontend's subsequent dashboard-API fetch is what sees the 404 and surfaces "dashboard not found" to the user.
+
+**New endpoint** — `POST /api/v1/dashboard/<uuid>/restore` clears `deleted_at` and returns the dashboard to active state. Requires `can_write on Dashboard` and ownership of the row (or admin). Soft-deleted dashboards can also be surfaced in the list endpoint via the new `dashboard_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored. For non-admin users, soft-deleted rows are limited to dashboards they own — the same audience that can restore them.
+
+**Permissions migration:** existing role grants of `can_write on Dashboard` cover the new restore endpoint automatically; no role migration is required.
+
+**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_dashboards_deleted_at`) to the `dashboards` table, and **replaces the full unique constraint on `slug`** with a partial unique index (`ix_dashboards_active_slug`) enforcing slug uniqueness only among active (non-soft-deleted) rows. The column add is instant. On Postgres the constraint swap briefly blocks reads and writes during `ALTER TABLE ... DROP CONSTRAINT` (acquires `ACCESS EXCLUSIVE`), then blocks writes only during `CREATE UNIQUE INDEX` (acquires `ShareLock`); reads pass through during the index build. Both windows are sub-second on a typical `dashboards` table. MySQL InnoDB builds the functional index online (no blocking).
+
+**Rollback note:** the downgrade restores the original full unique constraint on `slug`. If the partial-index window allowed slug reuse (a soft-deleted row and an active row holding the same slug), `ALTER TABLE ... ADD CONSTRAINT idx_unique_slug UNIQUE (slug)` will abort with a unique-constraint violation. Before downgrading, hard-delete the soft-deleted duplicates (or rename one side) so each slug appears at most once across all rows. Rolling back the application code while leaving the new migration in place is also possible but exposes soft-deleted rows to the older code path; pair the rollback with a data decision (restore, hard-delete, or migrate-down).
+
+The partial-index replacement is dialect-dependent: PostgreSQL uses a native `WHERE deleted_at IS NULL` partial index; MySQL 8.0.13+ uses a functional index over `(CASE WHEN deleted_at IS NULL THEN slug END)` (8.0.13 is the first release with functional key parts). **MySQL <8.0.13, MariaDB, and SQLite keep the original full unique constraint** (functional indexes / column-level UNIQUE recreation aren't supported cleanly — MariaDB is excluded even at 10.x because its `CASE`-expression index semantics differ), so on those backends a soft-deleted dashboard continues to reserve its slug for the lifetime of the row.
+
+**Slug semantics:** on PostgreSQL and MySQL 8.0.13+, the slug of a soft-deleted dashboard is **free for reuse**. A new active dashboard can claim it immediately. Restoring a soft-deleted dashboard whose slug has since been claimed returns **422 with a clean error** (`DashboardSlugConflictError`) — rename one of the dashboards and retry; the restore is not silently rejected by a database-level constraint violation.
+
+**Importer behavior:** importing a dashboard YAML whose UUID matches an existing **soft-deleted** dashboard is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active dashboard imported without `overwrite=true` is returned unchanged (the import never mutates it), but a soft-deleted UUID match is restored *and* has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted dashboard's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all pre-deletion relationship rows (`dashboard_slices` junctions, role grants, owners, tags) — including role grants that were implicitly revoked by the deletion. Callers whose imports must never mutate existing state should treat bundles that may contain previously deleted UUIDs accordingly. The operation is permission-gated: it requires `can_write` and ownership of the deleted row (or admin) — non-owners get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
 
 ### Granular Export Controls
 
@@ -559,6 +599,29 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
     }
   }
   ```
+
+### Composite primary keys on many-to-many association tables
+
+Eight M:N association tables move from a synthetic `id INTEGER PRIMARY KEY` to a composite `PRIMARY KEY (fk1, fk2)` on their two foreign-key columns. The surrogate `id` is dropped, and the redundant `UNIQUE (fk1, fk2)` on the two tables that carried one is removed (now subsumed by the PK).
+
+| Table | Composite PK |
+|---|---|
+| `dashboard_roles` | `(dashboard_id, role_id)` |
+| `dashboard_slices` | `(dashboard_id, slice_id)` |
+| `dashboard_user` | `(user_id, dashboard_id)` |
+| `report_schedule_user` | `(user_id, report_schedule_id)` |
+| `rls_filter_roles` | `(role_id, rls_filter_id)` |
+| `rls_filter_tables` | `(table_id, rls_filter_id)` |
+| `slice_user` | `(user_id, slice_id)` |
+| `sqlatable_user` | `(user_id, table_id)` |
+
+**Before upgrading:**
+
+- The migration **deletes** two classes of pre-existing rows the composite PK cannot accommodate: duplicate `(fk1, fk2)` pairs (it keeps the lowest `id` and removes the rest) and rows with `NULL` in either FK column. Both are meaningless for `secondary=` association tables, but export the affected rows first if you need an audit record.
+- External tooling (BI tools, backup scripts) that references the surrogate `id` on these tables will break; no application code references it.
+- Downgrade restores the `id` column (and the original `UNIQUE` on the two tables that had it) but leaves the FK columns `NOT NULL` (intentional — a `NULL` FK in a junction row is meaningless).
+
+For large `dashboard_slices` / `report_schedule_user` tables, see the operator runbook in [#39859](https://github.com/apache/superset/pull/39859) — pre-flight inventory queries, per-dialect lock-window sizing, and the duplicate / NULL-FK roll-up — to plan the maintenance window.
 
 ## 6.0.0
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
