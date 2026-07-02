@@ -24,6 +24,7 @@ import {
   SAVE_DASHBOARD_STARTED,
   saveDashboardRequest,
   SET_OVERRIDE_CONFIRM,
+  fetchFaveStar,
   fetchCharts,
   onRefresh,
   ON_FILTERS_REFRESH,
@@ -398,5 +399,37 @@ describe('dashboardState actions', () => {
     expect(dispatchedTypes).toContain(ON_REFRESH_SUCCESS);
     expect(dispatchedTypes).not.toContain(ON_REFRESH);
     expect(dispatchedTypes).not.toContain(ON_FILTERS_REFRESH);
+  });
+
+  describe('fetchFaveStar', () => {
+    test('does not dispatch a danger toast on a 404 error', async () => {
+      const id = 123;
+      const { dispatch } = setup();
+      getStub.restore();
+      getStub = sinon.stub(SupersetClient, 'get').rejects(
+        new Response(JSON.stringify({ message: 'Not found' }), {
+          status: 404,
+        }),
+      );
+
+      await fetchFaveStar(id)(dispatch);
+
+      expect(dispatch.called).toBe(false);
+    });
+
+    test('dispatches a danger toast on a non-404 error', async () => {
+      const id = 123;
+      const { dispatch } = setup();
+      getStub.restore();
+      getStub = sinon.stub(SupersetClient, 'get').rejects(
+        new Response(JSON.stringify({ message: 'Server error' }), {
+          status: 500,
+        }),
+      );
+
+      await fetchFaveStar(id)(dispatch);
+
+      expect(dispatch.calledOnce).toBe(true);
+    });
   });
 });

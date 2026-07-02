@@ -113,15 +113,21 @@ export function fetchFaveStar(id) {
       .then(({ json }) => {
         dispatch(toggleFaveStar(!!json?.result?.[0]?.value));
       })
-      .catch(() =>
+      .catch(error => {
+        // A 404 means the favorite status isn't available to this user (a
+        // non-owner viewing a draft dashboard, or a dashboard deleted after
+        // navigation) — swallow it silently instead of alarming them.
+        if (error instanceof Response && error.status === 404) {
+          return;
+        }
         dispatch(
           addDangerToast(
             t(
               'There was an issue fetching the favorite status of this dashboard.',
             ),
           ),
-        ),
-      );
+        );
+      });
   };
 }
 
