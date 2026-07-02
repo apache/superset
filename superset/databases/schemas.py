@@ -443,6 +443,28 @@ class DatabaseValidateParametersSchema(Schema):
         required=True,
         metadata={"description": configuration_method_description},
     )
+    ssh_tunnel = fields.Nested("DatabaseSSHTunnelValidation", allow_none=True)
+
+
+class DatabaseSSHTunnelValidation(Schema):
+    """SSH Tunnel schema for validation.
+
+    Allows partial data without strict authentication requirements.
+    """
+
+    id = fields.Integer(
+        allow_none=True, metadata={"description": "SSH Tunnel ID (for updates)"}
+    )
+    server_address = fields.String(allow_none=True)
+    server_port = fields.Integer(allow_none=True)
+    username = fields.String(allow_none=True)
+    password = fields.String(required=False, allow_none=True)
+    private_key = fields.String(required=False, allow_none=True)
+    private_key_password = fields.String(required=False, allow_none=True)
+    # Databases with host-key verification configured include this field in
+    # their ``ssh_tunnel`` payload; without it the validate endpoint would
+    # reject them with an unknown-field error before validation runs.
+    server_host_key = fields.String(required=False, allow_none=True)
 
 
 class DatabaseSSHTunnel(Schema):
