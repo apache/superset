@@ -70,6 +70,26 @@ test('getAuthDbPasswordPolicyError respects disabled uppercase requirement', () 
   expect(getAuthDbPasswordPolicyError(password, policy)).toBeNull();
 });
 
+test('getAuthDbPasswordPolicyError rejects bcrypt passwords over the byte limit', () => {
+  const password = `Aa1!${'x'.repeat(69)}`;
+  expect(getAuthDbPasswordPolicyError(password)).toMatch(/72 bytes/);
+});
+
+test('getAuthDbPasswordPolicyError skips bcrypt byte limit for argon2', () => {
+  const policy = {
+    ...AUTH_DB_DEFAULT_PASSWORD_POLICY,
+    password_hash_algorithm: 'argon2' as const,
+    password_require_uppercase: false,
+    password_require_lowercase: false,
+    password_require_digit: false,
+    password_require_special: false,
+    password_common_list_check: false,
+    password_min_length: 1,
+  };
+  const password = 'A'.repeat(80);
+  expect(getAuthDbPasswordPolicyError(password, policy)).toBeNull();
+});
+
 test('satisfiesDefaultAuthDbPasswordPolicy rejects weak and common passwords', () => {
   expect(satisfiesDefaultAuthDbPasswordPolicy('short')).toBe(false);
   expect(satisfiesDefaultAuthDbPasswordPolicy('password')).toBe(false);

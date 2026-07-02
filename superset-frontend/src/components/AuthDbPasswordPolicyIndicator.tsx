@@ -30,6 +30,7 @@ import {
   Typography,
 } from '@superset-ui/core/components';
 import {
+  AUTH_DB_BCRYPT_MAX_PASSWORD_BYTES,
   AUTH_DB_DEFAULT_PASSWORD_POLICY,
   AuthDbPasswordPolicy,
   getAuthDbPasswordPolicyChecks,
@@ -84,6 +85,10 @@ const requirementText = {
   digit: t('Contains a digit'),
   special: t('Contains a special character'),
   commonPassword: t('Is not a common password'),
+  bcryptByteLimit: t(
+    'At most %s bytes (bcrypt limit)',
+    AUTH_DB_BCRYPT_MAX_PASSWORD_BYTES,
+  ),
 };
 
 function getStrengthState(percent: number, theme: SupersetTheme) {
@@ -146,6 +151,14 @@ export default function AuthDbPasswordPolicyIndicator({
           {
             label: requirementText.commonPassword,
             passed: hasPassword && checks.commonPassword,
+          },
+        ]
+      : []),
+    ...((policy.password_hash_algorithm ?? 'bcrypt') === 'bcrypt'
+      ? [
+          {
+            label: requirementText.bcryptByteLimit,
+            passed: hasPassword && checks.bcryptByteLimit,
           },
         ]
       : []),

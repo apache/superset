@@ -251,7 +251,7 @@ def validate_auth_db_password(password: str, cfg: dict[str, Any] | None = None) 
     :raises marshmallow.ValidationError: When validation fails.
     """
     cfg = cfg if cfg is not None else get_merged_auth_db_config()
-    errors = [
+    errors: list[str] = [
         *_password_length_errors(password, cfg),
         *_password_character_errors(password, cfg),
         *_common_password_errors(password, cfg),

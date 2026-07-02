@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import re
+from re import Pattern
 
 import bcrypt
 from argon2 import PasswordHasher
@@ -30,8 +31,8 @@ from superset.utils.auth_db_password import (
     get_auth_db_password_hash_algorithm,
 )
 
-_BCRYPT_HASH_RE = re.compile(r"^\$2[aby]\$\d{2}\$")
-_ARGON2_HASH_PREFIX = "$argon2"
+_BCRYPT_HASH_RE: Pattern[str] = re.compile(r"^\$2[aby]\$\d{2}\$")
+_ARGON2_HASH_PREFIX: str = "$argon2"
 
 _argon2_hasher: PasswordHasher = PasswordHasher()
 
@@ -75,9 +76,12 @@ def verify_auth_db_password(password_hash: str, password: str) -> bool:
     if not password_hash:
         return False
     if is_bcrypt_password_hash(password_hash):
+        encoded = password.encode("utf-8")
+        if len(encoded) > BCRYPT_MAX_PASSWORD_BYTES:
+            return False
         try:
             return bcrypt.checkpw(
-                password.encode("utf-8"),
+                encoded,
                 password_hash.encode("utf-8"),
             )
         except (ValueError, TypeError):
@@ -86,7 +90,7 @@ def verify_auth_db_password(password_hash: str, password: str) -> bool:
         try:
             _argon2_hasher.verify(password_hash, password)
             return True
-        except Argon2Error:
+        except (Argon2Error, TypeError, ValueError):
             return False
     try:
         return check_password_hash(password_hash, password)

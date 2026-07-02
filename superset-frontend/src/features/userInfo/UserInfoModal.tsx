@@ -78,6 +78,20 @@ function UserInfoModal({
   const getPasswordPolicyError = (password: string): string | null =>
     getAuthDbPasswordPolicyError(password, passwordPolicy);
 
+  const getSubmitErrorMessage = async (error: unknown): Promise<string> => {
+    const clientError = await getClientErrorObject(
+      error as Parameters<typeof getClientErrorObject>[0],
+    );
+    const raw = clientError.error ?? clientError.message;
+    if (typeof raw === 'string' && raw) {
+      return raw;
+    }
+    if (raw && typeof raw === 'object') {
+      return (Object.values(raw).flat() as string[]).join(' ');
+    }
+    return t('Something went wrong while saving the user info');
+  };
+
   const requiredFields = isEditMode
     ? ['first_name', 'last_name']
     : ['current_password', 'new_password', 'confirm_password'];
@@ -104,21 +118,21 @@ function UserInfoModal({
             confirm_password: String(values.confirm_password),
           },
         });
+        addSuccessToast(t('The password reset was successful'));
         // The server rebuilds the session on password change, rotating the CSRF
         // token. Re-fetch it so subsequent mutating requests don't 400.
-        await SupersetClient.reAuthenticate();
-        addSuccessToast(t('The password reset was successful'));
+        try {
+          await SupersetClient.reAuthenticate();
+        } catch {
+          addDangerToast(
+            t(
+              'Your password was updated, but your session could not be refreshed. Please reload the page.',
+            ),
+          );
+        }
       }
     } catch (error) {
-      const clientError = await getClientErrorObject(error);
-      const raw = clientError.message;
-      const text =
-        typeof raw === 'string'
-          ? raw
-          : raw && typeof raw === 'object'
-            ? (Object.values(raw).flat() as string[]).join(' ')
-            : t('Something went wrong while saving the user info');
-      addDangerToast(text);
+      addDangerToast(await getSubmitErrorMessage(error));
       throw error;
     }
   };

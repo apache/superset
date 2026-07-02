@@ -23,6 +23,8 @@ import { t } from '@apache-superset/core/translation';
  * Keep ``AUTH_DB_COMMON_PASSWORDS`` in sync with ``_COMMON_PASSWORDS`` in that module.
  */
 export const AUTH_DB_PASSWORD_MIN_LENGTH = 12;
+/** Mirrors ``BCRYPT_MAX_PASSWORD_BYTES`` in ``superset/utils/auth_db_password.py``. */
+export const AUTH_DB_BCRYPT_MAX_PASSWORD_BYTES = 72;
 export interface AuthDbPasswordPolicy {
   password_min_length: number;
   password_require_uppercase: boolean;
@@ -30,6 +32,7 @@ export interface AuthDbPasswordPolicy {
   password_require_digit: boolean;
   password_require_special: boolean;
   password_common_list_check: boolean;
+  password_hash_algorithm?: 'bcrypt' | 'argon2';
 }
 
 export const AUTH_DB_DEFAULT_PASSWORD_POLICY: AuthDbPasswordPolicy = {
@@ -39,6 +42,7 @@ export const AUTH_DB_DEFAULT_PASSWORD_POLICY: AuthDbPasswordPolicy = {
   password_require_digit: true,
   password_require_special: true,
   password_common_list_check: true,
+  password_hash_algorithm: 'bcrypt',
 };
 
 /**
@@ -103,10 +107,19 @@ export interface AuthDbPasswordPolicyChecks {
   digit: boolean;
   special: boolean;
   commonPassword: boolean;
+  bcryptByteLimit: boolean;
 }
 
 function getCodePointLength(text: string): number {
   return Array.from(text).length;
+}
+
+function getUtf8ByteLength(text: string): number {
+  return new TextEncoder().encode(text).length;
+}
+
+function usesBcryptHashAlgorithm(policy: AuthDbPasswordPolicy): boolean {
+  return (policy.password_hash_algorithm ?? 'bcrypt') === 'bcrypt';
 }
 
 /** Mirrors ``int(cfg.get("password_min_length", default))`` in auth_db_password.py. */
@@ -208,6 +221,9 @@ export function getAuthDbPasswordPolicyChecks(
     commonPassword:
       !policy.password_common_list_check ||
       !AUTH_DB_COMMON_PASSWORDS.has(password.toLowerCase().trim()),
+    bcryptByteLimit:
+      !usesBcryptHashAlgorithm(policy) ||
+      getUtf8ByteLength(password) <= AUTH_DB_BCRYPT_MAX_PASSWORD_BYTES,
   };
 }
 
@@ -257,6 +273,12 @@ export function getAuthDbPasswordPolicyError(
   }
   if (policy.password_common_list_check && !checks.commonPassword) {
     return t('This password is too common. Choose a stronger password.');
+  }
+  if (usesBcryptHashAlgorithm(policy) && !checks.bcryptByteLimit) {
+    return t(
+      'Password must be at most %s bytes when using the bcrypt hash algorithm.',
+      AUTH_DB_BCRYPT_MAX_PASSWORD_BYTES,
+    );
   }
   return null;
 }

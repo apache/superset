@@ -30,7 +30,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from superset.extensions import db
 from superset.utils.decorators import transaction
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 SESSION_AUTH_STAMP_SESSION_KEY = "_auth_session_stamp"
 SESSION_AUTH_STAMP_VALIDATED_AT_KEY = "_auth_session_stamp_validated_at"
@@ -45,13 +45,24 @@ def _stamp_cache_key(user_id: int) -> str:
     return f"{_STAMP_CACHE_KEY_PREFIX}{user_id}"
 
 
-def _stamp_cache_timeout_seconds() -> int:
+def _get_revalidation_seconds() -> int:
+    """Return ``SESSION_AUTH_STAMP_REVALIDATION_SECONDS``, defaulting on bad config."""
     from flask import current_app
 
-    revalidation_seconds = int(
-        current_app.config.get("SESSION_AUTH_STAMP_REVALIDATION_SECONDS", 0)
-    )
-    if revalidation_seconds > 0:
+    raw = current_app.config.get("SESSION_AUTH_STAMP_REVALIDATION_SECONDS", 0)
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid SESSION_AUTH_STAMP_REVALIDATION_SECONDS=%r; "
+            "defaulting to 0 (check on every request)",
+            raw,
+        )
+        return 0
+
+
+def _stamp_cache_timeout_seconds() -> int:
+    if (revalidation_seconds := _get_revalidation_seconds()) > 0:
         return revalidation_seconds
     return _DEFAULT_STAMP_CACHE_TIMEOUT_SECONDS
 
@@ -228,14 +239,10 @@ def _should_skip_stamp_db_lookup(
     user_id: int, method: str, sess_stamp: str | None
 ) -> bool:
     """Return True when a recent DB check lets us skip another on read-only traffic."""
-    from flask import current_app
-
     if method not in _SAFE_METHODS or sess_stamp is None:
         return False
 
-    revalidation_seconds = int(
-        current_app.config.get("SESSION_AUTH_STAMP_REVALIDATION_SECONDS", 0)
-    )
+    revalidation_seconds = _get_revalidation_seconds()
     if revalidation_seconds <= 0:
         return False
 
@@ -275,9 +282,10 @@ def _load_db_stamp_for_user(
     """
     from superset.models.user_session_auth_stamp import UserSessionAuthStamp
 
-    cached_stamp = _get_cached_user_session_stamp(user_id)
-    if use_cache and cached_stamp is not None:
-        return cached_stamp, False
+    if use_cache:
+        cached_stamp = _get_cached_user_session_stamp(user_id)
+        if cached_stamp is not None:
+            return cached_stamp, False
 
     try:
         with db.session.begin_nested():
@@ -321,7 +329,9 @@ def validate_session_auth_stamp_for_request() -> None:
 
     db_stamp, db_error = _load_db_stamp_for_user(
         user_id,
-        use_cache=flask_request.method in _SAFE_METHODS,
+        use_cache=(
+            flask_request.method in _SAFE_METHODS and _get_revalidation_seconds() > 0
+        ),
     )
     if db_error:
         return
@@ -342,9 +352,7 @@ def validate_session_auth_stamp_for_request() -> None:
         )
         return
 
-    # A missing stamp means the session predates stamp tracking (or was never
-    # stamped). Once a DB stamp row exists, adopting it silently would let such
-    # a session survive a password change, so treat a missing stamp as invalid.
+    # Compare the session cookie stamp against the authoritative DB value.
     logger.debug(
         "Validating session stamp for user_id=%s on %s %s: sess_stamp=%s, db_stamp=%s",
         user_id,

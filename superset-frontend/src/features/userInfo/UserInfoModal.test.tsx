@@ -108,9 +108,12 @@ test('submits a valid password change and lets FormModal trigger onSave', async 
 });
 
 test('keeps the modal open and shows an error toast when the request fails', async () => {
-  jest
-    .spyOn(SupersetClient, 'put')
-    .mockRejectedValue(new Error('Incorrect current password.'));
+  jest.spyOn(SupersetClient, 'put').mockRejectedValue({
+    response: new Response(
+      JSON.stringify({ message: 'Incorrect current password.' }),
+      { status: 400 },
+    ),
+  });
   const { onSave } = renderModal();
 
   fillPasswords();
@@ -118,8 +121,31 @@ test('keeps the modal open and shows an error toast when the request fails', asy
   await waitFor(() => expect(saveButton).not.toBeDisabled());
   fireEvent.click(saveButton);
 
-  await waitFor(() => expect(mockAddDangerToast).toHaveBeenCalled());
+  await waitFor(() =>
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      'Incorrect current password.',
+    ),
+  );
   expect(onSave).not.toHaveBeenCalled();
+});
+
+test('shows success and a refresh warning when password change succeeds but re-auth fails', async () => {
+  jest
+    .spyOn(SupersetClient, 'put')
+    .mockResolvedValue({ json: {} } as unknown as JsonResponse);
+  jest
+    .spyOn(SupersetClient, 'reAuthenticate')
+    .mockRejectedValue(new Error('network error'));
+  const { onSave } = renderModal();
+
+  fillPasswords();
+  const saveButton = await screen.findByTestId('form-modal-save-button');
+  await waitFor(() => expect(saveButton).not.toBeDisabled());
+  fireEvent.click(saveButton);
+
+  await waitFor(() => expect(mockAddSuccessToast).toHaveBeenCalled());
+  await waitFor(() => expect(mockAddDangerToast).toHaveBeenCalled());
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 });
 
 test('generate password populates the new and confirm fields', async () => {

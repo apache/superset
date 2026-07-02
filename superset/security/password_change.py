@@ -62,7 +62,7 @@ _EXEMPT_VIEW_CLASSES = frozenset(
 )
 
 # Exact endpoint names (function views / Flask built-ins) that are always exempt.
-_EXEMPT_ENDPOINTS = frozenset(
+_EXEMPT_ENDPOINTS: frozenset[str] = frozenset(
     {
         "static",
         "appbuilder.static",

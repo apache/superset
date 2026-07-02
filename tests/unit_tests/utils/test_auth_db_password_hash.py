@@ -54,3 +54,16 @@ def test_verify_rejects_malformed_argon2_hash() -> None:
 def test_bcrypt_hash_rejects_password_over_max_bytes() -> None:
     with pytest.raises(ValueError, match="72-byte"):
         hash_auth_db_password("a" * (BCRYPT_MAX_PASSWORD_BYTES + 1), algorithm="bcrypt")
+
+
+def test_bcrypt_verify_rejects_password_over_max_bytes() -> None:
+    password_hash = hash_auth_db_password("AnotherStr0ng!Pass", algorithm="bcrypt")
+    long_password = "a" * (BCRYPT_MAX_PASSWORD_BYTES + 1)
+    assert not verify_auth_db_password(password_hash, long_password)
+
+
+def test_bcrypt_verify_rejects_distinct_passwords_equal_after_truncation() -> None:
+    base = "a" * BCRYPT_MAX_PASSWORD_BYTES
+    password_hash = hash_auth_db_password(base, algorithm="bcrypt")
+    assert verify_auth_db_password(password_hash, base)
+    assert not verify_auth_db_password(password_hash, base + "extra")

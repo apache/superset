@@ -363,3 +363,45 @@ def test_validate_stamp_rechecks_db_when_revalidation_ttl_expired(
             validate_session_auth_stamp_for_request()
 
     mock_session.begin_nested.assert_called_once()
+
+
+def test_get_revalidation_seconds_defaults_on_invalid_config(app: SupersetApp) -> None:
+    from superset.utils.auth_session_stamp import _get_revalidation_seconds
+
+    app.config["SESSION_AUTH_STAMP_REVALIDATION_SECONDS"] = "not-a-number"
+    with app.test_request_context():
+        assert _get_revalidation_seconds() == 0
+
+
+def test_validate_stamp_hits_db_on_safe_request_when_revalidation_disabled(
+    app: SupersetApp,
+) -> None:
+    """GET requests must not use the stamp cache when revalidation is 0."""
+    app.config["AUTH_TYPE"] = AUTH_DB
+    app.config["SESSION_AUTH_STAMP_REVALIDATION_SECONDS"] = 0
+    mock_user = MagicMock()
+    mock_user.is_authenticated = True
+    mock_user.is_guest_user = False
+    mock_user.get_id.return_value = "42"
+
+    mock_session = MagicMock()
+    mock_row = MagicMock()
+    mock_row.stamp = "db-stamp"
+    mock_session.get.return_value = mock_row
+    nested = MagicMock()
+    mock_session.begin_nested.return_value = nested
+
+    with (
+        app.test_request_context(method="GET"),
+        patch("superset.utils.auth_session_stamp.current_user", mock_user),
+        patch(
+            "superset.utils.auth_session_stamp._get_cached_user_session_stamp",
+            return_value="db-stamp",
+        ) as mock_cache_read,
+        _mock_db_session(mock_session),
+    ):
+        session["_auth_session_stamp"] = "db-stamp"
+        validate_session_auth_stamp_for_request()
+
+    mock_cache_read.assert_not_called()
+    mock_session.begin_nested.assert_called_once()
