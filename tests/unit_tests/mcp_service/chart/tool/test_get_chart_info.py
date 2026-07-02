@@ -580,3 +580,31 @@ class TestGetChartInfoPrivacy:
             )
 
         assert result is error
+
+
+def test_apply_unsaved_state_override_updates_display_name_for_new_viz_type() -> None:
+    """Stale display name is recomputed when viz_type is overridden from form_data."""
+    module = get_chart_info_module
+
+    result = ChartInfo(
+        id=1,
+        slice_name="My Chart",
+        viz_type="table",
+        chart_type_display_name="Table",
+    )
+
+    with (
+        patch.object(
+            module,
+            "get_cached_form_data",
+            return_value='{"viz_type": "pie"}',
+        ),
+        patch(
+            "superset.mcp_service.chart.registry.display_name_for_viz_type",
+            return_value="Pie Chart",
+        ),
+    ):
+        module._apply_unsaved_state_override(result, "key")
+
+    assert result.viz_type == "pie"
+    assert result.chart_type_display_name == "Pie Chart"

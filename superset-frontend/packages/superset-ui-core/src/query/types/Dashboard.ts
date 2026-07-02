@@ -106,6 +106,7 @@ export type ChartCustomization = {
   };
   description?: string;
   removed?: boolean;
+  time_grains?: string[];
 };
 
 export type ChartCustomizationDivider = Partial<
