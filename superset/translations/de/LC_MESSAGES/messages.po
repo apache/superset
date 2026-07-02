@@ -8297,16 +8297,16 @@ msgid "List"
 msgstr "Auflisten"
 
 msgid "List Groups"
-msgstr "Gruppen"
+msgstr "Gruppen auflisten"
 
 msgid "List Roles"
-msgstr "Rollen"
+msgstr "Rollen auflisten"
 
 msgid "List Unique Values"
 msgstr "Eindeutige Werte auflisten"
 
 msgid "List Users"
-msgstr "Benutzer*innen"
+msgstr "Benutzer*innen auflisten"
 
 msgid "List of extra columns made available in JavaScript functions"
 msgstr ""
