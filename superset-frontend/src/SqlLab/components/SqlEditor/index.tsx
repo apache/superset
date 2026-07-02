@@ -56,6 +56,7 @@ import {
   Button,
   Divider,
   EmptyState,
+  Flex,
   Input,
   Modal,
   Splitter,
@@ -1132,11 +1133,10 @@ const SqlEditor: FC<Props> = ({
         />
       ) : northPaneViewId &&
         northPaneViews.some(v => v.id === northPaneViewId) ? (
-        <div
+        <Flex
+          vertical
           css={css`
             height: 100%;
-            display: flex;
-            flex-direction: column;
           `}
         >
           <SqlEditorTopBar
@@ -1153,7 +1153,7 @@ const SqlEditor: FC<Props> = ({
           >
             {resolveView(northPaneViewId)}
           </div>
-        </div>
+        </Flex>
       ) : (
         queryPane()
       )}
