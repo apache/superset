@@ -371,7 +371,7 @@ export const SaveDatasetModal = ({
         catalog: datasource?.catalog ?? null,
         schema: datasource?.schema ?? '',
         templateParams,
-        datasourceName: datasetName,
+        datasourceName: datasetName.trim(),
       }),
     )
       .then((data: { id: number }) => {
@@ -417,7 +417,7 @@ export const SaveDatasetModal = ({
 
   const disableSaveAndExploreBtn =
     (newOrOverwrite === DatasetRadioState.SaveNew &&
-      datasetName.length === 0) ||
+      datasetName.trim().length === 0) ||
     (newOrOverwrite === DatasetRadioState.OverwriteDataset &&
       isEmpty(selectedDatasetToOverwrite));
 
