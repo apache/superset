@@ -52,6 +52,7 @@ from superset.queries.saved_queries.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
     openapi_spec_methods_override,
+    validate_label,
 )
 from superset.utils import json
 from superset.views.base_api import (
@@ -190,8 +191,12 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     allowed_rel_fields = {"database", "changed_by", "created_by"}
     allowed_distinct_fields = {"catalog", "schema"}
 
+    validators_columns = {"label": validate_label}
+
     def pre_add(self, item: SavedQuery) -> None:
         item.user = g.user
+        if item.label:
+            item.label = item.label.strip()
 
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)

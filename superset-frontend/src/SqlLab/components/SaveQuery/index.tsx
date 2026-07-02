@@ -111,6 +111,7 @@ const SaveQuery = ({
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const isSaved = !!query.remoteId;
+  const isLabelEmpty = label.trim().length === 0;
   const canExploreDatabase = !!database?.allows_virtual_table_explore;
   const shouldShowSaveButton =
     database?.allows_virtual_table_explore !== undefined;
@@ -244,12 +245,18 @@ const SaveQuery = ({
             <Button
               buttonStyle={isSaved ? 'secondary' : 'primary'}
               onClick={onSaveWrapper}
+              disabled={isLabelEmpty}
               cta
             >
               {isSaved ? t('Save as new') : t('Save')}
             </Button>
             {isSaved && (
-              <Button buttonStyle="primary" onClick={onUpdateWrapper} cta>
+              <Button
+                buttonStyle="primary"
+                onClick={onUpdateWrapper}
+                disabled={isLabelEmpty}
+                cta
+              >
                 {t('Update')}
               </Button>
             )}
