@@ -67,6 +67,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
+
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -776,9 +777,7 @@ def _orderby_modified(
     metrics is legitimate and must not read as tampering; introducing a new
     expression is not, and is rejected.
     """
-    visible_targets = _collect_sortable_identifiers(
-        stored_chart, stored_query_context
-    )
+    visible_targets = _collect_sortable_identifiers(stored_chart, stored_query_context)
     stored_orderby_entries = _collect_stored_orderby_entries(
         stored_chart, stored_query_context
     )

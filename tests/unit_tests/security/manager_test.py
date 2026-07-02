@@ -1258,9 +1258,13 @@ def _series_limit_metric_query_context(
     Build a minimal chart query context with a series-limit metric selector.
     """
     metrics: list[Any] = stored_metrics if stored_metrics is not None else ["count"]
+    query_kwargs: dict[str, Any] = {"metrics": metrics}
+    if form_metric_key == "series_limit_metric":
+        query_kwargs["series_limit_metric"] = requested_metric
+
     query_context = mocker.MagicMock()
     query_context.queries = [
-        QueryObject(metrics=metrics, series_limit_metric=requested_metric),
+        QueryObject(**query_kwargs),
     ]
     query_context.form_data = {
         "slice_id": 101,
@@ -1271,9 +1275,7 @@ def _series_limit_metric_query_context(
     query_context.slice_.params_dict = {
         "metrics": metrics,
     }
-    query_context.slice_.query_context = json.dumps(
-        {"queries": [{"metrics": metrics}]}
-    )
+    query_context.slice_.query_context = json.dumps({"queries": [{"metrics": metrics}]})
     return query_context
 
 
@@ -2685,7 +2687,7 @@ def test_reset_password_self_service_pk_string_clears_flag(
 
 
 # -----------------------------------------------------------------------------
-# Tests for orderby with invalid formats - integration tests
+# Tests for orderby with invalid formats - unit tests
 # -----------------------------------------------------------------------------
 
 

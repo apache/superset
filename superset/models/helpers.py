@@ -2585,11 +2585,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         label = utils.get_metric_name(metric)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
-            aggregate = metric.get("aggregate")
+            aggregate: str | None = metric.get("aggregate")
             if aggregate not in self.sqla_aggregations:
-                raise QueryObjectValidationError(
-                    _("Adhoc metric aggregate is invalid")
-                )
+                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
             sqla_column = sa.column(column_name)

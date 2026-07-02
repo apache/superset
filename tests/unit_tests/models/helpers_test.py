@@ -2068,7 +2068,7 @@ def test_adhoc_metric_to_sqla_invalid_simple_aggregate_raises_validation_error(
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.exceptions import QueryObjectValidationError
 
-    table = SqlaTable(
+    table: SqlaTable = SqlaTable(
         database=database,
         schema=None,
         table_name="t",
