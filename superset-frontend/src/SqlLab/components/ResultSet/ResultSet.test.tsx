@@ -759,4 +759,49 @@ describe('ResultSet', () => {
       );
     },
   );
+
+  test('filters the results table when typing in the search box', async () => {
+    const filterableQuery = {
+      ...queries[0],
+      id: 'filterableQueryId',
+      cached: false,
+      results: {
+        columns: [{ is_dttm: false, column_name: 'fruit', type: 'STRING' }],
+        selected_columns: [
+          { is_dttm: false, column_name: 'fruit', type: 'STRING' },
+        ],
+        data: [{ fruit: 'apple' }, { fruit: 'banana' }],
+      },
+    };
+    const { getByTestId, getByPlaceholderText, queryByText } = setup(
+      { ...mockedProps, cache: false, queryId: filterableQuery.id },
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [filterableQuery.id]: filterableQuery,
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('table-container')).toBeInTheDocument();
+    });
+    // Both rows are visible before filtering
+    expect(queryByText('apple')).toBeInTheDocument();
+    expect(queryByText('banana')).toBeInTheDocument();
+
+    // Typing in the search box filters the rows (case-insensitive substring)
+    fireEvent.change(getByPlaceholderText('Filter results'), {
+      target: { value: 'APP' },
+    });
+
+    await waitFor(() => {
+      expect(queryByText('banana')).not.toBeInTheDocument();
+    });
+    expect(queryByText('apple')).toBeInTheDocument();
+  });
 });
