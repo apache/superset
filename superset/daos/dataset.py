@@ -234,38 +234,25 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         table: Table,
         dataset_id: int,
     ) -> bool:
-        # The catalog might not be set even if the database supports catalogs, in case
-        # multi-catalog is disabled.
-        default_catalog = database.get_default_catalog()
-        catalog = table.catalog or default_catalog
+        """Update-time twin of ``validate_uniqueness``.
 
-        # Same rationale as ``validate_uniqueness`` above: a soft-deleted
-        # twin must block the update rather than being silently ignored.
-        # The bypass is session-scoped, not per-query, because the EXISTS
-        # subquery pattern below leaves the inner Query's execution_options
-        # invisible to the outer execute (where the listener fires).
-        #
-        # avoid app-init regression: see ``validate_uniqueness`` above — a
-        # module-top import from ``superset.models.helpers`` raises
-        # "App not initialized yet" outside an app context (see PR #40573).
-        from superset.models.helpers import (  # pylint: disable=import-outside-toplevel
-            skip_visibility_filter,
-        )
-
-        with skip_visibility_filter(db.session, SqlaTable):
-            dataset_query = db.session.query(SqlaTable).filter(
-                SqlaTable.table_name == table.table,
-                SqlaTable.database_id == database.id,
-                SqlaTable.schema == table.schema,
-                DatasetDAO._catalog_identity_filter(catalog, default_catalog),
-                SqlaTable.id != dataset_id,
-            )
-            return not db.session.query(dataset_query.exists()).scalar()
+        Delegates outright — the identity rule, catalog normalization, and
+        the session-scoped visibility bypass (and their rationale) live in
+        ``validate_uniqueness`` so they cannot drift between the create and
+        update paths.
+        """
+        return DatasetDAO.validate_uniqueness(database, table, dataset_id)
 
     @staticmethod
-    def has_active_logical_duplicate(model: SqlaTable) -> bool:
+    def has_active_logical_duplicate(
+        model: SqlaTable,
+        table: Table | None = None,
+    ) -> bool:
         """Return True iff another *active* dataset shares model's physical table.
 
+        ``table`` overrides the identity to probe (used by restore-via-import,
+        where the uploaded config may rename the dataset — the collision that
+        matters is against the *post-update* identity, not the stored one).
         Physical identity is ``(database_id, catalog, schema, table_name)``.
         ``model``'s catalog is normalized to the database default when unset —
         the same rule ``validate_uniqueness``/``validate_update_uniqueness``
@@ -289,14 +276,16 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # The catalog might not be set even if the database supports catalogs,
         # in case multi-catalog is disabled.
         default_catalog = model.database.get_default_catalog()
-        catalog = model.catalog or default_catalog
+        probe_table_name = table.table if table else model.table_name
+        probe_schema = table.schema if table else model.schema
+        probe_catalog = (table.catalog if table else model.catalog) or default_catalog
         return (
             db.session.query(SqlaTable.id)
             .filter(
                 SqlaTable.database_id == model.database_id,
-                DatasetDAO._catalog_identity_filter(catalog, default_catalog),
-                SqlaTable.schema == model.schema,
-                SqlaTable.table_name == model.table_name,
+                DatasetDAO._catalog_identity_filter(probe_catalog, default_catalog),
+                SqlaTable.schema == probe_schema,
+                SqlaTable.table_name == probe_table_name,
                 SqlaTable.id != model.id,
             )
             .first()

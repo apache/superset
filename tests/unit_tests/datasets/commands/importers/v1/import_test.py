@@ -1033,7 +1033,8 @@ def test_import_dataset_without_owner_permission(
 
         assert (
             str(excinfo.value)
-            == "A dataset already exists and user doesn't have permissions to overwrite it"  # noqa: E501
+            == "Dataset 'imported_dataset' (uuid 10808100-158b-42c4-842e-f32b99d88dfb) "
+            "already exists and user doesn't have permissions to overwrite it"  # noqa: E501
         )
 
     # Assert that the can write to chart was checked
@@ -1462,7 +1463,7 @@ def test_import_dataset_multiple_results_on_soft_delete_match_raises_and_rolls_b
     db.session.add(soft_deleted)
     db.session.flush()
 
-    with pytest.raises(ImportFailedError, match="ambiguous legacy duplicate"):
+    with pytest.raises(ImportFailedError, match="matches more than one existing row"):
         import_dataset(config)
 
     reloaded = (
@@ -1673,3 +1674,108 @@ def test_redirect_handler_blocks_disallowed_redirect_target() -> None:
                 {},
                 "http://169.254.169.254/latest/meta-data/",
             )
+
+
+def test_import_overwrite_rename_onto_soft_deleted_twin_blocked(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """Overwriting an alive dataset must not rename it onto a hidden twin's
+    physical identity.
+
+    ``import_from_dict``'s lookup cannot see the soft-deleted row (visibility
+    filter), so without the identity re-validation the update would land
+    cleanly and the live row would silently squat the trash row's identity —
+    permanently blocking its restore. Mirrors ``UpdateDatasetCommand``'s
+    ``validate_update_uniqueness`` contract.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["table_name"] = "squatted_tbl"  # rename onto the twin's identity
+
+    # The alive dataset being overwritten (matches the config's UUID).
+    existing = SqlaTable(
+        table_name="original_tbl",
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid=config["uuid"],
+    )
+    # The hidden twin holding the target identity.
+    twin = SqlaTable(
+        table_name="squatted_tbl",
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid="ffffffff-ffff-ffff-ffff-fffffffffff0",
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    db.session.add_all([existing, twin])
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(config, overwrite=True)
+    assert "cannot be overwritten" in str(excinfo.value)
+    assert config["uuid"] in str(excinfo.value)
+    # The alive row keeps its original identity.
+    assert existing.table_name == "original_tbl"
+
+
+def test_import_restore_blocked_by_active_twin_at_incoming_identity(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """The restore-via-import duplicate check probes the POST-update identity.
+
+    An uploaded config that renames the soft-deleted dataset onto an ACTIVE
+    dataset's identity must be refused up front (check-before-mutate: the row
+    stays soft-deleted), not fall through to a downstream
+    ``MultipleResultsFound`` with a misdiagnosing message.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["table_name"] = "claimed_tbl"  # rename onto the active row's identity
+
+    # The soft-deleted dataset being restored (matches the config's UUID).
+    existing = SqlaTable(
+        table_name="old_tbl",
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid=config["uuid"],
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    # An unrelated ACTIVE dataset already holding the target identity.
+    active = SqlaTable(
+        table_name="claimed_tbl",
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid="ffffffff-ffff-ffff-ffff-fffffffffff1",
+    )
+    db.session.add_all([existing, active])
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(config)
+    assert "another active dataset" in str(excinfo.value)
+    # Check-before-mutate: the failed import leaves the row soft-deleted.
+    assert existing.deleted_at is not None

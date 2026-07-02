@@ -80,7 +80,7 @@ class DatasetDeletedStateFilter(  # pylint: disable=too-few-public-methods
 
     def apply(self, query: Query, value: Any) -> Query:
         query = super().apply(query, value)
-        normalized = str(value).lower().strip() if value is not None else ""
+        normalized = self._normalize(value)
         if normalized not in {"include", "only"} or security_manager.is_admin():
             return query
 

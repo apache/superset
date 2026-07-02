@@ -180,6 +180,29 @@ class DatasetRestoreFailedError(UpdateFailedError):
     message = _("Dataset could not be restored.")
 
 
+class DatasetSoftDeletedTwinExistsError(CommandException):
+    """A soft-deleted dataset holds the physical table the caller targets.
+
+    Single source of the blocked-by-hidden-twin message: the create command,
+    ``get_or_create_dataset``, and any future caller raise this so the
+    wording (restore pointer, executable recoveries only) cannot drift
+    between surfaces.
+    """
+
+    status = 422
+
+    def __init__(self, dataset_uuid: str) -> None:
+        super().__init__(
+            _(
+                "A soft-deleted dataset (uuid %(uuid)s) already references "
+                "this table. Restore it via POST "
+                "/api/v1/dataset/%(uuid)s/restore before creating a new "
+                "dataset over this table, or use a different table name.",
+                uuid=dataset_uuid,
+            )
+        )
+
+
 class DatasetLogicalDuplicateError(CommandException):
     status = 422
     message = _(

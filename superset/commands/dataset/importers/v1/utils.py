@@ -258,8 +258,9 @@ def import_dataset(  # noqa: C901
                 # reattach charts/dashboards to a deleted dataset and produce
                 # broken charts.
                 raise ImportFailedError(
-                    "Dataset was deleted and re-import requires can_write "
-                    "permission to restore it"
+                    f"Dataset {existing.table_name!r} (uuid {config['uuid']}) "
+                    "was deleted and re-import requires can_write permission "
+                    "to restore it"
                 )
             # ``user`` is None on background / example-loader paths; combined
             # with ``can_write`` (typically from ``ignore_permissions=True``)
@@ -269,8 +270,9 @@ def import_dataset(  # noqa: C901
                 user not in existing.owners and not security_manager.is_admin()
             ):
                 raise ImportFailedError(
-                    "A dataset already exists and user doesn't have "
-                    "permissions to restore it"
+                    f"Dataset {existing.table_name!r} (uuid {config['uuid']}) "
+                    "already exists and user doesn't have permissions to "
+                    "restore it"
                 )
             # Before clearing ``deleted_at``, refuse if another active dataset
             # already references the same physical table. Otherwise the
@@ -280,10 +282,23 @@ def import_dataset(  # noqa: C901
             # consider only active rows, excludes ``existing`` itself via
             # ``id !=``, and normalizes the catalog the same way create/update
             # uniqueness does.
-            if DatasetDAO.has_active_logical_duplicate(existing):
+            # Probe the POST-update identity: the uploaded config may rename
+            # table_name/schema/catalog, and the collision that matters is
+            # against the identity the restored row will end up with — not
+            # the stale stored one. Absent keys fall back to the stored
+            # values; explicit nulls are respected.
+            incoming_identity = Table(
+                config.get("table_name") or existing.table_name,
+                config.get("schema", existing.schema),
+                config.get("catalog", existing.catalog),
+            )
+            if DatasetDAO.has_active_logical_duplicate(existing, incoming_identity):
                 raise ImportFailedError(
-                    "Dataset cannot be restored via re-import because another "
-                    "active dataset already references the same physical table"
+                    f"Dataset {existing.table_name!r} (uuid {config['uuid']}) "
+                    "cannot be restored via re-import because another active "
+                    "dataset already references the same physical table "
+                    f"({incoming_identity.table!r}). Rename one of them and "
+                    "retry."
                 )
             # Restore in place (clear ``deleted_at``) rather than
             # hard-delete-and-replace: a hard delete would cascade through the
@@ -327,8 +342,33 @@ def import_dataset(  # noqa: C901
                 user not in existing.owners and not security_manager.is_admin()
             ):
                 raise ImportFailedError(
-                    "A dataset already exists and user doesn't have "
-                    "permissions to overwrite it"
+                    f"Dataset {existing.table_name!r} (uuid {config['uuid']}) "
+                    "already exists and user doesn't have permissions to "
+                    "overwrite it"
+                )
+            # Mirror the REST update path's uniqueness contract: the uploaded
+            # config may rename this dataset onto the physical identity of a
+            # soft-deleted twin. ``import_from_dict``'s lookup cannot see the
+            # hidden row (visibility filter), so without this check the
+            # update would land cleanly and the live row would silently squat
+            # the trash row's identity — permanently 422-blocking its
+            # restore. ``validate_update_uniqueness`` bypasses the filter by
+            # design, so hidden twins block here exactly as they block
+            # ``UpdateDatasetCommand``.
+            overwrite_identity = Table(
+                config.get("table_name") or existing.table_name,
+                config.get("schema", existing.schema),
+                config.get("catalog", existing.catalog),
+            )
+            if not DatasetDAO.validate_update_uniqueness(
+                existing.database, overwrite_identity, dataset_id=existing.id
+            ):
+                raise ImportFailedError(
+                    f"Dataset {existing.table_name!r} (uuid {config['uuid']}) "
+                    "cannot be overwritten: another dataset (possibly "
+                    "soft-deleted) already references the target table "
+                    f"({overwrite_identity.table!r}). Restore or rename the "
+                    "other dataset, or change this upload's table name."
                 )
             config["id"] = existing.id
 
@@ -347,14 +387,19 @@ def import_dataset(  # noqa: C901
         database = (
             db.session.query(Database).filter_by(id=config["database_id"]).first()
         )
-        if database is not None and DatasetDAO.find_soft_deleted_logical_duplicate(
-            database,
-            Table(config["table_name"], config.get("schema"), config.get("catalog")),
+        if database is not None and (
+            soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(
+                database,
+                Table(
+                    config["table_name"], config.get("schema"), config.get("catalog")
+                ),
+            )
         ):
             raise ImportFailedError(
-                "Dataset cannot be imported because a soft-deleted dataset "
-                "already references the same physical table; restore that "
-                "dataset instead of importing a duplicate"
+                f"Dataset {config['table_name']!r} cannot be imported because "
+                f"a soft-deleted dataset (uuid {soft_twin.uuid}) already "
+                "references the same physical table; restore that dataset "
+                "instead of importing a duplicate"
             )
 
     # Trusted imports (e.g. example loading) carry curated configs; only
@@ -419,10 +464,10 @@ def import_dataset(  # noqa: C901
             existing.deleted_at = original_deleted_at
             db.session.flush()
             raise ImportFailedError(
-                "Soft-deleted dataset has an ambiguous legacy duplicate "
-                "(likely from the NULL-schema migration). Cannot restore-"
-                "and-update via re-import; resolve the duplicate manually "
-                "before retrying."
+                f"Dataset {existing.table_name!r} (uuid {config['uuid']}) "
+                "matches more than one existing row, so the restore-and-"
+                "update cannot pick a target. Resolve the duplicate rows "
+                "manually before retrying."
             ) from ex
         # On the non-soft-deleted overwrite path the legacy contract
         # holds: return the existing row unmodified. Bypasses the

@@ -46,6 +46,7 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
     DatasetRefreshFailedError,
     DatasetRestoreFailedError,
+    DatasetSoftDeletedTwinExistsError,
     DatasetUpdateFailedError,
 )
 from superset.commands.dataset.export import ExportDatasetsCommand
@@ -83,7 +84,6 @@ from superset.datasets.schemas import (
 )
 from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
-from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.views.base import DatasourceFilter
@@ -387,6 +387,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 data=new_model.data,
                 uuid=new_model.uuid,
             )
+        except DatasetSoftDeletedTwinExistsError as ex:
+            return self.response_422(message=str(ex))
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
@@ -1240,30 +1242,14 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         if table:
             return self.response(200, result={"table_id": table.id})
 
-        # A soft-deleted dataset over the same physical table would make the
-        # create below fail uniqueness validation with an opaque
-        # "already exists" 422 — while the caller's dataset list looks empty.
-        # Pre-check for the hidden twin and return a targeted message naming
-        # the restore path instead. (``find_soft_deleted_logical_duplicate``
-        # is the same helper the YAML importer uses for this case.)
-        if (database_obj := DatasetDAO.get_database_by_id(database_id)) and (
-            soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(
-                database_obj, Table(table_name, schema, catalog)
-            )
-        ):
-            return self.response_422(
-                message=(
-                    f"A soft-deleted dataset (uuid={soft_twin.uuid}) already "
-                    "references this table. Restore it via "
-                    f"POST /api/v1/dataset/{soft_twin.uuid}/restore, or hard-"
-                    "delete it, before creating a new dataset over this table."
-                )
-            )
-
         body["database"] = database_id
         try:
             tbl = CreateDatasetCommand(body).run()
             return self.response(200, result={"table_id": tbl.id})
+        except DatasetSoftDeletedTwinExistsError as ex:
+            # Targeted hidden-twin 422 (single-sourced in the exception):
+            # names the twin's uuid and the restore endpoint.
+            return self.response_422(message=str(ex))
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
