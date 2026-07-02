@@ -36,6 +36,7 @@ import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponen
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import {
   useIsAutoRefreshing,
   useIsRefreshInFlight,
@@ -333,7 +334,9 @@ const Tab = (props: TabProps): ReactElement => {
                       <span>
                         {t('You can')}{' '}
                         <Typography.Link
-                          href={`/chart/add?dashboard_id=${dashboardId}`}
+                          href={ensureAppRoot(
+                            `/chart/add?dashboard_id=${dashboardId}`,
+                          )}
                           rel="noopener noreferrer"
                           target="_blank"
                         >

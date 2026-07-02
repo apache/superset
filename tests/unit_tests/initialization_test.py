@@ -19,10 +19,22 @@ import os
 from unittest.mock import MagicMock, patch, PropertyMock
 
 from sqlalchemy.exc import OperationalError
+from werkzeug.test import Client
+from werkzeug.wrappers import Response
 
 from superset.app import AppRootMiddleware, create_app, SupersetApp
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.initialization import SupersetAppInitializer
+from superset.middleware.legacy_prefix_redirect import LegacyPrefixRedirectMiddleware
+
+
+def _unwrap_to_app_root(app):
+    """Walk the WSGI middleware chain past the outermost
+    `LegacyPrefixRedirectMiddleware` (always installed) and return the
+    next layer. Lets the existing AppRootMiddleware-shape assertions
+    survive the outer-wrap change."""
+    assert isinstance(app.wsgi_app, LegacyPrefixRedirectMiddleware)
+    return app.wsgi_app.wsgi_app
 
 
 class TestSupersetApp:
@@ -255,7 +267,11 @@ class TestCreateAppRoot:
         with patch.dict(os.environ, env, clear=True):
             app = create_app()
 
-        assert not isinstance(app.wsgi_app, AppRootMiddleware)
+        # The outermost `LegacyPrefixRedirectMiddleware` is now always
+        # installed. Under root deployment, the next layer
+        # should NOT be `AppRootMiddleware`.
+        inner = _unwrap_to_app_root(app)
+        assert not isinstance(inner, AppRootMiddleware)
 
     @patch("superset.initialization.SupersetAppInitializer.init_app")
     def test_application_root_config_activates_middleware(self, mock_init_app):
@@ -269,8 +285,9 @@ class TestCreateAppRoot:
         ):
             app = create_app()
 
-        assert isinstance(app.wsgi_app, AppRootMiddleware)
-        assert app.wsgi_app.app_root == "/from-config"
+        inner = _unwrap_to_app_root(app)
+        assert isinstance(inner, AppRootMiddleware)
+        assert inner.app_root == "/from-config"
 
     @patch("superset.initialization.SupersetAppInitializer.init_app")
     def test_env_var_activates_middleware(self, mock_init_app):
@@ -281,8 +298,9 @@ class TestCreateAppRoot:
         with patch.dict(os.environ, env, clear=True):
             app = create_app()
 
-        assert isinstance(app.wsgi_app, AppRootMiddleware)
-        assert app.wsgi_app.app_root == "/from-env"
+        inner = _unwrap_to_app_root(app)
+        assert isinstance(inner, AppRootMiddleware)
+        assert inner.app_root == "/from-env"
 
     @patch("superset.initialization.SupersetAppInitializer.init_app")
     def test_env_var_takes_precedence_over_config(self, mock_init_app):
@@ -296,8 +314,9 @@ class TestCreateAppRoot:
         ):
             app = create_app()
 
-        assert isinstance(app.wsgi_app, AppRootMiddleware)
-        assert app.wsgi_app.app_root == "/from-env"
+        inner = _unwrap_to_app_root(app)
+        assert isinstance(inner, AppRootMiddleware)
+        assert inner.app_root == "/from-env"
 
     @patch("superset.initialization.SupersetAppInitializer.init_app")
     def test_param_takes_precedence_over_env_var(self, mock_init_app):
@@ -308,5 +327,96 @@ class TestCreateAppRoot:
         with patch.dict(os.environ, env, clear=True):
             app = create_app(superset_app_root="/from-param")
 
-        assert isinstance(app.wsgi_app, AppRootMiddleware)
-        assert app.wsgi_app.app_root == "/from-param"
+        inner = _unwrap_to_app_root(app)
+        assert isinstance(inner, AppRootMiddleware)
+        assert inner.app_root == "/from-param"
+
+    @patch("superset.initialization.SupersetAppInitializer.init_app")
+    def test_trailing_slash_normalized_at_source(self, mock_init_app):
+        """A trailing slash in SUPERSET_APP_ROOT is stripped once in
+        create_app, so derived config never sees "/myapp/": otherwise
+        STATIC_ASSETS_PREFIX would build "/myapp//static/..." asset URLs
+        and APPLICATION_ROOT (the session-cookie path) would keep the
+        slash while SCRIPT_NAME drops it."""
+        env = os.environ.copy()
+        env.pop("SUPERSET_CONFIG", None)
+        env["SUPERSET_APP_ROOT"] = "/myapp/"
+        with patch.dict(os.environ, env, clear=True):
+            app = create_app()
+
+        inner = _unwrap_to_app_root(app)
+        assert isinstance(inner, AppRootMiddleware)
+        assert inner.app_root == "/myapp"
+        assert app.config["STATIC_ASSETS_PREFIX"] == "/myapp"
+        assert app.config["APPLICATION_ROOT"] == "/myapp"
+
+    @patch("superset.initialization.SupersetAppInitializer.init_app")
+    def test_bare_slash_app_root_stays_root(self, mock_init_app):
+        """SUPERSET_APP_ROOT="/" normalizes to "/" (not ""), keeping the
+        root-deployment fast path (no AppRootMiddleware)."""
+        env = os.environ.copy()
+        env.pop("SUPERSET_CONFIG", None)
+        env["SUPERSET_APP_ROOT"] = "/"
+        with patch.dict(os.environ, env, clear=True):
+            app = create_app()
+
+        inner = _unwrap_to_app_root(app)
+        assert not isinstance(inner, AppRootMiddleware)
+        assert app.config["APPLICATION_ROOT"] == "/"
+
+
+class TestAppRootMiddlewareBoundary:
+    """Direct PATH_INFO handling tests for AppRootMiddleware."""
+
+    @staticmethod
+    def _make(app_root: str):
+        captured: dict[str, str | None] = {}
+
+        def inner_app(environ, start_response):
+            captured["PATH_INFO"] = environ.get("PATH_INFO")
+            captured["SCRIPT_NAME"] = environ.get("SCRIPT_NAME")
+            start_response("200 OK", [("Content-Type", "text/plain")])
+            return [b"OK"]
+
+        return AppRootMiddleware(inner_app, app_root), captured
+
+    @staticmethod
+    def _call(middleware, path: str) -> str:
+        client = Client(middleware, response_wrapper=Response)
+        return str(client.get(path).status_code)
+
+    def test_strips_prefix_and_sets_script_name(self):
+        middleware, captured = self._make("/myapp")
+        status = self._call(middleware, "/myapp/dashboard/1/")
+        assert status.startswith("200")
+        assert captured["PATH_INFO"] == "/dashboard/1/"
+        assert captured["SCRIPT_NAME"] == "/myapp"
+
+    def test_exact_app_root_path_is_accepted(self):
+        middleware, captured = self._make("/myapp")
+        status = self._call(middleware, "/myapp")
+        assert status.startswith("200")
+        assert captured["PATH_INFO"] == ""
+        assert captured["SCRIPT_NAME"] == "/myapp"
+
+    def test_shared_string_prefix_is_404_not_stripped(self):
+        """Segment-boundary pin: "/myapparoo/..." merely shares a string
+        prefix with app_root "/myapp" and must 404, not be mangled into
+        PATH_INFO "aroo/..."."""
+        middleware, captured = self._make("/myapp")
+        status = self._call(middleware, "/myapparoo/dashboard/1/")
+        assert status.startswith("404")
+        assert "PATH_INFO" not in captured
+
+    def test_path_outside_app_root_is_404(self):
+        middleware, captured = self._make("/myapp")
+        status = self._call(middleware, "/other/welcome/")
+        assert status.startswith("404")
+        assert "PATH_INFO" not in captured
+
+    def test_trailing_slash_app_root_is_normalized(self):
+        middleware, captured = self._make("/myapp/")
+        status = self._call(middleware, "/myapp/welcome/")
+        assert status.startswith("200")
+        assert captured["PATH_INFO"] == "/welcome/"
+        assert captured["SCRIPT_NAME"] == "/myapp"

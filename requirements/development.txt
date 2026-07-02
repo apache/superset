@@ -61,7 +61,7 @@ attrs==25.3.0
     #   requests-cache
     #   trio
 authlib==1.6.12
-    # via fastmcp
+    # via fastmcp-slim
 babel==2.17.0
     # via
     #   -c requirements/base-constraint.txt
@@ -194,6 +194,7 @@ cryptography==48.0.1
     #   apache-superset
     #   authlib
     #   google-auth
+    #   joserfc
     #   paramiko
     #   pyjwt
     #   pyopenssl
@@ -201,7 +202,7 @@ cryptography==48.0.1
 cycler==0.12.1
     # via matplotlib
 cyclopts==4.2.4
-    # via fastmcp
+    # via fastmcp-slim
 db-dtypes==1.3.1
     # via pandas-gbq
 defusedxml==0.7.1
@@ -246,9 +247,11 @@ et-xmlfile==2.0.0
     #   -c requirements/base-constraint.txt
     #   openpyxl
 exceptiongroup==1.3.0
-    # via fastmcp
-fastmcp==3.2.4
+    # via fastmcp-slim
+fastmcp==3.4.2
     # via apache-superset
+fastmcp-slim==3.4.2
+    # via fastmcp
 filelock==3.20.3
     # via
     #   -c requirements/base-constraint.txt
@@ -392,7 +395,7 @@ greenlet==3.5.1
     #   shillelagh
     #   sqlalchemy
 griffelib==2.0.2
-    # via fastmcp
+    # via fastmcp-slim
 grpcio==1.81.1
     # via
     #   apache-superset
@@ -423,7 +426,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via
-    #   fastmcp
+    #   fastmcp-slim
     #   mcp
 httpx-sse==0.4.1
     # via mcp
@@ -482,12 +485,14 @@ jmespath==1.1.0
     # via
     #   boto3
     #   botocore
+joserfc==1.7.2
+    # via fastmcp-slim
 jsonpath-ng==1.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
 jsonref==1.1.0
-    # via fastmcp
+    # via fastmcp-slim
 jsonschema==4.23.0
     # via
     #   -c requirements/base-constraint.txt
@@ -497,7 +502,7 @@ jsonschema==4.23.0
     #   openapi-spec-validator
 jsonschema-path==0.3.4
     # via
-    #   fastmcp
+    #   fastmcp-slim
     #   openapi-spec-validator
 jsonschema-specifications==2025.4.1
     # via
@@ -560,7 +565,7 @@ matplotlib==3.9.0
 mccabe==0.7.0
     # via pylint
 mcp==1.24.0
-    # via fastmcp
+    # via fastmcp-slim
 mdurl==0.1.2
     # via
     #   -c requirements/base-constraint.txt
@@ -604,7 +609,7 @@ odfpy==1.4.1
     #   -c requirements/base-constraint.txt
     #   pandas
 openapi-pydantic==0.5.1
-    # via fastmcp
+    # via fastmcp-slim
 openapi-schema-validator==0.6.3
     # via
     #   -c requirements/base-constraint.txt
@@ -616,7 +621,7 @@ openpyxl==3.1.5
     #   -c requirements/base-constraint.txt
     #   pandas
 opentelemetry-api==1.39.1
-    # via fastmcp
+    # via fastmcp-slim
 ordered-set==4.1.0
     # via
     #   -c requirements/base-constraint.txt
@@ -637,7 +642,7 @@ packaging==25.0
     #   deprecation
     #   docker
     #   duckdb-engine
-    #   fastmcp
+    #   fastmcp-slim
     #   google-cloud-bigquery
     #   gunicorn
     #   limits
@@ -682,7 +687,7 @@ pip==25.1.1
 platformdirs==4.3.8
     # via
     #   -c requirements/base-constraint.txt
-    #   fastmcp
+    #   fastmcp-slim
     #   pylint
     #   requests-cache
     #   virtualenv
@@ -724,7 +729,7 @@ psutil==6.1.0
 psycopg2-binary==2.9.12
     # via apache-superset
 py-key-value-aio==0.4.4
-    # via fastmcp
+    # via fastmcp-slim
 pyarrow==24.0.0
     # via
     #   -c requirements/base-constraint.txt
@@ -751,7 +756,7 @@ pydantic==2.11.7
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   apache-superset-core
-    #   fastmcp
+    #   fastmcp-slim
     #   mcp
     #   openapi-pydantic
     #   pydantic-settings
@@ -760,7 +765,9 @@ pydantic-core==2.33.2
     #   -c requirements/base-constraint.txt
     #   pydantic
 pydantic-settings==2.10.1
-    # via mcp
+    # via
+    #   fastmcp-slim
+    #   mcp
 pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
@@ -803,7 +810,7 @@ pyparsing==3.2.3
     #   apache-superset
     #   matplotlib
 pyperclip==1.10.0
-    # via fastmcp
+    # via fastmcp-slim
 pysocks==1.7.1
     # via
     #   -c requirements/base-constraint.txt
@@ -845,12 +852,14 @@ python-dotenv==1.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-    #   fastmcp
+    #   fastmcp-slim
     #   pydantic-settings
 python-ldap==3.4.7
     # via apache-superset
 python-multipart==0.0.29
-    # via mcp
+    # via
+    #   fastmcp-slim
+    #   mcp
 pytz==2025.2
     # via
     #   -c requirements/base-constraint.txt
@@ -866,7 +875,7 @@ pyyaml==6.0.3
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   apispec
-    #   fastmcp
+    #   fastmcp-slim
     #   jsonschema-path
     #   pre-commit
 redis==5.3.1
@@ -909,7 +918,7 @@ rich==13.9.4
     # via
     #   -c requirements/base-constraint.txt
     #   cyclopts
-    #   fastmcp
+    #   fastmcp-slim
     #   flask-limiter
     #   rich-rst
 rich-rst==1.3.1
@@ -1005,8 +1014,10 @@ sshtunnel==0.4.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-starlette==0.49.1
-    # via mcp
+starlette==1.3.1
+    # via
+    #   fastmcp-slim
+    #   mcp
 statsd==4.0.1
     # via apache-superset
 syntaqlite==0.4.2
@@ -1045,6 +1056,7 @@ typing-extensions==4.15.0
     #   apache-superset-core
     #   cattrs
     #   exceptiongroup
+    #   fastmcp-slim
     #   grpcio
     #   limits
     #   mcp
@@ -1072,7 +1084,7 @@ tzdata==2025.2
 tzlocal==5.2
     # via trino
 uncalled-for==0.2.0
-    # via fastmcp
+    # via fastmcp-slim
 url-normalize==2.2.1
     # via
     #   -c requirements/base-constraint.txt
@@ -1087,7 +1099,7 @@ urllib3==2.7.0
     #   selenium
 uvicorn==0.37.0
     # via
-    #   fastmcp
+    #   fastmcp-slim
     #   mcp
 vine==5.1.0
     # via
@@ -1103,7 +1115,7 @@ watchdog==6.0.0
     #   apache-superset
     #   apache-superset-extensions-cli
 watchfiles==1.1.1
-    # via fastmcp
+    # via fastmcp-slim
 wcwidth==0.2.13
     # via
     #   -c requirements/base-constraint.txt
@@ -1113,7 +1125,7 @@ websocket-client==1.8.0
     #   -c requirements/base-constraint.txt
     #   selenium
 websockets==15.0.1
-    # via fastmcp
+    # via fastmcp-slim
 werkzeug==3.1.6
     # via
     #   -c requirements/base-constraint.txt

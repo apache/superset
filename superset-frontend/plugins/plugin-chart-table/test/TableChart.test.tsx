@@ -2106,7 +2106,7 @@ describe('plugin-chart-table', () => {
 
         await waitFor(() => {
           expect(screen.getByRole('textbox')).toHaveValue('Michael');
-          expect(screen.getByLabelText('Search 0 records')).toHaveValue(
+          expect(screen.getByLabelText('Search records')).toHaveValue(
             'Michael',
           );
         });

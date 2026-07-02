@@ -270,9 +270,9 @@ describe('SavedQueryList', () => {
 
       await screen.findByTestId('saved_query-list-view');
 
-      const queryButton = await screen.findByRole('button', {
-        name: /^plus\s+query$/i,
-      });
+      // Scope to the create button's stable data-test: /query/i also matches the
+      // per-row "Query preview" and "Copy query URL" action buttons.
+      const queryButton = await screen.findByTestId('add-saved-query-button');
       fireEvent.click(queryButton);
 
       await waitFor(() => {
