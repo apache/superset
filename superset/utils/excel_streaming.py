@@ -33,6 +33,7 @@ import re
 from collections.abc import Iterable, Sequence
 from datetime import date, datetime
 from decimal import Decimal
+from io import BytesIO
 from typing import Any
 
 import xlsxwriter
@@ -211,6 +212,27 @@ class StreamingXlsxWriter:
 
         self.sheet_count += 1
         return written
+
+    def add_image_sheet(self, name: str, image_bytes: bytes) -> None:
+        """
+        Write a single sheet holding a rendered chart image.
+
+        The image is embedded top-left; ``xlsxwriter`` buffers image data and
+        writes it at :meth:`close`, so this composes with ``constant_memory``
+        mode just like the row-streaming sheets.
+
+        :param name: Desired sheet name (sanitized/de-duplicated automatically)
+        :param image_bytes: PNG bytes to embed
+        """
+        sheet_name = sanitize_sheet_name(name, self._used_sheet_names)
+        worksheet = self._workbook.add_worksheet(sheet_name)
+        worksheet.insert_image(
+            0,
+            0,
+            f"{sheet_name}.png",
+            {"image_data": BytesIO(image_bytes)},
+        )
+        self.sheet_count += 1
 
     def add_summary_sheet(self, name: str, lines: Sequence[str]) -> None:
         """
