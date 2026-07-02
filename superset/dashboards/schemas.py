@@ -197,6 +197,7 @@ class DashboardJSONMetadataSchema(Schema):
     # deprecated wrt dashboard-native filters
     filter_scopes = fields.Dict()
     expanded_slices = fields.Dict()
+    expand_all_slices = fields.Boolean()
     refresh_frequency = fields.Integer()
     # deprecated wrt dashboard-native filters
     default_filters = fields.Str()
