@@ -373,6 +373,28 @@ def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
     }
 
 
+def test_convert_query_object_filter_ilike_rejected(
+    mock_datasource: MagicMock,
+) -> None:
+    """
+    Case-insensitive operators are rejected explicitly rather than silently
+    collapsed into LIKE — that collapse would let the backend's collation
+    decide case sensitivity, silently diverging from the filter the dashboard
+    author selected.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+    for op in (FilterOperator.ILIKE.value, FilterOperator.NOT_ILIKE.value):
+        filter_: ValidatedQueryObjectFilterClause = {
+            "op": op,
+            "col": "category",
+            "val": "%book%",
+        }
+        with pytest.raises(ValueError, match="case-insensitive"):
+            _convert_query_object_filter(filter_, all_dimensions)
+
+
 def test_convert_query_object_filter_is_null(mock_datasource: MagicMock) -> None:
     """
     Test conversion of IS_NULL filter.
@@ -2983,8 +3005,9 @@ def test_coerce_integer_rejects_non_integer_float() -> None:
 
 
 def test_coerce_integer_rejects_other_types() -> None:
+    bad_value: Any = [1]
     with pytest.raises(ValueError, match="Invalid integer value"):
-        _coerce_scalar_filter_value([1], _dim(pa.int64()))
+        _coerce_scalar_filter_value(bad_value, _dim(pa.int64()))
 
 
 @pytest.mark.parametrize(
@@ -3008,8 +3031,9 @@ def test_coerce_floating_invalid_string_raises() -> None:
 
 
 def test_coerce_floating_rejects_other_types() -> None:
+    bad_value: Any = [1.0]
     with pytest.raises(ValueError, match="Invalid numeric value"):
-        _coerce_scalar_filter_value([1.0], _dim(pa.float64()))
+        _coerce_scalar_filter_value(bad_value, _dim(pa.float64()))
 
 
 def test_coerce_date_from_datetime() -> None:
