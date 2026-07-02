@@ -3121,6 +3121,9 @@ msgstr "Canvis del gràfic"
 msgid "Chart could not be created."
 msgstr "El gràfic no s'ha pogut crear."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "El gràfic no s'ha pogut actualitzar."
 

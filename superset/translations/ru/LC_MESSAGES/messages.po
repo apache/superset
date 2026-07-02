@@ -3053,6 +3053,9 @@ msgstr "Изменения диаграммы"
 msgid "Chart could not be created."
 msgstr "Не удалось создать диаграмму"
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Не удалось обновить диаграмму"
 

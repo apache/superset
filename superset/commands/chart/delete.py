@@ -46,6 +46,7 @@ class DeleteChartCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
         assert self._models
+
         ChartDAO.delete(self._models)
 
     def validate(self) -> None:

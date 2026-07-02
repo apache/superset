@@ -3123,6 +3123,9 @@ msgstr "Spremembe grafikona"
 msgid "Chart could not be created."
 msgstr "Grafikona ni mogoče ustvariti."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Grafikona ni mogoče posodobiti."
 

@@ -32,6 +32,7 @@ from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
+from superset.views.filters import BaseDeletedStateFilter
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -196,3 +197,40 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
                 FavStar.user_id == get_user_id(),
             )
         )
+
+
+class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedStateFilter
+):
+    """Rison filter for the GET list that exposes soft-deleted charts.
+
+    Soft-deleted rows are additionally scoped to the **restore audience**: only
+    the chart's owners (or admins) may enumerate them. This mirrors
+    ``RestoreChartCommand``'s ``raise_for_ownership`` check, so a read-access
+    non-owner (who can see the chart via datasource access) cannot list
+    soft-deleted charts they could never restore. Live rows are unaffected —
+    they keep their normal ``ChartFilter`` visibility. The ownership scoping is
+    part of the cross-entity deleted-state contract: only the restore audience
+    may enumerate soft-deleted rows (kept consistent with the deleted-state
+    filters in the dashboard and dataset soft-delete rollouts).
+    """
+
+    arg_name = "chart_deleted_state"
+    model = Slice
+
+    def apply(self, query: Query, value: Any) -> Query:
+        query = super().apply(query, value)
+        normalized = str(value).lower().strip() if value is not None else ""
+        if normalized not in {"include", "only"} or security_manager.is_admin():
+            return query
+
+        # Non-admins may only see soft-deleted charts they own. ``any()`` emits
+        # an EXISTS subquery so it composes with the base access filter without
+        # producing duplicate rows from a join.
+        owned = Slice.owners.any(security_manager.user_model.id == get_user_id())
+        if normalized == "only":
+            # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.
+            return query.filter(owned)
+        # ``include``: keep all live rows (normal access) and add only the
+        # soft-deleted rows this user owns.
+        return query.filter(or_(Slice.deleted_at.is_(None), owned))
