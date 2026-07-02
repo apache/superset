@@ -4589,6 +4589,9 @@ msgstr "No se ha podido actualizar la configuración de color del panel de contr
 msgid "Dashboard could not be deleted."
 msgstr "No se ha podido eliminar el panel de control."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "No se ha podido actualizar el panel de control."
 

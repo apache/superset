@@ -4134,6 +4134,9 @@ msgstr "ダッシュボードの配色設定を更新できませんでした。
 msgid "Dashboard could not be deleted."
 msgstr "ダッシュボードを削除できませんでした。"
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "ダッシュボードを更新できませんでした。"
 
