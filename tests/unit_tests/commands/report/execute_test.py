@@ -29,8 +29,8 @@ from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleCsvFailedError,
-    ReportScheduleExecutorNotFoundError,
     ReportScheduleExecuteUnexpectedError,
+    ReportScheduleExecutorNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
@@ -1171,6 +1171,7 @@ def test_post_chart_data_rejects_missing_auth_cookies(
 
 
 def test_get_csv_data_posts_prepared_chart_data_payload(
+    app: SupersetApp,
     mocker: MockerFixture,
 ) -> None:
     """CSV report data should POST the prepared export query context."""
@@ -1257,6 +1258,7 @@ def test_get_csv_data_posts_prepared_chart_data_payload(
 
 
 def test_get_csv_data_keeps_screenshot_fallback_without_query_context(
+    app: SupersetApp,
     mocker: MockerFixture,
 ) -> None:
     """Missing query context should keep the screenshot fallback path."""
