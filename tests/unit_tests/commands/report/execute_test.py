@@ -1976,3 +1976,41 @@ def test_get_url_for_csv_uses_post_processed_type(
         f"CSV report URL must use type=post_processed so chart filters "
         f"(incl. time filters) are applied; got: {url}; see issue #25538"
     )
+
+
+def test_get_url_raises_unexpected_error_when_target_is_missing(
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """When both chart and dashboard relationships return None, _get_url MUST
+    raise ReportScheduleUnexpectedError rather than crashing on dashboard.id.
+
+    The relationship returns None when the target is soft-deleted (the global
+    visibility filter excludes it) or hard-deleted out from under the report.
+    The API blocks this state via DeleteChartCommand / DeleteDashboardCommand
+    validation, but admin tooling and direct SQLAlchemy paths can still reach
+    it. The defensive guard at the top of _get_url ensures a clean failure
+    instead of an AttributeError.
+    """
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.id = 42
+    mock_report_schedule.name = "orphan_report"
+    mock_report_schedule.chart = None
+    mock_report_schedule.chart_id = 104
+    mock_report_schedule.dashboard = None
+    mock_report_schedule.dashboard_id = None
+    mock_report_schedule.force_screenshot = False
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    with pytest.raises(ReportScheduleUnexpectedError) as excinfo:
+        class_instance._get_url()
+
+    message = str(excinfo.value)
+    assert "Report schedule 42" in message
+    assert "orphan_report" in message
+    assert "chart_id=104" in message
+    assert "dashboard_id=None" in message
