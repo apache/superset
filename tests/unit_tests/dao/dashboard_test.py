@@ -24,20 +24,36 @@ from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from tests.unit_tests.conftest import with_feature_flags
 
 
+@with_feature_flags(SOFT_DELETE=True)
 def test_set_dash_metadata_preserves_soft_deleted_members(
     session: Session,
 ) -> None:
     """Saving a dashboard must not sever a soft-deleted member chart.
 
     ``set_dash_metadata`` rebuilds ``dashboard.slices`` wholesale from the
-    incoming position data. The slice-resolution query must bypass the
-    soft-delete visibility filter: with the filter active, a member chart
-    sitting in the trash would be silently dropped from the assignment —
-    deleting its ``dashboard_slices`` junction row (breaking the
-    restore-reattach contract) and writing ``uuid: None`` into its
-    position slot. This test fails if the bypass is removed.
+    incoming position data. The soft-delete visibility filter must be
+    bypassed for the whole rebuild — the slice-resolution query AND the
+    collection assignment:
+
+    - Filtered resolution would silently drop the trashed member from the
+      new collection — deleting its ``dashboard_slices`` junction row
+      (breaking the restore-reattach contract) and writing ``uuid: None``
+      into its position slot.
+    - A filtered *baseline* load (the unit of work lazy-loads the existing
+      collection when diffing the assignment) would exclude the trashed
+      member from the old collection, so the diff treats it as net-new and
+      INSERTs a duplicate ``dashboard_slices`` row — an IntegrityError on
+      the composite PK on every save of a dashboard containing a trashed
+      chart.
+
+    The test reproduces the production shape: SOFT_DELETE enabled (the
+    listener actually filters), the collection expired (as with the fresh
+    ``find_by_id`` load in the PUT flow), and a flush afterwards so the
+    diff's SQL actually hits the composite-PK junction table. It fails on
+    either a missing resolution bypass or a query-scoped-only bypass.
     """
     Dashboard.metadata.create_all(session.get_bind())
 
@@ -67,6 +83,11 @@ def test_set_dash_metadata_preserves_soft_deleted_members(
     db.session.add_all([live_chart, trashed_chart, dashboard])
     db.session.flush()
 
+    # Production shape: the PUT flow loads a fresh Dashboard whose
+    # ``slices`` collection is unloaded; expiring forces the baseline
+    # reload through the visibility listener during the assignment.
+    db.session.expire(dashboard, ["slices"])
+
     positions: dict[str, dict[str, Any]] = {
         "CHART-live": {
             "type": "CHART",
@@ -83,6 +104,9 @@ def test_set_dash_metadata_preserves_soft_deleted_members(
     }
 
     DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
+    # Flush so the collection diff's SQL reaches the composite-PK junction
+    # table — a duplicate INSERT fails here, not at assignment time.
+    db.session.flush()
 
     member_ids = {chart.id for chart in dashboard.slices}
     assert live_chart.id in member_ids
