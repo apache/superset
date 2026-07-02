@@ -798,8 +798,17 @@ def _should_attach_soft_delete_criteria(execute_state: ORMExecuteState) -> bool:
     relationship-load event closes that gap. The resulting WHERE
     clause may have ``deleted_at IS NULL`` twice when propagation
     DOES work — harmless redundancy, idempotent SQL.
+
+    Gated by the temporary ``SOFT_DELETE`` rollout flag: while it is
+    off, no criteria are attached, so soft-deleted rows (which the delete path
+    does not create while the flag is off) are not filtered. The flag and this
+    gate are removed once soft delete is stable.
     """
-    return execute_state.is_select and not execute_state.is_column_load
+    return (
+        execute_state.is_select
+        and not execute_state.is_column_load
+        and is_feature_enabled("SOFT_DELETE")
+    )
 
 
 def _all_soft_delete_subclasses() -> list[type[SoftDeleteMixin]]:
@@ -1178,6 +1187,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # for datasources of type query
         return []
 
+    def _resolve_denylist_schema(self, sql: str) -> Optional[str]:
+        """
+        Resolve the effective default schema for ``DISALLOWED_SQL_TABLES``
+        checks, memoized per datasource instance.
+
+        An explicit datasource schema always wins. Otherwise the schema is
+        resolved through the query-aware ``get_default_schema_for_query`` (not
+        the static ``get_default_schema``) so the value matches what the engine
+        uses at runtime -- honoring dynamic-schema engines and URI/connect-arg
+        schema rules -- exactly like the SQL Lab / executor denylist gate.
+
+        The result is cached on the instance so adhoc-expression validation,
+        which runs once per selected column/metric/order-by, resolves the schema
+        at most once instead of issuing a fallback inspector round-trip per
+        expression.
+        """
+        if self.schema:
+            return self.schema
+        if not hasattr(self, "_denylist_default_schema"):
+            catalog = self.catalog or self.database.get_default_catalog()
+            self._denylist_default_schema = self.database.resolve_query_default_schema(
+                sql, None, catalog
+            )
+        return self._denylist_default_schema
+
     def _process_sql_expression(  # pylint: disable=too-many-arguments
         self,
         expression: Optional[str],
@@ -1227,24 +1261,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     disallowed_functions
                 ):
                     raise SupersetDisallowedSQLFunctionException(disallowed_functions)
-                if disallowed_tables and parsed.check_tables_present(disallowed_tables):
+                if disallowed_tables:
                     # Report only the tables actually found in the expression,
                     # mirroring the canonical execution-time gate in
                     # `superset.sql_lab._validate_query` so the user-facing
-                    # error doesn't echo the operator's full denylist.
-                    present_tables = {
-                        table.table.lower()
-                        for statement in parsed.statements
-                        for table in statement.tables
-                    }
-                    found_tables = {
-                        table
-                        for table in disallowed_tables
-                        if table.lower() in present_tables
-                    }
-                    raise SupersetDisallowedSQLTableException(
-                        found_tables or disallowed_tables
+                    # error doesn't echo the operator's full denylist. Honors
+                    # schema-qualified denylist entries (e.g.
+                    # ``information_schema.tables``) and resolves unqualified
+                    # references against the same runtime schema the SQL Lab /
+                    # executor gate resolves them to (via the query-aware
+                    # resolver, not the static inspector default), so both
+                    # surfaces enforce the denylist consistently.
+                    effective_schema = self._resolve_denylist_schema(sql_to_check)
+                    found_tables = parsed.get_disallowed_tables(
+                        disallowed_tables, effective_schema
                     )
+                    if found_tables:
+                        raise SupersetDisallowedSQLTableException(found_tables)
         return expression
 
     def _process_select_expression(
@@ -1471,19 +1504,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             disallowed_functions
         ):
             raise SupersetDisallowedSQLFunctionException(disallowed_functions)
-        if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
+        if disallowed_tables:
             # Report only the tables actually found in the query, mirroring the
             # canonical execution-time gate so the user-facing error doesn't
-            # echo the operator's full denylist.
-            present_tables = {
-                table.table.lower()
-                for statement in parsed_script.statements
-                for table in statement.tables
-            }
-            found_tables = {
-                table for table in disallowed_tables if table.lower() in present_tables
-            }
-            raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
+            # echo the operator's full denylist. Honors schema-qualified
+            # denylist entries (e.g. ``information_schema.tables``) and resolves
+            # unqualified references against the same runtime schema the SQL Lab
+            # / executor gate resolves them to (via the query-aware resolver,
+            # not the static inspector default), so both surfaces enforce the
+            # denylist consistently.
+            effective_schema = self._resolve_denylist_schema(sql)
+            found_tables = parsed_script.get_disallowed_tables(
+                disallowed_tables, effective_schema
+            )
+            if found_tables:
+                raise SupersetDisallowedSQLTableException(found_tables)
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         """

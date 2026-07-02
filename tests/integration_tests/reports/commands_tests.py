@@ -1911,7 +1911,7 @@ def test_email_dashboard_report_fails_uncaught_exception(
 
     assert_log(ReportState.ERROR, error_message="Uncaught exception")
     assert (
-        '<a href="http://0.0.0.0:8080/superset/dashboard/'
+        '<a href="http://0.0.0.0:8080/dashboard/'
         f"{create_report_email_dashboard.dashboard.uuid}/"
         '?force=false">Call to action</a>' in email_mock.call_args[0][2]
     )
