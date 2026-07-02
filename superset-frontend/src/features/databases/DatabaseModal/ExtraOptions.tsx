@@ -498,7 +498,7 @@ const ExtraOptions = ({
                     onChange={onInputChange}
                   >
                     {t(
-                      'Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)',
+                      'Impersonate logged in user (Presto, Trino, Drill, Hive, Snowflake and Google Sheets)',
                     )}
                   </Checkbox>
                   <InfoTooltip
