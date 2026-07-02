@@ -78,8 +78,8 @@ Typical CI workflow
 
 Running babel_update on the base branch first isolates regressions caused by
 the PR's source diff from any pre-existing drift on the base branch, while the
-PR worktree run still allows committed .po updates to restore lost
-translations.
+PR worktree run still allows committed .po updates to resolve the fuzzies (and
+thus clear the regression) before merging.
 """
 
 import argparse
