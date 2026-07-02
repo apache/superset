@@ -334,3 +334,27 @@ def test_has_active_logical_duplicate_true_when_twin_found(
         )
 
         assert DatasetDAO.has_active_logical_duplicate(model) is True
+
+
+def test_has_active_logical_duplicate_never_bypasses_visibility(
+    app_context: None,
+) -> None:
+    """Contract tripwire for the docstring's do-not-add-the-bypass clause.
+
+    The helper's active-rows-only semantics come from the SoftDeleteMixin
+    listener; wrapping the query in ``skip_visibility_filter`` — the file's
+    dominant pattern, so a plausible future "consistency" edit — would
+    broaden the check to soft-deleted rows and silently refuse legitimate
+    restores of legacy twin pairs. The suite stays green under that
+    mutation without this pin.
+    """
+    model = _mock_dataset(catalog=None, default_catalog="default_cat")
+
+    with (
+        patch("superset.daos.dataset.db") as mock_db,
+        patch("superset.models.helpers.skip_visibility_filter") as bypass_spy,
+    ):
+        mock_db.session.query.return_value.filter.return_value.first.return_value = None
+        DatasetDAO.has_active_logical_duplicate(model)
+
+    bypass_spy.assert_not_called()

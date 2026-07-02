@@ -1986,27 +1986,28 @@ class TestDatasetApi(SupersetTestCase):
         assert view_menu is not None
         view_menu_id = view_menu.id
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/{dataset.id}"
-        rv = self.client.delete(uri)
-        assert rv.status_code == 200
-        # With soft delete, the row still exists (with deleted_at set) so
-        # FAB permissions are preserved for potential restore.
-        non_view_menu = db.session.query(security_manager.viewmenu_model).get(
-            view_menu_id
-        )
-        assert non_view_menu is not None
-
-        # Hard-delete the soft-deleted row to avoid unique constraint
-        # collisions in subsequent tests
-        row = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter(SqlaTable.id == dataset_id)
-            .one_or_none()
-        )
-        if row:
-            db.session.delete(row)
-            db.session.commit()
+        try:
+            uri = f"api/v1/dataset/{dataset.id}"
+            rv = self.client.delete(uri)
+            assert rv.status_code == 200
+            # With soft delete, the row still exists (with deleted_at set) so
+            # FAB permissions are preserved for potential restore.
+            non_view_menu = db.session.query(security_manager.viewmenu_model).get(
+                view_menu_id
+            )
+            assert non_view_menu is not None
+        finally:
+            # Hard-delete the (possibly soft-deleted) row even on assertion
+            # failure, to avoid unique constraint collisions in later tests.
+            row = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == dataset_id)
+                .one_or_none()
+            )
+            if row:
+                db.session.delete(row)
+                db.session.commit()
 
     def test_delete_item_dataset_not_owned(self):
         """

@@ -323,6 +323,44 @@ class TestDatasetSoftDelete(SupersetTestCase):
         finally:
             self._hard_delete_created(dataset_id, database)
 
+    @with_feature_flags(SOFT_DELETE=False)
+    def test_delete_dataset_flag_off_hard_deletes(self) -> None:
+        """Default-deployment contract: with SOFT_DELETE off, DELETE
+        physically removes the row (even a bypass query finds nothing) and
+        the restore endpoint 404s — there is nothing to restore.
+
+        Every other delete-path test in this module runs flag-ON; without
+        this test the path every default deployment actually runs would be
+        the untested one.
+        """
+        admin = self.get_user(ADMIN_USERNAME)
+        database = Database(database_name="sd_off_db", sqlalchemy_uri="sqlite://")
+        db.session.add(database)
+        db.session.flush()
+        dataset = SqlaTable(table_name="sd_off_tbl", database=database, owners=[admin])
+        db.session.add(dataset)
+        db.session.commit()
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.delete(f"/api/v1/dataset/{dataset_id}")
+            assert rv.status_code == 200
+
+            row = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == dataset_id)
+                .one_or_none()
+            )
+            assert row is None, "flag-off DELETE must hard-delete the row"
+
+            rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
+            assert rv.status_code == 404, "hard-deleted rows are not restorable"
+        finally:
+            self._hard_delete_created(dataset_id, database)
+
     @with_feature_flags(SOFT_DELETE=True)
     def test_no_cascade_to_dependent_charts(self) -> None:
         """Soft-deleting a dataset should NOT cascade to its charts (FR-009, T018)."""
@@ -372,13 +410,19 @@ class TestDatasetRestore(SupersetTestCase):
         dataset_uuid = str(dataset.uuid)
         self.login(ADMIN_USERNAME)
 
-        self.client.delete(f"/api/v1/dataset/{dataset_id}")
+        try:
+            self.client.delete(f"/api/v1/dataset/{dataset_id}")
 
-        rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
-        assert rv.status_code == 200
+            rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
+            assert rv.status_code == 200
 
-        rv = self.client.get(f"/api/v1/dataset/{dataset_id}")
-        assert rv.status_code == 200
+            rv = self.client.get(f"/api/v1/dataset/{dataset_id}")
+            assert rv.status_code == 200
+        finally:
+            # This test soft-deletes the SHARED example dataset; a failed
+            # assertion must not strand it and cascade failures through
+            # every later suite that queries it.
+            self._restore_dataset(dataset_id)
 
     @with_feature_flags(SOFT_DELETE=True)
     def test_restore_failure_returns_422(self) -> None:
@@ -399,17 +443,19 @@ class TestDatasetRestore(SupersetTestCase):
         dataset_id = dataset.id
         dataset_uuid = str(dataset.uuid)
         self.login(ADMIN_USERNAME)
-        self.client.delete(f"/api/v1/dataset/{dataset_id}")
+        try:
+            self.client.delete(f"/api/v1/dataset/{dataset_id}")
 
-        with patch(
-            "superset.commands.dataset.restore.RestoreDatasetCommand.run",
-            side_effect=DatasetRestoreFailedError(),
-        ):
-            rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
-        assert rv.status_code == 422
-
-        # Cleanup: the mocked restore left the example dataset soft-deleted.
-        _restore_dataset(dataset_id)
+            with patch(
+                "superset.commands.dataset.restore.RestoreDatasetCommand.run",
+                side_effect=DatasetRestoreFailedError(),
+            ):
+                rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
+                assert rv.status_code == 422
+        finally:
+            # The mocked restore leaves the example dataset soft-deleted; a
+            # failed assertion must not strand it for later tests.
+            _restore_dataset(dataset_id)
 
     @with_feature_flags(SOFT_DELETE=True)
     def test_restore_uses_can_write_permission(self) -> None:
