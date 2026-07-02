@@ -223,6 +223,7 @@ export default function Login() {
           >
             <Input.Password
               placeholder={t('Confirm password')}
+              autoComplete="new-password"
               data-test="confirm-password-input"
             />
           </Form.Item>
