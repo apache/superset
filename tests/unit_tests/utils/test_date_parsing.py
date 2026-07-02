@@ -17,11 +17,14 @@
 """Tests for datetime format detection and warning suppression."""
 
 import warnings
+from datetime import datetime
 
 import pandas as pd
 import pytest
+import pytz
 
 from superset.utils.core import DateColumn, normalize_dttm_col
+from superset.utils.dates import datetime_to_epoch
 from superset.utils.pandas import detect_datetime_format
 
 
@@ -260,10 +263,6 @@ def test_warning_suppression():
 # NEW TESTS FOR datetime_to_epoch() - Edge case coverage
 # ============================================================================
 
-import pytz
-from datetime import datetime
-from superset.utils.dates import datetime_to_epoch
-
 
 def test_datetime_to_epoch_naive_at_epoch():
     """Test naive datetime exactly at epoch returns 0.0"""
@@ -294,19 +293,21 @@ def test_datetime_to_epoch_timezone_aware_utc():
 def test_datetime_to_epoch_timezone_aware_different_tz():
     """Test timezone-aware datetime in different timezone converts to UTC correctly"""
     # Create datetime in EST (UTC-5 in January)
-    est = pytz.timezone('US/Eastern')
+    est = pytz.timezone("US/Eastern")
     # 1970-01-01 05:00:00 EST = 1970-01-01 10:00:00 UTC (5 hours offset)
     dt_est = est.localize(datetime(1970, 1, 1, 5, 0, 0))
     result = datetime_to_epoch(dt_est)
     expected = 10 * 60 * 60 * 1000  # 10 hours in milliseconds
-    assert result == expected, f"EST datetime should convert to UTC correctly, got {result}ms"
+    assert result == expected, (
+        f"EST datetime should convert to UTC correctly, got {result}ms"
+    )
 
 
 def test_datetime_to_epoch_dst_transition():
     """Test datetime during DST transition is handled correctly"""
     # Use a known DST transition date in US/Eastern
     # 2023-03-12: Spring forward (2 AM becomes 3 AM, gap of 1 hour)
-    eastern = pytz.timezone('US/Eastern')
+    eastern = pytz.timezone("US/Eastern")
 
     # Create datetime before DST transition
     dt_before_dst = eastern.localize(datetime(2023, 3, 12, 1, 59, 59), is_dst=True)
@@ -320,7 +321,9 @@ def test_datetime_to_epoch_dst_transition():
     # (because of the DST jump, 1:59:59 EST -> 3:00:01 EDT)
     diff_ms = result_after - result_before
     expected_diff = 2000  # 2 seconds
-    assert abs(diff_ms - expected_diff) < 100, f"DST transition handled incorrectly. Diff: {diff_ms}ms"
+    assert abs(diff_ms - expected_diff) < 100, (
+        f"DST transition handled incorrectly. Diff: {diff_ms}ms"
+    )
 
 
 def test_datetime_to_epoch_microsecond_precision():
@@ -328,7 +331,9 @@ def test_datetime_to_epoch_microsecond_precision():
     dt = datetime(1970, 1, 1, 0, 0, 1, 500000)  # 1.5 seconds
     result = datetime_to_epoch(dt)
     expected = 1500.0  # 1.5 seconds * 1000 ms
-    assert result == expected, f"Microseconds should contribute to result, got {result}ms"
+    assert result == expected, (
+        f"Microseconds should contribute to result, got {result}ms"
+    )
 
 
 def test_datetime_to_epoch_far_future():
