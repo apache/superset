@@ -43,28 +43,37 @@ API clients and automation should send and read `editors`, `viewers`, and `subje
 of the legacy fields.
 
 Subject pickers support users, groups, and roles, but only users and groups are selectable by
-default. Existing RLS rules saved with role subjects continue to apply, but the recommended path
-is to migrate role-based subject assignments to groups. This keeps roles focused on capability
-grants while users and groups carry resource-specific assignments, which better matches
-attribute-based access control and avoids coupling permission bundles to data access rules. To
-make roles selectable everywhere:
+default. Roles remain supported as Subject types for backwards compatibility with RLS role
+assignments and the previous `DASHBOARD_RBAC` model, but they are not recommended for new
+resource-specific assignments. Prefer groups for membership-based access and keep roles focused
+on capability grants. Existing Role subject assignments remain effective after migration even when
+Roles are hidden from the default dropdown values; configure the relevant `SUBJECTS_RELATED_TYPES_*`
+setting to make Roles selectable when editing subject lists. See the [Security documentation](docs/admin_docs/security/security.mdx#subjects)
+for the full Subject model and picker configuration guidance.
+
+To make roles selectable everywhere:
 
 ```python
 from superset.subjects.types import SubjectType
 
 SUBJECTS_RELATED_TYPES = [
     SubjectType.USER,
-    SubjectType.ROLE,
     SubjectType.GROUP,
+    SubjectType.ROLE,
 ]
 ```
 
-To make roles selectable only for RLS, use the RLS-specific override:
+To make roles selectable for RLS while other pickers keep the user and group default, use the
+RLS-specific override:
 
 ```python
 from superset.subjects.types import SubjectType
 
-SUBJECTS_RELATED_TYPES_RLS = [SubjectType.ROLE]
+SUBJECTS_RELATED_TYPES_RLS = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+    SubjectType.ROLE,
+]
 ```
 
 Entity-specific `SUBJECTS_RELATED_TYPES_*` settings replace `SUBJECTS_RELATED_TYPES` for that

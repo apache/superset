@@ -137,12 +137,65 @@ A **subject** is a unified identity that can be granted access to Superset resou
 dashboards, charts, and datasets. Subjects come in three types:
 
 - **User** — an individual Superset user
-- **Role** — a FAB role (e.g. Alpha, Gamma, or any custom role)
 - **Group** — a FAB group
+- **Role** — a FAB role (e.g. Alpha, Gamma, or any custom role)
 
 Subjects are used throughout Superset to assign **editors** (who can modify a resource) and
-**viewers** (who can view it). For example, adding a role as an editor on a dashboard grants
-everyone with that role edit access, without having to add each user individually.
+**viewers** (who can view it). For new resource-specific assignments, Superset defaults to
+**Users** and **Groups** in subject pickers. Groups are the recommended way to grant access to a
+set of people because they represent organizational membership, while roles remain focused on
+capability grants such as "can read dashboards" or "can write charts".
+
+Role subjects are still supported for backwards compatibility with features that previously used
+roles directly, including Row Level Security role assignments and `DASHBOARD_RBAC`. Existing role
+subject assignments continue to be enforced even when roles are not exposed in the default picker
+configuration. However, when an administrator edits a subject list, roles are not available as new
+dropdown values unless that picker has been configured to expose role subjects. Roles are not
+recommended for new subject assignments, because using roles for both permissions and resource
+membership couples two separate concerns.
+
+Administrators can control which subject types are available in pickers with
+`SUBJECTS_RELATED_TYPES`. By default, this setting exposes only users and groups:
+
+```python
+from superset.subjects.types import SubjectType
+
+SUBJECTS_RELATED_TYPES = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+]
+```
+
+Set `SUBJECTS_RELATED_TYPES = None` to expose all subject types, including roles. To expose roles
+only for a specific entity, set that entity's override:
+
+```python
+from superset.subjects.types import SubjectType
+
+SUBJECTS_RELATED_TYPES = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+]
+
+# Leave dashboard, chart, and alert/report overrides unset so they inherit
+# the users + groups default. Expose roles only in the RLS subject picker for
+# compatibility with existing role-based RLS workflows.
+SUBJECTS_RELATED_TYPES_RLS = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+    SubjectType.ROLE,
+]
+```
+
+Available per-entity overrides are:
+
+- `SUBJECTS_RELATED_TYPES_DASHBOARDS` for dashboard editor/viewer pickers
+- `SUBJECTS_RELATED_TYPES_CHARTS` for chart editor/viewer pickers
+- `SUBJECTS_RELATED_TYPES_RLS` for Row Level Security subject pickers
+- `SUBJECTS_RELATED_TYPES_ALERT_REPORTS` for alert/report editor pickers
+
+When an override is set, it replaces `SUBJECTS_RELATED_TYPES` for that picker. When it is `None`,
+the picker inherits the global default.
 
 ### Dashboard Access Control
 
@@ -161,7 +214,7 @@ if a user has access to a dataset, they can see all published dashboards using t
 
 #### Dashboard-Level Access
 
-For fine-grained control over which dashboards specific users, roles, or groups can access,
+For fine-grained control over which dashboards specific users or groups can access,
 enable subject-based viewers:
 
 ```python
@@ -171,8 +224,9 @@ FEATURE_FLAGS = {
 ```
 
 With this enabled, you can assign viewer subjects to each dashboard in its properties. Users
-will see published dashboards where they are assigned directly, or indirectly through a role
-or group subject.
+will see published dashboards where they are assigned directly, or indirectly through a group
+subject. Role subjects can also be enabled for compatibility, but groups are recommended for
+new dashboard viewer assignments.
 
 **Important considerations:**
 - Dashboard viewer access uses normal dataset checks unless `VIEWER_PROMISCUOUS_MODE` is enabled

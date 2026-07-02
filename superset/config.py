@@ -2785,14 +2785,15 @@ EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
 # Only effective when ENABLE_VIEWERS is on.
 VIEWER_PROMISCUOUS_MODE = False
 
-# Controls which Subject types appear in editor/viewer/subject pickers.
+# Default Subject types shown in editor/viewer/subject pickers.
+# Entity-specific SUBJECTS_RELATED_TYPES_* settings can replace this default.
 # None = show all types (USER, ROLE, GROUP).
 SUBJECTS_RELATED_TYPES: list[SubjectType] | None = [
     SubjectType.USER,
     SubjectType.GROUP,
 ]
 
-# Per-entity overrides for SUBJECTS_RELATED_TYPES.
+# Per-entity overrides for the default SUBJECTS_RELATED_TYPES picker behavior.
 # When set, the entity-specific list completely replaces the global default.
 # None = inherit global behavior.
 SUBJECTS_RELATED_TYPES_DASHBOARDS: list[SubjectType] | None = None
