@@ -14947,8 +14947,10 @@ msgstr ""
 "Dashboard. Es wird dynamisch generiert, wenn die Größe und Positionen der"
 " Widgets per Drag & Drop in der Dashboard-Ansicht angepasst werden"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
-msgstr ""
+msgstr "Diesem Link kann nicht gefolgt werden, da seine Adresse unsicher ist."
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -15758,8 +15760,10 @@ msgstr "Vom Ergebnisbereich lösen"
 msgid "Unpin from top"
 msgstr "Von oben lösen"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
 msgid "Unsafe link blocked"
-msgstr ""
+msgstr "Unsicherer Link blockiert"
 
 #, python-format
 msgid "Unsafe return type for function %(func)s: %(value_type)s"
