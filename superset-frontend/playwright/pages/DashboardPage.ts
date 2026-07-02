@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Page, Download } from '@playwright/test';
+import { Page, Download, Locator } from '@playwright/test';
 import { Menu } from '../components/core';
 import { gotoWithRetry } from '../helpers/navigation';
 import { TIMEOUT } from '../utils/constants';
@@ -33,6 +33,7 @@ export class DashboardPage {
     DASHBOARD_MENU_TRIGGER: '[data-test="actions-trigger"]',
     // The header-actions-menu is the data-test for the dropdown menu content
     HEADER_ACTIONS_MENU: '[data-test="header-actions-menu"]',
+    DASHBOARD_TABS: '[data-test="dashboard-component-tabs"]',
   } as const;
 
   constructor(page: Page) {
@@ -92,6 +93,34 @@ export class DashboardPage {
       undefined,
       { timeout },
     );
+  }
+
+  /**
+   * Locator for the individual tabs of the top-level tab bar.
+   * A dashboard can contain several nested tab bars; the top-level one is the
+   * first `dashboard-component-tabs` rendered in the DOM. The nav list is
+   * scoped to the immediate child (`:scope >`) so that tabs belonging to nested
+   * tab bars rendered inside this container's content are not counted.
+   */
+  topLevelTabs(): Locator {
+    return this.page
+      .locator(DashboardPage.SELECTORS.DASHBOARD_TABS)
+      .first()
+      .locator(
+        ':scope > [data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab',
+      );
+  }
+
+  /**
+   * Switch to the nth top-level tab (0-indexed) and wait for it to become active.
+   */
+  async switchToTopLevelTab(index: number): Promise<void> {
+    const tab = this.topLevelTabs().nth(index);
+    await tab.click();
+    await tab.and(this.page.locator('.ant-tabs-tab-active')).waitFor({
+      state: 'attached',
+      timeout: TIMEOUT.API_RESPONSE,
+    });
   }
 
   /**
