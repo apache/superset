@@ -29,37 +29,165 @@ from flask import Flask
 
 logger = logging.getLogger(__name__)
 
+# Sentinel file Flask watches via --extra-files.  Touching it on a real change
+# triggers a server reload without depending on cwd or the location of any
+# Python source file.
+RELOAD_TRIGGER = Path(__file__).resolve().parent / ".reload_trigger"
+
 # Guard to prevent multiple initializations
 _watcher_initialized = False
 _watcher_lock = threading.Lock()
 
 
-def _get_file_handler_class() -> Any:
+def _get_file_handler_class() -> Any:  # noqa: C901
     """Get the file handler class, importing watchdog only when needed."""
     try:
-        from watchdog.events import FileSystemEventHandler
+        import hashlib
+
+        from watchdog.events import (
+            FileCreatedEvent,
+            FileModifiedEvent,
+            FileMovedEvent,
+            FileSystemEventHandler,
+        )
 
         class LocalExtensionFileHandler(FileSystemEventHandler):
-            """Custom file system event handler for LOCAL_EXTENSIONS directories."""
+            """Custom file system event handler for LOCAL_EXTENSIONS directories.
+
+            Only reacts to genuine content changes (create / modify / move) in the
+            dist directory, verified by comparing a SHA-256 of the file's content.
+            This avoids the Docker VirtioFS / osxfs problem where reading a file
+            generates inotify events that watchdog surfaces as modifications.
+            """
+
+            def __init__(self) -> None:
+                super().__init__()
+                # sha256 of last-seen content, keyed by absolute path. Populated
+                # from existing files in watched `dist` dirs at startup (see
+                # `prime_baseline`) so that startup-noise inotify events from
+                # Docker VirtioFS reads don't get treated as the first real edit.
+                self._file_hashes: dict[str, str] = {}
+                self._lock = threading.Lock()
+                # Trailing debounce: schedule a single reload after a quiet
+                # window so simultaneous webpack writes coalesce into one
+                # restart that fires *after* the build settles.
+                self._debounce_seconds = 1.0
+                self._pending_timer: threading.Timer | None = None
+
+            # ── helpers ──────────────────────────────────────────────────────
+
+            @staticmethod
+            def _sha256(path: str) -> str | None:
+                try:
+                    with open(path, "rb") as fh:
+                        return hashlib.sha256(fh.read()).hexdigest()
+                except OSError:
+                    return None
+
+            def prime_baseline(self, watch_dirs: set[str]) -> None:
+                """Pre-populate content hashes for existing files in watched
+                `dist` directories. Called once at watcher startup so a
+                developer's first real edit registers as a content change
+                rather than as the file's 'first observation'."""
+                for root_dir in watch_dirs:
+                    root = Path(root_dir)
+                    for path in root.rglob("*"):
+                        if not path.is_file():
+                            continue
+                        if "dist" not in path.parts:
+                            continue
+                        digest = self._sha256(str(path))
+                        if digest is not None:
+                            self._file_hashes[str(path)] = digest
+
+            def _content_changed(self, path: str) -> bool:
+                """Return True when the file's content differs from last seen.
+
+                With `prime_baseline` called at startup, the baseline reflects
+                what was on disk when the watcher started. A first observation
+                that differs (or doesn't exist in baseline) is treated as a
+                genuine change.
+                """
+                digest = self._sha256(path)
+                if digest is None:
+                    return False
+                old_digest = self._file_hashes.get(path)
+                self._file_hashes[path] = digest
+                # New file (not in baseline) is a real change; otherwise compare.
+                return old_digest != digest
+
+            def _trigger_reload(self, source_path: str) -> None:
+                """Touch the reload-trigger sentinel; Flask's --extra-files
+                watcher reloads on its mtime change."""
+                logger.info("File change settled in LOCAL_EXTENSIONS: %s", source_path)
+                logger.info("Triggering restart by touching %s", RELOAD_TRIGGER)
+                try:
+                    os.utime(RELOAD_TRIGGER, (time.time(), time.time()))
+                except OSError as e:
+                    logger.warning(
+                        "Failed to touch reload trigger %s: %s", RELOAD_TRIGGER, e
+                    )
+
+            def _schedule_reload(self, source_path: str) -> None:
+                """Trailing-debounce: cancel any pending reload and schedule a
+                new one for `_debounce_seconds` from now. Each new event resets
+                the timer, so the reload fires only after a quiet window."""
+                with self._lock:
+                    if self._pending_timer is not None:
+                        self._pending_timer.cancel()
+                    timer = threading.Timer(
+                        self._debounce_seconds,
+                        self._trigger_reload,
+                        args=(source_path,),
+                    )
+                    timer.daemon = True
+                    self._pending_timer = timer
+                    timer.start()
+
+            # ── event handler ─────────────────────────────────────────────────
 
             def on_any_event(self, event: Any) -> None:
-                """Handle any file system event in the watched directories."""
+                """Handle file system events in the watched directories."""
                 if event.is_directory:
                     return
 
-                # Only trigger on changes to files in `dist` directory
-                src = getattr(event, "src_path", None)
-                if not isinstance(src, str) or "dist" not in Path(src).parts:
+                # Only react to true write events; skip access / close / open etc.
+                if not isinstance(
+                    event, (FileCreatedEvent, FileModifiedEvent, FileMovedEvent)
+                ):
                     return
 
-                logger.info(
-                    "File change detected in LOCAL_EXTENSIONS: %s", event.src_path
-                )
+                # For atomic-build move workflows (e.g., webpack writing to
+                # tmp + rename into dist) the meaningful path is dest_path.
+                # For Create/Modify events watchdog only sets src_path.
+                if isinstance(event, FileMovedEvent):
+                    target = getattr(event, "dest_path", None) or getattr(
+                        event, "src_path", None
+                    )
+                else:
+                    target = getattr(event, "src_path", None)
 
-                # Touch superset/__init__.py to trigger Flask's file watcher
-                superset_init = Path("superset/__init__.py")
-                logger.info("Triggering restart by touching %s", superset_init)
-                os.utime(superset_init, (time.time(), time.time()))
+                if not isinstance(target, str):
+                    return
+
+                # Only care about paths inside a `dist` directory.
+                if "dist" not in Path(target).parts:
+                    return
+
+                # Moves into/out of `dist` are explicit signals — trigger
+                # regardless of content match (the source may already be gone
+                # or the destination may not have a meaningful hash yet).
+                if isinstance(event, FileMovedEvent):
+                    self._schedule_reload(target)
+                    return
+
+                # For Create/Modify, verify the content actually changed to
+                # ignore spurious inotify events generated by Docker bind-mount
+                # reads.
+                if not self._content_changed(target):
+                    return
+
+                self._schedule_reload(target)
 
         return LocalExtensionFileHandler
     except ImportError:
@@ -130,11 +258,23 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
     if not watch_dirs:
         return
 
+    # Ensure the sentinel exists so os.utime() and Flask's --extra-files watcher
+    # both have a real path to operate on.
+    try:
+        RELOAD_TRIGGER.touch(exist_ok=True)
+    except OSError as e:
+        logger.warning("Could not create reload trigger %s: %s", RELOAD_TRIGGER, e)
+        return
+
     try:
         from watchdog.observers import Observer
 
         # Set up and start the file watcher
         event_handler = handler_class()
+        # Pre-populate baseline hashes from existing dist files so the
+        # developer's first real edit isn't silently dropped as a "first
+        # observation".
+        event_handler.prime_baseline(watch_dirs)
         observer = Observer()
 
         for watch_dir in watch_dirs:
