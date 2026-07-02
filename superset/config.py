@@ -657,6 +657,13 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
+    # Temporary rollout / kill-switch gate for soft delete (default off = legacy
+    # hard delete). An emergency stop, not a clean rollback: flipping ON->OFF
+    # resurrects already-soft-deleted rows. Removed (along with its two gate
+    # points — BaseDAO.delete routing and the do_orm_execute visibility listener)
+    # once soft delete is stable.
+    # @lifecycle: development
+    "SOFT_DELETE": False,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
@@ -1494,6 +1501,13 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 # Max payload size (MB) for SQL Lab to prevent browser hangs with large results.
 SQLLAB_PAYLOAD_MAX_MB = None
 
+# Maximum UTF-8 byte length of a SQL script accepted by the SQL parser.
+# Scripts longer than this are rejected before being handed to sqlglot, which
+# bounds parser memory and CPU usage. The bound is in bytes (not Unicode
+# code points) so multi-byte payloads cannot exceed the intended memory cap.
+# Set to None to disable the check.
+SQL_MAX_PARSE_LENGTH: int | None = 1_000_000
+
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 # Dashboard auto refresh intervals
@@ -1793,9 +1807,14 @@ SMTP_USER = "superset"
 SMTP_PORT = 25
 SMTP_PASSWORD = "superset"  # noqa: S105
 SMTP_MAIL_FROM = "superset@superset.com"
-# If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
-# default system root CA certificates.
-SMTP_SSL_SERVER_AUTH = False
+# If True creates a default SSL context with ssl.Purpose.SERVER_AUTH using the
+# default system root CA certificates. This makes STARTTLS/SSL connections to the
+# SMTP server validate the server's certificate against the trusted CA store.
+# Defaults to True so the mail server identity is verified out of the box. Set to
+# False to restore the previous behavior of skipping certificate validation (for
+# example, when using a self-signed certificate that is not in the system CA
+# store).
+SMTP_SSL_SERVER_AUTH = True
 # Socket timeout (in seconds) for the SMTP connection used when sending
 # alert/report emails. Without a timeout the underlying socket blocks
 # indefinitely if the SMTP server becomes unreachable, which leaves report
@@ -1939,6 +1958,24 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "pg_read_file",
         "pg_ls_dir",
         "pg_read_binary_file",
+        # PostgreSQL large-object functions: writers can plant arbitrary
+        # bytes on the server filesystem (lo_export, lo_from_bytea, lowrite,
+        # lo_put, lo_create, lo_creat, lo_import), readers can pull bytes back
+        # out (lo_get, loread), lo_truncate/lo_truncate64 shrink existing
+        # large objects, and lo_unlink deletes them outright. Defense-in-depth
+        # on top of is_mutating()'s function-name check.
+        "lo_from_bytea",
+        "lo_export",
+        "lo_import",
+        "lo_put",
+        "lo_create",
+        "lo_creat",
+        "lowrite",
+        "lo_get",
+        "loread",
+        "lo_truncate",
+        "lo_truncate64",
+        "lo_unlink",
         # XML functions that can execute SQL
         "database_to_xml",
         "database_to_xmlschema",
@@ -2029,6 +2066,30 @@ DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
         "pg_stat_replication",
         "pg_stat_wal_receiver",
         "pg_user",
+        # The SQL-standard `information_schema` views expose table /
+        # column / privilege / view-definition metadata across the entire
+        # database role the connection user can see. Entries are
+        # schema-qualified so `check_tables_present` only matches when the
+        # reference resolves to `information_schema.<view>` -- either written
+        # explicitly or as an unqualified name under an `information_schema`
+        # search_path -- not any user table that happens to share a name.
+        "information_schema.tables",
+        "information_schema.columns",
+        "information_schema.schemata",
+        "information_schema.views",
+        "information_schema.routines",
+        "information_schema.role_table_grants",
+        "information_schema.role_column_grants",
+        "information_schema.role_routine_grants",
+        "information_schema.table_privileges",
+        "information_schema.column_privileges",
+        "information_schema.usage_privileges",
+        "information_schema.key_column_usage",
+        "information_schema.table_constraints",
+        "information_schema.referential_constraints",
+        "information_schema.view_table_usage",
+        "information_schema.applicable_roles",
+        "information_schema.enabled_roles",
     },
     "mysql": {
         "mysql.user",
@@ -2192,6 +2253,12 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
+# Slack workspace (team) ID, either a string or a callable. Required when using
+# an org-scoped token on an Enterprise Grid org so that workspace-scoped methods
+# (e.g. conversations.list) know which workspace to target. It is accepted but
+# ignored for workspace-level tokens, so leaving it as None preserves the default
+# single-workspace behavior.
+SLACK_TEAM_ID: Callable[[], str] | str | None = None
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Maximum number of retries when Slack API returns rate limit errors
@@ -2484,6 +2551,16 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
+
+# Opt-OUT for the frontend permalink-origin rewrite. By default the frontend
+# substitutes `window.location.origin` for the backend-supplied origin on
+# share/permalink URLs so a proxied or subdirectory-deployed Superset does not
+# hand the user an unreachable internal hostname. Operators whose reverse proxy
+# correctly forwards `X-Forwarded-Host` AND who *want* permalinks to carry the
+# backend's literal origin can set this flag to True to disable the rewrite.
+# Default False (rewrite is on) — flipping the default to True would regress
+# the dominant proxied/subdir deployment to an unreachable internal host.
+EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = False
 
 # Define a list of allowed URL patterns (regex) for dataset data imports (v1).
 # Simple example to only allow URLs that belong to certain domains:
