@@ -251,6 +251,10 @@ function TabbedSqlEditors({
   }, [queries, activeQueryEditor, actions, displayLimit]);
 
   const newQueryEditor = useCallback(() => {
+    // Mark the timing origin for add-tab performance telemetry. Centralized here
+    // so every add-tab entry point (the "+" button, its dropdown, and antd's
+    // onEdit) records it consistently.
+    Logger.markTimeOrigin();
     actions.addNewQueryEditor();
   }, [actions]);
 
@@ -284,7 +288,6 @@ function TabbedSqlEditors({
         }
       }
       if (action === 'add') {
-        Logger.markTimeOrigin();
         newQueryEditor();
       }
     },
