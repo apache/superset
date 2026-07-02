@@ -492,15 +492,18 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Soft-delete a Dataset.
+        """Delete a dataset.
 
-        Marks the dataset as deleted (sets ``deleted_at``) and hides it from
-        list/detail endpoints and relationship loads; the row is preserved
-        and recoverable via ``POST /api/v1/dataset/<uuid>/restore`` by an
-        owner or admin.
+        When the ``SOFT_DELETE`` feature flag is enabled, marks the dataset
+        as deleted (sets ``deleted_at``) and hides it from list/detail
+        endpoints and relationship loads; the row is preserved and
+        recoverable via ``POST /api/v1/dataset/<uuid>/restore`` by an owner
+        or admin. With the flag disabled (the default), the dataset is
+        permanently hard-deleted and is not recoverable.
         ---
         delete:
-          summary: Delete a dataset (soft delete; recoverable via restore)
+          summary: Delete a dataset (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: path
             schema:
@@ -892,15 +895,18 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Bulk soft-delete datasets.
+        """Bulk delete datasets.
 
-        Marks each dataset as deleted (sets ``deleted_at``) and hides it from
-        list/detail endpoints and relationship loads; rows are preserved and
-        recoverable via ``POST /api/v1/dataset/<uuid>/restore`` by an owner
-        or admin.
+        When the ``SOFT_DELETE`` feature flag is enabled, marks each dataset
+        as deleted (sets ``deleted_at``) and hides it from list/detail
+        endpoints and relationship loads; rows are preserved and recoverable
+        via ``POST /api/v1/dataset/<uuid>/restore`` by an owner or admin.
+        With the flag disabled (the default), the datasets are permanently
+        hard-deleted and are not recoverable.
         ---
         delete:
-          summary: Bulk delete datasets (soft delete; recoverable via restore)
+          summary: Bulk delete datasets (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: query
             name: q
@@ -1017,6 +1023,15 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @requires_form_data
     def import_(self) -> Response:
         """Import dataset(s) with associated databases.
+
+        When the ``SOFT_DELETE`` feature flag is enabled and an imported
+        dataset's UUID matches an existing **soft-deleted** dataset, the
+        import restores that dataset and applies the upload's contents —
+        **even when ``overwrite`` is not set**. Active datasets keep the
+        usual contract (never mutated without ``overwrite=true``); a
+        soft-deleted UUID match is treated as an explicit request to bring
+        the dataset back. Requires ``can_write`` and ownership of the
+        deleted row (or admin). See UPDATING.md for details.
         ---
         post:
           summary: Import dataset(s) with associated databases
