@@ -212,9 +212,9 @@ to a role (Menu → Security → List Roles).
 This is the simplest approach but provides all-or-nothing access based on dataset permissions—
 if a user has access to a dataset, they can see all published dashboards using that dataset.
 
-#### Dashboard-Level Access
+#### Dashboard and Chart-Level Access
 
-For fine-grained control over which dashboards specific users or groups can access,
+For fine-grained control over which dashboards and charts specific users or groups can access,
 enable subject-based viewers:
 
 ```python
@@ -223,16 +223,23 @@ FEATURE_FLAGS = {
 }
 ```
 
-With this enabled, you can assign viewer subjects to each dashboard in its properties. Users
-will see published dashboards where they are assigned directly, or indirectly through a group
-subject. Role subjects can also be enabled for compatibility, but groups are recommended for
-new dashboard viewer assignments.
+With this enabled, you can assign viewer subjects to each dashboard or chart in its properties.
+Users will see resources where they are assigned directly, or indirectly through a group subject.
+Role subjects can also be enabled for compatibility, but groups are recommended for new viewer
+assignments.
+
+`ENABLE_VIEWERS` can be adopted incrementally. Dashboards and charts with no assigned viewers keep
+the existing implicit dataset-access behavior: users who can access the underlying dataset can still
+see published dashboards that use that dataset and charts backed by that dataset. Assigning one or
+more viewers changes that specific resource to explicit viewer access for non-editors. Removing all
+viewers returns the resource to the dataset-based fallback. Explicit Viewers are the preferred model
+going forward; the implicit fallback may be deprecated and removed in a later major version.
 
 **Important considerations:**
-- Dashboard viewer access uses normal dataset checks unless `VIEWER_PROMISCUOUS_MODE` is enabled
+- Viewer access uses normal dataset checks unless `VIEWER_PROMISCUOUS_MODE` is enabled
 - With `VIEWER_PROMISCUOUS_MODE`, dashboard viewer access can bypass dataset-level checks for
   charts and datasets in that dashboard
-- Dashboards without assigned viewers fall back to dataset-based access
+- Dashboards and charts without assigned viewers fall back to dataset-based access
 - The dashboard must still be published to be visible
 
 This feature is particularly useful for:

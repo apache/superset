@@ -97,6 +97,15 @@ VIEWER_PROMISCUOUS_MODE = True
 Enabling only `ENABLE_VIEWERS` allows assigning dashboard/chart viewer subjects, but viewers still
 need normal datasource permissions unless `VIEWER_PROMISCUOUS_MODE` is also enabled.
 
+For backwards compatibility, enabling `ENABLE_VIEWERS` does not change access for dashboards or
+charts that have no assigned viewers. Those resources continue to use the implicit dataset-access
+model: users who can access the underlying dataset can still see published dashboards that use that
+dataset and charts backed by that dataset.
+Assigning one or more viewers opts that resource into explicit viewer access for non-editors. To
+return a resource to the implicit dataset-access model, remove all viewers from it. Explicit Viewers
+are the intended model going forward; deprecating and removing implicit viewership can be considered
+in a later major version.
+
 - [39925](https://github.com/apache/superset/pull/39925): URL prefixing for `SUPERSET_APP_ROOT` subdirectory deployments is now handled automatically by helpers in `src/utils/navigationUtils` (`openInNewTab`, `redirect`, `getShareableUrl`, `<AppLink>`). Direct imports of `ensureAppRoot` / `makeUrl` from `src/utils/pathUtils` are forbidden outside `navigationUtils.ts` (enforced by a static-invariant test); contributors writing new code should use the focused helpers instead. No runtime behaviour change for existing callers — all 19 prior call sites have been migrated and four pre-existing double-prefix and missing-prefix bugs are fixed as part of the migration.
 
 - [39925](https://github.com/apache/superset/pull/39925): `SupersetClient.getUrl()` now strips a single leading application-root segment from the supplied `endpoint` before building the request URL, so a caller that accidentally pre-prefixes its endpoint (for example by wrapping it with `ensureAppRoot` before passing it to the client) no longer produces a doubled `/superset/superset/...` URL under subdirectory deployment. The strip is **single-pass** — a genuine `/superset/superset/<slug>` route is preserved, not collapsed — and **silent** (no console warning); the static-invariant test remains the primary signal for pre-prefixing at the call site, and this runtime strip is a safety net beneath it. Code that intentionally targeted a literal `/<app_root>/<app_root>/...` endpoint through `getUrl` (a configuration that has no legitimate use under the prefixing model) would have its first redundant segment removed.
