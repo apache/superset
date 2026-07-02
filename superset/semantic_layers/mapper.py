@@ -52,7 +52,10 @@ from superset_core.semantic_layers.view import SemanticViewFeature
 
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_object import QueryObject
-from superset.common.utils.time_range_utils import get_since_until_from_query_object
+from superset.common.utils.time_range_utils import (
+    get_since_until_from_query_object,
+    get_since_until_from_time_range,
+)
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
 from superset.models.helpers import QueryResult
@@ -543,9 +546,9 @@ def _convert_query_object_filter(
     if operator_str == FilterOperator.TEMPORAL_RANGE.value:
         if not isinstance(value, str) or value == NO_TIME_RANGE:
             return None
-        start, end = (side.strip() for side in value.split(" : "))
+        start, end = get_since_until_from_time_range(time_range=value)
         filters: set[Filter] = set()
-        if start:
+        if start is not None:
             filters.add(
                 Filter(
                     type=PredicateType.WHERE,
@@ -554,7 +557,7 @@ def _convert_query_object_filter(
                     value=_coerce_scalar_filter_value(start, dimension),
                 )
             )
-        if end:
+        if end is not None:
             filters.add(
                 Filter(
                     type=PredicateType.WHERE,
