@@ -2761,7 +2761,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def adhoc_column_to_sqla(
         self,
-        col: "AdhocColumn",  # type: ignore  # noqa: F821
+        col: AdhocColumn,
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> tuple[ColumnElement, Optional[GenericDataType]]:
@@ -3292,8 +3292,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
         adhoc_columns_by_label: dict[str, AdhocColumn] = {}
         for selected in columns:
-            if utils.is_adhoc_column(selected) and (label := selected.get("label")):
-                adhoc_columns_by_label[label] = selected
+            if not utils.is_adhoc_column(selected):
+                continue
+            selected_label = selected.get("label")
+            if isinstance(selected_label, str) and selected_label:
+                adhoc_columns_by_label[selected_label] = selected
 
         # Since orderby may use adhoc metrics, too; we need to process them first
         orderby_exprs: list[ColumnElement] = []

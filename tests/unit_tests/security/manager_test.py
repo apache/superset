@@ -20,6 +20,7 @@
 import json  # noqa: TID251
 from types import SimpleNamespace
 from typing import Any, Optional
+from unittest.mock import MagicMock
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -1450,7 +1451,7 @@ def test_query_context_modified_orderby_visible_column_allowed(
     """
     Test that guest user can sort by a visible column (whitelist approach).
     """
-    query_context = mocker.MagicMock()
+    query_context: MagicMock = mocker.MagicMock()
     query_context.slice_.id = 42
     query_context.slice_.query_context = None
     query_context.slice_.params_dict = {

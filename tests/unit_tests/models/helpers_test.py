@@ -2065,7 +2065,7 @@ def test_orderby_adhoc_column_label_takes_precedence_over_saved_metric(
     """
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 
-    table = SqlaTable(
+    table: SqlaTable = SqlaTable(
         database=database,
         schema=None,
         table_name="t",

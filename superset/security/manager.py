@@ -659,7 +659,7 @@ def _collect_stored_orderby_entries(
     """
     Frozen saved orderby entries a guest may replay exactly.
     """
-    allowed = {
+    allowed: set[str] = {
         freeze_value(entry) for entry in stored_chart.params_dict.get("orderby") or []
     }
     if stored_query_context:
@@ -735,7 +735,7 @@ def _series_limit_metric_modified(
     only reuse stored metric controls. Dict-shaped selectors must match exactly;
     labels are not an authorization key for expression objects.
     """
-    allowed = _collect_stored_series_limit_metric_identifiers(
+    allowed: set[str] = _collect_stored_series_limit_metric_identifiers(
         stored_chart,
         stored_query_context,
     )
@@ -789,7 +789,7 @@ def _orderby_modified(
     form_orderby = form_data.get("orderby")
     if form_orderby is not None and not isinstance(form_orderby, list):
         return True
-    requested = list(form_orderby or [])
+    requested: list[Any] = list(form_orderby or [])
     for query in query_context.queries:
         query_orderby = getattr(query, "orderby", None)
         if query_orderby is not None and not isinstance(query_orderby, list):
