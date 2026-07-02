@@ -22,6 +22,7 @@ import {
   createStore,
   render,
   screen,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
@@ -30,7 +31,7 @@ import {
   useDashboardCharts,
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetApiError, SupersetClient } from '@superset-ui/core';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import {
@@ -556,6 +557,48 @@ test('does not overwrite filterState when modern native_filters URL format is us
   expect(
     callArg.dataMask['NATIVE_FILTER-OvPTDNKc9'].currentState,
   ).toBeUndefined();
+});
+
+test('renders a not-found state instead of throwing when the dashboard 404s', async () => {
+  mockUseDashboard.mockReturnValue({
+    result: null,
+    error: new SupersetApiError({ status: 404, message: 'Not found' }),
+  });
+  mockUseDashboardCharts.mockReturnValue({
+    result: null,
+    error: new SupersetApiError({ status: 404, message: 'Not found' }),
+  });
+  mockUseDashboardDatasets.mockReturnValue({
+    result: null,
+    error: new SupersetApiError({ status: 404, message: 'Not found' }),
+    status: 'error',
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="404" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: {},
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  expect(
+    await screen.findByText('This dashboard does not exist'),
+  ).toBeInTheDocument();
+  expect(screen.queryByTestId('dashboard-builder')).not.toBeInTheDocument();
+
+  await userEvent.click(
+    screen.getByRole('button', { name: 'See all dashboards' }),
+  );
+  expect(window.location.pathname).toBe('/dashboard/list/');
 });
 
 test('clears undo history after hydrating the dashboard', async () => {
