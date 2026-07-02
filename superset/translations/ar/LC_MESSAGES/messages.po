@@ -4457,6 +4457,9 @@ msgstr "تعذر تحديث لوحة المعلومات."
 msgid "Dashboard could not be deleted."
 msgstr "تعذر حذف لوحة المعلومات."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "تعذر تحديث لوحة المعلومات."
 

@@ -4406,6 +4406,9 @@ msgstr "داشبورد قابل به‌روزرسانی نیست."
 msgid "Dashboard could not be deleted."
 msgstr "داشبورد نمی‌تواند حذف شود."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "داشبورد قابل به‌روزرسانی نیست."
 

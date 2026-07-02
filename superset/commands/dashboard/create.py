@@ -59,7 +59,12 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
-        slug: str = self._properties.get("slug", "")
+        # An absent slug must stay ``None`` (not default to ``""``):
+        # ``validate_slug_uniqueness`` deliberately checks empty strings, so
+        # coercing absent → "" would run the check as ``slug == ""`` and 422
+        # every slugless create once any empty-string-slug row exists. This
+        # mirrors the update path, which also passes ``None`` through.
+        slug: str | None = self._properties.get("slug")
 
         # Validate slug uniqueness
         if not DashboardDAO.validate_slug_uniqueness(slug):

@@ -35,6 +35,7 @@ from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
+from superset.views.filters import BaseDeletedStateFilter
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -326,3 +327,45 @@ class DashboardHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public
         if value is False:
             return query.filter(and_(Dashboard.created_by_fk.is_(None)))
         return query
+
+
+class DashboardDeletedStateFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedStateFilter
+):
+    """Rison filter for the GET list that exposes soft-deleted dashboards.
+
+    Soft-deleted rows are additionally scoped to the **restore audience**:
+    only the dashboard's editors (or admins) may enumerate them. This mirrors
+    ``RestoreDashboardCommand``'s ``raise_for_editorship`` check, so a
+    read-access non-editor (who can see the dashboard via published-datasource
+    access or dashboard RBAC) cannot list soft-deleted dashboards they could
+    never restore. Live rows are unaffected — they keep their normal
+    ``DashboardAccessFilter`` visibility.
+    """
+
+    arg_name = "dashboard_deleted_state"
+    model = Dashboard
+
+    def apply(self, query: Query, value: Any) -> Query:
+        query = super().apply(query, value)
+        normalized = self._normalize(value)
+        if normalized not in {"include", "only"} or security_manager.is_admin():
+            return query
+
+        # Non-admins may only see soft-deleted dashboards they can edit. ``any()``
+        # emits an EXISTS subquery so it composes with the base access filter
+        # without producing duplicate rows from a join.
+        editable = Dashboard.editors.any(
+            dashboard_editors.c.subject_id.in_(
+                db.session.query(Subject.id).filter(
+                    Subject.type == 1,
+                    Subject.user_id == get_user_id(),
+                )
+            )
+        )
+        if normalized == "only":
+            # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.
+            return query.filter(editable)
+        # ``include``: keep all live rows (normal access) and add only the
+        # soft-deleted rows this user can edit.
+        return query.filter(or_(Dashboard.deleted_at.is_(None), editable))

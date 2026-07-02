@@ -4587,6 +4587,9 @@ msgstr "Não foi possível atualizar o painel."
 msgid "Dashboard could not be deleted."
 msgstr "Não foi possível remover o painel."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Não foi possível atualizar o painel."
 

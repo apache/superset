@@ -45,7 +45,11 @@ from superset_core.common.models import Dashboard as CoreDashboard
 from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
-from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+from superset.models.helpers import (
+    AuditMixinNullable,
+    ImportExportMixin,
+    SoftDeleteMixin,
+)
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.subjects.models import (
@@ -119,7 +123,7 @@ dashboard_slices = Table(
 )
 
 
-class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
+class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExportMixin):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
@@ -132,7 +136,14 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     certified_by = Column(Text)
     certification_details = Column(Text)
     json_metadata = Column(utils.MediumText())
-    slug = Column(String(255), unique=True)
+    # Slug uniqueness is enforced via a partial unique index
+    # (``ix_dashboards_active_slug WHERE deleted_at IS NULL``) on
+    # PostgreSQL and MySQL 8.0.13+ (excluding MariaDB), so soft-deleted rows
+    # do not reserve their slug. SQLite, MariaDB, and MySQL <8.0.13 keep the
+    # original full unique constraint via the migration; on those dialects
+    # slug reservation persists across soft-delete. See the 9e1f3b8c4d2a
+    # migration for details.
+    slug = Column(String(255))
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
@@ -187,6 +198,27 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         "published",
     ]
     extra_import_fields = ["is_managed_externally", "external_url", "theme_id"]
+
+    @classmethod
+    def _unique_constraints(cls) -> list[set[str]]:
+        """Import identity keys for ``import_from_dict``.
+
+        ``slug`` lost its column-level ``unique=True`` when the full unique
+        constraint was replaced by a partial (active-rows-only) index for
+        soft-delete. ``ImportExportMixin._unique_constraints`` derives import
+        lookup keys from unique columns/constraints, so without this override a
+        re-import whose UUID differs but whose ``slug`` matches an existing
+        active dashboard would no longer be matched-and-updated by slug — it
+        would fall through to an insert and collide on the partial active-slug
+        index at flush. Re-add ``{"slug"}`` here so import keeps matching by
+        slug (the pre-soft-delete behaviour) while DB-level uniqueness stays
+        partial. A ``NULL`` slug is skipped by the importer's filter builder,
+        so this only adds a real lookup when the imported config carries a slug.
+        """
+        constraints = super()._unique_constraints()
+        if {"slug"} not in constraints:
+            constraints.append({"slug"})
+        return constraints
 
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"

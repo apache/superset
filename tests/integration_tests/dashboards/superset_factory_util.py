@@ -22,6 +22,7 @@ from flask_appbuilder.security.sqla.models import User
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
@@ -202,6 +203,7 @@ def delete_all_inserted_dashboards():
         db.session.expire_all()
         dashboards_to_delete: list[Dashboard] = (
             db.session.query(Dashboard)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
             .filter(Dashboard.id.in_(inserted_dashboards_ids))
             .all()
         )
@@ -253,8 +255,14 @@ def delete_dashboard_slices_associations(dashboard: Dashboard) -> None:
 
 def delete_all_inserted_slices():
     try:
+        # Slice bypass is a no-op until Slice adopts SoftDeleteMixin
+        # (charts soft-delete branch); kept here so the cleanup helper
+        # stays correct after that branch lands.
         slices_to_delete: list[Slice] = (
-            db.session.query(Slice).filter(Slice.id.in_(inserted_slices_ids)).all()
+            db.session.query(Slice)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+            .filter(Slice.id.in_(inserted_slices_ids))
+            .all()
         )
         for slice in slices_to_delete:
             try:
@@ -286,8 +294,12 @@ def delete_slice_editor_associations(slice_: Slice) -> None:
 
 def delete_all_inserted_tables():
     try:
+        # SqlaTable bypass is a no-op until SqlaTable adopts
+        # SoftDeleteMixin (datasets soft-delete branch); kept here so the
+        # cleanup helper stays correct after that branch lands.
         tables_to_delete: list[SqlaTable] = (
             db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
             .filter(SqlaTable.id.in_(inserted_sqltables_ids))
             .all()
         )
