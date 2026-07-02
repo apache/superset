@@ -274,7 +274,10 @@ async function loadDashboardWithChart(
  */
 async function expectCanvasDrillByValueRoundTrips(
   page: Page,
-  testAssets: { trackChart(id: number): void; trackDashboard(id: number): void },
+  testAssets: {
+    trackChart(id: number): void;
+    trackDashboard(id: number): void;
+  },
   spec: ChartSpec,
   pattern: 'ring' | 'grid' | 'dense',
 ): Promise<void> {
@@ -282,7 +285,10 @@ async function expectCanvasDrillByValueRoundTrips(
   const dashboardId = await buildSingleChartDashboard(page, testAssets, spec);
   await loadDashboardWithChart(dashboard, dashboardId, spec.vizType);
 
-  const canvas = dashboard.chartByVizType(spec.vizType).locator('canvas').first();
+  const canvas = dashboard
+    .chartByVizType(spec.vizType)
+    .locator('canvas')
+    .first();
   await expect(canvas).toBeVisible();
   await rightClickCanvasDatum(page, canvas, pattern);
 
