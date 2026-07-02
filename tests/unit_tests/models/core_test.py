@@ -1824,3 +1824,170 @@ def test_post_process_df_non_zero_based_index() -> None:
     assert result["col"].dtype == numpy.object_
     assert result["col"].iloc[0] == "[1, 2]"
     assert result["col"].iloc[1] == "[3, 4]"
+
+
+class _DispatchParkHarness:
+    """Coordination for parking one thread mid connect-event dispatch.
+
+    ``maybe_park`` parks the first caller after ``arm()`` — used from a DBAPI
+    connection wrapper's ``cursor()`` so the park lands inside the prequery
+    listener while SQLAlchemy iterates the engine's connect-listener deque.
+    """
+
+    def __init__(self) -> None:
+        import threading
+
+        self.parked = threading.Event()
+        self.resume = threading.Event()
+        self._lock = threading.Lock()
+        self._armed = False
+        self._consumed = False
+
+    def arm(self) -> None:
+        self._armed = True
+
+    def maybe_park(self) -> None:
+        with self._lock:
+            should_park = self._armed and not self._consumed
+            if should_park:
+                self._consumed = True
+        if should_park:
+            self.parked.set()
+            assert self.resume.wait(timeout=10), "parked thread never released"
+
+
+class _ParkingSqliteConnection:
+    """sqlite3 connection wrapper whose ``cursor()`` may park via a harness."""
+
+    def __init__(self, real: Any, harness: _DispatchParkHarness) -> None:
+        self._real = real
+        self._harness = harness
+
+    def cursor(self) -> Any:
+        self._harness.maybe_park()
+        return self._real.cursor()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._real, name)
+
+
+def test_prequery_listener_mutation_race_deterministic(
+    app: Any,
+    app_context: None,
+    mocker: MockerFixture,
+    tmp_path: Any,
+) -> None:
+    """
+    Deterministic regression for the ``deque mutated during iteration`` race
+    (no timing dependence, unlike the stress test above).
+
+    The overlap that crashes pre-fix code is: thread A parked *inside* the
+    connect-event dispatch of an engine (mid-iteration over the listener
+    deque) while thread B mutates that same deque via ``event.listen``. This
+    test constructs exactly that interleaving:
+
+    - ``create_engine`` is patched to inject a ``creator`` whose DBAPI
+      connections park on the FIRST ``cursor()`` call process-wide. The
+      prequery listener's first act is ``dbapi_connection.cursor()``, so
+      thread A parks provably mid-dispatch.
+    - Thread B waits for A to park, then enters the prequery path itself,
+      which calls ``event.listen`` — on the SAME cached engine pre-fix
+      (mutating the deque A's iterator is walking), on its own private
+      engine post-fix.
+    - A is released; its dispatch loop advances the deque iterator.
+
+    Pre-fix this raises ``RuntimeError: deque mutated during iteration`` in
+    thread A on every run. With the private-engine fix, B's mutation touches
+    a different engine's deque and both threads complete.
+    """
+    import sqlite3
+    import threading
+
+    from sqlalchemy import create_engine as real_create_engine
+
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import _ENGINE_CACHE
+
+    _ENGINE_CACHE.clear()
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+    mocker.patch("superset.models.core.get_username", return_value=None)
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_prequeries",
+        return_value=["SELECT 1"],
+    )
+
+    # Armed only after the warm-up connection below: the FIRST cursor() call
+    # on a fresh engine is SQLAlchemy's dialect isolation-level probe, which
+    # runs inside the ``first_connect`` once-mutex — parking there deadlocks
+    # the sibling thread on that mutex instead of exercising the deque race.
+    harness = _DispatchParkHarness()
+
+    db_path = tmp_path / "deterministic_race.db"
+
+    def parking_creator() -> _ParkingSqliteConnection:
+        return _ParkingSqliteConnection(sqlite3.connect(str(db_path)), harness)
+
+    def patched_create_engine(url: Any, **kwargs: Any) -> Any:
+        kwargs["creator"] = parking_creator
+        return real_create_engine(url, **kwargs)
+
+    mocker.patch(
+        "superset.models.core.create_engine",
+        side_effect=patched_create_engine,
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"sqlite:///{db_path}",
+    )
+    database.id = 1
+
+    # Warm-up: consume the dialect's one-time first_connect probe on the
+    # cached engine (pre-fix code shares it with the threads below), so the
+    # park later lands inside the prequery listener's connect dispatch —
+    # where no SQLAlchemy mutex is held — not inside the probe.
+    with database.get_sqla_engine() as warm_engine:
+        with warm_engine.connect():
+            pass
+    harness.arm()
+
+    errors: list[Exception] = []
+
+    def thread_a() -> None:
+        try:
+            with app.app_context():
+                with database.get_raw_connection() as conn:
+                    conn.cursor().execute("SELECT 1")
+        except Exception as ex:  # pylint: disable=broad-except
+            errors.append(ex)
+        finally:
+            # Never leave B waiting if A failed before parking.
+            harness.parked.set()
+
+    def thread_b() -> None:
+        try:
+            assert harness.parked.wait(timeout=10), "A never parked"
+            with app.app_context():
+                # Entering the prequery path calls event.listen — on the
+                # shared cached engine pre-fix, on a private engine post-fix.
+                with database.get_raw_connection() as conn:
+                    conn.cursor().execute("SELECT 1")
+        except Exception as ex:  # pylint: disable=broad-except
+            errors.append(ex)
+        finally:
+            harness.resume.set()
+
+    t_a = threading.Thread(target=thread_a)
+    t_b = threading.Thread(target=thread_b)
+    t_a.start()
+    t_b.start()
+    t_a.join(timeout=30)
+    t_b.join(timeout=30)
+    assert not t_a.is_alive(), "thread A deadlocked"
+    assert not t_b.is_alive(), "thread B deadlocked"
+
+    assert not errors, f"deterministic interleaving raised: {errors!r}"

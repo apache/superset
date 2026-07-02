@@ -537,6 +537,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                             yield engine
                         finally:
                             sqla.event.remove(engine, "connect", run_prequeries)
+                            # The engine is private (cacheable=False above), so
+                            # nothing else can hold a reference: dispose it to
+                            # release its pool immediately. With the default
+                            # nullpool=True this is a no-op safety net; it
+                            # matters if a caller ever passes nullpool=False,
+                            # where each private engine would otherwise keep a
+                            # short-lived QueuePool alive until GC.
+                            engine.dispose()
                     else:
                         yield engine
 
