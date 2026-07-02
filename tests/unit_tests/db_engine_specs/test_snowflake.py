@@ -26,6 +26,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -438,3 +439,221 @@ def test_unmask_encrypted_extra() -> None:
             },
         }
     )
+
+
+@pytest.fixture
+def oauth2_config() -> OAuth2ClientConfig:
+    """
+    Config for Snowflake OAuth2.
+    """
+    return {
+        "id": "snowflake-oauth2-client-id",
+        "secret": "snowflake-oauth2-client-secret",
+        "scope": "refresh_token",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://snowflake.oauth2.example/oauth/authorize",
+        "token_request_uri": "https://snowflake.oauth2.example/oauth/token-request",
+        "request_content_type": "data",
+    }
+
+
+def test_get_oauth2_token(
+    mocker: MockerFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
+    """
+    Test `get_oauth2_token`.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+
+    assert SnowflakeEngineSpec.get_oauth2_token(oauth2_config, "code") == {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+    requests.post.assert_called_with(
+        "https://snowflake.oauth2.example/oauth/token-request",
+        data={
+            "code": "code",
+            "client_id": "snowflake-oauth2-client-id",
+            "client_secret": "snowflake-oauth2-client-secret",
+            "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+            "grant_type": "authorization_code",
+        },
+        timeout=30.0,
+    )
+
+
+def test_impersonate_user(mocker: MockerFixture) -> None:
+    """
+    Test that Snowflake supports user impersonation.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://abc")
+
+    mocker.patch(
+        "superset.db_engine_specs.snowflake.SnowflakeEngineSpec.is_oauth2_enabled",
+        return_value=True,
+    )
+
+    assert SnowflakeEngineSpec.impersonate_user(
+        database=database,
+        username=None,
+        user_token=None,
+        url=make_url("snowflake://user:pass@account/database_name/default"),
+        engine_kwargs={
+            "connect_args": {
+                "validate_default_parameters": True,
+            },
+        },
+    ) == (
+        make_url("snowflake://user:pass@account/database_name/default"),
+        {"connect_args": {"validate_default_parameters": True}},
+    )
+
+    assert SnowflakeEngineSpec.impersonate_user(
+        database=database,
+        username=None,
+        user_token=None,
+        url=make_url("snowflake://user:pass@account/database_name/default"),
+        engine_kwargs={},
+    ) == (
+        make_url(
+            "snowflake://user:pass@account/database_name/default?authenticator=oauth"
+        ),
+        {"connect_args": {"authenticator": "oauth"}},
+    )
+
+    mocker.patch(
+        "superset.db_engine_specs.snowflake.is_feature_enabled",
+        return_value=True,
+    )
+
+    mocker.patch(
+        "superset.security_manager.find_user",
+        return_value=mocker.MagicMock(email="impersonated_user@example.com"),
+    )
+    assert SnowflakeEngineSpec.impersonate_user(
+        database=database,
+        username="impersonated_user",
+        user_token="test_token",  # noqa: S106
+        url=make_url("snowflake://user:pass@account/database_name/default"),
+        engine_kwargs={},
+    ) == (
+        make_url(
+            "snowflake://impersonated_user:pass@account/database_name/default?authenticator=oauth&token=test_token"
+        ),
+        {"connect_args": {"authenticator": "oauth"}},
+    )
+
+    # Role in the URL should be stripped when OAuth is active so the token's role wins.
+    url_with_role = make_url(
+        "snowflake://user:pass@account/database_name/default?role=MY_ROLE&warehouse=MY_WH"
+    )
+    result_url, result_kwargs = SnowflakeEngineSpec.impersonate_user(
+        database=database,
+        username=None,
+        user_token=None,
+        url=url_with_role,
+        engine_kwargs={},
+    )
+    assert "role" not in result_url.query
+    assert result_url.query.get("warehouse") == "MY_WH"
+
+
+def test_restore_session_context(mocker: MockerFixture) -> None:
+    """
+    Test that _restore_session_context re-issues the correct USE statements.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    cursor = mocker.MagicMock()
+    database = Database(
+        sqlalchemy_uri="snowflake://user:pass@account/MY_DB/MY_SCHEMA?warehouse=MY_WH&role=MY_ROLE"
+    )
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=False)
+
+    SnowflakeEngineSpec._restore_session_context(cursor, database)
+
+    cursor.execute.assert_any_call('USE DATABASE "MY_DB"')
+    cursor.execute.assert_any_call('USE SCHEMA "MY_SCHEMA"')
+    cursor.execute.assert_any_call('USE WAREHOUSE "MY_WH"')
+    cursor.execute.assert_any_call('USE ROLE "MY_ROLE"')
+    assert cursor.execute.call_count == 4
+
+
+def test_restore_session_context_oauth_skips_role(mocker: MockerFixture) -> None:
+    """
+    Test that _restore_session_context skips USE ROLE when OAuth is enabled
+    so the token's role takes precedence.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    cursor = mocker.MagicMock()
+    database = Database(
+        sqlalchemy_uri="snowflake://user:pass@account/MY_DB/MY_SCHEMA?warehouse=MY_WH&role=MY_ROLE"
+    )
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=True)
+
+    SnowflakeEngineSpec._restore_session_context(cursor, database)
+
+    executed = [call.args[0] for call in cursor.execute.call_args_list]
+    assert not any("ROLE" in stmt for stmt in executed)
+    assert cursor.execute.call_count == 3
+
+
+def test_execute_retries_on_missing_db_context(mocker: MockerFixture) -> None:
+    """
+    Test that execute() restores session context and retries on Snowflake error 090105.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://user:pass@account/MY_DB")
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=False)
+    restore = mocker.patch.object(SnowflakeEngineSpec, "_restore_session_context")
+
+    cursor = mocker.MagicMock()
+    cursor.execute.side_effect = [Exception("090105: missing db context"), None]
+
+    SnowflakeEngineSpec.execute(cursor, "SELECT 1", database)
+
+    assert cursor.execute.call_count == 2
+    restore.assert_called_once_with(cursor, database)
+
+
+def test_execute_raises_friendly_error_when_retry_also_fails(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that execute() raises a user-friendly SupersetErrorException when the
+    retry after context restoration still hits error 090105.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.exceptions import SupersetErrorException
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://user:pass@account/MY_DB")
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=False)
+    mocker.patch.object(SnowflakeEngineSpec, "_restore_session_context")
+
+    cursor = mocker.MagicMock()
+    cursor.execute.side_effect = Exception("090105: still missing")
+
+    with pytest.raises(SupersetErrorException, match="missing a default database"):
+        SnowflakeEngineSpec.execute(cursor, "SELECT 1", database)
