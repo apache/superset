@@ -23,11 +23,13 @@
  * This module defines the aggregate interfaces used by the extension.json
  * manifest and the `superset-extensions` build command. Individual metadata
  * types are defined in their respective namespace modules (commands, views,
- * menus, editors, chat) and re-exported here for the manifest schema.
+ * menus, editors, chat, dashboards) and re-exported here for the manifest
+ * schema.
  */
 
 import { Chat } from '../chat';
 import { Command } from '../commands';
+import { DashboardRenderer } from '../dashboards';
 import { View } from '../views';
 import { Menu } from '../menus';
 import { Editor } from '../editors';
@@ -90,4 +92,10 @@ export interface Contributions {
    * chat at a time.
    */
   chat?: Chat;
+  /**
+   * The dashboard renderer contributed by the extension — at most one per
+   * extension, since the host applies singleton resolution and renders
+   * exactly one active dashboard renderer at a time.
+   */
+  dashboardRenderer?: DashboardRenderer;
 }

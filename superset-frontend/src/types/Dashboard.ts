@@ -21,6 +21,7 @@ import Role from './Role';
 
 export interface Dashboard {
   id: number;
+  uuid?: string;
   slug?: string | null;
   url: string;
   dashboard_title: string;
@@ -32,6 +33,7 @@ export interface Dashboard {
   changed_by_name: string;
   changed_by: Owner;
   changed_on: string;
+  is_managed_externally?: boolean;
   charts: string[]; // just chart names, unfortunately...
   owners: Owner[];
   extra_owners?: Owner[];

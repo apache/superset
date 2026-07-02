@@ -129,6 +129,22 @@ chat.registerChat(
 
 See [Chat](./extension-points/chat.md) for implementation details.
 
+### Dashboard Renderers
+
+Extensions can replace Superset's built-in dashboard renderer with a custom implementation, changing how dashboards are displayed while reusing the host's data fetching, theming, and URL handling. The dashboard renderer is a single slot: the most recently registered renderer is active, and the built-in renderer is used when none is registered or when the dashboard enters edit mode.
+
+```tsx
+import { dashboards } from '@apache-superset/core';
+import KioskDashboardRenderer from './KioskDashboardRenderer';
+
+dashboards.registerDashboardRenderer(
+  { id: 'my-org.kiosk-dashboard', name: 'Kiosk Dashboard Renderer' },
+  KioskDashboardRenderer,
+);
+```
+
+See [Dashboards](./extension-points/dashboards.md) for implementation details.
+
 ## Backend
 
 Backend contribution types allow extensions to extend Superset's server-side capabilities. Backend contributions are registered at startup via classes and functions imported from the auto-discovered `entrypoint.py` file.

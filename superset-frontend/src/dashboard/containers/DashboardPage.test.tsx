@@ -31,8 +31,14 @@ import {
   useDashboardCharts,
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
-import { SupersetApiError, SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  SupersetApiError,
+  SupersetClient,
+} from '@superset-ui/core';
+import type { dashboards } from '@apache-superset/core';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
+import DashboardRendererProviders from 'src/core/dashboards/DashboardRendererProviders';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import {
   clearDashboardHistory,
@@ -158,6 +164,8 @@ const MockCrudThemeProvider = CrudThemeProvider as unknown as jest.Mock;
 
 afterEach(() => {
   jest.restoreAllMocks();
+  DashboardRendererProviders.getInstance().reset();
+  window.featureFlags = {};
 });
 
 beforeEach(() => {
@@ -600,6 +608,89 @@ test('renders a not-found state instead of throwing when the dashboard 404s', as
     screen.getByRole('button', { name: 'See all dashboards' }),
   );
   expect(window.location.pathname).toBe('/dashboard/list/');
+});
+
+test('renders the built-in dashboard renderer when no custom renderer is registered', async () => {
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  expect(await screen.findByText('DashboardBuilder')).toBeInTheDocument();
+});
+
+test('renders a registered custom dashboard renderer with the contract props', async () => {
+  window.featureFlags = { [FeatureFlag.EnableExtensions]: true };
+  mockUseDashboardCharts.mockReturnValue({
+    result: [{ id: 7, slice_name: 'Test chart' }],
+    error: null,
+  });
+  mockUseDashboardDatasets.mockReturnValue({
+    result: [{ id: 3, table_name: 'test_table' }],
+    error: null,
+    status: 'complete',
+  });
+
+  const customRenderer = jest.fn(
+    ({ dashboard }: dashboards.DashboardRendererProps) => (
+      <div data-test="custom-dashboard-renderer">{dashboard.title}</div>
+    ),
+  );
+  DashboardRendererProviders.getInstance().registerProvider(
+    { id: 'test.custom', name: 'Custom Renderer' },
+    customRenderer,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  expect(
+    await screen.findByTestId('custom-dashboard-renderer'),
+  ).toHaveTextContent('Test Dashboard');
+  expect(screen.queryByText('DashboardBuilder')).not.toBeInTheDocument();
+
+  // The custom renderer receives the full contract props
+  expect(customRenderer).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dashboard: expect.objectContaining({
+        id: 1,
+        title: 'Test Dashboard',
+        isPublished: true,
+      }),
+      charts: [expect.objectContaining({ id: 7 })],
+      datasets: [expect.objectContaining({ id: 3 })],
+      initialDataMask: expect.any(Object),
+    }),
+    expect.anything(),
+  );
+
+  // Host behavior stays identical: the store is still hydrated so
+  // permalinks, SyncDashboardState, and the embedded path keep working.
+  expect(hydrateDashboard).toHaveBeenCalled();
 });
 
 test('clears undo history after hydrating the dashboard', async () => {

@@ -30,6 +30,10 @@
       "types": "./lib/commands/index.d.ts",
       "default": "./lib/commands/index.js"
     },
+    "./dashboards": {
+      "types": "./lib/dashboards/index.d.ts",
+      "default": "./lib/dashboards/index.js"
+    },
     "./editors": {
       "types": "./lib/editors/index.d.ts",
       "default": "./lib/editors/index.js"

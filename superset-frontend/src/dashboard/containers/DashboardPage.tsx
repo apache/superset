@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
+import { createContext, FC, useEffect, useMemo, useRef, useState } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
+import type { dashboards } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import {
@@ -34,11 +34,6 @@ import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
-import {
-  getAllActiveFilters,
-  getRelevantDataMask,
-} from 'src/dashboard/util/activeAllDashboardFilters';
-import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -49,12 +44,12 @@ import {
   getFilterValue,
   getPermalinkValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
-import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
+import { useUiConfig } from 'src/components/UiConfigContext';
+import DashboardRendererHost from 'src/core/dashboards/DashboardRendererHost';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 
 import { nanoid } from 'nanoid';
-import type { ActiveFilters } from '../types';
 import { RootState } from '../types';
 import {
   chartContextMenuStyles,
@@ -66,7 +61,6 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
-import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
 import { Filter, PartialFilters, SupersetApiError } from '@superset-ui/core';
 import { RoutePaths } from 'src/views/routePaths';
 import {
@@ -83,49 +77,19 @@ type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
 export const DashboardPageIdContext = createContext('');
 
-const DashboardBuilder = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "DashboardContainer" */
-      /* webpackPreload: true */
-      'src/dashboard/components/DashboardBuilder/DashboardBuilder'
-    ),
-);
-
 type PageProps = {
   idOrSlug: string;
 };
 
-// TODO: move to Dashboard.jsx when it's refactored to functional component
-const selectRelevantDatamask = createSelector(
-  (state: RootState) => state.dataMask, // the first argument accesses relevant data from global state
-  dataMask => getRelevantDataMask(dataMask, 'ownState'), // the second parameter conducts the transformation
-);
-
-const selectChartConfiguration = (state: RootState) =>
-  state.dashboardInfo.metadata?.chart_configuration;
-const selectNativeFilters = (state: RootState) => state.nativeFilters.filters;
-const selectDataMask = (state: RootState) => state.dataMask;
-const selectAllSliceIds = (state: RootState) => state.dashboardState.sliceIds;
-// TODO: move to Dashboard.jsx when it's refactored to functional component
-const selectActiveFilters = createSelector(
-  [
-    selectChartConfiguration,
-    selectNativeFilters,
-    selectDataMask,
-    selectAllSliceIds,
-  ],
-  (chartConfiguration, nativeFilters, dataMask, allSliceIds) => ({
-    ...getActiveFilters(),
-    ...getAllActiveFilters({
-      // eslint-disable-next-line camelcase
-      chartConfiguration,
-      nativeFilters,
-      dataMask,
-      allSliceIds,
-    }),
-  }),
-);
+/**
+ * Initial dashboard state resolved from the URL (permalink, filter key, or
+ * legacy rison params) before any renderer mounts.
+ */
+type InitialRendererState = {
+  dataMask: dashboards.DashboardDataMask;
+  activeTabs?: string[];
+  anchor?: string;
+};
 
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const theme = useTheme();
@@ -150,6 +114,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     status,
   } = useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
+  const uiConfig = useUiConfig();
+  const editMode = useSelector<RootState, boolean>(
+    state => !!state.dashboardState?.editMode,
+  );
+  const [initialRendererState, setInitialRendererState] =
+    useState<InitialRendererState>();
 
   const error = dashboardApiError || chartsApiError;
   // Only 404 gets a graceful not-found state; a 403 (access denied) still
@@ -318,6 +288,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           } as unknown as Parameters<typeof hydrateDashboard>[0]),
         );
         dispatch(clearDashboardHistory());
+        setInitialRendererState({
+          dataMask: dataMask as dashboards.DashboardDataMask,
+          activeTabs: activeTabs ?? undefined,
+          anchor,
+        });
 
         // Scroll to anchor element if specified in permalink state
         if (anchor) {
@@ -380,8 +355,38 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
   }, [addDangerToast, datasets, datasetsApiError, dispatch, isNotFoundError]);
 
-  const relevantDataMask = useSelector(selectRelevantDatamask);
-  const activeFilters = useSelector(selectActiveFilters);
+  const rendererProps = useMemo<
+    dashboards.DashboardRendererProps | undefined
+  >(() => {
+    if (!dashboard || !charts || !initialRendererState) return undefined;
+    return {
+      dashboard: {
+        id: dashboard.id,
+        uuid: dashboard.uuid,
+        slug: dashboard.slug,
+        title: dashboard.dashboard_title,
+        css: dashboard.css,
+        metadata: dashboard.metadata ?? {},
+        layout: dashboard.position_data ?? {},
+        isPublished: dashboard.published,
+        isManagedExternally: dashboard.is_managed_externally,
+      },
+      // The API payloads satisfy the contract shapes structurally, but the
+      // host types (Chart, Datasource) lack the contract's index signatures,
+      // so the conversion has to go through `unknown`.
+      charts: charts as unknown as dashboards.DashboardChart[],
+      datasets: (datasets ?? []) as unknown as dashboards.DashboardDataset[],
+      initialDataMask: initialRendererState.dataMask,
+      initialActiveTabs: initialRendererState.activeTabs,
+      initialAnchor: initialRendererState.anchor,
+      uiConfig: {
+        hideTitle: uiConfig.hideTitle,
+        hideTab: uiConfig.hideTab,
+        hideChartControls: uiConfig.hideChartControls,
+        emitDataMasks: uiConfig.emitDataMasks,
+      },
+    };
+  }, [dashboard, charts, datasets, initialRendererState, uiConfig]);
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
 
@@ -397,8 +402,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   );
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
-
-  const DashboardBuilderComponent = useMemo(() => <DashboardBuilder />, []);
 
   if (isNotFoundError) {
     return (
@@ -418,21 +421,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   return (
     <>
       <Global styles={globalStyles} />
-      {readyToRender && hasDashboardInfoInitiated ? (
+      {readyToRender && hasDashboardInfoInitiated && rendererProps ? (
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
             <CrudThemeProvider
               theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
             >
-              <AutoRefreshProvider>
-                <DashboardContainer
-                  activeFilters={activeFilters as ActiveFilters}
-                  ownDataCharts={relevantDataMask}
-                >
-                  {DashboardBuilderComponent}
-                </DashboardContainer>
-              </AutoRefreshProvider>
+              <DashboardRendererHost editMode={editMode} {...rendererProps} />
             </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
         </>
