@@ -595,7 +595,11 @@ def _ensure_static_assets_prefix(url_or_path: str) -> str:
     """Add the configured static asset prefix to root-relative asset paths."""
     static_assets_prefix = app.config.get("STATIC_ASSETS_PREFIX", "")
 
-    if not url_or_path.startswith("/") or not static_assets_prefix:
+    if (
+        url_or_path.startswith("//")
+        or not url_or_path.startswith("/")
+        or not static_assets_prefix
+    ):
         return url_or_path
 
     normalized_prefix = static_assets_prefix.rstrip("/")
