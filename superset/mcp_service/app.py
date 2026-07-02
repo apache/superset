@@ -357,10 +357,12 @@ Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
 
 Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
-- pie, big_number, big_number_total, funnel, gauge_chart
-- echarts_timeseries_line, echarts_timeseries_bar, echarts_timeseries_area
-- pivot_table_v2, heatmap_v2, sankey_v2, sunburst_v2, treemap_v2
-- word_cloud, world_map, box_plot, bubble, mixed_timeseries
+Each chart returned by list_charts / get_chart_info includes a
+chart_type_display_name field with a human-readable name when available.
+This field is populated only for the 7 chart types supported by generate_chart
+(xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars).
+For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
+use the raw viz_type field instead when referring to those chart types.
 
 Query Examples:
 - List all tables:
@@ -674,6 +676,7 @@ warnings.filterwarnings(
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
+import superset.mcp_service.chart.plugins  # noqa: F401, E402  — registers all chart type plugins
 from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     get_annotation_layer_info,
     get_layer_annotation_info,
