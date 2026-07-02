@@ -1286,9 +1286,18 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
 sqlatable_user = DBTable(
     "sqlatable_user",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE")),
+    Column(
+        "user_id",
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "table_id",
+        Integer,
+        ForeignKey("tables.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -2248,17 +2257,25 @@ sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 RLSFilterRoles = DBTable(
     "rls_filter_roles",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
-    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column("role_id", Integer, ForeignKey("ab_role.id"), primary_key=True),
+    Column(
+        "rls_filter_id",
+        Integer,
+        ForeignKey("row_level_security_filters.id"),
+        primary_key=True,
+    ),
 )
 
 RLSFilterTables = DBTable(
     "rls_filter_tables",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("table_id", Integer, ForeignKey("tables.id")),
-    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column("table_id", Integer, ForeignKey("tables.id"), primary_key=True),
+    Column(
+        "rls_filter_id",
+        Integer,
+        ForeignKey("row_level_security_filters.id"),
+        primary_key=True,
+    ),
 )
 
 

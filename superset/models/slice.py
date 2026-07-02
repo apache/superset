@@ -59,9 +59,18 @@ metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(
     "slice_user",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
+    Column(
+        "user_id",
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "slice_id",
+        Integer,
+        ForeignKey("slices.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 logger = logging.getLogger(__name__)
 
