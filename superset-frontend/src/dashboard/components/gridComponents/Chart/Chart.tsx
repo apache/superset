@@ -480,6 +480,26 @@ const Chart = (props: ChartProps) => {
 
   (formData as JsonObject).dashboardId = dashboardInfo.id;
 
+  // Memoize ownState so it keeps a stable reference across re-renders that
+  // don't change its logical value. ViewQueryModal depends on ownState; a fresh
+  // object on every render would refetch the query unnecessarily.
+  const ownState = useMemo(
+    () =>
+      createOwnStateWithChartState(
+        (dataMaskOwnState as JsonObject) || EMPTY_OBJECT,
+        {
+          state:
+            getChartStateWithFallback(
+              chartState as { state?: JsonObject } | undefined,
+              formData as JsonObject,
+              sliceVizType,
+            ) ?? undefined,
+        },
+        sliceVizType,
+      ),
+    [dataMaskOwnState, chartState, formData, sliceVizType],
+  );
+
   const exportTable = useCallback(
     async (format: string, isFullCSV: boolean, isPivot = false) => {
       const logAction =
@@ -727,6 +747,7 @@ const Chart = (props: ChartProps) => {
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel as unknown as (arg0: string) => void}
         chartHolderRef={props.chartHolderRef}
+        ownState={ownState}
       />
 
       {/*
@@ -777,18 +798,7 @@ const Chart = (props: ChartProps) => {
           formData={
             formData as unknown as import('@superset-ui/core').QueryFormData
           }
-          ownState={createOwnStateWithChartState(
-            (dataMask[props.id]?.ownState as JsonObject) || EMPTY_OBJECT,
-            {
-              state:
-                getChartStateWithFallback(
-                  chartState as { state?: JsonObject } | undefined,
-                  formData as JsonObject,
-                  slice.viz_type,
-                ) ?? undefined,
-            },
-            slice.viz_type,
-          )}
+          ownState={ownState}
           queriesResponse={chart.queriesResponse ?? null}
           timeout={timeout}
           triggerQuery={chart.triggerQuery}
