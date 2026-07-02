@@ -2601,6 +2601,9 @@ msgstr "最近"
 msgid "COPY QUERY"
 msgstr "複製查詢 URL"
 
+msgid "Copy query"
+msgstr ""
+
 msgid "CREATE TABLE AS"
 msgstr "允許 CREATE TABLE AS"
 
@@ -6539,6 +6542,9 @@ msgstr "二月"
 #, fuzzy
 msgid "FIT DATA"
 msgstr "編輯數據集"
+
+msgid "Fit data"
+msgstr ""
 
 msgid "FRI"
 msgstr "星期五"
