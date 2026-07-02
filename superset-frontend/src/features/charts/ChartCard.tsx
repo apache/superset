@@ -36,6 +36,7 @@ import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
 import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
 import { TableTab } from 'src/views/CRUD/types';
+import { LineageModal } from 'src/features/lineage';
 
 interface ChartCardProps {
   chart: Chart;
@@ -76,6 +77,7 @@ export default function ChartCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const canRead = hasPerm('can_read');
   const menuItems: MenuItem[] = [];
 
   if (canEdit) {
@@ -96,6 +98,29 @@ export default function ChartCard({
           />{' '}
           {t('Edit')}
         </div>
+      ),
+    });
+  }
+
+  if (canRead) {
+    menuItems.push({
+      key: 'lineage',
+      label: (
+        <LineageModal
+          entityType="chart"
+          entityId={chart.id}
+          triggerNode={
+            <div>
+              <Icons.ShareAltOutlined
+                iconSize="l"
+                css={css`
+                  vertical-align: text-top;
+                `}
+              />{' '}
+              {t('View Lineage')}
+            </div>
+          }
+        />
       ),
     });
   }
@@ -167,54 +192,59 @@ export default function ChartCard({
   }
 
   return (
-    <CardStyles
-      onClick={() => {
-        if (!bulkSelectEnabled && chart.url) {
-          history.push(chart.url);
-        }
-      }}
-    >
-      <ListViewCard
-        loading={loading}
-        title={chart.slice_name}
-        certifiedBy={chart.certified_by}
-        certificationDetails={chart.certification_details}
-        cover={
-          !isFeatureEnabled(FeatureFlag.Thumbnails) || !showThumbnails ? (
-            <></>
-          ) : null
-        }
-        url={bulkSelectEnabled ? undefined : chart.url}
-        imgURL={chart.thumbnail_url || ''}
-        imgFallbackURL={assetUrl(
-          '/static/assets/images/chart-card-fallback.svg',
-        )}
-        description={t('Modified %s', chart.changed_on_delta_humanized)}
-        coverLeft={<FacePile users={chart.owners || []} />}
-        coverRight={<Label>{chart.datasource_name_text}</Label>}
-        linkComponent={Link}
-        actions={
-          <ListViewCard.Actions
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-          >
-            {userId && (
-              <FaveStar
-                itemId={chart.id}
-                saveFaveStar={saveFavoriteStatus}
-                isStarred={favoriteStatus}
-              />
-            )}
-            <Dropdown menu={{ items: menuItems }} trigger={['click', 'hover']}>
-              <Button buttonSize="xsmall" type="link" buttonStyle="link">
-                <Icons.MoreOutlined iconSize="xl" />
-              </Button>
-            </Dropdown>
-          </ListViewCard.Actions>
-        }
-      />
-    </CardStyles>
+    <>
+      <CardStyles
+        onClick={() => {
+          if (!bulkSelectEnabled && chart.url) {
+            history.push(chart.url);
+          }
+        }}
+      >
+        <ListViewCard
+          loading={loading}
+          title={chart.slice_name}
+          certifiedBy={chart.certified_by}
+          certificationDetails={chart.certification_details}
+          cover={
+            !isFeatureEnabled(FeatureFlag.Thumbnails) || !showThumbnails ? (
+              <></>
+            ) : null
+          }
+          url={bulkSelectEnabled ? undefined : chart.url}
+          imgURL={chart.thumbnail_url || ''}
+          imgFallbackURL={assetUrl(
+            '/static/assets/images/chart-card-fallback.svg',
+          )}
+          description={t('Modified %s', chart.changed_on_delta_humanized)}
+          coverLeft={<FacePile users={chart.owners || []} />}
+          coverRight={<Label>{chart.datasource_name_text}</Label>}
+          linkComponent={Link}
+          actions={
+            <ListViewCard.Actions
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
+              {userId && (
+                <FaveStar
+                  itemId={chart.id}
+                  saveFaveStar={saveFavoriteStatus}
+                  isStarred={favoriteStatus}
+                />
+              )}
+              <Dropdown
+                menu={{ items: menuItems }}
+                trigger={['click', 'hover']}
+              >
+                <Button buttonSize="xsmall" type="link" buttonStyle="link">
+                  <Icons.MoreOutlined iconSize="xl" />
+                </Button>
+              </Dropdown>
+            </ListViewCard.Actions>
+          }
+        />
+      </CardStyles>
+    </>
   );
 }

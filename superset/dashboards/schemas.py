@@ -633,3 +633,62 @@ class CacheScreenshotSchema(Schema):
         fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
     )
     permalinkKey = fields.Str(required=False)  # noqa: N815
+
+
+class DashboardLineageDashboardSchema(Schema):
+    id = fields.Integer()
+    title = fields.String()
+    slug = fields.String(allow_none=True)
+    published = fields.Boolean()
+
+
+class DashboardLineageChartSchema(Schema):
+    id = fields.Integer()
+    slice_name = fields.String()
+    viz_type = fields.String()
+    dataset_id = fields.Integer()
+
+
+class DashboardLineageDatasetSchema(Schema):
+    id = fields.Integer()
+    name = fields.String()
+    # database/schema/table details are redacted to ``None`` when the user
+    # cannot access the underlying datasource, so they must be nullable.
+    database_id = fields.Integer(allow_none=True)
+    database_name = fields.String(allow_none=True)
+    schema = fields.String(allow_none=True)
+    table_name = fields.String(allow_none=True)
+    chart_ids = fields.List(fields.Integer())
+
+
+class DashboardLineageDatabaseSchema(Schema):
+    id = fields.Integer()
+    database_name = fields.String()
+    backend = fields.String()
+
+
+class DashboardLineageUpstreamChartsSchema(Schema):
+    count = fields.Integer()
+    result = fields.List(fields.Nested(DashboardLineageChartSchema))
+
+
+class DashboardLineageUpstreamDatasetsSchema(Schema):
+    count = fields.Integer()
+    result = fields.List(fields.Nested(DashboardLineageDatasetSchema))
+
+
+class DashboardLineageUpstreamDatabasesSchema(Schema):
+    count = fields.Integer()
+    result = fields.List(fields.Nested(DashboardLineageDatabaseSchema))
+
+
+class DashboardLineageUpstreamSchema(Schema):
+    charts = fields.Nested(DashboardLineageUpstreamChartsSchema)
+    datasets = fields.Nested(DashboardLineageUpstreamDatasetsSchema)
+    databases = fields.Nested(DashboardLineageUpstreamDatabasesSchema)
+
+
+class DashboardLineageResponseSchema(Schema):
+    dashboard = fields.Nested(DashboardLineageDashboardSchema)
+    upstream = fields.Nested(DashboardLineageUpstreamSchema)
+    downstream = fields.Field(allow_none=True)
