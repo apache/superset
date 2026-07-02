@@ -253,7 +253,7 @@ export interface SupersetSpecificTokens {
     { type?: string; variant?: string; color?: string }
   >;
 
-  // Dashboard tile tokens (opt-in, defaults to transparent/no border/shadow)
+  // Dashboard tile tokens (opt-in, fallbacks: colorBgContainer bg, no border, borderRadius, hairline box-shadow)
   dashboardTileBg?: string;
   dashboardTileBorder?: string;
   dashboardTileBorderRadius?: number;

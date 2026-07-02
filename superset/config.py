@@ -431,7 +431,7 @@ APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 LOGO_TARGET_PATH = None
 
 # When True, hide the navbar logo.
-HIDE_NAVBAR_LOGO = False
+HIDE_NAVBAR_LOGO: bool = False
 
 # Specify tooltip that should appear when hovering over the App Icon/Logo
 # NOTE: This variable is deprecated and not used in the new theme system.

@@ -46,12 +46,14 @@ test('renders without crashing with full styleConfig', () => {
 });
 
 test('renders tooltip when tooltip prop is provided', () => {
-  const { getByText } = render(
+  const { container } = render(
     <DropdownButton menu={menuProps} tooltip="My Tooltip">
       Click
     </DropdownButton>,
   );
-  expect(getByText('Click')).toBeInTheDocument();
+  expect(
+    container.querySelector('[id="my-tooltip-tooltip"]'),
+  ).toBeInTheDocument();
 });
 
 test('does not render tooltip wrapper when tooltip is not provided', () => {

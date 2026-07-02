@@ -58,15 +58,13 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
 
   const labelStyles = useMemo(
     () => css`
-      && {
-        background-color: ${theme.colorBgContainer};
-        border-color: ${theme.colorSplit};
-        color: ${theme.colorTextSecondary};
-        padding: ${theme.sizeUnit}px;
-        column-gap: ${theme.marginXS}px;
-        align-items: center;
-        display: inline-flex;
-      }
+      background-color: ${theme.colorBgContainer};
+      border-color: ${theme.colorSplit};
+      color: ${theme.colorTextSecondary};
+      padding: ${theme.sizeUnit}px;
+      column-gap: ${theme.marginXS}px;
+      align-items: center;
+      display: inline-flex;
     `,
     [theme],
   );
