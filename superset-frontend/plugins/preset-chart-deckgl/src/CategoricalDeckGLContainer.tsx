@@ -55,7 +55,7 @@ import { addColorToFeatures } from './utils/addColor';
 
 const { getScale } = CategoricalColorNamespace;
 
-function getCategories(fd: QueryFormData, data: JsonObject[]) {
+export function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const appliedScheme = fd.color_scheme;
