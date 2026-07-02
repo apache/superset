@@ -52,7 +52,7 @@ from superset.superset_typing import (
 )
 from superset.utils import json
 from superset.utils.core import get_user_agent, QuerySource
-from superset.utils.oauth2 import encode_oauth2_state
+from superset.utils.oauth2 import encode_oauth2_state, generate_code_challenge
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -315,6 +315,12 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             "redirect_uri": config["redirect_uri"],
             "client_id": config["id"],
         }
+
+        # Add PKCE parameters (RFC 7636) if code_verifier is provided
+        if code_verifier:
+            params["code_challenge"] = generate_code_challenge(code_verifier)
+            params["code_challenge_method"] = "S256"
+
         return parse.urljoin(uri, "?" + parse.urlencode(params))
 
     @staticmethod
