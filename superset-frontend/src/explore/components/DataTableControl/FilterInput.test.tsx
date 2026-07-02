@@ -34,3 +34,40 @@ test('Render a FilterInput', async () => {
 
   expect(onChangeHandler).toHaveBeenCalledTimes(4);
 });
+
+test('FilterInput auto-focuses when a non-editable element (e.g. a tab) has focus', () => {
+  const onChangeHandler = jest.fn();
+  const button = document.createElement('button');
+  document.body.appendChild(button);
+  try {
+    button.focus();
+    expect(button).toHaveFocus();
+
+    render(<FilterInput onChangeHandler={onChangeHandler} shouldFocus />);
+    const filterInput = screen.getByPlaceholderText('Search');
+
+    // Auto-focus should fire — a button is not an editable element
+    expect(filterInput).toHaveFocus();
+  } finally {
+    document.body.removeChild(button);
+  }
+});
+
+test('FilterInput does not steal focus when another input already has focus', () => {
+  const onChangeHandler = jest.fn();
+  const otherInput = document.createElement('input');
+  document.body.appendChild(otherInput);
+  try {
+    otherInput.focus();
+    expect(otherInput).toHaveFocus();
+
+    render(<FilterInput onChangeHandler={onChangeHandler} shouldFocus />);
+    const filterInput = screen.getByPlaceholderText('Search');
+
+    // FilterInput should not have stolen focus from the already-focused input
+    expect(filterInput).not.toHaveFocus();
+    expect(otherInput).toHaveFocus();
+  } finally {
+    document.body.removeChild(otherInput);
+  }
+});
