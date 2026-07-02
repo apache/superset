@@ -188,10 +188,9 @@ testWithAssets(
     // raw length) rejects a regression that refreshes one chart twice while
     // skipping another.
     await expect
-      .poll(
-        () => chartIds.every(id => forcedSliceIds.has(id)),
-        { timeout: TIMEOUT.API_RESPONSE },
-      )
+      .poll(() => chartIds.every(id => forcedSliceIds.has(id)), {
+        timeout: TIMEOUT.API_RESPONSE,
+      })
       .toBe(true);
 
     const resolved = await Promise.all(forceResponses);
