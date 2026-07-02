@@ -50,6 +50,7 @@ from superset.semantic_layers.mapper import (
     _get_group_limit_filters,
     _get_group_limit_from_query_object,
     _get_order_from_query_object,
+    _get_time_axis_column,
     _get_time_bounds,
     _get_time_filter,
     _normalize_column,
@@ -3111,3 +3112,247 @@ def test_coerce_time_invalid_string_raises() -> None:
 def test_coerce_time_rejects_other_types() -> None:
     with pytest.raises(ValueError, match="Invalid time value"):
         _coerce_scalar_filter_value(123, _dim(pa.time64("us")))
+
+
+# ---------------------------------------------------------------------------
+# _get_time_axis_column — resolves the temporal column the offset applies to
+# ---------------------------------------------------------------------------
+
+
+def test_get_time_axis_column_returns_granularity_when_set(
+    mocker: MockerFixture,
+) -> None:
+    """Legacy path: ``granularity`` short-circuits the rest of the lookup."""
+    qo = mocker.Mock()
+    qo.granularity = "order_date"
+    assert _get_time_axis_column(qo, {}) == "order_date"
+
+
+def test_get_time_axis_column_finds_temporal_in_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Modern x_axis path: first temporal dim from ``columns`` wins."""
+    all_dims = {
+        "category": Dimension(
+            id="products.category",
+            name="category",
+            type=pa.utf8(),
+            definition="category",
+        ),
+        "order_date": Dimension(
+            id="orders.order_date",
+            name="order_date",
+            type=pa.timestamp("us"),
+            definition="order_date",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = ["category", "order_date"]
+    qo.filter = []
+    assert _get_time_axis_column(qo, all_dims) == "order_date"
+
+
+def test_get_time_axis_column_finds_temporal_in_temporal_range_filter(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Aggregate-only charts that only reference the temporal column inside a
+    ``TEMPORAL_RANGE`` adhoc filter (no granularity, empty ``columns``) are
+    still resolvable so the offset-aware filter path can shift the bounds.
+    """
+    all_dims = {
+        "order_date": Dimension(
+            id="orders.order_date",
+            name="order_date",
+            type=pa.timestamp("us"),
+            definition="order_date",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = []
+    qo.filter = [
+        # A non-TEMPORAL_RANGE filter is skipped so the loop reaches the
+        # TEMPORAL_RANGE entry that follows it.
+        {"col": "status", "op": FilterOperator.EQUALS.value, "val": "completed"},
+        {
+            "col": "order_date",
+            "op": FilterOperator.TEMPORAL_RANGE.value,
+            "val": "2020-01-01 : 2020-12-31",
+        },
+    ]
+    assert _get_time_axis_column(qo, all_dims) == "order_date"
+
+
+def test_get_time_axis_column_ignores_temporal_range_on_non_temporal_col(
+    mocker: MockerFixture,
+) -> None:
+    """Defensive: a TEMPORAL_RANGE filter on a non-temporal column is not
+    used as the time axis (malformed payload)."""
+    all_dims = {
+        "category": Dimension(
+            id="products.category",
+            name="category",
+            type=pa.utf8(),
+            definition="category",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = []
+    qo.filter = [
+        {
+            "col": "category",
+            "op": FilterOperator.TEMPORAL_RANGE.value,
+            "val": "2020-01-01 : 2020-12-31",
+        },
+    ]
+    assert _get_time_axis_column(qo, all_dims) is None
+
+
+def test_get_time_axis_column_returns_none_when_no_temporal_signal(
+    mocker: MockerFixture,
+) -> None:
+    """Without ``granularity``, a temporal column in ``columns``, or a
+    ``TEMPORAL_RANGE`` filter we return ``None`` and the caller skips."""
+    all_dims = {
+        "category": Dimension(
+            id="products.category",
+            name="category",
+            type=pa.utf8(),
+            definition="category",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.columns = ["category"]
+    qo.filter = []
+    assert _get_time_axis_column(qo, all_dims) is None
+
+
+def test_get_time_axis_column_skips_unparseable_adhoc_columns(
+    mocker: MockerFixture,
+) -> None:
+    """An adhoc column that ``_normalize_column`` rejects is silently skipped."""
+    all_dims = {
+        "order_date": Dimension(
+            id="orders.order_date",
+            name="order_date",
+            type=pa.timestamp("us"),
+            definition="order_date",
+        ),
+    }
+    qo = mocker.Mock()
+    qo.granularity = None
+    qo.filter = []
+    # First column is an adhoc dict without ``isColumnReference`` — raises in
+    # ``_normalize_column`` and the loop should keep going.
+    qo.columns = [
+        {"label": "unsupported", "sqlExpression": "lower(x)"},
+        "order_date",
+    ]
+    assert _get_time_axis_column(qo, all_dims) == "order_date"
+
+
+# ---------------------------------------------------------------------------
+# Time-offset application via TEMPORAL_RANGE adhoc filter
+# ---------------------------------------------------------------------------
+
+
+def test_map_query_object_shifts_time_offset_via_temporal_range_filter(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression: an aggregate-only modern SV chart that carries the time
+    column only inside a ``TEMPORAL_RANGE`` adhoc filter (no granularity, no
+    temporal entry in ``columns``) used to emit identical main + offset
+    queries because ``_get_time_filter`` short-circuited on empty granularity
+    and the TEMPORAL_RANGE filter was passed through verbatim. The fix
+    routes the time column through ``_get_time_axis_column`` so the offset
+    bounds are computed and the TEMPORAL_RANGE pass-through is skipped.
+    """
+    datasource = mocker.Mock()
+    order_date = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.timestamp("us"),
+        description="Order date",
+        definition="order_date",
+    )
+    status = Dimension(
+        id="orders.status",
+        name="status",
+        type=pa.utf8(),
+        description="Order status",
+        definition="status",
+    )
+    count_metric = Metric(
+        id="orders.count",
+        name="count",
+        type=pa.int64(),
+        definition="count",
+        description="Order count",
+    )
+    implementation = MockSemanticView(
+        dimensions={order_date, status},
+        metrics={count_metric},
+        features=frozenset(),
+    )
+    datasource.implementation = implementation
+    datasource.fetch_values_predicate = None
+
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        from_dttm=datetime(2020, 1, 1),
+        to_dttm=datetime(2020, 12, 31),
+        metrics=["count"],
+        columns=["status"],
+        # granularity intentionally NOT set — the modern x_axis SV shape.
+        filters=[
+            {
+                "col": "order_date",
+                "op": FilterOperator.TEMPORAL_RANGE.value,
+                "val": "2020-01-01 : 2020-12-31",
+            }
+        ],
+        time_offsets=["1 month ago"],
+    )
+
+    queries = map_query_object(query_object)
+    assert len(queries) == 2
+    main_query, offset_query = queries[0], queries[1]
+
+    def time_filter_bounds(query: SemanticQuery) -> tuple[datetime, datetime]:
+        gte = next(
+            f.value
+            for f in query.filters
+            if f.column is not None
+            and f.column.name == "order_date"
+            and f.operator == Operator.GREATER_THAN_OR_EQUAL
+        )
+        lt = next(
+            f.value
+            for f in query.filters
+            if f.column is not None
+            and f.column.name == "order_date"
+            and f.operator == Operator.LESS_THAN
+        )
+        return gte, lt
+
+    main_gte, main_lt = time_filter_bounds(main_query)
+    offset_gte, offset_lt = time_filter_bounds(offset_query)
+
+    assert main_gte == datetime(2020, 1, 1)
+    assert main_lt == datetime(2020, 12, 31)
+
+    # The offset bounds are shifted backwards by one month on both ends.
+    # Compare against ``get_past_or_future`` rather than hand-rolled date math
+    # so the assertion doesn't entangle the regression with "1 month ago"
+    # quirks (e.g. Dec 31 − 1 month → Nov 30, not Dec 1).
+    from superset.utils.date_parser import get_past_or_future
+
+    assert offset_gte == get_past_or_future("1 month ago", datetime(2020, 1, 1))
+    assert offset_lt == get_past_or_future("1 month ago", datetime(2020, 12, 31))
+    assert offset_gte != main_gte
+    assert offset_lt != main_lt
