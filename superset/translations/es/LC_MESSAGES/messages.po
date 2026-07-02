@@ -14381,6 +14381,11 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr ""
 "El gráfico todavía se está cargando. Por favor, espere un momento e "
@@ -14474,6 +14479,11 @@ msgstr ""
 
 msgid "The dashboard has been saved"
 msgstr "El panel de control se ha guardado"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Parece que se ha eliminado la fuente de datos"

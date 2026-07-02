@@ -12369,6 +12369,11 @@ msgid ""
 "associated with more than one category, only the first will be used."
 msgstr ""
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr ""
 
@@ -12438,6 +12443,11 @@ msgid ""
 msgstr ""
 
 msgid "The dashboard has been saved"
+msgstr ""
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
 msgstr ""
 
 msgid "The data source seems to have been deleted"

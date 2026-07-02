@@ -22015,6 +22015,11 @@ msgstr ""
 "La categoria dei nodi sorgente utilizzata per assegnare i colori. Se un "
 "nodo è associato a più di una categoria, verrà utilizzata solo la prima."
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -22163,6 +22168,11 @@ msgstr ""
 #, fuzzy
 msgid "The dashboard has been saved"
 msgstr "Il dashboard è stato salvato"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,

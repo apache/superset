@@ -13458,6 +13458,11 @@ msgstr ""
 "werden. Wenn ein Knoten mehr als einer Kategorie zugeordnet ist, wird nur"
 " die erste verwendet."
 
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
 msgstr ""
 "Das Diagramm wird noch geladen. Bitte warten Sie einen Moment und "
@@ -13547,6 +13552,11 @@ msgstr "Der Ländercodestandard, den Superset in der Spalte [Land] erwarten soll
 
 msgid "The dashboard has been saved"
 msgstr "Dashboard wurde erfolgreich gespeichert"
+
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
 
 msgid "The data source seems to have been deleted"
 msgstr "Die Datenquelle scheint gelöscht worden zu sein"

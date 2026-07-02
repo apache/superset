@@ -52,8 +52,8 @@ migration = import_module(
     "2026-05-08_12-00_7c4a8d09ca37_add_deleted_at_to_slices"
 )
 
-TABLE_NAME = migration.TABLE_NAME  # "slices"
-INDEX_NAME = migration.INDEX_NAME  # "ix_slices_deleted_at"
+TABLE_NAME: str = migration.TABLE_NAME  # "slices"
+INDEX_NAME: str = migration.INDEX_NAME  # "ix_slices_deleted_at"
 
 
 @pytest.fixture
@@ -77,14 +77,17 @@ def engine() -> Engine:
 
 
 def _columns(engine: Engine) -> set[str]:
+    """Current column names on the target ``slices`` table."""
     return {col["name"] for col in inspect(engine).get_columns(TABLE_NAME)}
 
 
 def _indexes(engine: Engine) -> set[str]:
+    """Current index names on the target ``slices`` table."""
     return {ix["name"] for ix in inspect(engine).get_indexes(TABLE_NAME)}
 
 
 def test_upgrade_adds_deleted_at_column_and_index(engine: Engine) -> None:
+    """upgrade() adds the nullable ``deleted_at`` column and its index."""
     with engine.connect() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
@@ -97,6 +100,7 @@ def test_upgrade_adds_deleted_at_column_and_index(engine: Engine) -> None:
 
 
 def test_downgrade_drops_deleted_at_column_and_index(engine: Engine) -> None:
+    """downgrade() removes both schema artifacts (column and index)."""
     with engine.connect() as conn:
         ctx = MigrationContext.configure(conn)
         with Operations.context(ctx):
