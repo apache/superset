@@ -21,7 +21,7 @@ import {
   Behavior,
   getChartMetadataRegistry,
   isDefined,
-  NativeFilterScope,
+  type NativeFilterScope,
 } from '@superset-ui/core';
 import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
 import {
@@ -98,17 +98,18 @@ export const getCrossFiltersConfiguration = (
           },
         };
       }
+      const {scope} = chartConfiguration[chartId].crossFilters;
+
+      const effectiveScope: NativeFilterScope = isCrossFilterScopeGlobal(scope)
+        ? globalChartConfiguration.scope
+        : scope;
+
       chartConfiguration[chartId].crossFilters.chartsInScope =
-        isCrossFilterScopeGlobal(chartConfiguration[chartId].crossFilters.scope)
-          ? globalChartConfiguration.chartsInScope.filter(
-              id => id !== Number(chartId),
-            )
-          : getChartIdsInFilterScope(
-              chartConfiguration[chartId].crossFilters
-                .scope as NativeFilterScope,
-              Object.values(charts).map(chart => chart.id),
-              chartLayoutItems,
-            );
+        getChartIdsInFilterScope(
+          effectiveScope,
+          Object.values(charts).map(chart => chart.id),
+          chartLayoutItems,
+        ).filter(id => id !== Number(chartId));
     }
   });
 
