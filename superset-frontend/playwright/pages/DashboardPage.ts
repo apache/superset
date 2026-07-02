@@ -44,7 +44,7 @@ export class DashboardPage {
    * @param slug - The dashboard slug (e.g., 'world_health')
    */
   async gotoBySlug(slug: string): Promise<void> {
-    await gotoWithRetry(this.page, `superset/dashboard/${slug}/`);
+    await gotoWithRetry(this.page, `dashboard/${slug}/`);
   }
 
   /**
@@ -52,7 +52,7 @@ export class DashboardPage {
    * @param id - The dashboard ID
    */
   async gotoById(id: number): Promise<void> {
-    await gotoWithRetry(this.page, `superset/dashboard/${id}/`);
+    await gotoWithRetry(this.page, `dashboard/${id}/`);
   }
 
   /**

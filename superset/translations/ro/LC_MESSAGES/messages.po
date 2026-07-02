@@ -3164,9 +3164,6 @@ msgstr "Culoare după"
 msgid "Color for breakpoint"
 msgstr "Culoare pentru punct de întrerupere"
 
-msgid "Color Metric"
-msgstr "Indicator culoare"
-
 msgid "Color of the source location"
 msgstr "Culoarea locației sursă"
 
@@ -4644,7 +4641,7 @@ msgid "Deleted %(num)d theme"
 msgid_plural "Deleted %(num)d themes"
 msgstr[0] "Ștearsă %(num)d temă"
 msgstr[1] "Șterse %(num)d teme"
-msgstr[2] "Șterse %(num)d de teme""
+msgstr[2] "Șterse %(num)d de teme"
 
 #, python-format
 msgid "Deleted %s"
@@ -10218,7 +10215,7 @@ msgid "Saved expressions"
 msgstr "Expresii salvate"
 
 msgid "Saved metric"
-msgstr "Indicator salvat""
+msgstr "Indicator salvat"
 
 msgid "Saved queries"
 msgstr "Interogări salvate"
@@ -13422,7 +13419,7 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "Aceasta a fost declanșată de:"
 msgstr[1] "Acestea pot fi declanșate de:"
-msgstr[2] "Acestea pot fi declanșate de către:""
+msgstr[2] "Acestea pot fi declanșate de către:"
 
 msgid ""
 "This will be applied to the whole table. Arrows (↑ and ↓) will be added "
@@ -14447,7 +14444,7 @@ msgstr ""
 "Vizualizează un indicator corelat pentru perechi de grupuri. Hartile "
 "termice (Heatmaps) excelează în evidențierea corelației sau a "
 "intensității dintre două grupuri. Culoarea este utilizată pentru a "
-"sublinia intensitatea legăturii dintre fiecare pereche de grupuri.""
+"sublinia intensitatea legăturii dintre fiecare pereche de grupuri."
 
 msgid ""
 "Visualize geospatial data like 3D buildings, landscapes, or objects in "

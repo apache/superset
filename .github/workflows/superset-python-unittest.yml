@@ -1,6 +1,11 @@
 # Python unit tests
 name: Python-Unit
 
+# Least-privilege default for GITHUB_TOKEN. Jobs that need more (e.g. OIDC for
+# codecov uploads) opt in via their own job-level `permissions:` block.
+permissions:
+  contents: read
+
 on:
   push:
     branches:
@@ -25,7 +30,7 @@ jobs:
       python: ${{ steps.check.outputs.python }}
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: Check for file changes
@@ -50,7 +55,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           submodules: recursive

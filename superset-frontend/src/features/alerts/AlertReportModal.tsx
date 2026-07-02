@@ -64,10 +64,13 @@ import {
   Loading,
   Select,
   Switch,
+  Tooltip,
   TreeSelect,
   Button,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
+
+import { navigateTo } from 'src/utils/navigationUtils';
 
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { timezoneOptionsCache } from '@superset-ui/core/components/TimezoneSelector/TimezoneOptionsCache';
@@ -248,6 +251,31 @@ const AdditionalStyles = css`
 
     > div {
       flex: 1 1 auto;
+    }
+  }
+  .select-with-open-btn {
+    display: flex;
+    align-items: center;
+
+    & > div:first-child {
+      flex: 1 1 auto !important;
+      width: auto !important;
+      min-width: 0; /* allow overflow handling */
+    }
+
+    /* keep button compact and pinned to the right */
+    & > div:last-child {
+      flex: 0 0 auto !important;
+      width: auto !important;
+      margin-left: var(--open-btn-gap, 8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ensure inner select fills available space */
+    & > div:first-child > * {
+      width: 100% !important;
     }
   }
 `;
@@ -1397,10 +1425,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
+  const openDashboardInNewTab = (dashboardId?: number | string | null) => {
+    if (!dashboardId) return;
+    navigateTo(`/dashboard/${dashboardId}/`, { newWindow: true });
+  };
+
   const onChartChange = (chart: SelectValue) => {
     getChartVisualizationType(chart);
     updateAlertState('chart', chart || undefined);
     updateAlertState('dashboard', null);
+  };
+
+  const openChartInNewTab = (chartId?: number | string | null) => {
+    if (!chartId) return;
+    navigateTo(`/explore/?slice_id=${chartId}`, { newWindow: true });
   };
 
   const onActiveSwitch = (checked: boolean) => {
@@ -2083,7 +2121,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       width={500}
       wrapProps={{ 'data-test': 'alert-report-modal' }}
     >
-      <div css={AdditionalStyles}>
+      <div
+        css={AdditionalStyles}
+        style={{ ['--open-btn-gap' as any]: `${theme.sizeUnit}px` }}
+      >
         <Collapse
           expandIconPosition="end"
           activeKey={activeCollapsePanel}
@@ -2342,23 +2383,40 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           {t('Select chart')}
                           <span className="required">*</span>
                         </div>
-                        <AsyncSelect
-                          ariaLabel={t('Chart')}
-                          name="chart"
-                          allowClear
-                          value={
-                            currentAlert?.chart?.label &&
-                            currentAlert?.chart?.value
-                              ? {
-                                  value: currentAlert.chart.value,
-                                  label: currentAlert.chart.label,
+                        <div className="input-container select-with-open-btn">
+                          <div>
+                            <AsyncSelect
+                              ariaLabel={t('Chart')}
+                              name="chart"
+                              allowClear
+                              value={
+                                currentAlert?.chart?.label &&
+                                currentAlert?.chart?.value
+                                  ? {
+                                      value: currentAlert.chart.value,
+                                      label: currentAlert.chart.label,
+                                    }
+                                  : undefined
+                              }
+                              options={loadChartOptions}
+                              onChange={onChartChange}
+                              placeholder={t('Select chart to use')}
+                            />
+                          </div>
+                          <div>
+                            <Tooltip title={t('Open chart in new tab')}>
+                              <Button
+                                aria-label={t('Open chart in new tab')}
+                                onClick={() =>
+                                  openChartInNewTab(currentAlert?.chart?.value)
                                 }
-                              : undefined
-                          }
-                          options={loadChartOptions}
-                          onChange={onChartChange}
-                          placeholder={t('Select chart to use')}
-                        />
+                                icon={<Icons.LinkOutlined iconSize="s" />}
+                                buttonSize="small"
+                                disabled={!currentAlert?.chart?.value}
+                              />
+                            </Tooltip>
+                          </div>
+                        </div>
                       </>
                     ) : (
                       <>
@@ -2366,22 +2424,41 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           {t('Select dashboard')}
                           <span className="required">*</span>
                         </div>
-                        <AsyncSelect
-                          ariaLabel={t('Dashboard')}
-                          name="dashboard"
-                          value={
-                            currentAlert?.dashboard?.label &&
-                            currentAlert?.dashboard?.value
-                              ? {
-                                  value: currentAlert.dashboard.value,
-                                  label: currentAlert.dashboard.label,
+                        <div className="input-container select-with-open-btn">
+                          <div>
+                            <AsyncSelect
+                              ariaLabel={t('Dashboard')}
+                              name="dashboard"
+                              value={
+                                currentAlert?.dashboard?.label &&
+                                currentAlert?.dashboard?.value
+                                  ? {
+                                      value: currentAlert.dashboard.value,
+                                      label: currentAlert.dashboard.label,
+                                    }
+                                  : undefined
+                              }
+                              options={loadDashboardOptions}
+                              onChange={onDashboardChange}
+                              placeholder={t('Select dashboard to use')}
+                            />
+                          </div>
+                          <div>
+                            <Tooltip title={t('Open dashboard in new tab')}>
+                              <Button
+                                aria-label={t('Open dashboard in new tab')}
+                                onClick={() =>
+                                  openDashboardInNewTab(
+                                    currentAlert?.dashboard?.value,
+                                  )
                                 }
-                              : undefined
-                          }
-                          options={loadDashboardOptions}
-                          onChange={onDashboardChange}
-                          placeholder={t('Select dashboard to use')}
-                        />
+                                icon={<Icons.LinkOutlined iconSize="s" />}
+                                buttonSize="small"
+                                disabled={!currentAlert?.dashboard?.value}
+                              />
+                            </Tooltip>
+                          </div>
+                        </div>
                       </>
                     )}
                   </StyledInputContainer>

@@ -167,6 +167,24 @@ export function GridTable<RecordType extends object>({
           overflow: hidden;
         }
 
+        /* Preserve significant whitespace within cell values (e.g. option
+        symbols and other whitespace-sensitive data). ag-Grid's default
+        collapses runs of spaces, which can misrepresent the underlying
+        value.
+
+        'pre' is a deliberate trade-off over 'pre-wrap': it keeps values on a
+        single line so row heights and column sizing stay unchanged. CSS has no
+        value that preserves spaces while collapsing newlines, so an embedded
+        newline renders on multiple lines and is clipped by the fixed row
+        height; truncating such values to the visible row is acceptable here.
+        overflow/text-overflow keep over-long single-line values clipped with
+        an ellipsis rather than overflowing the cell. */
+        .ag-cell-value {
+          white-space: pre;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
         & [role='columnheader']:hover .customHeaderAction {
           display: flex;
         }
