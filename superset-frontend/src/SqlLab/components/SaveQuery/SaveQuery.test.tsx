@@ -172,6 +172,45 @@ describe('SavedQuery', () => {
     expect(updateBtn).toBeInTheDocument();
   });
 
+  test('pre-fills the description from an existing saved query and updates with it unchanged', async () => {
+    const storedDescription = 'This is the stored description';
+    const mockOnUpdate = jest.fn();
+
+    render(<SaveQuery {...mockedProps} onUpdate={mockOnUpdate} />, {
+      useRedux: true,
+      store: mockStore({
+        ...mockState,
+        sqlLab: {
+          ...mockState.sqlLab,
+          queryEditors: [
+            {
+              id: mockedProps.queryEditorId,
+              dbId: 1,
+              catalog: null,
+              schema: 'main',
+              sql: 'SELECT * FROM t',
+              name: 'My saved query',
+              description: storedDescription,
+              remoteId: 42,
+            },
+          ],
+        },
+      }),
+    });
+
+    userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    const descriptionTextbox = screen.getAllByRole('textbox')[1];
+    expect(descriptionTextbox).toHaveValue(storedDescription);
+
+    userEvent.click(screen.getByRole('button', { name: /update/i }));
+
+    await waitFor(() => expect(mockOnUpdate).toHaveBeenCalled());
+    expect(mockOnUpdate.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ description: storedDescription }),
+    );
+  });
+
   test('renders a split save button when allows_virtual_table_explore is enabled', async () => {
     render(<SaveQuery {...splitSaveBtnProps} />, {
       useRedux: true,
