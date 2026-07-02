@@ -17,7 +17,7 @@
 """fix Security view menu case
 
 Revision ID: b4a3f2e1d0c9
-Revises: 2bee73611e32
+Revises: 9e1f3b8c4d2a
 Create Date: 2026-05-29 00:00:00.000000
 
 On MySQL with the default case-insensitive collation, five Superset views that
@@ -40,7 +40,7 @@ This migration normalises the row:
 
 # revision identifiers, used by Alembic.
 revision = "b4a3f2e1d0c9"
-down_revision = "2bee73611e32"
+down_revision = "9e1f3b8c4d2a"
 
 import logging  # noqa: E402
 
@@ -55,10 +55,7 @@ from superset.migrations.shared.security_converge import (  # noqa: E402
 logger = logging.getLogger("alembic.env")
 
 
-def upgrade() -> None:
-    bind = op.get_bind()
-    session = Session(bind=bind)
-
+def do_upgrade(session: Session) -> None:
     # Fetch all view menus and compare in Python (SQL filter_by is
     # case-insensitive on MySQL, so we cannot rely on it here).
     all_vms: list[ViewMenu] = session.query(ViewMenu).all()
@@ -114,6 +111,12 @@ def upgrade() -> None:
         session.delete(security_lower)
 
     session.commit()
+
+
+def upgrade() -> None:
+    bind = op.get_bind()
+    session = Session(bind=bind)
+    do_upgrade(session)
 
 
 def downgrade() -> None:
