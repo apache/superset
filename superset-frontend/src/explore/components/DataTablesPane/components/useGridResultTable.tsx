@@ -17,61 +17,38 @@
  * under the License.
  */
 import { useMemo, useCallback, useRef, useState } from 'react';
-import {
-  getTimeFormatter,
-  safeHtmlSpan,
-  TimeFormats,
-  getMetricLabel,
-  QueryFormMetric,
-} from '@superset-ui/core';
-import { t } from '@apache-superset/core/translation';
+import { getTimeFormatter, safeHtmlSpan, TimeFormats } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import type { IRowNode } from 'ag-grid-community';
 
 const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
-const CONTRIBUTION_SUFFIX = '__contribution';
 
+/**
+ * Builds Grid column definitions from query result metadata.
+ * Assumes {@link colnames}, {@link coltypes} and {@link collabels}
+ * have the same length and align. Only columns present in the first
+ * data row are included.
+ */
 export function useGridColumns(
   colnames: string[] | undefined,
   coltypes: GenericDataType[] | undefined,
+  collabels: string[] | undefined,
   data: Record<string, any>[] | undefined,
-  columnDisplayNames?: Record<string, string>,
 ) {
   return useMemo(
     () =>
       colnames && data?.length
         ? colnames
-            .filter((column: string) => Object.keys(data[0]).includes(column))
-            .map((key, index) => {
-              const colType = coltypes?.[index];
-
-              const rawHeader = columnDisplayNames?.[key] ?? key;
-              let cleaned = rawHeader;
-              let suffix = '';
-
-              if (rawHeader.endsWith(CONTRIBUTION_SUFFIX)) {
-                cleaned = rawHeader.slice(
-                  0,
-                  rawHeader.length - CONTRIBUTION_SUFFIX.length,
-                );
-                suffix = ` (${t('contribution')})`;
-              }
-
-              try {
-                const parsed = JSON.parse(cleaned);
-                if (parsed && typeof parsed === 'object') {
-                  cleaned = getMetricLabel(parsed as QueryFormMetric);
-                }
-              } catch {
-                /* not a JSON-encoded metric – keep original display name */
-              }
-
-              const cleanHeader = `${cleaned}${suffix}`;
+            .map((column, originalIndex) => [column, originalIndex] as const)
+            .filter(([column]) => Object.keys(data[0]).includes(column))
+            .map(([key, originalIndex]) => {
+              const colType = coltypes?.[originalIndex];
+              const headerLabel = collabels?.[originalIndex];
 
               return {
                 label: key,
-                headerName: cleanHeader,
+                headerName: headerLabel,
                 render: ({ value }: { value: unknown }) => {
                   if (value === true) {
                     return Constants.BOOL_TRUE_DISPLAY;
@@ -100,7 +77,7 @@ export function useGridColumns(
               };
             })
         : [],
-    [colnames, data, coltypes, columnDisplayNames],
+    [colnames, data, coltypes, collabels],
   );
 }
 
