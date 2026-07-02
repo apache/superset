@@ -4466,6 +4466,9 @@ msgstr "Dashboard kon niet worden bijgewerkt."
 msgid "Dashboard could not be deleted."
 msgstr "Dashboard kon niet worden verwijderd."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Dashboard kon niet worden bijgewerkt."
 
@@ -15214,6 +15217,9 @@ msgstr ""
 "grootte en positie van widgets door te slepen en neer te zetten in de "
 "dashboard weergave"
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -16007,6 +16013,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format

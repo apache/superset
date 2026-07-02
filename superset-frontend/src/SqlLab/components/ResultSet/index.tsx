@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sanitizeUrl } from '@braintree/sanitize-url';
 import {
   useCallback,
   useEffect,
@@ -88,7 +87,7 @@ import { usePermissions } from 'src/hooks/usePermissions';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
-import { makeUrl } from 'src/utils/pathUtils';
+import { makeUrl, openInNewTab, redirect } from 'src/utils/navigationUtils';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -312,7 +311,9 @@ const ResultSet = ({
         includeAppRoot,
       );
       if (openInNewWindow) {
-        window.open(url, '_blank', 'noreferrer');
+        // `url` is from `mountExploreUrl(..., includeAppRoot=true)`; the
+        // helper re-applies `ensureAppRoot` idempotently.
+        openInNewTab(url);
       } else {
         history.push(url);
       }
@@ -379,7 +380,13 @@ const ResultSet = ({
               { rows: rowsCount.toLocaleString() },
             ),
             onConfirm: () => {
-              window.location.href = sanitizeUrl(getExportCsvUrl(query.id));
+              // `getExportCsvUrl` already runs the path through `makeUrl`;
+              // `redirect` re-applies `ensureAppRoot` idempotently and routes
+              // the sink through navigationUtils' barriers (scheme allowlist,
+              // userinfo rejection, backslash rejection), which is a
+              // strict superset of what `sanitizeUrl` from master PR #40546
+              // provides.
+              redirect(getExportCsvUrl(query.id));
             },
             confirmText: t('OK'),
             cancelText: t('Close'),
