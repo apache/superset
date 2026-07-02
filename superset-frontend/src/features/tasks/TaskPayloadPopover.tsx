@@ -65,8 +65,8 @@ export default function TaskPayloadPopover({
       content={content}
       trigger="hover"
       placement="leftTop"
-      visible={visible}
-      onVisibleChange={setVisible}
+      open={visible}
+      onOpenChange={setVisible}
     >
       <InfoIconWrapper>
         <Icons.InfoCircleOutlined iconSize="l" />

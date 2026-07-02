@@ -228,7 +228,7 @@ test('sorts table when clicking column headers', async () => {
   const allHeaders = table.querySelectorAll('.ant-table-column-sorters');
 
   const sortableHeaders = Array.from(allHeaders).filter(
-    header => !header.closest('.ant-table-measure-cell-content'),
+    header => !header.closest('.ant-table-measure-row'),
   );
   expect(sortableHeaders).toHaveLength(3);
 
