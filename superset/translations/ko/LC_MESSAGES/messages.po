@@ -7217,6 +7217,9 @@ msgstr "데이터셋을 생성할 수 없습니다."
 msgid "Dataset could not be duplicated."
 msgstr "데이터베이스를 업데이트할 수 없습니다."
 
+msgid "Dataset could not be restored."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]

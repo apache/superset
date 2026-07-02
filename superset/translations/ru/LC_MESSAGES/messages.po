@@ -4664,6 +4664,9 @@ msgstr "Не удалось создать датасет"
 msgid "Dataset could not be duplicated."
 msgstr "Датасет не может быть дублирован"
 
+msgid "Dataset could not be restored."
+msgstr ""
+
 msgid "Dataset could not be updated."
 msgstr "Не удалось обновить датасет"
 
