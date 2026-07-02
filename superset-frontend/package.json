@@ -181,7 +181,7 @@
     "geolib": "^3.3.14",
     "geostyler": "^18.6.0",
     "geostyler-data": "^1.1.0",
-    "geostyler-openlayers-parser": "^5.7.0",
+    "geostyler-openlayers-parser": "^5.7.1",
     "geostyler-style": "11.0.2",
     "geostyler-wfs-parser": "^3.0.1",
     "google-auth-library": "^10.7.0",
