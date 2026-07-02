@@ -594,17 +594,25 @@ export default function transformProps(
     if (maxSecondary === undefined) maxSecondary = 1;
   }
 
+  // A dashboard-level time grain override (e.g. via a filter or the temporal
+  // range control) is delivered in extraFormData and should take precedence
+  // over the chart's own time grain when formatting temporal axes/tooltips.
+  const resolvedTimeGrain =
+    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
+
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      ? getTooltipTimeFormatter(tooltipTimeFormat, resolvedTimeGrain)
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
+      ? getXAxisFormatter(xAxisTimeFormat, resolvedTimeGrain)
       : String;
 
   const showMaxLabel =
-    xAxisType === AxisType.Time && xAxisLabelRotation === 0 && !!timeGrainSqla;
+    xAxisType === AxisType.Time &&
+    xAxisLabelRotation === 0 &&
+    !!resolvedTimeGrain;
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;
@@ -714,15 +722,15 @@ export default function transformProps(
       },
       minorTick: { show: minorTicks },
       minInterval:
-        xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
-          ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-            ]
+        xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
+          ? (TIMEGRAIN_TO_TIMESTAMP[
+              resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+            ] ?? 0)
           : 0,
       maxInterval:
-        xAxisType === AxisType.Time && timeGrainSqla && forceMaxInterval
+        xAxisType === AxisType.Time && resolvedTimeGrain && forceMaxInterval
           ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+              resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
             ]
           : undefined,
       ...getMinAndMaxFromBounds(
