@@ -27,8 +27,6 @@ import {
   Col,
   Row,
   LabeledErrorBoundInput,
-  Icons,
-  Tooltip,
 } from '@superset-ui/core/components';
 import { Input } from '@superset-ui/core/components/Input';
 import { Radio } from '@superset-ui/core/components/Radio';
@@ -189,17 +187,6 @@ const SSHTunnelForm = ({
                 errorMessage={sshErrors?.password}
                 isValidating={isValidating}
                 data-test="ssh-tunnel-password-input"
-                iconRender={(visible: boolean) =>
-                  visible ? (
-                    <Tooltip title={t('Hide password.')}>
-                      <Icons.EyeInvisibleOutlined />
-                    </Tooltip>
-                  ) : (
-                    <Tooltip title={t('Show password.')}>
-                      <Icons.EyeOutlined />
-                    </Tooltip>
-                  )
-                }
                 role="textbox"
               />
             </StyledDiv>
@@ -245,7 +232,6 @@ const SSHTunnelForm = ({
                   id="private_key_password"
                   name="private_key_password"
                   label={t('Private Key Password')}
-                  required
                   visibilityToggle
                   placeholder={t('e.g. ********')}
                   value={db?.ssh_tunnel?.private_key_password || ''}
@@ -254,17 +240,6 @@ const SSHTunnelForm = ({
                   errorMessage={sshErrors?.private_key_password}
                   isValidating={isValidating}
                   data-test="ssh-tunnel-private_key_password-input"
-                  iconRender={(visible: boolean) =>
-                    visible ? (
-                      <Tooltip title={t('Hide password.')}>
-                        <Icons.EyeInvisibleOutlined />
-                      </Tooltip>
-                    ) : (
-                      <Tooltip title={t('Show password.')}>
-                        <Icons.EyeOutlined />
-                      </Tooltip>
-                    )
-                  }
                   role="textbox"
                 />
               </StyledDiv>

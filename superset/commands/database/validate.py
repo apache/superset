@@ -84,8 +84,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             errors.append(database_name_error)
 
         # Collect SSH tunnel errors
-        ssh_tunnel_errors = self._get_ssh_tunnel_errors()
-        errors.extend(ssh_tunnel_errors)
+        errors.extend(self._get_ssh_tunnel_errors())
 
         if errors:
             event_logger.log_with_context(action="validation_error", engine=engine)
