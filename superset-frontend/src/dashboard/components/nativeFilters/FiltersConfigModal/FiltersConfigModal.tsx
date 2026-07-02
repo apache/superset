@@ -49,7 +49,7 @@ import {
   useFilterOperations,
   useCustomizationOperations,
   useModalSaveLogic,
-  ALLOW_DEPENDENCIES,
+  filterSupportsDependencies,
 } from './hooks';
 import {
   getFilterIds,
@@ -62,7 +62,7 @@ import {
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
 
-export { ALLOW_DEPENDENCIES };
+export { filterSupportsDependencies };
 
 const StyledModalBody = styled(BaseModalBody)`
   .filters-list {
@@ -471,18 +471,15 @@ function FiltersConfigModal({
     [modalSaveLogic, setSaveAlertVisible],
   );
 
-  const handleValuesChange = useCallback(
-    (changedValues: Partial<NativeFiltersForm>) => {
+  const handleValuesChange = useMemo(
+    () => (changedValues: Partial<NativeFiltersForm>) => {
+      const changedId = changedValues.filters
+        ? Object.keys(changedValues.filters)[0]
+        : undefined;
+      if (changedId && isDivider(changedId)) {
+        handleModifyItem(changedId);
+      }
       debouncedHandleErroredItems();
-      // DividerConfigForm doesn't call handleModifyItem on change the way
-      // FiltersConfigForm does, so detect divider field changes here and mark
-      // the divider as modified so canSave becomes true and the save payload
-      // includes the updated divider values.
-      Object.keys(changedValues?.filters ?? {}).forEach(id => {
-        if (isDivider(id)) {
-          handleModifyItem(id);
-        }
-      });
     },
     [debouncedHandleErroredItems, handleModifyItem],
   );

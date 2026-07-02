@@ -93,7 +93,7 @@ import {
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
 import {
-  ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
+  filterSupportsDependencies,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
 import { FilterRemoval, NativeFiltersForm } from '../types';
@@ -106,8 +106,8 @@ import getControlItemsMap from './getControlItemsMap';
 import RemovedFilter from './RemovedFilter';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import {
-  hasTemporalColumns,
   getTimeGrainOptions,
+  hasTemporalColumns,
   isValidFilterValue,
   mostUsedDataset,
   setNativeFilterFieldValues,
@@ -263,12 +263,6 @@ export interface FiltersConfigFormProps {
 }
 
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
-
-const getOptionDataTest = (
-  prefix: string,
-  value: string | number | undefined,
-) =>
-  `${prefix}-${String(value ?? 'undefined').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
 // TODO: Rename the filter plugins and remove this mapping
 const FILTER_TYPE_NAME_MAPPING = {
@@ -453,7 +447,7 @@ const FiltersConfigForm = (
     formFilter?.filterType,
   );
 
-  const canDependOnOtherFilters = TYPES_SUPPORT_DEPENDENCIES.includes(
+  const canDependOnOtherFilters = filterSupportsDependencies(
     formFilter?.filterType,
   );
 
@@ -624,7 +618,7 @@ const FiltersConfigForm = (
       !mainControlItems.groupby;
 
   const onSortChanged = (value: boolean | undefined) => {
-    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    const previous = form.getFieldValue('filters')?.[filterId]?.controlValues;
     setNativeFilterFieldValues(form, filterId, {
       controlValues: {
         ...previous,
@@ -635,7 +629,7 @@ const FiltersConfigForm = (
   };
 
   const onEnableSingleValueChanged = (value: SingleValueType | undefined) => {
-    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    const previous = form.getFieldValue('filters')?.[filterId]?.controlValues;
     setNativeFilterFieldValues(form, filterId, {
       controlValues: {
         ...previous,
@@ -661,7 +655,7 @@ const FiltersConfigForm = (
   }, [formFilter?.column, datasetDetails?.columns]);
 
   const onOperatorTypeChanged = (value: SelectFilterOperatorType) => {
-    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    const previous = form.getFieldValue('filters')?.[filterId]?.controlValues;
     setNativeFilterFieldValues(form, filterId, {
       controlValues: {
         ...previous,
@@ -954,16 +948,6 @@ const FiltersConfigForm = (
                             label: name || pluginKey,
                           };
                         })}
-                        optionRender={option => (
-                          <span
-                            data-test={getOptionDataTest(
-                              'customization-type-option',
-                              option.value,
-                            )}
-                          >
-                            {option.label || option.value}
-                          </span>
-                        )}
                         onChange={value => {
                           setNativeFilterFieldValues(form, filterId, {
                             filterType: value,
@@ -1022,16 +1006,6 @@ const FiltersConfigForm = (
                             disabled: isDisabled,
                           };
                         })}
-                        optionRender={option => (
-                          <span
-                            data-test={getOptionDataTest(
-                              'filter-type-option',
-                              option.value,
-                            )}
-                          >
-                            {option.label || option.value}
-                          </span>
-                        )}
                         onChange={value => {
                           setNativeFilterFieldValues(form, filterId, {
                             filterType: value,
@@ -1463,7 +1437,7 @@ const FiltersConfigForm = (
                                               const previous =
                                                 form.getFieldValue('filters')?.[
                                                   filterId
-                                                ].controlValues || {};
+                                                ]?.controlValues || {};
                                               setNativeFilterFieldValues(
                                                 form,
                                                 filterId,

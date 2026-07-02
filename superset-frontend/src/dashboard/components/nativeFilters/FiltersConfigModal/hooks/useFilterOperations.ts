@@ -18,17 +18,28 @@
  */
 import { useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { Filter, Divider, NativeFilterType } from '@superset-ui/core';
+import {
+  Behavior,
+  Filter,
+  Divider,
+  NativeFilterType,
+  getChartMetadataRegistry,
+} from '@superset-ui/core';
 import type { FormInstance } from '@superset-ui/core/components';
 import { NativeFiltersForm } from '../types';
 import { generateFilterId, hasCircularDependency } from '../utils';
 import type { ItemStateManager } from './useItemStateManager';
 
-export const ALLOW_DEPENDENCIES = [
-  'filter_range',
-  'filter_select',
-  'filter_time',
-];
+export function filterSupportsDependencies(
+  filterType: string | undefined,
+): boolean {
+  if (!filterType) return false;
+  const metadata = getChartMetadataRegistry().get(filterType);
+  if (metadata?.supportsCascadeDependencies !== undefined) {
+    return metadata.supportsCascadeDependencies;
+  }
+  return metadata?.behaviors?.includes(Behavior.NativeFilter) ?? false;
+}
 
 interface AvailableFilterOption {
   label: string;
@@ -148,7 +159,7 @@ export function useFilterOperations({
       return (
         component &&
         'filterType' in component &&
-        ALLOW_DEPENDENCIES.includes(component.filterType)
+        filterSupportsDependencies(component.filterType)
       );
     },
     [filterConfigMap, form, filterState.removedItems],
