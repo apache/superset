@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
@@ -99,29 +99,61 @@ export function OAuth2RedirectMessage({
 
   const dispatch = useDispatch();
 
+  // `chartList` is rebuilt from `Object.keys` on every store update; keeping
+  // the listener state in a ref avoids tearing down/recreating the
+  // BroadcastChannel on each render and the race window that comes with it.
+  const latestStateRef = useRef({
+    source,
+    query,
+    chartId,
+    chartList,
+    dashboardId,
+  });
+  latestStateRef.current = {
+    source,
+    query,
+    chartId,
+    chartList,
+    dashboardId,
+  };
+
   useEffect(() => {
+    // Guard against duplicate dispatches if both the BroadcastChannel and the
+    // storage fallback ever deliver the same completion.
+    let handled = false;
     const handleOAuthComplete = (tabId?: string) => {
-      if (tabId !== extra.tab_id) {
+      if (tabId !== extra.tab_id || handled) {
         return;
       }
-      if (source === 'sqllab' && query) {
-        dispatch(reRunQuery(query));
-      } else if (source === 'explore' && chartId) {
-        dispatch(triggerQuery(true, chartId));
-      } else if (source === 'dashboard') {
-        dispatch(onRefresh(chartList.map(Number), true, 0, dashboardId));
+      handled = true;
+      const {
+        source: src,
+        query: q,
+        chartId: cId,
+        chartList: cList,
+        dashboardId: dId,
+      } = latestStateRef.current;
+      if (src === 'sqllab' && q) {
+        dispatch(reRunQuery(q));
+      } else if (src === 'explore' && cId) {
+        dispatch(triggerQuery(true, cId));
+      } else if (src === 'dashboard') {
+        dispatch(onRefresh(cList.map(Number), true, 0, dId));
       }
     };
 
-    const channel =
-      typeof BroadcastChannel !== 'undefined'
-        ? new BroadcastChannel(OAUTH_CHANNEL_NAME)
-        : null;
-
-    if (channel) {
-      channel.onmessage = event => {
-        handleOAuthComplete(event.data?.tabId);
-      };
+    // `BroadcastChannel` may exist on `window` but throw at construction time
+    // in restricted contexts; fall back to the storage listener if so.
+    let channel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        channel = new BroadcastChannel(OAUTH_CHANNEL_NAME);
+        channel.onmessage = event => {
+          handleOAuthComplete(event.data?.tabId);
+        };
+      } catch {
+        channel = null;
+      }
     }
 
     const handleStorage = (event: StorageEvent) => {
@@ -143,7 +175,7 @@ export function OAuth2RedirectMessage({
       window.removeEventListener('storage', handleStorage);
       channel?.close();
     };
-  }, [source, extra.tab_id, dispatch, query, chartId, chartList, dashboardId]);
+  }, [extra.tab_id, dispatch]);
 
   const body = (
     <p>
