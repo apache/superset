@@ -19,9 +19,9 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FilterInput } from '.';
 
-jest.mock('lodash/debounce', () => ({
-  __esModule: true,
-  default: (fuc: Function) => fuc,
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fuc: Function) => fuc,
 }));
 
 test('Render a FilterInput', async () => {

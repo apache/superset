@@ -96,3 +96,32 @@ def test_validate_custom_role_and_user_class(
 
     for owner in command._properties["owners"]:
         assert isinstance(owner, CustomUserModel)
+
+
+def test_validate_absent_slug_stays_none(
+    mocker: MockerFixture,
+    admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
+) -> None:
+    """An absent slug must reach the uniqueness check as ``None``, not ``""``.
+
+    ``DashboardDAO.validate_slug_uniqueness`` deliberately checks empty
+    strings (only ``None`` skips the check), so defaulting an absent slug to
+    ``""`` would run the check as ``slug == ""`` — and once any dashboard row
+    carries an empty-string slug, every slugless create would fail with
+    ``DashboardSlugExistsValidationError``. An explicitly provided empty
+    string, by contrast, must still be checked verbatim.
+    """
+    from superset.daos.dashboard import DashboardDAO
+
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+    validate_slug = mocker.patch.object(
+        DashboardDAO, "validate_slug_uniqueness", return_value=True
+    )
+
+    CreateDashboardCommand(data={"owners": [admin_user.id]}).validate()
+    validate_slug.assert_called_once_with(None)
+
+    validate_slug.reset_mock()
+    CreateDashboardCommand(data={"owners": [admin_user.id], "slug": ""}).validate()
+    validate_slug.assert_called_once_with("")

@@ -23,7 +23,7 @@ import sys
 import urllib
 from datetime import datetime
 from re import Pattern
-from typing import Any, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, TYPE_CHECKING, TypedDict
 
 import pandas as pd
 from apispec import APISpec
@@ -82,6 +82,97 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger()
+
+
+# BigQuery string escape sequences keyed off documented escapes in
+# https://cloud.google.com/bigquery/docs/reference/standard-sql/lexical#string_and_bytes_literals.
+# Backslash MUST be first so subsequent escapes don't double-escape their own
+# backslash.  ``\?``, ``\"`` and ``\``` are valid BigQuery escapes but
+# intentionally omitted because those characters do not require escaping
+# inside a single-quoted literal.  ``\0`` is NOT a valid BigQuery escape
+# (octal escapes require exactly three digits); the null byte instead falls
+# through to the ``\xhh`` fallback below.
+_BIGQUERY_STRING_ESCAPES = {
+    "\\": "\\\\",
+    "'": "\\'",
+    "\n": "\\n",
+    "\r": "\\r",
+    "\t": "\\t",
+    "\b": "\\b",
+    "\f": "\\f",
+    "\v": "\\v",
+    "\a": "\\a",
+}
+
+
+def _process_string_literal(value: str) -> str:
+    """
+    Escape a string value for use as a BigQuery SQL literal.
+
+    BigQuery requires backslash escaping for single quotes inside string
+    literals (``'O\\'Brien'``).  Doubled single quotes (``'O''Brien'``) are
+    **not** valid — BigQuery parses them as two concatenated string literals
+    without whitespace, causing a syntax error:
+    ``concatenated string literals must be separated by whitespace``.
+
+    BigQuery also forbids literal newlines, carriage returns, and other
+    control characters inside a quoted string; those must be written using
+    escape sequences (``\\n``, ``\\r``, ``\\t`` …).  Control characters
+    without a named escape are emitted as a ``\\xhh`` hex escape; printable
+    Unicode passes through unchanged because BigQuery accepts UTF-8 inside
+    string literals.
+
+    The upstream ``sqlalchemy-bigquery`` dialect relies on Python's ``repr()``
+    to quote values, which switches to double-quote delimiters when the
+    string contains an apostrophe (e.g. ``repr("O'Brien")`` → ``"O'Brien"``).
+    Double-quoted tokens inside compiled SQL would be parsed as identifiers,
+    so the query also fails.  This helper always produces a single-quoted
+    literal.
+    """
+    parts = []
+    for ch in value:
+        escape = _BIGQUERY_STRING_ESCAPES.get(ch)
+        if escape is not None:
+            parts.append(escape)
+        elif ord(ch) < 0x20 or ord(ch) == 0x7F:
+            parts.append(f"\\x{ord(ch):02x}")
+        else:
+            parts.append(ch)
+    return f"'{''.join(parts)}'"
+
+
+def _monkeypatch_bigquery_string_literal() -> None:
+    """
+    Patch the sqlalchemy-bigquery dialect so that string literals containing
+    apostrophes are rendered correctly when ``literal_binds=True``.
+
+    Without this patch, a filter value like ``O'Brien`` is compiled as the
+    double-quoted identifier ``"O'Brien"`` instead of the single-quoted literal
+    ``'O\\'Brien'``, causing BigQuery to return a syntax error.
+
+    This follows the same pattern used for the Databricks dialect fix in
+    ``superset/db_engine_specs/databricks.py``.
+    """
+    try:
+        from sqlalchemy_bigquery import BigQueryDialect
+
+        class BigQuerySafeString(types.TypeDecorator):
+            impl = types.String
+            cache_ok = True
+
+            def literal_processor(self, dialect: Any) -> Callable[[str], str]:
+                if dialect.name == "bigquery":
+                    return _process_string_literal
+                return super().literal_processor(dialect)
+
+        BigQueryDialect.colspecs[types.String] = BigQuerySafeString
+
+    except ImportError:
+        pass
+
+
+_monkeypatch_bigquery_string_literal()
+
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     "Access Denied: Project (?P<project_name>.+?): User does not have "

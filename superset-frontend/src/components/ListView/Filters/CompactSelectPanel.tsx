@@ -26,7 +26,7 @@ import {
   type CSSProperties,
   type RefObject,
 } from 'react';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
 import {

@@ -57,6 +57,7 @@ import { useDrillDetailMenuItems } from 'src/components/Chart/useDrillDetailMenu
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -263,7 +264,7 @@ const SliceHeaderControls = (
         props.logExploreChart?.(props.slice.slice_id);
         if (domEvent.metaKey || domEvent.ctrlKey) {
           domEvent.preventDefault();
-          window.open(props.exploreUrl, '_blank');
+          openInNewTab(props.exploreUrl);
         } else {
           history.push(props.exploreUrl);
         }
@@ -380,17 +381,24 @@ const SliceHeaderControls = (
   const updatedWhen = updatedDttm
     ? (extendedDayjs.utc(updatedDttm) as any).fromNow()
     : '';
-  const getCachedTitle = (itemCached: boolean) => {
+  const getCachedTitle = (itemCached: boolean, index: number) => {
     if (itemCached) {
-      return t('Cached %s', cachedWhen);
+      return t('Cached %s', cachedWhen[index]);
     }
     if (updatedWhen) {
       return t('Fetched %s', updatedWhen);
     }
     return '';
   };
-  const refreshTooltipData = [...new Set(isCached.map(getCachedTitle) || '')];
-  // If all queries have same cache time we can unit them to one
+  const refreshTooltipData = (() => {
+    const titles = isCached.map((itemCached, index) =>
+      getCachedTitle(itemCached, index),
+    );
+    // Collapse to a single entry only when every query shares the same
+    // cache/fetch time; otherwise keep the per-query list so the "Query N"
+    // numbering stays aligned with the original query order.
+    return new Set(titles).size === 1 ? [titles[0]] : titles;
+  })();
   const refreshTooltip = refreshTooltipData.map((item, index) => (
     <div key={`tooltip-${index}`}>
       {refreshTooltipData.length > 1
