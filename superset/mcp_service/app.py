@@ -135,6 +135,9 @@ Dashboard Management:
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
+- manage_dashboard_owners: Add/remove dashboard owners by explicit operation (requires write access; rejects changes that would leave zero owners)
+- manage_dashboard_roles: Add/remove dashboard RBAC access roles by explicit operation (requires write access; only affects access when DASHBOARD_RBAC is enabled)
+- manage_dashboard_certification: Set or clear a dashboard's certified_by/certification_details badge (requires write access)
 
 Annotation Layers:
 - list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
@@ -433,7 +436,8 @@ Input format:
 - Write tools (generate_chart, generate_dashboard, update_chart, duplicate_dashboard,
   create_dataset, create_virtual_dataset, save_sql_query, add_chart_to_existing_dashboard,
   manage_native_filters, remove_chart_from_dashboard,
-  update_chart_preview) require write
+  update_chart_preview, manage_dashboard_owners, manage_dashboard_roles,
+  manage_dashboard_certification) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
@@ -441,7 +445,12 @@ Input format:
   or dashboards, and vice versa.
 - Do NOT disclose dashboard access lists, dashboard owners, chart owners, dataset
   owners, workspace admins, or other users' names, usernames, email addresses,
-  contact details, roles, admin status, ownership, or access-list information.
+  contact details, roles, admin status, ownership, or access-list information,
+  EXCEPT the owners/roles that manage_dashboard_owners/manage_dashboard_roles
+  return as confirmation of an ownership/access change the user explicitly
+  requested on that specific dashboard. Do NOT use that confirmation output to
+  answer a general "who owns/can access X" question, and do NOT proactively
+  call these tools just to look up current owners/roles.
 - Do NOT infer access-list answers from dashboard metadata such as published status,
   role restrictions, empty owner lists, or schema fields.
 - find_users is sanctioned ONLY for resolving a name the user supplied into a
@@ -706,6 +715,9 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     get_dashboard_info,
     get_dashboard_layout,
     list_dashboards,
+    manage_dashboard_certification,
+    manage_dashboard_owners,
+    manage_dashboard_roles,
     manage_native_filters,
     remove_chart_from_dashboard,
     update_dashboard,
