@@ -45,7 +45,6 @@ export function GridTable<RecordType extends object>({
   showRowNumber,
   enableActions,
   size = GridSize.Middle,
-  striped,
 }: TableProps<RecordType>) {
   const theme = useTheme();
   const isExternalFilterPresent = useCallback(

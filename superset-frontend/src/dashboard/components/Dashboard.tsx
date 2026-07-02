@@ -114,12 +114,8 @@ function Dashboard({
   slices,
   activeFilters,
   chartConfiguration,
-  datasources,
   ownDataCharts,
   layout,
-  impressionId,
-  timeout = 60,
-  userId = '',
   children,
 }: DashboardProps): JSX.Element {
   const context = useContext(PluginContext) as PluginContextType;

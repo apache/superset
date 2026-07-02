@@ -238,7 +238,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     defaultAlignPN: alignPositiveNegative,
     showCellBars,
     colorPositiveNegative,
-    totals,
     columnColorFormatters,
     allowRearrangeColumns,
     basicColorFormatters,

@@ -34,7 +34,7 @@ export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
     onClick,
     children,
     icon,
-    id,
+    id: _id,
     ...rest
   } = props;
 
