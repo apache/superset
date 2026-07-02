@@ -28,10 +28,16 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     GenerateChartRequest,
     GenerateChartResponse,
+    GetChartDataRequest,
+    GetChartInfoRequest,
+    GetChartPreviewRequest,
+    GetChartSqlRequest,
+    ListChartsRequest,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
     TableChartConfig,
+    UpdateChartRequest,
     XYChartConfig,
 )
 
@@ -1137,3 +1143,46 @@ class TestSqlMetricLlmContextWrapping:
         assert "<UNTRUSTED-CONTENT>" in metric["label"]
         assert metric["expressionType"] == "SQL"
         assert "<UNTRUSTED-CONTENT>" not in metric["optionName"]
+
+
+class TestRequestSchemaAliasChoices:
+    """Test that LLM-friendly field name variants are accepted on the
+    chart MCP tool request schemas, so callers sending 'id'/'chart_id'
+    instead of 'identifier' (or 'columns' instead of 'select_columns')
+    don't silently have the field dropped."""
+
+    def test_get_chart_info_identifier_id_alias(self) -> None:
+        req = GetChartInfoRequest.model_validate({"id": 42})
+        assert req.identifier == 42
+
+    def test_get_chart_info_identifier_chart_id_alias(self) -> None:
+        req = GetChartInfoRequest.model_validate({"chart_id": 42})
+        assert req.identifier == 42
+
+    def test_get_chart_info_identifier_still_works(self) -> None:
+        req = GetChartInfoRequest.model_validate({"identifier": 42})
+        assert req.identifier == 42
+
+    def test_get_chart_data_identifier_id_alias(self) -> None:
+        req = GetChartDataRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_preview_identifier_id_alias(self) -> None:
+        req = GetChartPreviewRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_sql_identifier_id_alias(self) -> None:
+        req = GetChartSqlRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_update_chart_identifier_id_alias(self) -> None:
+        req = UpdateChartRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_update_chart_identifier_chart_id_alias(self) -> None:
+        req = UpdateChartRequest.model_validate({"chart_id": 7})
+        assert req.identifier == 7
+
+    def test_list_charts_select_columns_columns_alias(self) -> None:
+        req = ListChartsRequest.model_validate({"columns": ["id", "slice_name"]})
+        assert req.select_columns == ["id", "slice_name"]
