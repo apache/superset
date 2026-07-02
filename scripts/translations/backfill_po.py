@@ -152,6 +152,60 @@ def _is_missing(entry: polib.POEntry) -> bool:
     return not entry.msgstr
 
 
+# msgids that must never be machine-translated: literal tokens compared against
+# source (SQL keywords, confirmation words), enum values (d3 interpolation
+# modes), icon names (e.g. "bolt" -> the ⚡ Explore control icon), API field
+# names, code constants, and example placeholders. Seeded from the
+# "# Не переводить" (do-not-translate) markers a human translator curated in the
+# ru catalog; these strings are language-independent, so the set applies to
+# every catalog. Translating them can break icon lookups, enum matching, or API
+# contracts, or is simply meaningless (proper nouns, example values).
+DO_NOT_TRANSLATE: frozenset[str] = frozenset(
+    {
+        "10000",
+        "DELETE",
+        "ECharts",
+        "EMAIL_REPORTS_CTA",
+        "GROUP BY",
+        "NOT GROUPED BY",
+        "OVERWRITE",
+        "TEMPORAL_RANGE",
+        "WFS",
+        "WMS",
+        "XYZ",
+        "bolt",
+        "crontab",
+        "error_message",
+        "pivoted_xlsx",
+        "schema1,schema2",
+        "sql",
+        "step-after",
+        "step-before",
+        "superset.example.com",
+        "your-project-1234-a1",
+    }
+)
+
+# Translator comment (in any catalog) explicitly marking an entry off-limits,
+# e.g. the ru catalog's "# Не переводить". Honored so a human translator's
+# deliberate decision to leave a string untranslated is never overridden.
+_DO_NOT_TRANSLATE_COMMENT = re.compile(
+    r"не\s+переводить|do[\s-]?not[\s-]?translate|don'?t\s+translate",
+    re.IGNORECASE,
+)
+
+
+def _is_do_not_translate(entry: polib.POEntry) -> bool:
+    """Return True if an entry must be left for a human (never machine-filled).
+
+    Either its msgid is in the curated DO_NOT_TRANSLATE set, or a translator
+    comment explicitly marks it do-not-translate.
+    """
+    if entry.msgid in DO_NOT_TRANSLATE:
+        return True
+    return bool(entry.tcomment and _DO_NOT_TRANSLATE_COMMENT.search(entry.tcomment))
+
+
 def _context_langs(
     item: dict[str, Any], index: dict[str, Any], target_lang: str
 ) -> list[str]:
@@ -646,6 +700,15 @@ def backfill(
 
     missing: list[polib.POEntry] = [e for e in cat if e.msgid and _is_missing(e)]
     print(f"Found {len(missing)} untranslated entries for '{lang}'.", file=sys.stderr)
+
+    skipped_dnt = [e for e in missing if _is_do_not_translate(e)]
+    if skipped_dnt:
+        missing = [e for e in missing if not _is_do_not_translate(e)]
+        print(
+            f"Skipping {len(skipped_dnt)} do-not-translate entries (literal "
+            f"tokens / translator-marked); they are left untranslated.",
+            file=sys.stderr,
+        )
 
     if min_context > 0:
         before = len(missing)

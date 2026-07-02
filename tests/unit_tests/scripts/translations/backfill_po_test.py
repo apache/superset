@@ -436,3 +436,29 @@ def test_resilient_translate_propagates_runtime_error(
     monkeypatch.setattr(backfill_po, "translate_batch", _boom)
     with pytest.raises(RuntimeError):
         backfill_po._resilient_translate("m", "fr", [_qitem("Alpha")], {})
+
+
+# --- _is_do_not_translate: never machine-fill literal tokens -------------------
+
+
+def test_is_do_not_translate_curated_msgid() -> None:
+    """A msgid in the curated DO_NOT_TRANSLATE set is protected (icon names,
+    enum values, SQL keywords, API field names, placeholders)."""
+    for msgid in ("bolt", "error_message", "step-after", "GROUP BY"):
+        assert backfill_po._is_do_not_translate(polib.POEntry(msgid=msgid, msgstr=""))
+
+
+def test_is_do_not_translate_honors_translator_comment() -> None:
+    """An explicit do-not-translate translator comment is honored, in any
+    language (e.g. the ru catalog's Cyrillic marker) and phrasing."""
+    for comment in ("Не переводить", "do not translate", "DO-NOT-TRANSLATE"):
+        entry = polib.POEntry(msgid="Some label", msgstr="")
+        entry.tcomment = comment
+        assert backfill_po._is_do_not_translate(entry)
+
+
+def test_is_do_not_translate_allows_normal_entry() -> None:
+    """An ordinary translatable string is not flagged."""
+    entry = polib.POEntry(msgid="Save dashboard", msgstr="")
+    entry.tcomment = "Machine-translated via backfill_po.py (claude-x) [no refs]"
+    assert not backfill_po._is_do_not_translate(entry)
