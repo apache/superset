@@ -70,6 +70,36 @@ def _make_view_menu(name: str) -> ViewMenu:
     return vm
 
 
+def _security_row_names() -> set[str]:
+    """
+    Exact-case names of any ``security``/``Security`` view-menu rows.
+
+    Compares in Python because a SQL ``name`` filter is case-insensitive on
+    MySQL's default collation (the very behaviour this migration works around),
+    so ``filter_by(name="security")`` would also match ``"Security"``.
+    """
+    return {
+        vm.name
+        for vm in db.session.query(ViewMenu).all()
+        if vm.name in ("security", "Security")
+    }
+
+
+def _skip_if_case_insensitive_unique_key() -> None:
+    """
+    Skip scenarios that require both ``security`` and ``Security`` rows.
+
+    MySQL's default case-insensitive unique key on ``ab_view_menu.name`` cannot
+    hold both spellings at once, so the duplicate-row state (a SQLite/PostgreSQL
+    artifact, per the migration docstring) cannot be arranged there.
+    """
+    if db.session.get_bind().dialect.name == "mysql":
+        pytest.skip(
+            "MySQL's case-insensitive unique key cannot hold both "
+            "'security' and 'Security' rows"
+        )
+
+
 _TEST_ROLE_NAMES = ("mysql_security_role", "dup_security_role")
 
 
@@ -109,7 +139,7 @@ def test_upgrade_renames_lonely_lowercase_row() -> None:
     # Assert: the row was renamed in place, so its id and PVM/role are intact.
     renamed = db.session.query(ViewMenu).filter_by(id=lower_id).one()
     assert renamed.name == "Security"
-    assert db.session.query(ViewMenu).filter_by(name="security").one_or_none() is None
+    assert _security_row_names() == {"Security"}
     refreshed_role = db.session.query(Role).filter_by(name="mysql_security_role").one()
     assert pvm_id in {p.id for p in refreshed_role.permissions}
 
@@ -120,6 +150,7 @@ def test_upgrade_renames_lonely_lowercase_row() -> None:
 
 @pytest.mark.usefixtures("app_context", "_clean_security")
 def test_upgrade_merges_duplicate_rows_and_preserves_role_permissions() -> None:
+    _skip_if_case_insensitive_unique_key()
     # Arrange: both "Security" and "security" exist. The lowercase row carries
     # one overlapping permission (also on the upper row) and one unique
     # permission, each bound to a role.
@@ -146,8 +177,7 @@ def test_upgrade_merges_duplicate_rows_and_preserves_role_permissions() -> None:
     do_upgrade(db.session)
 
     # Assert: the duplicate lowercase row is gone and only "Security" survives.
-    assert db.session.query(ViewMenu).filter_by(name="security").one_or_none() is None
-    assert db.session.query(ViewMenu).filter_by(name="Security").one() is not None
+    assert _security_row_names() == {"Security"}
 
     refreshed_role = db.session.query(Role).filter_by(name="dup_security_role").one()
     role_pvm_ids = {pvm.id for pvm in refreshed_role.permissions}
@@ -180,5 +210,4 @@ def test_upgrade_is_noop_without_lowercase_row() -> None:
 
     do_upgrade(db.session)
 
-    assert db.session.query(ViewMenu).filter_by(name="Security").one() is not None
-    assert db.session.query(ViewMenu).filter_by(name="security").one_or_none() is None
+    assert _security_row_names() == {"Security"}
