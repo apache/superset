@@ -130,27 +130,6 @@ const FlexRowContainer = styled.div`
 const Actions = styled.div`
   ${({ theme }) => css`
     color: ${theme.colorIcon};
-
-    .disabled {
-      svg,
-      i {
-        &:hover {
-          path {
-            fill: ${theme.colorText};
-          }
-        }
-      }
-      color: ${theme.colorTextDisabled};
-      &:hover {
-        cursor: not-allowed;
-      }
-      .ant-menu-item:hover {
-        cursor: default;
-      }
-      &::after {
-        color: ${theme.colorTextDisabled};
-      }
-    }
   `}
 `;
 
@@ -968,15 +947,21 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {canDelete && (
                 <Tooltip
                   id="delete-action-tooltip"
-                  title={t('Delete')}
+                  title={
+                    allowEdit
+                      ? t('Delete')
+                      : t(
+                          'You must be a dataset owner in order to delete. Please reach out to a dataset owner to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
                   <span
                     data-test="dataset-row-delete"
                     role="button"
                     tabIndex={0}
-                    className="action-button"
-                    onClick={handleDelete}
+                    className={`action-button ${allowEdit ? '' : 'disabled'}`}
+                    onClick={allowEdit ? handleDelete : undefined}
                   >
                     <Icons.DeleteOutlined iconSize="l" />
                   </span>
