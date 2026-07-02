@@ -146,6 +146,11 @@ Tag Management:
 - list_tags: List tags with advanced filters (1-based pagination)
 - get_tag_info: Get detailed tag information by ID
 
+Theme Management:
+- list_themes: Discover themes (antd design-token configurations) with filters (1-based pagination)
+- get_theme_info: Get a theme's tokens (json_data) by ID or UUID
+- create_theme: Create a reusable theme from antd design tokens (requires write access)
+
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
@@ -764,6 +769,11 @@ from superset.mcp_service.tag.tool import (  # noqa: F401, E402
 from superset.mcp_service.task.tool import (  # noqa: F401, E402
     get_task_info,
     list_tasks,
+)
+from superset.mcp_service.theme.tool import (  # noqa: F401, E402
+    create_theme,
+    get_theme_info,
+    list_themes,
 )
 from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,
