@@ -25,6 +25,7 @@ import { addWarningToast } from 'src/components/MessageToasts/actions';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
+const IMAGE_DOWNLOAD_SCALE = Math.max(window.devicePixelRatio || 1, 2);
 const TRANSPARENT_RGBA = 'transparent';
 const POLL_INTERVAL_MS = 100;
 
@@ -224,14 +225,28 @@ const preserveCanvasContent = (original: Element, clone: Element) => {
   const originalCanvases = original.querySelectorAll('canvas');
   const clonedCanvases = clone.querySelectorAll('canvas');
 
+  // Scale canvas content to match the download scale so dom-to-image gets a
+  // 1:1 pixel mapping instead of stretching already-rasterized pixels.
+  // Canvas libs (e.g. ECharts) render at devicePixelRatio scale internally, so
+  // we normalise back to CSS pixels first, then scale up to IMAGE_DOWNLOAD_SCALE.
+  const copyScale = IMAGE_DOWNLOAD_SCALE / (window.devicePixelRatio || 1);
+
   originalCanvases.forEach((originalCanvas, i) => {
     if (originalCanvases[i] && clonedCanvases[i]) {
       const clonedCanvas = clonedCanvases[i] as HTMLCanvasElement;
       const ctx = clonedCanvas.getContext('2d');
       if (ctx) {
-        clonedCanvas.width = originalCanvas.width;
-        clonedCanvas.height = originalCanvas.height;
-        ctx.drawImage(originalCanvas, 0, 0);
+        clonedCanvas.width = Math.round(originalCanvas.width * copyScale);
+        clonedCanvas.height = Math.round(originalCanvas.height * copyScale);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(
+          originalCanvas,
+          0,
+          0,
+          clonedCanvas.width,
+          clonedCanvas.height,
+        );
       }
     }
   });
@@ -425,6 +440,8 @@ export default function downloadAsImageOptimized(
           bgcolor: theme?.colorBgContainer,
           filter,
           quality: IMAGE_DOWNLOAD_QUALITY,
+          scale: IMAGE_DOWNLOAD_SCALE,
+          style: { WebkitFontSmoothing: 'antialiased' },
           height: imageHeight,
           width: originalWidth,
           cacheBust: true,
@@ -471,6 +488,8 @@ export default function downloadAsImageOptimized(
         bgcolor: theme?.colorBgContainer,
         filter,
         quality: IMAGE_DOWNLOAD_QUALITY,
+        scale: IMAGE_DOWNLOAD_SCALE,
+        style: { WebkitFontSmoothing: 'antialiased' },
         height: clone.scrollHeight,
         width: clone.scrollWidth,
         cacheBust: true,
