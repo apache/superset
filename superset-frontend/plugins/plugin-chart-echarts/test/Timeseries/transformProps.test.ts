@@ -1703,6 +1703,35 @@ test('should assign distinct dash patterns for multiple time offsets consistentl
   expect(symbol1).not.toEqual(symbol2);
 });
 
+test('should adjust dataZoom bottom when chart height changes', () => {
+  const smallChart = createTestChartProps({
+    height: 300,
+    formData: { zoomable: true },
+  });
+  const largeChart = createTestChartProps({
+    height: 600,
+    formData: { zoomable: true },
+  });
+
+  const smallResult = transformProps(smallChart);
+  const largeResult = transformProps(largeChart);
+
+  const smallDataZoom = smallResult.echartOptions.dataZoom as any[];
+  const largeDataZoom = largeResult.echartOptions.dataZoom as any[];
+
+  expect(smallDataZoom).toBeDefined();
+  expect(largeDataZoom).toBeDefined();
+  expect(smallDataZoom.length).toBeGreaterThan(0);
+  expect(largeDataZoom.length).toBeGreaterThan(0);
+
+  const smallBottom = smallDataZoom[0]?.bottom;
+  const largeBottom = largeDataZoom[0]?.bottom;
+
+  expect(smallBottom).toBeDefined();
+  expect(largeBottom).toBeDefined();
+
+  expect(smallBottom).not.toEqual(largeBottom);
+
 describe('Tooltip with long labels', () => {
   test('should use axisValue for tooltip when available (richTooltip)', () => {
     const longLabelData: ChartDataResponseResult[] = [
