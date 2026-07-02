@@ -47,29 +47,27 @@ export const Label = forwardRef<HTMLSpanElement, LabelProps>((props, ref) => {
   const borderColorHover = onClick ? baseColor.borderHover : borderColor;
 
   const labelStyles = css`
-    && {
-      transition: background-color ${theme.motionDurationMid};
-      white-space: nowrap;
-      cursor: ${onClick ? 'pointer' : 'default'};
-      overflow: hidden;
-      text-overflow: ellipsis;
-      background-color: ${backgroundColor};
-      border-radius: ${theme.labelBorderRadius ?? 8}px;
-      border-color: ${borderColor};
-      padding: 0.35em 0.8em;
-      line-height: 1;
-      color: ${color};
-      display: inline-flex;
-      vertical-align: middle;
-      align-items: center;
-      max-width: 100%;
-      &:hover {
-        background-color: ${backgroundColorHover};
-        border-color: ${borderColorHover};
-        opacity: 1;
-      }
-      ${monospace ? `font-family: ${theme.fontFamilyCode};` : ''}
+    transition: background-color ${theme.motionDurationMid};
+    white-space: nowrap;
+    cursor: ${onClick ? 'pointer' : 'default'};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background-color: ${backgroundColor};
+    border-radius: ${theme.labelBorderRadius ?? 8}px;
+    border-color: ${borderColor};
+    padding: 0.35em 0.8em;
+    line-height: 1;
+    color: ${color};
+    display: inline-flex;
+    vertical-align: middle;
+    align-items: center;
+    max-width: 100%;
+    &:hover {
+      background-color: ${backgroundColorHover};
+      border-color: ${borderColorHover};
+      opacity: 1;
     }
+    ${monospace ? `font-family: ${theme.fontFamilyCode};` : ''}
   `;
 
   return (
