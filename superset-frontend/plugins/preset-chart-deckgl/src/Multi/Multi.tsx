@@ -21,7 +21,7 @@
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { createSelector } from '@reduxjs/toolkit';
 import {
   AdhocFilter,

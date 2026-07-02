@@ -88,6 +88,12 @@
         "description": "Enable semantic layers and show semantic views alongside datasets"
       },
       {
+        "name": "SOFT_DELETE",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Temporary rollout / kill-switch gate for soft delete (default off = legacy hard delete). An emergency stop, not a clean rollback: flipping ON->OFF resurrects already-soft-deleted rows. Removed (along with its two gate points \u2014 BaseDAO.delete routing and the do_orm_execute visibility listener) once soft delete is stable."
+      },
+      {
         "name": "TABLE_V2_TIME_COMPARISON_ENABLED",
         "default": false,
         "lifecycle": "development",

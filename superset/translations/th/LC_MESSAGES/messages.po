@@ -7613,6 +7613,9 @@ msgstr "ไม่สามารถลบแดชบอร์ดได้"
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, fuzzy
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "ไม่สามารถอัปเดตแดชบอร์ดได้"
 
@@ -26084,6 +26087,9 @@ msgstr ""
 "ออบเจ็กต์ JSON นี้อธิบายตำแหน่งของวิดเจ็ตในแดชบอร์ด "
 "โดยจะถูกสร้างขึ้นแบบไดนามิกเมื่อปรับขนาดและตำแหน่งของวิดเจ็ตโดยใช้การลากและวางในมุมมองแดชบอร์ด"
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -27453,6 +27459,9 @@ msgid "Unpin from the result panel"
 msgstr "ปักหมุดที่แผงผลลัพธ์"
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,

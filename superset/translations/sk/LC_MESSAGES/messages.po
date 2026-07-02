@@ -4416,6 +4416,9 @@ msgstr "Konfiguraci farieb nástenky sa nepodarilo aktualizovať."
 msgid "Dashboard could not be deleted."
 msgstr "Nástenku sa nepodarilo zmazať."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Nástenku sa nepodarilo aktualizovať."
 
@@ -15022,6 +15025,9 @@ msgstr ""
 "dynamicky pri úprave veľkosti a pozic widgetů pomocí přetahovanie v "
 "zobrazenie nástenky"
 
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
+
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
@@ -15825,6 +15831,9 @@ msgid "Unpin from the result panel"
 msgstr "Připnúť k panelu výsledkov"
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
