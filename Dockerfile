@@ -141,7 +141,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY superset/translations/ /app/translations_mo/
 RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
-        pybabel compile --use-fuzzy -d /app/translations_mo | true; \
+        pybabel compile --use-fuzzy -d /app/translations_mo || true; \
     fi; \
     rm -f /app/translations_mo/*/*/*.[po,json]
 
