@@ -1813,9 +1813,11 @@ msgstr "%s alırken bir hata oluştu:   %s "
 msgid "An error occurred while fetching available CSS templates"
 msgstr "Mevcut CSS şablonları alırken bir hata meydana geldi"
 
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "An error occurred while fetching available themes"
-msgstr "Verisetini kaydederken bir hata oluştu"
+msgstr "Mevcut temalar getirilirken bir hata oluştu"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4141,7 +4143,7 @@ msgid "Controls labeled "
 msgstr "Kontroller etiketlendi"
 
 msgid "Copied to clipboard!"
-msgstr "Söpücüklere!"
+msgstr "Panoya kopyalandı!"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4481,9 +4483,11 @@ msgstr "Özel zaman filtre eklentisi"
 msgid "Custom width of the screenshot in pixels"
 msgstr "pikselde görüntünün özel genişliği"
 
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "Custom..."
-msgstr "Başlangıç tarihi"
+msgstr "Özel..."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
