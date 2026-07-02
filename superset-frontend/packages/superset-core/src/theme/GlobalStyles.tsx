@@ -117,7 +117,7 @@ export const GlobalStyles = () => {
         }
 
         .superset-explore-popover.ant-popover
-          .ant-popover-inner:has(.ant-popover-title) {
+          .ant-popover-container:has(.ant-popover-title) {
           padding-top: 0;
         }
         .superset-explore-popover.ant-popover .ant-popover-title {
@@ -126,7 +126,7 @@ export const GlobalStyles = () => {
           line-height: 1;
         }
         .superset-explore-popover.ant-popover
-          .ant-popover-inner:has(.ant-popover-title)
+          .ant-popover-container:has(.ant-popover-title)
           .ant-tabs-tab {
           padding-top: 0;
         }
