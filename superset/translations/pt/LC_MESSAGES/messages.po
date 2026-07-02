@@ -4401,6 +4401,9 @@ msgstr "Não foi possível gravar a sua query"
 msgid "Dashboard could not be deleted."
 msgstr "Não foi possível gravar a sua query"
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Não foi possível gravar a sua query"
 

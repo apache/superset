@@ -7822,6 +7822,9 @@ msgstr "Kojelautaa ei voitu poistaa."
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, fuzzy
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Kojelautaa ei voitu päivittää."
 
@@ -26672,8 +26675,10 @@ msgstr ""
 "dynaamisesti, kun widgetien kokoa ja sijaintia muokataan vetämällä ja "
 "pudottamalla koontinäyttönäkymässä"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
-msgstr ""
+msgstr "Tätä linkkiä ei voi avata, koska sen osoite on vaarallinen."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -28096,8 +28101,10 @@ msgstr "Kiinnitä tulosruutuun"
 msgid "Unpin from top"
 msgstr "Irrota yläreunasta"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
 msgid "Unsafe link blocked"
-msgstr ""
+msgstr "Vaarallinen linkki estetty"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
