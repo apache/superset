@@ -36,7 +36,7 @@ from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel, Field
-from sqlalchemy import asc, cast, desc, or_, Text
+from sqlalchemy import asc, cast, desc, false, or_, Text
 from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
@@ -76,24 +76,46 @@ class ColumnOperatorEnum(str, Enum):
         return op_func(column, value)
 
 
-def _escape_like(value: str) -> str:
-    """Escape LIKE/ILIKE wildcards to prevent wildcard injection."""
-    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+def _escape_like(value: Any) -> str:
+    """Escape LIKE/ILIKE wildcards to prevent wildcard injection.
+
+    The filter payload is typed ``Any``, so non-string scalars (e.g. numeric
+    JSON values) can reach LIKE-family operators; coerce them to ``str`` so
+    they degrade to a literal match instead of raising ``AttributeError``.
+    ``None`` never reaches this function — ``_like_op`` short-circuits it
+    first, because coercing ``None`` to ``""`` would build a wildcard-only
+    pattern (``%%``) that matches every row.
+    """
+    return str(value).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _like_op(template: str, case_insensitive: bool = False) -> Any:
+    """Build a LIKE-family operator with SQL-faithful NULL semantics.
+
+    ``template`` places the escaped value inside the pattern (e.g. ``"%{}%"``
+    for contains). A ``None`` value matches no rows — mirroring SQL's
+    three-valued logic, where ``x LIKE NULL`` evaluates to NULL — rather
+    than raising or degenerating into a match-everything pattern.
+    """
+
+    def op(col: Any, val: Any) -> Any:
+        if val is None:
+            return false()
+        pattern = template.format(_escape_like(val))
+        if case_insensitive:
+            return col.ilike(pattern, escape="\\")
+        return col.like(pattern, escape="\\")
+
+    return op
 
 
 # Define operator_map as a module-level dict after the enum is defined
 operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.eq: lambda col, val: col == val,
     ColumnOperatorEnum.ne: lambda col, val: col != val,
-    ColumnOperatorEnum.sw: lambda col, val: col.like(
-        f"{_escape_like(val)}%", escape="\\"
-    ),
-    ColumnOperatorEnum.ew: lambda col, val: col.like(
-        f"%{_escape_like(val)}", escape="\\"
-    ),
-    ColumnOperatorEnum.ct: lambda col, val: col.ilike(
-        f"%{_escape_like(val)}%", escape="\\"
-    ),
+    ColumnOperatorEnum.sw: _like_op("{}%"),
+    ColumnOperatorEnum.ew: _like_op("%{}"),
+    ColumnOperatorEnum.ct: _like_op("%{}%", case_insensitive=True),
     ColumnOperatorEnum.in_: lambda col, val: col.in_(
         val if isinstance(val, (list, tuple)) else [val]
     ),
@@ -104,12 +126,8 @@ operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.gte: lambda col, val: col >= val,
     ColumnOperatorEnum.lt: lambda col, val: col < val,
     ColumnOperatorEnum.lte: lambda col, val: col <= val,
-    ColumnOperatorEnum.like: lambda col, val: col.like(
-        f"%{_escape_like(val)}%", escape="\\"
-    ),
-    ColumnOperatorEnum.ilike: lambda col, val: col.ilike(
-        f"%{_escape_like(val)}%", escape="\\"
-    ),
+    ColumnOperatorEnum.like: _like_op("%{}%"),
+    ColumnOperatorEnum.ilike: _like_op("%{}%", case_insensitive=True),
     ColumnOperatorEnum.is_null: lambda col, _: col.is_(None),
     ColumnOperatorEnum.is_not_null: lambda col, _: col.isnot(None),
 }
