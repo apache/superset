@@ -52,7 +52,9 @@ repos:
       - id: check-added-large-files
         exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*|^superset-frontend/CHANGELOG\.md$|^superset/examples/.*/data\.parquet$|^superset/translations/.*\.po$
       - id: check-yaml
-        exclude: ^helm/superset/templates/
+        # docker-compose-excel-verify.yml uses the compose-spec `!reset` tag,
+        # which the safe YAML loader cannot parse.
+        exclude: ^helm/superset/templates/|^docker-compose-excel-verify\.yml$
       - id: debug-statements
       - id: end-of-file-fixer
         exclude: .*/lerna\.json$|^docs/static/img/logos/
