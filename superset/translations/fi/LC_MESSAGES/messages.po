@@ -7822,6 +7822,9 @@ msgstr "Kojelautaa ei voitu poistaa."
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, fuzzy
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Kojelautaa ei voitu päivittää."
 
