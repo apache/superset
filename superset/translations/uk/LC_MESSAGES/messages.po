@@ -4660,6 +4660,9 @@ msgstr "Не вдалося створити набір даних."
 msgid "Dataset could not be duplicated."
 msgstr "Не вдалося дублювати набір даних."
 
+msgid "Dataset could not be restored."
+msgstr ""
+
 msgid "Dataset could not be updated."
 msgstr "Не вдалося оновити набір даних."
 

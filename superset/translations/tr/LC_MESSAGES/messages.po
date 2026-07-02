@@ -4617,6 +4617,9 @@ msgstr "Veriseti oluşturulamadı."
 msgid "Dataset could not be duplicated."
 msgstr "Veriseti çoğaltılamadı."
 
+msgid "Dataset could not be restored."
+msgstr ""
+
 msgid "Dataset could not be updated."
 msgstr "Veriseti güncellenemedi."
 
