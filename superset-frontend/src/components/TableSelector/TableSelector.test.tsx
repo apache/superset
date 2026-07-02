@@ -42,9 +42,9 @@ const createProps = (props = {}) => ({
   ...props,
 });
 
-const getTableMockFunction = () =>
+const getTableMockFunction = (count = 4) =>
   ({
-    count: 4,
+    count,
     result: [
       { label: 'table_a', value: 'table_a' },
       { label: 'table_b', value: 'table_b' },
@@ -80,6 +80,19 @@ afterEach(async () => {
   fetchMock.clearHistory().removeRoutes();
   // Wait for any pending effects to complete
   await new Promise(resolve => setTimeout(resolve, 0));
+});
+
+test('shows a helper message when some tables are not shown', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
+  fetchMock.get(tablesApiRoute, getTableMockFunction(5));
+
+  const props = createProps();
+  render(<TableSelector {...props} />, { useRedux: true, store });
+
+  expect(
+    await screen.findByText('Some tables are not shown. Refine your search.'),
+  ).toBeInTheDocument();
 });
 
 test('renders with default props', async () => {

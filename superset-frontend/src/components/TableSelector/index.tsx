@@ -221,6 +221,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         : [],
     [data, customTableOptionLabelRenderer],
   );
+  const hasMoreTables = data?.hasMore;
 
   useEffect(() => {
     // reset selections
@@ -339,6 +340,11 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       <>
         <StyledFormLabel>{label}</StyledFormLabel>
         {renderSelectRow(select, refreshLabel)}
+        {hasMoreTables && (
+          <div className="table-length">
+            {t('Some tables are not shown. Refine your search.')}
+          </div>
+        )}
       </>
     );
   }
