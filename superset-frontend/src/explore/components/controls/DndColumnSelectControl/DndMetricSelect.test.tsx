@@ -24,9 +24,13 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
+import { Metric } from '@superset-ui/core';
+import {
+  DndMetricSelect,
+  coerceMetrics,
+} from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import { AGGREGATES } from 'src/explore/constants';
-import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
+import AdhocMetric, { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
 import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
 import { DndItemType } from '../../DndItemType';
 
@@ -67,6 +71,70 @@ const adhocMetricB = {
   aggregate: AGGREGATES.SUM,
   optionName: 'def',
 };
+
+test('coerceMetrics regenerates duplicate optionNames so each metric stays unique', () => {
+  // A saved chart can carry two adhoc metrics with the same optionName (e.g.
+  // born from a duplicated metric). Since edits are matched by optionName, the
+  // duplicates must be split apart on load or editing one overwrites the other.
+  const dup = 'shared_option';
+  const result = coerceMetrics(
+    [
+      {
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        column: defaultProps.columns[0],
+        aggregate: AGGREGATES.SUM,
+        optionName: dup,
+      },
+      {
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        column: defaultProps.columns[1],
+        aggregate: AGGREGATES.AVG,
+        optionName: dup,
+      },
+    ] as any,
+    defaultProps.savedMetrics as unknown as Metric[],
+    defaultProps.columns,
+  ) as AdhocMetric[];
+
+  expect(result).toHaveLength(2);
+  // First keeps the optionName, second is regenerated to avoid the collision.
+  expect(result[0].optionName).toBe(dup);
+  expect(result[1].optionName).not.toBe(dup);
+  // Each metric definition is otherwise preserved.
+  expect(result[0].aggregate).toBe(AGGREGATES.SUM);
+  expect(result[1].aggregate).toBe(AGGREGATES.AVG);
+});
+
+test('coerceMetrics regenerates duplicate optionNames for SQL adhoc metrics too', () => {
+  // The same collision can happen with custom SQL metrics, which take a
+  // different code path than column-backed metrics but must dedupe the same way.
+  const dup = 'shared_option';
+  const result = coerceMetrics(
+    [
+      {
+        expressionType: EXPRESSION_TYPES.SQL,
+        sqlExpression: 'COUNT(*)',
+        label: 'count',
+        optionName: dup,
+      },
+      {
+        expressionType: EXPRESSION_TYPES.SQL,
+        sqlExpression: 'SUM(value)',
+        label: 'total',
+        optionName: dup,
+      },
+    ] as any,
+    defaultProps.savedMetrics as unknown as Metric[],
+    defaultProps.columns,
+  ) as AdhocMetric[];
+
+  expect(result).toHaveLength(2);
+  expect(result[0].optionName).toBe(dup);
+  expect(result[1].optionName).not.toBe(dup);
+  // Each metric definition is otherwise preserved.
+  expect(result[0].sqlExpression).toBe('COUNT(*)');
+  expect(result[1].sqlExpression).toBe('SUM(value)');
+});
 
 test('renders with default props', () => {
   render(<DndMetricSelect {...defaultProps} />, { useDnd: true });

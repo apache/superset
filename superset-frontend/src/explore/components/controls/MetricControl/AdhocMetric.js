@@ -156,3 +156,24 @@ export default class AdhocMetric {
     return inferSqlExpressionColumn(this);
   }
 }
+
+/**
+ * Metrics are identified by `optionName` when editing, so two metrics sharing
+ * one (a saved chart can carry duplicate optionNames, e.g. from a duplicated
+ * metric) would let an edit to one bleed into the other. Given a `seen` set
+ * shared across a list, return the metric unchanged the first time its
+ * optionName is encountered, or a copy with a freshly generated optionName on a
+ * collision, so each metric keeps a unique identity.
+ */
+export function dedupeAdhocMetricOptionName(metric, seenOptionNames) {
+  if (!seenOptionNames.has(metric.optionName)) {
+    seenOptionNames.add(metric.optionName);
+    return metric;
+  }
+  const deduped = new AdhocMetric({
+    ...metric,
+    optionName: undefined,
+  });
+  seenOptionNames.add(deduped.optionName);
+  return deduped;
+}

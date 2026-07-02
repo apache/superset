@@ -30,7 +30,9 @@ import {
   tn,
 } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import AdhocMetric, {
+  dedupeAdhocMetricOptionName,
+} from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger';
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
 import {
@@ -51,7 +53,7 @@ const isDictionaryForAdhocMetric = (value: QueryFormMetric) =>
   typeof value !== 'string' &&
   value.expressionType;
 
-const coerceMetrics = (
+export const coerceMetrics = (
   addedMetrics: QueryFormMetric | QueryFormMetric[] | undefined | null,
   savedMetrics: Metric[],
   columns: ColumnMeta[],
@@ -69,6 +71,10 @@ const coerceMetrics = (
       return true;
     },
   );
+
+  // Metrics are identified by optionName when editing; regenerate any that
+  // collide so each keeps a unique identity (see dedupeAdhocMetricOptionName).
+  const seenOptionNames = new Set<string>();
 
   return metricsCompatibleWithDataset.map(metric => {
     if (
@@ -89,10 +95,16 @@ const coerceMetrics = (
         col => col.column_name === metric.column.column_name,
       );
       if (column) {
-        return new AdhocMetric({ ...metric, column });
+        return dedupeAdhocMetricOptionName(
+          new AdhocMetric({ ...metric, column }),
+          seenOptionNames,
+        );
       }
     }
-    return new AdhocMetric(metric);
+    return dedupeAdhocMetricOptionName(
+      new AdhocMetric(metric),
+      seenOptionNames,
+    );
   });
 };
 

@@ -30,7 +30,7 @@ import {
 } from 'src/explore/components/controls/OptionControls';
 import columnType from './columnType';
 import MetricDefinitionValue from './MetricDefinitionValue';
-import AdhocMetric from './AdhocMetric';
+import AdhocMetric, { dedupeAdhocMetricOptionName } from './AdhocMetric';
 import savedMetricType from './savedMetricType';
 import adhocMetricType from './adhocMetricType';
 import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
@@ -88,9 +88,12 @@ function coerceAdhocMetrics(value) {
     }
     return [value];
   }
+  // Metrics are identified by optionName when editing; regenerate any that
+  // collide so each keeps a unique identity (see dedupeAdhocMetricOptionName).
+  const seenOptionNames = new Set();
   return value.map(val => {
     if (isDictionaryForAdhocMetric(val)) {
-      return new AdhocMetric(val);
+      return dedupeAdhocMetricOptionName(new AdhocMetric(val), seenOptionNames);
     }
     return val;
   });
