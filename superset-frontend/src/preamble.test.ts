@@ -72,13 +72,16 @@ jest.mock('./utils/pathUtils', () => ({
 }));
 jest.mock('./hooks/useLocale', () => ({}));
 
-const bootstrapData = (locale?: string) => ({
+const bootstrapData = (
+  locale?: string,
+  featureFlags: Record<string, boolean> = {},
+) => ({
   common: {
     d3_format: {},
     d3_time_format: {},
     extra_categorical_color_schemes: [],
     extra_sequential_color_schemes: [],
-    feature_flags: {},
+    feature_flags: featureFlags,
     locale,
   },
   user: {
@@ -110,4 +113,33 @@ test('falls back to en when passing locale to setupFormatters', async () => {
   await runPreamble();
 
   expect(mockSetupFormatters).toHaveBeenCalledWith({}, {}, 'en');
+});
+
+test('initializes feature flags before fetching non-English language pack', async () => {
+  const featureFlags = { EMBEDDED_SUPERSET: true };
+  mockGetBootstrapData.mockReturnValue(bootstrapData('fr', featureFlags));
+
+  const originalFetch = global.fetch;
+  const fetchMock = jest
+    .fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>()
+    .mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({}),
+    } as unknown as Response);
+  global.fetch = fetchMock;
+
+  try {
+    await runPreamble();
+
+    expect(mockInitFeatureFlags).toHaveBeenCalledWith(featureFlags);
+    expect(fetchMock).toHaveBeenCalledWith('/superset/language_pack/fr/', {
+      signal: expect.any(AbortSignal),
+    });
+
+    expect(mockInitFeatureFlags.mock.invocationCallOrder[0]).toBeLessThan(
+      fetchMock.mock.invocationCallOrder[0],
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
