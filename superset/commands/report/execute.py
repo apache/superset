@@ -45,6 +45,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleStateNotFoundError,
     ReportScheduleSystemErrorsException,
     ReportScheduleTargetChartDeletedError,
+    ReportScheduleTargetDashboardDeletedError,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
@@ -279,6 +280,16 @@ class BaseReportState:
             and self._report_schedule.chart is None
         ):
             raise ReportScheduleTargetChartDeletedError()
+        # Symmetric guard for dashboard targets. Dashboard soft delete lands
+        # in the sibling rollout; until then this cannot fire (a dashboard
+        # with dependent reports cannot be deleted), which makes it inert
+        # rather than wrong — and it keeps the report-target error vocabulary
+        # parallel across entities from day one.
+        if (
+            self._report_schedule.dashboard_id is not None
+            and self._report_schedule.dashboard is None
+        ):
+            raise ReportScheduleTargetDashboardDeletedError()
         force = "true" if self._report_schedule.force_screenshot else "false"
         if self._report_schedule.chart:
             if result_format in {
@@ -323,6 +334,14 @@ class BaseReportState:
         """
         Retrieve the URL for the dashboard tabs, or return the dashboard URL if no tabs are available.
         """  # noqa: E501
+        # Called directly from AsyncExecuteReportScheduleCommand.run (permalink
+        # pre-commit) without passing through _get_url, so it needs the same
+        # deleted-target guard.
+        if (
+            self._report_schedule.dashboard_id is not None
+            and self._report_schedule.dashboard is None
+        ):
+            raise ReportScheduleTargetDashboardDeletedError()
         force = "true" if self._report_schedule.force_screenshot else "false"
 
         if (

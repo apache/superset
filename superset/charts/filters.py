@@ -211,8 +211,8 @@ class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
     soft-deleted charts they could never restore. Live rows are unaffected —
     they keep their normal ``ChartFilter`` visibility. The ownership scoping is
     part of the cross-entity deleted-state contract: only the restore audience
-    may enumerate soft-deleted rows (kept consistent with the deleted-state
-    filters in the dashboard and dataset soft-delete rollouts).
+    may enumerate soft-deleted rows — any entity exposing a deleted-state
+    filter is expected to apply the same scoping.
     """
 
     arg_name = "chart_deleted_state"
@@ -220,7 +220,7 @@ class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
 
     def apply(self, query: Query, value: Any) -> Query:
         query = super().apply(query, value)
-        normalized = str(value).lower().strip() if value is not None else ""
+        normalized = self._normalize(value)
         if normalized not in {"include", "only"} or security_manager.is_admin():
             return query
 

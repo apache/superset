@@ -2003,3 +2003,46 @@ def test_get_url_raises_when_target_chart_soft_deleted(
     state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
     with pytest.raises(ReportScheduleTargetChartDeletedError):
         state._get_url()
+
+
+def test_get_url_raises_when_target_dashboard_soft_deleted(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """Symmetric twin of the chart-target guard: a dashboard report whose
+    visibility-filtered ``dashboard`` relationship loads ``None`` while
+    ``dashboard_id`` is set must raise the dedicated error, not fall into
+    ``dashboard.id`` on ``None`` (an opaque ``AttributeError``)."""
+    from superset.commands.report.exceptions import (
+        ReportScheduleTargetDashboardDeletedError,
+    )
+
+    report_schedule = mocker.MagicMock()
+    report_schedule.chart_id = None
+    report_schedule.chart = None
+    report_schedule.dashboard_id = 7
+    report_schedule.dashboard = None
+
+    state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
+    with pytest.raises(ReportScheduleTargetDashboardDeletedError):
+        state._get_url()
+
+
+def test_get_dashboard_urls_raises_when_target_dashboard_soft_deleted(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """``get_dashboard_urls`` is entered directly from the async command's
+    permalink pre-commit (bypassing ``_get_url``), so it needs — and has —
+    the same deleted-target guard."""
+    from superset.commands.report.exceptions import (
+        ReportScheduleTargetDashboardDeletedError,
+    )
+
+    report_schedule = mocker.MagicMock()
+    report_schedule.dashboard_id = 7
+    report_schedule.dashboard = None
+
+    state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
+    with pytest.raises(ReportScheduleTargetDashboardDeletedError):
+        state.get_dashboard_urls()

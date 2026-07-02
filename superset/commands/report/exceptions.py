@@ -232,6 +232,13 @@ class ReportScheduleTargetChartDeletedError(CommandException):
     )
 
 
+class ReportScheduleTargetDashboardDeletedError(CommandException):
+    message = _(
+        "The dashboard this report targets was deleted. Restore the "
+        "dashboard, or update the report to point at an active dashboard."
+    )
+
+
 class ReportSchedulePreviousWorkingError(CommandException):
     status = 429
     message = _("Report Schedule is still working, refusing to re-compute.")
