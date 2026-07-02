@@ -42,6 +42,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import {
@@ -223,7 +224,22 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
       }
       if (isOldRison) {
-        dataMask = isOldRison;
+        // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
+        // per-filter selections under `currentState`; modern dataMask uses
+        // `filterState`. Without this copy the filter panel shows no active
+        // selections even though extraFormData still applies the query filter.
+        if (typeof isOldRison === 'object' && isOldRison !== null) {
+          dataMask = Object.fromEntries(
+            Object.entries(
+              isOldRison as Record<string, Record<string, unknown>>,
+            ).map(([filterId, entry]) => [
+              filterId,
+              entry?.currentState && !entry?.filterState
+                ? { ...entry, filterState: entry.currentState }
+                : entry,
+            ]),
+          );
+        }
       }
 
       // Parse Rison URL filters with intelligent native filter injection
@@ -322,7 +338,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   // Update document title when dashboard title changes
   useEffect(() => {
     if (pageTitle) {
-      document.title = pageTitle;
+      document.title = sanitizeDocumentTitle(pageTitle);
     }
   }, [pageTitle]);
 

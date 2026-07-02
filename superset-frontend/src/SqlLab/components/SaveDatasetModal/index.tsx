@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sanitizeUrl } from '@braintree/sanitize-url';
 import { useCallback, useState, FormEvent } from 'react';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
@@ -56,8 +55,9 @@ import {
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
+import { openInNewTab, redirect } from 'src/utils/navigationUtils';
 
 interface QueryDatabase {
   id?: number;
@@ -244,10 +244,16 @@ export const SaveDatasetModal = ({
     useState(false);
 
   const createWindow = (url: string) => {
+    // `url` is from `mountExploreUrl(..., includeAppRoot=true)`; the
+    // navigationUtils helpers re-apply `ensureAppRoot` idempotently.
     if (openWindow) {
-      window.open(sanitizeUrl(url), '_blank', 'noreferrer');
+      // `openInNewTab` / `redirect` route the sink through navigationUtils'
+      // barriers (scheme allowlist, userinfo rejection, backslash
+      // rejection) — strictly stronger than master PR #40546's `sanitizeUrl`
+      // wrap, which only rejects `javascript:` / `data:` / `vbscript:`.
+      openInNewTab(url);
     } else {
-      window.location.href = sanitizeUrl(url);
+      redirect(url);
     }
   };
   const formDataWithDefaults = {

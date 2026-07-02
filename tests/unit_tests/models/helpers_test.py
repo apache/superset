@@ -2057,6 +2057,63 @@ def test_orderby_adhoc_column(database: Database) -> None:
     assert "ORDER BY" in sql.upper()
 
 
+@pytest.mark.parametrize("aggregate", [None, "MEDIAN"])
+def test_adhoc_metric_to_sqla_invalid_simple_aggregate_raises_validation_error(
+    database: Database,
+    aggregate: str | None,
+) -> None:
+    """
+    Test that malformed SIMPLE adhoc metrics fail with a validation error.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "a"},
+        "label": "Invalid metric",
+    }
+    if aggregate is not None:
+        metric["aggregate"] = aggregate
+
+    with pytest.raises(QueryObjectValidationError):
+        table.adhoc_metric_to_sqla(metric, {})
+
+
+def test_adhoc_metric_to_sqla_missing_sql_expression_raises_validation_error(
+    database: Database,
+) -> None:
+    """
+    Test that malformed SQL adhoc metrics fail with a validation error.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+        ],
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "label": "Invalid metric",
+    }
+
+    with pytest.raises(QueryObjectValidationError):
+        table.adhoc_metric_to_sqla(metric, {})
+
+
 def test_extras_where_is_parenthesized(
     database: Database,
 ) -> None:
@@ -3193,3 +3250,120 @@ def test_process_sql_expression_no_gate_when_denylists_empty(
         template_processor=None,
     )
     assert result is not None
+
+
+def test_resolve_denylist_schema_uses_query_aware_resolution(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """A datasource without an explicit schema resolves the denylist schema
+    through the query-aware ``get_default_schema_for_query`` (matching the SQL
+    Lab / executor gate), not the static inspector-based ``get_default_schema``."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved"
+    )
+    static = mocker.patch.object(database, "get_default_schema")
+    table = SqlaTable(database=database, schema=None, table_name="t")
+
+    assert table._resolve_denylist_schema("SELECT 1") == "resolved"
+    query_aware.assert_called_once()
+    static.assert_not_called()
+
+
+def test_resolve_denylist_schema_memoizes_across_expressions(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """The resolved schema is cached per datasource so adhoc-expression
+    validation, which runs once per column/metric/order-by, does not re-resolve
+    (and re-probe) the schema for every expression."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved"
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+
+    # Distinct expression shapes (column / metric / order-by) mirror a real
+    # request, where validation runs once per selected field with different
+    # SQL each time. Caching must be keyed on the datasource instance, not the
+    # SQL string, so a single resolution still covers all of them.
+    for sql in ("price", "SUM(price)", "created_at DESC"):
+        assert table._resolve_denylist_schema(sql) == "resolved"
+    query_aware.assert_called_once()
+
+
+def test_resolve_denylist_schema_explicit_schema_skips_probe(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """An explicit datasource schema is returned directly, with no probe Query
+    and no inspector round-trip."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    query_aware = mocker.patch.object(database, "get_default_schema_for_query")
+    table = SqlaTable(database=database, schema="analytics", table_name="t")
+
+    assert table._resolve_denylist_schema("SELECT 1") == "analytics"
+    query_aware.assert_not_called()
+
+
+def test_get_sqla_query_dotted_struct_column_bigquery(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    SC-111745: a BigQuery STRUCT field registered with a dotted ``column_name``
+    (e.g. ``forecasts.original.total_cost``) must be quoted per-segment in the
+    drill-to-detail / samples SELECT (e.g. ```forecasts`.`original`.`total_cost```),
+    not collapsed into a single quoted identifier (```forecasts.original```),
+    which BigQuery rejects with "Unrecognized name".
+    """
+    bigquery = pytest.importorskip("sqlalchemy_bigquery")
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    dialect = bigquery.BigQueryDialect()
+
+    @contextmanager
+    def fake_engine(*args, **kwargs):
+        engine = MagicMock()
+        engine.dialect = dialect
+        yield engine
+
+    database = Database(database_name="bq", sqlalchemy_uri="bigquery://project")
+    mocker.patch.object(database, "get_sqla_engine", new=fake_engine)
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="orders",
+        columns=[
+            TableColumn(column_name="id", type="INTEGER"),
+            TableColumn(column_name="forecasts.original.total_cost", type="FLOAT"),
+        ],
+    )
+
+    # Mirror the drill-to-detail / samples path: select physical columns with no
+    # groupby/metrics so the column-selection branch in ``get_sqla_query`` runs.
+    sqlaq = table.get_sqla_query(
+        columns=["id", "forecasts.original.total_cost"],
+        is_timeseries=False,
+        row_limit=100,
+    )
+    sql = str(
+        sqlaq.sqla_query.compile(
+            dialect=dialect,
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    # The dotted STRUCT path must be quoted per-segment so BigQuery resolves the
+    # nested field, and must not appear as a single merged identifier.
+    assert "`forecasts`.`original`.`total_cost`" in sql
+    # ```forecasts.original``` is a substring of the broken form
+    # ```forecasts.original`.`total_cost``` (the regression), so this negative
+    # assertion catches the actual failure mode, not just an exact-string match.
+    assert "`forecasts.original`" not in sql

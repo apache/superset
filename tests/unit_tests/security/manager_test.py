@@ -19,7 +19,7 @@
 
 import json  # noqa: TID251
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -31,8 +31,8 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import (
-    _extract_orderby_column_name,
-    _get_visible_columns,
+    _collect_sortable_identifiers,
+    freeze_value,
     query_context_modified,
     SupersetSecurityManager,
 )
@@ -404,8 +404,8 @@ def test_raise_for_access_query_default_schema(
         )
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
 
@@ -1220,6 +1220,159 @@ def test_query_context_modified_orderby(mocker: MockerFixture) -> None:
     assert query_context_modified(query_context)
 
 
+def _table_sort_query_context(
+    mocker: MockerFixture,
+    orderby: list[Any],
+    *,
+    stored_metrics: Optional[list[Any]] = None,
+    with_stored_query_context: bool = True,
+) -> Any:
+    """
+    Build a minimal table-chart query context for a guest that sorts by
+    ``orderby``. The stored chart groups by ``gender`` and aggregates ``count``.
+    """
+    metrics: list[Any] = stored_metrics if stored_metrics is not None else ["count"]
+    query_context = mocker.MagicMock()
+    query_context.queries = [
+        QueryObject(columns=["gender"], metrics=metrics, orderby=orderby),
+    ]
+    query_context.form_data = {"slice_id": 101, "groupby": ["gender"]}
+    query_context.slice_.id = 101
+    query_context.slice_.params_dict = {"groupby": ["gender"], "metrics": metrics}
+    query_context.slice_.query_context = (
+        json.dumps({"queries": [{"columns": ["gender"], "metrics": metrics}]})
+        if with_stored_query_context
+        else None
+    )
+    return query_context
+
+
+def _series_limit_metric_query_context(
+    mocker: MockerFixture,
+    requested_metric: Any,
+    *,
+    stored_metrics: Optional[list[Any]] = None,
+    form_metric_key: str = "series_limit_metric",
+) -> Any:
+    """
+    Build a minimal chart query context with a series-limit metric selector.
+    """
+    metrics: list[Any] = stored_metrics if stored_metrics is not None else ["count"]
+    query_context = mocker.MagicMock()
+    query_context.queries = [
+        QueryObject(metrics=metrics, series_limit_metric=requested_metric),
+    ]
+    query_context.form_data = {
+        "slice_id": 101,
+        "metrics": metrics,
+        form_metric_key: requested_metric,
+    }
+    query_context.slice_.id = 101
+    query_context.slice_.params_dict = {
+        "metrics": metrics,
+    }
+    query_context.slice_.query_context = json.dumps(
+        {"queries": [{"metrics": metrics}]}
+    )
+    return query_context
+
+
+def test_query_context_modified_orderby_sort_by_column(mocker: MockerFixture) -> None:
+    """A guest sorting an embedded table by an existing column is allowed."""
+    query_context = _table_sort_query_context(mocker, orderby=[("gender", True)])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_metric(mocker: MockerFixture) -> None:
+    """A guest sorting by an existing metric is allowed."""
+    query_context = _table_sort_query_context(mocker, orderby=[("count", False)])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_adhoc_metric(
+    mocker: MockerFixture,
+) -> None:
+    """A guest sorting by an existing adhoc metric definition is allowed."""
+    adhoc_metric: AdhocMetric = {
+        "aggregate": "SUM",
+        "column": {"column_name": "num"},
+        "expressionType": "SIMPLE",
+        "hasCustomLabel": False,
+        "label": "SUM(num)",
+    }
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[(adhoc_metric, False)],
+        stored_metrics=[adhoc_metric],
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_unknown_column(mocker: MockerFixture) -> None:
+    """A guest sorting by a column the chart does not reference is rejected."""
+    query_context = _table_sort_query_context(mocker, orderby=[("salary", True)])
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_empty(mocker: MockerFixture) -> None:
+    """An empty order-by is not a modification."""
+    query_context = _table_sort_query_context(mocker, orderby=[])
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_legacy_singular_metric(
+    mocker: MockerFixture,
+) -> None:
+    """A guest sorting by a legacy ``metric`` (singular) field is allowed."""
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[("num_sold", False)],
+        stored_metrics=[],
+        with_stored_query_context=False,
+    )
+    query_context.slice_.params_dict = {
+        "columns": ["gender"],
+        "groupby": ["gender"],
+        "metric": "num_sold",
+    }
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_malformed_entry(
+    mocker: MockerFixture,
+) -> None:
+    """A malformed order-by entry (not a ``(term, bool)`` pair) is rejected."""
+    query_context = _table_sort_query_context(mocker, orderby=[["gender"]])
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sort_by_stored_qc_only_column(
+    mocker: MockerFixture,
+) -> None:
+    """A column present only in the stored query context is an allowed sort target."""
+    query_context = _table_sort_query_context(mocker, orderby=[("age", True)])
+    # "age" is absent from params_dict but exposed via the stored query context,
+    # so sorting by it must be allowed.
+    query_context.slice_.params_dict = {"groupby": ["gender"], "metrics": ["count"]}
+    query_context.slice_.query_context = json.dumps(
+        {"queries": [{"columns": ["gender", "age"], "metrics": ["count"]}]}
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_collect_sortable_identifiers_includes_stored_qc_all_columns(
+    mocker: MockerFixture,
+) -> None:
+    """``all_columns`` exposed via the stored query context is a valid sort target."""
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"groupby": ["gender"], "metrics": ["count"]}
+    allowed = _collect_sortable_identifiers(
+        stored_chart,
+        {"queries": [{"all_columns": ["gender", "age"], "metrics": ["count"]}]},
+    )
+    assert freeze_value("age") in allowed
+
+
 def test_query_context_modified_time_grain_native_filter(
     mocker: MockerFixture,
 ) -> None:
@@ -1568,6 +1721,320 @@ def test_query_context_modified_orderby_adhoc_metric_without_label_allowed(
     assert not query_context_modified(query_context)
 
 
+def test_query_context_modified_orderby_simple_metric_reused_metric_label_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that dict-shaped orderby terms cannot pass by reusing a metric label.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "secret_sales"},
+        "aggregate": "SUM",
+        "label": "count",
+    }
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[(metric, True)],
+        stored_metrics=["count"],
+    )
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_simple_metric_reused_column_label_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that dict-shaped orderby terms cannot pass by reusing a column label.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "secret_sales"},
+        "aggregate": "SUM",
+        "label": "name",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [[metric, True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=["name"],
+            metrics=["count"],
+            orderby=[(metric, True)],
+        ),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_simple_metric_bad_aggregate_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that malformed SIMPLE metric orderby cannot pass through label spoofing.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "secret_sales"},
+        "label": "count",
+    }
+    query_context = _table_sort_query_context(
+        mocker,
+        orderby=[(metric, True)],
+        stored_metrics=["count"],
+    )
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_adhoc_column_label_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that guests may sort by a visible adhoc column result key.
+    """
+    column: AdhocColumn = {
+        "label": "Full Name",
+        "sqlExpression": "CONCAT(first_name, last_name)",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": [column],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": [column],
+        "metrics": ["count"],
+        "orderby": [["Full Name", True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=[column],
+            metrics=["count"],
+            orderby=[("Full Name", True)],
+        ),
+    ]
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_hidden_stored_orderby_replay_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that replaying an exact owner-defined orderby is not tampering.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "all_columns": ["name", "secret_column"],
+        "column_config": {
+            "secret_column": {
+                "visible": False,
+            },
+        },
+        "orderby": [["secret_column", True]],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "orderby": [["secret_column", True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            orderby=[("secret_column", True)],
+        ),
+    ]
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_hidden_stored_orderby_direction_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that guests cannot change direction on a hidden owner-defined sort.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "all_columns": ["name", "secret_column"],
+        "column_config": {
+            "secret_column": {
+                "visible": False,
+            },
+        },
+        "orderby": [["secret_column", True]],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "orderby": [["secret_column", False]],
+    }
+    query_context.queries = [
+        QueryObject(
+            orderby=[("secret_column", False)],
+        ),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_sql_expression_reused_label_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a new SQL expression object cannot pass by reusing a visible label.
+    """
+    sql_expression: AdhocColumn = {
+        "label": "name",
+        "sqlExpression": "random()",
+    }
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "columns": ["name"],
+        "metrics": ["count"],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "columns": ["name"],
+        "metrics": ["count"],
+        "orderby": [[sql_expression, True]],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=["name"],
+            metrics=["count"],
+            orderby=[(sql_expression, True)],
+        ),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_series_limit_metric_stored_metric_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a stored metric can be reused as the series-limit selector.
+    """
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric="count",
+        stored_metrics=["count"],
+    )
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_timeseries_limit_metric_stored_metric_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the deprecated form-data control name follows the same guard.
+    """
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric="count",
+        stored_metrics=["count"],
+        form_metric_key="timeseries_limit_metric",
+    )
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_series_limit_metric_exact_adhoc_metric_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a stored adhoc metric can be reused as the series-limit selector.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales"},
+        "aggregate": "SUM",
+        "label": "SUM(sales)",
+    }
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric=metric,
+        stored_metrics=[metric],
+    )
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_series_limit_metric_off_chart_metric_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a guest cannot introduce an off-chart series-limit metric.
+    """
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric="revenue",
+        stored_metrics=["count"],
+    )
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_series_limit_metric_sql_expression_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a guest cannot introduce a SQL expression as series-limit metric.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "random()",
+        "label": "count",
+    }
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric=metric,
+        stored_metrics=["count"],
+    )
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_series_limit_metric_bad_aggregate_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that malformed series-limit metrics cannot pass through label spoofing.
+    """
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "secret_sales"},
+        "label": "count",
+    }
+    query_context = _series_limit_metric_query_context(
+        mocker,
+        requested_metric=metric,
+        stored_metrics=["count"],
+    )
+
+    assert query_context_modified(query_context)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.
@@ -1628,8 +2095,8 @@ def test_raise_for_access_catalog(
         sm.raise_for_access(query=query)
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `db1.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "db1.public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
     query.sql = "SELECT * FROM db2.public.ab_user"
@@ -1637,8 +2104,8 @@ def test_raise_for_access_catalog(
         sm.raise_for_access(query=query)
     assert (
         str(excinfo.value)
-        == """You need access to the following tables: `db2.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+        == 'You need access to the following tables: "db2.public.ab_user", '
+        "'all_database_access' or 'all_datasource_access' permission"
     )
 
 
@@ -2215,360 +2682,6 @@ def test_reset_password_self_service_pk_string_clears_flag(
 
     # Coerced to int when clearing, regardless of the inbound id type.
     mock_clear.assert_called_once_with(5)
-
-
-# -----------------------------------------------------------------------------
-# Tests for _extract_orderby_column_name() - defensive barrier tests
-# -----------------------------------------------------------------------------
-# These tests verify that the function handles all valid formats correctly
-# and gracefully returns None (block) for invalid formats instead of crashing.
-#
-# Why barriers are needed:
-# 1. Security-critical code should be fail-closed (block unknown, not pass)
-# 2. Schema accepts fields.Raw() which doesn't validate structure
-# 3. Defensive coding prevents 500 errors on malformed input
-# -----------------------------------------------------------------------------
-
-
-def test_extract_orderby_column_name_string() -> None:
-    """
-    Test extraction from a simple string column name.
-
-    This is the most common case: orderby = [["country", True]]
-    """
-    assert _extract_orderby_column_name("country") == "country"
-    assert _extract_orderby_column_name("name") == "name"
-
-
-def test_extract_orderby_column_name_adhoc_column_with_label() -> None:
-    """
-    Test extraction from an adhoc column (dict with label).
-
-    Format: {"label": "My Column", "sqlExpression": "UPPER(name)"}
-    """
-    adhoc_column = {
-        "label": "My Column",
-        "sqlExpression": "UPPER(name)",
-        "expressionType": "SQL",
-    }
-    # Note: expressionType=SQL should block, but label takes precedence
-    # Actually no - SQL is blocked first
-    assert _extract_orderby_column_name(adhoc_column) is None
-
-    # Without expressionType=SQL, label should work
-    adhoc_column_no_sql = {
-        "label": "My Column",
-        "sqlExpression": "UPPER(name)",
-    }
-    assert _extract_orderby_column_name(adhoc_column_no_sql) == "My Column"
-
-
-def test_extract_orderby_column_name_adhoc_metric_simple() -> None:
-    """
-    Test extraction from an adhoc SIMPLE metric.
-
-    Format: {"expressionType": "SIMPLE", "column": {"column_name": "sales"}, ...}
-    The label should be extracted, not column.column_name.
-    """
-    adhoc_metric = {
-        "expressionType": "SIMPLE",
-        "column": {"column_name": "sales", "type": "BIGINT"},
-        "aggregate": "SUM",
-        "label": "SUM(sales)",
-    }
-    assert _extract_orderby_column_name(adhoc_metric) == "SUM(sales)"
-
-
-def test_extract_orderby_column_name_adhoc_metric_simple_no_label() -> None:
-    """
-    Test extraction from an adhoc SIMPLE metric without label.
-
-    Should match the query-result label used by get_metric_name/getMetricLabel.
-    """
-    adhoc_metric = {
-        "expressionType": "SIMPLE",
-        "column": {"column_name": "sales", "type": "BIGINT"},
-        "aggregate": "SUM",
-    }
-    assert _extract_orderby_column_name(adhoc_metric) == "SUM(sales)"
-
-
-def test_extract_orderby_column_name_sql_expression_blocked() -> None:
-    """
-    Test that SQL expressions are blocked for security.
-
-    Format: {"expressionType": "SQL", "sqlExpression": "random()", ...}
-    Returns None to block - prevents SQL injection via sorting.
-    """
-    adhoc_sql = {
-        "expressionType": "SQL",
-        "sqlExpression": "random()",
-        "label": "random()",
-    }
-    assert _extract_orderby_column_name(adhoc_sql) is None
-
-
-def test_extract_orderby_column_name_invalid_column_string() -> None:
-    """
-    Test that invalid format {"column": "string"} is blocked.
-
-    This format does NOT exist in Superset's type system:
-    - AdhocMetric.column is AdhocMetricColumn (dict) or None, never str
-    - The codeant-ai bot suggested supporting this, but it's INCORRECT
-
-    The barrier (isinstance check) ensures this returns None (block)
-    instead of raising AttributeError.
-    """
-    # This is the format the bot incorrectly claimed could exist
-    invalid_format = {"column": "country"}
-    # With barrier: returns None (blocked)
-    # Without barrier: would raise AttributeError on "country".get("column_name")
-    assert _extract_orderby_column_name(invalid_format) is None
-
-
-def test_extract_orderby_column_name_invalid_nested_types() -> None:
-    """
-    Test that other invalid nested structures are blocked.
-
-    Defensive tests - ensure no crashes on unexpected input.
-    """
-    # SIMPLE metric with invalid column type
-    assert (
-        _extract_orderby_column_name(
-            {"expressionType": "SIMPLE", "column": "country", "aggregate": "SUM"}
-        )
-        is None
-    )
-    assert (
-        _extract_orderby_column_name(
-            {
-                "expressionType": "SIMPLE",
-                "column": "country",
-                "aggregate": "SUM",
-                "label": "SUM(country)",
-            }
-        )
-        is None
-    )
-
-    # column as list (invalid)
-    assert _extract_orderby_column_name({"column": ["a", "b"]}) is None
-
-    # column as number (invalid)
-    assert _extract_orderby_column_name({"column": 123}) is None
-
-    # Empty dict
-    assert _extract_orderby_column_name({}) is None
-
-    # None
-    assert _extract_orderby_column_name(None) is None
-
-    # List (invalid - orderby_item should be unpacked from tuple first)
-    assert _extract_orderby_column_name(["country", True]) is None
-
-    # Number
-    assert _extract_orderby_column_name(42) is None
-
-
-# -----------------------------------------------------------------------------
-# Tests for _get_visible_columns() - defensive barrier tests
-# -----------------------------------------------------------------------------
-
-
-def test_get_visible_columns_string_columns(mocker: MockerFixture) -> None:
-    """
-    Test extraction of visible columns from string column names.
-
-    Format: {"columns": ["name", "country"]}
-    """
-    stored_chart = mocker.MagicMock()
-    stored_chart.params_dict = {
-        "columns": ["name", "country"],
-        "groupby": [],
-        "metrics": [],
-    }
-    visible = _get_visible_columns(stored_chart)
-    assert visible == {"name", "country"}
-
-
-def test_get_visible_columns_adhoc_columns(mocker: MockerFixture) -> None:
-    """
-    Test extraction of visible columns from adhoc column dicts.
-
-    Format: {"columns": [{"label": "My Column", "sqlExpression": "..."}]}
-    """
-    stored_chart = mocker.MagicMock()
-    stored_chart.params_dict = {
-        "columns": [
-            {"label": "Full Name", "sqlExpression": "CONCAT(first, last)"},
-            {"label": "Upper Country", "sqlExpression": "UPPER(country)"},
-        ],
-        "groupby": [],
-        "metrics": [],
-    }
-    visible = _get_visible_columns(stored_chart)
-    assert visible == {"Full Name", "Upper Country"}
-
-
-def test_get_visible_columns_mixed(mocker: MockerFixture) -> None:
-    """
-    Test extraction from mixed string and adhoc columns.
-    """
-    stored_chart = mocker.MagicMock()
-    stored_chart.params_dict = {
-        "columns": [
-            "name",
-            {"label": "Custom", "sqlExpression": "..."},
-        ],
-        "groupby": [],
-        "metrics": [],
-    }
-    visible = _get_visible_columns(stored_chart)
-    assert visible == {"name", "Custom"}
-
-
-def test_get_visible_columns_includes_metrics(mocker: MockerFixture) -> None:
-    """
-    Test that metrics are included in visible columns.
-
-    Guest users can sort by metrics too.
-    """
-    stored_chart = mocker.MagicMock()
-    stored_chart.params_dict = {
-        "columns": ["name"],
-        "groupby": [],
-        "metrics": ["count", "sum_amount"],
-    }
-    visible = _get_visible_columns(stored_chart)
-    assert visible == {"name", "count", "sum_amount"}
-
-
-def test_get_visible_columns_includes_groupby(mocker: MockerFixture) -> None:
-    """
-    Test that deprecated groupby field is included.
-
-    groupby is deprecated but still used in some charts.
-    """
-    stored_chart = mocker.MagicMock()
-    stored_chart.params_dict = {
-        "columns": [],
-        "groupby": ["category", "region"],
-        "metrics": [],
-    }
-    visible = _get_visible_columns(stored_chart)
-    assert visible == {"category", "region"}
-
-
-def test_get_visible_columns_adhoc_metrics(mocker: MockerFixture) -> None:
-    """
-    Test extraction from adhoc metric dicts.
-    """
-    stored_chart = mocker.MagicMock()
-    stored_chart.params_dict = {
-        "columns": [],
-        "groupby": [],
-        "metrics": [
-            "count",
-            {"label": "Total Sales", "expressionType": "SIMPLE"},
-        ],
-    }
-    visible = _get_visible_columns(stored_chart)
-    assert visible == {"count", "Total Sales"}
-
-
-def test_get_visible_columns_adhoc_metric_without_label(
-    mocker: MockerFixture,
-) -> None:
-    """
-    Test extraction from adhoc SIMPLE metrics without custom labels.
-    """
-    stored_chart = mocker.MagicMock()
-    stored_chart.params_dict = {
-        "columns": [],
-        "groupby": [],
-        "metrics": [
-            {
-                "expressionType": "SIMPLE",
-                "column": {"column_name": "sales", "type": "BIGINT"},
-                "aggregate": "SUM",
-            },
-        ],
-    }
-    visible = _get_visible_columns(stored_chart)
-    assert visible == {"SUM(sales)"}
-
-
-def test_get_visible_columns_legacy_metric_label(mocker: MockerFixture) -> None:
-    """
-    Test extraction from legacy metric dicts.
-    """
-    stored_chart = mocker.MagicMock()
-    stored_chart.params_dict = {
-        "columns": [],
-        "groupby": [],
-        "metrics": [
-            {"label": "legacy_metric"},
-        ],
-    }
-    visible = _get_visible_columns(stored_chart)
-    assert visible == {"legacy_metric"}
-
-
-def test_get_visible_columns_empty(mocker: MockerFixture) -> None:
-    """
-    Test with empty/missing fields.
-    """
-    stored_chart = mocker.MagicMock()
-    stored_chart.params_dict = {}
-    visible = _get_visible_columns(stored_chart)
-    assert visible == set()
-
-
-def test_get_visible_columns_ignores_invalid(mocker: MockerFixture) -> None:
-    """
-    Test that invalid column formats are ignored (not crash).
-
-    Defensive test - columns that don't match expected format
-    should be skipped, not cause errors.
-    """
-    stored_chart = mocker.MagicMock()
-    stored_chart.params_dict = {
-        "columns": [
-            "valid_string",
-            {"label": "valid_dict"},
-            {"no_label_key": "ignored"},  # dict without label - ignored
-            123,  # number - ignored
-            None,  # None - ignored
-            ["list"],  # list - ignored
-        ],
-        "groupby": [],
-        "metrics": [],
-    }
-    visible = _get_visible_columns(stored_chart)
-    assert visible == {"valid_string", "valid_dict"}
-
-
-def test_get_visible_columns_excludes_table_column_config_hidden(
-    mocker: MockerFixture,
-) -> None:
-    """
-    Test that Table columns hidden by column_config are excluded from the whitelist.
-    """
-    stored_chart = mocker.MagicMock()
-    stored_chart.params_dict = {
-        "all_columns": ["name", "secret_column"],
-        "metrics": [
-            "count",
-            {"label": "Hidden metric", "expressionType": "SIMPLE"},
-        ],
-        "column_config": {
-            "secret_column": {"visible": False},
-            "Hidden metric": {"visible": False},
-            "name": {"customColumnName": "Display name"},
-        },
-    }
-    visible = _get_visible_columns(stored_chart)
-    assert visible == {"name", "count"}
 
 
 # -----------------------------------------------------------------------------
