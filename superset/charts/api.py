@@ -489,15 +489,18 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Soft-delete a chart.
+        """Delete a chart.
 
-        Marks the chart as deleted (sets ``deleted_at``) and hides it from
-        list/detail endpoints and relationship loads; the row is preserved
-        and recoverable via ``POST /api/v1/chart/<uuid>/restore`` by an
-        owner or admin.
+        When the ``SOFT_DELETE`` feature flag is enabled, marks the chart as
+        deleted (sets ``deleted_at``) and hides it from list/detail endpoints
+        and relationship loads; the row is preserved and recoverable via
+        ``POST /api/v1/chart/<uuid>/restore`` by an owner or admin. With the
+        flag disabled (the default), the chart is permanently hard-deleted
+        and is not recoverable.
         ---
         delete:
-          summary: Delete a chart (soft delete; recoverable via restore)
+          summary: Delete a chart (soft delete, recoverable via restore, when
+            the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: path
             schema:
@@ -550,15 +553,18 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Bulk soft-delete charts.
+        """Bulk delete charts.
 
-        Marks each chart as deleted (sets ``deleted_at``) and hides it from
-        list/detail endpoints and relationship loads; rows are preserved
-        and recoverable via ``POST /api/v1/chart/<uuid>/restore`` by an
-        owner or admin.
+        When the ``SOFT_DELETE`` feature flag is enabled, marks each chart as
+        deleted (sets ``deleted_at``) and hides it from list/detail endpoints
+        and relationship loads; rows are preserved and recoverable via
+        ``POST /api/v1/chart/<uuid>/restore`` by an owner or admin. With the
+        flag disabled (the default), the charts are permanently hard-deleted
+        and are not recoverable.
         ---
         delete:
-          summary: Bulk delete charts (soft delete; recoverable via restore)
+          summary: Bulk delete charts (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: query
             name: q
@@ -1188,6 +1194,15 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @requires_form_data
     def import_(self) -> Response:
         """Import chart(s) with associated datasets and databases.
+
+        When the ``SOFT_DELETE`` feature flag is enabled and an imported
+        chart's UUID matches an existing **soft-deleted** chart, the import
+        restores that chart and applies the upload's contents — **even when
+        ``overwrite`` is not set**. Active charts keep the usual contract
+        (never mutated without ``overwrite=true``); a soft-deleted UUID match
+        is treated as an explicit request to bring the chart back. Requires
+        ``can_write`` and ownership of the deleted row (or admin). See
+        UPDATING.md for details.
         ---
         post:
           summary: Import chart(s) with associated datasets and databases
