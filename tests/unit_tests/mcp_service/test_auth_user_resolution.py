@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import g
+from sqlalchemy.exc import OperationalError as SAOperationalError
 
 from superset.mcp_service.auth import (
     _resolve_user_from_jwt_context,
@@ -407,6 +408,46 @@ def test_mcp_auth_hook_removes_stale_db_session_in_sync_wrapper(app) -> None:
                 result = wrapped()
 
     assert result == "fresh"
+
+
+def test_sync_wrapper_handles_ssl_error_on_pre_call_remove(app) -> None:
+    """A dead thread-local connection must not crash the tool call.
+
+    When the pre-call db.session.remove() raises a DBAPIError (e.g. a psycopg2
+    SSL connection drop from an RDS idle-timeout on a reused thread-pool
+    thread), _remove_session_safe() invalidates the dead connection and retries
+    remove() so the tool call proceeds on a fresh connection instead of
+    surfacing the SSL error to the caller.
+    """
+    fresh_user = _make_mock_user("fresh")
+
+    def dummy_tool():
+        """Dummy tool."""
+        return g.user.username
+
+    wrapped = mcp_auth_hook(dummy_tool)
+
+    with app.test_request_context():
+        g.user = fresh_user
+        with patch("superset.extensions.db") as mock_db:
+            # First remove() raises an SSL/connection error; the retry after
+            # invalidate() succeeds.
+            mock_db.session.remove.side_effect = [
+                SAOperationalError(
+                    "SSL connection has been closed unexpectedly", None, None
+                ),
+                None,
+            ]
+            with patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=fresh_user,
+            ):
+                result = wrapped()
+
+    assert result == "fresh"
+    # Dead connection invalidated, then remove() retried once.
+    mock_db.session.invalidate.assert_called_once_with()
+    assert mock_db.session.remove.call_count == 2
 
 
 # -- default_user_resolver --
