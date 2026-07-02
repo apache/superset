@@ -301,6 +301,7 @@ def menu_data(user: User) -> dict[str, Any]:
             "alt": appbuilder.app_name,
             "tooltip": app.config["LOGO_TOOLTIP"],
             "text": brand_text,
+            "hide_logo": app.config.get("HIDE_NAVBAR_LOGO", False),
         },
         "environment_tag": get_environment_tag(),
         "navbar_right": {
