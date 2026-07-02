@@ -111,6 +111,14 @@ ALTER TABLE tagged_object DROP CONSTRAINT <constraint_name>;
 ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
 ```
 
+### Deletion retention (soft-deleted entities are eventually purged)
+
+Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SUPERSET_SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
+
+The introducing release **defaults to dry-run** (`SUPERSET_SOFT_DELETE_PURGE_DRY_RUN=True`): the task logs `would_purge` counts but deletes nothing, so operators can validate against production before activating real purging by setting it to `False`. The task only acts while the temporary `SOFT_DELETE` rollout flag is on.
+
+Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified). Every purge writes an immutable, content-free audit record to the new `purge_audit_log` table that survives the entity it names.
+
 ### Webhook alerts/reports block private/internal hosts by default
 
 Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
