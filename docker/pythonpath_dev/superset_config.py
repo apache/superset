@@ -108,13 +108,6 @@ CELERY_CONFIG = CeleryConfig
 FEATURE_FLAGS = {"ALERT_REPORTS": True, "DATASET_FOLDERS": True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 
-# Allow class/style attributes in Handlebars chart HTML templates.
-HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
-    "attributes": {
-        "*": ["className", "style"],
-    },
-}
-
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = (

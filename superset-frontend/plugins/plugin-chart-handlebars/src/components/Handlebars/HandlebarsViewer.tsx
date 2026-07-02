@@ -21,6 +21,7 @@ import { styled } from '@apache-superset/core/theme';
 import { SafeMarkdown } from '@superset-ui/core/components';
 import Handlebars from 'handlebars';
 import { useMemo, useState } from 'react';
+import { HANDLEBARS_HTML_SCHEMA_OVERRIDES } from './handlebarsHtmlSchemaOverrides';
 import { registerHandlebarsHelpers } from './registerHandlebarsHelpers';
 
 registerHandlebarsHelpers();
@@ -41,8 +42,6 @@ export const HandlebarsViewer = ({
     appContainer?.getAttribute('data-bootstrap') || '{}',
   );
   const htmlSanitization = common?.conf?.HTML_SANITIZATION ?? true;
-  const htmlSchemaOverrides =
-    common?.conf?.HTML_SANITIZATION_SCHEMA_EXTENSIONS || {};
 
   useMemo(() => {
     try {
@@ -69,7 +68,7 @@ export const HandlebarsViewer = ({
       <SafeMarkdown
         source={renderedTemplate}
         htmlSanitization={htmlSanitization}
-        htmlSchemaOverrides={htmlSchemaOverrides}
+        htmlSchemaOverrides={HANDLEBARS_HTML_SCHEMA_OVERRIDES}
       />
     );
   }

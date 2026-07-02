@@ -1172,12 +1172,7 @@ HTML_SANITIZATION = True
 #   }
 # }
 # Be careful when extending the default schema to avoid XSS attacks.
-HTML_SANITIZATION_SCHEMA_EXTENSIONS: dict[str, Any] = {
-    # Handlebars chart templates: allow CSS class/style attrs on HTML elements.
-    "attributes": {
-        "*": ["className", "style"],
-    },
-}
+HTML_SANITIZATION_SCHEMA_EXTENSIONS: dict[str, Any] = {}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
