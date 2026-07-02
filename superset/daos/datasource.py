@@ -119,6 +119,10 @@ class DatasourceDAO(BaseDAO[Datasource]):
         # ``do_orm_execute``) does not append the visibility filter. Add it
         # explicitly here so soft-deleted datasets don't count toward the
         # combined datasource list, pagination totals, or count totals.
+        # Deliberately NOT gated on the SOFT_DELETE flag (unlike the ORM
+        # listener): always-hiding is the safer failure mode for this
+        # aggregate listing, and the flag-independence is documented in
+        # UPDATING.md's "flag-independent parts" list.
         ds_q = ds_q.where(ds_table.c.deleted_at.is_(None))
 
         if not security_manager.can_access_all_datasources():

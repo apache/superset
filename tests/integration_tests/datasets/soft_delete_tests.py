@@ -266,6 +266,64 @@ class TestDatasetSoftDelete(SupersetTestCase):
             self._hard_delete_created(dataset_id, database)
 
     @with_feature_flags(SOFT_DELETE=True)
+    def test_deleted_state_list_shows_gamma_owner_without_datasource_grant(
+        self,
+    ) -> None:
+        """An owner keeps sight of their own trash even without a datasource
+        grant.
+
+        Gamma owns the dataset but holds NO ``datasource_access`` on it, so
+        every access leg of ``DatasourceFilter`` fails — the owned-soft-deleted
+        leg is what makes the row reachable, mirroring ``raise_for_access``
+        counting ownership as datasource access. The live-row precondition
+        also pins the leg's inertness: while the dataset is live, gamma
+        (no grant) must NOT see it, because the leg requires
+        ``deleted_at IS NOT NULL``.
+        """
+        gamma = self.get_user(GAMMA_USERNAME)
+        database = Database(database_name="sd_own_db", sqlalchemy_uri="sqlite://")
+        db.session.add(database)
+        db.session.flush()
+        dataset = SqlaTable(table_name="sd_own_tbl", database=database, owners=[gamma])
+        db.session.add(dataset)
+        db.session.commit()
+        dataset_id = dataset.id
+
+        try:
+            self.login(GAMMA_USERNAME)
+            # Precondition: no grant -> gamma cannot see the LIVE row (the
+            # owned-trash leg must not leak live rows).
+            rv = self.client.get("/api/v1/dataset/?q=(page_size:200)")
+            assert rv.status_code == 200
+            assert dataset_id not in [r["id"] for r in json.loads(rv.data)["result"]], (
+                "precondition: ungranted gamma must not see the live dataset"
+            )
+
+            reloaded = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == dataset_id)
+                .one()
+            )
+            reloaded.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+            db.session.commit()
+
+            for value in ("include", "only"):
+                rison_query = (
+                    f"(filters:!((col:id,opr:dataset_deleted_state,value:{value})),"
+                    "page_size:200)"
+                )
+                rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
+                assert rv.status_code == 200
+                ids = [r["id"] for r in json.loads(rv.data)["result"]]
+                assert dataset_id in ids, (
+                    "owner without a datasource grant must still enumerate "
+                    f"their own trash via dataset_deleted_state={value}"
+                )
+        finally:
+            self._hard_delete_created(dataset_id, database)
+
+    @with_feature_flags(SOFT_DELETE=True)
     def test_no_cascade_to_dependent_charts(self) -> None:
         """Soft-deleting a dataset should NOT cascade to its charts (FR-009, T018)."""
         dataset_id = self._get_example_dataset_id()
