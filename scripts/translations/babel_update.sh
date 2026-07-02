@@ -55,6 +55,12 @@ msgcat --sort-by-msgid --no-wrap --no-location superset/translations/messages.po
 cat $LICENSE_TMP superset/translations/messages.pot > messages.pot.tmp \
   && mv messages.pot.tmp superset/translations/messages.pot
 
+# Stamp do-not-translate msgids (superset/translations/do-not-translate.txt) with
+# a `#. MACHINE_READ-DO_NOT_TRANSLATE` extracted comment. Extracted comments
+# propagate from the .pot into every catalog on the `pybabel update` below, so
+# the do-not-translate status stays consistent across all languages.
+python scripts/translations/apply_do_not_translate.py superset/translations/messages.pot
+
 # --no-fuzzy-matching: when a *new* source string is added, Babel's fuzzy
 # matcher otherwise guesses a "close" existing translation and marks it
 # `#, fuzzy` in every language catalog. Those guesses are (a) usually wrong

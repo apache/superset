@@ -342,10 +342,15 @@ uses Claude AI to generate draft translations for any missing entries. All
 AI-generated strings are marked `#, fuzzy` and tagged with an attribution
 comment so that human reviewers know they need to be checked before merging.
 
-The script never touches entries that must stay literal — msgids in its curated
-`DO_NOT_TRANSLATE` set (icon names, enum values, SQL keywords, API field names,
-example placeholders) and any entry carrying an explicit do-not-translate
-translator comment (e.g. the ru catalog's `# Не переводить`). Those are left
+The script never touches entries that must stay literal — icon names, enum
+values, SQL keywords, API field names, and example placeholders. These are
+registered in `superset/translations/do-not-translate.txt`;
+`scripts/translations/apply_do_not_translate.py` stamps them in `messages.pot`
+with a `#. MACHINE_READ-DO_NOT_TRANSLATE` extracted comment (run automatically
+from `babel_update.sh`), which `pybabel update` then propagates to every
+catalog. To mark a new string do-not-translate, add its msgid to the registry.
+The backfill also honors that marker and any legacy do-not-translate translator
+comment (e.g. the `ru` catalog's `# Не переводить`), leaving such entries
 untranslated so they fall back to the source token.
 
 #### Prerequisites

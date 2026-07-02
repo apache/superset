@@ -564,6 +564,7 @@ msgstr ""
 msgid "10/90 percentiles"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "10000"
 msgstr ""
 
@@ -3954,6 +3955,7 @@ msgstr ""
 msgid "DEC"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "DELETE"
 msgstr ""
 
@@ -5189,12 +5191,14 @@ msgstr ""
 msgid "Dynamically select grouping columns from a dataset"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "ECharts"
 msgstr ""
 
 msgid "ECharts Options (JS object literals)"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "EMAIL_REPORTS_CTA"
 msgstr ""
 
@@ -6466,6 +6470,7 @@ msgstr ""
 msgid "Further customize how to display each metric"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "GROUP BY"
 msgstr ""
 
@@ -8241,6 +8246,7 @@ msgstr ""
 msgid "N/A"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "NOT GROUPED BY"
 msgstr ""
 
@@ -8732,6 +8738,7 @@ msgstr ""
 msgid "OR"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "OVERWRITE"
 msgstr ""
 
@@ -12065,6 +12072,7 @@ msgstr ""
 msgid "TABLES"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "TEMPORAL_RANGE"
 msgstr ""
 
@@ -14721,9 +14729,11 @@ msgstr ""
 msgid "WED"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "WFS"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "WMS"
 msgstr ""
 
@@ -15192,6 +15202,7 @@ msgstr ""
 msgid "X-scale interval"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "XYZ"
 msgstr ""
 
@@ -15697,6 +15708,7 @@ msgstr ""
 msgid "bfill"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "bolt"
 msgstr ""
 
@@ -15782,6 +15794,7 @@ msgstr ""
 msgid "create dataset from SQL query"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "crontab"
 msgstr ""
 
@@ -15959,6 +15972,7 @@ msgstr ""
 msgid "error"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "error_message"
 msgstr ""
 
@@ -16258,6 +16272,7 @@ msgstr ""
 msgid "permalink state not found"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "pivoted_xlsx"
 msgstr ""
 
@@ -16318,6 +16333,7 @@ msgstr ""
 msgid "save"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "schema1,schema2"
 msgstr ""
 
@@ -16333,6 +16349,7 @@ msgid ""
 "series"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "sql"
 msgstr ""
 
@@ -16348,9 +16365,11 @@ msgstr ""
 msgid "std"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "step-after"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "step-before"
 msgstr ""
 
@@ -16372,6 +16391,7 @@ msgstr ""
 msgid "sum"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "superset.example.com"
 msgstr ""
 
@@ -16479,6 +16499,7 @@ msgstr ""
 msgid "year"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "your-project-1234-a1"
 msgstr ""
 

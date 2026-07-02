@@ -152,45 +152,38 @@ def _is_missing(entry: polib.POEntry) -> bool:
     return not entry.msgstr
 
 
-# msgids that must never be machine-translated: literal tokens compared against
-# source (SQL keywords, confirmation words), enum values (d3 interpolation
-# modes), icon names (e.g. "bolt" -> the ⚡ Explore control icon), API field
-# names, code constants, and example placeholders. Seeded from the
-# "# Не переводить" (do-not-translate) markers a human translator curated in the
-# ru catalog; these strings are language-independent, so the set applies to
-# every catalog. Translating them can break icon lookups, enum matching, or API
-# contracts, or is simply meaningless (proper nouns, example values).
-DO_NOT_TRANSLATE: frozenset[str] = frozenset(
-    {
-        "10000",
-        "DELETE",
-        "ECharts",
-        "EMAIL_REPORTS_CTA",
-        "GROUP BY",
-        "NOT GROUPED BY",
-        "OVERWRITE",
-        "TEMPORAL_RANGE",
-        "WFS",
-        "WMS",
-        "XYZ",
-        "bolt",
-        "crontab",
-        "error_message",
-        "pivoted_xlsx",
-        "schema1,schema2",
-        "sql",
-        "step-after",
-        "step-before",
-        "superset.example.com",
-        "your-project-1234-a1",
-    }
-)
+# Canonical registry of msgids that must never be machine-translated: literal
+# tokens compared against source (SQL keywords, confirmation words), enum values
+# (d3 interpolation modes), icon names (e.g. "bolt" -> the ⚡ Explore control
+# icon), API field names, code constants, and example placeholders. Translating
+# them can break icon lookups, enum matching, or API contracts, or is simply
+# meaningless (proper nouns, example values). apply_do_not_translate.py stamps
+# these msgids in messages.pot with a `#. MACHINE_READ-DO_NOT_TRANSLATE`
+# extracted comment that propagates to every catalog on `pybabel update`.
+DO_NOT_TRANSLATE_REGISTRY = TRANSLATIONS_DIR / "do-not-translate.txt"
 
-# Translator comment (in any catalog) explicitly marking an entry off-limits,
-# e.g. the ru catalog's "# Не переводить". Honored so a human translator's
-# deliberate decision to leave a string untranslated is never overridden.
+
+def _load_do_not_translate(path: Path = DO_NOT_TRANSLATE_REGISTRY) -> frozenset[str]:
+    """Load the do-not-translate msgids (skips comment/blank lines)."""
+    if not path.exists():
+        return frozenset()
+    return frozenset(
+        line
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line and not line.startswith("#")
+    )
+
+
+DO_NOT_TRANSLATE: frozenset[str] = _load_do_not_translate()
+
+# An explicit do-not-translate marker on an entry, matched in either the
+# extracted comment (`#. MACHINE_READ-DO_NOT_TRANSLATE`, the standard propagated
+# from the .pot) or a translator comment (e.g. the ru catalog's legacy
+# "# Не переводить"). Honored so a human's deliberate decision is never
+# overridden even if a msgid is missing from the registry.
 _DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
-    r"не\s+переводить|do[\s-]?not[\s-]?translate|don'?t\s+translate",
+    r"machine_read-do_not_translate|не\s+переводить"
+    r"|do[\s-]?not[\s-]?translate|don'?t\s+translate",
     re.IGNORECASE,
 )
 
@@ -198,12 +191,15 @@ _DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
 def _is_do_not_translate(entry: polib.POEntry) -> bool:
     """Return True if an entry must be left for a human (never machine-filled).
 
-    Either its msgid is in the curated DO_NOT_TRANSLATE set, or a translator
-    comment explicitly marks it do-not-translate.
+    Either its msgid is in the do-not-translate registry, or the entry carries
+    an explicit do-not-translate marker in its extracted or translator comment.
     """
     if entry.msgid in DO_NOT_TRANSLATE:
         return True
-    return bool(entry.tcomment and _DO_NOT_TRANSLATE_COMMENT.search(entry.tcomment))
+    return any(
+        comment and _DO_NOT_TRANSLATE_COMMENT.search(comment)
+        for comment in (entry.comment, entry.tcomment)
+    )
 
 
 def _context_langs(

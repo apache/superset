@@ -441,11 +441,19 @@ def test_resilient_translate_propagates_runtime_error(
 # --- _is_do_not_translate: never machine-fill literal tokens -------------------
 
 
-def test_is_do_not_translate_curated_msgid() -> None:
-    """A msgid in the curated DO_NOT_TRANSLATE set is protected (icon names,
+def test_is_do_not_translate_registry_msgid() -> None:
+    """A msgid in the do-not-translate registry is protected (icon names,
     enum values, SQL keywords, API field names, placeholders)."""
     for msgid in ("bolt", "error_message", "step-after", "GROUP BY"):
         assert backfill_po._is_do_not_translate(polib.POEntry(msgid=msgid, msgstr=""))
+
+
+def test_is_do_not_translate_honors_extracted_marker() -> None:
+    """The standardized `#. MACHINE_READ-DO_NOT_TRANSLATE` extracted comment
+    (propagated from the .pot) is honored even for a msgid not in the registry."""
+    entry = polib.POEntry(msgid="not-in-registry-token", msgstr="")
+    entry.comment = "MACHINE_READ-DO_NOT_TRANSLATE"  # polib .comment == `#.`
+    assert backfill_po._is_do_not_translate(entry)
 
 
 def test_is_do_not_translate_honors_translator_comment() -> None:
