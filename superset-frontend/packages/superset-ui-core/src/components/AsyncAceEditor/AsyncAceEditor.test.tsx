@@ -70,6 +70,68 @@ test('SQLEditor uses fontFamilyCode from theme', async () => {
   expect(fontFamily).toMatch(/mono|courier|consolas/i);
 });
 
+test('re-measures Ace font metrics on load and preserves a consumer onLoad (#41664)', async () => {
+  // Ace caches glyph width at construction; if the editor font settles later,
+  // the caret drifts. The editor forces a re-measure on load and again once
+  // `document.fonts.ready` resolves. Mock `document.fonts` so the re-measure
+  // path is deterministic regardless of the jsdom FontFaceSet implementation.
+  const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
+  const fontsReady = Promise.resolve();
+  Object.defineProperty(document, 'fonts', {
+    configurable: true,
+    value: { ready: fontsReady },
+  });
+
+  const ref = createRef<AceEditor>();
+  let updateFontSizeSpy: jest.SpyInstance | undefined;
+  let onResizeSpy: jest.SpyInstance | undefined;
+  // Spies are installed from inside the consumer onLoad, so they capture the
+  // asynchronous (post-fonts-ready) re-measure that runs after this callback.
+  const consumerOnLoad = jest.fn((editor: AceEditor['editor']) => {
+    // Cast to a minimal shape so `jest.spyOn` resolves cleanly; it is the
+    // same renderer instance the component re-measures, so the spy still
+    // observes the production calls.
+    const renderer = editor.renderer as unknown as {
+      updateFontSize: () => void;
+      onResize: (force?: boolean) => void;
+    };
+    updateFontSizeSpy = jest.spyOn(renderer, 'updateFontSize');
+    onResizeSpy = jest.spyOn(renderer, 'onResize');
+  });
+
+  try {
+    const { container } = render(
+      <SQLEditor
+        ref={ref as React.Ref<never>}
+        onLoad={consumerOnLoad as never}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(container.querySelector(selector)).toBeInTheDocument();
+    });
+
+    // The wrapper must call through to the consumer's onLoad with the editor.
+    expect(consumerOnLoad).toHaveBeenCalledTimes(1);
+    expect(consumerOnLoad).toHaveBeenCalledWith(ref.current?.editor);
+
+    // Once fonts settle, the editor re-measures so the caret realigns.
+    await fontsReady;
+    await waitFor(() => {
+      expect(updateFontSizeSpy).toHaveBeenCalled();
+      expect(onResizeSpy).toHaveBeenCalledWith(true);
+    });
+  } finally {
+    updateFontSizeSpy?.mockRestore();
+    onResizeSpy?.mockRestore();
+    if (originalFonts) {
+      Object.defineProperty(document, 'fonts', originalFonts);
+    } else {
+      delete (document as { fonts?: unknown }).fonts;
+    }
+  }
+});
+
 test('renders FullSQLEditor', async () => {
   const { container } = render(<FullSQLEditor />);
 

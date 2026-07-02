@@ -179,6 +179,7 @@ export function AsyncAceEditor(
           theme = inferredTheme,
           tabSize = defaultTabSize,
           defaultValue = '',
+          onLoad,
           ...props
         },
         ref,
@@ -280,6 +281,28 @@ export function AsyncAceEditor(
             cachedTargetContainer = null;
           };
         }, [ref]);
+
+        // Ace measures glyph width once, when the editor is constructed, and
+        // caches it in its internal FontMetrics. If the editor font finishes
+        // loading after that measurement, the cached width no longer matches
+        // the rendered glyphs and the caret drifts further from the text the
+        // longer the line — the residual misalignment in issue #41664, which
+        // the font-family CSS from #38928 does not address. Re-measure once the
+        // document's fonts have settled (and immediately, for the already-
+        // loaded case) so the caret stays aligned.
+        const handleLoad = useCallback(
+          (editor: Ace.Editor) => {
+            const remeasure = () => {
+              const { renderer } = editor;
+              renderer.updateFontSize();
+              renderer.onResize(true);
+            };
+            remeasure();
+            document.fonts?.ready?.then(remeasure).catch(() => {});
+            onLoad?.(editor);
+          },
+          [onLoad],
+        );
 
         return (
           <>
@@ -468,6 +491,7 @@ export function AsyncAceEditor(
               tabSize={tabSize}
               defaultValue={defaultValue}
               setOptions={{ fontFamily: editorFontFamily }}
+              onLoad={handleLoad}
               {...props}
             />
           </>
