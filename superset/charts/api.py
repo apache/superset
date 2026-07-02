@@ -884,6 +884,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             mimetype="application/zip",
             as_attachment=True,
             download_name=filename,
+            max_age=0,
         )
         if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
