@@ -355,6 +355,26 @@ describe('DashboardBuilder', () => {
     expect(filterbar).toHaveStyleRule('width', `${expectedValue}px`);
   });
 
+  test('should render dashboard chart holder borders with theme token', () => {
+    const { container } = setup();
+    const dashboardContent = container.querySelector('.dashboard-content');
+
+    expect(dashboardContent).toHaveStyleRule(
+      'border',
+      `1px solid ${supersetTheme.colorBorder}`,
+      {
+        target: '.dashboard-component-chart-holder',
+      },
+    );
+    expect(dashboardContent).toHaveStyleRule(
+      'border-radius',
+      `${supersetTheme.borderRadius}px`,
+      {
+        target: '.dashboard-component-chart-holder',
+      },
+    );
+  });
+
   test('should set header max width based on open filter bar width', () => {
     const expectedValue = 320;
     const setter = jest.fn();
