@@ -83,6 +83,7 @@ from superset.datasets.schemas import (
 )
 from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.views.base import DatasourceFilter
@@ -160,7 +161,6 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "schema",
         "sql",
         "table_name",
-        "uuid",
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
@@ -740,8 +740,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        ".detect_datetime_formats",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.detect_datetime_formats"
+        ),
         log_to_statsd=False,
     )
     def detect_datetime_formats(self, pk: int) -> Response:
@@ -822,8 +823,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".related_objects",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.related_objects"
+        ),
         log_to_statsd=False,
     )
     def related_objects(self, id_or_uuid: str) -> Response:
@@ -1144,8 +1146,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".get_or_create_dataset",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_or_create_dataset"
+        ),
         log_to_statsd=False,
     )
     def get_or_create_dataset(self) -> Response:
@@ -1221,6 +1224,26 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 )
         if table:
             return self.response(200, result={"table_id": table.id})
+
+        # A soft-deleted dataset over the same physical table would make the
+        # create below fail uniqueness validation with an opaque
+        # "already exists" 422 — while the caller's dataset list looks empty.
+        # Pre-check for the hidden twin and return a targeted message naming
+        # the restore path instead. (``find_soft_deleted_logical_duplicate``
+        # is the same helper the YAML importer uses for this case.)
+        if (database_obj := DatasetDAO.get_database_by_id(database_id)) and (
+            soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(
+                database_obj, Table(table_name, schema, catalog)
+            )
+        ):
+            return self.response_422(
+                message=(
+                    f"A soft-deleted dataset (uuid={soft_twin.uuid}) already "
+                    "references this table. Restore it via "
+                    f"POST /api/v1/dataset/{soft_twin.uuid}/restore, or hard-"
+                    "delete it, before creating a new dataset over this table."
+                )
+            )
 
         body["database"] = database_id
         try:
@@ -1397,9 +1420,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.get_drill_info",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_drill_info"
+        ),
         log_to_statsd=False,
     )
     def get_drill_info(self, pk: int, **kwargs: Any) -> Response:
