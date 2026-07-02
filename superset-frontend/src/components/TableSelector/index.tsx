@@ -82,6 +82,13 @@ const TableLabel = styled.span`
   }
 `;
 
+const TruncationNotice = styled.div`
+  ${({ theme }) => `
+    color: ${theme.colorTextSecondary};
+    margin-top: ${theme.sizeUnit}px;
+  `}
+`;
+
 interface TableSelectorProps {
   clearable?: boolean;
   database?: DatabaseObject | null;
@@ -339,6 +346,11 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       <>
         <StyledFormLabel>{label}</StyledFormLabel>
         {renderSelectRow(select, refreshLabel)}
+        {data?.hasMore && (
+          <TruncationNotice>
+            {t('Some tables are not shown. Refine your search.')}
+          </TruncationNotice>
+        )}
       </>
     );
   }
