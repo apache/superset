@@ -156,6 +156,18 @@ class DatabaseDeleteDatasetsExistFailedError(DeleteFailedError):
     message = _("Cannot delete a database that has datasets attached")
 
 
+class DatabaseDeleteSoftDeletedDatasetsExistFailedError(
+    DatabaseDeleteDatasetsExistFailedError
+):
+    # Subclasses the live-datasets error so the existing API handler catches
+    # both; only the message differs, telling the operator that the blockers
+    # are hidden (soft-deleted) rows even though their dataset list looks empty.
+    message = _(
+        "Cannot delete a database whose only remaining datasets are "
+        "soft-deleted. Restore or permanently purge them first."
+    )
+
+
 class DatabaseDeleteFailedError(DeleteFailedError):
     message = _("Database could not be deleted.")
 
