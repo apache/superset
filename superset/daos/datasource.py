@@ -46,6 +46,19 @@ def _escape_ilike_fragment(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
+def _apply_certified_filter(
+    query: Select,
+    certified_filter: bool,
+) -> Select:
+    if certified_filter:
+        return query.where(
+            SqlaTable.extra.isnot(None) & SqlaTable.extra.ilike('%"certification":%')
+        )
+    return query.where(
+        SqlaTable.extra.is_(None) | ~SqlaTable.extra.ilike('%"certification":%')
+    )
+
+
 class DatasourceDAO(BaseDAO[Datasource]):
     sources: dict[Union[DatasourceType, str], type[Datasource]] = {
         DatasourceType.TABLE: SqlaTable,
@@ -93,9 +106,14 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
     @staticmethod
     def build_dataset_query(
-        name_filter: str | None,
-        sql_filter: bool | None,
+        *,
+        name_filter: str | None = None,
+        sql_filter: bool | None = None,
         database_id: int | None = None,
+        schema_filter: str | None = None,
+        owners_filter: list[int] | None = None,
+        changed_by_filter: int | None = None,
+        certified_filter: bool | None = None,
     ) -> Select:
         """Build a SELECT for datasets, applying access and content filters."""
         ds_table = SqlaTable.__table__
@@ -129,6 +147,21 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
         if database_id is not None:
             ds_q = ds_q.where(SqlaTable.database_id == database_id)
+
+        if schema_filter is not None:
+            ds_q = ds_q.where(SqlaTable.schema == schema_filter)
+
+        if owners_filter is not None:
+            ds_q = ds_q.join(
+                sqla_models.sqlatable_user,
+                sqla_models.sqlatable_user.c.table_id == ds_table.c.id,
+            ).where(sqla_models.sqlatable_user.c.user_id.in_(owners_filter))
+
+        if changed_by_filter is not None:
+            ds_q = ds_q.where(ds_table.c.changed_by_fk == changed_by_filter)
+
+        if certified_filter is not None:
+            ds_q = _apply_certified_filter(ds_q, certified_filter)
 
         return ds_q
 
