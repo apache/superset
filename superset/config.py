@@ -1207,6 +1207,35 @@ THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
 # Celery task. Intentionally defaults to None so operators pick a dedicated
 # least-privilege user rather than inadvertently running warmup as "admin".
 SUPERSET_CACHE_WARMUP_USER: str | None = None
+# To warm up native filter option queries, use the `native_filter_options` strategy.
+# This strategy pre-populates the cache for Value-type native filter dropdowns by
+# executing the same chart-data queries the UI sends when a user opens a filter.
+#
+# Cache entries are warmed under SUPERSET_CACHE_WARMUP_USER. Without the shared
+# cache key optimization (not included in this PR), entries are scoped to the
+# warm-up user's normal cache partition. Users with different role sets may still
+# experience cache misses on first load.
+#
+# Example Celery beat configuration:
+#
+#     beat_schedule = {
+#         "cache-warmup-native-filters": {
+#             "task": "cache-warmup",
+#             "schedule": crontab(minute=0, hour=3),  # daily at 03:00
+#             "kwargs": {
+#                 "strategy_name": "native_filter_options",
+#                 "dashboard_ids": [1, 2, 3],
+#             },
+#         },
+#     }
+#
+# Requirements:
+# - SUPERSET_CACHE_WARMUP_USER must be set to a user with access to the
+#   dashboards and datasets referenced by the native filters.
+# - DATA_CACHE_CONFIG must be configured (Redis recommended).
+# - Celery beat must be running.
+# - Cascade/dependent filters and search-term variants are not warmed in this
+#   version; only base option queries are supported.
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
