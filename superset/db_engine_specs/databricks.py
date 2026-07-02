@@ -24,7 +24,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import text, types
+from sqlalchemy import false, or_, text, types
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -251,6 +251,51 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return HiveEngineSpec.epoch_to_dttm()
+
+    @classmethod
+    def handle_boolean_in_clause(cls, sqla_col: Any, values: list[Any]) -> Any:
+        """
+        Build an IN-style predicate for a boolean column using boolean literals.
+
+        Databricks requires boolean literals (``TRUE``/``FALSE``) rather than
+        integer literals (``0``/``1``) when comparing against a boolean column,
+        so the IN clause is expanded into OR'd equality checks against real
+        booleans.
+
+        :param sqla_col: SQLAlchemy column element
+        :param values: List of values for the IN clause
+        :return: SQLAlchemy expression, or a constant ``FALSE`` when none of the
+            values map to a boolean
+        """
+        boolean_values: list[bool] = []
+        for val in values:
+            coerced: bool | None
+            if val is None:
+                continue
+            if isinstance(val, bool):
+                coerced = val
+            elif isinstance(val, (int, float)):
+                coerced = bool(val)
+            elif isinstance(val, str):
+                lowered = val.strip().lower()
+                if lowered in ("true", "1"):
+                    coerced = True
+                elif lowered in ("false", "0"):
+                    coerced = False
+                else:
+                    # Unrecognized strings don't map to a boolean, so skip them
+                    coerced = None
+            else:
+                coerced = bool(val)
+            # Deduplicate while preserving order to avoid redundant OR terms
+            if coerced is not None and coerced not in boolean_values:
+                boolean_values.append(coerced)
+
+        if not boolean_values:
+            # Nothing usable (e.g. only None or unrecognized values); match nothing
+            return false()
+
+        return or_(*(sqla_col == val for val in boolean_values))
 
 
 class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
