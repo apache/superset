@@ -19,9 +19,12 @@ Celery task that exports every chart on a dashboard to a single multi-sheet
 ``.xlsx`` file, uploads it to S3, and emails the requesting user a pre-signed
 download link.
 
-The task re-runs each chart's saved query context under the requesting user,
-applies the live dashboard filter state, and streams the results row-by-row into
-a constant-memory workbook so large dashboards never load all data at once.
+In ``"data"`` mode the task re-runs each chart's saved query context under the
+requesting user, applies the live dashboard filter state, and streams the results
+row-by-row into a constant-memory workbook so large dashboards never load all
+data at once. In ``"images"`` mode non-table charts are instead rendered to
+images (through the same headless path as scheduled reports, reflecting the live
+filters) and embedded, while table-like charts stay tabular.
 """
 
 from __future__ import annotations
@@ -45,12 +48,27 @@ from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
+from superset.dashboards.excel_export.screenshot import render_chart_image
 from superset.extensions import celery_app
 from superset.utils import json, s3
 from superset.utils.core import override_user
 from superset.utils.excel_streaming import StreamingXlsxWriter
 
 logger = logging.getLogger(__name__)
+
+# Export modes: "data" streams every chart's tabular result (the default,
+# unchanged behavior); "images" embeds non-table charts as rendered images and
+# keeps only table-like charts tabular.
+EXPORT_MODE_DATA = "data"
+EXPORT_MODE_IMAGES = "images"
+
+# Viz types kept as tabular data in image mode; everything else is rendered as an
+# image. Operators can override the set via ``EXCEL_EXPORT_TABLE_VIZ_TYPES``.
+TABLE_VIZ_TYPES = {"table", "pivot_table_v2", "pivot_table"}
+
+
+class _ChartSkippedError(Exception):
+    """Signals a chart that could not be exported and should be listed as skipped."""
 
 
 def _chart_label(chart: Any) -> str:
@@ -60,6 +78,34 @@ def _chart_label(chart: Any) -> str:
 
 def _record_to_row(record: dict[str, Any], colnames: list[str]) -> list[Any]:
     return [record.get(col) for col in colnames]
+
+
+def _table_viz_types() -> set[str]:
+    """Viz types kept tabular in image mode (config override or built-in default)."""
+    return current_app.config.get("EXCEL_EXPORT_TABLE_VIZ_TYPES") or TABLE_VIZ_TYPES
+
+
+def _renders_as_image(chart: Any, mode: str) -> bool:
+    """Whether this chart is embedded as an image rather than streamed as data."""
+    return mode == EXPORT_MODE_IMAGES and chart.viz_type not in _table_viz_types()
+
+
+def _write_chart_image_sheet(
+    writer: StreamingXlsxWriter,
+    chart: Any,
+    dashboard_id: int,
+    active_data_mask: dict[str, Any],
+    user: Any,
+) -> None:
+    """
+    Render a single chart to an image and embed it as its own sheet.
+
+    :raises _ChartSkippedError: if the chart could not be rendered
+    """
+    image = render_chart_image(chart, dashboard_id, active_data_mask, user)
+    if image is None:
+        raise _ChartSkippedError
+    writer.add_image_sheet(_chart_label(chart), image)
 
 
 def _write_chart_sheets(
@@ -116,17 +162,29 @@ def _build_workbook(
     dashboard: Any,
     active_data_mask: dict[str, Any],
     job_id: str,
+    mode: str,
+    user: Any,
 ) -> list[str]:
     """Build the workbook on disk; return the list of skipped chart labels."""
     skipped: list[str] = []
     writer = StreamingXlsxWriter(path)
     try:
         for chart in get_charts_in_layout_order(dashboard):
-            if not chart.query_context:
+            as_image = _renders_as_image(chart, mode)
+            # Image charts render from their saved params and don't need a query
+            # context; data (and table) charts still do.
+            if not as_image and not chart.query_context:
                 skipped.append(_chart_label(chart))
                 continue
             try:
-                _write_chart_sheets(writer, chart, dashboard.id, active_data_mask)
+                if as_image:
+                    _write_chart_image_sheet(
+                        writer, chart, dashboard.id, active_data_mask, user
+                    )
+                else:
+                    _write_chart_sheets(writer, chart, dashboard.id, active_data_mask)
+            except _ChartSkippedError:
+                skipped.append(_chart_label(chart))
             except Exception:  # pylint: disable=broad-except
                 logger.exception(
                     "Skipping chart %s in dashboard export %s", chart.id, job_id
@@ -171,14 +229,17 @@ def export_dashboard_excel(
     user_id: int,
     active_data_mask: dict[str, Any],
     job_id: str,
+    mode: str = EXPORT_MODE_DATA,
 ) -> None:
     """
-    Export a dashboard's chart data to an ``.xlsx`` and email a download link.
+    Export a dashboard's charts to an ``.xlsx`` and email a download link.
 
     :param dashboard_id: The dashboard to export
     :param user_id: The requesting user (the task runs with their permissions)
     :param active_data_mask: Live dashboard filter state keyed by native filter id
     :param job_id: Correlation id, also the Celery task id and S3 object name
+    :param mode: ``"data"`` streams every chart's tabular result; ``"images"``
+        embeds non-table charts as rendered images and keeps tables tabular
     """
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
@@ -202,7 +263,9 @@ def export_dashboard_excel(
             )
             os.close(file_descriptor)
 
-            skipped = _build_workbook(tmp_path, dashboard, active_data_mask, job_id)
+            skipped = _build_workbook(
+                tmp_path, dashboard, active_data_mask, job_id, mode, user
+            )
 
             bucket = current_app.config["EXCEL_EXPORT_S3_BUCKET"]
             key = (

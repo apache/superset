@@ -32,12 +32,34 @@ from superset.utils import json
 MODULE = "superset.tasks.export_dashboard_excel"
 
 
-def _chart(chart_id: int, name: str, has_context: bool = True) -> mock.MagicMock:
+# A minimal valid 1x1 transparent PNG for image-mode tests.
+_PNG_1x1 = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06"
+    b"\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00"
+    b"\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+
+def _chart(
+    chart_id: int,
+    name: str,
+    has_context: bool = True,
+    viz_type: str = "line",
+) -> mock.MagicMock:
     chart = mock.MagicMock()
     chart.id = chart_id
     chart.slice_name = name
+    chart.viz_type = viz_type
     chart.query_context = json.dumps({"queries": [{}]}) if has_context else None
     return chart
+
+
+def _media(path: str) -> list[str]:
+    """Embedded media entries of an xlsx (which is a zip archive)."""
+    import zipfile
+
+    with zipfile.ZipFile(path) as archive:
+        return [n for n in archive.namelist() if n.startswith("xl/media/")]
 
 
 @pytest.fixture
@@ -58,6 +80,7 @@ def mocks() -> Iterator[dict[str, Any]]:
                 "get_dashboard_filter_context",
                 "ChartDataQueryContextSchema",
                 "ChartDataCommand",
+                "render_chart_image",
                 "s3",
                 "email",
             )
@@ -83,11 +106,11 @@ def mocks() -> Iterator[dict[str, Any]]:
         yield patched
 
 
-def _run(job_id: str = "job-1") -> None:
+def _run(job_id: str = "job-1", mode: str = "data") -> None:
     from superset.tasks.export_dashboard_excel import export_dashboard_excel
 
     export_dashboard_excel(
-        dashboard_id=1, user_id=2, active_data_mask={}, job_id=job_id
+        dashboard_id=1, user_id=2, active_data_mask={}, job_id=job_id, mode=mode
     )
 
 
@@ -210,3 +233,84 @@ def test_soft_time_limit_sends_failure_email(mocks: dict[str, Any]) -> None:
 
     mocks["email"].build_failure_email.assert_called_once()
     assert _no_temp_files_left("job-timeout")
+
+
+# --- image mode ---
+
+
+def test_images_mode_embeds_non_table_and_keeps_tables_tabular(
+    mocks: dict[str, Any],
+) -> None:
+    mocks["get_charts_in_layout_order"].return_value = [
+        _chart(10, "Line", viz_type="line"),
+        _chart(20, "Tbl", viz_type="table"),
+    ]
+    mocks["render_chart_image"].return_value = _PNG_1x1
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    uploaded: dict[str, Any] = {}
+
+    def _capture(path: str, bucket: str, key: str) -> None:
+        uploaded["sheets"] = _read_sheets(path)
+        uploaded["media"] = _media(path)
+
+    mocks["s3"].upload_file_to_s3.side_effect = _capture
+
+    _run(mode="images")
+
+    # The non-table chart is rendered as an image (with the requesting user)...
+    mocks["render_chart_image"].assert_called_once()
+    render_args = mocks["render_chart_image"].call_args[0]
+    assert render_args[0].id == 10
+    assert render_args[3] is mocks["user"]
+    # ...and the table chart still goes through the data path.
+    mocks["ChartDataCommand"].return_value.run.assert_called_once()
+
+    assert set(uploaded["sheets"].keys()) == {"10 - Line", "20 - Tbl"}
+    # Exactly one embedded image (the non-table chart).
+    assert len(uploaded["media"]) == 1
+
+
+def test_images_mode_renders_chart_without_query_context(
+    mocks: dict[str, Any],
+) -> None:
+    # An image chart with no saved query context can still render.
+    mocks["get_charts_in_layout_order"].return_value = [
+        _chart(10, "Line", viz_type="line", has_context=False),
+    ]
+    mocks["render_chart_image"].return_value = _PNG_1x1
+
+    uploaded: dict[str, Any] = {}
+
+    def _capture(path: str, bucket: str, key: str) -> None:
+        uploaded["media"] = _media(path)
+
+    mocks["s3"].upload_file_to_s3.side_effect = _capture
+
+    _run(mode="images")
+
+    mocks["render_chart_image"].assert_called_once()
+    assert len(uploaded["media"]) == 1
+
+
+def test_images_mode_none_render_is_skipped(mocks: dict[str, Any]) -> None:
+    mocks["get_charts_in_layout_order"].return_value = [
+        _chart(10, "Line", viz_type="line"),
+    ]
+    mocks["render_chart_image"].return_value = None
+
+    uploaded: dict[str, Any] = {}
+
+    def _capture(path: str, bucket: str, key: str) -> None:
+        uploaded["sheets"] = _read_sheets(path)
+
+    mocks["s3"].upload_file_to_s3.side_effect = _capture
+
+    _run(mode="images")
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["skipped_charts"] == ["10 - Line"]
+    # Nothing rendered → the summary sheet stands in for an empty workbook.
+    assert "Export Summary" in uploaded["sheets"]

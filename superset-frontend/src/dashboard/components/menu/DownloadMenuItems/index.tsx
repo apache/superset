@@ -167,11 +167,11 @@ export const useDownloadMenuItems = (
     }
   };
 
-  const onExportXlsx = async () => {
+  const onExportXlsx = async (mode: 'data' | 'images') => {
     try {
       await SupersetClient.post({
         endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
-        jsonPayload: { active_data_mask: buildActiveDataMask() },
+        jsonPayload: { active_data_mask: buildActiveDataMask(), mode },
       });
       addSuccessToast(
         t(
@@ -242,7 +242,12 @@ export const useDownloadMenuItems = (
           {
             key: 'export-xlsx',
             label: t('Export Data to Excel'),
-            onClick: onExportXlsx,
+            onClick: () => onExportXlsx('data'),
+          },
+          {
+            key: 'export-xlsx-images',
+            label: t('Export Images to Excel'),
+            onClick: () => onExportXlsx('images'),
           },
         ]
       : []),

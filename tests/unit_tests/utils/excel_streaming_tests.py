@@ -218,3 +218,50 @@ def test_writer_summary_sheet(tmp_path: Path) -> None:
 
     sheets = _read_workbook(path)
     assert sheets["Export Summary"] == [["Skipped charts:"], ["10 - Broken"]]
+
+
+# --- add_image_sheet ---
+
+# A minimal valid 1x1 transparent PNG.
+_PNG_1x1 = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06"
+    b"\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00"
+    b"\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+
+def _read_media(path: str) -> list[str]:
+    """Return the embedded media entries of an xlsx (which is a zip archive)."""
+    import zipfile
+
+    with zipfile.ZipFile(path) as archive:
+        return [n for n in archive.namelist() if n.startswith("xl/media/")]
+
+
+def test_add_image_sheet_embeds_image_and_counts(tmp_path: Path) -> None:
+    path = str(tmp_path / "out.xlsx")
+    writer = StreamingXlsxWriter(path)
+    writer.add_image_sheet("10 - Chart", _PNG_1x1)
+    assert writer.sheet_count == 1
+    writer.close()
+
+    # The sheet exists (with a sanitized/unique name) and the PNG is embedded.
+    sheets = _read_workbook(path)
+    assert list(sheets.keys()) == ["10 - Chart"]
+    assert _read_media(path) == ["xl/media/image1.png"]
+
+
+def test_add_image_sheet_dedupes_and_composes_with_data_sheets(
+    tmp_path: Path,
+) -> None:
+    path = str(tmp_path / "out.xlsx")
+    writer = StreamingXlsxWriter(path)
+    writer.add_sheet("10 - Chart", ["a"], [[1]])
+    writer.add_image_sheet("10 - Chart", _PNG_1x1)
+    writer.close()
+
+    assert writer.sheet_count == 2
+    sheets = _read_workbook(path)
+    # The image sheet name is de-duplicated against the existing data sheet.
+    assert list(sheets.keys()) == ["10 - Chart", "10 - Chart~2"]
+    assert _read_media(path) == ["xl/media/image1.png"]

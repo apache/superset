@@ -110,19 +110,21 @@ test('Should render all menu items', () => {
 
   // Export options
   expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  expect(screen.getByText('Export Images to Excel')).toBeInTheDocument();
   expect(screen.getByText('Export YAML')).toBeInTheDocument();
   expect(screen.getByText('Export as Example')).toBeInTheDocument();
 });
 
-test('Export Data to Excel is hidden when userCanExport is false', () => {
+test('Excel export items are hidden when userCanExport is false', () => {
   render(<MenuWrapperWithProps userCanExport={false} />, { useRedux: true });
 
   expect(screen.queryByText('Export Data to Excel')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
   // YAML export is not gated and remains visible
   expect(screen.getByText('Export YAML')).toBeInTheDocument();
 });
 
-test('Export Data to Excel posts active_data_mask and shows a pending toast', async () => {
+test('Export Data to Excel posts mode "data" and shows a pending toast', async () => {
   mockSupersetClient.post.mockResolvedValue({} as never);
 
   render(<MenuWrapper />, { useRedux: true });
@@ -132,7 +134,25 @@ test('Export Data to Excel posts active_data_mask and shows a pending toast', as
   await waitFor(() => {
     expect(mockSupersetClient.post).toHaveBeenCalledWith({
       endpoint: '/api/v1/dashboard/123/export_xlsx/',
-      jsonPayload: { active_data_mask: {} },
+      jsonPayload: { active_data_mask: {}, mode: 'data' },
+    });
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      "Your export is being prepared. You'll receive an email when it's ready.",
+    );
+  });
+});
+
+test('Export Images to Excel posts mode "images" and shows a pending toast', async () => {
+  mockSupersetClient.post.mockResolvedValue({} as never);
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('Export Images to Excel'));
+
+  await waitFor(() => {
+    expect(mockSupersetClient.post).toHaveBeenCalledWith({
+      endpoint: '/api/v1/dashboard/123/export_xlsx/',
+      jsonPayload: { active_data_mask: {}, mode: 'images' },
     });
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       "Your export is being prepared. You'll receive an email when it's ready.",

@@ -1567,6 +1567,7 @@ class DashboardRestApi(
                 "user_id": g.user.id,
                 "active_data_mask": payload.get("active_data_mask", {}),
                 "job_id": job_id,
+                "mode": payload.get("mode", "data"),
             },
             task_id=job_id,
         )

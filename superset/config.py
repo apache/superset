@@ -1385,6 +1385,10 @@ EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
 # endpoint_url for S3-compatible stores (MinIO/LocalStack). Credentials
 # otherwise resolve through the standard boto3 chain.
 EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
+# Viz types treated as tables in the "Export Images to Excel" mode: these charts
+# stay tabular (one worksheet of data) while every other viz type is embedded as
+# a rendered image. Set to None to fall back to the built-in default.
+EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
 # ---------------------------------------------------
 # Time grain configurations
