@@ -17,8 +17,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
-"PO-Revision-Date: 2025-11-05 14:37+0300\n"
+"POT-Creation-Date: 2026-07-01 13:08+0300\n"
+"PO-Revision-Date: 2026-07-01 11:59+0300\n"
 "Last-Translator: innovark\n"
 "Language: ru\n"
 "Language-Team: Russian <>\n"
@@ -442,13 +442,6 @@ msgstr "%s вкладка выбрана"
 #, python-format
 msgid "%s recipients"
 msgstr "%s получатели"
-
-#, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] "%s запись"
-msgstr[1] "%s записи..."
-msgstr[2] "%s записей..."
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -6047,6 +6040,9 @@ msgstr "Введите ваш логин и пароль ниже:"
 msgid "Entity"
 msgstr "Элемент"
 
+msgid "Entries per page"
+msgstr "Записей на странице"
+
 msgid "Equal Date Sizes"
 msgstr "Одинаковые размеры дат"
 
@@ -11322,10 +11318,6 @@ msgstr "Прокрутите вниз до конца для активации 
 msgid "Search"
 msgstr "Поиск"
 
-#, python-format
-msgid "Search %s records"
-msgstr "Искать среди %s записи(ей)"
-
 msgid "Search / Filter"
 msgstr "Поиск / Фильтр"
 
@@ -11341,9 +11333,8 @@ msgstr "Искать по всем мерам и столбцам"
 msgid "Search box"
 msgstr "Строка поиска"
 
-#, fuzzy
 msgid "Search by"
-msgstr "Строка поиска"
+msgstr "Поиск по"
 
 msgid "Search by query text"
 msgstr "Поиск по тексту запроса"
@@ -11375,6 +11366,9 @@ msgstr "Поиск по мерам и столбцам"
 
 msgid "Search owners"
 msgstr "Поиск владельцев"
+
+msgid "Search records"
+msgstr "Искать записи"
 
 msgid "Search roles"
 msgstr "Поиск ролей"
@@ -17355,9 +17349,6 @@ msgstr "Ко всей строке"
 
 msgid "entries"
 msgstr "записи(ей)"
-
-msgid "entries per page"
-msgstr "записей на странице"
 
 msgid "error"
 msgstr "ошибка"
