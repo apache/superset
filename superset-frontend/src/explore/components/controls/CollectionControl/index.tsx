@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useMemo, useRef } from 'react';
-import { IconTooltip, List } from '@superset-ui/core/components';
+import { Button, IconTooltip, List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core/translation';
 import { useTheme, type SupersetTheme } from '@apache-superset/core/theme';
@@ -27,14 +27,17 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
+  KeyboardSensor,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
+  sortableKeyboardCoordinates,
   arrayMove,
 } from '@dnd-kit/sortable';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
@@ -68,8 +71,7 @@ export interface CollectionControlProps {
 function DragHandle() {
   return (
     <Icons.MenuOutlined
-      role="img"
-      aria-label={t('Drag to reorder')}
+      aria-hidden
       className="text-primary"
       style={{ cursor: 'ns-resize' }}
     />
@@ -93,8 +95,14 @@ function SortableItem({
   onChangeItem,
   onRemoveItem,
 }: SortableItemProps) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: transition ?? undefined,
@@ -116,8 +124,17 @@ function SortableItem({
         paddingInline: theme.sizeUnit * 6,
       })}
     >
-      <span {...attributes} {...listeners}>
-        <DragHandle />
+      <span ref={setActivatorNodeRef} css={{ display: 'inline-flex' }}>
+        <Button
+          type="text"
+          aria-label={t('Drag to reorder')}
+          icon={<DragHandle />}
+          css={{
+            cursor: 'ns-resize',
+          }}
+          {...attributes}
+          {...listeners}
+        />
       </span>
       <div
         css={(theme: SupersetTheme) => ({
@@ -182,6 +199,9 @@ function CollectionControl({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
 
@@ -284,6 +304,7 @@ function CollectionControl({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        modifiers={[restrictToVerticalAxis]}
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
