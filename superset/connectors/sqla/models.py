@@ -194,6 +194,16 @@ class BaseDatasource(
     # Only some datasources support Row Level Security
     is_rls_supported: bool = False
 
+    # Datasources that can return raw row samples (anything backed by a SQL
+    # table can; semantic-layer abstractions cannot, since they only expose
+    # pre-defined metrics and dimensions).
+    supports_samples: bool = True
+
+    # Datasources that can answer "drill to detail" requests — i.e. fetch the
+    # raw rows underlying a chart cell. Conceptually similar to ``samples``
+    # but kept as a separate capability so the two can diverge.
+    supports_drill_to_detail: bool = True
+
     @property
     def name(self) -> str:
         # can be a Column or a property pointing to one
@@ -501,6 +511,8 @@ class BaseDatasource(
             "owners": [owner.id for owner in self.owners],
             "verbose_map": self.verbose_map,
             "select_star": self.select_star,
+            "supports_samples": self.supports_samples,
+            "supports_drill_to_detail": self.supports_drill_to_detail,
         }
 
     def data_for_slices(  # pylint: disable=too-many-locals  # noqa: C901
