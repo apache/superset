@@ -309,6 +309,22 @@ async def test_list_dashboards_with_simple_filters(mock_list, mcp_server):
         assert "count" in data
 
 
+def test_get_dashboard_info_docstring_documents_list_charts_escape_hatch() -> None:
+    """The tool docstring tells agents how to page past the charts cap.
+
+    Regression test for the Medialab large-dashboard report: agents calling
+    get_dashboard_info on a dashboard with more charts than the response-size
+    guard's cap need a documented way to retrieve the rest. This is surfaced
+    to the LLM via the tool's docstring (in addition to the charts field
+    description on DashboardInfo).
+    """
+    doc = get_dashboard_info_module.get_dashboard_info.__doc__
+    assert doc is not None
+    assert "list_charts" in doc
+    assert "dashboards" in doc
+    assert "page" in doc
+
+
 @patch(
     "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
     return_value=True,
