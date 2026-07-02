@@ -17,15 +17,14 @@
  * under the License.
  */
 
-const typescriptEslintParser = require('@typescript-eslint/parser');
-const typescriptEslintPlugin = require('@typescript-eslint/eslint-plugin');
-const typescriptEslint = require('typescript-eslint');
-const lodashEslintPlugin = require('eslint-plugin-lodash');
-const eslintConfigPrettier = require('eslint-config-prettier');
-const js = require('@eslint/js');
-const globals = require('globals');
+import typescriptEslintParser from '@typescript-eslint/parser';
+import typescriptEslintPlugin from '@typescript-eslint/eslint-plugin';
+import typescriptEslint from 'typescript-eslint';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import js from '@eslint/js';
+import globals from 'globals';
 
-module.exports = [
+export default [
   js.configs.recommended,
   ...typescriptEslint.configs.recommended,
   eslintConfigPrettier,
@@ -41,10 +40,8 @@ module.exports = [
     },
     plugins: {
       typescript: typescriptEslintPlugin,
-      lodash: lodashEslintPlugin,
     },
     rules: {
-      'lodash/import-scope': [2, 'member'],
       '@typescript-eslint/explicit-module-boundary-types': 0,
       '@typescript-eslint/no-var-requires': 0,
       '@typescript-eslint/no-require-imports': 0, // Re-enable once superset-websocket is converted to ESM
