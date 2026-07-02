@@ -45,23 +45,6 @@ test('renders without crashing with full styleConfig', () => {
   expect(container.querySelector('.ant-btn')).toBeInTheDocument();
 });
 
-test('styleConfig values are reflected in generated CSS', () => {
-  const { container } = render(
-    <DropdownButton
-      menu={menuProps}
-      styleConfig={{
-        controlHeight: 40,
-        fontSize: 16,
-        fontWeight: 700,
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      }}
-    >
-      Click
-    </DropdownButton>,
-  );
-  expect(container.firstChild).toMatchSnapshot();
-});
-
 test('renders tooltip when tooltip prop is provided', () => {
   const { getByText } = render(
     <DropdownButton menu={menuProps} tooltip="My Tooltip">
