@@ -44,6 +44,7 @@ from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     GAMMA_SQLLAB_NO_DATA_USERNAME,
+    GAMMA_USERNAME,
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import load_birth_names_data  # noqa: F401
 from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data  # noqa: F401
@@ -530,3 +531,12 @@ class TestSqlLabApi(SupersetTestCase):
         assert data == expected_data, f"CSV data mismatch. Got: {data}"
         db.session.delete(query_obj)
         db.session.commit()
+
+    def test_export_streaming_csv_requires_permission(self) -> None:
+        """Users without can_export_csv on SQLLab must get a 403 from streaming."""
+        self.login(GAMMA_USERNAME)
+        resp = self.client.post(
+            "/api/v1/sqllab/export_streaming/",
+            data={"client_id": "nonexistent"},
+        )
+        assert resp.status_code == 403
