@@ -71,12 +71,18 @@ export type CustomRangeDecodeType = {
   matchedFlag: boolean;
 };
 
-export type CommonRangeType =
-  | 'Last day'
-  | 'Last week'
-  | 'Last month'
-  | 'Last quarter'
-  | 'Last year';
+/**
+ * Any "Last <N> <unit>(s)" time range string.
+ * Validated at runtime by COMMON_RANGE_REGEX rather than an exhaustive union,
+ * so arbitrary values like "Last 4 hours" or "Last 24 hours" are supported
+ * without needing to enumerate every possibility here.
+ *
+ * The opaque brand ensures call sites obtain a value via validation
+ * (e.g. `value as CommonRangeType` after checking COMMON_RANGE_REGEX) rather
+ * than passing an arbitrary string.
+ */
+declare const _commonRangeBrand: unique symbol;
+export type CommonRangeType = string & { readonly [_commonRangeBrand]: void };
 
 export const PreviousCalendarWeek = 'previous calendar week';
 export const PreviousCalendarMonth = 'previous calendar month';

@@ -426,10 +426,27 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
-        time_range = time_range + separator + _relative_end
+        # For granular time units (second/minute/hour), "today" (midnight) would be
+        # earlier than the computed since time (e.g. now-1h), causing a
+        # "From date cannot be larger than to date" error. Always use "now" for
+        # sub-day units so that the until bound is consistent with the since bound.
+        _granular_last_pattern: str = (
+            r"^Last\s+(?:[0-9]+\s+)?(?:seconds?|minutes?|hours?)$"
+        )
+        if re.search(_granular_last_pattern, time_range, re.IGNORECASE):
+            time_range = time_range + separator + "now"
+        else:
+            time_range = time_range + separator + _relative_end
 
     if time_range and time_range.startswith("Next") and separator not in time_range:
-        time_range = _relative_start + separator + time_range
+        # Mirror the same logic for Next: granular units should start from "now".
+        _granular_next_pattern: str = (
+            r"^Next\s+(?:[0-9]+\s+)?(?:seconds?|minutes?|hours?)$"
+        )
+        if re.search(_granular_next_pattern, time_range, re.IGNORECASE):
+            time_range = "now" + separator + time_range
+        else:
+            time_range = _relative_start + separator + time_range
 
     if (
         time_range
@@ -547,7 +564,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             (
                 r"^(this|last|next|prior)\s{1,5}"
                 r"([0-9]+)?\s{0,5}"
-                r"(second|minute|day|week|month|quarter|year)s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
+                r"(second|minute|hour|day|week|month|quarter|year)s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
                 lambda scope, delta, unit: handle_scope_and_unit(
                     scope, delta, unit, get_relative_base(unit, relative_start)
                 ),
