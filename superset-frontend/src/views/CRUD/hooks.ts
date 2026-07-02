@@ -920,9 +920,14 @@ export function useDatabaseValidation() {
         }
 
         console.error('Unexpected error during validation:', error);
+        // A request that produced no usable response (network drop, no JSON
+        // body) is not a completed validation cycle, so ``hasValidated``
+        // must stay false: otherwise the Connect button would enable
+        // without any real result. The blur snapshot is not cached for
+        // ``null`` results, so the next blur retries.
         if (isLatest()) {
           setIsValidating(false);
-          setHasValidated(true);
+          setHasValidated(false);
         }
         return null;
       }

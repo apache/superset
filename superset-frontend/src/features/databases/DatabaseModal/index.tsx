@@ -971,11 +971,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       // for blocking errors (e.g. the duplicate ``database_name`` check),
       // and ``null`` for stale or unexpected responses. During save we
       // cannot proceed without a usable result, so treat ``null`` as
-      // blocking too — only ``[]`` is a clean pass.
+      // blocking too — only ``[]`` is a clean pass. The decision relies on
+      // this fresh result alone: the ``validationErrors`` state in this
+      // closure may still hold errors from before the user fixed the form.
       const hasReturnedErrors =
         errors === null ||
         (Array.isArray(errors) ? errors.length > 0 : !isEmpty(errors));
-      if (!isEmpty(validationErrors) || hasReturnedErrors) {
+      if (hasReturnedErrors) {
         addDangerToast(
           t('Connection failed, please check your connection settings.'),
         );
@@ -1889,7 +1891,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
       isValidating={isValidating}
       validationErrors={validationErrors}
-      getValidation={getBlurValidation}
+      // ``validate_parameters`` only understands dynamic-form payloads; in
+      // SQLAlchemy-URI mode SSH fields are exercised via "Test connection"
+      // instead, so blur validation is skipped there.
+      getValidation={useSqlAlchemyForm ? () => {} : getBlurValidation}
     />
   );
 

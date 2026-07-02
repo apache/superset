@@ -1308,6 +1308,36 @@ describe('DatabaseModal', () => {
           );
         });
 
+        test('does not fire blur validation for SSH fields in the SQLAlchemy form', async () => {
+          setup();
+
+          userEvent.click(
+            await screen.findByRole('button', {
+              name: /sqlite/i,
+            }),
+          );
+
+          expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
+          const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+          userEvent.click(SSHTunnelingToggle);
+          const SSHTunnelServerAddressInput = await screen.findByTestId(
+            'ssh-tunnel-server_address-input',
+          );
+          fireEvent.change(SSHTunnelServerAddressInput, {
+            target: { value: 'localhost' },
+          });
+          fireEvent.blur(SSHTunnelServerAddressInput);
+          await waitFor(() =>
+            expect(SSHTunnelServerAddressInput).toHaveValue('localhost'),
+          );
+
+          // ``validate_parameters`` expects a dynamic-form payload, so SSH
+          // field blur must not call it from the SQLAlchemy-URI form
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toEqual(0);
+        });
+
         test('if the SSH Tunneling toggle is not true, no inputs are displayed', async () => {
           setup();
 
@@ -1486,6 +1516,66 @@ describe('DatabaseModal', () => {
             fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
           ).toEqual(1);
         });
+      });
+
+      test('keeps Connect disabled when blur validation fails without a usable response', async () => {
+        fetchMock.modifyRoute('validate-params', {
+          response: { throws: new TypeError('Network request failed') },
+        });
+        const consoleErrorSpy = jest
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+
+        setup();
+
+        userEvent.click(
+          await screen.findByRole('button', {
+            name: /postgresql/i,
+          }),
+        );
+
+        expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+        const textboxes = await screen.findAllByRole('textbox');
+        const hostField = textboxes[0];
+        const portField = screen.getByRole('spinbutton');
+        const databaseField = textboxes[1];
+        const usernameField = textboxes[2];
+        const passwordField = textboxes[3];
+        const connectButton = screen.getByRole('button', { name: 'Connect' });
+
+        fireEvent.change(hostField, { target: { value: 'localhost' } });
+        fireEvent.blur(hostField);
+        fireEvent.change(portField, { target: { value: '5432' } });
+        fireEvent.blur(portField);
+        fireEvent.change(databaseField, { target: { value: 'postgres' } });
+        fireEvent.blur(databaseField);
+        fireEvent.change(usernameField, { target: { value: 'testdb' } });
+        fireEvent.blur(usernameField);
+        fireEvent.change(passwordField, { target: { value: 'demoPassword' } });
+        fireEvent.blur(passwordField);
+
+        await waitFor(() => {
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toBeGreaterThan(0);
+        });
+
+        // A request without a usable response is not a completed validation
+        // cycle, so the Connect button must stay disabled
+        expect(connectButton).toBeDisabled();
+
+        // Once the endpoint recovers, the next blur retries (failed attempts
+        // are not cached) and completes the validation cycle
+        fetchMock.modifyRoute('validate-params', {
+          response: { message: 'OK' },
+        });
+        fireEvent.focus(passwordField);
+        fireEvent.blur(passwordField);
+
+        await waitFor(() => expect(connectButton).toBeEnabled());
+
+        consoleErrorSpy.mockRestore();
       });
     });
 
