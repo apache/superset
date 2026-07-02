@@ -89,7 +89,6 @@ from superset.utils.backports import StrEnum
 from superset.utils.core import get_query_source_from_request, get_username
 from superset.utils.oauth2 import (
     check_for_oauth2,
-    get_oauth2_access_token,
     OAuth2ClientConfigSchema,
 )
 
@@ -170,7 +169,9 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class Database(
+    CoreDatabase, AuditMixinNullable, ImportExportMixin
+):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -447,9 +448,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         return (
             username
             if (username := get_username())
-            else object_url.username
-            if self.impersonate_user
-            else None
+            else object_url.username if self.impersonate_user else None
         )
 
     @contextmanager
@@ -564,17 +563,20 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             if user and user.email:
                 effective_username = user.email.split("@")[0]
 
-        oauth2_config = self.get_oauth2_config()
+        from superset.utils.oauth2 import get_access_token_for_database
+
+        has_g_user = hasattr(g, "user") and hasattr(g.user, "id")
         access_token = (
-            get_oauth2_access_token(
-                oauth2_config,
-                self.id,
-                g.user.id,
-                self.db_engine_spec,
-            )
-            if oauth2_config and hasattr(g, "user") and hasattr(g.user, "id")
+            get_access_token_for_database(self, g.user.id)
+            if has_g_user
             else None
         )
+        if not has_g_user:
+            logger.debug(
+                "Database._get_sqla_engine() database='%s': "
+                "g.user is not set, skipping OAuth token lookup",
+                self.database_name,
+            )
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
@@ -1513,6 +1515,31 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     )
     database = relationship("Database", foreign_keys=[database_id])
 
+    access_token = Column(encrypted_field_factory.create(Text), nullable=True)
+    access_token_expiration = Column(DateTime, nullable=True)
+    refresh_token = Column(encrypted_field_factory.create(Text), nullable=True)
+
+
+class UpstreamOAuthToken(Model, AuditMixinNullable):
+    """
+    Store OAuth tokens from the Superset login provider, for forwarding to databases.
+    """
+
+    __tablename__ = "upstream_oauth_tokens"
+    __table_args__ = (
+        sqla.UniqueConstraint(
+            "user_id", "provider", name="uq_upstream_oauth_tokens_user_provider"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user = relationship(security_manager.user_model, foreign_keys=[user_id])
+    provider = Column(String(256), nullable=False)
     access_token = Column(encrypted_field_factory.create(Text), nullable=True)
     access_token_expiration = Column(DateTime, nullable=True)
     refresh_token = Column(encrypted_field_factory.create(Text), nullable=True)
