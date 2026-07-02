@@ -40,6 +40,7 @@ from typing import (
     TypedDict,
     Union,
 )
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import dateutil.parser
 import humanize
@@ -1169,6 +1170,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         raise NotImplementedError()
 
+    def get_dataset_timezone(self) -> str | None:
+        """
+        Get the timezone configured for this dataset from the extra JSON field.
+
+        Returns an IANA timezone name (e.g., "Europe/Berlin", "America/New_York")
+        or None if not configured.
+
+        ``extra_dict`` is provided by concrete datasources (e.g. ``SqlaTable``)
+        rather than this mixin, so read it defensively: subclasses without it
+        simply have no configured timezone.
+        """
+        extra = getattr(self, "extra_dict", None) or {}
+        return extra.get("timezone")
+
     def get_fetch_values_predicate(
         self,
         template_processor: Optional[  # pylint: disable=unused-argument
@@ -1671,11 +1686,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         labels = self._collect_dttm_labels(query_object)
 
+        dataset_timezone = self.get_dataset_timezone()
         dttm_cols = [
             DateColumn(
                 timestamp_format=fmt,
                 offset=self.offset,
                 time_shift=query_object.time_shift,
+                timezone=dataset_timezone,
                 col_label=label,
             )
             for label, fmt in labels
@@ -1687,6 +1704,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     timestamp_format=self._python_date_format(query_object.granularity),
                     offset=self.offset,
                     time_shift=query_object.time_shift,
+                    timezone=dataset_timezone,
                 )
             )
 
@@ -2901,19 +2919,47 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         )
 
+        # Apply timezone conversion for time filter boundaries
+        # This converts user's local time boundaries to UTC for querying UTC-stored data
+        adjusted_start, adjusted_end = start_dttm, end_dttm
+        dataset_timezone = self.get_dataset_timezone()
+
+        if dataset_timezone and (start_dttm or end_dttm):
+            try:
+                tz = ZoneInfo(dataset_timezone)
+
+                # The datetimes from the UI are naive (no timezone info)
+                # We interpret them as being in the dataset's configured timezone
+                # and convert them to UTC for comparison with UTC-stored data
+                if start_dttm:
+                    local_start = start_dttm.replace(tzinfo=tz)
+                    adjusted_start = local_start.astimezone(timezone.utc).replace(
+                        tzinfo=None
+                    )
+                if end_dttm:
+                    local_end = end_dttm.replace(tzinfo=tz)
+                    adjusted_end = local_end.astimezone(timezone.utc).replace(
+                        tzinfo=None
+                    )
+            except ZoneInfoNotFoundError:
+                logger.warning(
+                    "Invalid timezone '%s' in dataset extra",
+                    dataset_timezone,
+                )
+
         l = []  # noqa: E741
-        if start_dttm:
+        if adjusted_start:
             l.append(
                 col
                 >= self.db_engine_spec.get_text_clause(
-                    self.dttm_sql_literal(start_dttm, time_col)
+                    self.dttm_sql_literal(adjusted_start, time_col)
                 )
             )
-        if end_dttm:
+        if adjusted_end:
             l.append(
                 col
                 < self.db_engine_spec.get_text_clause(
-                    self.dttm_sql_literal(end_dttm, time_col)
+                    self.dttm_sql_literal(adjusted_end, time_col)
                 )
             )
         if not l:
