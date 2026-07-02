@@ -21,50 +21,46 @@ import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import type { SqlLabAction } from 'src/SqlLab/actions/sqlLab';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import {
-  table,
-  databases,
-  initialState as mockState,
-} from '../fixtures';
+import { table, databases, initialState as mockState } from '../fixtures';
 
 type SqlLabState = SqlLabRootState['sqlLab'];
 const initialState = mockState.sqlLab as unknown as SqlLabState;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sqlLabReducer', () => {
-    test('should merge databases instead of replacing existing database state', () => {
-      const existingDb = databases.result[0];
-      const incomingDb = databases.result[1];
-  
-      const state: SqlLabState = {
-        ...initialState,
-        databases: {
-          [existingDb.id]: {
-            ...existingDb,
-            extra_json: {},
-          },
+  test('should merge databases instead of replacing existing database state', () => {
+    const existingDb = databases.result[0];
+    const incomingDb = databases.result[1];
+
+    const state: SqlLabState = {
+      ...initialState,
+      databases: {
+        [existingDb.id]: {
+          ...existingDb,
+          extra_json: {},
         },
-      };
-  
-     const action: SqlLabAction = actions.setDatabases([
-        {
-          ...incomingDb,
-          extra: '{}',
-        },
-      ]);
-  
-      const newState = sqlLabReducer(state, action);
-  
-      expect(newState.databases[existingDb.id]).toBeDefined();
-      expect(newState.databases[incomingDb.id]).toBeDefined();
-  
-      expect(
-        newState.databases[existingDb.id].database_name,
-      ).toBe(existingDb.database_name);
-  
-      expect(
-        newState.databases[incomingDb.id].database_name,
-      ).toBe(incomingDb.database_name);
+      },
+    };
+
+    const action: SqlLabAction = actions.setDatabases([
+      {
+        ...incomingDb,
+        extra_json: {},
+      },
+    ]);
+
+    const newState = sqlLabReducer(state, action);
+
+    expect(newState.databases[existingDb.id]).toBeDefined();
+    expect(newState.databases[incomingDb.id]).toBeDefined();
+
+    expect(newState.databases[existingDb.id].database_name).toBe(
+      existingDb.database_name,
+    );
+
+    expect(newState.databases[incomingDb.id].database_name).toBe(
+      incomingDb.database_name,
+    );
   });
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Query editors actions', () => {
@@ -235,6 +231,27 @@ describe('sqlLabReducer', () => {
         sql,
       };
       newState = sqlLabReducer(newState, action);
+      expect(newState.unsavedQueryEditor.sql).toBe(sql);
+      expect(newState.unsavedQueryEditor.id).toBe(qe!.id);
+    });
+    test('should set Sql when dispatched with tabViewId (backend persistence)', () => {
+      // Simulate SqllabBackendPersistence: queryEditor gets a tabViewId after save
+      const tabViewId = 'tab-view-42';
+      const migrateAction = {
+        type: actions.MIGRATE_QUERY_EDITOR,
+        oldQueryEditor: qe,
+        newQueryEditor: { ...qe!, tabViewId, inLocalStorage: false },
+      };
+      newState = sqlLabReducer(newState, migrateAction as SqlLabAction);
+
+      // Restore SQL using tabViewId (as restoreSql in QueryTable does)
+      const sql = 'SELECT restored_query FROM history';
+      const restoreAction = {
+        type: actions.QUERY_EDITOR_SET_SQL,
+        queryEditor: { id: tabViewId },
+        sql,
+      };
+      newState = sqlLabReducer(newState, restoreAction);
       expect(newState.unsavedQueryEditor.sql).toBe(sql);
       expect(newState.unsavedQueryEditor.id).toBe(qe!.id);
     });

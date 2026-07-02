@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { noop } from 'lodash';
+import { noop } from 'lodash-es';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { css, styled } from '@apache-superset/core/theme';
 import { useComponentDidUpdate } from '@superset-ui/core';

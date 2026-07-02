@@ -244,14 +244,32 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return max(dashboard_changed_on, datasources_changed_on).replace(microsecond=0)
 
     @staticmethod
-    def validate_slug_uniqueness(slug: str) -> bool:
-        if not slug:
+    def validate_slug_uniqueness(slug: str | None) -> bool:
+        # The ``SoftDeleteMixin`` listener auto-appends ``deleted_at IS NULL``
+        # to this query, so soft-deleted rows are correctly ignored on
+        # PostgreSQL and MySQL 8.0+ where slug uniqueness is enforced by a
+        # partial index (``ix_dashboards_active_slug``). On SQLite, MariaDB,
+        # and MySQL <8.0 the database retains a full unique constraint on
+        # ``slug``; a soft-deleted row will still block insertion of a new
+        # row with the same slug at flush time, even though this check
+        # passes. The fallback constraint is documented in UPDATING.md and
+        # in the 9e1f3b8c4d2a migration.
+        #
+        # Use ``slug is None`` (not ``not slug``) so an empty-string slug still
+        # runs the uniqueness check, matching ``validate_update_slug_uniqueness``
+        # below — otherwise two active dashboards could both carry ``slug=""``
+        # at the application layer (colliding only at flush via the partial index).
+        if slug is None:
             return True
         dashboard_query = db.session.query(Dashboard).filter(Dashboard.slug == slug)
         return not db.session.query(dashboard_query.exists()).scalar()
 
     @staticmethod
     def validate_update_slug_uniqueness(dashboard_id: int, slug: str | None) -> bool:
+        # See ``validate_slug_uniqueness`` for the same dialect-gap note:
+        # the partial-index dialects (Postgres / MySQL 8.0+) match this
+        # application-level check; the full-constraint dialects can still
+        # surface an IntegrityError when the colliding row is soft-deleted.
         if slug is not None:
             dashboard_query = db.session.query(Dashboard).filter(
                 Dashboard.slug == slug, Dashboard.id != dashboard_id
@@ -431,36 +449,25 @@ class DashboardDAO(BaseDAO[Dashboard]):
             raise DashboardUpdateFailedError("Dashboard not found")
 
         if attributes:
-            metadata = json.loads(dashboard.json_metadata or "{}")
+            try:
+                _parsed = json.loads(dashboard.json_metadata or "{}")
+            except (json.JSONDecodeError, TypeError):
+                _parsed = {}
+            metadata = _parsed if isinstance(_parsed, dict) else {}
             native_filter_configuration = metadata.get(
                 "native_filter_configuration", []
             )
             reordered_filter_ids: list[int] = attributes.get("reordered", [])
+            deleted_ids = set(attributes.get("deleted", []))
+            modified_map = {f.get("id"): f for f in attributes.get("modified", [])}
             updated_configuration = []
 
             # Modify / Delete existing filters
             for conf in native_filter_configuration:
-                deleted_filter = next(
-                    (f for f in attributes.get("deleted", []) if f == conf.get("id")),
-                    None,
-                )
-                if deleted_filter:
+                conf_id = conf.get("id")
+                if conf_id in deleted_ids:
                     continue
-
-                modified_filter = next(
-                    (
-                        f
-                        for f in attributes.get("modified", [])
-                        if f.get("id") == conf.get("id")
-                    ),
-                    None,
-                )
-                if modified_filter:
-                    # Filter was modified, substitute it
-                    updated_configuration.append(modified_filter)
-                else:
-                    # Filter was not modified, keep it as is
-                    updated_configuration.append(conf)
+                updated_configuration.append(modified_map.get(conf_id, conf))
 
             # Append new filters
             for new_filter in attributes.get("modified", []):

@@ -550,3 +550,13 @@ def sanitize_sql_expression(  # noqa: C901
     _check_dangerous_stored_procedures(value, field_name)
 
     return value
+
+
+def escape_like(value: str) -> str:
+    """Escape SQL LIKE metacharacters in *value*, using backslash as the escape char.
+
+    Pair the result with escape="\\" in every .ilike() / .like()
+    call so the database treats \\, \\%, and \\_ as literals.
+    Backslash is doubled first to prevent double-escaping.
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
