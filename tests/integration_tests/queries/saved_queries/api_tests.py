@@ -677,7 +677,7 @@ class TestSavedQueryApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    def test_create_saved_query_blank_label(self):
+    def test_create_saved_query_blank_label(self) -> None:
         """
         Saved Query API: Test create rejects blank/whitespace-only labels
         """
@@ -698,7 +698,7 @@ class TestSavedQueryApi(SupersetTestCase):
             assert rv.status_code == 422
             assert "label" in data["message"]
 
-    def test_create_saved_query_strips_label(self):
+    def test_create_saved_query_strips_label(self) -> None:
         """
         Saved Query API: Test create trims surrounding whitespace from labels
         """
@@ -725,7 +725,7 @@ class TestSavedQueryApi(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("create_saved_queries")
-    def test_update_saved_query_blank_label(self):
+    def test_update_saved_query_blank_label(self) -> None:
         """
         Saved Query API: Test update rejects blank/whitespace-only labels
         """

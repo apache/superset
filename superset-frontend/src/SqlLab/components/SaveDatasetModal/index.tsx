@@ -365,7 +365,7 @@ export const SaveDatasetModal = ({
         catalog: datasource?.catalog ?? null,
         schema: datasource?.schema ?? '',
         templateParams,
-        datasourceName: datasetName,
+        datasourceName: datasetName.trim(),
       }),
     )
       .then((data: { id: number }) => {

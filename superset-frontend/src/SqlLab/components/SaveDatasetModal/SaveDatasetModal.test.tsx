@@ -267,6 +267,22 @@ describe('SaveDatasetModal', () => {
     });
   });
 
+  test('trims surrounding whitespace from the dataset name on save', async () => {
+    renderModal();
+
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: '  my dataset  ' } });
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    expect(createDatasource).toHaveBeenCalledWith(
+      expect.objectContaining({ datasourceName: 'my dataset' }),
+    );
+  });
+
   test('sends the catalog when creating the dataset', async () => {
     renderModal({
       datasource: { ...mockedProps.datasource, catalog: 'public' },
