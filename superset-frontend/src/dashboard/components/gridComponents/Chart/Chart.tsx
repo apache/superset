@@ -562,7 +562,6 @@ const Chart = (props: ChartProps) => {
             exportFormData as unknown as import('@superset-ui/core').QueryFormData,
           resultType,
           resultFormat: format,
-          force: true,
           ownState: exportOwnState,
           onStartStreamingExport: shouldUseStreaming
             ? (exportParams: JsonObject) => {
