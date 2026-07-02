@@ -18,19 +18,23 @@
  */
 import { useState, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { SupersetTheme } from '@apache-superset/core/theme';
+import { SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import {
-  Input,
   Button,
   FormLabel,
   Select,
   Upload,
   type UploadFile,
+  LabeledErrorBoundInput as ValidatedInput,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DatabaseParameters, Engines, FieldPropTypes } from '../../types';
-import { infoTooltip, CredentialInfoForm } from '../styles';
+import {
+  infoTooltip,
+  CredentialInfoForm,
+  CredentialInfoFormTextArea,
+} from '../styles';
 
 enum CredentialInfoOptions {
   JsonUpload,
@@ -51,9 +55,14 @@ export const EncryptedField = ({
   isEditMode,
   db,
   editNewDb,
+  isValidating,
+  validationErrors,
+  getValidation,
   isPublic = true,
   setIsPublic,
 }: FieldPropTypes) => {
+  const theme = useTheme() as SupersetTheme;
+  const credentialTextAreaCss = CredentialInfoFormTextArea(theme);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
@@ -168,22 +177,27 @@ export const EncryptedField = ({
       (uploadOption === CredentialInfoOptions.CopyPaste ||
         isEditMode ||
         editNewDb) ? (
-        <div className="input-container">
-          <FormLabel>{t('Service Account')}</FormLabel>
-          <Input.TextArea
-            className="input-form"
-            name={encryptedField}
-            value={
-              typeof encryptedValue === 'boolean'
-                ? String(encryptedValue)
-                : encryptedValue
-            }
-            onChange={changeMethods.onParametersChange}
-            placeholder={t(
-              'Paste content of service credentials JSON file here',
-            )}
-          />
-        </div>
+        <ValidatedInput
+          id={encryptedField}
+          name={encryptedField}
+          required={false}
+          isValidating={isValidating}
+          value={
+            typeof encryptedValue === 'boolean'
+              ? String(encryptedValue)
+              : encryptedValue
+          }
+          validationMethods={{ onBlur: getValidation }}
+          errorMessage={
+            encryptedField ? validationErrors?.[encryptedField] : null
+          }
+          placeholder={t('Paste content of service credentials JSON file here')}
+          label={t('Service Account')}
+          onChange={changeMethods.onParametersChange}
+          helpText={t('Add service credentials')}
+          renderAsTextArea
+          textAreaCss={credentialTextAreaCss}
+        />
       ) : (
         showCredentialsInfo && (
           <div
@@ -220,6 +234,7 @@ export const EncryptedField = ({
                       },
                     });
                     setFileList(info.fileList);
+                    getValidation();
                   } catch {
                     setFileList([]);
                     addDangerToast(

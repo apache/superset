@@ -374,6 +374,39 @@ describe('EncryptedField', () => {
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('renderAsTextArea branch', () => {
+    test('renders a textarea element (not a plain input) in edit mode', () => {
+      const props = { ...defaultProps, isEditMode: true };
+      const { container } = render(<EncryptedField {...props} />);
+
+      // renderAsTextArea causes LabeledErrorBoundInput to render <textarea>
+      expect(container.querySelector('textarea')).toBeInTheDocument();
+      expect(container.querySelector('input')).not.toBeInTheDocument();
+    });
+
+    test('renders a textarea element in copy-paste mode', () => {
+      const props = { ...defaultProps, isEditMode: false };
+      render(<EncryptedField {...props} />);
+
+      // Switch to copy-paste option to trigger renderAsTextArea branch
+      const select = screen.getByRole('combobox');
+      fireEvent.mouseDown(select);
+      fireEvent.click(screen.getByText('Copy and Paste JSON credentials'));
+
+      expect(screen.getByRole('textbox').tagName).toBe('TEXTAREA');
+    });
+
+    test('does not render a textarea when upload option is selected', () => {
+      const props = { ...defaultProps, isEditMode: false, editNewDb: false };
+      render(<EncryptedField {...props} />);
+
+      // Default upload option — no textarea should be present
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      expect(screen.getByText('Upload credentials')).toBeInTheDocument();
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Error Boundaries', () => {
     test('renders gracefully when database prop is missing', () => {
       const props = { ...defaultProps, db: undefined };
