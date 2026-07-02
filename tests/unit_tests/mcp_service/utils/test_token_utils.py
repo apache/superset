@@ -677,3 +677,42 @@ class TestTruncateOversizedResponse:
         assert isinstance(result, dict)
         assert result["id"] == 1  # Scalar fields preserved
         assert len(notes) > 0
+
+    def test_large_dashboard_respects_default_max_list_items(self) -> None:
+        """Regression test for the Medialab large-dashboard report.
+
+        A dashboard with 463 charts and 48 native_filters should have
+        native_filters (48 items) left untouched under the new default cap
+        of 100, while charts (463 items) is truncated to 100 — a clear
+        improvement over the old flat 30-item cap, which truncated both.
+        """
+        response = {
+            "id": 1,
+            "dashboard_title": "x" * 2000,  # forces Phase 2 to trigger
+            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(463)],
+            "native_filters": [{"id": i, "name": f"filter_{i}"} for i in range(48)],
+        }
+        result, was_truncated, notes = truncate_oversized_response(response, 3000)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["charts"]) == 100
+        assert len(result["native_filters"]) == 48
+        assert any("charts" in n and "463" in n for n in notes)
+        assert not any("native_filters" in n for n in notes)
+
+    def test_large_dashboard_respects_custom_max_list_items(self) -> None:
+        """A custom max_list_items should truncate both fields to that cap."""
+        response = {
+            "id": 1,
+            "dashboard_title": "x" * 2000,
+            "charts": [{"id": i, "slice_name": f"chart_{i}"} for i in range(463)],
+            "native_filters": [{"id": i, "name": f"filter_{i}"} for i in range(48)],
+        }
+        result, was_truncated, notes = truncate_oversized_response(
+            response, 3000, max_list_items=50
+        )
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert len(result["charts"]) == 50
+        assert len(result["native_filters"]) == 48  # Under custom cap, untouched
+        assert any("charts" in n and "50" in n for n in notes)
