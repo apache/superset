@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
+import warnings
 from re import Pattern
 from typing import Any
 
@@ -32,6 +33,18 @@ from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sql.parse import Table
 from superset.utils import json
+
+# sqlalchemy-redshift's own __init__ still imports pkg_resources; the pinned
+# range (see pyproject.toml) can't move to the pkg_resources-free 1.0.0
+# release without SQLAlchemy 2.0 (apache/superset#39750 was closed for this
+# reason). This module is eagerly imported by load_engine_specs() at every
+# Superset startup, well before SQLAlchemy lazily imports sqlalchemy_redshift
+# via the "redshift://" dialect entry point on first connection, so the
+# filter is guaranteed to be registered in time.
+warnings.filterwarnings(
+    "ignore",
+    message=r"pkg_resources is deprecated as an API",
+)
 
 logger = logging.getLogger()
 
