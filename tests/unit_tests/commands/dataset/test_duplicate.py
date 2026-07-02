@@ -101,3 +101,55 @@ def test_duplicate_dataset_access_check_passes_through() -> None:
                     command.validate()  # should not raise
                     # Confirm access check was called with the base dataset
                     mock_access.assert_called_once_with(datasource=mock_dataset)
+
+
+def test_duplicate_dataset_copies_catalog_and_schema() -> None:
+    """DuplicateDatasetCommand.run() must copy catalog and schema from the source."""
+    from superset.commands.dataset.duplicate import DuplicateDatasetCommand
+
+    mock_base_dataset = MagicMock()
+    mock_base_dataset.id = 1
+    mock_base_dataset.kind = "virtual"
+    mock_base_dataset.database_id = 42
+    mock_base_dataset.columns = []
+    mock_base_dataset.metrics = []
+
+    mock_copy = MagicMock()
+    mock_copy.catalog = "my-bq-project"
+    mock_copy.schema = "my_schema"
+    mock_copy.sql = "SELECT 1"
+    mock_base_dataset.copy.return_value = mock_copy
+
+    mock_database = MagicMock()
+
+    with patch(
+        "superset.commands.dataset.duplicate.DatasetDAO.find_by_id",
+        return_value=mock_base_dataset,
+    ):
+        with patch(
+            "superset.commands.dataset.duplicate.security_manager.raise_for_access",
+        ):
+            with patch(
+                "superset.commands.dataset.duplicate.DatasetDAO.find_one_or_none",
+                return_value=None,
+            ):
+                with patch(
+                    "superset.commands.dataset.duplicate.DuplicateDatasetCommand.populate_owners",
+                    return_value=[],
+                ):
+                    with patch("superset.commands.dataset.duplicate.db") as mock_db:
+                        with patch("superset.db"):
+                            mock_db.session.query.return_value.get.return_value = (
+                                mock_database
+                            )
+                            command = DuplicateDatasetCommand(
+                                {
+                                    "base_model_id": 1,
+                                    "table_name": "duplicated_dataset",
+                                    "is_managed_externally": False,
+                                }
+                            )
+                            table = command.run()
+
+    assert table.catalog == "my-bq-project"
+    assert table.schema == "my_schema"
