@@ -26,6 +26,7 @@ import {
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import {
   FeatureFlag,
+  getClientErrorObject,
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
@@ -46,12 +47,15 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn().mockReturnValue(false),
+  getClientErrorObject: jest.fn().mockResolvedValue({}),
   SupersetClient: {
     get: jest.fn(),
+    post: jest.fn(),
   },
 }));
 
 const mockSupersetClient = SupersetClient as jest.Mocked<typeof SupersetClient>;
+const mockGetClientErrorObject = getClientErrorObject as jest.Mock;
 
 const createProps = () => ({
   pdfMenuItemTitle: 'Export to PDF',
@@ -66,6 +70,19 @@ const createProps = () => ({
 
 const MenuWrapper = () => {
   const downloadMenuItem = useDownloadMenuItems(createProps());
+  const menuItems: MenuItem[] = [downloadMenuItem];
+  return <Menu forceSubMenuRender items={menuItems} />;
+};
+
+const MenuWrapperWithProps = (
+  overrides: Partial<ReturnType<typeof createProps>> & {
+    canExportImage?: boolean;
+  },
+) => {
+  const downloadMenuItem = useDownloadMenuItems({
+    ...createProps(),
+    ...overrides,
+  });
   const menuItems: MenuItem[] = [downloadMenuItem];
   return <Menu forceSubMenuRender items={menuItems} />;
 };
@@ -92,8 +109,65 @@ test('Should render all menu items', () => {
   expect(screen.getByText('Download as Image')).toBeInTheDocument();
 
   // Export options
+  expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
   expect(screen.getByText('Export YAML')).toBeInTheDocument();
   expect(screen.getByText('Export as Example')).toBeInTheDocument();
+});
+
+test('Export Data to Excel is hidden when userCanExport is false', () => {
+  render(<MenuWrapperWithProps userCanExport={false} />, { useRedux: true });
+
+  expect(screen.queryByText('Export Data to Excel')).not.toBeInTheDocument();
+  // YAML export is not gated and remains visible
+  expect(screen.getByText('Export YAML')).toBeInTheDocument();
+});
+
+test('Export Data to Excel posts active_data_mask and shows a pending toast', async () => {
+  mockSupersetClient.post.mockResolvedValue({} as never);
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(mockSupersetClient.post).toHaveBeenCalledWith({
+      endpoint: '/api/v1/dashboard/123/export_xlsx/',
+      jsonPayload: { active_data_mask: {} },
+    });
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      "Your export is being prepared. You'll receive an email when it's ready.",
+    );
+  });
+});
+
+test('Export Data to Excel shows a config error toast on 501', async () => {
+  mockSupersetClient.post.mockRejectedValue(new Error('not configured'));
+  mockGetClientErrorObject.mockResolvedValue({ status: 501 });
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      'Excel export is not configured on this server.',
+    );
+  });
+});
+
+test('Export Data to Excel shows a generic error toast on other failures', async () => {
+  mockSupersetClient.post.mockRejectedValue(new Error('boom'));
+  mockGetClientErrorObject.mockResolvedValue({ status: 500 });
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      'Sorry, something went wrong. Try again later.',
+    );
+  });
 });
 
 test('Export as Example calls SupersetClient.get with correct endpoint', async () => {
@@ -143,19 +217,6 @@ test('Export as Example shows error toast on failure', async () => {
 });
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
-
-const MenuWrapperWithProps = (
-  overrides: Partial<ReturnType<typeof createProps>> & {
-    canExportImage?: boolean;
-  },
-) => {
-  const downloadMenuItem = useDownloadMenuItems({
-    ...createProps(),
-    ...overrides,
-  });
-  const menuItems: MenuItem[] = [downloadMenuItem];
-  return <Menu forceSubMenuRender items={menuItems} />;
-};
 
 test('Screenshot menu items should be disabled when GranularExportControls is ON and canExportImage is false', () => {
   mockIsFeatureEnabled.mockImplementation(

@@ -633,3 +633,21 @@ class CacheScreenshotSchema(Schema):
         fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
     )
     permalinkKey = fields.Str(required=False)  # noqa: N815
+
+
+class DashboardExportXlsxPostSchema(Schema):
+    active_data_mask = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Dict(),
+        load_default=dict,
+        metadata={
+            "description": "Live dashboard filter state keyed by native filter id, "
+            "each carrying an extraFormData object."
+        },
+    )
+
+
+class DashboardExportXlsxResponseSchema(Schema):
+    job_id = fields.String(
+        metadata={"description": "Correlation id for the async export task"}
+    )

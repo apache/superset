@@ -1640,7 +1640,14 @@ describe('DatabaseModal', () => {
 
     userEvent.click(screen.getByTestId('sqla-connect-btn'));
 
-    expect(await screen.findByTestId('database-name-input')).toBeVisible();
+    // Switching to the tab layout re-renders the modal, which replays the
+    // antd zoom entrance animation (opacity: 0 until rc-motion's deadline
+    // fires — jsdom never emits transitionend). Wait past the animation
+    // instead of racing it with findBy*'s default 1s timeout.
+    await waitFor(
+      () => expect(screen.getByTestId('database-name-input')).toBeVisible(),
+      { timeout: 5000 },
+    );
     expect(screen.getByTestId('sqlalchemy-uri-input')).toBeVisible();
   });
 
