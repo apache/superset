@@ -79,7 +79,7 @@ from superset.reports.notifications.exceptions import (
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
-from superset.utils.csv import get_chart_dataframe
+from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
@@ -622,17 +622,22 @@ class BaseReportState:
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
+            db.session.refresh(self._report_schedule.chart)
 
         try:
-            request_payload = self._get_chart_data_request_payload(
-                ChartDataResultFormat.CSV
-            )
-            url = get_url_path("ChartDataRestApi.data")
-            csv_data = self._post_chart_data(
-                chart_url=url,
-                auth_cookies=auth_cookies,
-                request_payload=request_payload,
-            )
+            if self._report_schedule.chart.query_context is None:
+                url = self._get_url(result_format=ChartDataResultFormat.CSV)
+                csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+            else:
+                request_payload = self._get_chart_data_request_payload(
+                    ChartDataResultFormat.CSV
+                )
+                url = get_url_path("ChartDataRestApi.data")
+                csv_data = self._post_chart_data(
+                    chart_url=url,
+                    auth_cookies=auth_cookies,
+                    request_payload=request_payload,
+                )
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.info(
                 "CSV data generation from %s as user %s took %.2fs - execution_id: %s",

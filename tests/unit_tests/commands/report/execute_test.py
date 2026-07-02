@@ -1110,6 +1110,55 @@ def test_get_csv_data_posts_prepared_chart_data_payload(
     )
 
 
+def test_get_csv_data_keeps_screenshot_fallback_without_query_context(
+    mocker: MockerFixture,
+) -> None:
+    """Missing query context should keep the screenshot fallback path."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    report_state._report_schedule.chart.query_context = None
+    mocker.patch(
+        "superset.commands.report.execute.get_executor",
+        return_value=(None, "report_executor"),
+    )
+    user = mocker.MagicMock(username="report_executor")
+    mocker.patch(
+        "superset.commands.report.execute.security_manager.find_user",
+        return_value=user,
+    )
+    auth_cookies = {"session": "cookie"}
+    auth_provider = mocker.patch(
+        "superset.commands.report.execute.machine_auth_provider_factory"
+    )
+    auth_provider.instance.get_auth_cookies.return_value = auth_cookies
+    update_query_context = mocker.patch.object(report_state, "_update_query_context")
+    refresh = mocker.patch("superset.commands.report.execute.db.session.refresh")
+    get_url = mocker.patch.object(
+        report_state,
+        "_get_url",
+        return_value="http://superset.example/api/v1/chart/1/data/",
+    )
+    get_chart_csv_data = mocker.patch(
+        "superset.commands.report.execute.get_chart_csv_data",
+        return_value=b"csv-data",
+    )
+    post_chart_data = mocker.patch.object(report_state, "_post_chart_data")
+
+    assert report_state._get_csv_data() == b"csv-data"
+
+    update_query_context.assert_called_once()
+    refresh.assert_called_once_with(report_state._report_schedule.chart)
+    get_url.assert_called_once_with(result_format=ChartDataResultFormat.CSV)
+    get_chart_csv_data.assert_called_once_with(
+        chart_url="http://superset.example/api/v1/chart/1/data/",
+        auth_cookies=auth_cookies,
+    )
+    post_chart_data.assert_not_called()
+
+
 @pytest.mark.parametrize(
     "test_id,custom_width,max_width,window_width,expected_width",
     [
