@@ -226,4 +226,7 @@ def test_deprecated_logs_warning_exactly_once() -> None:
         endpoint(view)
 
     assert mock_logger.warning.call_count == 1
-    assert "5.0.0" in mock_logger.warning.call_args[0][0]
+    # logger.warning uses lazy %-style formatting, so the version is a
+    # separate positional arg rather than being interpolated into the
+    # message template string itself.
+    assert "5.0.0" in mock_logger.warning.call_args[0]
