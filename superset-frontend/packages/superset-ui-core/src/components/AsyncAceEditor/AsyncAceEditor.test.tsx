@@ -84,8 +84,7 @@ test('re-measures Ace font metrics on load and preserves a consumer onLoad (#416
 
   const ref = createRef<AceEditor>();
   let updateFontSizeSpy: jest.SpyInstance | undefined;
-  let onResizeSpy: jest.SpyInstance | undefined;
-  // Spies are installed from inside the consumer onLoad, so they capture the
+  // The spy is installed from inside the consumer onLoad, so it captures the
   // asynchronous (post-fonts-ready) re-measure that runs after this callback.
   const consumerOnLoad = jest.fn((editor: AceEditor['editor']) => {
     // Cast to a minimal shape so `jest.spyOn` resolves cleanly; it is the
@@ -93,10 +92,8 @@ test('re-measures Ace font metrics on load and preserves a consumer onLoad (#416
     // observes the production calls.
     const renderer = editor.renderer as unknown as {
       updateFontSize: () => void;
-      onResize: (force?: boolean) => void;
     };
     updateFontSizeSpy = jest.spyOn(renderer, 'updateFontSize');
-    onResizeSpy = jest.spyOn(renderer, 'onResize');
   });
 
   try {
@@ -115,15 +112,15 @@ test('re-measures Ace font metrics on load and preserves a consumer onLoad (#416
     expect(consumerOnLoad).toHaveBeenCalledTimes(1);
     expect(consumerOnLoad).toHaveBeenCalledWith(ref.current?.editor);
 
-    // Once fonts settle, the editor re-measures so the caret realigns.
+    // Once fonts settle, the editor re-measures (Ace itself resizes and
+    // re-renders when the measured character size changed) so the caret
+    // realigns.
     await fontsReady;
     await waitFor(() => {
       expect(updateFontSizeSpy).toHaveBeenCalled();
-      expect(onResizeSpy).toHaveBeenCalledWith(true);
     });
   } finally {
     updateFontSizeSpy?.mockRestore();
-    onResizeSpy?.mockRestore();
     if (originalFonts) {
       Object.defineProperty(document, 'fonts', originalFonts);
     } else {

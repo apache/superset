@@ -289,13 +289,14 @@ export function AsyncAceEditor(
         // longer the line — the residual misalignment in issue #41664, which
         // the font-family CSS from #38928 does not address. Re-measure once the
         // document's fonts have settled (and immediately, for the already-
-        // loaded case) so the caret stays aligned.
+        // loaded case) so the caret stays aligned. `updateFontSize` runs Ace's
+        // `checkForSizeChanges`, which on a metrics change emits
+        // `changeCharacterSize` — Ace's renderer reacts with a forced resize
+        // and full re-render, so no explicit resize call is needed here.
         const handleLoad = useCallback(
           (editor: Ace.Editor) => {
             const remeasure = () => {
-              const { renderer } = editor;
-              renderer.updateFontSize();
-              renderer.onResize(true);
+              editor.renderer.updateFontSize();
             };
             remeasure();
             document.fonts?.ready?.then(remeasure).catch(() => {});
