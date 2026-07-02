@@ -828,6 +828,7 @@ class Superset(BaseSupersetView):
         return self.render_app_template(
             extra_bootstrap_data=bootstrap_payload,
             title=dashboard.dashboard_title,  # dashboard title is always visible
+            dashboard_description=dashboard.description,
             standalone_mode=ReservedUrlParameters.is_standalone_mode(),
         )
 
