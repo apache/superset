@@ -36,6 +36,7 @@ import pytest
 from fastmcp.server.auth import AccessToken
 from flask import g
 
+from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 from superset.mcp_service.auth import (
     _resolve_user_from_jwt_context,
     _tool_denied_for_guest,
@@ -48,6 +49,11 @@ from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
 from superset.mcp_service.guest_token_verifier import (
     GUEST_TOKEN_CLAIM,
     GuestTokenVerifier,
+)
+from superset.mcp_service.mcp_config import (
+    _is_mcp_guest_auth_enabled,
+    _validate_guest_config,
+    MCPAuthConfigError,
 )
 from superset.security.guest_token import GuestUser
 
@@ -421,7 +427,9 @@ async def test_verify_token_defers_on_missing_exp() -> None:
 @pytest.mark.asyncio
 async def test_composite_strips_guest_marker_from_jwt_token() -> None:
     """A crafted IdP JWT carrying the guest marker must have it stripped by the
-    composite, so it cannot be mistaken for a verified guest at resolution."""
+    composite, so it cannot be mistaken for a verified guest at resolution. The
+    strip rebuilds the token rather than mutating in place, so it holds even when
+    ``AccessToken.claims`` is an immutable or copied mapping."""
     forged = _access_token("guest", {GUEST_TOKEN_CLAIM: True, "sub": "attacker"})
     jwt_verifier = _StubVerifier(forged)
     composite = CompositeTokenVerifier(
@@ -430,8 +438,11 @@ async def test_composite_strips_guest_marker_from_jwt_token() -> None:
 
     result = await composite.verify_token("crafted-idp-jwt")
 
-    assert result is forged
+    assert result is not None
     assert GUEST_TOKEN_CLAIM not in result.claims
+    assert result.claims["sub"] == "attacker"
+    # Rebuilt, not mutated: the original token still carries the marker.
+    assert forged.claims[GUEST_TOKEN_CLAIM] is True
 
 
 def test_resolve_rejects_guest_marker_when_guest_auth_disabled(app) -> None:
@@ -446,6 +457,25 @@ def test_resolve_rejects_guest_marker_when_guest_auth_disabled(app) -> None:
             patch.dict(app.config, {"MCP_EMBEDDED_GUEST_AUTH_ENABLED": False}),
             patch("fastmcp.server.dependencies.get_access_token", return_value=token),
             patch("superset.mcp_service.auth.is_feature_enabled", return_value=True),
+        ):
+            result = _resolve_user_from_jwt_context(app)
+
+    assert result is None
+
+
+def test_resolve_rejects_guest_marker_when_embedded_flag_off(app) -> None:
+    """The other half of the gate: with the marker + client_id + the MCP guest
+    flag on, a token is still not treated as a guest when the EMBEDDED_SUPERSET
+    feature flag is off (both gates are required)."""
+    token = MagicMock()
+    token.claims = {GUEST_TOKEN_CLAIM: True, **_parsed_guest_claims()}
+    token.client_id = "guest"
+
+    with app.app_context():
+        with (
+            patch.dict(app.config, {"MCP_EMBEDDED_GUEST_AUTH_ENABLED": True}),
+            patch("fastmcp.server.dependencies.get_access_token", return_value=token),
+            patch("superset.mcp_service.auth.is_feature_enabled", return_value=False),
         ):
             result = _resolve_user_from_jwt_context(app)
 
@@ -476,3 +506,45 @@ def test_resolve_ignores_guest_marker_without_guest_client_id(app) -> None:
 
     assert result is not None
     assert result.username == "alice"
+
+
+# -- guest config validation --
+
+
+def test_validate_guest_config_raises_on_default_secret() -> None:
+    app = _FakeApp(
+        {"GUEST_TOKEN_JWT_SECRET": CHANGE_ME_GUEST_TOKEN_JWT_SECRET}, MagicMock()
+    )
+    with pytest.raises(MCPAuthConfigError, match="insecure default"):
+        _validate_guest_config(app)
+
+
+def test_validate_guest_config_passes_with_strong_secret() -> None:
+    app = _FakeApp(
+        {
+            "GUEST_TOKEN_JWT_SECRET": "a-strong-shared-secret",
+            "GUEST_TOKEN_JWT_AUDIENCE": "superset",
+        },
+        MagicMock(),
+    )
+    _validate_guest_config(app)  # does not raise
+
+
+# -- guest auth enablement gate --
+
+
+def test_mcp_guest_auth_disabled_when_embedded_flag_off() -> None:
+    app = _FakeApp({"MCP_EMBEDDED_GUEST_AUTH_ENABLED": True}, MagicMock())
+    with patch("superset.is_feature_enabled", return_value=False):
+        assert _is_mcp_guest_auth_enabled(app) is False
+
+
+def test_mcp_guest_auth_enabled_when_flag_and_feature_on() -> None:
+    app = _FakeApp({"MCP_EMBEDDED_GUEST_AUTH_ENABLED": True}, MagicMock())
+    with patch("superset.is_feature_enabled", return_value=True):
+        assert _is_mcp_guest_auth_enabled(app) is True
+
+
+def test_mcp_guest_auth_disabled_when_opt_in_off() -> None:
+    app = _FakeApp({"MCP_EMBEDDED_GUEST_AUTH_ENABLED": False}, MagicMock())
+    assert _is_mcp_guest_auth_enabled(app) is False

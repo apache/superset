@@ -166,6 +166,8 @@ MCP_EMBEDDED_GUEST_AUTH_ENABLED: bool = False
 # Tools an embedded guest may never call, even when the tool declares no RBAC
 # permission class (which would otherwise fall open). Enforced both at tool
 # visibility (tools/list) and at call time. Operators may override this set.
+# Keep in sync with ``_DEFAULT_GUEST_DENIED_TOOLS`` in auth.py (the fallback used
+# when this config is unset/invalid).
 MCP_GUEST_DENIED_TOOLS: set[str] = {"find_users", "get_instance_info"}
 
 
@@ -496,6 +498,7 @@ def _is_mcp_guest_auth_enabled(app: Flask) -> bool:
     if not app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False):
         return False
     with app.app_context():
+        # Deferred: is_feature_enabled isn't bound until app init completes.
         from superset import is_feature_enabled
 
         if not is_feature_enabled("EMBEDDED_SUPERSET"):
@@ -508,20 +511,25 @@ def _is_mcp_guest_auth_enabled(app: Flask) -> bool:
     return True
 
 
-def _warn_on_weak_guest_config(app: Flask) -> None:
-    """Surface insecure guest-token config at startup (soft warnings, no fail)."""
+def _validate_guest_config(app: Flask) -> None:
+    """Hard-fail on the default GUEST_TOKEN_JWT_SECRET; warn on an unset audience."""
     if app.config.get("GUEST_TOKEN_JWT_SECRET") == CHANGE_ME_GUEST_TOKEN_JWT_SECRET:
-        logger.error(
-            "MCP embedded guest auth is enabled but GUEST_TOKEN_JWT_SECRET is still "
-            "the insecure default. Set a strong GUEST_TOKEN_JWT_SECRET shared with "
-            "the guest-token minting service."
+        # MCPAuthConfigError, not a generic error: the bootstrap re-raises this
+        # type to refuse startup, but swallows others (and would boot without
+        # auth). See _create_auth_provider in server.py.
+        raise MCPAuthConfigError(
+            "MCP_EMBEDDED_GUEST_AUTH_ENABLED is set but GUEST_TOKEN_JWT_SECRET is "
+            "the insecure default; refusing to wire guest auth. Set a strong "
+            "GUEST_TOKEN_JWT_SECRET shared with the guest-token minting service."
         )
     if not app.config.get("GUEST_TOKEN_JWT_AUDIENCE"):
+        # Do not interpolate the resolved fallback host: it is read from app
+        # config and CodeQL flags logging config-derived values as clear-text
+        # secrets. The warning alone is enough to prompt operators to set it.
         logger.warning(
-            "MCP embedded guest auth is enabled but GUEST_TOKEN_JWT_AUDIENCE is "
-            "unset; guest-token audience validation falls back to the URL host. "
-            "Set GUEST_TOKEN_JWT_AUDIENCE consistently across the web and MCP "
-            "services to bind guest tokens to this deployment."
+            "MCP embedded guest auth enabled but GUEST_TOKEN_JWT_AUDIENCE is unset; "
+            "audience validation falls back to the request URL host. Set "
+            "GUEST_TOKEN_JWT_AUDIENCE consistently across the web and MCP services."
         )
 
 
@@ -568,7 +576,7 @@ def _build_composite_verifier(
 
     guest_verifier: GuestTokenVerifier | None = None
     if guest_enabled:
-        _warn_on_weak_guest_config(app)
+        _validate_guest_config(app)
         guest_verifier = GuestTokenVerifier(app=app)
         logger.info("Embedded guest token auth enabled for MCP")
 

@@ -225,6 +225,13 @@ class CompositeTokenVerifier(TokenVerifier):
         # a verified guest during user resolution.
         if jwt_access_token is not None:
             jwt_claims = getattr(jwt_access_token, "claims", None)
-            if isinstance(jwt_claims, dict):
-                jwt_claims.pop(GUEST_TOKEN_CLAIM, None)
+            if isinstance(jwt_claims, dict) and GUEST_TOKEN_CLAIM in jwt_claims:
+                # Rebuild, not mutate: claims may be immutable/copied,
+                # so pop() can no-op.
+                stripped = {
+                    k: v for k, v in jwt_claims.items() if k != GUEST_TOKEN_CLAIM
+                }
+                jwt_access_token = jwt_access_token.model_copy(
+                    update={"claims": stripped}
+                )
         return jwt_access_token

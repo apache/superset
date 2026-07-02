@@ -78,11 +78,15 @@ class GuestTokenVerifier(TokenVerifier):
         the SecurityManager and metadata DB are reachable. Returns the
         parsed/validated guest-token claims dict on success, or ``None`` on any
         failure (fall through to the next verifier).
+
+        Revocation is checked here, not re-checked at GuestUser build — a
+        mid-request revocation lasts the request, matching the web flow.
         """
         if self._app is None:
             return None
         try:
             with self._app.app_context():
+                # Deferred: is_feature_enabled isn't bound until app init completes.
                 from superset import is_feature_enabled
 
                 # Defense-in-depth: the verifier is only constructed when these

@@ -238,7 +238,8 @@ def _log_scope_denial(
 
 # Tools an embedded guest may never call, even when the tool declares no RBAC
 # permission class (which would otherwise fall open in ``check_tool_permission``).
-# Used as the default when ``MCP_GUEST_DENIED_TOOLS`` is not configured.
+# Used as the default when ``MCP_GUEST_DENIED_TOOLS`` is not configured. Keep in
+# sync with the ``MCP_GUEST_DENIED_TOOLS`` default in mcp_config.py.
 _DEFAULT_GUEST_DENIED_TOOLS = frozenset({"find_users", "get_instance_info"})
 
 
