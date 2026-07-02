@@ -273,19 +273,19 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         # set to True in connect_args), authentication via OAuth is not performed.
         if (
             not connect_args.get("validate_default_parameters", False)
-            and cls.is_oauth2_enabled()
+            and database.is_oauth2_enabled()
         ):
             url = url.update_query_dict({"authenticator": "oauth"})
             connect_args["authenticator"] = "oauth"
 
-        if user_token and cls.is_oauth2_enabled():
-            if username is not None:
-                user = security_manager.find_user(username=username)
-                if user and user.email:
-                    if is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
-                        url = url.set(username=user.email.split("@")[0])
-                    else:
-                        url = url.set(username=user.email)
+            if user_token:
+                if username is not None:
+                    user = security_manager.find_user(username=username)
+                    if user and user.email:
+                        if is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
+                            url = url.set(username=user.email.split("@")[0])
+                        else:
+                            url = url.set(username=user.email)
 
             url = url.update_query_dict({"token": user_token})
 
