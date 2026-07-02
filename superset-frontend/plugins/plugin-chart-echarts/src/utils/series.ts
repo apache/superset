@@ -60,11 +60,7 @@ const DEFAULT_LEGEND_ICON_WIDTH = 25;
 const LEGEND_ICON_LABEL_GAP = 5;
 const LEGEND_HORIZONTAL_SIDE_GUTTER = 16;
 const LEGEND_HORIZONTAL_ROW_HEIGHT = 24;
-const LEGEND_HORIZONTAL_MAX_ROWS = 2;
-const LEGEND_HORIZONTAL_MAX_HEIGHT_RATIO = 0.25;
 const LEGEND_VERTICAL_SIDE_GUTTER = 16;
-const LEGEND_VERTICAL_ROW_HEIGHT = 24;
-const LEGEND_VERTICAL_MAX_WIDTH_RATIO = 0.4;
 const LEGEND_SELECTOR_GAP = 10;
 const LEGEND_MARGIN_GUTTER = 45;
 // ECharts does not expose pre-render measurements for plain legends, so these
@@ -78,10 +74,6 @@ type LegendDataItem =
 export type LegendLayoutResult = {
   effectiveMargin?: number;
   effectiveType: LegendType;
-};
-
-const SCROLL_LEGEND_LAYOUT: LegendLayoutResult = {
-  effectiveType: LegendType.Scroll,
 };
 
 function getLegendLabel(item: LegendDataItem): string {
@@ -243,7 +235,6 @@ function isHorizontalLegendOrientation(
 }
 
 function getHorizontalPlainLegendLayout({
-  availableHeight,
   availableWidth,
   currentMargin,
   legendLabels,
@@ -251,7 +242,6 @@ function getHorizontalPlainLegendLayout({
   showSelectors,
   theme,
 }: {
-  availableHeight: number;
   availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
@@ -265,21 +255,12 @@ function getHorizontalPlainLegendLayout({
     showSelectors,
     theme,
   );
+  const rowsForMargin = Number.isFinite(rowCount)
+    ? rowCount
+    : legendLabels.length;
   const requiredMargin =
     defaultLegendPadding[orientation] +
-    Math.max(0, rowCount - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
-  const maxLegendHeight =
-    availableHeight > 0
-      ? availableHeight * LEGEND_HORIZONTAL_MAX_HEIGHT_RATIO
-      : Infinity;
-
-  if (
-    !Number.isFinite(rowCount) ||
-    rowCount > LEGEND_HORIZONTAL_MAX_ROWS ||
-    requiredMargin > maxLegendHeight
-  ) {
-    return SCROLL_LEGEND_LAYOUT;
-  }
+    Math.max(0, rowsForMargin - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
 
   return {
     effectiveMargin: Math.max(currentMargin, requiredMargin),
@@ -288,15 +269,11 @@ function getHorizontalPlainLegendLayout({
 }
 
 function getVerticalPlainLegendLayout({
-  availableHeight,
-  availableWidth,
   currentMargin,
   legendLabels,
   showSelectors,
   theme,
 }: {
-  availableHeight: number;
-  availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
   showSelectors: boolean;
@@ -309,17 +286,6 @@ function getVerticalPlainLegendLayout({
     };
   }
 
-  const selectorHeight = showSelectors
-    ? LEGEND_VERTICAL_ROW_HEIGHT + LEGEND_SELECTOR_GAP
-    : 0;
-  const effectiveAvailableHeight = Math.max(
-    availableHeight - LEGEND_VERTICAL_SIDE_GUTTER - selectorHeight,
-    0,
-  );
-  const rowsPerColumn = Math.floor(
-    (effectiveAvailableHeight + DEFAULT_LEGEND_ITEM_GAP) /
-      (LEGEND_VERTICAL_ROW_HEIGHT + DEFAULT_LEGEND_ITEM_GAP),
-  );
   const requiredSelectorMargin = showSelectors
     ? ESTIMATED_LEGEND_SELECTOR_WIDTH + LEGEND_VERTICAL_SIDE_GUTTER
     : 0;
@@ -329,18 +295,6 @@ function getVerticalPlainLegendLayout({
       requiredSelectorMargin,
     ),
   );
-  const maxLegendWidth =
-    availableWidth > 0
-      ? availableWidth * LEGEND_VERTICAL_MAX_WIDTH_RATIO
-      : Infinity;
-
-  if (
-    rowsPerColumn <= 0 ||
-    legendLabels.length > rowsPerColumn ||
-    requiredMargin > maxLegendWidth
-  ) {
-    return SCROLL_LEGEND_LAYOUT;
-  }
 
   return {
     effectiveMargin: Math.max(currentMargin, requiredMargin),
@@ -349,9 +303,7 @@ function getVerticalPlainLegendLayout({
 }
 
 export function getLegendLayoutResult({
-  availableHeight,
   availableWidth,
-  chartHeight,
   chartWidth,
   legendItems = [],
   legendMargin,
@@ -385,11 +337,9 @@ export function getLegendLayoutResult({
       : defaultLegendPadding[orientation];
   const legendLabels = getLegendLabels(legendItems);
   const resolvedAvailableWidth = availableWidth ?? chartWidth;
-  const resolvedAvailableHeight = availableHeight ?? chartHeight;
 
   if (isHorizontalLegendOrientation(orientation)) {
     return getHorizontalPlainLegendLayout({
-      availableHeight: resolvedAvailableHeight,
       availableWidth: resolvedAvailableWidth,
       currentMargin: resolvedLegendMargin,
       legendLabels,
@@ -400,8 +350,6 @@ export function getLegendLayoutResult({
   }
 
   return getVerticalPlainLegendLayout({
-    availableHeight: resolvedAvailableHeight,
-    availableWidth: resolvedAvailableWidth,
     currentMargin: resolvedLegendMargin,
     legendLabels,
     showSelectors,
