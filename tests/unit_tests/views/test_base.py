@@ -272,3 +272,21 @@ def test_csv_response_leaves_bytes_untouched() -> None:
 
     payload = "Ürün\n".encode("utf-8-sig")
     assert CsvResponse(payload).get_data() == payload
+
+
+def test_deprecated_logs_warning_exactly_once() -> None:
+    from superset.views.base import BaseSupersetView, deprecated
+
+    @deprecated(eol_version="5.0.0", new_target="/api/v1/chart/data")
+    def endpoint(self: BaseSupersetView) -> None:
+        return None
+
+    view = MagicMock(spec=BaseSupersetView)
+    view.__class__.__name__ = "Superset"
+
+    with patch("superset.views.base.logger") as mock_logger:
+        endpoint(view)
+        endpoint(view)
+
+    assert mock_logger.warning.call_count == 1
+    assert "5.0.0" in mock_logger.warning.call_args[0][0]
