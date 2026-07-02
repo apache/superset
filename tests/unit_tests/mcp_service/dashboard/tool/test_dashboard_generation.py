@@ -206,10 +206,15 @@ class TestGenerateDashboard:
                 == "Analytics Dashboard"
             )
             assert result.structured_content["dashboard"]["chart_count"] == 2
-            # URL prefers the slug over the id, matching update_dashboard.
+            # URL prefers the slug over the id (matching update_dashboard) and
+            # is prefix-free under route_base="": the single app-root prefix is
+            # supplied by get_superset_base_url(), never doubled.
+            assert result.structured_content["dashboard_url"].endswith(
+                "/dashboard/test-dashboard-10/"
+            )
             assert (
-                "/superset/dashboard/test-dashboard-10/"
-                in result.structured_content["dashboard_url"]
+                "/superset/superset/dashboard/"
+                not in result.structured_content["dashboard_url"]
             )
 
     @patch("superset.models.dashboard.Dashboard")
@@ -919,8 +924,10 @@ class TestAddChartToExistingDashboard:
             assert "chart_key" in result.structured_content["position"]
             row_key = result.structured_content["position"]["row_key"]
             assert row_key.startswith("ROW-")
+            assert result.structured_content["dashboard_url"].endswith("/dashboard/1/")
             assert (
-                "/superset/dashboard/1/" in result.structured_content["dashboard_url"]
+                "/superset/superset/dashboard/"
+                not in result.structured_content["dashboard_url"]
             )
 
             call_args = mock_update_command.call_args[0][1]
