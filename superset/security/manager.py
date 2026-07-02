@@ -27,6 +27,7 @@ from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Uni
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
+from flask_appbuilder.const import LOGMSG_WAR_SEC_LOGIN_FAILED
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
@@ -59,6 +60,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
+from werkzeug.security import check_password_hash
 
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -80,6 +82,7 @@ from superset.security.guest_token import (
 from superset.sql.parse import process_jinja_sql, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
+from superset.utils.auth_db_password_hash import verify_auth_db_password
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
@@ -107,6 +110,15 @@ if TYPE_CHECKING:
     from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
+
+# Fallback werkzeug-format hash used to balance timing on failed logins when
+# ``AUTH_DB_FAKE_PASSWORD_HASH_CHECK`` is not provided by the Flask-AppBuilder
+# config defaults. Mirrors FAB's pbkdf2 default so ``check_password_hash`` does
+# comparable work whether or not the target user exists.
+DEFAULT_AUTH_DB_FAKE_PASSWORD_HASH_CHECK = (
+    "pbkdf2:sha256:150000$Z3t6fmj2$22da622d94a1f8118"  # noqa: S105
+    "c0976a03d2f18f680bfff877c9a965db9eedc51bc0be87c"
+)
 
 
 def get_conf() -> Any:
@@ -925,6 +937,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def create_login_manager(self, app: Flask) -> LoginManager:
         lm = super().create_login_manager(app)
         lm.request_loader(self.request_loader)
+        from superset.utils.auth_session_stamp import register_session_auth_stamp_hook
+
+        register_session_auth_stamp_hook(app)
         return lm
 
     def reset_password(self, userid: Union[int, str], password: str) -> None:
@@ -973,10 +988,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def on_user_login(self, user: Any) -> None:
         # pylint: disable=import-outside-toplevel
         from superset.security.session_invalidation import stamp_login_time
+        from superset.utils.auth_session_stamp import sync_session_auth_stamp_on_login
 
         # Record the authentication time so outstanding sessions can be
         # invalidated when the account is later disabled.
         stamp_login_time()
+        sync_session_auth_stamp_on_login(user)
         _log_audit_event(
             "UserLoggedIn",
             {"username": user.username, "user_id": user.id},
@@ -4326,6 +4343,40 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return get_conf()["AUTH_ROLE_ADMIN"] in [
             role.name for role in self.get_user_roles()
         ]
+
+    def auth_user_db(self, username: str, password: str) -> User | None:
+        """
+        Authenticate a database user, verifying bcrypt/argon2 and legacy hashes.
+        """
+        if username is None or username == "":
+            return None
+        first_user = self.get_first_user()
+        user = self.find_user(username=username)
+        if user is None:
+            user = self.find_user(email=username)
+        else:
+            # Balance failure and success
+            _ = self.find_user(email=username)
+        if user is None or (not user.is_active):
+            # Balance failure and success
+            check_password_hash(
+                current_app.config.get(
+                    "AUTH_DB_FAKE_PASSWORD_HASH_CHECK",
+                    DEFAULT_AUTH_DB_FAKE_PASSWORD_HASH_CHECK,
+                ),
+                "password",
+            )
+            logger.info(LOGMSG_WAR_SEC_LOGIN_FAILED, username)
+            if first_user:
+                self.noop_user_update(first_user)
+            return None
+        if verify_auth_db_password(user.password, password):
+            self.update_user_auth_stat(user, True)
+            self.on_user_login(user)
+            return user
+        self.update_user_auth_stat(user, False)
+        logger.info(LOGMSG_WAR_SEC_LOGIN_FAILED, username)
+        return None
 
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False

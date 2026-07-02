@@ -31,11 +31,35 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import UserInfo from 'src/pages/UserInfo';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { AuthType } from 'src/constants/auth';
+import getBootstrapData from 'src/utils/getBootstrapData';
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      conf: {
+        AUTH_TYPE: 1,
+      },
+    },
+  })),
+}));
+
+const mockGetBootstrapData = getBootstrapData as jest.Mock;
+
+const mockDefaultBootstrapData = {
+  common: {
+    conf: {
+      AUTH_TYPE: AuthType.AuthDB,
+    },
+  },
+};
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const meEndpoint = 'glob:*/api/v1/me/';
+const passwordPolicyEndpoint = 'glob:*/api/v1/me/password/policy';
 
 const mockUser: UserWithPermissionsAndRoles = {
   userId: 1,
@@ -75,12 +99,23 @@ describe('UserInfo', () => {
     });
 
   beforeEach(() => {
+    mockGetBootstrapData.mockReturnValue(mockDefaultBootstrapData);
     fetchMock.clearHistory().removeRoutes();
     fetchMock.get(meEndpoint, {
       result: {
         ...mockUser,
         first_name: 'John',
         last_name: 'Doe',
+      },
+    });
+    fetchMock.get(passwordPolicyEndpoint, {
+      result: {
+        password_min_length: 12,
+        password_require_uppercase: true,
+        password_require_lowercase: true,
+        password_require_digit: true,
+        password_require_special: true,
+        password_common_list_check: true,
       },
     });
   });
@@ -119,6 +154,30 @@ describe('UserInfo', () => {
     });
   });
 
+  test('shows reset password button when AUTH_TYPE is AUTH_DB', async () => {
+    await renderPage();
+
+    expect(
+      await screen.findByTestId('reset-password-button'),
+    ).toBeInTheDocument();
+  });
+
+  test('hides reset password button when AUTH_TYPE is not AUTH_DB', async () => {
+    mockGetBootstrapData.mockReturnValue({
+      common: {
+        conf: {
+          AUTH_TYPE: AuthType.AuthOauth,
+        },
+      },
+    });
+    await renderPage();
+
+    expect(
+      screen.queryByTestId('reset-password-button'),
+    ).not.toBeInTheDocument();
+    expect(await screen.findByTestId('edit-user-button')).toBeInTheDocument();
+  });
+
   test('opens the reset password modal on button click', async () => {
     await renderPage();
 
@@ -128,6 +187,9 @@ describe('UserInfo', () => {
     });
 
     expect(await screen.findByText(/Reset password/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchMock.callHistory.called(passwordPolicyEndpoint)).toBe(true);
+    });
   });
 
   test('opens the edit user modal on button click', async () => {

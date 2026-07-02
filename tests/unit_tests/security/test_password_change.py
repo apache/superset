@@ -41,6 +41,9 @@ from superset.security.password_change import (
         ("AuthOAuthView.login", True),
         ("SomeBlueprint.static", True),
         ("health", True),
+        ("CurrentUserRestApi.update_my_password", True),
+        ("CurrentUserRestApi.get_my_password_policy", True),
+        ("CurrentUserRestApi.get_me", False),
         ("SupersetIndexView.index", False),
         ("Superset.dashboard", False),
         # Substring over-matching must NOT exempt these (they merely share a

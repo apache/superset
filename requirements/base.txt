@@ -14,6 +14,10 @@ apispec==6.6.1
     #   flask-appbuilder
 apsw==3.50.1.0
     # via shillelagh
+argon2-cffi==25.1.0
+    # via apache-superset (pyproject.toml)
+argon2-cffi-bindings==25.1.0
+    # via argon2-cffi
 async-timeout==4.0.3
     # via -r requirements/base.in
 attrs==25.3.0
@@ -29,7 +33,9 @@ babel==2.17.0
 backoff==2.2.1
     # via apache-superset (pyproject.toml)
 bcrypt==4.3.0
-    # via paramiko
+    # via
+    #   apache-superset (pyproject.toml)
+    #   paramiko
 billiard==4.2.1
     # via celery
 blinker==1.9.0
@@ -56,6 +62,7 @@ certifi==2026.5.20
     #   selenium
 cffi==2.0.0
     # via
+    #   argon2-cffi-bindings
     #   cryptography
     #   pynacl
 charset-normalizer==3.4.2

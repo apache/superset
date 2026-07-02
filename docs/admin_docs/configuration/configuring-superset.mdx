@@ -263,6 +263,74 @@ to simplify the process of setting up a non-default root path across the service
 In `docker/.env-local` set `SUPERSET_APP_ROOT` to the desired prefix and then bring the
 services up with `docker compose up --detach`.
 
+## Database authentication (AUTH_DB)
+
+When `AUTH_TYPE` is `AUTH_DB` (the default), users sign in with a username and password
+stored in Superset's metadata database. Self-service password change is available from
+**Settings → User information → Reset my password** in the UI, or via the REST API.
+
+When an external identity provider is configured (`AUTH_OAUTH`, `AUTH_LDAP`, and so on),
+password-related API endpoints and the reset-password UI are hidden.
+
+### Self-service password change API
+
+Authenticated users change their own password with:
+
+```http
+PUT /api/v1/me/password
+Content-Type: application/json
+
+{
+  "current_password": "your-current-password",
+  "new_password": "your-new-password",
+  "confirm_password": "your-new-password"
+}
+```
+
+- `confirm_password` must match `new_password`.
+- `new_password` is validated against `AUTH_DB_CONFIG` (see below).
+- On success, other browser sessions for the same user are invalidated (session auth stamp).
+- Sending `password` on `PUT /api/v1/me/` is rejected with HTTP 400 when `AUTH_TYPE` is `AUTH_DB`.
+
+The frontend fetches the active policy from `GET /api/v1/me/password/policy` to drive
+real-time password-strength feedback.
+
+### AUTH_DB_CONFIG
+
+Password policy and related AUTH_DB tuning live in the `AUTH_DB_CONFIG` dict in
+`superset_config.py`. Partial overrides are merged with defaults from
+`superset.utils.auth_db_password.AUTH_DB_DEFAULTS`.
+
+Passwords are hashed with **bcrypt** (default) or **argon2**; they are never stored
+in plaintext or logged. Existing accounts with legacy Werkzeug hashes (for example
+scrypt) can still log in until they change their password.
+
+```python
+AUTH_DB_CONFIG = {
+    "password_min_length": 12,
+    "password_require_uppercase": True,
+    "password_require_lowercase": True,
+    "password_require_digit": True,
+    "password_require_special": True,
+    "password_common_list_check": True,
+    "password_hash_algorithm": "bcrypt",  # or "argon2"
+    "reset_token_expiry_minutes": 30,
+    "reset_rate_limit": "5 per 15 minutes",
+    "login_rate_limit": "10 per 5 minutes",
+    "login_max_failures": 5,
+    "login_lockout_duration_minutes": 15,
+}
+```
+
+| Key | Purpose |
+| --- | --- |
+| `password_min_length` | Minimum length for new passwords |
+| `password_require_*` | Require uppercase, lowercase, digit, or special characters |
+| `password_common_list_check` | Reject passwords on a built-in common-password list |
+| `password_hash_algorithm` | Hash method for new passwords (`bcrypt` default, or `argon2`) |
+| `login_rate_limit` | Rate limit for password-verifying endpoints (for example `PUT /api/v1/me/password`) |
+| `reset_*`, `login_max_failures`, `login_lockout_duration_minutes` | Reserved for upcoming forgot-password and login-lockout features |
+
 ## Custom OAuth2 Configuration
 
 Superset is built on Flask-AppBuilder (FAB), which supports many providers out of the box

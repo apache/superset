@@ -29,6 +29,7 @@ PATTERNS = {
         r"^\.github/workflows/.*python",
         r"^tests/",
         r"^superset/",
+        r"^superset-frontend/src/utils/generateAuthDbPassword\.ts$",
         r"^scripts/",
         r"^setup\.py",
         r"^pyproject\.toml$",
