@@ -166,6 +166,11 @@ app: {{ include "superset.name" . }}-ws
 release: {{ .Release.Name }}
 {{- end }}
 
+{{- define "supersetMcp.selectorLabels" -}}
+app: {{ include "superset.name" . }}-mcp
+release: {{ .Release.Name }}
+{{- end }}
+
 {{- define "supersetWorker.selectorLabels" -}}
 app: {{ include "superset.name" . }}-worker
 release: {{ .Release.Name }}
