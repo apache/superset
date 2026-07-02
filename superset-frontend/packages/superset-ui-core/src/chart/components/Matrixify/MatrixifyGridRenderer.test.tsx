@@ -24,10 +24,19 @@ import { supersetTheme } from '@apache-superset/core/theme';
 import MatrixifyGridRenderer from './MatrixifyGridRenderer';
 import type { MatrixifyMode } from '../../types/matrixify';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
+import { useMatrixifyAllowedValues } from './useMatrixifyAllowedValues';
 
 // Mock the MatrixifyGridGenerator
 jest.mock('./MatrixifyGridGenerator', () => ({
   generateMatrixifyGrid: jest.fn(),
+}));
+
+// Mock the RLS allow-list hook so the renderer can be tested without network
+jest.mock('./useMatrixifyAllowedValues', () => ({
+  useMatrixifyAllowedValues: jest.fn(() => ({
+    status: 'success',
+    allowedByColumn: {},
+  })),
 }));
 
 // Mock MatrixifyGridCell component
@@ -41,12 +50,20 @@ jest.mock('./MatrixifyGridCell', () =>
 const mockGenerateMatrixifyGrid = generateMatrixifyGrid as jest.MockedFunction<
   typeof generateMatrixifyGrid
 >;
+const mockUseMatrixifyAllowedValues =
+  useMatrixifyAllowedValues as jest.MockedFunction<
+    typeof useMatrixifyAllowedValues
+  >;
 
 const renderWithTheme = (component: React.ReactElement) =>
   render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockUseMatrixifyAllowedValues.mockReturnValue({
+    status: 'success',
+    allowedByColumn: {},
+  });
 });
 
 test('should create single group when fitting columns dynamically', () => {
@@ -416,4 +433,75 @@ test('should use default values for missing configuration', () => {
   expect(container).not.toBeEmptyDOMElement();
   const gridCells = container.querySelectorAll('[data-testid^="grid-cell-"]');
   expect(gridCells).toHaveLength(2);
+});
+
+test('shows a loading indicator while the RLS allow-list resolves', () => {
+  mockUseMatrixifyAllowedValues.mockReturnValue({
+    status: 'loading',
+    allowedByColumn: {},
+  });
+
+  const formData = {
+    viz_type: 'test_chart',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions' as MatrixifyMode,
+    matrixify_dimension_rows: { dimension: 'region', values: ['US'] },
+  };
+
+  const { container } = renderWithTheme(
+    <MatrixifyGridRenderer formData={formData} />,
+  );
+
+  // The grid is never built while resolution is in flight
+  expect(mockGenerateMatrixifyGrid).not.toHaveBeenCalled();
+  const gridCells = container.querySelectorAll('[data-testid^="grid-cell-"]');
+  expect(gridCells).toHaveLength(0);
+});
+
+test('fails closed and renders no cells when the allow-list errors', () => {
+  mockUseMatrixifyAllowedValues.mockReturnValue({
+    status: 'error',
+    allowedByColumn: {},
+  });
+
+  const formData = {
+    viz_type: 'test_chart',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions' as MatrixifyMode,
+    matrixify_dimension_rows: { dimension: 'region', values: ['US'] },
+  };
+
+  const { container } = renderWithTheme(
+    <MatrixifyGridRenderer formData={formData} />,
+  );
+
+  expect(mockGenerateMatrixifyGrid).not.toHaveBeenCalled();
+  const gridCells = container.querySelectorAll('[data-testid^="grid-cell-"]');
+  expect(gridCells).toHaveLength(0);
+});
+
+test('filters stored dimension values to the RLS allow-list before building the grid', () => {
+  mockUseMatrixifyAllowedValues.mockReturnValue({
+    status: 'success',
+    allowedByColumn: { region: new Set(['US']) },
+  });
+  mockGenerateMatrixifyGrid.mockReturnValue({
+    rowHeaders: [],
+    colHeaders: [],
+    cells: [],
+  } as any);
+
+  const formData = {
+    viz_type: 'test_chart',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions' as MatrixifyMode,
+    // 'EU' is not in the viewer's allow-list and must be dropped
+    matrixify_dimension_rows: { dimension: 'region', values: ['US', 'EU'] },
+  };
+
+  renderWithTheme(<MatrixifyGridRenderer formData={formData} />);
+
+  expect(mockGenerateMatrixifyGrid).toHaveBeenCalledTimes(1);
+  const passedFormData = mockGenerateMatrixifyGrid.mock.calls[0][0] as any;
+  expect(passedFormData.matrixify_dimension_rows.values).toEqual(['US']);
 });
