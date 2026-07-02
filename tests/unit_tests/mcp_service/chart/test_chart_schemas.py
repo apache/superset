@@ -23,7 +23,9 @@ import pytest
 from pydantic import ValidationError
 
 from superset.mcp_service.chart.schemas import (
+    BigNumberChartConfig,
     ColumnRef,
+    FilterConfig,
     GenerateChartRequest,
     GenerateChartResponse,
     MixedTimeseriesChartConfig,
@@ -47,6 +49,44 @@ class TestGenerateChartResponse:
         )
 
         assert response.chart_type_label == "table chart"
+
+
+class TestColumnNameSanitization:
+    """Test relaxed column names retain SQL-injection protection."""
+
+    def test_column_ref_rejects_sql_injection(self) -> None:
+        """ColumnRef rejects SQL injection patterns."""
+        with pytest.raises(ValidationError, match="potentially unsafe"):
+            ColumnRef(name="revenue; DROP TABLE users")
+
+    def test_filter_column_rejects_sql_injection(self) -> None:
+        """FilterConfig.column rejects SQL injection patterns."""
+        with pytest.raises(ValidationError, match="potentially unsafe"):
+            FilterConfig(column="status; DROP TABLE users", op="=", value="active")
+
+    def test_temporal_column_rejects_sql_injection(self) -> None:
+        """BigNumberChartConfig.temporal_column rejects SQL injection patterns."""
+        with pytest.raises(ValidationError, match="potentially unsafe"):
+            BigNumberChartConfig(
+                chart_type="big_number",
+                metric={"name": "revenue", "aggregate": "SUM"},
+                show_trendline=True,
+                temporal_column="created_at; DROP TABLE users",
+            )
+
+    def test_relaxed_column_names_still_pass(self) -> None:
+        """Digit-prefixed, dotted, and hyphenated column names are accepted."""
+        assert ColumnRef(name="1Q_revenue").name == "1Q_revenue"
+        assert FilterConfig(column="order-date", op="=", value="active").column == (
+            "order-date"
+        )
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric={"name": "revenue", "aggregate": "SUM"},
+            show_trendline=True,
+            temporal_column="events.created-at",
+        )
+        assert config.temporal_column == "events.created-at"
 
 
 class TestTableChartConfig:
@@ -923,6 +963,14 @@ class TestSqlExpressionRejectedOnDimensionPositions:
             PieChartConfig(
                 chart_type="pie",
                 dimension=ColumnRef.model_validate(self._metric()),
+                metric=ColumnRef(name="sales", aggregate="SUM"),
+            )
+
+    def test_pie_config_rejects_saved_metric_on_dimension(self) -> None:
+        with pytest.raises(ValidationError):
+            PieChartConfig(
+                chart_type="pie",
+                dimension=ColumnRef(name="Total Revenue", saved_metric=True),
                 metric=ColumnRef(name="sales", aggregate="SUM"),
             )
 

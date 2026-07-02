@@ -38,7 +38,7 @@ import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './utils/externalAPIs';
 

@@ -31,7 +31,7 @@ import {
 import { tn } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
-import { debounce, isUndefined } from 'lodash';
+import { debounce, isUndefined } from 'lodash-es';
 import { useImmerReducer } from 'use-immer';
 import {
   FormItem,
@@ -606,6 +606,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               allowClear
               autoClearSearchValue
               allowNewOptions={!searchAllOptions && creatable !== false}
+              allowNewOptionsOnPaste={multiSelect && searchAllOptions}
               allowSelectAll={!searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}
               disabled={isDisabled}
