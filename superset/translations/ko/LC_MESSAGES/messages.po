@@ -1860,7 +1860,7 @@ msgstr "추가됨"
 #, fuzzy, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "가상 데이터셋에 새 열 1개가 추가되었습니다"
+msgstr[0] "%s개의 새 열이 가상 데이터셋에 추가되었습니다"
 
 #, fuzzy, python-format
 msgid "Added to 1 dashboard"
