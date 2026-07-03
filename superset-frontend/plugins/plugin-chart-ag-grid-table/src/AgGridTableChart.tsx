@@ -156,6 +156,26 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     setDataMask,
   ]);
 
+  useEffect(() => {
+    if (isRawRecords) {
+      return;
+    }
+    const requested = Boolean(serverPaginationData?.aggregateTotalsRequested);
+    // A renderTrigger toggle re-renders without re-querying; nudging ownState
+    // dispatches the standard re-query whose buildQuery carries the totals.
+    if (showTotals && totals === undefined && !requested) {
+      updateTableOwnState(setDataMask, {
+        ...serverPaginationData,
+        aggregateTotalsRequested: true,
+      });
+    } else if (!showTotals && requested) {
+      updateTableOwnState(setDataMask, {
+        ...serverPaginationData,
+        aggregateTotalsRequested: false,
+      });
+    }
+  }, [isRawRecords, showTotals, totals, serverPaginationData, setDataMask]);
+
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
     { key: '#', label: '#' },

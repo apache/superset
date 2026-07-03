@@ -425,19 +425,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'show_totals',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show summary'),
-              default: false,
-              description: t(
-                'Show a summary row of total aggregations: the selected metrics in aggregate mode, or the sum of numeric columns in raw records mode. Note that row limit does not apply to the result.',
-              ),
-            },
-          },
-        ],
       ],
     },
     {
@@ -494,6 +481,20 @@ const config: ControlPanelConfig = {
       label: t('Visual formatting'),
       expanded: true,
       controlSetRows: [
+        [
+          {
+            name: 'show_totals',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show summary'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Show a summary row of total aggregations: the selected metrics in aggregate mode, or the sum of numeric columns in raw records mode. Note that row limit does not apply to the result.',
+              ),
+            },
+          },
+        ],
         [
           {
             name: 'show_numbered_column',

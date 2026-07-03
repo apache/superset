@@ -28,6 +28,7 @@ interface TableOwnState {
   searchText?: string;
   sortBy?: SortByItem[];
   rawSummaryColumns?: string[];
+  aggregateTotalsRequested?: boolean;
 }
 
 export const updateTableOwnState = (

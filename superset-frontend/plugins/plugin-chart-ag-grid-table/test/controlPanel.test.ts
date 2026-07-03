@@ -76,25 +76,19 @@ test('time_grain_sqla visibility should be case-insensitive', () => {
   expect(vis(mkProps(['some_other_col']), controlState)).toBe(false);
 });
 
-test('show_totals is available in both query modes', () => {
-  let showTotals: CustomControlItem | undefined;
-  config.controlPanelSections.forEach(section => {
-    section?.controlSetRows.forEach(row => {
-      row.forEach(item => {
-        if (
-          typeof item === 'object' &&
-          item !== null &&
-          'name' in item &&
-          (item as CustomControlItem).name === 'show_totals'
-        ) {
-          showTotals = item as CustomControlItem;
-        }
-      });
-    });
-  });
+test('show_totals renders in the customize tab atop visual formatting', () => {
+  const visualFormatting = config.controlPanelSections.find(
+    section => section?.label === 'Visual formatting',
+  );
+  expect(visualFormatting).toBeDefined();
 
-  expect(showTotals).toBeDefined();
+  const [firstRow] = visualFormatting!.controlSetRows;
+  const firstControl = firstRow[0] as CustomControlItem;
+  expect(firstControl.name).toBe('show_totals');
+  // renderTrigger keeps the whole section classified into the customize tab
+  // and must not regress; without it the section moves to the data tab.
+  expect(firstControl.config.renderTrigger).toBe(true);
   // No visibility gate: the summary checkbox must render in raw records
   // mode as well as aggregate mode.
-  expect(showTotals?.config?.visibility).toBeUndefined();
+  expect(firstControl.config.visibility).toBeUndefined();
 });

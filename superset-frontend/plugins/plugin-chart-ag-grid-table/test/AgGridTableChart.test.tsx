@@ -501,6 +501,63 @@ test('AgGridTableChart clears a stale summary prime when no numeric columns rema
   });
 });
 
+test('AgGridTableChart requests aggregate totals when the summary toggles on without data', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      show_totals: true,
+    },
+  });
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({ aggregateTotalsRequested: true }),
+      }),
+    );
+  });
+});
+
+test('AgGridTableChart clears the aggregate totals request when the summary is off', async () => {
+  const props = transformProps(testData.basic);
+  props.serverPaginationData = { aggregateTotalsRequested: true };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          aggregateTotalsRequested: false,
+        }),
+      }),
+    );
+  });
+});
+
 test('AgGridTableChart pins no summary row when totals are absent', async () => {
   const props = transformProps({
     ...rawSummaryProps,
