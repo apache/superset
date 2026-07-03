@@ -57,10 +57,12 @@ export default function transformProps(chartProps: ChartProps) {
   // labels, so the rename happens here.
   const entityLabel = getColumnLabel(entity);
   const metricLabel = getMetricLabel(metric);
+  // rename only rows carrying both source labels, so pre-shaped legacy
+  // payloads pass through even when the entity column is named country_id
   const data = (rawData ?? []).map((row: Record<string, unknown>) =>
-    'country_id' in row
-      ? row
-      : { country_id: row[entityLabel], metric: row[metricLabel] },
+    entityLabel in row && metricLabel in row
+      ? { country_id: row[entityLabel], metric: row[metricLabel] }
+      : row,
   );
 
   const formatter = getValueFormatter(

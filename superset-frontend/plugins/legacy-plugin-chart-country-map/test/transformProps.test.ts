@@ -97,6 +97,18 @@ test('renames v1 API records to the country_id/metric shape', () => {
   ]);
 });
 
+test('renames v1 records even when the entity column is named country_id', () => {
+  const transformed = transformProps(
+    createProps(
+      { entity: 'country_id' },
+      {
+        queriesData: [{ data: [{ country_id: 'FRA', count: 10 }] }],
+      },
+    ),
+  );
+  expect(transformed.data).toEqual([{ country_id: 'FRA', metric: 10 }]);
+});
+
 test('renames v1 API records using adhoc metric labels', () => {
   const transformed = transformProps(
     createProps(
