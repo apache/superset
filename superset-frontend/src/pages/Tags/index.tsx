@@ -133,8 +133,9 @@ function TagList(props: TagListProps) {
   const emptyState = {
     title: t('No Tags created'),
     image: 'dashboard.svg',
-    description:
+    description: t(
       'Create a new tag and assign it to existing entities like charts or dashboards',
+    ),
     buttonAction: () => setShowTagModal(true),
     buttonIcon: <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />,
     buttonText: t('Create a new Tag'),
