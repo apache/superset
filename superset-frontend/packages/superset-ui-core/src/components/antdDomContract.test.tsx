@@ -38,9 +38,11 @@ import { Select } from './Select';
 
 const antClasses = (root: ParentNode): string[] => {
   const classes = new Set<string>();
-  root.querySelectorAll('*').forEach(el =>
-    el.classList.forEach(c => c.startsWith('ant-') && classes.add(c)),
-  );
+  root
+    .querySelectorAll('*')
+    .forEach(el =>
+      el.classList.forEach(c => c.startsWith('ant-') && classes.add(c)),
+    );
   return [...classes];
 };
 
@@ -53,7 +55,10 @@ test('Select single-value container class (Select/styles.tsx targets it)', () =>
     />,
   );
   expect(antClasses(container)).toEqual(
-    expect.arrayContaining(['ant-select-content', 'ant-select-content-has-value']),
+    expect.arrayContaining([
+      'ant-select-content',
+      'ant-select-content-has-value',
+    ]),
   );
 });
 
