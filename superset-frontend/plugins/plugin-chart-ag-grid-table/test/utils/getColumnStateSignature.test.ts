@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ColumnState } from '@superset-ui/core/components/ThemedAgGridReact';
 import getColumnStateSignature from '../../src/utils/getColumnStateSignature';
 
-const sortModel: any[] = [];
 const filterModel = {};
 
 test('signature changes when a column value aggregation changes', () => {
   const before = getColumnStateSignature(
-    [{ colId: 'sales', aggFunc: 'sum' }] as any,
-    sortModel,
+    [{ colId: 'sales', aggFunc: 'sum' }],
+    [],
     filterModel,
   );
   const after = getColumnStateSignature(
-    [{ colId: 'sales', aggFunc: 'avg' }] as any,
-    sortModel,
+    [{ colId: 'sales', aggFunc: 'avg' }],
+    [],
     filterModel,
   );
   expect(after).not.toEqual(before);
@@ -39,18 +39,18 @@ test('switching value aggregation to "None" (null/undefined) changes the signatu
   // Regression test for #107166: selecting "None" must be captured so it
   // persists instead of reverting to the default Sum aggregation on reload.
   const sumState = getColumnStateSignature(
-    [{ colId: 'sales', aggFunc: 'sum' }] as any,
-    sortModel,
+    [{ colId: 'sales', aggFunc: 'sum' }],
+    [],
     filterModel,
   );
   const noneNull = getColumnStateSignature(
-    [{ colId: 'sales', aggFunc: null }] as any,
-    sortModel,
+    [{ colId: 'sales', aggFunc: null }],
+    [],
     filterModel,
   );
   const noneUndefined = getColumnStateSignature(
-    [{ colId: 'sales' }] as any,
-    sortModel,
+    [{ colId: 'sales' }],
+    [],
     filterModel,
   );
 
@@ -61,15 +61,8 @@ test('switching value aggregation to "None" (null/undefined) changes the signatu
 });
 
 test('signature is stable when nothing changes', () => {
-  const a = getColumnStateSignature(
-    [{ colId: 'sales', aggFunc: 'sum' }] as any,
-    sortModel,
-    filterModel,
-  );
-  const b = getColumnStateSignature(
-    [{ colId: 'sales', aggFunc: 'sum' }] as any,
-    sortModel,
-    filterModel,
-  );
+  const columnState: ColumnState[] = [{ colId: 'sales', aggFunc: 'sum' }];
+  const a = getColumnStateSignature(columnState, [], filterModel);
+  const b = getColumnStateSignature([...columnState], [], filterModel);
   expect(a).toEqual(b);
 });
