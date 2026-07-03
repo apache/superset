@@ -24,7 +24,7 @@ import {
 } from '@superset-ui/core';
 import getOwnerName from 'src/utils/getOwnerName';
 import { Avatar, AvatarGroup, Tooltip } from '@superset-ui/core/components';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { getRandomColor } from './utils';
 import type { FacePileProps } from './types';
 

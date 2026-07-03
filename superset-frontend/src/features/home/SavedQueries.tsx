@@ -45,7 +45,6 @@ import {
   shortenSQL,
 } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { navigateTo } from 'src/utils/navigationUtils';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
@@ -306,7 +305,8 @@ export const SavedQueries = ({
             <CardStyles key={q.id}>
               <ListViewCard
                 imgURL=""
-                url={ensureAppRoot(`/sqllab?savedQueryId=${q.id}`)}
+                url={`/sqllab?savedQueryId=${q.id}`}
+                linkComponent={Link}
                 title={q.label}
                 imgFallbackURL={assetUrl(
                   '/static/assets/images/empty-query.svg',

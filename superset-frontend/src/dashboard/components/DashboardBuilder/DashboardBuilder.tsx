@@ -316,7 +316,7 @@ const StyledDashboardContent = styled.div<{
     .dashboard-component-chart-holder {
       width: 100%;
       height: 100%;
-      background-color: ${theme.colorBgContainer};
+      background-color: ${theme.dashboardTileBg ?? theme.colorBgContainer};
       position: relative;
       padding: ${theme.sizeUnit * 4}px;
       box-sizing: border-box;
@@ -336,8 +336,11 @@ const StyledDashboardContent = styled.div<{
       }
 
       &.fade-out {
-        border-radius: ${theme.borderRadius}px;
-        box-shadow: 0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)};
+        border: ${theme.dashboardTileBorder ?? 'none'};
+        border-radius: ${theme.dashboardTileBorderRadius ??
+        theme.borderRadius}px;
+        box-shadow: ${theme.dashboardTileBoxShadow ??
+        `0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)}`};
       }
 
       & .missing-chart-container {

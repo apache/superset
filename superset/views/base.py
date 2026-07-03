@@ -125,6 +125,7 @@ FRONTEND_CONF_KEYS = (
     "MAPBOX_API_KEY",
     "DEFAULT_MAP_RENDERER",
     "CSV_STREAMING_ROW_THRESHOLD",
+    "EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE",
     "SCARF_ANALYTICS",
 )
 
@@ -173,20 +174,25 @@ def deprecated(
     """
 
     def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
+        _warned = False
+
         def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
-            message = (
-                "%s.%s "
-                "This API endpoint is deprecated and will be removed in version %s"
-            )
-            logger_args = [
-                self.__class__.__name__,
-                f.__name__,
-                eol_version,
-            ]
-            if new_target:
-                message += " . Use the following API endpoint instead: %s"
-                logger_args.append(new_target)
-            logger.warning(message, *logger_args)
+            nonlocal _warned
+            if not _warned:
+                _warned = True
+                message = (
+                    "%s.%s "
+                    "This API endpoint is deprecated and will be removed in version %s"
+                )
+                logger_args = [
+                    self.__class__.__name__,
+                    f.__name__,
+                    eol_version,
+                ]
+                if new_target:
+                    message += " . Use the following API endpoint instead: %s"
+                    logger_args.append(new_target)
+                logger.warning(message, *logger_args)
             return f(self, *args, **kwargs)
 
         return functools.update_wrapper(wraps, f)
@@ -300,6 +306,7 @@ def menu_data(user: User) -> dict[str, Any]:
             "alt": appbuilder.app_name,
             "tooltip": app.config["LOGO_TOOLTIP"],
             "text": brand_text,
+            "hide_logo": app.config.get("HIDE_NAVBAR_LOGO", False),
         },
         "environment_tag": get_environment_tag(),
         "navbar_right": {
