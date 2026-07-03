@@ -113,7 +113,7 @@ updates:
   # Now for all of our plugins and packages!
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-calendar/"
+    directory: "/superset-frontend/plugins/plugin-chart-calendar/"
     schedule:
       interval: "daily"
     labels:
@@ -125,7 +125,7 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-partition/"
+    directory: "/superset-frontend/plugins/plugin-chart-partition/"
     schedule:
       interval: "daily"
     labels:
@@ -137,7 +137,7 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-world-map/"
+    directory: "/superset-frontend/plugins/plugin-chart-world-map/"
     schedule:
       interval: "daily"
     labels:
@@ -164,7 +164,7 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-chord/"
+    directory: "/superset-frontend/plugins/plugin-chart-chord/"
     schedule:
       interval: "daily"
     labels:
@@ -176,7 +176,7 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-horizon/"
+    directory: "/superset-frontend/plugins/plugin-chart-horizon/"
     schedule:
       interval: "daily"
     labels:
@@ -188,19 +188,7 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-rose/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-    cooldown:
-      default-days: 7
-
-  - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-preset-chart-deckgl/"
+    directory: "/superset-frontend/plugins/plugin-chart-rose/"
     schedule:
       interval: "daily"
     labels:
@@ -227,7 +215,7 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-country-map/"
+    directory: "/superset-frontend/plugins/plugin-chart-country-map/"
     schedule:
       interval: "daily"
     labels:
@@ -239,7 +227,7 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-map-box/"
+    directory: "/superset-frontend/plugins/plugin-chart-map-box/"
     schedule:
       interval: "daily"
     labels:
@@ -251,7 +239,7 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-preset-chart-nvd3/"
+    directory: "/superset-frontend/plugins/preset-chart-nvd3/"
     schedule:
       interval: "daily"
     labels:
@@ -275,7 +263,7 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-paired-t-test/"
+    directory: "/superset-frontend/plugins/plugin-chart-paired-t-test/"
     schedule:
       interval: "daily"
     labels:
@@ -323,7 +311,7 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/"
+    directory: "/superset-frontend/plugins/plugin-chart-parallel-coordinates/"
     schedule:
       interval: "daily"
     labels:
