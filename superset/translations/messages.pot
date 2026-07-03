@@ -15861,6 +15861,7 @@ msgstr ""
 msgid "deck.gl Contour"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "deck.gl Geojson"
 msgstr ""
 
@@ -15909,6 +15910,7 @@ msgstr ""
 msgid "documentation"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "dttm"
 msgstr ""
 
@@ -16249,15 +16251,19 @@ msgstr ""
 msgid "p-value precision"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "p1"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "p5"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "p95"
 msgstr ""
 
+#. MACHINE_READ-DO_NOT_TRANSLATE
 msgid "p99"
 msgstr ""
 

@@ -51,3 +51,9 @@ step-after
 step-before
 superset.example.com
 your-project-1234-a1
+deck.gl Geojson
+dttm
+p1
+p5
+p95
+p99
