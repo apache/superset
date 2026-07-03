@@ -19265,10 +19265,8 @@ msgstr "en ejecución"
 msgid "save"
 msgstr "guardar"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "schema1,schema2"
-msgstr "schema1,schema2"
+msgstr ""
 
 msgid "seconds"
 msgstr "segundos"
@@ -19325,10 +19323,8 @@ msgstr "correcto"
 msgid "sum"
 msgstr "suma"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "superset.example.com"
-msgstr "superset.example.com"
+msgstr ""
 
 msgid "syntax."
 msgstr "sintaxis"
@@ -19445,10 +19441,8 @@ msgstr "y: los valores se normalizan dentro de cada fila"
 msgid "year"
 msgstr "año"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
-#, fuzzy
 msgid "your-project-1234-a1"
-msgstr "your-project-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "área del «zoom»"
