@@ -33,16 +33,16 @@ const metadata = new ChartMetadata({
   ),
   exampleGallery: [{ url: example, urlDark: exampleDark }],
   name: t('Bullet Chart'),
-  tags: [t('Business'), t('Legacy'), t('Report'), t('nvd3')],
+  tags: [t('Business'), t('Report'), t('nvd3')],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class BulletChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('../ReactNVD3'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       transformProps,
       controlPanel,
