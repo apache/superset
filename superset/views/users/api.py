@@ -26,6 +26,7 @@ from flask_appbuilder.api import expose, permission_name, safe
 from flask_appbuilder.const import AUTH_DB
 from flask_appbuilder.security.decorators import protect
 from flask_appbuilder.security.sqla.models import User
+from flask_limiter.errors import RateLimitExceeded
 from flask_login import login_user
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -45,6 +46,7 @@ from superset.utils.auth_db_password_hash import (
 )
 from superset.utils.auth_session_stamp import (
     bump_user_session_auth_stamp,
+    cache_user_session_auth_stamp,
     clear_flask_login_remember_cookie,
     sync_session_auth_stamp_on_login,
 )
@@ -86,7 +88,13 @@ def _rate_limit_me_password_change(
             key_func=_me_password_rate_limit_key,
             methods=["PUT"],
         )(f)
-        return limited_view(self, *args, **kwargs)
+        try:
+            return limited_view(self, *args, **kwargs)
+        except RateLimitExceeded:
+            return self.response(
+                429,
+                message="Too many password change attempts. Please try again later.",
+            )
 
     return wrapped
 
@@ -111,12 +119,15 @@ def _commit_user_password_change(
     user_id: int,
     old_hash: str,
     new_hash: str,
-) -> User:
+) -> tuple[User, str]:
     """Persist a password change and rotate the user's session auth stamp.
 
     The whole flow runs in a single transaction that commits once on success,
     so any failure path (including a missing user) rolls back the password
     write rather than reporting an error after it was already committed.
+
+    Returns the updated user and the new session auth stamp. The stamp cache
+    must be updated only after this function returns (post-commit).
     """
     api.pre_update(g.user, {})
     rows_updated = (
@@ -134,7 +145,7 @@ def _commit_user_password_change(
     if rows_updated != 1:
         raise PasswordChangeConflictError
 
-    bump_user_session_auth_stamp(user_id)
+    new_stamp = bump_user_session_auth_stamp(user_id)
     from superset.security.password_change import clear_password_must_change
 
     clear_password_must_change(user_id)
@@ -142,7 +153,7 @@ def _commit_user_password_change(
     if user_after is None:
         logger.error("User missing after password update for id=%s", user_id)
         raise SQLAlchemyError("user missing after password update")
-    return user_after
+    return user_after, new_stamp
 
 
 def _reestablish_login_session(user: User) -> None:
@@ -339,6 +350,8 @@ class CurrentUserRestApi(BaseSupersetApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            429:
+              $ref: '#/components/responses/400'
             500:
               $ref: '#/components/responses/500'
         """
@@ -367,7 +380,7 @@ class CurrentUserRestApi(BaseSupersetApi):
             return self.response_400(message=error.messages)
 
         try:
-            user_after = _commit_user_password_change(
+            user_after, new_stamp = _commit_user_password_change(
                 self,
                 g.user.id,
                 old_hash,
@@ -387,6 +400,7 @@ class CurrentUserRestApi(BaseSupersetApi):
                 message="Unable to update password. Please try again.",
             )
 
+        cache_user_session_auth_stamp(g.user.id, new_stamp)
         _reestablish_login_session(user_after)
         return self.response(200, result=user_response_schema.dump(user_after))
 

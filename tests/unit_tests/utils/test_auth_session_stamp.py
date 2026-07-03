@@ -61,10 +61,11 @@ def test_bump_user_session_auth_stamp_commits_session(app: SupersetApp) -> None:
     mock_session.get.return_value = mock_row
 
     with app.test_request_context(), _mock_db_session(mock_session):
-        bump_user_session_auth_stamp(42)
+        stamp = bump_user_session_auth_stamp(42)
 
     mock_session.get.assert_called_once()
     assert mock_row.stamp is not None
+    assert stamp == mock_row.stamp
     mock_session.commit.assert_called_once()
 
 
@@ -75,11 +76,12 @@ def test_bump_user_session_auth_stamp_inserts_when_missing(app: SupersetApp) -> 
     mock_session.begin_nested.return_value = nested
 
     with app.test_request_context(), _mock_db_session(mock_session):
-        bump_user_session_auth_stamp(42)
+        stamp = bump_user_session_auth_stamp(42)
 
     mock_session.add.assert_called_once()
     mock_session.begin_nested.assert_called_once()
     mock_session.commit.assert_called_once()
+    assert stamp
 
 
 def test_bump_user_session_auth_stamp_retries_update_after_integrity_error(
@@ -94,10 +96,29 @@ def test_bump_user_session_auth_stamp_retries_update_after_integrity_error(
     mock_session.begin_nested.return_value = nested
 
     with app.test_request_context(), _mock_db_session(mock_session):
-        bump_user_session_auth_stamp(42)
+        stamp = bump_user_session_auth_stamp(42)
 
     assert mock_row.stamp is not None
+    assert stamp == mock_row.stamp
     mock_session.commit.assert_called_once()
+
+
+def test_bump_user_session_auth_stamp_does_not_write_cache(app: SupersetApp) -> None:
+    """The shared cache is updated only after the enclosing transaction commits."""
+    mock_session = MagicMock()
+    mock_row = MagicMock()
+    mock_session.get.return_value = mock_row
+
+    with (
+        app.test_request_context(),
+        _mock_db_session(mock_session),
+        patch(
+            "superset.utils.auth_session_stamp._cache_user_session_stamp"
+        ) as mock_cache,
+    ):
+        bump_user_session_auth_stamp(42)
+
+    mock_cache.assert_not_called()
 
 
 def test_validate_stamp_skips_when_current_user_is_detached(

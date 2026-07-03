@@ -206,13 +206,9 @@ def test_group_api_post_delete_logs_event(mock_log: MagicMock) -> None:
 # --- Login / Logout ---
 
 
-@patch("superset.utils.auth_session_stamp.sync_session_auth_stamp_on_login")
-@patch("superset.security.session_invalidation.stamp_login_time")
 @patch("superset.security.manager._log_audit_event")
 def test_on_user_login_logs_event(
     mock_log: MagicMock,
-    mock_stamp_login_time: MagicMock,
-    mock_sync_session: MagicMock,
 ) -> None:
     """on_user_login logs a UserLoggedIn event and stamps the session."""
     sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
@@ -220,12 +216,51 @@ def test_on_user_login_logs_event(
     user.username = "testuser"
     user.id = 7
 
-    sm.on_user_login(user)
+    with (
+        patch("superset.security.session_invalidation.stamp_login_time") as mock_stamp,
+        patch(
+            "superset.utils.auth_session_stamp.sync_session_auth_stamp_on_login"
+        ) as mock_sync_session,
+    ):
+        sm.on_user_login(user)
 
-    mock_stamp_login_time.assert_called_once()
+    mock_stamp.assert_called_once()
     mock_sync_session.assert_called_once_with(user)
     mock_log.assert_called_once_with(
         "UserLoggedIn", {"username": "testuser", "user_id": 7}
+    )
+
+
+@patch("superset.security.manager.verify_auth_db_password", return_value=True)
+@patch("superset.security.manager._log_audit_event")
+def test_auth_user_db_logs_single_user_logged_in_event(
+    mock_log: MagicMock,
+    mock_verify: MagicMock,
+) -> None:
+    """auth_user_db must emit exactly one UserLoggedIn audit event on success."""
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    user = MagicMock(spec=User)
+    user.is_active = True
+    stored_password_hash = "stored-hash"  # noqa: S105
+    user.password = stored_password_hash
+    user.username = "alice"
+    user.id = 1
+    user.login_count = 0
+    user.fail_login_count = 0
+    sm.get_first_user = MagicMock(return_value=None)
+    sm.find_user = MagicMock(return_value=user)
+    sm.update_user = MagicMock()
+
+    with (
+        patch("superset.security.session_invalidation.stamp_login_time"),
+        patch("superset.utils.auth_session_stamp.sync_session_auth_stamp_on_login"),
+    ):
+        result = sm.auth_user_db("alice", "secret")
+
+    assert result is user
+    mock_verify.assert_called_once_with(stored_password_hash, "secret")  # noqa: S106
+    mock_log.assert_called_once_with(
+        "UserLoggedIn", {"username": "alice", "user_id": 1}
     )
 
 

@@ -174,8 +174,13 @@ def sync_session_auth_stamp_on_login(user: Any) -> None:
     _cache_user_session_stamp(user_id, stamp)
 
 
+def cache_user_session_auth_stamp(user_id: int, stamp: str) -> None:
+    """Write a validated session auth stamp into the shared cache."""
+    _cache_user_session_stamp(user_id, stamp)
+
+
 @transaction()
-def bump_user_session_auth_stamp(user_id: int) -> None:
+def bump_user_session_auth_stamp(user_id: int) -> str:
     """Assign a new stamp so every other session for this user becomes invalid."""
     from superset.models.user_session_auth_stamp import UserSessionAuthStamp
 
@@ -185,8 +190,7 @@ def bump_user_session_auth_stamp(user_id: int) -> None:
         try:
             with db.session.begin_nested():
                 db.session.add(UserSessionAuthStamp(user_id=user_id, stamp=new_stamp))
-            _cache_user_session_stamp(user_id, new_stamp)
-            return
+            return new_stamp
         except IntegrityError:
             row = db.session.get(UserSessionAuthStamp, user_id)
             if row is None:
@@ -197,7 +201,7 @@ def bump_user_session_auth_stamp(user_id: int) -> None:
                 )
                 raise
     row.stamp = new_stamp
-    _cache_user_session_stamp(user_id, new_stamp)
+    return new_stamp
 
 
 def _resolve_stamp_check_user_id() -> int | None:

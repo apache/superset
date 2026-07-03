@@ -59,7 +59,7 @@ class CurrentUserPasswordPutSchema(Schema):
     current_password = fields.String(
         required=True,
         metadata={"description": current_password_description},
-        validate=[Length(min=1)],
+        validate=[Length(min=1, max=256)],
     )
     # Minimum length is enforced by the configurable AUTH_DB password policy
     # (``validate_auth_db_password``), which supports ``password_min_length = 0``.
