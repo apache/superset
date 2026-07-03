@@ -62,9 +62,9 @@ unchanged. "Retarget" = migrate saved charts to an existing modern chart via a
 ## Phases / sub-PRs (each targets this feature branch)
 
 ### Phase 0 — Dead code deletion
-- [ ] Delete `superset-frontend/plugins/legacy-preset-chart-deckgl/` (empty husk: only a stale `node_modules/`, unreferenced, absent from `package.json`)
-- [ ] Delete `legacy-preset-chart-nvd3/src/BoxPlot/` leftovers (unregistered; superseded by ECharts BoxPlot)
-- [ ] Delete orphaned `viz.py` classes with no registered frontend: `MapboxViz`, `MapLibreViz`, `EventFlowViz` (+ their tests)
+- [x] `superset-frontend/plugins/legacy-preset-chart-deckgl/` turned out to have **zero tracked files** — it was a stale local `node_modules/` husk, removed locally, nothing to commit
+- [x] Delete `legacy-preset-chart-nvd3/src/BoxPlot/` leftovers (unregistered; superseded by ECharts BoxPlot)
+- [x] Delete orphaned `viz.py` classes with no registered frontend: `MapboxViz`, `MapLibreViz`, `EventFlowViz` (no tests referenced them; `mapbox` saved charts were already migrated to `point_cluster_map` by revision `ce6bd21901ab`; the frontend `point_cluster_map` plugin has its own modern `buildQuery`, so removing `MapLibreViz` also fixes cache warm-up, which routed any `viz_type in viz_types` through the legacy path)
 
 ### Phase 1 — Chart migrations (tiers 1→4, easiest first; order above)
 Per-chart checklist:
@@ -91,6 +91,10 @@ Per-chart checklist:
 ## Log of work completed
 
 (append entries as sub-PRs merge: date, sub-PR #, summary)
+
+- 2026-07-02 — Phase 0: removed orphaned `viz.py` classes (`MapboxViz`, `MapLibreViz`,
+  `EventFlowViz`, −204 lines) and the unregistered nvd3 BoxPlot story leftovers.
+  Verified: `ruff` clean, `tests/unit_tests/test_viz_*` pass.
 
 ## Decisions
 
