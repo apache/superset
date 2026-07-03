@@ -60,6 +60,20 @@ test('adds rolling, resample and contribution operators when configured', () => 
   ]);
 });
 
+test('normalizes the legacy absolute comparison type to difference', () => {
+  const [query] = buildQuery({
+    ...formData,
+    time_compare: ['1 week ago'],
+    comparison_type: 'absolute',
+  }).queries;
+  const compare = (query.post_processing || [])
+    .filter(Boolean)
+    .find(op => op!.operation === 'compare');
+  expect((compare?.options as { compare_type?: string })?.compare_type).toEqual(
+    'difference',
+  );
+});
+
 test('requests time offsets and compares when time_compare is set', () => {
   const [query] = buildQuery({
     ...formData,

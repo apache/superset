@@ -47,7 +47,8 @@ export default function transformProps(chartProps: ChartProps) {
           getMetricLabel,
         ),
         timeCompare: ensureIsArray(timeCompare),
-        comparisonType,
+        comparisonType:
+          comparisonType === 'absolute' ? 'difference' : comparisonType,
       })
     : rawData;
 

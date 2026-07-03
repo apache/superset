@@ -46,7 +46,16 @@ const legacyContributionOperator = (
  * and contribution as post-processing, flattened back into records for
  * transformProps to reshape.
  */
-export default function buildQuery(formData: QueryFormData) {
+export default function buildQuery(rawFormData: QueryFormData) {
+  // the legacy control emits 'absolute' where the v1 compare
+  // post-processing operation expects 'difference'
+  const formData: QueryFormData = {
+    ...rawFormData,
+    comparison_type:
+      rawFormData.comparison_type === 'absolute'
+        ? 'difference'
+        : rawFormData.comparison_type,
+  };
   return buildQueryContext(formData, baseQueryObject => {
     const queryObject = {
       ...baseQueryObject,
