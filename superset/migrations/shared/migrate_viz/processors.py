@@ -388,6 +388,11 @@ class MigrateLineChart(TimeseriesChart):
         return super()._build_query()
 
 
+class MigrateCompareChart(TimeseriesChart):
+    source_viz_type = "compare"
+    target_viz_type = "echarts_timeseries_line"
+
+
 class MigrateAreaChart(TimeseriesChart):
     source_viz_type = "area"
     target_viz_type = "echarts_area"

@@ -18,7 +18,6 @@
  */
 import { Preset, VizType } from '@superset-ui/core';
 import BulletChartPlugin from './Bullet';
-import CompareChartPlugin from './Compare';
 import TimePivotChartPlugin from './TimePivot';
 
 export default class NVD3ChartPreset extends Preset {
@@ -27,7 +26,6 @@ export default class NVD3ChartPreset extends Preset {
       name: 'NVD3 charts',
       plugins: [
         new BulletChartPlugin().configure({ key: VizType.Bullet }),
-        new CompareChartPlugin().configure({ key: VizType.Compare }),
         new TimePivotChartPlugin().configure({ key: VizType.TimePivot }),
       ],
     });
