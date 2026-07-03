@@ -52,7 +52,7 @@ import {
 } from 'src/dashboard/actions/chartCustomizationActions';
 
 import { useImmer } from 'use-immer';
-import { isEmpty, isEqual, debounce } from 'lodash';
+import { isEmpty, isEqual, debounce } from 'lodash-es';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { applicationRoot } from 'src/utils/getBootstrapData';
@@ -142,9 +142,11 @@ const publishDataMask = debounce(
 
     // pathname could be updated somewhere else through window.history
     // keep react router history in sync with window history
-    // replace params only when current page is /superset/dashboard
+    // replace params only when current page is a dashboard route under the
+    // configured applicationRoot (e.g. `/dashboard/...` for root deploy,
+    // `/superset/dashboard/...` for the legacy subdir deploy).
     // this prevents a race condition between updating filters and navigating to Explore
-    if (window.location.pathname.includes('/superset/dashboard')) {
+    if (window.location.pathname.startsWith(`${applicationRoot()}/dashboard`)) {
       // The history API is part of React router and understands that a basename may exist.
       // Internally it treats all paths as if they are relative to the root and appends
       // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
