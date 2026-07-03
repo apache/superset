@@ -326,6 +326,52 @@ test('AgGridTableChart handles raw records mode', async () => {
   expect(headerCells.length).toBeGreaterThan(0);
 });
 
+const rawSummaryProps = {
+  ...testData.basic,
+  rawFormData: {
+    ...testData.basic.rawFormData,
+    query_mode: QueryMode.Raw,
+    show_totals: true,
+  },
+  datasource: {
+    ...testData.basic.datasource,
+    columns: [{ column_name: 'name' }, { column_name: 'sum__num' }],
+  },
+  queriesData: [
+    testData.basic.queriesData[0],
+    { ...testData.basic.queriesData[0], data: [{ sum__num: 12345 }] },
+  ],
+};
+
+test('transformProps derives numeric dataset columns as rawSummaryColumns in raw mode', () => {
+  const transformed = transformProps(rawSummaryProps);
+  // 'sum__num' is the only numeric column of the selection that is backed by
+  // a dataset column; free-form/percent columns must not be summarized.
+  expect(transformed.rawSummaryColumns).toEqual(['sum__num']);
+});
+
+test('transformProps surfaces raw records totals when the summary is on', () => {
+  const transformed = transformProps(rawSummaryProps);
+  expect(transformed.totals).toEqual({ sum__num: 12345 });
+});
+
+test('transformProps leaves totals undefined in raw mode when the summary is off', () => {
+  const transformed = transformProps({
+    ...rawSummaryProps,
+    rawFormData: {
+      ...rawSummaryProps.rawFormData,
+      show_totals: false,
+    },
+  });
+  expect(transformed.totals).toBeUndefined();
+  expect(transformed.rawSummaryColumns).toEqual([]);
+});
+
+test('transformProps returns empty rawSummaryColumns in aggregate mode', () => {
+  const transformed = transformProps(testData.basic);
+  expect(transformed.rawSummaryColumns).toEqual([]);
+});
+
 test('AgGridTableChart corrects invalid page number when currentPage >= totalPages', async () => {
   const props = transformProps({
     ...testData.basic,
