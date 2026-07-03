@@ -38,16 +38,16 @@ const metadata = new ChartMetadata({
     { url: example2, urlDark: example2Dark },
   ],
   name: t('Parallel Coordinates'),
-  tags: [t('Directional'), t('Legacy'), t('Relational')],
+  tags: [t('Directional'), t('Relational')],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class ParallelCoordinatesChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./ReactParallelCoordinates'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       transformProps,
       controlPanel,
