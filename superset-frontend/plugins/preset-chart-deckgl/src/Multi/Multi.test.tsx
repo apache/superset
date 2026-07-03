@@ -43,8 +43,28 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   SupersetClient: {
     get: jest.fn(),
+    post: jest.fn(),
   },
 }));
+
+// register stub buildQuery/transformProps for the layer types the tests use
+const { getChartBuildQueryRegistry, getChartTransformPropsRegistry } =
+  jest.requireActual('@superset-ui/core');
+['deck_scatter', 'deck_polygon'].forEach(vizType => {
+  getChartBuildQueryRegistry().registerValue(
+    vizType,
+    (formData: Record<string, unknown>) => ({
+      datasource: 'test_datasource',
+      queries: [{}],
+      form_data: formData,
+    }),
+  );
+  getChartTransformPropsRegistry().registerValue(vizType, () => ({
+    payload: {
+      data: { features: [], mapboxApiKey: 'test-key', metricLabels: [] },
+    },
+  }));
+});
 
 const mockStore = configureStore({
   reducer: {
@@ -128,6 +148,11 @@ const renderWithProviders = (component: React.ReactElement) =>
 describe('DeckMulti Autozoom Functionality', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (SupersetClient.post as jest.Mock).mockResolvedValue({
+      json: {
+        result: [{ data: [] }],
+      },
+    });
     (SupersetClient.get as jest.Mock).mockResolvedValue({
       json: {
         data: {
@@ -451,6 +476,11 @@ describe('DeckMulti Autozoom Functionality', () => {
 describe('DeckMulti Component Rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (SupersetClient.post as jest.Mock).mockResolvedValue({
+      json: {
+        result: [{ data: [] }],
+      },
+    });
     (SupersetClient.get as jest.Mock).mockResolvedValue({
       json: {
         data: {
@@ -498,16 +528,13 @@ describe('DeckMulti Component Rendering', () => {
 
     // Wait for child slice requests
     await waitFor(() => {
-      expect(SupersetClient.get).toHaveBeenCalled();
+      expect(SupersetClient.post).toHaveBeenCalled();
     });
 
     // Check that all requests include the dashboardId
-    const { calls } = (SupersetClient.get as jest.Mock).mock;
+    const { calls } = (SupersetClient.post as jest.Mock).mock;
     calls.forEach(call => {
-      const url = call[0].endpoint;
-      const urlParams = new URLSearchParams(url.split('?')[1]);
-      const formDataString = urlParams.get('form_data');
-      const formData = JSON.parse(formDataString || '{}');
+      const formData = call[0].jsonPayload?.form_data || {};
       expect(formData.dashboardId).toBe(123);
     });
   });
@@ -525,16 +552,13 @@ describe('DeckMulti Component Rendering', () => {
 
     // Wait for child slice requests
     await waitFor(() => {
-      expect(SupersetClient.get).toHaveBeenCalled();
+      expect(SupersetClient.post).toHaveBeenCalled();
     });
 
     // Check that requests don't include dashboardId
-    const { calls } = (SupersetClient.get as jest.Mock).mock;
+    const { calls } = (SupersetClient.post as jest.Mock).mock;
     calls.forEach(call => {
-      const url = call[0].endpoint;
-      const formData = JSON.parse(
-        new URLSearchParams(url.split('?')[1]).get('form_data') || '{}',
-      );
+      const formData = call[0].jsonPayload?.form_data || {};
       expect(formData.dashboardId).toBeUndefined();
     });
   });
@@ -553,16 +577,13 @@ describe('DeckMulti Component Rendering', () => {
 
     // Wait for child slice requests
     await waitFor(() => {
-      expect(SupersetClient.get).toHaveBeenCalled();
+      expect(SupersetClient.post).toHaveBeenCalled();
     });
 
     // Verify dashboardId is preserved with filters
-    const { calls } = (SupersetClient.get as jest.Mock).mock;
+    const { calls } = (SupersetClient.post as jest.Mock).mock;
     calls.forEach(call => {
-      const url = call[0].endpoint;
-      const formData = JSON.parse(
-        new URLSearchParams(url.split('?')[1]).get('form_data') || '{}',
-      );
+      const formData = call[0].jsonPayload?.form_data || {};
       expect(formData.dashboardId).toBe(456);
       expect(formData.extra_filters).toBeDefined();
     });
@@ -608,20 +629,12 @@ describe('DeckMulti Component Rendering', () => {
 
 test('includes parent_slice_id in child slice requests when parent has slice_id', async () => {
   jest.clearAllMocks();
-  const mockGet = jest.fn().mockResolvedValue({
+  const mockPost = jest.fn().mockResolvedValue({
     json: {
-      result: {
-        form_data: {
-          viz_type: 'deck_scatter',
-          datasource: '1__table',
-        },
-      },
-      data: {
-        features: [],
-      },
+      result: [{ data: [] }],
     },
   });
-  (SupersetClient.get as jest.Mock) = mockGet;
+  (SupersetClient.post as jest.Mock) = mockPost;
   const parentSliceId = 99;
   const dashboardId = 5;
 
@@ -637,39 +650,28 @@ test('includes parent_slice_id in child slice requests when parent has slice_id'
   renderWithProviders(<DeckMulti {...props} />);
 
   await waitFor(() => {
-    expect(mockGet).toHaveBeenCalled();
+    expect(mockPost).toHaveBeenCalled();
   });
 
   // Check that the child slice requests include parent_slice_id
-  const { calls } = mockGet.mock;
+  const { calls } = mockPost.mock;
   calls.forEach(call => {
-    const { endpoint } = call[0];
-    if (endpoint.includes('api/v1/explore/form_data')) {
-      const body = JSON.parse(call[0].body);
-      expect(body.form_data).toMatchObject({
-        dashboardId,
-        parent_slice_id: parentSliceId,
-      });
-    }
+    const formData = call[0].jsonPayload?.form_data || {};
+    expect(formData).toMatchObject({
+      dashboardId,
+      parent_slice_id: parentSliceId,
+    });
   });
 });
 
 test('includes parent_slice_id in embedded mode', async () => {
   jest.clearAllMocks();
-  const mockGet = jest.fn().mockResolvedValue({
+  const mockPost = jest.fn().mockResolvedValue({
     json: {
-      result: {
-        form_data: {
-          viz_type: 'deck_scatter',
-          datasource: '1__table',
-        },
-      },
-      data: {
-        features: [],
-      },
+      result: [{ data: [] }],
     },
   });
-  (SupersetClient.get as jest.Mock) = mockGet;
+  (SupersetClient.post as jest.Mock) = mockPost;
   const parentSliceId = 200;
   const dashboardId = 10;
 
@@ -686,36 +688,25 @@ test('includes parent_slice_id in embedded mode', async () => {
   renderWithProviders(<DeckMulti {...props} />);
 
   await waitFor(() => {
-    expect(mockGet).toHaveBeenCalled();
+    expect(mockPost).toHaveBeenCalled();
   });
 
   // Verify parent_slice_id is included in embedded mode
-  const { calls } = mockGet.mock;
+  const { calls } = mockPost.mock;
   calls.forEach(call => {
-    const { endpoint } = call[0];
-    if (endpoint.includes('api/v1/explore/form_data')) {
-      const body = JSON.parse(call[0].body);
-      expect(body.form_data.parent_slice_id).toBe(parentSliceId);
-    }
+    const formData = call[0].jsonPayload?.form_data || {};
+    expect(formData.parent_slice_id).toBe(parentSliceId);
   });
 });
 
 test('does not include parent_slice_id when parent has no slice_id', async () => {
   jest.clearAllMocks();
-  const mockGet = jest.fn().mockResolvedValue({
+  const mockPost = jest.fn().mockResolvedValue({
     json: {
-      result: {
-        form_data: {
-          viz_type: 'deck_scatter',
-          datasource: '1__table',
-        },
-      },
-      data: {
-        features: [],
-      },
+      result: [{ data: [] }],
     },
   });
-  (SupersetClient.get as jest.Mock) = mockGet;
+  (SupersetClient.post as jest.Mock) = mockPost;
 
   const props = {
     ...baseMockProps,
@@ -729,16 +720,13 @@ test('does not include parent_slice_id when parent has no slice_id', async () =>
   renderWithProviders(<DeckMulti {...props} />);
 
   await waitFor(() => {
-    expect(mockGet).toHaveBeenCalled();
+    expect(mockPost).toHaveBeenCalled();
   });
 
   // Verify parent_slice_id is not included when parent has no slice_id
-  const { calls } = mockGet.mock;
+  const { calls } = mockPost.mock;
   calls.forEach(call => {
-    const { endpoint } = call[0];
-    if (endpoint.includes('api/v1/explore/form_data')) {
-      const body = JSON.parse(call[0].body);
-      expect(body.form_data.parent_slice_id).toBeUndefined();
-    }
+    const formData = call[0].jsonPayload?.form_data || {};
+    expect(formData.parent_slice_id).toBeUndefined();
   });
 });
