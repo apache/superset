@@ -16,21 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import {
+  ChartProps,
+  ensureIsArray,
+  getColumnLabel,
+  getMetricLabel,
+  QueryFormMetric,
+} from '@superset-ui/core';
+import transformData from './transformData';
 
 export default function transformProps(chartProps: ChartProps) {
   const { height, width, formData, queriesData } = chartProps;
   const {
     horizon_color_scale: horizonColorScale,
     series_height: seriesHeight,
+    groupby,
+    metrics,
+    contribution,
   } = formData;
+
+  // v1 responses arrive as flat records; the legacy explore_json endpoint
+  // delivered pre-pivoted series.
+  const rawData = queriesData[0].data;
+  const data = Array.isArray(rawData)
+    ? transformData(
+        rawData,
+        ensureIsArray(groupby).map(getColumnLabel),
+        ensureIsArray(metrics as QueryFormMetric[]).map(getMetricLabel),
+        Boolean(contribution),
+      )
+    : rawData;
 
   // Only include colorScale if defined, otherwise let defaultProps apply
   return {
     ...(horizonColorScale !== undefined && {
       colorScale: horizonColorScale as string,
     }),
-    data: queriesData[0].data,
+    data,
     height,
     seriesHeight: parseInt(String(seriesHeight ?? 20), 10),
     width,
