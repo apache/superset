@@ -897,7 +897,6 @@ class TestCore(SupersetTestCase):
         metadata."""
         self.login(ADMIN_USERNAME)
         tbl_id = self.table_ids.get("energy_usage")
-        mock_raise_for_access.reset_mock()
 
         self.client.post(f"/superset/explore/table/{tbl_id}/")
 
