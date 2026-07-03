@@ -17,7 +17,7 @@
  * under the License.
  */
 // @ts-nocheck -- legacy transformProps with loosely-typed formData from ChartProps
-import { ChartProps, VizType } from '@superset-ui/core';
+import { ChartProps, getMetricLabel, VizType } from '@superset-ui/core';
 import isTruthy from './utils/isTruthy';
 import {
   tokenizeToNumericArray,
@@ -122,15 +122,24 @@ export default function transformProps(chartProps: ChartProps) {
   } = formData;
 
   const rawData = queriesData[0].data || [];
-  const data = Array.isArray(rawData)
-    ? rawData.map(row => ({
-        ...row,
-        values: Array.isArray(row.values)
-          ? row.values.map(value => ({ ...value }))
-          : row.values,
-        key: formatLabel(row.key, datasource.verboseMap),
-      }))
-    : rawData;
+  let data;
+  if (vizType === VizType.Bullet && Array.isArray(rawData)) {
+    // The legacy explore_json endpoint reshaped the single-metric result
+    // into `{ measures: [...] }` server-side; the v1 chart data endpoint
+    // returns plain records, so the reshape happens here.
+    const metricLabel = getMetricLabel(metric);
+    data = { measures: rawData.map(row => row[metricLabel]) };
+  } else {
+    data = Array.isArray(rawData)
+      ? rawData.map(row => ({
+          ...row,
+          values: Array.isArray(row.values)
+            ? row.values.map(value => ({ ...value }))
+            : row.values,
+          key: formatLabel(row.key, datasource.verboseMap),
+        }))
+      : rawData;
+  }
 
   if (vizType === VizType.Pie) {
     numberFormat = numberFormat || grabD3Format(datasource, metric);
