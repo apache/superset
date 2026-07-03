@@ -42,7 +42,6 @@ const metadata = new ChartMetadata({
     t('2D'),
     t('Comparison'),
     t('Intensity'),
-    t('Legacy'),
     t('Multi-Dimensions'),
     t('Multi-Layers'),
     t('Multi-Variables'),
@@ -51,7 +50,6 @@ const metadata = new ChartMetadata({
   ],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
   behaviors: [
     Behavior.InteractiveChart,
     Behavior.DrillToDetail,
@@ -63,6 +61,7 @@ export default class WorldMapChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./ReactWorldMap'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       transformProps,
       controlPanel,
