@@ -32,16 +32,16 @@ const metadata = new ChartMetadata({
   ),
   exampleGallery: [{ url: example, urlDark: exampleDark }],
   name: t('Paired t-test Table'),
-  tags: [t('Legacy'), t('Statistical'), t('Tabular')],
+  tags: [t('Statistical'), t('Tabular')],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class PairedTTestChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./PairedTTest'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       transformProps,
       controlPanel,
