@@ -33,16 +33,16 @@ const metadata = new ChartMetadata({
   ),
   exampleGallery: [{ url: example, urlDark: exampleDark }],
   name: t('Horizon Chart'),
-  tags: [t('Legacy')],
+  tags: [],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class HorizonChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./HorizonChart'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       transformProps,
       controlPanel,
