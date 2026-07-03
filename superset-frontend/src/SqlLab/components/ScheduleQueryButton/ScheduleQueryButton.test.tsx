@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 
 // The component reads SCHEDULED_QUERIES from bootstrap data at module load,
 // so the mock must be in place before the import below resolves.
