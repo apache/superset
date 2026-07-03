@@ -48,37 +48,45 @@ export function createPersistentState(
   };
 
   const shared: PersistentStorageAccessor = {
-    async get(key: string) {
+    async get<T = JsonValue>(key: string): Promise<T | null> {
       const response = await SupersetClient.get({
         endpoint: buildUrl(key, true),
       });
-      return response.json?.result ?? null;
+      return (response.json?.result ?? null) as T | null;
     },
-    async set(key: string, value: JsonValue, options?: PersistentSetOptions) {
+    async set<T = JsonValue>(
+      key: string,
+      value: T,
+      options?: PersistentSetOptions,
+    ): Promise<void> {
       await SupersetClient.put({
         endpoint: buildUrl(key, true),
         body: JSON.stringify({ value, encrypt: options?.encrypt ?? false }),
         headers: { 'Content-Type': 'application/json' },
       });
     },
-    async remove(key: string) {
+    async remove(key: string): Promise<void> {
       await SupersetClient.delete({ endpoint: buildUrl(key, true) });
     },
   };
 
   return {
-    async get(key: string) {
+    async get<T = JsonValue>(key: string): Promise<T | null> {
       const response = await SupersetClient.get({ endpoint: buildUrl(key) });
-      return response.json?.result ?? null;
+      return (response.json?.result ?? null) as T | null;
     },
-    async set(key: string, value: JsonValue, options?: PersistentSetOptions) {
+    async set<T = JsonValue>(
+      key: string,
+      value: T,
+      options?: PersistentSetOptions,
+    ): Promise<void> {
       await SupersetClient.put({
         endpoint: buildUrl(key),
         body: JSON.stringify({ value, encrypt: options?.encrypt ?? false }),
         headers: { 'Content-Type': 'application/json' },
       });
     },
-    async remove(key: string) {
+    async remove(key: string): Promise<void> {
       await SupersetClient.delete({ endpoint: buildUrl(key) });
     },
     shared,

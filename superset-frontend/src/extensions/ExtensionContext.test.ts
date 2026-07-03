@@ -18,10 +18,7 @@
  */
 
 import type { common } from '@apache-superset/core';
-import {
-  createExtensionContext,
-  createBoundGetContext,
-} from './ExtensionContext';
+import { createExtensionContext } from './ExtensionContext';
 
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
@@ -53,35 +50,11 @@ test('createExtensionContext creates context with lazy storage', () => {
   expect(ctx.storage.ephemeral).toBeDefined();
 });
 
-test('createBoundGetContext returns function that always returns same context', () => {
-  const extension = createMockExtension('test.ext');
-  const ctx = createExtensionContext(extension);
-  const getContext = createBoundGetContext(ctx);
+test('different extensions get different contexts', () => {
+  const ctx1 = createExtensionContext(createMockExtension('org1.ext1'));
+  const ctx2 = createExtensionContext(createMockExtension('org2.ext2'));
 
-  expect(getContext()).toBe(ctx);
-  expect(getContext()).toBe(ctx);
-});
-
-test('createBoundGetContext works in async code', async () => {
-  const extension = createMockExtension('test.ext');
-  const ctx = createExtensionContext(extension);
-  const getContext = createBoundGetContext(ctx);
-
-  const result = await Promise.resolve().then(() => getContext());
-
-  expect(result).toBe(ctx);
-});
-
-test('different extensions get different bound contexts', () => {
-  const ext1 = createMockExtension('org1.ext1');
-  const ext2 = createMockExtension('org2.ext2');
-
-  const ctx1 = createExtensionContext(ext1);
-  const ctx2 = createExtensionContext(ext2);
-
-  const getContext1 = createBoundGetContext(ctx1);
-  const getContext2 = createBoundGetContext(ctx2);
-
-  expect(getContext1().extension.id).toBe('org1.ext1');
-  expect(getContext2().extension.id).toBe('org2.ext2');
+  expect(ctx1.extension.id).toBe('org1.ext1');
+  expect(ctx2.extension.id).toBe('org2.ext2');
+  expect(ctx1).not.toBe(ctx2);
 });

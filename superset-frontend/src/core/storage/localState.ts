@@ -47,34 +47,34 @@ export function createBrowserStorage(
   extensionId: string,
 ): StorageTier {
   const shared: StorageAccessor = {
-    get: async (key: string) => {
+    async get<T = JsonValue>(key: string): Promise<T | null> {
       const storageKey = buildKey(extensionId, key);
       const value = storage.getItem(storageKey);
-      return value ? JSON.parse(value) : null;
+      return value ? (JSON.parse(value) as T) : null;
     },
-    set: async (key: string, value: JsonValue) => {
+    async set<T = JsonValue>(key: string, value: T): Promise<void> {
       const storageKey = buildKey(extensionId, key);
       storage.setItem(storageKey, JSON.stringify(value));
     },
-    remove: async (key: string) => {
+    async remove(key: string): Promise<void> {
       const storageKey = buildKey(extensionId, key);
       storage.removeItem(storageKey);
     },
   };
 
   return {
-    get: async (key: string) => {
+    async get<T = JsonValue>(key: string): Promise<T | null> {
       const userId = getCurrentUserId();
       const storageKey = buildKey(extensionId, 'user', userId, key);
       const value = storage.getItem(storageKey);
-      return value ? JSON.parse(value) : null;
+      return value ? (JSON.parse(value) as T) : null;
     },
-    set: async (key: string, value: JsonValue) => {
+    async set<T = JsonValue>(key: string, value: T): Promise<void> {
       const userId = getCurrentUserId();
       const storageKey = buildKey(extensionId, 'user', userId, key);
       storage.setItem(storageKey, JSON.stringify(value));
     },
-    remove: async (key: string) => {
+    async remove(key: string): Promise<void> {
       const userId = getCurrentUserId();
       const storageKey = buildKey(extensionId, 'user', userId, key);
       storage.removeItem(storageKey);

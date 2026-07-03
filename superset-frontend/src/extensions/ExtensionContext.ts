@@ -17,8 +17,8 @@
  * under the License.
  */
 import type {
-  extensions as extensionsApi,
   common,
+  extensions as extensionsApi,
 } from '@apache-superset/core';
 import {
   createBrowserStorage,
@@ -26,8 +26,8 @@ import {
   createPersistentState,
 } from 'src/core/storage';
 
-type ExtensionContextType = extensionsApi.ExtensionContext;
 type Extension = common.Extension;
+type ExtensionContextType = extensionsApi.ExtensionContext;
 
 /**
  * Extension context with lazy-initialized services bound to the extension ID.
@@ -62,13 +62,4 @@ export function createExtensionContext(
   extension: Extension,
 ): ExtensionContextType {
   return new ExtensionContext(extension);
-}
-
-/**
- * Create a bound getContext function for an extension.
- */
-export function createBoundGetContext(
-  ctx: ExtensionContextType,
-): typeof extensionsApi.getContext {
-  return () => ctx;
 }

@@ -191,6 +191,10 @@ const plugins = [
         requiredVersion: packageConfig.dependencies.antd,
         eager: true,
       },
+      '@apache-superset/core': {
+        singleton: true,
+        eager: true,
+      },
     },
   }),
 ];

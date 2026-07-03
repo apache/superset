@@ -47,7 +47,7 @@ export interface StorageAccessor {
    * @param key The key to retrieve.
    * @returns The stored value, or null if not found.
    */
-  get(key: string): Promise<JsonValue | null>;
+  get<T = JsonValue>(key: string): Promise<T | null>;
 
   /**
    * Set a value in storage.
@@ -55,7 +55,7 @@ export interface StorageAccessor {
    * @param key The key to store.
    * @param value The value to store (must be JSON-serializable).
    */
-  set(key: string, value: JsonValue): Promise<void>;
+  set<T = JsonValue>(key: string, value: T): Promise<void>;
 
   /**
    * Remove a value from storage.
@@ -95,10 +95,10 @@ export interface PersistentSetOptions {
  * Storage accessor for ephemeral state, requiring TTL on every set.
  */
 export interface EphemeralStorageAccessor {
-  get(key: string): Promise<JsonValue | null>;
-  set(
+  get<T = JsonValue>(key: string): Promise<T | null>;
+  set<T = JsonValue>(
     key: string,
-    value: JsonValue,
+    value: T,
     options: EphemeralSetOptions,
   ): Promise<void>;
   remove(key: string): Promise<void>;
@@ -115,10 +115,10 @@ export interface EphemeralStorageTier extends EphemeralStorageAccessor {
  * Storage accessor for persistent state, supporting optional encryption.
  */
 export interface PersistentStorageAccessor {
-  get(key: string): Promise<JsonValue | null>;
-  set(
+  get<T = JsonValue>(key: string): Promise<T | null>;
+  set<T = JsonValue>(
     key: string,
-    value: JsonValue,
+    value: T,
     options?: PersistentSetOptions,
   ): Promise<void>;
   remove(key: string): Promise<void>;
