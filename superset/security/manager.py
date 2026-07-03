@@ -23,7 +23,15 @@ import time
 from collections import defaultdict
 from math import ceil
 from types import SimpleNamespace
-from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    cast,
+    NamedTuple,
+    Optional,
+    TYPE_CHECKING,
+    Union,
+)
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
@@ -86,6 +94,8 @@ from superset.utils.auth_db_password_hash import verify_auth_db_password
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
+    get_column_name,
+    get_metric_name,
     get_user_id,
     get_username,
     RowLevelSecurityFilterType,
@@ -532,46 +542,238 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     )
 
 
+def _get_form_data_item_label(item: Any, is_metric: bool) -> str | None:
+    """
+    Return the result-key label Superset uses for a column or metric definition.
+    """
+    label: Any
+    try:
+        label = get_metric_name(item) if is_metric else get_column_name(item)
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return None
+    return label if isinstance(label, str) and label else None
+
+
+def _is_hidden_table_column(column_config: Any, name: str) -> bool:
+    """
+    Whether Table column_config marks a result column as hidden.
+    """
+    config = column_config.get(name) if isinstance(column_config, dict) else None
+    return isinstance(config, dict) and config.get("visible") is False
+
+
+def _stored_sort_target_identifiers(item: Any, is_metric: bool) -> set[str]:
+    """
+    Identifiers that can refer to a stored column/metric in orderby.
+
+    The exact frozen value preserves dict-shaped adhoc references. The label
+    matches result keys sent by Table server pagination and labels accepted by
+    SQL query building for adhoc columns/metrics.
+    """
+    identifiers = {freeze_value(item)}
+    if label := _get_form_data_item_label(item, is_metric=is_metric):
+        identifiers.add(freeze_value(label))
+    return identifiers
+
+
+def _requested_sort_target_identifiers(item: Any) -> set[str]:
+    """
+    Identifiers a requested orderby term may use.
+
+    String terms are result keys. Dict-shaped terms carry expression bodies, so
+    they authorize only by exact stored identity and never by a reused label.
+    """
+    if isinstance(item, (str, dict)):
+        return {freeze_value(item)}
+    return set()
+
+
+def _add_visible_sort_targets(
+    allowed: set[str],
+    values: Any,
+    column_config: Any,
+    *,
+    is_metric: bool,
+) -> None:
+    """
+    Add visible column/metric orderby identifiers from a stored control value.
+    """
+    if not isinstance(values, (list, tuple)):
+        return
+    for value in values:
+        label = _get_form_data_item_label(value, is_metric=is_metric)
+        if label is not None and _is_hidden_table_column(column_config, label):
+            continue
+        allowed.update(_stored_sort_target_identifiers(value, is_metric=is_metric))
+
+
 def _collect_sortable_identifiers(
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
 ) -> set[str]:
     """
-    Frozen column names and metric labels/definitions a guest may legitimately
-    sort by: every column or metric the stored chart already references.
+    Identifiers a guest may use for a new sort target.
 
-    Order-by only changes the ordering of the result, not which data is read, so
-    any column or metric already part of the chart is a safe sort target. A term
-    that is not present in the stored chart (for example a free-form ``random()``
-    expression) cannot be validated and must be rejected. Order-by entries are
-    ``(column_or_metric, ascending)`` pairs, so only their first element is
-    collected.
+    These are the visible columns/metrics the stored chart exposes. Exact
+    owner-defined orderby replay is handled separately because saved orderby may
+    intentionally reference a non-visible helper term, while guest-initiated
+    sorting should be limited to visible result columns.
     """
     allowed: set[str] = set()
-
-    def add(values: Any) -> None:
-        for value in values or []:
-            allowed.add(freeze_value(value))
-
-    def add_orderby(entries: Any) -> None:
-        for entry in entries or []:
-            if isinstance(entry, (list, tuple)) and entry:
-                allowed.add(freeze_value(entry[0]))
-
     params = stored_chart.params_dict
-    for key in ("columns", "groupby", "metrics", "all_columns"):
-        add(params.get(key))
+    column_config = params.get("column_config")
+
+    for key in ("columns", "groupby", "all_columns"):
+        _add_visible_sort_targets(
+            allowed,
+            params.get(key),
+            column_config,
+            is_metric=False,
+        )
+    _add_visible_sort_targets(
+        allowed,
+        params.get("metrics"),
+        column_config,
+        is_metric=True,
+    )
     # Legacy charts store a single metric under the singular ``metric`` key.
-    add([params["metric"]] if params.get("metric") is not None else None)
-    add_orderby(params.get("orderby"))
+    if params.get("metric") is not None:
+        _add_visible_sort_targets(
+            allowed,
+            [params["metric"]],
+            column_config,
+            is_metric=True,
+        )
 
     if stored_query_context:
         for query in stored_query_context.get("queries") or []:
-            for key in ("columns", "groupby", "metrics", "all_columns"):
-                add(query.get(key))
-            add_orderby(query.get("orderby"))
+            for key in ("columns", "groupby", "all_columns"):
+                _add_visible_sort_targets(
+                    allowed,
+                    query.get(key),
+                    column_config,
+                    is_metric=False,
+                )
+            _add_visible_sort_targets(
+                allowed,
+                query.get("metrics"),
+                column_config,
+                is_metric=True,
+            )
 
     return allowed
+
+
+def _collect_stored_orderby_entries(
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> set[str]:
+    """
+    Frozen saved orderby entries a guest may replay exactly.
+    """
+    allowed: set[str] = {
+        freeze_value(entry) for entry in stored_chart.params_dict.get("orderby") or []
+    }
+    if stored_query_context:
+        for query in stored_query_context.get("queries") or []:
+            allowed.update(freeze_value(entry) for entry in query.get("orderby") or [])
+    return allowed
+
+
+def _metric_control_values(value: Any) -> list[Any]:
+    """
+    Return non-empty values from a metric-valued control.
+    """
+    if value is None or value == "":
+        return []
+    if isinstance(value, (list, tuple)):
+        return [item for item in value if item is not None and item != ""]
+    return [value]
+
+
+def _add_frozen_metric_control_values(allowed: set[str], value: Any) -> None:
+    """
+    Add exact metric-control values to an authorization set.
+    """
+    allowed.update(freeze_value(metric) for metric in _metric_control_values(value))
+
+
+def _collect_stored_series_limit_metric_identifiers(
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> set[str]:
+    """
+    Exact metric selectors a guest may use for series limiting.
+    """
+    allowed: set[str] = set()
+    params = stored_chart.params_dict
+
+    _add_frozen_metric_control_values(allowed, params.get("metrics"))
+    _add_frozen_metric_control_values(allowed, params.get("metric"))
+    for key in ("series_limit_metric", "timeseries_limit_metric"):
+        _add_frozen_metric_control_values(allowed, params.get(key))
+
+    if stored_query_context:
+        for query in stored_query_context.get("queries") or []:
+            _add_frozen_metric_control_values(allowed, query.get("metrics"))
+            for key in ("series_limit_metric", "timeseries_limit_metric"):
+                _add_frozen_metric_control_values(allowed, query.get(key))
+
+    return allowed
+
+
+def _series_limit_metric_value_modified(value: Any, allowed: set[str]) -> bool:
+    """
+    Whether a requested series-limit metric is absent from stored metric controls.
+    """
+    for metric in _metric_control_values(value):
+        if not isinstance(metric, (str, dict)) or not metric:
+            return True
+        if freeze_value(metric) not in allowed:
+            return True
+    return False
+
+
+def _series_limit_metric_modified(
+    query_context: "QueryContext",
+    form_data: dict[str, Any],
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether series-limit metric selectors introduce a metric not stored on chart.
+
+    Series limiting uses the selector to rank top-N groups, so guest requests may
+    only reuse stored metric controls. Dict-shaped selectors must match exactly;
+    labels are not an authorization key for expression objects.
+    """
+    allowed: set[str] = _collect_stored_series_limit_metric_identifiers(
+        stored_chart,
+        stored_query_context,
+    )
+    for key in ("series_limit_metric", "timeseries_limit_metric"):
+        if _series_limit_metric_value_modified(form_data.get(key), allowed):
+            return True
+
+    for query in query_context.queries:
+        for key in ("series_limit_metric", "timeseries_limit_metric"):
+            if _series_limit_metric_value_modified(getattr(query, key, None), allowed):
+                return True
+
+    return False
+
+
+def _is_valid_orderby_entry(entry: Any) -> bool:
+    """
+    Whether an orderby entry has the expected ``[term, ascending]`` shape.
+    """
+    return (
+        isinstance(entry, (list, tuple))
+        and len(entry) == 2
+        and isinstance(entry[0], (str, dict))
+        and bool(entry[0])
+        and isinstance(entry[1], bool)
+    )
 
 
 def _orderby_modified(
@@ -587,28 +789,35 @@ def _orderby_modified(
     metrics is legitimate and must not read as tampering; introducing a new
     expression is not, and is rejected.
     """
-    allowed = _collect_sortable_identifiers(stored_chart, stored_query_context)
+    visible_targets = _collect_sortable_identifiers(stored_chart, stored_query_context)
+    stored_orderby_entries = _collect_stored_orderby_entries(
+        stored_chart, stored_query_context
+    )
     form_data = query_context.form_data or {}
     # Both ``form_data`` and each ``QueryObject`` can carry an order-by, and in
     # the common frontend path they carry the same one. Either source could
     # smuggle an unauthorized term, so validate the union of both rather than
     # trusting one over the other; the duplication is harmless.
-    requested = list(form_data.get("orderby") or [])
+    form_orderby = form_data.get("orderby")
+    if form_orderby is not None and not isinstance(form_orderby, list):
+        return True
+    requested: list[Any] = list(form_orderby or [])
     for query in query_context.queries:
-        requested.extend(getattr(query, "orderby", None) or [])
+        query_orderby = getattr(query, "orderby", None)
+        if query_orderby is not None and not isinstance(query_orderby, list):
+            return True
+        requested.extend(query_orderby or [])
 
     for entry in requested:
         # Order-by entries must be ``(column_or_metric, ascending)`` pairs. A
         # malformed shape (e.g. a bare string or nested list) is not a valid
         # sort the chart could have produced, so treat it as tampering rather
         # than letting it crash query building when it is later unpacked.
-        if not (
-            isinstance(entry, (list, tuple))
-            and len(entry) == 2
-            and isinstance(entry[1], bool)
-        ):
+        if not _is_valid_orderby_entry(entry):
             return True
-        if freeze_value(entry[0]) not in allowed:
+        if freeze_value(entry) in stored_orderby_entries:
+            continue
+        if not _requested_sort_target_identifiers(entry[0]) & visible_targets:
             return True
     return False
 
@@ -679,7 +888,6 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     if form_data is None:
         return False
 
-    # cannot request a different chart
     if form_data.get("slice_id") != stored_chart.id:
         return True
 
@@ -694,6 +902,14 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # legitimately sorting an embedded chart by one of its existing columns.
     if _columns_metrics_modified(
         query_context, form_data, stored_chart, stored_query_context
+    ):
+        return True
+
+    if _series_limit_metric_modified(
+        query_context,
+        form_data,
+        stored_chart,
+        stored_query_context,
     ):
         return True
 
