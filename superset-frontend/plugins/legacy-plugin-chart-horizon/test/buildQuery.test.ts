@@ -37,4 +37,11 @@ test('builds a grouped timeseries query with a series limit', () => {
   expect(query.is_timeseries).toBe(true);
   expect(query.series_limit).toEqual(25);
   expect(query.granularity).toEqual('ds');
+  // legacy engine default: order by the first metric ascending
+  expect(query.orderby).toEqual([['sum__num', true]]);
+});
+
+test('orders descending when order_desc is set', () => {
+  const [query] = buildQuery({ ...formData, order_desc: true }).queries;
+  expect(query.orderby).toEqual([['sum__num', false]]);
 });

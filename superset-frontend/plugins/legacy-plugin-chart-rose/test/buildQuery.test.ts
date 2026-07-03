@@ -29,6 +29,13 @@ const formData: QueryFormData = {
   metrics: ['sum__num'],
 };
 
+test('orders by the first metric like the legacy engine', () => {
+  const [query] = buildQuery(formData).queries;
+  expect(query.orderby).toEqual([['sum__num', true]]);
+  const [descQuery] = buildQuery({ ...formData, order_desc: true }).queries;
+  expect(descQuery.orderby).toEqual([['sum__num', false]]);
+});
+
 test('builds a pivot + flatten post-processing pipeline', () => {
   const [query] = buildQuery(formData).queries;
   const operations = (query.post_processing || [])

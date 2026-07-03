@@ -57,9 +57,18 @@ export default function buildQuery(rawFormData: QueryFormData) {
         : rawFormData.comparison_type,
   };
   return buildQueryContext(formData, baseQueryObject => {
+    const firstMetric = ensureIsArray(baseQueryObject.metrics)[0];
     const queryObject = {
       ...baseQueryObject,
       is_timeseries: true,
+      // the legacy engine ordered by the first metric, ascending unless
+      // order_desc
+      orderby: firstMetric
+        ? ([[firstMetric, !formData.order_desc]] as [
+            typeof firstMetric,
+            boolean,
+          ][])
+        : undefined,
       time_offsets: isTimeComparison(formData, baseQueryObject)
         ? ensureIsArray(formData.time_compare)
         : [],
