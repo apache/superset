@@ -1715,11 +1715,11 @@ msgstr ""
 "Une erreur s'est produite lors de la recherche des valeurs des "
 "propriétaires : %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr ""
-"Une erreur s'est produite lors de l'extraction des données relatives à "
-"l'ensemble de données"
+"Une erreur s'est produite lors de l'extraction des données relatives au "
+"jeu de données"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s values: %s"
@@ -3084,13 +3084,11 @@ msgstr "Modifier ce rapport est interdit"
 msgid "Changing this semantic layer is forbidden"
 msgstr "Modifier ce graphique est interdit"
 
-#, fuzzy
 msgid "Changing this semantic view is forbidden"
-msgstr "Modifier cet ensemble de données est interdit"
+msgstr "Modifier cette vue sémantique est interdit"
 
-#, fuzzy
 msgid "Changing this task is forbidden"
-msgstr "Modifier cet ensemble de données est interdit"
+msgstr "Modifier cette tâche est interdit"
 
 msgid "Character to interpret as decimal point"
 msgstr "Caractère à interpréter comme un point décimal"
@@ -4830,9 +4828,8 @@ msgstr "Source de données et type de graphique"
 msgid "Datasource does not exist"
 msgstr "La source de données n'existe pas"
 
-#, fuzzy
 msgid "Datasource is required"
-msgstr "Un ensemble de données est requis"
+msgstr "Une source de données est requise"
 
 msgid "Datasource is required for validation"
 msgstr "Une source de données est requise pour la validation"
@@ -6136,9 +6133,8 @@ msgstr "Activer les icônes"
 msgid "Enable label JavaScript mode"
 msgstr "Activer l'étiquette Mode Javascript"
 
-#, fuzzy
 msgid "Enable labels"
-msgstr "Étiquettes d’intervalle"
+msgstr "Activer les étiquettes"
 
 msgid "Enable matrixify"
 msgstr "Activer Matrixify"
@@ -6905,7 +6901,6 @@ msgstr "Le champ ne peut pas être décodé par JSON. %(json_error)s"
 msgid "Field cannot be decoded by JSON. %(msg)s"
 msgstr "Le champ ne peut pas être décodé par JSON. %(msg)s"
 
-#, fuzzy
 msgid "Field cannot be empty."
 msgstr "Ne peut pas être vide"
 
@@ -7932,24 +7927,24 @@ msgstr "Configuration lat/long non valide."
 msgid "Invalid JSON metadata"
 msgstr "Méta données JSON invalides"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid SQL: %(error)s"
-msgstr "Le schéma du jeu de données n'est pas valide : %(error)s"
+msgstr "SQL invalidevalide : %(error)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid advanced data type: %(advanced_data_type)s"
-msgstr "Type de résultat invalide : %(advanced_data_type)s"
+msgstr "Type de donnée avancée invalide : %(advanced_data_type)s"
 
 msgid "Invalid certificate"
 msgstr "Certificat invalide"
 
-#, fuzzy
 msgid "Invalid color"
-msgstr "Couleurs d'intervalle"
+msgstr "Couleurs non valide"
 
 #, fuzzy
 msgid ""
 "Invalid connection string, a valid string usually follows: "
+"backend+driver://user:password@database-host/database-name"
 "backend+driver://user:password@database-host/database-name"
 msgstr ""
 "Chaine de connexion incorrecte, une chaine correcte s'écrit "
@@ -8371,7 +8366,6 @@ msgstr "Latitude de la fenêtre d'affichage par défaut"
 msgid "Layer"
 msgstr "Couche"
 
-#, fuzzy
 msgid "Layer Name"
 msgstr "Nom de la couche"
 
@@ -9423,15 +9417,12 @@ msgstr "Aucune couche d'annotations"
 msgid "New chart"
 msgstr "Nouveau graphique"
 
-#, fuzzy
 msgid "New dataset"
 msgstr "Nouveau jeu de données"
 
-#, fuzzy
 msgid "New dataset name"
-msgstr "Nom du jeu de données"
+msgstr "Nom du nouveau jeu de données"
 
-#, fuzzy
 msgid "New header"
 msgstr "Nouvel en-tête"
 
@@ -9465,9 +9456,8 @@ msgstr "Pas encore de %s"
 msgid "No Data"
 msgstr "Non applicable"
 
-#, fuzzy
 msgid "No Logs yet"
-msgstr "Pas encore de %s"
+msgstr "Pas encore d'entrée de journal"
 
 msgid "No Results"
 msgstr "Aucun résultat"
@@ -9475,13 +9465,11 @@ msgstr "Aucun résultat"
 msgid "No Rules yet"
 msgstr "Pas encore de règles"
 
-#, fuzzy
 msgid "No SQL query found"
-msgstr "Requête SQL"
+msgstr "Requête SQL non trouvée"
 
-#, fuzzy
 msgid "No Tags created"
-msgstr "a été créé"
+msgstr "Aucun tag n'a été créé"
 
 #, fuzzy
 msgid "No actions"
@@ -9615,11 +9603,9 @@ msgstr ""
 "sont configurés correctement et que la source de données contient des "
 "données pour la période sélectionnée."
 
-#, fuzzy
 msgid "No roles"
-msgstr "Pas encore de règles"
+msgstr "Aucun rôle"
 
-#
 msgid "No roles yet"
 msgstr "Pas encore de roles"
 
@@ -11434,11 +11420,9 @@ msgstr "Inverser la latitude et la longitude"
 msgid "Reverse lat/long "
 msgstr "Inverser la latitude et la longitude "
 
-#, fuzzy
 msgid "Revoke"
 msgstr "Révoquer"
 
-#, fuzzy
 msgid "Revoke API Key"
 msgstr "Révoquer la clé API"
 
@@ -11761,18 +11745,15 @@ msgstr "Exemple de variance"
 msgid "Samples"
 msgstr "Exemples"
 
-#, fuzzy
 msgid "Samples for dataset could not be retrieved."
 msgstr "Les exemples du jeu de données n'ont pas pu être récupérés."
 
-#, fuzzy
 msgid "Samples for datasource could not be retrieved."
 msgstr "Les exemples de source de données n'ont pas pu être récupérés."
 
 msgid "Sankey Chart"
 msgstr "Graphique Sankey"
 
-#, fuzzy
 msgid "Satellite"
 msgstr "Satellite"
 
@@ -12310,13 +12291,11 @@ msgstr ""
 "soit réussie. Découvrez quelles sont les exigences de votre base de "
 "données "
 
-#, fuzzy
 msgid "Select dataset source"
 msgstr "Sélectionner la source du jeu de données"
 
-#, fuzzy
 msgid "Select datetime column"
-msgstr "Sélectionner une colonne"
+msgstr "Sélectionner une colonne de type horodatage"
 
 msgid "Select dimension"
 msgstr "Sélectionner une dimension"
@@ -12407,7 +12386,6 @@ msgstr "Sélectionner ou renseigner une valeur personnalisé..."
 msgid "Select or type currency symbol"
 msgstr "Sélectionner ou renseigner une valeur"
 
-#, fuzzy
 msgid "Select or type dataset name"
 msgstr "Sélectionner la base de données ou taper le nom du jeu de données"
 
@@ -12613,61 +12591,48 @@ msgstr "Vue sémantique"
 msgid "Semantic Views"
 msgstr "Vues sémantiques"
 
-#, fuzzy
 msgid "Semantic layer"
-msgstr "Couche d'annotations"
+msgstr "Couche sémantique"
 
-#, fuzzy
 msgid "Semantic layer could not be created."
-msgstr "La couche d'annotations n'a pas pu être créée."
+msgstr "La couche sémantique n'a pas pu être créée."
 
-#, fuzzy
 msgid "Semantic layer could not be deleted."
-msgstr "La couche d'annotations n'a pas pu être supprimée."
+msgstr "La couche sémantique n'a pas pu être supprimée."
 
-#, fuzzy
 msgid "Semantic layer could not be updated."
-msgstr "La couche d'annotations n'a pas pu être mise à jour."
+msgstr "La couche sémantique n'a pas pu être mise à jour."
 
-#, fuzzy
 msgid "Semantic layer created"
-msgstr "Modèle d'annotation créé."
+msgstr "Couche sémantique créée."
 
-#, fuzzy
 msgid "Semantic layer does not exist"
-msgstr "Le graphique n'existe pas"
+msgstr "La couche sémantique n'existe pas"
 
-#, fuzzy
 msgid "Semantic layer parameters are invalid."
-msgstr "Les paramètres de la couche d'annotations sont invalides."
+msgstr "Les paramètres de la couche sémantique sont invalides."
 
-#, fuzzy
 msgid "Semantic layer type"
-msgstr "Type de couche d'annotations"
+msgstr "Type de couche sémantique"
 
-#, fuzzy
 msgid "Semantic layer updated"
-msgstr "Le modèle d'annotation a été modifiée"
+msgstr "La couche sémantique a été modifiée"
 
-#, fuzzy
+
 msgid "Semantic view could not be created."
-msgstr "L’ensemble de données n'a pas pu être créé."
+msgstr "La vue sémantique n'a pas pu être créé."
 
-#, fuzzy
 msgid "Semantic view could not be deleted."
-msgstr "Le template CSS n'a pas pu être supprimé."
+msgstr "La vue sémantique n'a pas pu être supprimée."
 
-#, fuzzy
 msgid "Semantic view could not be updated."
-msgstr "L’ensemble de données n'a pas pu être mis à jour."
+msgstr "La vue sémantique n'a pas pu être actualisée."
 
-#, fuzzy
 msgid "Semantic view does not exist"
-msgstr "L’ensemble de données n'existe pas"
+msgstr "La vue sémantique n'existe pas"
 
-#, fuzzy
 msgid "Semantic view parameters are invalid."
-msgstr "Les paramètres de l'ensemble de données ne sont pas valides."
+msgstr "Les paramètres de la vue sémantique ne sont pas valides."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -13236,7 +13201,6 @@ msgstr ""
 "Certaines autorisations n'ont pas pu être résolues et sont affichées sous"
 " forme d'identifiants."
 
-
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Certains filtres nécessaires sur d'autres onglets sont actifs et ne "
@@ -13707,7 +13671,7 @@ msgstr "Superset a rencontré une erreur inattendue."
 msgid "Supported databases"
 msgstr "Bases de données prises en charge"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Swap %s"
 msgstr "Échanger %s"
 
@@ -15171,21 +15135,17 @@ msgstr "Une erreur s'est produite lors de la récupération des schémas"
 msgid "There was an error creating the user. Please, try again."
 msgstr "Une erreur s'est produite lors de la récupération des schémas"
 
-#, fuzzy
 msgid "There was an error duplicating the role. Please, try again."
 msgstr "Il y a eu un problème de duplication du jeu de données."
 
-#, fuzzy
 msgid "There was an error fetching dataset"
 msgstr ""
-"Désolé, une erreur s'est produite lors de la récupération des "
-"informations de ce jeu de données"
+"Une erreur s'est produite lors de la récupération du jeu de données"
 
-#, fuzzy
 msgid "There was an error fetching dataset's related objects"
 msgstr ""
-"Désolé, une erreur s'est produite lors de la récupération des "
-"informations de cette base de données : "
+"Une erreur s'est produite lors de la récupération des "
+"enregistrements de cette base de données"
 
 #, fuzzy, python-format
 msgid "There was an error fetching the favorite status: %s"
@@ -15257,11 +15217,9 @@ msgstr ""
 "Désolé, une erreur s'est produite lors de la récupération des "
 "informations de cet ensemble de données"
 
-#, fuzzy
 msgid "There was an error while fetching users"
 msgstr ""
-"Désolé, une erreur s'est produite lors de la récupération des "
-"informations de ce jeu de données"
+"Une erreur s'est produite lors de la récupération des utilisateurs"
 
 msgid "There was an error with your request"
 msgstr "Il y avait une erreur avec vore requête"
@@ -16656,7 +16614,6 @@ msgstr "Valeur de modèle non supportée pour la clé %(key)s"
 msgid "Unsupported time grain: %(time_grain)s"
 msgstr "Fragment de temps non pris en charge : %(time_grain)s"
 
-#, fuzzy
 msgid "Untitled Dataset"
 msgstr "Jeu de données sans titre"
 
@@ -17036,9 +16993,9 @@ msgstr "Voir"
 msgid "View All »"
 msgstr "Tout voir »"
 
-#, fuzzy
+
 msgid "View Dataset"
-msgstr "Éditer le jeu de données"
+msgstr "Afficher le jeu de données"
 
 msgid "View all charts"
 msgstr "Voir tous les graphiques"
@@ -18036,17 +17993,14 @@ msgstr "Vous n'avez pas accès à ce graphique."
 msgid "You don't have access to this dashboard."
 msgstr "Vous n'avez pas accès à ce tableau de bord."
 
-#, fuzzy
 msgid "You don't have access to this dataset."
 msgstr "Vous n'avez pas accès à ce jeu de données."
 
-#, fuzzy
 msgid "You don't have access to this embedded dashboard config."
 msgstr "Vous n'avez pas accès à la configuration de ce tableau de bord intégré."
 
-#, fuzzy
 msgid "You don't have access to this semantic view."
-msgstr "Vous n'avez pas accès à cet ensemble de données."
+msgstr "Vous n'avez pas accès à cette vue sémantique."
 
 #, fuzzy
 msgid "You don't have permission to copy to clipboard"
@@ -18529,7 +18483,7 @@ msgstr "nom du jeu de données"
 
 #, fuzzy
 msgid "datasets"
-msgstr "Ensembles de données"
+msgstr "jeux de données"
 
 #, fuzzy
 msgid "datasource"
