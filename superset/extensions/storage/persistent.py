@@ -19,17 +19,20 @@
 Host implementation for Persistent State (Tier 3 Storage).
 
 Provides the concrete database-backed implementation that is injected into
-superset_core.extensions.storage.persistent_state at startup.
+superset_core.extensions.storage.persistent at startup.
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 from flask import g
+from superset_core.extensions.storage.persistent import (
+    PersistentState as CorePersistentState,
+)
 
 from superset.extensions.context import get_current_extension_context
-from superset.extensions.storage.persistent_state_dao import ExtensionStorageDAO
+from superset.extensions.storage.persistent_dao import ExtensionStorageDAO
 from superset.utils import json
 from superset.utils.decorators import transaction
 
@@ -95,6 +98,8 @@ class SharedPersistentStateAccessor:
 
         :param key: The key to store.
         :param value: The value to store (must be JSON-serializable).
+        :raises ExtensionStorageQuotaExceeded: if this write would exceed the
+            extension's configured persistent storage quota.
         """
         extension_id = _get_extension_id()
         ExtensionStorageDAO.set(extension_id, key, _encode(value), user_fk=None)
@@ -107,15 +112,15 @@ class SharedPersistentStateAccessor:
         :param key: The key to remove.
         """
         extension_id = _get_extension_id()
-        ExtensionStorageDAO.delete(extension_id, key, user_fk=None)
+        ExtensionStorageDAO.delete_by_key(extension_id, key, user_fk=None)
 
 
-class PersistentStateImpl:
+class PersistentState(CorePersistentState):
     """
     Host implementation for persistent state operations.
 
     This class provides the concrete implementation that is injected into
-    superset_core.extensions.storage.persistent_state.
+    superset_core.extensions.storage.persistent.
 
     By default, all operations are user-scoped (private to the current user).
     Use `shared` to access state that is visible to all users.
@@ -142,6 +147,8 @@ class PersistentStateImpl:
 
         :param key: The key to store.
         :param value: The value to store (must be JSON-serializable).
+        :raises ExtensionStorageQuotaExceeded: if this write would exceed the
+            extension's configured persistent storage quota.
         """
         extension_id = _get_extension_id()
         user_id = _get_current_user_id()
@@ -157,9 +164,9 @@ class PersistentStateImpl:
         """
         extension_id = _get_extension_id()
         user_id = _get_current_user_id()
-        ExtensionStorageDAO.delete(extension_id, key, user_fk=user_id)
+        ExtensionStorageDAO.delete_by_key(extension_id, key, user_fk=user_id)
 
     #: Shared (global) persistent state accessor.
     #: Data stored via this accessor is visible to all users of the extension.
     #: WARNING: Do not store user-specific or sensitive data here.
-    shared: SharedPersistentStateAccessor = SharedPersistentStateAccessor()
+    shared: ClassVar[SharedPersistentStateAccessor] = SharedPersistentStateAccessor()

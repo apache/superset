@@ -23,12 +23,16 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
+from flask_babel import Babel
 
-from superset.extensions.storage.persistent_state_dao import (
+from superset.extensions.storage.filters import ExtensionStorageFilter
+from superset.extensions.storage.persistent_dao import (
     _derive_key,
     _enc_type,
     ExtensionStorageDAO,
+    ExtensionStorageQuotaExceeded,
 )
+from superset.extensions.storage.persistent_model import ExtensionStorage
 
 
 @pytest.fixture
@@ -40,10 +44,22 @@ def app() -> Flask:
     return flask_app
 
 
+@pytest.fixture
+def app_with_quota(app: Flask) -> Flask:
+    """App fixture with a configured persistent storage quota (100 bytes).
+
+    Initializes Babel since exceeding the quota raises an exception whose
+    message is built with flask_babel's gettext.
+    """
+    app.config["EXTENSIONS_PERSISTENT_STORAGE"] = {"QUOTA_PER_EXTENSION": 100}
+    Babel(app)
+    return app
+
+
 # ── get / get_value ───────────────────────────────────────────────────────────
 
 
-@patch("superset.extensions.storage.persistent_state_dao.db")
+@patch("superset.extensions.storage.persistent_dao.db")
 def test_dao_get_returns_none_when_not_found(mock_db: MagicMock, app: Flask) -> None:
     """get() returns None when no entry exists for the given scope."""
     mock_db.session.query.return_value.filter.return_value.first.return_value = None
@@ -54,7 +70,7 @@ def test_dao_get_returns_none_when_not_found(mock_db: MagicMock, app: Flask) -> 
     assert result is None
 
 
-@patch("superset.extensions.storage.persistent_state_dao.db")
+@patch("superset.extensions.storage.persistent_dao.db")
 def test_dao_get_value_returns_raw_bytes_for_unencrypted(
     mock_db: MagicMock, app: Flask
 ) -> None:
@@ -70,7 +86,7 @@ def test_dao_get_value_returns_raw_bytes_for_unencrypted(
     assert result == b'{"foo": "bar"}'
 
 
-@patch("superset.extensions.storage.persistent_state_dao.db")
+@patch("superset.extensions.storage.persistent_dao.db")
 def test_dao_get_value_returns_none_when_not_found(
     mock_db: MagicMock, app: Flask
 ) -> None:
@@ -83,8 +99,8 @@ def test_dao_get_value_returns_none_when_not_found(
     assert result is None
 
 
-@patch("superset.extensions.storage.persistent_state_dao._enc_type")
-@patch("superset.extensions.storage.persistent_state_dao.db")
+@patch("superset.extensions.storage.persistent_dao._enc_type")
+@patch("superset.extensions.storage.persistent_dao.db")
 def test_dao_get_value_decrypts_encrypted_entry(
     mock_db: MagicMock, mock_enc_type: MagicMock, app: Flask
 ) -> None:
@@ -108,8 +124,8 @@ def test_dao_get_value_decrypts_encrypted_entry(
     )
 
 
-@patch("superset.extensions.storage.persistent_state_dao._enc_type")
-@patch("superset.extensions.storage.persistent_state_dao.db")
+@patch("superset.extensions.storage.persistent_dao._enc_type")
+@patch("superset.extensions.storage.persistent_dao.db")
 def test_dao_get_value_returns_none_on_decryption_failure(
     mock_db: MagicMock, mock_enc_type: MagicMock, app: Flask
 ) -> None:
@@ -132,7 +148,7 @@ def test_dao_get_value_returns_none_on_decryption_failure(
 # ── set (upsert) ──────────────────────────────────────────────────────────────
 
 
-@patch("superset.extensions.storage.persistent_state_dao.db")
+@patch("superset.extensions.storage.persistent_dao.db")
 def test_dao_set_creates_new_entry_when_absent(mock_db: MagicMock, app: Flask) -> None:
     """set() adds a new entry when no existing entry is found."""
     mock_db.session.query.return_value.filter.return_value.first.return_value = None
@@ -144,7 +160,7 @@ def test_dao_set_creates_new_entry_when_absent(mock_db: MagicMock, app: Flask) -
     mock_db.session.flush.assert_called_once()
 
 
-@patch("superset.extensions.storage.persistent_state_dao.db")
+@patch("superset.extensions.storage.persistent_dao.db")
 def test_dao_set_updates_existing_entry(mock_db: MagicMock, app: Flask) -> None:
     """set() updates in-place when an entry already exists (no duplicate row)."""
     existing = MagicMock()
@@ -158,8 +174,8 @@ def test_dao_set_updates_existing_entry(mock_db: MagicMock, app: Flask) -> None:
     mock_db.session.flush.assert_called_once()
 
 
-@patch("superset.extensions.storage.persistent_state_dao._enc_type")
-@patch("superset.extensions.storage.persistent_state_dao.db")
+@patch("superset.extensions.storage.persistent_dao._enc_type")
+@patch("superset.extensions.storage.persistent_dao.db")
 def test_dao_set_encrypts_value_when_requested(
     mock_db: MagicMock, mock_enc_type: MagicMock, app: Flask
 ) -> None:
@@ -181,34 +197,119 @@ def test_dao_set_encrypts_value_when_requested(
     assert added_entry.is_encrypted is True
 
 
+# ── quota ─────────────────────────────────────────────────────────────────────
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_allows_write_when_no_quota_configured(
+    mock_db: MagicMock, app: Flask
+) -> None:
+    """set() skips the quota check entirely when no quota is configured."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+    with app.app_context():
+        ExtensionStorageDAO.set("my-ext", "key", b'{"value": 1}', user_fk=1)
+
+    # scalar() is only called by the quota-usage query; it must not run.
+    mock_db.session.query.return_value.filter.return_value.scalar.assert_not_called()
+    mock_db.session.add.assert_called_once()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_allows_write_under_quota(
+    mock_db: MagicMock, app_with_quota: Flask
+) -> None:
+    """set() succeeds when current usage plus the new value stays within quota."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+    mock_db.session.query.return_value.filter.return_value.scalar.return_value = 50
+
+    with app_with_quota.app_context():
+        ExtensionStorageDAO.set("my-ext", "key", b"x" * 10, user_fk=1)
+
+    mock_db.session.add.assert_called_once()
+    mock_db.session.flush.assert_called_once()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_rejects_write_over_quota(
+    mock_db: MagicMock, app_with_quota: Flask
+) -> None:
+    """set() raises ExtensionStorageQuotaExceeded and does not write when over quota."""
+    mock_db.session.query.return_value.filter.return_value.first.return_value = None
+    mock_db.session.query.return_value.filter.return_value.scalar.return_value = 95
+
+    with app_with_quota.app_context(), pytest.raises(ExtensionStorageQuotaExceeded):
+        ExtensionStorageDAO.set("my-ext", "key", b"x" * 10, user_fk=1)
+
+    mock_db.session.add.assert_not_called()
+    mock_db.session.flush.assert_not_called()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_overwrite_does_not_double_count_existing_row(
+    mock_db: MagicMock, app_with_quota: Flask
+) -> None:
+    """Overwriting a key nets out its own existing size against quota usage."""
+    existing = MagicMock()
+    existing.value = b"x" * 20
+    mock_db.session.query.return_value.filter.return_value.first.return_value = existing
+    # Usage already includes the 20 bytes this row occupies.
+    mock_db.session.query.return_value.filter.return_value.scalar.return_value = 95
+
+    with app_with_quota.app_context():
+        # Same-size replacement: 95 - 20 + 20 = 95 <= 100, must not raise even
+        # though total usage (95) is already close to the 100-byte quota.
+        ExtensionStorageDAO.set("my-ext", "key", b"x" * 20, user_fk=1)
+
+    assert existing.value == b"x" * 20
+    mock_db.session.flush.assert_called_once()
+
+
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_set_overwrite_still_rejected_when_growth_exceeds_quota(
+    mock_db: MagicMock, app_with_quota: Flask
+) -> None:
+    """Overwriting with a larger value is rejected if the *net* growth exceeds quota."""
+    existing = MagicMock()
+    existing.value = b"x" * 20
+    mock_db.session.query.return_value.filter.return_value.first.return_value = existing
+    mock_db.session.query.return_value.filter.return_value.scalar.return_value = 95
+
+    with app_with_quota.app_context(), pytest.raises(ExtensionStorageQuotaExceeded):
+        # 95 - 20 + 30 = 105 > 100
+        ExtensionStorageDAO.set("my-ext", "key", b"x" * 30, user_fk=1)
+
+    assert existing.value == b"x" * 20
+
+
 # ── delete ────────────────────────────────────────────────────────────────────
 
 
-@patch("superset.extensions.storage.persistent_state_dao.db")
-def test_dao_delete_returns_true_when_entry_exists(
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_delete_by_key_returns_true_when_entry_exists(
     mock_db: MagicMock, app: Flask
 ) -> None:
-    """delete() returns True and removes the row when the entry is found."""
+    """delete_by_key() returns True and removes the row when the entry is found."""
     entry = MagicMock()
     mock_db.session.query.return_value.filter.return_value.first.return_value = entry
 
     with app.app_context():
-        result = ExtensionStorageDAO.delete("my-ext", "key", user_fk=1)
+        result = ExtensionStorageDAO.delete_by_key("my-ext", "key", user_fk=1)
 
     assert result is True
     mock_db.session.delete.assert_called_once_with(entry)
     mock_db.session.flush.assert_called_once()
 
 
-@patch("superset.extensions.storage.persistent_state_dao.db")
-def test_dao_delete_returns_false_when_not_found(
+@patch("superset.extensions.storage.persistent_dao.db")
+def test_dao_delete_by_key_returns_false_when_not_found(
     mock_db: MagicMock, app: Flask
 ) -> None:
-    """delete() returns False without touching the session when entry is absent."""
+    """delete_by_key() returns False without touching the session when absent."""
     mock_db.session.query.return_value.filter.return_value.first.return_value = None
 
     with app.app_context():
-        result = ExtensionStorageDAO.delete("my-ext", "key", user_fk=1)
+        result = ExtensionStorageDAO.delete_by_key("my-ext", "key", user_fk=1)
 
     assert result is False
     mock_db.session.delete.assert_not_called()
@@ -217,7 +318,7 @@ def test_dao_delete_returns_false_when_not_found(
 # ── scoping ───────────────────────────────────────────────────────────────────
 
 
-@patch("superset.extensions.storage.persistent_state_dao.db")
+@patch("superset.extensions.storage.persistent_dao.db")
 def test_dao_user_and_shared_scopes_issue_independent_queries(
     mock_db: MagicMock, app: Flask
 ) -> None:
@@ -231,6 +332,16 @@ def test_dao_user_and_shared_scopes_issue_independent_queries(
 
     # Each scope issues its own independent DB query
     assert first_call.call_count == 2
+
+
+def test_dao_is_wired_to_the_extension_storage_model_and_filter() -> None:
+    """ExtensionStorageDAO is a BaseDAO[ExtensionStorage] scoped by
+    ExtensionStorageFilter, so filter_by/find_all/query/create/update/delete
+    (inherited from BaseDAO) are automatically restricted to the calling
+    extension's own rows when used via superset_core.extensions.storage.dao.
+    """
+    assert ExtensionStorageDAO.model_cls is ExtensionStorage
+    assert ExtensionStorageDAO.base_filter is ExtensionStorageFilter
 
 
 # ── key derivation ────────────────────────────────────────────────────────────

@@ -19,14 +19,17 @@
 Host implementation for Ephemeral State (Tier 2 Storage).
 
 Provides the concrete cache-backed implementation that is injected into
-superset_core.extensions.storage.ephemeral_state at startup.
+superset_core.extensions.storage.ephemeral at startup.
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 from flask import g
+from superset_core.extensions.storage.ephemeral import (
+    EphemeralState as CoreEphemeralState,
+)
 
 from superset.extensions import cache_manager
 from superset.extensions.context import get_current_extension_context
@@ -110,12 +113,12 @@ class SharedEphemeralStateAccessor:
         cache_manager.extension_ephemeral_state_cache.delete(cache_key)
 
 
-class EphemeralStateImpl:
+class EphemeralState(CoreEphemeralState):
     """
     Host implementation for ephemeral state operations.
 
     This class provides the concrete implementation that is injected into
-    superset_core.extensions.storage.ephemeral_state.
+    superset_core.extensions.storage.ephemeral.
 
     By default, all operations are user-scoped (private to the current user).
     Use `shared` to access state that is visible to all users.
@@ -136,7 +139,7 @@ class EphemeralStateImpl:
         """
         extension_id = _get_extension_id()
         user_id = _get_current_user_id()
-        cache_key = EphemeralStateImpl._build_user_key(extension_id, user_id, key)
+        cache_key = EphemeralState._build_user_key(extension_id, user_id, key)
         return cache_manager.extension_ephemeral_state_cache.get(cache_key)
 
     @staticmethod
@@ -150,7 +153,7 @@ class EphemeralStateImpl:
         """
         extension_id = _get_extension_id()
         user_id = _get_current_user_id()
-        cache_key = EphemeralStateImpl._build_user_key(extension_id, user_id, key)
+        cache_key = EphemeralState._build_user_key(extension_id, user_id, key)
         cache_manager.extension_ephemeral_state_cache.set(cache_key, value, timeout=ttl)
 
     @staticmethod
@@ -162,10 +165,10 @@ class EphemeralStateImpl:
         """
         extension_id = _get_extension_id()
         user_id = _get_current_user_id()
-        cache_key = EphemeralStateImpl._build_user_key(extension_id, user_id, key)
+        cache_key = EphemeralState._build_user_key(extension_id, user_id, key)
         cache_manager.extension_ephemeral_state_cache.delete(cache_key)
 
     #: Shared (global) ephemeral state accessor.
     #: Data stored via this accessor is visible to all users of the extension.
     #: WARNING: Do not store user-specific or sensitive data here.
-    shared: SharedEphemeralStateAccessor = SharedEphemeralStateAccessor()
+    shared: ClassVar[SharedEphemeralStateAccessor] = SharedEphemeralStateAccessor()

@@ -22,10 +22,14 @@ import hmac
 import logging
 
 from flask import current_app
-from sqlalchemy import and_, LargeBinary
+from flask_babel import gettext as _
+from sqlalchemy import and_, func, LargeBinary
 
 from superset import db
-from superset.extensions.storage.persistent_state_model import ExtensionStorage
+from superset.daos.base import BaseDAO
+from superset.exceptions import SupersetGenericErrorException
+from superset.extensions.storage.filters import ExtensionStorageFilter
+from superset.extensions.storage.persistent_model import ExtensionStorage
 from superset.utils.encrypt import (
     DEFAULT_ENCRYPTION_ENGINE_NAME,
     EncryptedType,
@@ -33,6 +37,22 @@ from superset.utils.encrypt import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class ExtensionStorageQuotaExceeded(SupersetGenericErrorException):
+    """Raised when a write would exceed an extension's persistent storage quota."""
+
+    status = 413
+
+    def __init__(self, extension_id: str, quota: int) -> None:
+        super().__init__(
+            message=_(
+                "Extension '%(extension_id)s' has exceeded its persistent "
+                "storage quota of %(quota)d bytes.",
+                extension_id=extension_id,
+                quota=quota,
+            ),
+        )
 
 
 def _derive_key(secret: str, user_fk: int) -> str:
@@ -67,6 +87,36 @@ def _enc_type(user_fk: int | None) -> EncryptedType:
     )
 
 
+def _get_quota() -> int | None:
+    """Return the configured per-extension persistent storage quota in bytes.
+
+    Returns None when no quota is configured (unlimited).
+    """
+    config = current_app.config.get("EXTENSIONS_PERSISTENT_STORAGE", {})
+    return config.get("QUOTA_PER_EXTENSION")
+
+
+def _check_quota(extension_id: str, new_size: int, existing_size: int = 0) -> None:
+    """Raise if writing `new_size` bytes would push the extension over quota.
+
+    `existing_size` is the size of the row being replaced (0 for inserts),
+    subtracted from current usage so overwriting a key doesn't double-count
+    it against the quota it already occupies.
+    """
+    quota = _get_quota()
+    if quota is None:
+        return
+    current_usage = (
+        db.session.query(
+            func.coalesce(func.sum(func.length(ExtensionStorage.value)), 0)
+        )
+        .filter(ExtensionStorage.extension_id == extension_id)
+        .scalar()
+    )
+    if current_usage - existing_size + new_size > quota:
+        raise ExtensionStorageQuotaExceeded(extension_id, quota)
+
+
 def _scope_filter(
     extension_id: str,
     key: str,
@@ -94,16 +144,34 @@ def _scope_filter(
     return filters
 
 
-class ExtensionStorageDAO:
-    """Persistent key-value store for extensions.
+class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
+    """Persistent key-value store for extensions (Tier 3).
 
-    Provides scoped get/set/delete and list operations covering the three
-    storage scopes defined by the Tier 3 proposal:
+    Every query and mutation is scoped to the extension currently executing
+    (resolved from ambient extension context by `ExtensionStorageFilter`),
+    so an extension can never read or modify another extension's storage
+    through this DAO.
+
+    Two access shapes are supported:
+
+    * `get`/`set`/`delete` — single-key operations with explicit scope
+      discriminators (`user_fk`, `resource_type`, `resource_uuid`), used by
+      the ambient `persistent_state`/`ephemeral_state` accessors and the
+      REST API (both of which establish the ambient extension context
+      themselves before calling in).
+    * `find_all`/`find_one_or_none`/`filter_by`/`query`/`create`/`update`/
+      `delete` (inherited from `BaseDAO`) — general-purpose DAO access for
+      backend extension code that needs to enumerate or bulk-manage its own
+      rows, exposed to extensions via `superset_core.extensions.storage.dao`.
+
+    Scope is one of:
 
     * Global scope      — user_fk=None, resource_type=None
     * User scope        — user_fk=<id>, resource_type=None
     * Resource scope    — resource_type + resource_uuid set
     """
+
+    base_filter = ExtensionStorageFilter
 
     # ── Read ─────────────────────────────────────────────────────────────────
 
@@ -191,6 +259,8 @@ class ExtensionStorageDAO:
             )
             .first()
         )
+        existing_size = len(entry.value) if entry is not None else 0
+        _check_quota(extension_id, len(stored_value), existing_size)
         if entry is not None:
             entry.value = stored_value
             entry.value_type = value_type
@@ -217,14 +287,14 @@ class ExtensionStorageDAO:
     # ── Delete ────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def delete(
+    def delete_by_key(
         extension_id: str,
         key: str,
         user_fk: int | None = None,
         resource_type: str | None = None,
         resource_uuid: str | None = None,
     ) -> bool:
-        """Delete an entry. Returns True if a row was removed."""
+        """Delete a single entry by key. Returns True if a row was removed."""
         entry = (
             db.session.query(ExtensionStorage)
             .filter(
@@ -241,53 +311,3 @@ class ExtensionStorageDAO:
         db.session.delete(entry)
         db.session.flush()
         return True
-
-    # ── List ──────────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def list_global(
-        extension_id: str,
-        category: str | None = None,
-    ) -> list[ExtensionStorage]:
-        """List all global (user_fk=NULL, resource_type=NULL) entries."""
-        q = db.session.query(ExtensionStorage).filter(
-            ExtensionStorage.extension_id == extension_id,
-            ExtensionStorage.user_fk.is_(None),
-            ExtensionStorage.resource_type.is_(None),
-        )
-        if category is not None:
-            q = q.filter(ExtensionStorage.category == category)
-        return q.order_by(ExtensionStorage.key).all()
-
-    @staticmethod
-    def list_user(
-        extension_id: str,
-        user_fk: int,
-        category: str | None = None,
-    ) -> list[ExtensionStorage]:
-        """List all user-scoped entries (resource_type=NULL)."""
-        q = db.session.query(ExtensionStorage).filter(
-            ExtensionStorage.extension_id == extension_id,
-            ExtensionStorage.user_fk == user_fk,
-            ExtensionStorage.resource_type.is_(None),
-        )
-        if category is not None:
-            q = q.filter(ExtensionStorage.category == category)
-        return q.order_by(ExtensionStorage.key).all()
-
-    @staticmethod
-    def list_resource(
-        extension_id: str,
-        resource_type: str,
-        resource_uuid: str,
-        category: str | None = None,
-    ) -> list[ExtensionStorage]:
-        """List all entries linked to a specific resource."""
-        q = db.session.query(ExtensionStorage).filter(
-            ExtensionStorage.extension_id == extension_id,
-            ExtensionStorage.resource_type == resource_type,
-            ExtensionStorage.resource_uuid == resource_uuid,
-        )
-        if category is not None:
-            q = q.filter(ExtensionStorage.category == category)
-        return q.order_by(ExtensionStorage.key).all()

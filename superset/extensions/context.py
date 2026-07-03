@@ -40,17 +40,15 @@ class ExtensionStorage:
 
     @property
     def ephemeral(self) -> Any:
-        from superset.extensions.storage.ephemeral_state import EphemeralStateImpl
+        from superset.extensions.storage.ephemeral import EphemeralState
 
-        return EphemeralStateImpl
+        return EphemeralState
 
     @property
     def persistent(self) -> Any:
-        from superset.extensions.storage.persistent_state_impl import (
-            PersistentStateImpl,
-        )
+        from superset.extensions.storage.persistent import PersistentState
 
-        return PersistentStateImpl
+        return PersistentState
 
 
 class ConcreteExtensionContext:

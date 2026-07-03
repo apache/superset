@@ -252,6 +252,23 @@ ctx.storage.persistent.shared.set('global_config', {'version': 2})
 config = ctx.storage.persistent.shared.get('global_config')
 ```
 
+### Enumerating and Managing Storage from the Backend
+
+The `ctx.storage.persistent` accessor is for single-key reads and writes. Backend extension code that needs to enumerate its own rows in bulk — for example, a cleanup routine that removes storage linked to resources that no longer exist — can use `superset_core.extensions.storage.dao.ExtensionStorageDAO` instead:
+
+```python
+from superset_core.extensions.storage.dao import ExtensionStorageDAO
+
+# All entries this extension has linked to a given resource type
+entries = ExtensionStorageDAO.filter_by(resource_type="my-resource-type")
+
+# Bulk-delete rows for resources that no longer exist
+orphaned = [e for e in entries if e.resource_uuid not in my_extension_live_resource_ids()]
+ExtensionStorageDAO.delete(orphaned)
+```
+
+`ExtensionStorageDAO` is automatically scoped to the calling extension's own rows — `extension_id` is never a parameter you pass, so there is no way to reach another extension's storage through this API. It supports the standard DAO operations (`find_all`, `find_one_or_none`, `filter_by`, `query`, `create`, `update`, `delete`), and, unlike `ctx.storage.persistent`, gives direct access to each row's scope columns (`resource_type`, `resource_uuid`, `category`, `description`) for entries created with those set.
+
 ### When to Use Tier 3
 
 - User preferences and settings
@@ -263,6 +280,7 @@ config = ctx.storage.persistent.shared.get('global_config')
 
 - Higher latency than Tiers 1–2 (database round-trip per operation)
 - Subject to the 16 MB value size limit
+- Subject to the per-extension quota configured via `EXTENSIONS_PERSISTENT_STORAGE.QUOTA_PER_EXTENSION` (see [Quotas](#quotas))
 - Requires a database migration when first deployed
 
 ## Key Patterns
@@ -299,14 +317,29 @@ For development, the default `SupersetMetastoreCache` stores data in the metadat
 
 ### Tier 3: Persistent Storage
 
-Tier 3 values are stored in the `extension_storage` database table. The encryption infrastructure is in place (Fernet-based, keyed from `EXTENSION_STORAGE_ENCRYPTION_KEYS`), but values written through the standard storage API are stored unencrypted by default. Encryption is available at the DAO layer for backend extensions that call `ExtensionStorageDAO.set(..., is_encrypted=True)` directly.
+Tier 3 values are stored in the `extension_storage` database table. Values are stored unencrypted by default; encryption is opt-in per write, and is only available from the frontend SDK (the REST API accepts an `encrypt` flag, exposed via `PersistentSetOptions`):
+
+```typescript
+import { extensions } from '@apache-superset/core';
+
+const ctx = extensions.getContext();
+
+await ctx.storage.persistent.set('api_token', 'sk-...', { encrypt: true });
+const token = await ctx.storage.persistent.get('api_token');
+```
+
+Encryption reuses Superset's existing `EncryptedType` (from `sqlalchemy-utils`) rather than a separate mechanism — the same infrastructure used for database connection credentials. The key is not configured directly: user-scoped values are encrypted with a key derived per-user via HMAC-SHA256 from the deployment's `SECRET_KEY`, so ciphertext for one user cannot be decrypted as another's; shared/global values (written via `.shared`) use `SECRET_KEY` directly. The encryption engine (AES-CBC by default) can be changed for the whole deployment via the existing `SQLALCHEMY_ENCRYPTED_FIELD_ENGINE` config, the same setting that controls encryption for database credentials elsewhere in Superset — there is no separate key list or rotation mechanism specific to extension storage. When `SECRET_KEY` is rotated, extension storage rows are re-encrypted by the existing `SecretsMigrator` tooling alongside database credentials, with no extension-specific steps required.
+
+### Quotas
+
+Persistent storage is subject to a per-extension quota, configured in `superset_config.py`:
 
 ```python
-# Optional: override the encryption key(s) used for Tier 3 persistent storage.
-# Falls back to SECRET_KEY when not set.
-# Rotate keys by prepending the new key — all keys are tried on decryption.
-EXTENSION_STORAGE_ENCRYPTION_KEYS = [
-    "my-new-key-base64url-encoded",  # used for new writes
-    "my-old-key-base64url-encoded",  # kept for reading old values
-]
+EXTENSIONS_PERSISTENT_STORAGE = {
+    # Maximum total bytes an extension may store across all of its rows
+    # (global, every user's, and shared). Defaults to 100 MB.
+    "QUOTA_PER_EXTENSION": 100 * 1024 * 1024,
+}
 ```
+
+A write that would push the extension's total stored size over the configured quota is rejected — the frontend SDK's `set()` call rejects with an HTTP 413 response, and backend code calling `ctx.storage.persistent.set()` sees the corresponding exception raised. Overwriting an existing key nets out that key's own current size against usage first, so replacing a value with one of the same or smaller size never spuriously fails even when the extension is already near its quota.

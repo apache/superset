@@ -265,15 +265,21 @@ def inject_storage_implementations() -> None:
     Replace abstract storage classes in superset_core.extensions.storage with concrete
     implementations from Superset.
     """
-    import superset_core.extensions.storage.ephemeral_state as core_ephemeral_state
-    import superset_core.extensions.storage.persistent_state as core_persistent_state
+    import superset_core.extensions.storage.dao as core_storage_dao
+    import superset_core.extensions.storage.ephemeral as core_ephemeral_state
+    import superset_core.extensions.storage.models as core_storage_models
+    import superset_core.extensions.storage.persistent as core_persistent_state
 
-    from superset.extensions.storage.ephemeral_state import EphemeralStateImpl
-    from superset.extensions.storage.persistent_state_impl import PersistentStateImpl
+    from superset.extensions.storage.ephemeral import EphemeralState
+    from superset.extensions.storage.persistent import PersistentState
+    from superset.extensions.storage.persistent_dao import ExtensionStorageDAO
+    from superset.extensions.storage.persistent_model import ExtensionStorage
 
     # Replace abstract classes with concrete implementations
-    core_ephemeral_state.EphemeralState = EphemeralStateImpl  # type: ignore[misc,assignment]
-    core_persistent_state.PersistentState = PersistentStateImpl  # type: ignore[misc,assignment]
+    core_ephemeral_state.EphemeralState = EphemeralState  # type: ignore[misc,assignment]
+    core_persistent_state.PersistentState = PersistentState  # type: ignore[misc,assignment]
+    core_storage_models.ExtensionStorageEntry = ExtensionStorage  # type: ignore[misc,assignment]
+    core_storage_dao.ExtensionStorageDAO = ExtensionStorageDAO  # type: ignore[misc,assignment]
 
 
 def inject_extension_context() -> None:

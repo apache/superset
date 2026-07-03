@@ -25,9 +25,9 @@ import pytest
 from flask import Flask
 
 from superset.extensions.context import use_context
-from superset.extensions.storage.ephemeral_state import (
+from superset.extensions.storage.ephemeral import (
     _build_cache_key,
-    EphemeralStateImpl,
+    EphemeralState,
 )
 from tests.unit_tests.extensions.storage.conftest import (
     create_context,
@@ -42,33 +42,33 @@ def test_build_cache_key_joins_parts_with_separator():
 
 
 def test_ephemeral_state_raises_without_context(app: Flask) -> None:
-    """EphemeralStateImpl operations raise RuntimeError without extension context."""
+    """EphemeralState operations raise RuntimeError without extension context."""
     with app.app_context():
         set_user(1)
 
         with pytest.raises(RuntimeError, match="within an extension context"):
-            EphemeralStateImpl.get("key")
+            EphemeralState.get("key")
 
         with pytest.raises(RuntimeError, match="within an extension context"):
-            EphemeralStateImpl.set("key", "value")
+            EphemeralState.set("key", "value")
 
         with pytest.raises(RuntimeError, match="within an extension context"):
-            EphemeralStateImpl.remove("key")
+            EphemeralState.remove("key")
 
 
 def test_ephemeral_state_raises_without_user(app: Flask) -> None:
-    """EphemeralStateImpl operations raise RuntimeError without authenticated user."""
+    """EphemeralState operations raise RuntimeError without authenticated user."""
     ctx = create_context()
 
     with app.app_context(), use_context(ctx):
         # No user set on g
         with pytest.raises(RuntimeError, match="requires an authenticated user"):
-            EphemeralStateImpl.get("key")
+            EphemeralState.get("key")
 
 
-@patch("superset.extensions.storage.ephemeral_state.cache_manager")
+@patch("superset.extensions.storage.ephemeral.cache_manager")
 def test_ephemeral_state_get_builds_correct_key(mock_cm: MagicMock, app: Flask) -> None:
-    """EphemeralStateImpl.get() builds user-scoped key and calls cache.get()."""
+    """EphemeralState.get() builds user-scoped key and calls cache.get()."""
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
     mock_cache.get.return_value = {"data": "test"}
@@ -77,18 +77,18 @@ def test_ephemeral_state_get_builds_correct_key(mock_cm: MagicMock, app: Flask) 
 
     with app.app_context(), use_context(ctx):
         set_user(42)
-        result = EphemeralStateImpl.get("my-key")
+        result = EphemeralState.get("my-key")
 
     expected_key = "superset-ext:my-org.my-ext:user:42:my-key"
     mock_cache.get.assert_called_once_with(expected_key)
     assert result == {"data": "test"}
 
 
-@patch("superset.extensions.storage.ephemeral_state.cache_manager")
+@patch("superset.extensions.storage.ephemeral.cache_manager")
 def test_ephemeral_state_set_builds_correct_key_and_uses_ttl(
     mock_cm: MagicMock, app: Flask
 ) -> None:
-    """EphemeralStateImpl.set() builds user-scoped key and passes TTL to cache."""
+    """EphemeralState.set() builds user-scoped key and passes TTL to cache."""
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
 
@@ -96,17 +96,17 @@ def test_ephemeral_state_set_builds_correct_key_and_uses_ttl(
 
     with app.app_context(), use_context(ctx):
         set_user(42)
-        EphemeralStateImpl.set("my-key", {"value": 123}, ttl=600)
+        EphemeralState.set("my-key", {"value": 123}, ttl=600)
 
     expected_key = "superset-ext:my-org.my-ext:user:42:my-key"
     mock_cache.set.assert_called_once_with(expected_key, {"value": 123}, timeout=600)
 
 
-@patch("superset.extensions.storage.ephemeral_state.cache_manager")
+@patch("superset.extensions.storage.ephemeral.cache_manager")
 def test_ephemeral_state_set_uses_cache_default_timeout(
     mock_cm: MagicMock, app: Flask
 ) -> None:
-    """EphemeralStateImpl.set() passes timeout=None when ttl not specified,
+    """EphemeralState.set() passes timeout=None when ttl not specified,
     deferring to CACHE_DEFAULT_TIMEOUT in config."""
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
@@ -115,16 +115,16 @@ def test_ephemeral_state_set_uses_cache_default_timeout(
 
     with app.app_context(), use_context(ctx):
         set_user(1)
-        EphemeralStateImpl.set("key", "value")
+        EphemeralState.set("key", "value")
 
     mock_cache.set.assert_called_once()
     call_args = mock_cache.set.call_args
     assert call_args.kwargs["timeout"] is None
 
 
-@patch("superset.extensions.storage.ephemeral_state.cache_manager")
+@patch("superset.extensions.storage.ephemeral.cache_manager")
 def test_ephemeral_state_remove_deletes_key(mock_cm: MagicMock, app: Flask) -> None:
-    """EphemeralStateImpl.remove() calls cache.delete() with correct key."""
+    """EphemeralState.remove() calls cache.delete() with correct key."""
     mock_cache = MagicMock()
     mock_cm.extension_ephemeral_state_cache = mock_cache
 
@@ -132,13 +132,13 @@ def test_ephemeral_state_remove_deletes_key(mock_cm: MagicMock, app: Flask) -> N
 
     with app.app_context(), use_context(ctx):
         set_user(99)
-        EphemeralStateImpl.remove("to-delete")
+        EphemeralState.remove("to-delete")
 
     expected_key = "superset-ext:org.ext:user:99:to-delete"
     mock_cache.delete.assert_called_once_with(expected_key)
 
 
-@patch("superset.extensions.storage.ephemeral_state.cache_manager")
+@patch("superset.extensions.storage.ephemeral.cache_manager")
 def test_shared_accessor_builds_shared_key(mock_cm: MagicMock, app: Flask) -> None:
     """SharedEphemeralStateAccessor builds key without user scope."""
     mock_cache = MagicMock()
@@ -149,14 +149,14 @@ def test_shared_accessor_builds_shared_key(mock_cm: MagicMock, app: Flask) -> No
 
     with app.app_context(), use_context(ctx):
         set_user(1)  # User is set but should not appear in shared key
-        result = EphemeralStateImpl.shared.get("shared-key")
+        result = EphemeralState.shared.get("shared-key")
 
     expected_key = "superset-ext:org.ext:shared:shared-key"
     mock_cache.get.assert_called_once_with(expected_key)
     assert result == "shared-value"
 
 
-@patch("superset.extensions.storage.ephemeral_state.cache_manager")
+@patch("superset.extensions.storage.ephemeral.cache_manager")
 def test_shared_accessor_set_and_remove(mock_cm: MagicMock, app: Flask) -> None:
     """SharedEphemeralStateAccessor set() and remove() use shared key."""
     mock_cache = MagicMock()
@@ -166,15 +166,15 @@ def test_shared_accessor_set_and_remove(mock_cm: MagicMock, app: Flask) -> None:
 
     with app.app_context(), use_context(ctx):
         set_user(1)
-        EphemeralStateImpl.shared.set("key", {"shared": True}, ttl=300)
-        EphemeralStateImpl.shared.remove("key")
+        EphemeralState.shared.set("key", {"shared": True}, ttl=300)
+        EphemeralState.shared.remove("key")
 
     expected_key = "superset-ext:org.ext:shared:key"
     mock_cache.set.assert_called_once_with(expected_key, {"shared": True}, timeout=300)
     mock_cache.delete.assert_called_once_with(expected_key)
 
 
-@patch("superset.extensions.storage.ephemeral_state.cache_manager")
+@patch("superset.extensions.storage.ephemeral.cache_manager")
 def test_different_extensions_have_isolated_keys(
     mock_cm: MagicMock, app: Flask
 ) -> None:
@@ -190,17 +190,17 @@ def test_different_extensions_have_isolated_keys(
         set_user(1)
 
         with use_context(ctx1):
-            EphemeralStateImpl.get("same-key")
+            EphemeralState.get("same-key")
 
         with use_context(ctx2):
-            EphemeralStateImpl.get("same-key")
+            EphemeralState.get("same-key")
 
     calls = [call.args[0] for call in mock_cache.get.call_args_list]
     assert "superset-ext:org1.ext1:user:1:same-key" in calls
     assert "superset-ext:org2.ext2:user:1:same-key" in calls
 
 
-@patch("superset.extensions.storage.ephemeral_state.cache_manager")
+@patch("superset.extensions.storage.ephemeral.cache_manager")
 def test_different_users_have_isolated_keys(mock_cm: MagicMock, app: Flask) -> None:
     """Different users use different key prefixes for isolation."""
     mock_cache = MagicMock()
@@ -210,10 +210,10 @@ def test_different_users_have_isolated_keys(mock_cm: MagicMock, app: Flask) -> N
 
     with app.app_context(), use_context(ctx):
         set_user(1)
-        EphemeralStateImpl.get("key")
+        EphemeralState.get("key")
 
         set_user(2)
-        EphemeralStateImpl.get("key")
+        EphemeralState.get("key")
 
     calls = [call.args[0] for call in mock_cache.get.call_args_list]
     assert any(":user:1:" in k for k in calls)

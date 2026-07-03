@@ -31,6 +31,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import UUIDType
+from superset_core.extensions.storage.models import (
+    ExtensionStorageEntry as CoreExtensionStorageEntry,
+)
 
 from superset.models.helpers import AuditMixinNullable
 
@@ -38,7 +41,7 @@ from superset.models.helpers import AuditMixinNullable
 EXTENSION_STORAGE_MAX_SIZE = 2**24 - 1
 
 
-class ExtensionStorage(AuditMixinNullable, Model):
+class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
     """Generic persistent key-value storage for extensions (Tier 3).
 
     Each row is identified by (extension_id, user_fk, resource_type,

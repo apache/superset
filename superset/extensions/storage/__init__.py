@@ -22,7 +22,7 @@ This module provides concrete implementations that are injected into
 superset_core.extensions.storage at startup.
 """
 
-from superset.extensions.storage.ephemeral_state import (  # noqa: F401
-    EphemeralStateImpl,
+from superset.extensions.storage.ephemeral import (  # noqa: F401
+    EphemeralState,
     SharedEphemeralStateAccessor,
 )

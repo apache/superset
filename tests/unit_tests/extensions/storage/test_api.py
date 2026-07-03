@@ -22,14 +22,19 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from flask import Flask, g
+from flask_babel import Babel
 
 from superset.extensions.storage.api import (
     _build_cache_key,
     _build_storage_key,
     _get_extension_or_404,
     _parse_ttl,
+    ExtensionStorageRestApi,
     KEY_PREFIX,
     SEPARATOR,
+)
+from superset.extensions.storage.persistent_dao import (
+    ExtensionStorageQuotaExceeded,
 )
 
 # ── _build_cache_key ──────────────────────────────────────────────────────────
@@ -343,16 +348,49 @@ def test_persistent_set_encrypt_flag(
 def test_persistent_delete_calls_dao(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
-    """Persistent DELETE calls DAO.delete with correct scope."""
+    """Persistent DELETE calls DAO.delete_by_key with correct scope."""
     mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
 
     with app.app_context():
         g.user = MagicMock(id=42)
 
         extension_id = "acme.dashboard"
-        mock_dao.delete(extension_id, "prefs", user_fk=42)
+        mock_dao.delete_by_key(extension_id, "prefs", user_fk=42)
 
-        mock_dao.delete.assert_called_once_with("acme.dashboard", "prefs", user_fk=42)
+        mock_dao.delete_by_key.assert_called_once_with(
+            "acme.dashboard", "prefs", user_fk=42
+        )
+
+
+@patch("superset.db")
+@patch("superset.extensions.storage.api.ExtensionStorageDAO")
+@patch("superset.extensions.storage.api.get_extensions")
+def test_persistent_set_returns_413_on_quota_exceeded(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
+) -> None:
+    """Persistent PUT returns a 413 response when the DAO raises quota-exceeded."""
+    Babel(app)
+    # Bypass @protect()'s auth checks via its public-resource short-circuit,
+    # so this test exercises route logic (the quota except-branch) without
+    # standing up the full Flask-AppBuilder security stack.
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    mock_dao.set.side_effect = ExtensionStorageQuotaExceeded("acme.dashboard", 100)
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/persistent/prefs",
+        method="PUT",
+        json={"value": {"theme": "dark"}},
+    ):
+        g.user = MagicMock(id=42)
+
+        body, status_code = ExtensionStorageRestApi().set_persistent(
+            "acme", "dashboard", "prefs"
+        )
+
+        assert status_code == 413
+        assert "quota" in body.get_json()["message"].lower()
 
 
 # ── Extension ID reconstruction ──────────────────────────────────────────────

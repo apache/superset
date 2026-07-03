@@ -40,6 +40,11 @@ All tiers follow the same API pattern:
     - User-scoped by default (private to current user)
     - `shared` accessor for data visible to all users
 
+For backend code that needs to query, enumerate, or bulk-manage its own
+Tier 3 rows rather than get/set a single key at a time (for example, a
+cleanup job pruning rows linked to resources that no longer exist), see
+`superset_core.extensions.storage.dao.ExtensionStorageDAO`.
+
 Usage:
     from superset_core.extensions.context import get_context
 
@@ -56,9 +61,16 @@ Usage:
     # Tier 3: Persistent state
     ctx.storage.persistent.get('config')
     ctx.storage.persistent.set('config', {'version': 2})
+
+    # Tier 3: DAO-style access to this extension's own rows
+    from superset_core.extensions.storage.dao import ExtensionStorageDAO
+
+    entries = ExtensionStorageDAO.filter_by(resource_type='my-resource-type')
 """
 
 from superset_core.extensions.storage import (
-    ephemeral_state,  # noqa: F401
-    persistent_state,  # noqa: F401
+    dao,  # noqa: F401
+    ephemeral,  # noqa: F401
+    models,  # noqa: F401
+    persistent,  # noqa: F401
 )

@@ -34,7 +34,10 @@ from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
 from superset.extensions import cache_manager
-from superset.extensions.storage.persistent_state_dao import ExtensionStorageDAO
+from superset.extensions.storage.persistent_dao import (
+    ExtensionStorageDAO,
+    ExtensionStorageQuotaExceeded,
+)
 from superset.extensions.types import LoadedExtension
 from superset.extensions.utils import get_extensions
 from superset.utils import json
@@ -417,6 +420,8 @@ class ExtensionStorageRestApi(BaseApi):
               description: Invalid request body
             404:
               description: Extension not found
+            413:
+              description: Extension persistent storage quota exceeded
         """
         extension_id = f"{publisher}.{name}"
         extension = _get_extension_or_404(extension_id)
@@ -431,9 +436,12 @@ class ExtensionStorageRestApi(BaseApi):
         shared = request.args.get("shared", "false").lower() == "true"
         user_fk = None if shared else g.user.id
         value_bytes = json.dumps(body["value"]).encode()
-        ExtensionStorageDAO.set(
-            extension_id, key, value_bytes, user_fk=user_fk, is_encrypted=encrypt
-        )
+        try:
+            ExtensionStorageDAO.set(
+                extension_id, key, value_bytes, user_fk=user_fk, is_encrypted=encrypt
+            )
+        except ExtensionStorageQuotaExceeded as ex:
+            return self.response(ex.status, message=ex.message)
 
         return self.response(200, message="Value stored successfully")
 
@@ -486,6 +494,6 @@ class ExtensionStorageRestApi(BaseApi):
 
         shared = request.args.get("shared", "false").lower() == "true"
         user_fk = None if shared else g.user.id
-        ExtensionStorageDAO.delete(extension_id, key, user_fk=user_fk)
+        ExtensionStorageDAO.delete_by_key(extension_id, key, user_fk=user_fk)
 
         return self.response(200, message="Value deleted successfully")
