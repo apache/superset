@@ -632,8 +632,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         : [];
     const showAggregateTotals = Boolean(
       metrics?.length &&
-        formData.show_totals &&
-        queryMode === QueryMode.Aggregate,
+      formData.show_totals &&
+      queryMode === QueryMode.Aggregate,
     );
 
     if (showAggregateTotals || rawSummaryColumns.length > 0) {
