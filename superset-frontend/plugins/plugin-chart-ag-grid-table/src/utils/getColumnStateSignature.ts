@@ -46,7 +46,13 @@ export default function getColumnStateSignature(
       colId: col.colId,
       // Normalize falsy "None" (null/undefined) to an explicit sentinel so it
       // is preserved and distinguishable from a real aggregation function.
-      aggFunc: col.aggFunc ?? null,
+      // Function-valued aggregators get a fixed marker so the signature does
+      // not depend on JSON.stringify silently dropping function values; AG
+      // Grid requires registered string names for aggFuncs in serialized
+      // column state, so this plugin only ever persists strings and the
+      // marker is purely defensive.
+      aggFunc:
+        typeof col.aggFunc === 'function' ? 'custom' : (col.aggFunc ?? null),
     })),
     sorts: sortModel,
     filters: filterModel,

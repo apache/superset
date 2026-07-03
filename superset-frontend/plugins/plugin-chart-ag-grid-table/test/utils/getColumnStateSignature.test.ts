@@ -66,3 +66,20 @@ test('signature is stable when nothing changes', () => {
   const b = getColumnStateSignature([...columnState], [], filterModel);
   expect(a).toEqual(b);
 });
+
+test('a function aggFunc is distinguishable from "None"', () => {
+  // Pins the defensive marker for function-valued aggregators: the signature
+  // must stay distinct from "None" without relying on JSON.stringify
+  // silently dropping function values.
+  const customAgg = getColumnStateSignature(
+    [{ colId: 'sales', aggFunc: () => 42 }],
+    [],
+    filterModel,
+  );
+  const none = getColumnStateSignature(
+    [{ colId: 'sales', aggFunc: null }],
+    [],
+    filterModel,
+  );
+  expect(customAgg).not.toEqual(none);
+});
