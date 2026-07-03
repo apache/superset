@@ -109,5 +109,3 @@ export function addColorToFeatures(
       return data;
   }
 }
-
-export default addColorToFeatures;

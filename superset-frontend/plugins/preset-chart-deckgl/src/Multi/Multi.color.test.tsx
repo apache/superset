@@ -31,7 +31,11 @@ interface CapturedDataPoint {
 }
 interface CapturedLayer {
   id?: string;
-  props: { data: CapturedDataPoint[] };
+  props: {
+    data: CapturedDataPoint[];
+    getSourceColor?: (d: Record<string, unknown>) => number[];
+    getTargetColor?: (d: Record<string, unknown>) => number[];
+  };
 }
 const mockLayerCapture: { layers: CapturedLayer[] } = { layers: [] };
 jest.mock('../DeckGLContainer', () => ({
@@ -127,9 +131,7 @@ beforeEach(() => {
   });
 });
 
-test('applies categorical scatterplot colors to sublayers in the multi chart', async () => {
-  renderWithProviders(<DeckMulti {...props} />);
-
+const expectDistinctCategoricalColors = async () => {
   await waitFor(() => {
     expect(mockLayerCapture.layers.length).toBeGreaterThan(0);
   });
@@ -152,4 +154,92 @@ test('applies categorical scatterplot colors to sublayers in the multi chart', a
   // the fix, categorical colors were dropped in the Multiple Layers chart and
   // every point fell back to the same default color.
   expect(data[0].color).not.toEqual(data[1].color);
+};
+
+test('applies categorical scatterplot colors to sublayers in the multi chart', async () => {
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await expectDistinctCategoricalColors();
+});
+
+test('applies categorical colors to scatter subslices saved before the color_scheme_type control existed', async () => {
+  // Charts saved before the color_scheme_type control existed lack the key in
+  // stored params; the scatter default (categorical_palette) must be resolved
+  // so they keep per-category colors.
+  const legacyProps = {
+    ...props,
+    payload: {
+      ...props.payload,
+      data: {
+        ...props.payload.data,
+        slices: [
+          {
+            slice_id: SCATTER_SLICE_ID,
+            form_data: {
+              viz_type: 'deck_scatter',
+              datasource: '1__table',
+              slice_id: SCATTER_SLICE_ID,
+              color_scheme: 'supersetColors',
+              dimension: 'category',
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...legacyProps} />);
+
+  await expectDistinctCategoricalColors();
+});
+
+test('keeps fixed source and target colors for arc subslices saved before the color_scheme_type control existed', async () => {
+  // Legacy arcs default to fixed_color, where the layer reads the source and
+  // target pickers directly; resolving the default must not stamp a single
+  // per-feature color over the target color.
+  const ARC_SLICE_ID = 2;
+  const arcProps = {
+    ...props,
+    formData: { ...props.formData, deck_slices: [ARC_SLICE_ID] },
+    payload: {
+      ...props.payload,
+      data: {
+        ...props.payload.data,
+        slices: [
+          {
+            slice_id: ARC_SLICE_ID,
+            form_data: {
+              viz_type: 'deck_arc',
+              datasource: '1__table',
+              slice_id: ARC_SLICE_ID,
+              color_picker: { r: 10, g: 20, b: 30, a: 1 },
+              target_color_picker: { r: 40, g: 50, b: 60, a: 1 },
+            },
+          },
+        ],
+        features: { deck_arc: [] },
+      },
+    },
+  };
+  (SupersetClient.get as jest.Mock).mockResolvedValue({
+    json: {
+      data: {
+        features: [{ sourcePosition: [0, 0], targetPosition: [1, 1] }],
+      },
+    },
+  });
+
+  renderWithProviders(<DeckMulti {...arcProps} />);
+
+  await waitFor(() => {
+    expect(mockLayerCapture.layers.length).toBeGreaterThan(0);
+  });
+
+  const arcLayer = mockLayerCapture.layers.find(
+    (layer: CapturedLayer) => layer?.id === `path-layer-${ARC_SLICE_ID}`,
+  );
+  expect(arcLayer).toBeDefined();
+
+  expect(arcLayer?.props.getSourceColor?.({})).toEqual([10, 20, 30, 255]);
+  expect(arcLayer?.props.getTargetColor?.({})).toEqual([40, 50, 60, 255]);
 });
