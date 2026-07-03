@@ -160,7 +160,7 @@ def _is_missing(entry: polib.POEntry) -> bool:
 # meaningless (proper nouns, example values). apply_do_not_translate.py stamps
 # these msgids in messages.pot with a `#. MACHINE_READ-DO_NOT_TRANSLATE`
 # extracted comment that propagates to every catalog on `pybabel update`.
-DO_NOT_TRANSLATE_REGISTRY = TRANSLATIONS_DIR / "do-not-translate.txt"
+DO_NOT_TRANSLATE_REGISTRY: Path = TRANSLATIONS_DIR / "do-not-translate.txt"
 
 
 def _load_do_not_translate(path: Path = DO_NOT_TRANSLATE_REGISTRY) -> frozenset[str]:
