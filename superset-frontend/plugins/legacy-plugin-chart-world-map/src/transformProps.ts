@@ -17,7 +17,13 @@
  * under the License.
  */
 import tinycolor from 'tinycolor2';
-import { ChartProps, getValueFormatter } from '@superset-ui/core';
+import {
+  ChartProps,
+  getColumnLabel,
+  getMetricLabel,
+  getValueFormatter,
+} from '@superset-ui/core';
+import transformData from './transformData';
 
 export default function transformProps(chartProps: ChartProps) {
   const {
@@ -43,6 +49,7 @@ export default function transformProps(chartProps: ChartProps) {
     colorScheme,
     sliceId,
     metric,
+    secondaryMetric,
     yAxisFormat,
     currencyFormat,
   } = formData;
@@ -52,7 +59,25 @@ export default function transformProps(chartProps: ChartProps) {
     columnFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const { data, detected_currency: detectedCurrency } = queriesData[0];
+  const { data: rawData, detected_currency: detectedCurrency } = queriesData[0];
+
+  // The legacy explore_json endpoint joined country metadata server-side;
+  // rows carrying both the entity and metric labels are v1 records that
+  // still need that join, anything else is a pre-shaped legacy payload.
+  const entityLabel = getColumnLabel(entity);
+  const metricLabel = getMetricLabel(metric);
+  const data =
+    Array.isArray(rawData) &&
+    rawData.length > 0 &&
+    entityLabel in rawData[0] &&
+    metricLabel in rawData[0]
+      ? transformData(rawData, {
+          entity,
+          metric,
+          secondaryMetric,
+          countryFieldtype,
+        })
+      : rawData;
 
   const formatter = getValueFormatter(
     metric,
