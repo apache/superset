@@ -412,7 +412,7 @@ const DeckMulti = (props: DeckMultiProps) => {
 
   const fetchSubslices = useCallback(
     (sliceIds: number[]) =>
-      Promise.all(
+      Promise.all<({ slice_id: number } & JsonObject) | null>(
         sliceIds.map(sliceId =>
           SupersetClient.get({ endpoint: `/api/v1/chart/${sliceId}` })
             .then(({ json }) => {
