@@ -26,26 +26,27 @@ import {
 } from '@superset-ui/core';
 
 /**
- * Mirrors the legacy PartitionViz.query_obj: a query grouped by all the
- * hierarchy levels, timeseries only when the time-series option needs
- * per-timestamp data, with the legacy sort-metric handling.
+ * Mirrors the legacy PartitionViz.query_obj (via NVD3TimeSeriesViz): a
+ * query grouped by all the hierarchy levels, timeseries only when the
+ * time-series option needs per-timestamp data, ordered by the sort
+ * metric (falling back to the first selected metric) ascending unless
+ * order_desc.
  */
 export default function buildQuery(formData: QueryFormData) {
   const { time_series_option, timeseries_limit_metric, order_desc } = formData;
   return buildQueryContext(formData, baseQueryObject => {
     let metrics: QueryFormMetric[] = ensureIsArray(baseQueryObject.metrics);
     const orderby: QueryFormOrderBy[] = [];
-    const sortByMetric = ensureIsArray(
-      timeseries_limit_metric as QueryFormMetric | QueryFormMetric[],
-    )[0];
+    const sortByMetric =
+      ensureIsArray(
+        timeseries_limit_metric as QueryFormMetric | QueryFormMetric[],
+      )[0] ?? metrics[0];
     if (sortByMetric) {
       const sortByLabel = getMetricLabel(sortByMetric);
       if (!metrics.some(metric => getMetricLabel(metric) === sortByLabel)) {
         metrics = [...metrics, sortByMetric];
       }
-      if (order_desc) {
-        orderby.push([sortByMetric, !order_desc]);
-      }
+      orderby.push([sortByMetric, !order_desc]);
     }
     return [
       {

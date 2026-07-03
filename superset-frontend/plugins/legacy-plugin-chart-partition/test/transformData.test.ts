@@ -137,6 +137,12 @@ test('normalizes each period when contribution is on', () => {
   expect(firstTime.children.map(child => child.val)).toEqual([0.5, 0.5]);
 });
 
+test('returns an empty hierarchy for empty results', () => {
+  expect(
+    transformData([], { ...base, timeSeriesOption: 'point_diff' }),
+  ).toEqual([]);
+});
+
 test('requires at least one groupby', () => {
   expect(() => transformData(records, { ...base, groupbyLabels: [] })).toThrow(
     'groupby',

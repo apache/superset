@@ -35,6 +35,15 @@ test('is not a timeseries query for the not-time option', () => {
   }).queries;
   expect(query.is_timeseries).toBe(false);
   expect(query.columns).toEqual(['gender', 'state']);
+  // defaults to ordering by the first metric ascending, like the legacy engine
+  expect(query.orderby).toEqual([['sum__num', true]]);
+});
+
+test('returns an empty hierarchy for empty results', () => {
+  // covered in transformData tests; ordering falls back even when
+  // order_desc flips the direction
+  const [query] = buildQuery({ ...formData, order_desc: true }).queries;
+  expect(query.orderby).toEqual([['sum__num', false]]);
 });
 
 test('is a timeseries query for time-based options', () => {

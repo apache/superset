@@ -280,7 +280,12 @@ function nestProcs(
             metric,
             ...groups.slice(0, level).map(label => row[label]),
           ]);
-          tuples.set(key, [...(tuples.get(key) ?? []), row]);
+          const bucket = tuples.get(key);
+          if (bucket) {
+            bucket.push(row);
+          } else {
+            tuples.set(key, [row]);
+          }
         });
         tuples.forEach((rows, key) => columns.set(key, rows));
       }
@@ -362,6 +367,9 @@ export default function transformData(
   } = options;
   if (groupbyLabels.length === 0) {
     throw new Error('Please choose at least one groupby');
+  }
+  if (records.length === 0) {
+    return []; // the legacy endpoint returned no data for an empty frame
   }
   if (timeSeriesOption === 'not_time' || timeSeriesOption === 'agg_sum') {
     return nestAggregates(records, groupbyLabels, metricLabels, 'sum');
