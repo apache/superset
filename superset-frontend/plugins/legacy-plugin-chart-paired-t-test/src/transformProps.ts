@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import {
+  ChartProps,
+  ensureIsArray,
+  getColumnLabel,
+  getMetricLabel,
+} from '@superset-ui/core';
+import transformData from './transformData';
 
 export default function transformProps(chartProps: ChartProps) {
   const { formData, queriesData } = chartProps;
@@ -28,15 +34,24 @@ export default function transformProps(chartProps: ChartProps) {
     significanceLevel,
   } = formData;
 
+  const metricLabels = ensureIsArray(metrics).map(getMetricLabel);
+  const rawData = queriesData[0].data;
+  // The legacy explore_json endpoint pivoted the timeseries server-side;
+  // v1 responses arrive as flat records and are reshaped here.
+  const data = Array.isArray(rawData)
+    ? transformData(
+        rawData,
+        ensureIsArray(groupby).map(getColumnLabel),
+        metricLabels,
+      )
+    : rawData;
+
   return {
     alpha: significanceLevel,
-    data: queriesData[0].data,
+    data,
     groups: groupby,
     liftValPrec: parseInt(liftvaluePrecision, 10),
-    metrics: (metrics as (string | { label: string })[]).map(
-      (metric: string | { label: string }) =>
-        typeof metric === 'string' ? metric : metric.label,
-    ),
+    metrics: metricLabels,
     pValPrec: parseInt(pvaluePrecision, 10),
   };
 }
