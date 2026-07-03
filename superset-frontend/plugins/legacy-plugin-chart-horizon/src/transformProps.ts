@@ -45,7 +45,9 @@ export default function transformProps(chartProps: ChartProps) {
         ensureIsArray(metrics as QueryFormMetric[]).map(getMetricLabel),
         Boolean(contribution),
       )
-    : rawData;
+    : // legacy pre-shaped payloads pass through; nullish becomes an
+      // empty series list so the renderer's data.map is safe
+      (rawData ?? []);
 
   // Only include colorScale if defined, otherwise let defaultProps apply
   return {
