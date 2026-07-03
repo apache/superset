@@ -37,23 +37,31 @@ import sys
 from pathlib import Path
 
 # The standardized extracted-comment marker. Kept in sync with backfill_po.py.
-MARKER = "MACHINE_READ-DO_NOT_TRANSLATE"
-_MARKER_LINE = f"#. {MARKER}"
+MARKER: str = "MACHINE_READ-DO_NOT_TRANSLATE"
+_MARKER_LINE: str = f"#. {MARKER}"
 
-TRANSLATIONS_DIR = Path(__file__).parent.parent.parent / "superset" / "translations"
-DEFAULT_POT = TRANSLATIONS_DIR / "messages.pot"
-REGISTRY = TRANSLATIONS_DIR / "do-not-translate.txt"
+TRANSLATIONS_DIR: Path = (
+    Path(__file__).parent.parent.parent / "superset" / "translations"
+)
+DEFAULT_POT: Path = TRANSLATIONS_DIR / "messages.pot"
+REGISTRY: Path = TRANSLATIONS_DIR / "do-not-translate.txt"
 
 
 def load_registry(path: Path = REGISTRY) -> set[str]:
-    """Return the set of do-not-translate msgids (skips comments/blank lines)."""
+    """Return the set of do-not-translate msgids (skips comments/blank lines).
+
+    Each line is stripped before the blank/comment check, so trailing
+    whitespace or an indented comment never yields a msgid that fails to match
+    the .pot.
+    """
     if not path.exists():
         return set()
-    return {
-        line
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line and not line.startswith("#")
-    }
+    entries: set[str] = set()
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if line and not line.startswith("#"):
+            entries.add(line)
+    return entries
 
 
 def _escape(msgid: str) -> str:
@@ -90,9 +98,23 @@ def main() -> None:
     if not pot_path.exists():
         print(f"POT file not found: {pot_path}", file=sys.stderr)
         sys.exit(1)
+    # Fail fast if the registry file is absent: babel_update.sh depends on this
+    # step to stamp the .pot, and continuing would silently publish catalogs
+    # without any do-not-translate markers. An existing-but-empty registry is a
+    # valid state (nothing to mark), so only a missing file is an error.
+    if not REGISTRY.exists():
+        print(
+            f"do-not-translate registry not found at {REGISTRY}; refusing to "
+            "produce unmarked translation artifacts.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     registry = load_registry()
     if not registry:
-        print(f"No do-not-translate registry found at {REGISTRY}", file=sys.stderr)
+        print(
+            f"do-not-translate registry {REGISTRY} is empty; nothing to mark.",
+            file=sys.stderr,
+        )
         return
     changed = apply_markers(pot_path, registry)
     print(
