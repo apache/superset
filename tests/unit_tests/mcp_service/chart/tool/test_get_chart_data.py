@@ -33,6 +33,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.chart.tool.get_chart_data import (
+    _coerce_row_limit,
     _GENERIC_TYPE_MAP,
     _MAX_RECOMMENDATIONS,
     _query_from_form_data,
@@ -1262,9 +1263,10 @@ class TestChartLookupEagerLoading:
             )
             assert len(query_options) == 1
             load_path = _extract_metrics_load_path(query_options[0])
-            assert load_path == ["table", "metrics"], (
-                f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
-            )
+            assert load_path == [
+                "table",
+                "metrics",
+            ], f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
 
     @pytest.mark.asyncio
     async def test_uuid_lookup_passes_metrics_eager_load(self, mcp_server, mock_auth):
@@ -1293,9 +1295,10 @@ class TestChartLookupEagerLoading:
                 "UUID chart lookup must pass query_options for eager-loading."
             )
             load_path = _extract_metrics_load_path(query_options[0])
-            assert load_path == ["table", "metrics"], (
-                f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
-            )
+            assert load_path == [
+                "table",
+                "metrics",
+            ], f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
 
     @pytest.mark.asyncio
     async def test_json_format_also_eager_loads_metrics(self, mcp_server, mock_auth):
@@ -1452,3 +1455,19 @@ def test_bool_isinstance_check_before_int():
     elif all(isinstance(v, (int, float)) for v in sample_values):
         data_type = "numeric"
     assert data_type == "boolean"
+
+
+@pytest.mark.parametrize(
+    "value,default,expected",
+    [
+        (100, 500, 100),  # int passthrough
+        ("250", 500, 250),  # numeric string from chart.params
+        (None, 500, 500),  # missing -> default
+        ("", 500, 500),  # empty string -> default
+        ("abc", 500, 500),  # non-numeric -> default
+        (0, 500, 0),  # explicit zero preserved
+    ],
+)
+def test_coerce_row_limit(value: Any, default: int, expected: int) -> None:
+    """_coerce_row_limit tolerates str/None row_limits from chart.params."""
+    assert _coerce_row_limit(value, default) == expected

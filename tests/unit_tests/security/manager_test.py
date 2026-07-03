@@ -2898,3 +2898,40 @@ def test_query_context_modified_orderby_non_bool_direction_blocked(
     query_context.queries = []
 
     assert query_context_modified(query_context)
+
+
+def test_validate_guest_token_resources_rejects_non_embedded_int_id(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A raw int dashboard id must reference an embedded dashboard, else a guest
+    token could be scoped to a non-embedded dashboard."""
+    from superset.commands.dashboard.embedded.exceptions import (
+        EmbeddedDashboardNotFoundError,
+    )
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    non_embedded = MagicMock()
+    non_embedded.embedded = []  # not embedded
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=non_embedded)
+
+    with pytest.raises(EmbeddedDashboardNotFoundError):
+        sm.validate_guest_token_resources(
+            [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+        )
+
+
+def test_validate_guest_token_resources_accepts_embedded_int_id(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """A raw int id for an embedded dashboard is accepted."""
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    embedded_dash = MagicMock()
+    embedded_dash.embedded = [MagicMock()]  # embedded
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=embedded_dash)
+
+    sm.validate_guest_token_resources(
+        [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+    )
