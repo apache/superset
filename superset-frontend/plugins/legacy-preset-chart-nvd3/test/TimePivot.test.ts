@@ -20,20 +20,18 @@ import { QueryFormData } from '@superset-ui/core';
 import buildQuery from '../src/TimePivot/buildQuery';
 import transformData, { rollback } from '../src/TimePivot/transformData';
 
-describe('TimePivot buildQuery', () => {
-  test('builds a timeseries query with the single metric', () => {
-    const formData: QueryFormData = {
-      datasource: '5__table',
-      granularity_sqla: 'ds',
-      time_range: 'Last quarter',
-      viz_type: 'time_pivot',
-      metric: 'sum__num',
-      freq: 'W-MON',
-    };
-    const [query] = buildQuery(formData).queries;
-    expect(query.metrics).toEqual(['sum__num']);
-    expect(query.is_timeseries).toBe(true);
-  });
+test('buildQuery builds a timeseries query with the single metric', () => {
+  const formData: QueryFormData = {
+    datasource: '5__table',
+    granularity_sqla: 'ds',
+    time_range: 'Last quarter',
+    viz_type: 'time_pivot',
+    metric: 'sum__num',
+    freq: 'W-MON',
+  };
+  const [query] = buildQuery(formData).queries;
+  expect(query.metrics).toEqual(['sum__num']);
+  expect(query.is_timeseries).toBe(true);
 });
 
 describe('TimePivot rollback', () => {
@@ -44,6 +42,7 @@ describe('TimePivot rollback', () => {
     ['W-SUN', Date.UTC(2024, 0, 7)],
     ['D', Date.UTC(2024, 0, 10)],
     ['AS', Date.UTC(2024, 0, 1)],
+    ['QS', Date.UTC(2024, 0, 1)],
     ['MS', Date.UTC(2024, 0, 1)],
   ])('rolls back to the %s period start', (freq, expected) => {
     expect(rollback(wed, freq as string)).toEqual(expected);

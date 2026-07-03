@@ -24,11 +24,11 @@ const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 /**
  * Rolls a timestamp back to the start of its period the way pandas
  * offset.rollback(normalize=True) does for the offset aliases the
- * frequency control offers (AS/A, MS/M, W and W-XXX, D, H, T/MIN).
+ * frequency control offers (AS/A, QS/Q, MS/M, W and W-XXX, D, H, T/MIN).
  * The multiplier prefix (e.g. 52W-MON) does not change the anchor.
  */
 export const rollback = (timestamp: number, freq: string): number => {
-  const match = /^\d*(AS|YS|A|Y|MS|M|W(?:-([A-Z]{3}))?|D|H|T|MIN)$/i.exec(
+  const match = /^\d*(AS|YS|A|Y|QS|Q|MS|M|W(?:-([A-Z]{3}))?|D|H|T|MIN)$/i.exec(
     (freq || 'W-MON').trim(),
   );
   const date = new Date(timestamp);
@@ -50,6 +50,21 @@ export const rollback = (timestamp: number, freq: string): number => {
     return midnight >= yearEnd
       ? yearEnd
       : Date.UTC(date.getUTCFullYear() - 1, 11, 31);
+  }
+  if (unit === 'QS') {
+    return Date.UTC(
+      date.getUTCFullYear(),
+      Math.floor(date.getUTCMonth() / 3) * 3,
+      1,
+    );
+  }
+  if (unit === 'Q') {
+    // most recent quarter end at or before the timestamp
+    const quarterEndMonth = Math.floor(date.getUTCMonth() / 3) * 3 + 3;
+    const quarterEnd = Date.UTC(date.getUTCFullYear(), quarterEndMonth, 0);
+    return midnight >= quarterEnd
+      ? quarterEnd
+      : Date.UTC(date.getUTCFullYear(), quarterEndMonth - 3, 0);
   }
   if (unit === 'MS') {
     return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1);
