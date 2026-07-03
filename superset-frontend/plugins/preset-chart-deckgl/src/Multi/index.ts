@@ -33,7 +33,6 @@ const metadata = new ChartMetadata({
   name: t('deck.gl Multiple Layers'),
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
   tags: [t('deckGL'), t('Multi-Layers')],
 });
 
@@ -41,6 +40,7 @@ export default class MultiChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./Multi'),
+      loadBuildQuery: () => import('./buildQuery'),
       controlPanel,
       metadata,
       transformProps,
