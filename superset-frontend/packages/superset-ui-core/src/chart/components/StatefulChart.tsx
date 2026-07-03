@@ -32,7 +32,6 @@ import type { HandlerFunction } from '../types/Base';
 import { Loading } from '../../components/Loading';
 import ChartClient from '../clients/ChartClient';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
-import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import SuperChart from './SuperChart';
 
@@ -245,9 +244,6 @@ export default function StatefulChart(props: StatefulChartProps) {
       }
       finalFormData.viz_type = vizType;
 
-      // Get chart metadata
-      const { useLegacyApi } = getChartMetadataRegistry().get(vizType) || {};
-
       // Build query using the chart's buildQuery function
       const buildQuery = await getChartBuildQueryRegistry().get(vizType);
       let queryContext;
@@ -259,39 +255,28 @@ export default function StatefulChart(props: StatefulChartProps) {
         queryContext = buildQueryContext(finalFormData);
       }
 
-      // Ensure query_context is properly formatted for new API
-      if (!useLegacyApi && !queryContext.queries) {
+      // Ensure query_context is properly formatted for the API
+      if (!queryContext.queries) {
         queryContext = { queries: [queryContext] };
       }
-      const endpoint = useLegacyApi ? '/explore_json/' : '/api/v1/chart/data';
 
       const requestConfig: RequestConfig = {
-        endpoint,
+        endpoint: '/api/v1/chart/data',
         signal: abortControllerRef.current.signal,
         ...(timeout && { timeout: timeout * 1000 }),
-      };
-
-      if (useLegacyApi) {
-        requestConfig.postPayload = {
-          form_data: {
-            ...finalFormData,
-            ...(force && { force: true }),
-          },
-        };
-      } else {
-        requestConfig.jsonPayload = {
+        jsonPayload: {
           ...queryContext,
           ...(force && { force: true }),
-        };
-      }
+        },
+      };
 
       const response = await chartClientRef.current!.client.post(requestConfig);
       let responseData = Array.isArray(response.json)
         ? response.json
         : [response.json];
 
-      // Handle the nested result structure from the new API
-      if (!useLegacyApi && responseData[0]?.result) {
+      // Handle the nested result structure from the API
+      if (responseData[0]?.result) {
         responseData = responseData[0].result;
       }
 

@@ -68,9 +68,7 @@ beforeEach(() => {
 
   // Setup default registry mocks
   (getChartMetadataRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue({
-      useLegacyApi: false,
-    }),
+    get: jest.fn().mockReturnValue({}),
   });
 
   (getChartBuildQueryRegistry as any).mockReturnValue({

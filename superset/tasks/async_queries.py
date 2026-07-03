@@ -16,10 +16,9 @@
 # under the License.
 from __future__ import annotations
 
-import copy
 import dataclasses
 import logging
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
@@ -30,17 +29,13 @@ from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.exceptions import (
     SupersetErrorException,
     SupersetErrorsException,
-    SupersetVizException,
 )
 from superset.extensions import (
     async_query_manager,
-    cache_manager,
     celery_app,
     security_manager,
 )
-from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import override_user
-from superset.views.utils import get_datasource_info, get_viz
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -118,80 +113,6 @@ def load_chart_data_into_cache(
                 # Fallback for non-Superset exceptions
                 error = str(ex.message if hasattr(ex, "message") else ex)
                 errors = [{"message": error}]
-            async_query_manager.update_job(
-                job_metadata, async_query_manager.STATUS_ERROR, errors=errors
-            )
-            raise
-
-
-@celery_app.task(name="load_explore_json_into_cache", soft_time_limit=query_timeout)
-def load_explore_json_into_cache(  # pylint: disable=too-many-locals
-    job_metadata: dict[str, Any],
-    form_data: dict[str, Any],
-    response_type: str | None = None,
-    force: bool = False,
-) -> None:
-    cache_key_prefix = "ejr-"  # ejr: explore_json request
-
-    with override_user(_load_user_from_job_metadata(job_metadata), force=False):
-        try:
-            set_form_data(form_data)
-            datasource_id, datasource_type = get_datasource_info(None, None, form_data)
-
-            # Perform a deep copy here so that below we can cache the original
-            # value of the form_data object. This is necessary since the viz
-            # objects modify the form_data object. If the modified version were
-            # to be cached here, it will lead to a cache miss when clients
-            # attempt to retrieve the value of the completed async query.
-            original_form_data = copy.deepcopy(form_data)
-
-            viz_obj = get_viz(
-                datasource_type=cast(str, datasource_type),
-                datasource_id=datasource_id,
-                form_data=form_data,
-                force=force,
-            )
-            # run query & cache results
-            payload = viz_obj.get_payload()
-            if viz_obj.has_error(payload):
-                raise SupersetVizException(errors=payload["errors"])
-
-            # Cache the original form_data value for async retrieval
-            cache_value = {
-                "form_data": original_form_data,
-                "response_type": response_type,
-            }
-            cache_key = generate_cache_key(cache_value, cache_key_prefix)
-            cache_instance = cache_manager.cache
-            cache_timeout = (
-                cache_instance.cache.default_timeout if cache_instance.cache else None
-            )
-            set_and_log_cache(
-                cache_instance, cache_key, cache_value, cache_timeout=cache_timeout
-            )
-            result_url = f"/explore_json/data/{cache_key}"
-            async_query_manager.update_job(
-                job_metadata,
-                async_query_manager.STATUS_DONE,
-                result_url=result_url,
-            )
-        except SoftTimeLimitExceeded as ex:
-            logger.warning(
-                "A timeout occurred while loading explore json, error: %s", ex
-            )
-            raise
-        except Exception as ex:
-            if isinstance(ex, SupersetVizException):
-                errors = ex.errors
-            # Extract SIP-40 style errors when available
-            elif isinstance(ex, SupersetErrorException):
-                errors = [dataclasses.asdict(ex.error)]  # type: ignore
-            elif isinstance(ex, SupersetErrorsException):
-                errors = [dataclasses.asdict(error) for error in ex.errors]  # type: ignore
-            else:
-                error = ex.message if hasattr(ex, "message") else str(ex)
-                errors = [error]  # type: ignore
-
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_ERROR, errors=errors
             )

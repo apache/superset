@@ -21,18 +21,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import Split from 'react-split';
 import { t } from '@apache-superset/core/translation';
 import {
-  DatasourceType,
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
-  getChartMetadataRegistry,
   SupersetClient,
   QueryFormData,
   JsonObject,
   getExtensionsRegistry,
   handleKeyboardActivation,
 } from '@superset-ui/core';
-import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { updateExploreChartState } from 'src/explore/actions/exploreActions';
@@ -45,8 +42,6 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
 import type { ChartState, Datasource } from 'src/explore/types';
@@ -224,17 +219,10 @@ const ExploreChartPanel = ({
       : getItem(LocalStorageKeys.IsDatapanelOpen, false),
   );
 
-  const [showDatasetModal, setShowDatasetModal] = useState(false);
-
-  const metaDataRegistry = getChartMetadataRegistry();
-  const { useLegacyApi } = metaDataRegistry.get(vizType) ?? {};
-  const vizTypeNeedsDataset =
-    useLegacyApi && datasource.type !== DatasourceType.Table;
   // added boolean column to below show boolean so that the errors aren't overlapping
   const showAlertBanner =
     !chartAlert &&
     chartIsStale &&
-    !vizTypeNeedsDataset &&
     chart.chartStatus !== 'failed' &&
     ensureIsArray(chart.queriesResponse).length > 0;
 
@@ -381,34 +369,6 @@ const ExploreChartPanel = ({
           padding-top: ${theme.sizeUnit * 2}px;
         `}
       >
-        {vizTypeNeedsDataset && (
-          <Alert
-            message={t('Chart type requires a dataset')}
-            type="error"
-            css={theme => css`
-              margin: 0 0 ${theme.sizeUnit * 4}px 0;
-            `}
-            description={
-              <>
-                {t(
-                  'This chart type is not supported when using an unsaved query as a chart source. ',
-                )}
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setShowDatasetModal(true)}
-                  onKeyDown={handleKeyboardActivation(() =>
-                    setShowDatasetModal(true),
-                  )}
-                  css={{ textDecoration: 'underline' }}
-                >
-                  {t('Create a dataset')}
-                </span>
-                {t(' to visualize your data.')}
-              </>
-            }
-          />
-        )}
         {showAlertBanner && (
           <ExploreAlert
             title={
@@ -572,17 +532,6 @@ const ExploreChartPanel = ({
           queriesResponse={chart.queriesResponse}
         />
       </Split>
-      {showDatasetModal && (
-        <SaveDatasetModal
-          visible={showDatasetModal}
-          onHide={() => setShowDatasetModal(false)}
-          buttonTextOnSave={t('Save')}
-          buttonTextOnOverwrite={t('Overwrite')}
-          datasource={getDatasourceAsSaveableDataset(datasource)}
-          openWindow={false}
-          formData={formData}
-        />
-      )}
     </Styles>
   );
 };
