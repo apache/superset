@@ -53,11 +53,11 @@ def hash_auth_db_password(password: str, algorithm: str | None = None) -> str:
 
     Uses ``AUTH_DB_CONFIG["password_hash_algorithm"]`` when ``algorithm`` is omitted.
     """
-    resolved = algorithm or get_auth_db_password_hash_algorithm()
+    resolved: str = algorithm or get_auth_db_password_hash_algorithm()
     if resolved == "argon2":
         return _argon2_hasher.hash(password)
     if resolved == "bcrypt":
-        encoded = password.encode("utf-8")
+        encoded: bytes = password.encode("utf-8")
         if len(encoded) > BCRYPT_MAX_PASSWORD_BYTES:
             raise ValueError(
                 f"Password exceeds bcrypt's {BCRYPT_MAX_PASSWORD_BYTES}-byte limit."
@@ -76,7 +76,7 @@ def verify_auth_db_password(password_hash: str, password: str) -> bool:
     if not password_hash:
         return False
     if is_bcrypt_password_hash(password_hash):
-        encoded = password.encode("utf-8")
+        encoded: bytes = password.encode("utf-8")
         if len(encoded) > BCRYPT_MAX_PASSWORD_BYTES:
             return False
         try:

@@ -103,7 +103,7 @@ _COMMON_PASSWORDS: frozenset[str] = frozenset(
 
 def get_merged_auth_db_config() -> dict[str, Any]:
     """Return ``AUTH_DB_DEFAULTS`` merged with ``AUTH_DB_CONFIG`` from app config."""
-    overrides = app.config.get("AUTH_DB_CONFIG") or {}
+    overrides: Any = app.config.get("AUTH_DB_CONFIG") or {}
     if not isinstance(overrides, Mapping):
         raise ValidationError(
             {
@@ -149,7 +149,7 @@ def get_auth_db_password_hash_algorithm(cfg: dict[str, Any] | None = None) -> st
     or ``argon2``.
     """
     merged_cfg = cfg if cfg is not None else get_merged_auth_db_config()
-    raw_algorithm = merged_cfg.get(
+    raw_algorithm: Any = merged_cfg.get(
         "password_hash_algorithm", AUTH_DB_DEFAULTS["password_hash_algorithm"]
     )
     algorithm = str(raw_algorithm).strip().lower()
