@@ -34,7 +34,7 @@ revision = "e5f6a7b8c9d0"
 down_revision = "d4e5f6a7b8c9"
 
 
-def upgrade():
+def upgrade() -> None:
     bind = op.get_bind()
 
     # Ensure `slice.params` and `slice.query_context` in MySQL is MEDIUMTEXT
@@ -49,7 +49,7 @@ def upgrade():
     MigrateCompareChart.upgrade(session)
 
 
-def downgrade():
+def downgrade() -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
     MigrateCompareChart.downgrade(session)
