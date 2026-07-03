@@ -22,21 +22,21 @@ import {
   Preset,
   VizType,
 } from '@superset-ui/core';
-import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
-import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
-import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
-import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
-import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-test';
-import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
-import PartitionChartPlugin from '@superset-ui/legacy-plugin-chart-partition';
-import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
+import CalendarChartPlugin from '@superset-ui/plugin-chart-calendar';
+import ChordChartPlugin from '@superset-ui/plugin-chart-chord';
+import CountryMapChartPlugin from '@superset-ui/plugin-chart-country-map';
+import HorizonChartPlugin from '@superset-ui/plugin-chart-horizon';
+import PairedTTestChartPlugin from '@superset-ui/plugin-chart-paired-t-test';
+import ParallelCoordinatesChartPlugin from '@superset-ui/plugin-chart-parallel-coordinates';
+import PartitionChartPlugin from '@superset-ui/plugin-chart-partition';
+import RoseChartPlugin from '@superset-ui/plugin-chart-rose';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
-import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
+import WorldMapChartPlugin from '@superset-ui/plugin-chart-world-map';
 import {
   BulletChartPlugin,
   TimePivotChartPlugin,
-} from '@superset-ui/legacy-preset-chart-nvd3';
+} from '@superset-ui/preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/preset-chart-deckgl';
 import ScatterMapChartPlugin from '@superset-ui/plugin-chart-point-cluster-map';
 import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
