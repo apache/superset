@@ -6334,7 +6334,7 @@ msgstr "Erreur lors de la désactivation du plein écran : %s"
 
 #, python-format
 msgid "Error enabling fullscreen: %s"
-msgstr "Une erreur s'est produite durant l'activation du plein écran' : %s"
+msgstr "Une erreur s'est produite durant l'activation du plein écran : %s"
 
 msgid "Error executing query. "
 msgstr "Erreur lors de l'exécution d'une requête."
@@ -7929,7 +7929,7 @@ msgstr "Méta données JSON invalides"
 
 #, python-format
 msgid "Invalid SQL: %(error)s"
-msgstr "SQL invalidevalide : %(error)s"
+msgstr "SQL invalide : %(error)s"
 
 #, python-format
 msgid "Invalid advanced data type: %(advanced_data_type)s"
@@ -7939,7 +7939,7 @@ msgid "Invalid certificate"
 msgstr "Certificat invalide"
 
 msgid "Invalid color"
-msgstr "Couleurs non valide"
+msgstr "Couleur non valide"
 
 #, fuzzy
 msgid ""
