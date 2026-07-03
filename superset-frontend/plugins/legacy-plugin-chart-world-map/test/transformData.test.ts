@@ -21,14 +21,11 @@ import transformData from '../src/transformData';
 const formData = {
   entity: 'country_code',
   metric: 'sum__num',
-  country_fieldtype: 'cca3',
+  countryFieldtype: 'cca3',
 };
 
 test('joins country metadata the way the legacy backend did', () => {
-  const rows = transformData(
-    [{ country_code: 'FRA', sum__num: 42 }],
-    formData,
-  );
+  const rows = transformData([{ country_code: 'FRA', sum__num: 42 }], formData);
   expect(rows).toHaveLength(1);
   expect(rows[0]).toMatchObject({
     country: 'FRA',
@@ -42,10 +39,10 @@ test('joins country metadata the way the legacy backend did', () => {
 });
 
 test('joins on cca2 codes case-insensitively', () => {
-  const rows = transformData(
-    [{ country_code: 'fr', sum__num: 1 }],
-    { ...formData, country_fieldtype: 'cca2' },
-  );
+  const rows = transformData([{ country_code: 'fr', sum__num: 1 }], {
+    ...formData,
+    countryFieldtype: 'cca2',
+  });
   expect(rows[0].country).toEqual('FRA');
   expect(rows[0].code).toEqual('FR');
 });
@@ -65,13 +62,13 @@ test('marks unmatched countries as XXX', () => {
 test('fills m2 from the secondary metric, or mirrors m1 when equal', () => {
   const withSecondary = transformData(
     [{ country_code: 'FRA', sum__num: 42, count: 7 }],
-    { ...formData, secondary_metric: 'count' },
+    { ...formData, secondaryMetric: 'count' },
   );
   expect(withSecondary[0]).toMatchObject({ m1: 42, m2: 7 });
 
   const mirrored = transformData([{ country_code: 'FRA', sum__num: 42 }], {
     ...formData,
-    secondary_metric: 'sum__num',
+    secondaryMetric: 'sum__num',
   });
   expect(mirrored[0]).toMatchObject({ m1: 42, m2: 42 });
 });
@@ -79,7 +76,7 @@ test('fills m2 from the secondary metric, or mirrors m1 when equal', () => {
 test('joins by full country name', () => {
   const rows = transformData([{ country_code: 'France', sum__num: 1 }], {
     ...formData,
-    country_fieldtype: 'name',
+    countryFieldtype: 'name',
   });
   expect(rows[0].country).toEqual('FRA');
   expect(rows[0].code).toEqual('France');

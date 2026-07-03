@@ -37,19 +37,19 @@ export interface WorldMapDataRow {
  */
 export default function transformData(
   records: Record<string, unknown>[],
-  formData: {
+  options: {
     entity?: string;
     metric?: unknown;
-    secondary_metric?: unknown;
-    country_fieldtype?: string;
+    secondaryMetric?: unknown;
+    countryFieldtype?: string;
   },
 ): WorldMapDataRow[] {
-  const entityLabel = getColumnLabel(formData.entity ?? '');
-  const metricLabel = getMetricLabel(formData.metric as never);
-  const secondaryLabel = formData.secondary_metric
-    ? getMetricLabel(formData.secondary_metric as never)
+  const entityLabel = getColumnLabel(options.entity ?? '');
+  const metricLabel = getMetricLabel(options.metric as never);
+  const secondaryLabel = options.secondaryMetric
+    ? getMetricLabel(options.secondaryMetric as never)
     : undefined;
-  const fieldtype = formData.country_fieldtype;
+  const fieldtype = options.countryFieldtype;
 
   return records.map(record => {
     const row: WorldMapDataRow = {

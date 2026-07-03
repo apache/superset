@@ -49,6 +49,7 @@ export default function transformProps(chartProps: ChartProps) {
     colorScheme,
     sliceId,
     metric,
+    secondaryMetric,
     yAxisFormat,
     currencyFormat,
   } = formData;
@@ -70,7 +71,12 @@ export default function transformProps(chartProps: ChartProps) {
     rawData.length > 0 &&
     entityLabel in rawData[0] &&
     metricLabel in rawData[0]
-      ? transformData(rawData, formData)
+      ? transformData(rawData, {
+          entity,
+          metric,
+          secondaryMetric,
+          countryFieldtype,
+        })
       : rawData;
 
   const formatter = getValueFormatter(

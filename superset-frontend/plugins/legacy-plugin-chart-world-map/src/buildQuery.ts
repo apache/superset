@@ -34,7 +34,7 @@ export default function buildQuery(formData: QueryFormData) {
   const metrics: QueryFormMetric[] = metric ? [metric] : [];
   if (
     secondary_metric &&
-    getMetricLabel(secondary_metric) !== getMetricLabel(metric)
+    (!metric || getMetricLabel(secondary_metric) !== getMetricLabel(metric))
   ) {
     metrics.push(secondary_metric);
   }
