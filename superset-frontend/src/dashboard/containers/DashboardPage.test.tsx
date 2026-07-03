@@ -693,6 +693,150 @@ test('renders a registered custom dashboard renderer with the contract props', a
   expect(hydrateDashboard).toHaveBeenCalled();
 });
 
+test('renders the built-in renderer in edit mode even with a custom renderer registered', async () => {
+  window.featureFlags = { [FeatureFlag.EnableExtensions]: true };
+  DashboardRendererProviders.getInstance().registerProvider(
+    { id: 'test.custom', name: 'Custom Renderer' },
+    () => <div data-test="custom-dashboard-renderer" />,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [], editMode: true },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  expect(await screen.findByText('DashboardBuilder')).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('custom-dashboard-renderer'),
+  ).not.toBeInTheDocument();
+});
+
+test('passes URL filter state to the custom renderer as initialDataMask', async () => {
+  window.featureFlags = { [FeatureFlag.EnableExtensions]: true };
+  mockGetUrlParam.mockImplementation((param: { name: string }) => {
+    if (param.name === 'native_filters') {
+      return {
+        'NATIVE_FILTER-abc': {
+          extraFormData: {
+            filters: [{ col: 'country', op: 'IN', val: ['USA'] }],
+          },
+          filterState: { value: ['USA'] },
+        },
+      };
+    }
+    return null;
+  });
+
+  const customRenderer = jest.fn(() => (
+    <div data-test="custom-dashboard-renderer" />
+  ));
+  DashboardRendererProviders.getInstance().registerProvider(
+    { id: 'test.custom', name: 'Custom Renderer' },
+    customRenderer,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await screen.findByTestId('custom-dashboard-renderer');
+  expect(customRenderer).toHaveBeenCalledWith(
+    expect.objectContaining({
+      initialDataMask: expect.objectContaining({
+        'NATIVE_FILTER-abc': expect.objectContaining({
+          filterState: { value: ['USA'] },
+          extraFormData: {
+            filters: [{ col: 'country', op: 'IN', val: ['USA'] }],
+          },
+        }),
+      }),
+    }),
+    expect.anything(),
+  );
+});
+
+test('maps parsed dashboard metadata and layout into the renderer contract', async () => {
+  window.featureFlags = { [FeatureFlag.EnableExtensions]: true };
+  const metadata = { color_scheme: 'supersetColors' };
+  const positionData = {
+    ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
+    GRID_ID: { type: 'GRID', id: 'GRID_ID', children: [] },
+  };
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      uuid: 'abc-123',
+      metadata,
+      position_data: positionData,
+    },
+    error: null,
+  });
+
+  const customRenderer = jest.fn(() => (
+    <div data-test="custom-dashboard-renderer" />
+  ));
+  DashboardRendererProviders.getInstance().registerProvider(
+    { id: 'test.custom', name: 'Custom Renderer' },
+    customRenderer,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await screen.findByTestId('custom-dashboard-renderer');
+  expect(customRenderer).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dashboard: expect.objectContaining({
+        uuid: 'abc-123',
+        metadata,
+        layout: positionData,
+      }),
+      uiConfig: expect.objectContaining({
+        hideTitle: false,
+        hideTab: false,
+        hideChartControls: false,
+      }),
+    }),
+    expect.anything(),
+  );
+});
+
 test('clears undo history after hydrating the dashboard', async () => {
   render(
     <Suspense fallback="loading">
