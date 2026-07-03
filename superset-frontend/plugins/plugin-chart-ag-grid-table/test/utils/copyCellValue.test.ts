@@ -1,0 +1,132 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import {
+  isCopyShortcut,
+  getCellCopyText,
+  writeTextToClipboard,
+  copyCellValueOnKeyDown,
+} from '../../src/utils/copyCellValue';
+
+const originalClipboard = navigator.clipboard;
+
+afterEach(() => {
+  Object.defineProperty(navigator, 'clipboard', {
+    value: originalClipboard,
+    configurable: true,
+    writable: true,
+  });
+  jest.restoreAllMocks();
+});
+
+function mockClipboard(): jest.Mock {
+  const writeText = jest.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, 'clipboard', {
+    value: { writeText },
+    configurable: true,
+    writable: true,
+  });
+  return writeText;
+}
+
+// --- isCopyShortcut -------------------------------------------------------
+
+test('isCopyShortcut detects Ctrl+C and Cmd+C', () => {
+  expect(isCopyShortcut({ key: 'c', ctrlKey: true })).toBe(true);
+  expect(isCopyShortcut({ key: 'c', metaKey: true })).toBe(true);
+  expect(isCopyShortcut({ key: 'C', metaKey: true })).toBe(true); // capitalized
+});
+
+test('isCopyShortcut ignores other keys and bare C', () => {
+  expect(isCopyShortcut({ key: 'c' })).toBe(false); // no modifier
+  expect(isCopyShortcut({ key: 'v', ctrlKey: true })).toBe(false); // paste
+  expect(isCopyShortcut({ key: 'a', metaKey: true })).toBe(false); // select all
+  expect(isCopyShortcut(null)).toBe(false);
+  expect(isCopyShortcut(undefined)).toBe(false);
+});
+
+// --- getCellCopyText ------------------------------------------------------
+
+test('getCellCopyText prefers the formatted value, falls back to raw', () => {
+  expect(getCellCopyText({ value: 2871, valueFormatted: '2.87k' })).toBe(
+    '2.87k',
+  );
+  expect(getCellCopyText({ value: 2871 })).toBe('2871');
+  expect(getCellCopyText({ value: 'Paris' })).toBe('Paris');
+});
+
+test('getCellCopyText copies empty string for null/undefined values', () => {
+  expect(getCellCopyText({ value: null })).toBe('');
+  expect(getCellCopyText({ value: undefined })).toBe('');
+  expect(getCellCopyText({})).toBe('');
+  expect(getCellCopyText(undefined)).toBe('');
+  // A formatted value of 0 / empty string must still be respected.
+  expect(getCellCopyText({ value: 5, valueFormatted: 0 })).toBe('0');
+});
+
+// --- writeTextToClipboard -------------------------------------------------
+
+test('writeTextToClipboard uses the async Clipboard API when available', async () => {
+  const writeText = mockClipboard();
+  await expect(writeTextToClipboard('hello')).resolves.toBe(true);
+  expect(writeText).toHaveBeenCalledWith('hello');
+});
+
+test('writeTextToClipboard falls back to execCommand when Clipboard API is missing', async () => {
+  Object.defineProperty(navigator, 'clipboard', {
+    value: undefined,
+    configurable: true,
+    writable: true,
+  });
+  const execCommand = jest.fn().mockReturnValue(true);
+  // jsdom does not implement execCommand.
+  (document as unknown as { execCommand: unknown }).execCommand = execCommand;
+
+  await expect(writeTextToClipboard('fallback')).resolves.toBe(true);
+  expect(execCommand).toHaveBeenCalledWith('copy');
+});
+
+// --- copyCellValueOnKeyDown (the onCellKeyDown handler) -------------------
+
+test('copyCellValueOnKeyDown copies the cell value on Ctrl/Cmd+C', () => {
+  const writeText = mockClipboard();
+  const handled = copyCellValueOnKeyDown({
+    event: { key: 'c', metaKey: true },
+    value: 2871,
+    valueFormatted: '2,871',
+  });
+  expect(handled).toBe(true);
+  expect(writeText).toHaveBeenCalledWith('2,871');
+});
+
+test('copyCellValueOnKeyDown ignores non-copy keystrokes', () => {
+  const writeText = mockClipboard();
+  const handled = copyCellValueOnKeyDown({
+    event: { key: 'v', ctrlKey: true },
+    value: 'Paris',
+  });
+  expect(handled).toBe(false);
+  expect(writeText).not.toHaveBeenCalled();
+});
+
+test('copyCellValueOnKeyDown handles a missing event without throwing', () => {
+  const writeText = mockClipboard();
+  expect(copyCellValueOnKeyDown(undefined)).toBe(false);
+  expect(copyCellValueOnKeyDown({ value: 1 })).toBe(false);
+  expect(writeText).not.toHaveBeenCalled();
+});
