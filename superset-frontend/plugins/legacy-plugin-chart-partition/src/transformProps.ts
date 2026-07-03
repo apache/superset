@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import {
+  ChartProps,
+  ensureIsArray,
+  getColumnLabel,
+  getMetricLabel,
+  QueryFormMetric,
+} from '@superset-ui/core';
+import transformData from './transformData';
 
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, datasource, formData, queriesData } = chartProps;
@@ -33,13 +40,34 @@ export default function transformProps(chartProps: ChartProps) {
     richTooltip,
     timeSeriesOption,
     sliceId,
+    rollingType,
+    rollingPeriods,
+    minPeriods,
+    contribution,
   } = formData;
   const { verboseMap = {} } = datasource;
+
+  // v1 responses arrive as flat records; the legacy explore_json endpoint
+  // delivered the nested hierarchy directly.
+  const rawData = queriesData[0].data;
+  const data = Array.isArray(rawData)
+    ? transformData(rawData, {
+        groupbyLabels: ensureIsArray(groupby).map(getColumnLabel),
+        metricLabels: ensureIsArray(metrics as QueryFormMetric[]).map(
+          getMetricLabel,
+        ),
+        timeSeriesOption,
+        rollingType,
+        rollingPeriods: Number(rollingPeriods) || 0,
+        minPeriods: Number(minPeriods) || 0,
+        contribution: Boolean(contribution),
+      })
+    : rawData;
 
   return {
     width,
     height,
-    data: queriesData[0].data,
+    data,
     colorScheme,
     dateTimeFormat,
     equalDateSize,

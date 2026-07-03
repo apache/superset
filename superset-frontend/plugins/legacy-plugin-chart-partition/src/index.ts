@@ -30,16 +30,16 @@ const metadata = new ChartMetadata({
   description: t('Compare the same summarized metric across multiple groups.'),
   exampleGallery: [{ url: example, urlDark: exampleDark }],
   name: t('Partition Chart'),
-  tags: [t('Categorical'), t('Comparison'), t('Legacy'), t('Proportional')],
+  tags: [t('Categorical'), t('Comparison'), t('Proportional')],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class PartitionChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./ReactPartition'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       transformProps,
       controlPanel,
