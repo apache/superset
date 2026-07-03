@@ -19,7 +19,10 @@
 import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import { QueryMode, TimeGranularity, SMART_DATE_ID } from '@superset-ui/core';
-import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import {
+  setupAGGridModules,
+  type ColumnState,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import AgGridTableChart from '../src/AgGridTableChart';
 import transformProps from '../src/transformProps';
 import { ProviderWrapper } from '../../plugin-chart-table/test/testHelpers';
@@ -356,4 +359,51 @@ test('AgGridTableChart corrects invalid page number when currentPage >= totalPag
   await waitFor(() => {
     expect(mockSetDataMask).toHaveBeenCalled();
   });
+});
+
+test('AgGridTableChart emits column state with aggFunc through the debounced save path', async () => {
+  const props = transformProps(testData.basic);
+  const onChartStateChange = jest.fn();
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+          onChartStateChange={onChartStateChange}
+          chartState={{
+            columnState: [{ colId: 'sum__num', aggFunc: null }],
+            sortModel: [],
+            filterModel: {},
+          }}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  // The save path (handleGridStateChange) is debounced with SLOW_DEBOUNCE
+  // (500ms); allow enough time for the first capture to flush.
+  await waitFor(() => expect(onChartStateChange).toHaveBeenCalled(), {
+    timeout: 3000,
+  });
+
+  const savedState =
+    onChartStateChange.mock.calls[onChartStateChange.mock.calls.length - 1][0];
+  const savedColumn = (savedState.columnState as ColumnState[]).find(
+    col => col.colId === 'sum__num',
+  );
+
+  // Every persisted column entry must carry an aggFunc key so "None" survives
+  // the save/restore cycle. The restored *value* cannot be asserted under the
+  // community AG Grid modules registered in tests: aggregation column state
+  // requires an enterprise module providing SharedAggregation (row grouping,
+  // pivot, tree data or server-side row model), without which
+  // getColumnState() reports aggFunc: null for every column.
+  expect(savedColumn).toMatchObject({ aggFunc: null });
 });
