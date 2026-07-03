@@ -96,7 +96,7 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
       <Container isDragging={isDragging} {...attributes} {...listeners}>
         <DragIcon
           isDragging={isDragging}
-          alt={t('Move icon')}
+          aria-label={t('Move icon')}
           viewBox="4 4 16 16"
         />
         <div css={{ flex: 1 }}>{children}</div>

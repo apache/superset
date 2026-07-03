@@ -211,7 +211,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
                   event.stopPropagation();
                   onRemove(id);
                 }}
-                alt={t('Remove filter')}
+                aria-label={t('Remove filter')}
                 data-test="filter-remove-button"
               />
             )}
