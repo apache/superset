@@ -1,0 +1,55 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""migrate_compare_chart_to_echarts
+
+Revision ID: e5f6a7b8c9d0
+Revises: d4e5f6a7b8c9
+Create Date: 2026-07-02 21:30:00.000000
+
+"""
+
+from alembic import op
+from sqlalchemy import text
+from sqlalchemy.dialects.mysql.base import MySQLDialect
+
+from superset import db
+from superset.migrations.shared.migrate_viz import MigrateCompareChart
+
+# revision identifiers, used by Alembic.
+revision = "e5f6a7b8c9d0"
+down_revision = "d4e5f6a7b8c9"
+
+
+def upgrade():
+    bind = op.get_bind()
+
+    # Ensure `slice.params` and `slice.query_context` in MySQL is MEDIUMTEXT
+    # before migration, as the migration will save a duplicate form_data backup
+    # which may significantly increase the size of these fields.
+    if isinstance(bind.dialect, MySQLDialect):
+        # If the columns are already MEDIUMTEXT, this is a no-op
+        op.execute(text("ALTER TABLE slices MODIFY params MEDIUMTEXT"))
+        op.execute(text("ALTER TABLE slices MODIFY query_context MEDIUMTEXT"))
+
+    session = db.Session(bind=bind)
+    MigrateCompareChart.upgrade(session)
+
+
+def downgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    MigrateCompareChart.downgrade(session)
