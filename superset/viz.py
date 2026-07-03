@@ -27,7 +27,7 @@ import copy
 import dataclasses
 import logging
 import math
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from itertools import product
 from typing import Any, cast, Optional, TYPE_CHECKING
@@ -892,58 +892,6 @@ class NVD3Viz(BaseViz):
     viz_type: str | None = None
     verbose_name = "Base NVD3 Viz"
     is_timeseries = False
-
-
-class BubbleViz(NVD3Viz):
-    """Based on the NVD3 bubble chart"""
-
-    viz_type = "bubble"
-    verbose_name = _("Bubble Chart")
-    is_timeseries = False
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        query_obj["groupby"] = [self.form_data.get("entity")]
-        if self.form_data.get("series"):
-            query_obj["groupby"].append(self.form_data.get("series"))
-
-        # dedup groupby if it happens to be the same
-        query_obj["groupby"] = self.dedup_columns(query_obj["groupby"])
-
-        # pylint: disable=attribute-defined-outside-init
-        self.x_metric = self.form_data["x"]
-        self.y_metric = self.form_data["y"]
-        self.z_metric = self.form_data["size"]
-        self.entity = self.form_data.get("entity")
-        self.series = self.form_data.get("series") or self.entity
-        query_obj["row_limit"] = self.form_data.get("limit")
-
-        query_obj["metrics"] = [self.z_metric, self.x_metric, self.y_metric]
-        if len(set(self.metric_labels)) < 3:
-            raise QueryObjectValidationError(_("Please use 3 different metric labels"))
-        if not all(query_obj["metrics"] + [self.entity]):
-            raise QueryObjectValidationError(_("Pick a metric for x, y and size"))
-        return query_obj
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        if df.empty:
-            return None
-
-        df["x"] = df[[utils.get_metric_name(self.x_metric)]]
-        df["y"] = df[[utils.get_metric_name(self.y_metric)]]
-        df["size"] = df[[utils.get_metric_name(self.z_metric)]]
-        df["shape"] = "circle"
-        df["group"] = df[[get_column_name(self.series)]]  # type: ignore
-
-        series: dict[Any, list[Any]] = defaultdict(list)
-        for row in df.to_dict(orient="records"):
-            series[row["group"]].append(row)
-        chart_data = []
-        for k, v in series.items():
-            chart_data.append({"key": k, "values": v})
-        return chart_data
 
 
 class BulletViz(NVD3Viz):

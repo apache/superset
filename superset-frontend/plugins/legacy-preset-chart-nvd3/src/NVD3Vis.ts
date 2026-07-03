@@ -47,7 +47,6 @@ import {
   cleanColorInput,
   computeYDomain,
   drawBarValues,
-  generateBubbleTooltipContent,
   generateCompareTooltipContent,
   generateTimePivotTooltip,
   generateTooltipClassName,
@@ -405,29 +404,6 @@ function nvd3Vis(element, props) {
         chart.xScale(d3.time.scale.utc());
         chart.useInteractiveGuideline(true);
         chart.xAxis.showMaxMin(false);
-        break;
-
-      case VizType.LegacyBubble:
-        chart = nv.models.scatterChart();
-        chart.showDistX(false);
-        chart.showDistY(false);
-        chart.tooltip.contentGenerator(d =>
-          generateBubbleTooltipContent({
-            point: d.point,
-            entity,
-            xField,
-            yField,
-            sizeField,
-            xFormatter: getTimeOrNumberFormatter(xAxisFormat),
-            yFormatter: getTimeOrNumberFormatter(yAxisFormat),
-            sizeFormatter: formatter,
-          }),
-        );
-        chart.pointRange([5, maxBubbleSize ** 2]);
-        chart.pointDomain([
-          0,
-          d3.max(data, d => d3.max(d.values, v => v.size)),
-        ]);
         break;
 
       case VizType.BoxPlot:
