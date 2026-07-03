@@ -74,3 +74,56 @@ test('defaults hooks to an empty object when none are provided', () => {
   expect(transformed.onContextMenu).toBeUndefined();
   expect(transformed.setDataMask).toBeUndefined();
 });
+
+test('renames v1 API records to the country_id/metric shape', () => {
+  const transformed = transformProps(
+    createProps(
+      {},
+      {
+        queriesData: [
+          {
+            data: [
+              { country_code: 'FRA', count: 10 },
+              { country_code: 'DEU', count: 7 },
+            ],
+          },
+        ],
+      },
+    ),
+  );
+  expect(transformed.data).toEqual([
+    { country_id: 'FRA', metric: 10 },
+    { country_id: 'DEU', metric: 7 },
+  ]);
+});
+
+test('renames v1 records even when the entity column is named country_id', () => {
+  const transformed = transformProps(
+    createProps(
+      { entity: 'country_id' },
+      {
+        queriesData: [{ data: [{ country_id: 'FRA', count: 10 }] }],
+      },
+    ),
+  );
+  expect(transformed.data).toEqual([{ country_id: 'FRA', metric: 10 }]);
+});
+
+test('renames v1 API records using adhoc metric labels', () => {
+  const transformed = transformProps(
+    createProps(
+      {
+        metric: {
+          expressionType: 'SIMPLE',
+          aggregate: 'AVG',
+          column: { column_name: 'num' },
+          label: 'AVG(num)',
+        },
+      },
+      {
+        queriesData: [{ data: [{ country_code: 'FRA', 'AVG(num)': 3.14 }] }],
+      },
+    ),
+  );
+  expect(transformed.data).toEqual([{ country_id: 'FRA', metric: 3.14 }]);
+});

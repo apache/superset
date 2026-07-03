@@ -48,7 +48,6 @@ const metadata = new ChartMetadata({
   ],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
   behaviors: [
     Behavior.InteractiveChart,
     Behavior.DrillToDetail,
@@ -60,6 +59,7 @@ export default class CountryMapChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./ReactCountryMap'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       transformProps,
       controlPanel,
