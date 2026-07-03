@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from '@superset-ui/core/spec';
+import { fireEvent, render, waitFor } from '@superset-ui/core/spec';
 import { DropdownButton } from '.';
 
 const menuProps = { items: [{ key: '1', label: 'Item 1' }] };
@@ -45,15 +45,18 @@ test('renders without crashing with full styleConfig', () => {
   expect(container.querySelector('.ant-btn')).toBeInTheDocument();
 });
 
-test('renders tooltip when tooltip prop is provided', () => {
-  const { container } = render(
+test('renders tooltip when tooltip prop is provided', async () => {
+  const { getByText } = render(
     <DropdownButton menu={menuProps} tooltip="My Tooltip">
       Click
     </DropdownButton>,
   );
-  expect(
-    container.querySelector('[id="my-tooltip-tooltip"]'),
-  ).toBeInTheDocument();
+  fireEvent.mouseEnter(getByText('Click'));
+  await waitFor(() => {
+    expect(document.querySelector('[role="tooltip"]')).toHaveTextContent(
+      'My Tooltip',
+    );
+  });
 });
 
 test('does not render tooltip wrapper when tooltip is not provided', () => {
