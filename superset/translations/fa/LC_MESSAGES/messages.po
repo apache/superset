@@ -16932,9 +16932,11 @@ msgstr "نوع ناشناخته"
 msgid "Unknown value"
 msgstr "مقدار ناشناخته"
 
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "Unpin"
-msgstr "اجرا کردن"
+msgstr "جداکردن"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18838,11 +18840,8 @@ msgstr "آرک deck.gl"
 msgid "deck.gl Contour"
 msgstr "کانتور deck.gl"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "deck.gl Geojson"
-msgstr "deck.gl Geojson"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -18894,12 +18893,8 @@ msgstr "dialect+driver://username:password@host:port/database"
 msgid "documentation"
 msgstr "مستندات"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
-# sr_Latn, tr, uk, zh, zh_TW]
-#, fuzzy
 msgid "dttm"
-msgstr "dttm"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "به عنوان مثال ********"
@@ -19306,29 +19301,17 @@ msgstr "مالکین"
 msgid "p-value precision"
 msgstr "دقت p-value"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "p1"
-msgstr "p1"
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "p5"
-msgstr "p5"
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "p95"
-msgstr "p95"
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "p99"
-msgstr "p99"
+msgstr ""
 
 msgid "pending"
 msgstr "در حال انتظار"
