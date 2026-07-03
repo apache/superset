@@ -45,13 +45,13 @@ this branch is the EOL.
 | 6 | `paired_ttest` | legacy-plugin-chart-paired-t-test | Convert in place (pivot op) | ✅ (merged) |
 | 7 | `time_table` | src/visualizations/TimeTable | Convert in place (pivot op) | ✅ (merged) |
 | 8 | `cal_heatmap` | legacy-plugin-chart-calendar | Convert in place (pivot + epoch keys in JS) | ✅ (merged) |
-| 9 | `horizon` | legacy-plugin-chart-horizon | Convert in place (timeseries pipeline) | 🔃 (#41725) |
-| 10 | `rose` | legacy-plugin-chart-rose | Convert in place (timeseries pipeline) | 🔃 (#41726) |
-| 11 | `time_pivot` | legacy-preset-chart-nvd3/TimePivot | Convert in place (pivot + rank in JS) | 🔃 (#41727) |
-| 12 | `bubble` | legacy-preset-chart-nvd3/Bubble | Retarget → `bubble_v2` (MigrateViz exists, needs Alembic revision) | ⬜ |
-| 13 | `compare` | legacy-preset-chart-nvd3/Compare | Retarget → `echarts_timeseries_line` (new MigrateViz) | ⬜ |
-| 14 | `partition` | legacy-plugin-chart-partition | Convert in place (hierarchy in transformProps) | ⬜ |
-| 15 | `deck_multi` | preset-chart-deckgl/Multi | Client-side filter-metadata merge + stub buildQuery | ⬜ |
+| 9 | `horizon` | legacy-plugin-chart-horizon | Convert in place (timeseries pipeline) | ✅ (merged) |
+| 10 | `rose` | legacy-plugin-chart-rose | Convert in place (timeseries pipeline) | ✅ (merged) |
+| 11 | `time_pivot` | legacy-preset-chart-nvd3/TimePivot | Convert in place (pivot + rank in JS) | ✅ (merged) |
+| 12 | `bubble` | legacy-preset-chart-nvd3/Bubble | Retarget → `bubble_v2` (MigrateViz exists, needs Alembic revision) | 🔃 (#41728) |
+| 13 | `compare` | legacy-preset-chart-nvd3/Compare | Retarget → `echarts_timeseries_line` (new MigrateViz) | 🔃 (staged on #41728) |
+| 14 | `partition` | legacy-plugin-chart-partition | Convert in place (hierarchy in transformProps) | 🔃 (#41729) |
+| 15 | `deck_multi` | preset-chart-deckgl/Multi | Client-side filter-metadata merge + stub buildQuery | 🔃 (#41730) |
 
 "Convert in place" = keep the renderer and the `viz_type` key, add a modern
 `buildQuery.ts`, move the `viz.py` `get_data()` reshape into `transformProps.ts`,
@@ -105,9 +105,19 @@ Per-chart checklist:
   along the way: ChartProps camelization bug in world_map's country join,
   numeric group ordering in paired_ttest, comma escaping + sub-second keys +
   grouped single-metric guard in time_table.
-- Open PRs: #41725 `horizon`, #41726 `rose` (uses server-side post_processing
-  pipeline: pivot/resample/rolling/compare/contribution/flatten),
-  #41727 `time_pivot` (pandas offset rollback ported to JS).
+- 2026-07-03 — #41725 `horizon`, #41726 `rose` (server-side post_processing
+  pipeline; bot caught the legacy 'absolute'→'difference' comparison-type
+  mismatch), #41727 `time_pivot` (pandas offset rollback ported to JS, incl.
+  quarters) merged. All 11 convert-in-place charts are migrated.
+- Open PRs: #41728 `bubble` retarget (adds the never-shipped Alembic revision
+  for MigrateBubbleChart; first attempt chained off the wrong alembic head —
+  filename timestamps lie), #41729 `partition` (full hierarchy port incl.
+  period analysis), #41730 `deck_multi` (fully client-side; container issues
+  an empty-queries context, layers fetched via their own buildQuery +
+  /api/v1/chart/data), #41732 horizon/rose default-ordering parity fix.
+  `compare` → echarts_timeseries_line is staged on the bubble branch
+  (migration revision chains after bubble's) and its PR opens when #41728
+  merges.
 
 - 2026-07-02 — Phase 0: removed orphaned `viz.py` classes (`MapboxViz`, `MapLibreViz`,
   `EventFlowViz`, −204 lines) and the unregistered nvd3 BoxPlot story leftovers.
