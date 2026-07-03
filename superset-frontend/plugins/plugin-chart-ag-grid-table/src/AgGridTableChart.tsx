@@ -86,6 +86,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onChartStateChange,
     chartState,
     metricSqlExpressions,
+    rawSummaryColumns,
     showNumberedColumn,
   } = props;
 
@@ -133,6 +134,25 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     serverPagination,
     serverPaginationData,
     serverPageLength,
+    setDataMask,
+  ]);
+
+  useEffect(() => {
+    if (!isRawRecords || !showTotals || rawSummaryColumns.length === 0) {
+      return;
+    }
+    const primed = (serverPaginationData?.rawSummaryColumns ?? []) as string[];
+    if (!isEqual(primed, rawSummaryColumns)) {
+      updateTableOwnState(setDataMask, {
+        ...serverPaginationData,
+        rawSummaryColumns,
+      });
+    }
+  }, [
+    isRawRecords,
+    showTotals,
+    rawSummaryColumns,
+    serverPaginationData,
     setDataMask,
   ]);
 

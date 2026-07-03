@@ -403,3 +403,59 @@ test('AgGridTableChart corrects invalid page number when currentPage >= totalPag
     expect(mockSetDataMask).toHaveBeenCalled();
   });
 });
+
+test('AgGridTableChart primes raw summary columns into own state', async () => {
+  const props = transformProps(rawSummaryProps);
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          rawSummaryColumns: ['sum__num'],
+        }),
+      }),
+    );
+  });
+});
+
+test('AgGridTableChart does not prime summary columns when the summary is off', async () => {
+  const props = transformProps({
+    ...rawSummaryProps,
+    rawFormData: {
+      ...rawSummaryProps.rawFormData,
+      show_totals: false,
+    },
+  });
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+  const primedCalls = mockSetDataMask.mock.calls.filter(
+    ([arg]) => arg?.ownState?.rawSummaryColumns,
+  );
+  expect(primedCalls).toHaveLength(0);
+});
