@@ -108,7 +108,13 @@ def _validate_names(
                     msg += f". Did you mean: {', '.join(suggestions)}?"
                 elif list_valid_on_miss:
                     shown = sorted(valid)[:10]
-                    msg += f". Valid {kind}s: {', '.join(shown)}"
+                    more = len(valid) - len(shown)
+                    suffix = (
+                        f" (and {more} more; call get_dataset_info for the full list)"
+                        if more > 0
+                        else ""
+                    )
+                    msg += f". Valid {kind}s: {', '.join(shown)}{suffix}"
             errors.append(msg)
     return errors
 

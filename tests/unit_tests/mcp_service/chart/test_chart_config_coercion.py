@@ -35,7 +35,10 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartRequest,
     XYChartConfig,
 )
-from superset.mcp_service.dataset.tool.query_dataset import _validate_names
+from superset.mcp_service.dataset.tool.query_dataset import (
+    _NO_SAVED_METRICS_HINT,
+    _validate_names,
+)
 
 XY_BAR_CONFIG = {
     "chart_type": "xy",
@@ -236,10 +239,10 @@ class TestQueryDatasetMetricGuidance:
             ["sum__global_sales"],
             set(),
             "metric",
-            empty_hint="No saved metrics. Use execute_sql.",
+            empty_hint=_NO_SAVED_METRICS_HINT,
         )
         assert len(errors) == 1
-        assert "No saved metrics. Use execute_sql." in errors[0]
+        assert _NO_SAVED_METRICS_HINT in errors[0]
         assert "Did you mean" not in errors[0]
 
     def test_valid_metrics_listed_when_no_close_match(self) -> None:
@@ -251,6 +254,21 @@ class TestQueryDatasetMetricGuidance:
         )
         assert len(errors) == 1
         assert "Valid metrics: count, revenue_total" in errors[0]
+
+    def test_truncated_valid_metrics_report_remaining_count(self) -> None:
+        valid_metrics = {f"metric_{idx:02d}" for idx in range(12)}
+
+        errors = _validate_names(
+            ["zzz_nonexistent"],
+            valid_metrics,
+            "metric",
+            list_valid_on_miss=True,
+        )
+
+        assert len(errors) == 1
+        assert "metric_00, metric_01" in errors[0]
+        assert "metric_10" not in errors[0]
+        assert "and 2 more; call get_dataset_info for the full list" in errors[0]
 
     def test_close_match_suggestion_unchanged(self) -> None:
         errors = _validate_names(

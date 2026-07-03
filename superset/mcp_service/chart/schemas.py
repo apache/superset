@@ -1760,8 +1760,9 @@ ChartConfig = Annotated[
 
 
 # Superset viz_type values that LLM clients routinely send where this API
-# expects its chart_type discriminator. Each maps to (chart_type, kind);
-# kind is only meaningful for the xy family.
+# expects its chart_type discriminator. Extend this observed-pattern map when
+# recurring session traces show additional unambiguous aliases. Each maps to
+# (chart_type, kind); kind is only meaningful for the xy family.
 _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "bar": ("xy", "bar"),
     "dist_bar": ("xy", "bar"),
