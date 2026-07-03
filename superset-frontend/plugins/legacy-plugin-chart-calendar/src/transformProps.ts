@@ -17,8 +17,15 @@
  * under the License.
  */
 
-import { ChartProps, getNumberFormatter } from '@superset-ui/core';
+import {
+  ChartProps,
+  ensureIsArray,
+  getMetricLabel,
+  getNumberFormatter,
+  QueryFormMetric,
+} from '@superset-ui/core';
 import { getFormattedUTCTime } from './utils';
+import transformData from './transformData';
 
 export default function transformProps(chartProps: ChartProps) {
   const { height, formData, queriesData, datasource } = chartProps;
@@ -42,9 +49,26 @@ export default function transformProps(chartProps: ChartProps) {
     getFormattedUTCTime(ts, xAxisTimeFormat);
   const valueFormatter = getNumberFormatter(yAxisFormat);
 
+  // The legacy explore_json endpoint computed the per-metric value maps
+  // and domain range server-side; v1 responses arrive as flat records.
+  const { data: rawData, from_dttm: fromDttm, to_dttm: toDttm } =
+    queriesData[0];
+  const data = Array.isArray(rawData)
+    ? transformData(
+        rawData,
+        ensureIsArray(formData.metrics as QueryFormMetric[]).map(
+          getMetricLabel,
+        ),
+        fromDttm,
+        toDttm,
+        domainGranularity,
+        subdomainGranularity,
+      )
+    : rawData;
+
   return {
     height,
-    data: queriesData[0].data,
+    data,
     cellPadding,
     cellRadius,
     cellSize,
