@@ -87,6 +87,18 @@ test('handles multiple metrics and multi-column groups', () => {
   ]);
 });
 
+test('sorts numeric groups numerically like pandas pivot columns', () => {
+  const data = transformData(
+    [
+      { __timestamp: t1, decade: 10, sum__num: 1 },
+      { __timestamp: t1, decade: 2, sum__num: 2 },
+    ],
+    ['decade'],
+    ['sum__num'],
+  );
+  expect(data.sum__num.map(series => series.group)).toEqual([[2], [10]]);
+});
+
 test('sorts timestamps ascending like the pandas pivot index', () => {
   const data = transformData(
     [

@@ -69,7 +69,22 @@ export default function transformData(
     });
   });
 
-  const sortedGroupKeys = Array.from(groupTuples.keys()).sort();
+  // element-wise tuple comparison so numeric groups sort numerically,
+  // matching the pandas pivot column ordering
+  const compareTuples = (a: unknown[], b: unknown[]) => {
+    for (let i = 0; i < Math.min(a.length, b.length); i += 1) {
+      if (a[i] !== b[i]) {
+        if (typeof a[i] === 'number' && typeof b[i] === 'number') {
+          return (a[i] as number) - (b[i] as number);
+        }
+        return String(a[i]) < String(b[i]) ? -1 : 1;
+      }
+    }
+    return a.length - b.length;
+  };
+  const sortedGroupKeys = Array.from(groupTuples.entries())
+    .sort(([, a], [, b]) => compareTuples(a, b))
+    .map(([key]) => key);
 
   const data: TTestData = {};
   metricLabels.forEach(metric => {
