@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 import jsonStringify from 'json-stringify-pretty-compact';
 import {
   Form,

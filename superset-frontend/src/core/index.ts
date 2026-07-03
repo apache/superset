@@ -27,11 +27,13 @@ export const core: typeof coreType = {
 };
 
 export * from './authentication';
+export * from './chat';
 export * from './commands';
 export * from './editors';
 export * from './extensions';
 export * from './menus';
 export * from './models';
+export * from './navigation';
 export * from './sqlLab';
 export * from './storage';
 export * from './utils';

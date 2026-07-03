@@ -17,8 +17,6 @@
 # isort:skip_file
 
 import logging
-import random
-import string
 import uuid as uuid_module
 from typing import Any, Optional, Callable
 from collections.abc import Iterator
@@ -50,13 +48,6 @@ DEFAULT_CHART_HEIGHT = 50
 DEFAULT_CHART_WIDTH = 4
 
 
-def suffix(length: int = 8) -> str:
-    return "".join(
-        random.SystemRandom().choice(string.ascii_uppercase + string.digits)
-        for _ in range(length)
-    )
-
-
 def get_default_position(title: str) -> dict[str, Any]:
     return {
         "DASHBOARD_VERSION_KEY": "v2",
@@ -72,12 +63,12 @@ def get_default_position(title: str) -> dict[str, Any]:
 
 
 def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any]:
-    chart_hashes = [f"CHART-{suffix()}" for _ in charts]
+    chart_hashes = [f"CHART-{str(chart.uuid)}" for chart in charts]
 
     # if we have ROOT_ID/GRID_ID, append orphan charts to a new row inside the grid
     row_hash = None
     if "ROOT_ID" in position and "GRID_ID" in position["ROOT_ID"]["children"]:
-        row_hash = f"ROW-N-{suffix()}"
+        row_hash = f"ROW-N-{len(position['GRID_ID']['children'])}"
         position["GRID_ID"]["children"].append(row_hash)
         position[row_hash] = {
             "children": chart_hashes,

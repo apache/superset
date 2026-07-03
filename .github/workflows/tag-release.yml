@@ -24,6 +24,12 @@ on:
 permissions:
   contents: read
 
+# Serialize with the scheduled Docker image refresh — both workflows push
+# to the same Docker Hub tags and must not race on apache/superset:latest.
+concurrency:
+  group: docker-publish-latest-release
+  cancel-in-progress: false
+
 jobs:
   config:
     runs-on: ubuntu-24.04
@@ -54,7 +60,7 @@ jobs:
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -120,7 +126,7 @@ jobs:
       pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
           fetch-depth: 0

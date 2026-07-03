@@ -27,7 +27,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -37,10 +37,13 @@ jobs:
           node-version: "20"
 
       - name: Install Dependencies
-        run: npm install -g @action-validator/core @action-validator/cli --save-dev
+        # Versions are pinned to avoid ad-hoc, unpinned package installs.
+        # Bump deliberately when upgrading.
+        # zizmor: ignore[adhoc-packages] - @action-validator is a global CLI tool installed to validate the repo's workflows; a global CLI install has no application manifest/lockfile context, and the versions are pinned above
+        run: npm install -g @action-validator/core@0.6.0 @action-validator/cli@0.6.0
 
       - name: Run Script
         run: bash .github/workflows/github-action-validator.sh
 
       - name: Check for security issues on GHA workflows
-        uses: zizmorcore/zizmor-action@5f14fd08f7cf1cb1609c1e344975f152c7ee938d # v0.5.6
+        uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7

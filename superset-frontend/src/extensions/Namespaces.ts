@@ -16,28 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**
+ * Global `window.superset` type augmentation.
+ *
+ * Lives in its own module (rather than inline in ExtensionsStartup) so every
+ * file that reads or writes `window.superset` — notably ExtensionsLoader —
+ * sees the type regardless of how files are batched during compilation. Both
+ * the startup component and the loader import this module for its side effect.
+ */
+
 import type {
   authentication,
-  core,
+  chat,
   commands,
+  core,
   editors,
   extensions,
   menus,
+  navigation,
   sqlLab,
   views,
 } from 'src/core';
 
+/** The host namespaces exposed to extensions on `window.superset`. */
+export interface Namespaces {
+  authentication: typeof authentication;
+  core: typeof core;
+  chat: typeof chat;
+  commands: typeof commands;
+  editors: typeof editors;
+  extensions: typeof extensions;
+  menus: typeof menus;
+  navigation: typeof navigation;
+  sqlLab: typeof sqlLab;
+  views: typeof views;
+}
+
 declare global {
   interface Window {
-    superset: {
-      authentication: typeof authentication;
-      core: typeof core;
-      commands: typeof commands;
-      editors: typeof editors;
-      extensions: typeof extensions;
-      menus: typeof menus;
-      sqlLab: typeof sqlLab;
-      views: typeof views;
-    };
+    superset: Namespaces;
   }
 }

@@ -20,6 +20,19 @@ import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import ExtensionsLoader, { LoadedExtension } from './ExtensionsLoader';
 
+const mockApplicationRoot = jest.fn<string, []>(() => '');
+
+jest.mock('src/utils/getBootstrapData', () => {
+  const actual = jest.requireActual<
+    typeof import('src/utils/getBootstrapData')
+  >('src/utils/getBootstrapData');
+  return {
+    __esModule: true,
+    ...actual,
+    applicationRoot: () => mockApplicationRoot(),
+  };
+});
+
 function createMockExtension(
   overrides: Partial<LoadedExtension> = {},
 ): LoadedExtension {
@@ -29,7 +42,6 @@ function createMockExtension(
     description: 'A test extension',
     version: '1.0.0',
     dependencies: [],
-    extensionDependencies: [],
     remoteEntry: '',
     ...overrides,
   };
@@ -68,6 +80,7 @@ function mockRemoteEntryLoad() {
 
 beforeEach(() => {
   (ExtensionsLoader as any).instance = undefined;
+  mockApplicationRoot.mockReturnValue('');
   // Reset window.superset to a base object before each test, including a
   // shared singleton (commands) to verify identity is preserved across
   // per-extension scoped copies.
@@ -82,6 +95,36 @@ beforeEach(() => {
     },
   };
 });
+
+/**
+ * Capture the src attribute of the remote-entry script element and trigger
+ * its onerror handler so loadModule short-circuits without webpack module
+ * federation globals.
+ */
+function captureRemoteEntryScript(): {
+  getSrc: () => string | null;
+  restore: () => void;
+} {
+  let capturedSrc: string | null = null;
+  const appendChildSpy = jest
+    .spyOn(document.head, 'appendChild')
+    .mockImplementation((element: Node) => {
+      if (element instanceof HTMLScriptElement) {
+        capturedSrc = element.getAttribute('src');
+        if (element.onerror) {
+          const errorHandler = element.onerror;
+          setTimeout(() => {
+            errorHandler('Script load halted by test');
+          }, 0);
+        }
+      }
+      return element;
+    });
+  return {
+    getSrc: () => capturedSrc,
+    restore: () => appendChildSpy.mockRestore(),
+  };
+}
 
 test('creates a singleton instance', () => {
   const instance1 = ExtensionsLoader.getInstance();
@@ -374,6 +417,70 @@ test('throws when the host @apache-superset/core version cannot be resolved', as
   appendChildSpy.mockRestore();
   delete (window as any).unresolved_version_container;
   cleanupWebpackSharing();
+});
+
+// Subdirectory regression (gap review 2026-06-10): the backend emits a
+// router-relative remoteEntry URL; assigning it raw to `script.src` resolved
+// it against the domain root, 404ing every extension under a subdirectory
+// deployment.
+test('prefixes a router-relative remoteEntry with the application root', async () => {
+  mockApplicationRoot.mockReturnValue('/superset');
+  const loader = ExtensionsLoader.getInstance();
+  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+  const script = captureRemoteEntryScript();
+
+  await loader.initializeExtension(
+    createMockExtension({
+      id: 'sub-ext',
+      remoteEntry: '/api/v1/extensions/pub/sub-ext/remoteEntry.js',
+    }),
+  );
+
+  expect(script.getSrc()).toBe(
+    '/superset/api/v1/extensions/pub/sub-ext/remoteEntry.js',
+  );
+
+  errorSpy.mockRestore();
+  script.restore();
+});
+
+test('leaves the remoteEntry unprefixed on root deployments', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+  const script = captureRemoteEntryScript();
+
+  await loader.initializeExtension(
+    createMockExtension({
+      id: 'root-ext',
+      remoteEntry: '/api/v1/extensions/pub/root-ext/remoteEntry.js',
+    }),
+  );
+
+  expect(script.getSrc()).toBe(
+    '/api/v1/extensions/pub/root-ext/remoteEntry.js',
+  );
+
+  errorSpy.mockRestore();
+  script.restore();
+});
+
+test('passes an absolute remoteEntry URL through unchanged', async () => {
+  mockApplicationRoot.mockReturnValue('/superset');
+  const loader = ExtensionsLoader.getInstance();
+  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+  const script = captureRemoteEntryScript();
+
+  await loader.initializeExtension(
+    createMockExtension({
+      id: 'cdn-ext',
+      remoteEntry: 'https://cdn.example.com/remoteEntry.js',
+    }),
+  );
+
+  expect(script.getSrc()).toBe('https://cdn.example.com/remoteEntry.js');
+
+  errorSpy.mockRestore();
+  script.restore();
 });
 
 test('logs error when initializeExtensions fails', async () => {
