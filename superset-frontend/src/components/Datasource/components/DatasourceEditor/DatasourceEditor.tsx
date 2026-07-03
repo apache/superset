@@ -343,18 +343,18 @@ const StyledTableTabs = styled(Tabs)`
   display: flex;
   flex-direction: column;
 
-  .ant-tabs-content-holder {
+  .ant-tabs-body-holder {
     flex: 1;
     min-height: 0;
     overflow: auto;
     padding-top: ${({ theme }) => theme.paddingMD}px;
   }
 
-  .ant-tabs-content {
+  .ant-tabs-body {
     height: 100%;
   }
 
-  .ant-tabs-tabpane-active {
+  .ant-tabs-content-active {
     height: 100%;
   }
 `;

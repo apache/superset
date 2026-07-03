@@ -33,7 +33,7 @@
  */
 import { render } from '@superset-ui/core/spec';
 // eslint-disable-next-line no-restricted-imports
-import { Modal, Popover, Tooltip } from 'antd';
+import { Modal, Popover, Tabs, Tooltip } from 'antd';
 import { Select } from './Select';
 
 const antClasses = (root: ParentNode): string[] => {
@@ -106,6 +106,40 @@ test('Tooltip container class (ColumnElement/DateFunctionTooltip overrides targe
     </Tooltip>,
   );
   expect(antClasses(document.body)).toContain('ant-tooltip-container');
+});
+
+test('Tabs content DOM chain (SQL Lab / Explore fullHeight overrides target it)', () => {
+  // antd 6 restructured the Tabs content DOM. The `fullHeight` height chain in
+  // Tabs.tsx and many app overrides walk body-holder -> body -> content(panel);
+  // if any level's class is stale, the chain collapses and heavy content (the
+  // SQL Lab Ace editor) renders at 0 height. antd 5 -> 6 renamed:
+  //   .ant-tabs-content-holder -> .ant-tabs-body-holder
+  //   .ant-tabs-content (wrapper) -> .ant-tabs-body  (new intermediate level)
+  //   .ant-tabs-tabpane (panel) -> .ant-tabs-content (now the [role=tabpanel])
+  const { container } = render(
+    <Tabs
+      items={[
+        {
+          key: '1',
+          label: 'One',
+          children: <div className="ace_editor">editor</div>,
+        },
+      ]}
+    />,
+  );
+  const classes = antClasses(container);
+  expect(classes).toEqual(
+    expect.arrayContaining([
+      'ant-tabs-body-holder',
+      'ant-tabs-body',
+      'ant-tabs-content',
+    ]),
+  );
+  // The [role=tabpanel] must be `.ant-tabs-content` (was `.ant-tabs-tabpane`),
+  // and the removed class must not reappear.
+  const panel = container.querySelector('[role="tabpanel"]');
+  expect(panel).toHaveClass('ant-tabs-content');
+  expect(classes).not.toContain('ant-tabs-tabpane');
 });
 
 test('Modal body class (many *.styles.ts modal overrides target it)', () => {
