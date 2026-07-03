@@ -28,8 +28,26 @@ beforeEach(() => {
   DashboardRendererProviders.getInstance().reset();
 });
 
-test('getDashboardRenderer returns undefined when nothing is registered', () => {
-  expect(dashboards.getDashboardRenderer()).toBeUndefined();
+test('getDashboardRenderer returns the built-in default when nothing is registered', () => {
+  expect(dashboards.getDashboardRenderer()?.renderer.id).toBe(
+    'superset.dashboard-renderer',
+  );
+});
+
+test('getDefaultDashboardRenderer always returns the built-in provider', () => {
+  expect(dashboards.getDefaultDashboardRenderer()?.renderer.id).toBe(
+    'superset.dashboard-renderer',
+  );
+
+  // Registering an override does not change the default
+  const disposable = dashboards.registerDashboardRenderer(
+    { id: 'acme.renderer', name: 'Acme Renderer' },
+    component,
+  );
+  expect(dashboards.getDefaultDashboardRenderer()?.renderer.id).toBe(
+    'superset.dashboard-renderer',
+  );
+  disposable.dispose();
 });
 
 test('registerDashboardRenderer makes the provider retrievable', () => {
@@ -59,15 +77,17 @@ test('the last-registered renderer wins when multiple are registered', () => {
   jest.restoreAllMocks();
 });
 
-test('disposing the registration clears the slot', () => {
+test('disposing the registration falls back to the built-in default', () => {
   const disposable = dashboards.registerDashboardRenderer(
     { id: 'acme.renderer', name: 'Acme Renderer' },
     component,
   );
 
-  expect(dashboards.getDashboardRenderer()).toBeDefined();
+  expect(dashboards.getDashboardRenderer()?.renderer.id).toBe('acme.renderer');
   disposable.dispose();
-  expect(dashboards.getDashboardRenderer()).toBeUndefined();
+  expect(dashboards.getDashboardRenderer()?.renderer.id).toBe(
+    'superset.dashboard-renderer',
+  );
 });
 
 test('registration events fire through the public API', () => {

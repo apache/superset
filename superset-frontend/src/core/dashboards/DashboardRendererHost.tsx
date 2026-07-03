@@ -21,18 +21,22 @@
  * @fileoverview DashboardRendererHost component for dynamic dashboard
  * renderer resolution.
  *
- * This component resolves and renders the appropriate dashboard renderer
- * implementation. If an extension has registered a custom renderer (and the
- * dashboard is not in edit mode), it uses that; otherwise, it falls back to
- * the built-in dashboard renderer.
+ * This component resolves and renders the active dashboard renderer from
+ * the provider registry. Superset's built-in renderer is registered as the
+ * default provider (see ./defaultRenderer), so dashboards always render:
+ * an extension-registered override wins in view mode when the extensions
+ * feature flag is on; the built-in default renders otherwise — including
+ * in edit mode and when the flag is off.
  */
 
-import { useSyncExternalStore } from 'react';
+import { Suspense, useSyncExternalStore } from 'react';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import type { dashboards } from '@apache-superset/core';
+import { Loading } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
-import DefaultDashboardRenderer from 'src/dashboard/components/DashboardRenderer/DefaultDashboardRenderer';
 import DashboardRendererProviders from './DashboardRendererProviders';
+// Registers the built-in renderer as the default provider (side effect)
+import './defaultRenderer';
 
 export interface DashboardRendererHostProps
   extends dashboards.DashboardRendererProps {
@@ -49,8 +53,8 @@ export interface DashboardRendererHostProps
  * dashboard renderer.
  *
  * It checks whether an extension has registered a custom dashboard renderer
- * and uses that if available; otherwise, it falls back to the built-in
- * renderer. The built-in renderer is also used whenever the dashboard is in
+ * and uses that if available; otherwise, it renders the built-in default
+ * provider. The built-in renderer is also used whenever the dashboard is in
  * edit mode, regardless of registration.
  */
 const DashboardRendererHost = ({
@@ -58,21 +62,21 @@ const DashboardRendererHost = ({
   ...rendererProps
 }: DashboardRendererHostProps) => {
   const manager = DashboardRendererProviders.getInstance();
-  const provider = useSyncExternalStore(
+  const override = useSyncExternalStore(
     manager.subscribe,
-    () => manager.getProvider(),
+    () => manager.getOverrideProvider(),
     () => undefined,
   );
 
   // Extensions can only register while the feature flag is on (the loader is
   // gated), but the dashboard blast radius warrants the extra check.
-  const useCustomRenderer =
+  const useOverride =
     !editMode &&
-    provider !== undefined &&
+    override !== undefined &&
     isFeatureEnabled(FeatureFlag.EnableExtensions);
 
-  if (useCustomRenderer) {
-    const RendererComponent = provider.component;
+  if (useOverride) {
+    const RendererComponent = override.component;
     return (
       <ErrorBoundary>
         <RendererComponent {...rendererProps} />
@@ -80,7 +84,16 @@ const DashboardRendererHost = ({
     );
   }
 
-  return <DefaultDashboardRenderer {...rendererProps} />;
+  const defaultProvider = manager.getDefaultProvider();
+  if (!defaultProvider) {
+    return null;
+  }
+  const DefaultRenderer = defaultProvider.component;
+  return (
+    <Suspense fallback={<Loading />}>
+      <DefaultRenderer {...rendererProps} />
+    </Suspense>
+  );
 };
 
 export default DashboardRendererHost;

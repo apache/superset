@@ -30,8 +30,11 @@
  *
  * The dashboard renderer is a single-slot contribution point: at most one
  * custom renderer is active at a time, and the most recently registered
- * renderer wins. When no custom renderer is registered, the host renders
- * the built-in dashboard renderer.
+ * renderer wins. The built-in dashboard renderer is itself registered as
+ * the default provider, so it renders whenever no custom renderer is
+ * active — including when the extensions feature flag is off — and it can
+ * be retrieved via {@link getDefaultDashboardRenderer} to wrap or augment
+ * it from a custom renderer.
  *
  * Custom renderers handle VIEW mode only. When a dashboard enters edit
  * mode, the host always renders the built-in renderer, returning to the
@@ -241,8 +244,9 @@ export interface DashboardRendererUnregisteredEvent {
  * The dashboard renderer is a single slot: the most recently registered
  * renderer becomes active, displacing (and unregistering) any previously
  * registered one with a console warning. Disposing the returned Disposable
- * removes the renderer if it is still the active one; disposing a displaced
- * renderer's Disposable is a no-op.
+ * removes the renderer if it is still the active one — the built-in
+ * default renderer takes over again; disposing a displaced renderer's
+ * Disposable is a no-op.
  *
  * Custom renderers handle view mode only — when a dashboard enters edit
  * mode, the host always renders the built-in renderer.
@@ -265,12 +269,40 @@ export declare function registerDashboardRenderer(
 ): Disposable;
 
 /**
- * Get the currently registered dashboard renderer provider.
+ * Get the active dashboard renderer provider: the extension-registered
+ * renderer when one is active, otherwise the built-in default provider.
  *
- * @returns The active provider, or undefined if no extension has
- *   registered a renderer (the host uses its built-in renderer).
+ * @returns The active provider, or undefined only if the host has not
+ *   initialized a default renderer.
  */
 export declare function getDashboardRenderer():
+  | DashboardRendererProvider
+  | undefined;
+
+/**
+ * Get the built-in default dashboard renderer provider.
+ *
+ * Useful for extensions that want to augment rather than fully replace
+ * the built-in renderer — retrieve the default component, wrap it, and
+ * register the wrapper.
+ *
+ * @example
+ * ```tsx
+ * const defaultProvider = dashboards.getDefaultDashboardRenderer();
+ * dashboards.registerDashboardRenderer(
+ *   { id: 'acme.framed-dashboard', name: 'Framed Dashboard' },
+ *   props => (
+ *     <AcmeFrame>
+ *       {defaultProvider && <defaultProvider.component {...props} />}
+ *     </AcmeFrame>
+ *   ),
+ * );
+ * ```
+ *
+ * @returns The default provider, or undefined if the host has not
+ *   initialized one.
+ */
+export declare function getDefaultDashboardRenderer():
   | DashboardRendererProvider
   | undefined;
 

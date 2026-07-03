@@ -115,6 +115,20 @@ test.describe('Dashboard renderer extension point', () => {
       ),
     ).toBe('function');
 
+    // The built-in renderer is itself the registered default provider
+    expect(
+      await page.evaluate(() => ({
+        active: (window as any).superset.dashboards.getDashboardRenderer()
+          ?.renderer.id,
+        default: (
+          window as any
+        ).superset.dashboards.getDefaultDashboardRenderer()?.renderer.id,
+      })),
+    ).toEqual({
+      active: 'superset.dashboard-renderer',
+      default: 'superset.dashboard-renderer',
+    });
+
     // Registering swaps the view in place, no navigation
     await registerProbeRenderer(page);
     await expect(page.getByText(CUSTOM_MARKER)).toBeVisible({

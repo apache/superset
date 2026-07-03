@@ -28,10 +28,11 @@ Extensions can replace Superset's built-in dashboard renderer with a custom impl
 
 ## Overview
 
-The dashboard renderer is a **single-slot** contribution point:
+The dashboard renderer is a **single-slot** contribution point with two tiers:
 
-- At most one custom renderer is active at a time. The most recently registered renderer wins; a previously registered renderer is displaced and unregistered with a console warning.
-- When no custom renderer is registered, the host renders the built-in dashboard renderer.
+- **Superset's built-in renderer is itself registered as the default provider** (`superset.dashboard-renderer`) through the same contribution point. It renders whenever no custom renderer is active — including when the `ENABLE_EXTENSIONS` feature flag is off — so dashboards always display, extensions or not.
+- At most one custom renderer is active at a time. The most recently registered renderer wins; a previously registered custom renderer is displaced and unregistered with a console warning. The default provider is never displaced.
+- Disposing the active custom renderer's `Disposable` falls back to the built-in default.
 - Custom renderers handle **view mode only**. When a dashboard enters edit mode, the host always renders the built-in renderer (which owns drag-and-drop editing, undo/redo, and the component pane), returning to the custom renderer when edit mode exits.
 - A custom renderer that throws is contained by an error boundary; the host does not fall back to the built-in renderer on error.
 
@@ -88,7 +89,24 @@ dashboards.registerDashboardRenderer(
 
 `registerDashboardRenderer` returns a `Disposable`. Disposing it removes your renderer if it is still the active one; disposing after being displaced by a newer registration is a no-op.
 
-You can observe slot changes with `dashboards.onDidRegisterDashboardRenderer` and `dashboards.onDidUnregisterDashboardRenderer`, and inspect the active provider with `dashboards.getDashboardRenderer()`.
+You can observe slot changes with `dashboards.onDidRegisterDashboardRenderer` and `dashboards.onDidUnregisterDashboardRenderer`, and inspect the active provider with `dashboards.getDashboardRenderer()` (which returns the built-in default when no custom renderer is active).
+
+### Augmenting the built-in renderer
+
+To augment rather than fully replace the built-in renderer, retrieve the default provider and wrap its component:
+
+```tsx
+const defaultProvider = dashboards.getDefaultDashboardRenderer();
+
+dashboards.registerDashboardRenderer(
+  { id: 'acme.framed-dashboard', name: 'Framed Dashboard' },
+  props => (
+    <AcmeFrame>
+      {defaultProvider && <defaultProvider.component {...props} />}
+    </AcmeFrame>
+  ),
+);
+```
 
 ## Manifest Declaration
 

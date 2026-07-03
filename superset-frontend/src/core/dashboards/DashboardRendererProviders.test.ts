@@ -44,9 +44,10 @@ function createMockRendererComponent(): DashboardRendererComponent {
 }
 
 beforeEach(() => {
-  // Reset the singleton instance before each test
+  // Reset the singleton instance before each test, including the default
+  // tier — this suite exercises the registry in isolation.
   const manager = DashboardRendererProviders.getInstance();
-  manager.reset();
+  manager.reset(true);
 });
 
 test('creates singleton instance', () => {
@@ -220,5 +221,87 @@ test('reset clears the provider slot', () => {
 
   manager.reset();
 
-  expect(manager.getProvider()).toBeUndefined();
+  expect(manager.getOverrideProvider()).toBeUndefined();
+});
+
+test('the default provider is active when no override is registered', () => {
+  const manager = DashboardRendererProviders.getInstance();
+  const defaultRenderer = createMockRenderer({ id: 'host.default' });
+  const component = createMockRendererComponent();
+
+  manager.setDefaultProvider(defaultRenderer, component);
+
+  expect(manager.getProvider()?.renderer.id).toBe('host.default');
+  expect(manager.getDefaultProvider()?.renderer.id).toBe('host.default');
+  expect(manager.getOverrideProvider()).toBeUndefined();
+});
+
+test('an override wins over the default without displacing it', () => {
+  const manager = DashboardRendererProviders.getInstance();
+  const unregisterListener = jest.fn();
+  manager.onDidUnregister(unregisterListener);
+
+  manager.setDefaultProvider(
+    createMockRenderer({ id: 'host.default' }),
+    createMockRendererComponent(),
+  );
+  manager.registerProvider(
+    createMockRenderer({ id: 'ext.override' }),
+    createMockRendererComponent(),
+  );
+
+  expect(manager.getProvider()?.renderer.id).toBe('ext.override');
+  expect(manager.getDefaultProvider()?.renderer.id).toBe('host.default');
+  // Registering over the default must not fire an unregister for it
+  expect(unregisterListener).not.toHaveBeenCalled();
+});
+
+test('disposing the override falls back to the default provider', () => {
+  const manager = DashboardRendererProviders.getInstance();
+
+  manager.setDefaultProvider(
+    createMockRenderer({ id: 'host.default' }),
+    createMockRendererComponent(),
+  );
+  const disposable = manager.registerProvider(
+    createMockRenderer({ id: 'ext.override' }),
+    createMockRendererComponent(),
+  );
+
+  disposable.dispose();
+
+  expect(manager.getProvider()?.renderer.id).toBe('host.default');
+  expect(manager.getOverrideProvider()).toBeUndefined();
+});
+
+test('setDefaultProvider is idempotent by renderer id', () => {
+  const manager = DashboardRendererProviders.getInstance();
+  const listener = jest.fn();
+  manager.subscribe(listener);
+
+  const renderer = createMockRenderer({ id: 'host.default' });
+  manager.setDefaultProvider(renderer, createMockRendererComponent());
+  expect(listener).toHaveBeenCalledTimes(1);
+
+  // Re-registering the same id (e.g. duplicate side-effect import) is a no-op
+  manager.setDefaultProvider(renderer, createMockRendererComponent());
+  expect(listener).toHaveBeenCalledTimes(1);
+});
+
+test('reset keeps the default provider', () => {
+  const manager = DashboardRendererProviders.getInstance();
+
+  manager.setDefaultProvider(
+    createMockRenderer({ id: 'host.default' }),
+    createMockRendererComponent(),
+  );
+  manager.registerProvider(
+    createMockRenderer({ id: 'ext.override' }),
+    createMockRendererComponent(),
+  );
+
+  manager.reset();
+
+  expect(manager.getOverrideProvider()).toBeUndefined();
+  expect(manager.getProvider()?.renderer.id).toBe('host.default');
 });

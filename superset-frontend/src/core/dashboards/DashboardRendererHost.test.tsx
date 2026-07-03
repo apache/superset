@@ -70,10 +70,12 @@ afterEach(() => {
   cleanup();
 });
 
-test('renders the built-in renderer when no custom renderer is registered', () => {
+test('renders the built-in renderer when no custom renderer is registered', async () => {
   render(<DashboardRendererHost {...rendererProps} />);
 
-  expect(screen.getByTestId('default-dashboard-renderer')).toBeInTheDocument();
+  expect(
+    await screen.findByTestId('default-dashboard-renderer'),
+  ).toBeInTheDocument();
   expect(screen.getByTestId('default-renderer-dashboard-id')).toHaveTextContent(
     '42',
   );
@@ -115,7 +117,7 @@ test('renders a registered custom renderer with the contract props', () => {
   ).not.toBeInTheDocument();
 });
 
-test('renders the built-in renderer in edit mode even with a custom renderer registered', () => {
+test('renders the built-in renderer in edit mode even with a custom renderer registered', async () => {
   DashboardRendererProviders.getInstance().registerProvider(
     { id: 'test.custom', name: 'Custom Renderer' },
     () => <div data-test="custom-dashboard-renderer" />,
@@ -123,13 +125,15 @@ test('renders the built-in renderer in edit mode even with a custom renderer reg
 
   render(<DashboardRendererHost editMode {...rendererProps} />);
 
-  expect(screen.getByTestId('default-dashboard-renderer')).toBeInTheDocument();
+  expect(
+    await screen.findByTestId('default-dashboard-renderer'),
+  ).toBeInTheDocument();
   expect(
     screen.queryByTestId('custom-dashboard-renderer'),
   ).not.toBeInTheDocument();
 });
 
-test('renders the built-in renderer when the extensions feature flag is off', () => {
+test('renders the built-in renderer when the extensions feature flag is off', async () => {
   mockIsFeatureEnabled.mockReturnValue(false);
   DashboardRendererProviders.getInstance().registerProvider(
     { id: 'test.custom', name: 'Custom Renderer' },
@@ -138,7 +142,9 @@ test('renders the built-in renderer when the extensions feature flag is off', ()
 
   render(<DashboardRendererHost {...rendererProps} />);
 
-  expect(screen.getByTestId('default-dashboard-renderer')).toBeInTheDocument();
+  expect(
+    await screen.findByTestId('default-dashboard-renderer'),
+  ).toBeInTheDocument();
   expect(
     screen.queryByTestId('custom-dashboard-renderer'),
   ).not.toBeInTheDocument();
@@ -163,10 +169,12 @@ test('shows an error boundary when the custom renderer throws', () => {
   consoleErrorSpy.mockRestore();
 });
 
-test('swaps to a custom renderer registered after mount', () => {
+test('swaps to a custom renderer registered after mount', async () => {
   render(<DashboardRendererHost {...rendererProps} />);
 
-  expect(screen.getByTestId('default-dashboard-renderer')).toBeInTheDocument();
+  expect(
+    await screen.findByTestId('default-dashboard-renderer'),
+  ).toBeInTheDocument();
 
   act(() => {
     DashboardRendererProviders.getInstance().registerProvider(

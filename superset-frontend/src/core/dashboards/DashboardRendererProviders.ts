@@ -34,18 +34,27 @@ type Listener<T> = (e: T) => void;
 /**
  * Singleton manager for the dashboard renderer slot.
  *
- * The dashboard renderer is a single-slot contribution point: at most one
- * provider is active at a time. Registering while the slot is occupied
- * displaces (and unregisters) the previous provider with a console warning —
- * the most recent registration wins.
+ * The dashboard renderer is a single-slot contribution point with two
+ * tiers: the host registers the built-in renderer as the DEFAULT provider,
+ * and extensions register at most one OVERRIDE provider on top of it. The
+ * active provider is the override when present, otherwise the default —
+ * so dashboards always render, extensions or not. Registering an override
+ * while the slot is occupied displaces (and unregisters) the previous
+ * override with a console warning — the most recent registration wins;
+ * the default provider is never displaced.
  */
 class DashboardRendererProviders {
   private static instance: DashboardRendererProviders;
 
   /**
-   * The single active provider slot.
+   * The single extension-registered override slot.
    */
   private provider: DashboardRendererProvider | undefined;
+
+  /**
+   * The host-registered built-in provider, active when no override is.
+   */
+  private defaultProvider: DashboardRendererProvider | undefined;
 
   private registerEmitter =
     createEventEmitter<DashboardRendererRegisteredEvent>();
@@ -123,11 +132,47 @@ class DashboardRendererProviders {
   }
 
   /**
-   * Get the active dashboard renderer provider.
-   * @returns The provider or undefined if none is registered.
+   * Register the host's built-in renderer as the default provider.
+   * Host-internal — not exposed on the public `dashboards` namespace.
+   * Idempotent by id so duplicate side-effect imports are harmless.
+   *
+   * @param renderer The default renderer descriptor.
+   * @param component The React component implementing the renderer.
+   */
+  public setDefaultProvider(
+    renderer: DashboardRenderer,
+    component: DashboardRendererComponent,
+  ): void {
+    if (this.defaultProvider?.renderer.id === renderer.id) {
+      return;
+    }
+    this.defaultProvider = { renderer, component };
+    this.syncListeners.forEach(l => l());
+  }
+
+  /**
+   * Get the built-in default dashboard renderer provider.
+   * @returns The default provider or undefined if the host has not set one.
+   */
+  public getDefaultProvider(): DashboardRendererProvider | undefined {
+    return this.defaultProvider;
+  }
+
+  /**
+   * Get the extension-registered override provider, ignoring the default.
+   * @returns The override provider or undefined if none is registered.
+   */
+  public getOverrideProvider(): DashboardRendererProvider | undefined {
+    return this.provider;
+  }
+
+  /**
+   * Get the active dashboard renderer provider: the extension-registered
+   * override when present, otherwise the built-in default.
+   * @returns The active provider or undefined if neither is registered.
    */
   public getProvider(): DashboardRendererProvider | undefined {
-    return this.provider;
+    return this.provider ?? this.defaultProvider;
   }
 
   /**
@@ -156,9 +201,16 @@ class DashboardRendererProviders {
 
   /**
    * Reset the manager state (for testing purposes).
+   * The default provider is kept unless requested: it is registered by a
+   * one-time module side effect that will not re-run between tests.
+   *
+   * @param clearDefault When true, also clears the default provider.
    */
-  public reset(): void {
+  public reset(clearDefault = false): void {
     this.provider = undefined;
+    if (clearDefault) {
+      this.defaultProvider = undefined;
+    }
     this.syncListeners.clear();
     this.registerEmitter =
       createEventEmitter<DashboardRendererRegisteredEvent>();

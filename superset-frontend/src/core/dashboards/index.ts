@@ -33,9 +33,12 @@
 import { useSyncExternalStore } from 'react';
 import { dashboards as dashboardsApi } from '@apache-superset/core';
 import DashboardRendererProviders from './DashboardRendererProviders';
+// Registers the built-in renderer as the default provider (side effect)
+import './defaultRenderer';
 
 export type { DashboardRendererHostProps } from './DashboardRendererHost';
 export { default as DashboardRendererHost } from './DashboardRendererHost';
+export { DEFAULT_DASHBOARD_RENDERER } from './defaultRenderer';
 
 const provider = DashboardRendererProviders.getInstance();
 
@@ -49,6 +52,7 @@ export const useDashboardRenderer = () =>
 export const dashboards: typeof dashboardsApi = {
   registerDashboardRenderer: provider.registerProvider.bind(provider),
   getDashboardRenderer: provider.getProvider.bind(provider),
+  getDefaultDashboardRenderer: provider.getDefaultProvider.bind(provider),
   onDidRegisterDashboardRenderer: provider.onDidRegister.bind(provider),
   onDidUnregisterDashboardRenderer: provider.onDidUnregister.bind(provider),
 };
