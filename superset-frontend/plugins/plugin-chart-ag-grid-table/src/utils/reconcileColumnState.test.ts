@@ -86,9 +86,7 @@ test('drops stale order when a dynamic group by swaps the dimension column', () 
 });
 
 test('preserves per-column aggFunc, including explicit "None" (null), through reconciliation', () => {
-  // Regression guard for #107166: the saved aggFunc must reach
-  // applyColumnState untouched, otherwise "None" reverts to the column
-  // default aggregation on reload.
+  // Regression #107166: saved aggFunc must reach applyColumnState untouched.
   const colDefs: ColDef[] = [{ field: 'name' }, { field: 'SUM(Sales_Amount)' }];
   const savedColumnState: ColumnState[] = [
     { colId: 'name' },

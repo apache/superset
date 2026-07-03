@@ -25,15 +25,10 @@ type SortModelEntry = {
 };
 
 /**
- * Builds a stable signature of the parts of AG Grid column state that must be
- * persisted (and therefore must trigger an `onColumnStateChange` when they
- * change): column order, per-column value aggregation, sorts and filters.
- *
- * The value aggregation (`aggFunc`) is normalized so that "no aggregation"
- * (the AG Grid "None" option, represented as `null`/`undefined`) produces a
- * distinct, stable signature. Without this, switching a column's Value
- * Aggregation to "None" did not change the signature, so the change was never
- * captured and the column reverted to its default aggregation on reload.
+ * Stable signature of the persisted parts of AG Grid column state (order,
+ * value aggregation, sorts, filters), used to detect changes worth saving.
+ * `aggFunc` is normalized so the "None" option (`null`/`undefined`) produces
+ * a distinct signature instead of reverting to the default on reload.
  */
 export default function getColumnStateSignature(
   columnState: ColumnState[],
@@ -44,13 +39,9 @@ export default function getColumnStateSignature(
     columnOrder: columnState.map(col => col.colId),
     aggregations: columnState.map(col => ({
       colId: col.colId,
-      // Normalize falsy "None" (null/undefined) to an explicit sentinel so it
-      // is preserved and distinguishable from a real aggregation function.
-      // Function-valued aggregators get a fixed marker so the signature does
-      // not depend on JSON.stringify silently dropping function values; AG
-      // Grid requires registered string names for aggFuncs in serialized
-      // column state, so this plugin only ever persists strings and the
-      // marker is purely defensive.
+      // "None" (null/undefined) maps to an explicit sentinel; functions map
+      // to a fixed marker so the signature never depends on JSON.stringify
+      // dropping them (defensive: persisted aggFuncs are always strings).
       aggFunc:
         typeof col.aggFunc === 'function' ? 'custom' : (col.aggFunc ?? null),
     })),

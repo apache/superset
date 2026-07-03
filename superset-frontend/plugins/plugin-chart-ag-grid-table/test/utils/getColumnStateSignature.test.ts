@@ -36,8 +36,7 @@ test('signature changes when a column value aggregation changes', () => {
 });
 
 test('switching value aggregation to "None" (null/undefined) changes the signature', () => {
-  // Regression test for #107166: selecting "None" must be captured so it
-  // persists instead of reverting to the default Sum aggregation on reload.
+  // Regression #107166: "None" must be captured so it persists on reload.
   const sumState = getColumnStateSignature(
     [{ colId: 'sales', aggFunc: 'sum' }],
     [],
@@ -68,9 +67,7 @@ test('signature is stable when nothing changes', () => {
 });
 
 test('a function aggFunc is distinguishable from "None"', () => {
-  // Pins the defensive marker for function-valued aggregators: the signature
-  // must stay distinct from "None" without relying on JSON.stringify
-  // silently dropping function values.
+  // Pins the defensive marker: function aggFuncs stay distinct from "None".
   const customAgg = getColumnStateSignature(
     [{ colId: 'sales', aggFunc: () => 42 }],
     [],

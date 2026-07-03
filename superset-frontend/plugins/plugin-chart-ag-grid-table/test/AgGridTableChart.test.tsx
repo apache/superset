@@ -387,8 +387,7 @@ test('AgGridTableChart emits column state with aggFunc through the debounced sav
     expect(document.querySelector('.ag-container')).toBeInTheDocument();
   });
 
-  // The save path (handleGridStateChange) is debounced with SLOW_DEBOUNCE
-  // (500ms); allow enough time for the first capture to flush.
+  // The save path is debounced (SLOW_DEBOUNCE = 500ms); wait for a capture.
   await waitFor(() => expect(onChartStateChange).toHaveBeenCalled(), {
     timeout: 3000,
   });
@@ -399,11 +398,8 @@ test('AgGridTableChart emits column state with aggFunc through the debounced sav
     col => col.colId === 'sum__num',
   );
 
-  // Every persisted column entry must carry an aggFunc key so "None" survives
-  // the save/restore cycle. The restored *value* cannot be asserted under the
-  // community AG Grid modules registered in tests: aggregation column state
-  // requires an enterprise module providing SharedAggregation (row grouping,
-  // pivot, tree data or server-side row model), without which
-  // getColumnState() reports aggFunc: null for every column.
+  // Entries must carry an aggFunc key so "None" survives reload. The value
+  // itself is not assertable here: aggregation state needs an enterprise
+  // (SharedAggregation) module; the community modules always report null.
   expect(savedColumn).toMatchObject({ aggFunc: null });
 });
