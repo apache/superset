@@ -43,13 +43,13 @@ const metadata = new ChartMetadata({
   ],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class CalendarChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./ReactCalendar'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       transformProps,
       controlPanel,
