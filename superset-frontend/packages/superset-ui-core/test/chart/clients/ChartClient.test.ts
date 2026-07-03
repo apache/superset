@@ -160,42 +160,6 @@ describe('ChartClient', () => {
           datasource: '1__table',
         }),
       ).rejects.toEqual(new Error('Unknown chart type: rainbow_3d_pie')));
-
-    test('fetches data from the legacy API if ChartMetadata has useLegacyApi=true,', () => {
-      // note legacy charts do not register a buildQuery function in the registry
-      getChartMetadataRegistry().registerValue(
-        'word_cloud_legacy',
-        new ChartMetadata({
-          name: 'Legacy Word Cloud',
-          thumbnail: '.png',
-          useLegacyApi: true,
-        }),
-      );
-
-      fetchMock.post('glob:*/api/v1/chart/data', () =>
-        Promise.reject(new Error('Unexpected all to v1 API')),
-      );
-
-      // post `Superset.route_base = ""`, the legacy endpoint
-      // collapsed from `/superset/explore_json/` to `/explore_json/`.
-      fetchMock.post('glob:*/explore_json/', {
-        field1: 'abc',
-        field2: 'def',
-      });
-
-      return expect(
-        chartClient.loadQueryData({
-          granularity: 'minute',
-          viz_type: 'word_cloud_legacy',
-          datasource: '1__table',
-        }),
-      ).resolves.toEqual([
-        {
-          field1: 'abc',
-          field2: 'def',
-        },
-      ]);
-    });
   });
 
   describe('.loadDatasource(datasourceKey, options)', () => {

@@ -31,7 +31,7 @@ from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role
 from superset.daos.datasource import DatasourceDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
-from superset import appbuilder, db, security_manager, viz
+from superset import appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -1356,8 +1356,6 @@ class TestRolePermission(SupersetTestCase):
         assert ("can_explore", "Superset") in perm_set
         assert ("can_share_chart", "Superset") in perm_set
         assert ("can_share_dashboard", "Superset") in perm_set
-        assert ("can_explore_json", "Superset") in perm_set
-        assert ("can_explore_json", "Superset") in perm_set
         assert ("can_userinfo", "UserDBModelView") in perm_set
         assert ("can_view_chart_as_table", "Dashboard") in perm_set
         assert ("can_view_query", "Dashboard") in perm_set
@@ -2061,24 +2059,6 @@ class TestSecurityManager(SupersetTestCase):
 
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(database=database, table=table)
-
-    @patch("superset.security.SupersetSecurityManager.is_owner")
-    @patch("superset.security.SupersetSecurityManager.can_access")
-    @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    def test_raise_for_access_viz(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner
-    ):
-        test_viz = viz.TimeTableViz(self.get_datasource_mock(), form_data={})
-
-        mock_can_access_schema.return_value = True
-        security_manager.raise_for_access(viz=test_viz)
-
-        mock_can_access.return_value = False
-        mock_can_access_schema.return_value = False
-        mock_is_owner.return_value = False
-        with override_user(security_manager.find_user("gamma")):
-            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                security_manager.raise_for_access(viz=test_viz)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")

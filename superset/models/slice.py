@@ -48,7 +48,6 @@ from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
 from superset.utils import core as utils, json
-from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -199,15 +198,6 @@ class Slice(  # pylint: disable=too-many-public-methods
         return datasource.url if datasource else None
 
     @property
-    def viz(self) -> BaseViz | None:
-        form_data = json.loads(self.params)
-        viz_class = viz_types.get(self.viz_type)
-        datasource = self.datasource
-        if viz_class and datasource:
-            return viz_class(datasource=datasource, form_data=form_data)
-        return None
-
-    @property
     def description_markeddown(self) -> str:
         return utils.markdown(self.description or "")
 
@@ -217,8 +207,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         data: dict[str, Any] = {}
         self.token = ""
         try:
-            viz = self.viz
-            data = viz.data if viz else self.form_data
+            data = self.form_data
             self.token = utils.get_form_data_token(data)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
@@ -327,11 +316,6 @@ class Slice(  # pylint: disable=too-many-public-methods
     def slice_url(self) -> str:
         """Defines the url to access the slice"""
         return self.get_explore_url()
-
-    @property
-    def explore_json_url(self) -> str:
-        """Defines the url to access the slice"""
-        return self.get_explore_url("/explore_json")
 
     @property
     def edit_url(self) -> str:

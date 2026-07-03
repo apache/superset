@@ -163,7 +163,6 @@ test('generates a new form_data param when none is available', async () => {
     new ChartMetadata({
       name: 'fake table',
       thumbnail: '.png',
-      useLegacyApi: false,
     }),
   );
   const history = createMemoryHistory({ initialEntries: [defaultPath] });
@@ -226,7 +225,6 @@ test('doesnt call replace when pathname is not /explore', async () => {
     new ChartMetadata({
       name: 'fake table',
       thumbnail: '.png',
-      useLegacyApi: false,
     }),
   );
   const history = createMemoryHistory({ initialEntries: ['/dashboard'] });
