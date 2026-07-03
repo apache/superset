@@ -75,10 +75,19 @@ function loadPlugins() {
     });
 }
 
+// Kick off plugin setup and attach a no-op rejection handler. If the promise
+// settles before start() attaches its own handler, this keeps it from surfacing
+// as an unhandled-rejection warning; start() still handles the rejection itself.
+function schedulePlugins() {
+  const promise = loadPlugins();
+  promise.catch(() => {});
+  return promise;
+}
+
 // Kick off plugin setup eagerly at module load so it overlaps the handshake.
 // If it rejects, start() recreates the promise so a retry can re-run setup
 // instead of chaining off a permanently rejected promise.
-let pluginsReady = loadPlugins();
+let pluginsReady = schedulePlugins();
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 const bootstrapData = getBootstrapData();
@@ -234,7 +243,7 @@ function start() {
       // plugin setup instead of chaining off this rejected promise and leaving
       // the dashboard stuck in a failed state.
       logging.error(err);
-      pluginsReady = loadPlugins();
+      pluginsReady = schedulePlugins();
       started = false;
     },
   );
