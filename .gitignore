@@ -137,6 +137,7 @@ PROJECT.md
 .aider*
 .claude_rc*
 .claude/settings.local.json
+.claude/worktrees/
 .env.local
 oxc-custom-build/
 *.code-workspace
