@@ -18,7 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import transformProps from '../transformProps';
+import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.jpg';
@@ -33,16 +33,16 @@ const metadata = new ChartMetadata({
   ),
   exampleGallery: [{ url: example, urlDark: exampleDark }],
   name: t('Time-series Period Pivot'),
-  tags: [t('Legacy'), t('Time'), t('nvd3')],
+  tags: [t('Time'), t('nvd3')],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class TimePivotChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('../ReactNVD3'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       transformProps,
       controlPanel,
