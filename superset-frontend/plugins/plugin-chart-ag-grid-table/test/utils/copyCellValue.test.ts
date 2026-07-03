@@ -101,6 +101,33 @@ test('writeTextToClipboard falls back to execCommand when Clipboard API is missi
   expect(execCommand).toHaveBeenCalledWith('copy');
 });
 
+test('writeTextToClipboard falls back to execCommand when the Clipboard API rejects', async () => {
+  // e.g. clipboard permission denied — must still copy via the legacy path.
+  Object.defineProperty(navigator, 'clipboard', {
+    value: { writeText: jest.fn().mockRejectedValue(new Error('denied')) },
+    configurable: true,
+    writable: true,
+  });
+  const execCommand = jest.fn().mockReturnValue(true);
+  (document as unknown as { execCommand: unknown }).execCommand = execCommand;
+
+  await expect(writeTextToClipboard('rejected')).resolves.toBe(true);
+  expect(execCommand).toHaveBeenCalledWith('copy');
+});
+
+test('writeTextToClipboard returns false when both clipboard paths fail', async () => {
+  Object.defineProperty(navigator, 'clipboard', {
+    value: undefined,
+    configurable: true,
+    writable: true,
+  });
+  (document as unknown as { execCommand: unknown }).execCommand = jest.fn(() => {
+    throw new Error('execCommand unsupported');
+  });
+
+  await expect(writeTextToClipboard('nope')).resolves.toBe(false);
+});
+
 // --- copyCellValueOnKeyDown (the onCellKeyDown handler) -------------------
 
 test('copyCellValueOnKeyDown copies the cell value on Ctrl/Cmd+C', () => {
