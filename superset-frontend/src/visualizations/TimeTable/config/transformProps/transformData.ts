@@ -20,25 +20,28 @@ import { DTTM_ALIAS } from '@superset-ui/core';
 
 const FLAT_COLUMN_SEPARATOR = ', ';
 
-const escapeSeparator = (value: string) =>
-  value.replace(new RegExp(FLAT_COLUMN_SEPARATOR, 'g'), '\\, ');
+// escape every bare comma, exactly like the backend escape_separator
+const escapeSeparator = (value: string) => value.replace(/,/g, '\\,');
 
 const pad = (part: number) => String(part).padStart(2, '0');
 
 /**
  * Formats an epoch timestamp the way str(pandas.Timestamp) did on the
- * legacy endpoint ("YYYY-MM-DD HH:MM:SS"), which the TimeTable component
- * re-parses with new Date().
+ * legacy endpoint ("YYYY-MM-DD HH:MM:SS", with a microsecond suffix for
+ * sub-second values), which the TimeTable component re-parses with
+ * new Date().
  */
 export const formatTimestamp = (value: unknown): string => {
   const date = new Date(value as number);
   if (Number.isNaN(date.getTime())) {
     return String(value);
   }
+  const millis = date.getUTCMilliseconds();
+  const fraction = millis > 0 ? `.${String(millis).padStart(3, '0')}000` : '';
   return (
     `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-` +
     `${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:` +
-    `${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`
+    `${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}${fraction}`
   );
 };
 

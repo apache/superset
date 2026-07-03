@@ -69,3 +69,27 @@ test('joins multi-column groups with the flat column separator', () => {
   );
   expect(columns).toEqual(['boy, CA\\, USA']);
 });
+
+test('escapes bare commas like the backend escape_separator', () => {
+  const { columns } = transformData(
+    [{ __timestamp: jan1, a: 'x,y', b: 'z', sum__num: 1 }],
+    ['a', 'b'],
+    ['sum__num'],
+  );
+  expect(columns).toEqual(['x\\,y, z']);
+});
+
+test('preserves sub-second timestamps as distinct keys', () => {
+  const { records } = transformData(
+    [
+      { __timestamp: jan1, sum__num: 1 },
+      { __timestamp: jan1 + 123, sum__num: 2 },
+    ],
+    [],
+    ['sum__num'],
+  );
+  expect(Object.keys(records).sort()).toEqual([
+    '2024-01-01 00:00:00',
+    '2024-01-01 00:00:00.123000',
+  ]);
+});

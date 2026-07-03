@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   buildQueryContext,
   ensureIsArray,
@@ -24,12 +25,18 @@ import {
 
 /**
  * Mirrors the legacy TimeTableViz.query_obj: a timeseries query ordered
- * by the first metric (ascending unless order_desc).
+ * by the first metric (ascending unless order_desc), limited to a single
+ * metric when grouped.
  */
 export default function buildQuery(formData: QueryFormData) {
-  const { order_desc } = formData;
+  const { order_desc, groupby } = formData;
   return buildQueryContext(formData, baseQueryObject => {
     const metrics = ensureIsArray(baseQueryObject.metrics);
+    if (ensureIsArray(groupby).length > 0 && metrics.length > 1) {
+      throw new Error(
+        t("When using 'Group By' you are limited to use a single metric"),
+      );
+    }
     const firstMetric = metrics[0];
     return [
       {

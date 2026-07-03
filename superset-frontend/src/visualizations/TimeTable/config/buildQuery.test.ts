@@ -42,6 +42,16 @@ test('orders descending when order_desc is set', () => {
 });
 
 test('keeps the groupby columns for grouped mode', () => {
-  const [query] = buildQuery({ ...formData, groupby: ['gender'] }).queries;
+  const [query] = buildQuery({
+    ...formData,
+    metrics: ['sum__num'],
+    groupby: ['gender'],
+  }).queries;
   expect(query.columns).toEqual(['gender']);
+});
+
+test('rejects multiple metrics in grouped mode like the legacy backend', () => {
+  expect(() => buildQuery({ ...formData, groupby: ['gender'] })).toThrow(
+    'single metric',
+  );
 });
