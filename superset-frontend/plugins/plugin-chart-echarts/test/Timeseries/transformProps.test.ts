@@ -912,7 +912,7 @@ describe('legend sorting', () => {
     ]);
   });
 
-  test('falls back to scroll for zoomable top legends when toolbox space reduces available width', () => {
+  test('honors an explicit List selection for zoomable top legends even when toolbox space reduces available width', () => {
     const narrowLegendData = [
       createTestQueryData(
         createTestData(
@@ -942,7 +942,7 @@ describe('legend sorting', () => {
     const transformed = transformProps(chartProps);
 
     expect((transformed.echartOptions.legend as any).type).toBe(
-      LegendType.Scroll,
+      LegendType.Plain,
     );
   });
 });
