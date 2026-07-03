@@ -16650,7 +16650,8 @@ msgstr "該表已經有了數據集"
 msgid ""
 "This table already has a dataset associated with it. You can only associate "
 "one dataset with a table.\n"
-msgstr "此表已經關聯了一個數據集。一個表只能關聯一個數據集。"
+msgstr ""
+"此表已經關聯了一個數據集。一個表只能關聯一個數據集。\n"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]

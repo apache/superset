@@ -481,7 +481,7 @@ msgstr "%s คอลัมน์"
 #, fuzzy, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
-msgstr[0] "1 วันที่แล้ว"
+msgstr[0] "%s วันที่ผ่านมา"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, es, fr,
 # ja, lv, mi, ru, sk, sl, uk]
@@ -525,14 +525,14 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "เมตริกสำหรับเรียง"
+msgstr[0] "%s เมตริก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
-msgstr[0] "1 เดือนที่แล้ว"
+msgstr[0] "%s นาทีที่แล้ว"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -559,7 +559,7 @@ msgstr "%s ตัวเลือก"
 #, fuzzy, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "ปรับขนาดคอลัมน์อัตโนมัติ"
+msgstr[0] "%s จาก %s คอลัมน์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
@@ -567,7 +567,7 @@ msgstr[0] "ปรับขนาดคอลัมน์อัตโนมัต
 #, fuzzy, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "เมตริกสำหรับเรียง"
+msgstr[0] "%s จาก %s เมตริก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -607,7 +607,7 @@ msgstr[0] "%s แถว"
 #, fuzzy, python-format
 msgid "%s s ago"
 msgid_plural "%s s ago"
-msgstr[0] "30 วันที่แล้ว"
+msgstr[0] "%s วินาทีที่แล้ว"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -620,7 +620,7 @@ msgstr "%s เมตริกที่บันทึกแล้ว"
 #, fuzzy, python-format
 msgid "%s second"
 msgid_plural "%s seconds"
-msgstr[0] "5 วินาที"
+msgstr[0] "%s วินาที"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -15775,7 +15775,7 @@ msgstr "แก้ไขแล้ว %s"
 #, fuzzy, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "แก้ไข 1 คอลัมน์ในชุดข้อมูลเสมือน"
+msgstr[0] "แก้ไข %s คอลัมน์ในชุดข้อมูลเสมือน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,

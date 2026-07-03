@@ -16933,7 +16933,7 @@ msgid ""
 "associate one dataset with a table.\n"
 msgstr ""
 "Ta tabela już ma przypisany zbiór danych. Możesz przypisać tylko jeden "
-"zbiór danych do tabeli."
+"zbiór danych do tabeli.\n"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
