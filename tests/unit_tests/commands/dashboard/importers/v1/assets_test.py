@@ -63,8 +63,8 @@ def test_import_dashboard_overwrite_charts_and_datasets(
     }
 
     # gettings uuids
-    dasboard_configs = list(dashboards_config_1.values())
-    dashboard_uuid = dasboard_configs[0]["uuid"]
+    dashboard_configs = list(dashboards_config_1.values())
+    dashboard_uuid = dashboard_configs[0]["uuid"]
     chart_configs = list(charts_config_1.values())
     chart_uuid = chart_configs[0]["uuid"]
     dataset_configs = list(datasets_config.values())
@@ -151,8 +151,8 @@ def test_import_dashboard_do_not_overwrite_charts_and_datasets(
     }
 
     # gettings uuids
-    dasboard_configs = list(dashboards_config_1.values())
-    dashboard_uuid = dasboard_configs[0]["uuid"]
+    dashboard_configs = list(dashboards_config_1.values())
+    dashboard_uuid = dashboard_configs[0]["uuid"]
     chart_configs = list(charts_config_1.values())
     chart_uuid = chart_configs[0]["uuid"]
     dataset_configs = list(datasets_config.values())
