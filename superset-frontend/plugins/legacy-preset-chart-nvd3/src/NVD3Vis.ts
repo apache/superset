@@ -47,7 +47,6 @@ import {
   cleanColorInput,
   computeYDomain,
   drawBarValues,
-  generateCompareTooltipContent,
   generateTimePivotTooltip,
   generateTooltipClassName,
   getMaxLabelSize,
@@ -124,7 +123,7 @@ const BREAKPOINTS = {
   small: 340,
 };
 
-const TIMESERIES_VIZ_TYPES = [VizType.Compare, VizType.TimePivot];
+const TIMESERIES_VIZ_TYPES = [VizType.TimePivot];
 
 const CHART_ID_PREFIX = 'chart-id-';
 
@@ -182,7 +181,6 @@ const propTypes = {
     VizType.BoxPlot,
     'bubble',
     VizType.Bullet,
-    VizType.Compare,
     'column',
     VizType.TimePivot,
     'pie',
@@ -399,13 +397,6 @@ function nvd3Vis(element, props) {
         chart = nv.models.multiBarChart().reduceXTicks(false);
         break;
 
-      case VizType.Compare:
-        chart = nv.models.cumulativeLineChart();
-        chart.xScale(d3.time.scale.utc());
-        chart.useInteractiveGuideline(true);
-        chart.xAxis.showMaxMin(false);
-        break;
-
       case VizType.BoxPlot:
         colorKey = 'label';
         chart = nv.models.boxPlotChart();
@@ -550,12 +541,6 @@ function nvd3Vis(element, props) {
       const colorFn = getScale(colorScheme);
       chart.color(
         d => d.color || colorFn(cleanColorInput(d[colorKey]), sliceId),
-      );
-    }
-
-    if (isVizTypes([VizType.Compare])) {
-      chart.interactiveLayer.tooltip.contentGenerator(d =>
-        generateCompareTooltipContent(d, yAxisFormatter),
       );
     }
 
