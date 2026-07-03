@@ -48,7 +48,7 @@ import * as useNativeFiltersModule from './state';
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 fetchMock.put('glob:*/api/v1/dashboard/*', {});
 // Add mock for logging endpoint
-fetchMock.post('glob:*/superset/log/?*', {});
+fetchMock.post('glob:*/log/?*', {});
 
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),

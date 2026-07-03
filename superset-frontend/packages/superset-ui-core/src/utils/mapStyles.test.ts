@@ -283,6 +283,22 @@ test('lookalike OpenStreetMap hostnames do not receive OSM attribution', () => {
   }
 });
 
+test('relative raster tile templates do not receive OSM attribution', () => {
+  // A host-relative template cannot be parsed by `new URL`, so the OSM
+  // hostname check must fall through to "not OSM" rather than throw.
+  const relativeTileUrl = '/local-tiles/{z}/{x}/{y}.png';
+  const style = resolveMapStyle(
+    `tile://${relativeTileUrl}`,
+    'default-style.json',
+  );
+
+  expect(typeof style).toBe('object');
+  if (typeof style !== 'string') {
+    expect(style.sources['osm-raster-tiles'].tiles).toEqual([relativeTileUrl]);
+    expect(style.sources['osm-raster-tiles']).not.toHaveProperty('attribution');
+  }
+});
+
 test('style JSON URLs pass through without raster wrapping', () => {
   const styleUrl = 'https://example.com/styles/custom-style.json';
 

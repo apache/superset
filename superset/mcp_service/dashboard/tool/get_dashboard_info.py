@@ -155,10 +155,11 @@ async def get_dashboard_info(
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
-        # Eager load slices and tags to avoid N+1 queries during serialization.
+        # Eager load slices, tags, and embedded to avoid N+1 queries.
         eager_options = [
             subqueryload(Dashboard.slices).subqueryload(Slice.tags),
             subqueryload(Dashboard.tags),
+            subqueryload(Dashboard.embedded),
         ]
 
         with event_logger.log_context(action="mcp.get_dashboard_info.lookup"):
