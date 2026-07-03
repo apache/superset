@@ -33,6 +33,7 @@ from superset.migrations.shared.migrate_viz.processors import (
     MigrateAreaChart,
     MigrateBarChart,
     MigrateBubbleChart,
+    MigrateCompareChart,
     MigrateDistBarChart,
     MigrateDualLine,
     MigrateHeatmapChart,
@@ -50,6 +51,7 @@ class VizType(str, Enum):
     AREA = "area"
     BAR = "bar"
     BUBBLE = "bubble"
+    COMPARE = "compare"
     DIST_BAR = "dist_bar"
     DUAL_LINE = "dual_line"
     HEATMAP = "heatmap"
@@ -65,6 +67,7 @@ MIGRATIONS: dict[VizType, Type[MigrateViz]] = {
     VizType.AREA: MigrateAreaChart,
     VizType.BAR: MigrateBarChart,
     VizType.BUBBLE: MigrateBubbleChart,
+    VizType.COMPARE: MigrateCompareChart,
     VizType.DIST_BAR: MigrateDistBarChart,
     VizType.DUAL_LINE: MigrateDualLine,
     VizType.HEATMAP: MigrateHeatmapChart,

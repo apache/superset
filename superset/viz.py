@@ -1200,13 +1200,6 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
         return chart_data
 
 
-class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
-    """A line chart component where you can compare the % change over time"""
-
-    viz_type = "compare"
-    verbose_name = _("Time Series - Percent Change")
-
-
 class ChordViz(BaseViz):
     """A Chord diagram"""
 
