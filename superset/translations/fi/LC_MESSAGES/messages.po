@@ -15242,11 +15242,11 @@ msgstr ""
 msgid "Mapbox"
 msgstr "Mapbox"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# fr, ja, lv, mi, ru, sk, uk]
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "Mapbox (API key required)"
-msgstr "Sähköposti on pakollinen"
+msgstr "Mapbox (API-avain vaaditaan)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -31603,11 +31603,11 @@ msgstr "ffill"
 msgid "flat"
 msgstr "tasainen"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
+# Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
+# mistranslation]
 #, fuzzy
 msgid "for a list of available helpers."
-msgstr "Ei käytettävissä olevia suodattimia."
+msgstr "katso lista käytettävissä olevista apufunktioista."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
