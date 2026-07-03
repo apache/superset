@@ -53,6 +53,9 @@ _datasource._perform_join = ExploreMixin._perform_join.__get__(_datasource)
 _datasource._apply_cleanup_logic = ExploreMixin._apply_cleanup_logic.__get__(
     _datasource
 )
+_datasource._coalesce_offset_index = ExploreMixin._coalesce_offset_index.__get__(
+    _datasource
+)
 # Static methods don't need binding - assign directly
 _datasource.generate_join_column = ExploreMixin.generate_join_column
 _datasource.is_valid_date_range_static = ExploreMixin.is_valid_date_range_static
@@ -206,6 +209,91 @@ def test_join_offset_dfs_with_month_granularity():
 
     result = query_context_processor.join_offset_dfs(
         df, offset_dfs, time_grain, join_keys
+    )
+
+    assert_frame_equal(expected, result)
+
+
+def test_join_offset_dfs_full_range_keeps_historical_tail():
+    """
+    With full_range=True the offset (historical) series keeps its full time range
+    even when the main series ends earlier.
+
+    Simulates "today so far" (main, ends at 01:00) compared against "1 day ago"
+    (a complete prior day, runs to 02:00). The 02:00 historical point must survive
+    and be aligned onto today's axis, with the main metric left null there.
+    """
+    # Main series: today, only two hours of data so far.
+    df = DataFrame(
+        {
+            "A": [Timestamp("2021-01-02 00:00"), Timestamp("2021-01-02 01:00")],
+            "V": [1.0, 2.0],
+        }
+    )
+    # Offset series: the full prior day (already renamed metric column "B").
+    offset_df = DataFrame(
+        {
+            "A": [
+                Timestamp("2021-01-01 00:00"),
+                Timestamp("2021-01-01 01:00"),
+                Timestamp("2021-01-01 02:00"),
+            ],
+            "B": [10.0, 20.0, 30.0],
+        }
+    )
+    offset_dfs = {"1 day ago": offset_df}
+    time_grain = TimeGrain.HOUR
+    join_keys = ["A"]
+
+    expected = DataFrame(
+        {
+            "A": [
+                Timestamp("2021-01-02 00:00"),
+                Timestamp("2021-01-02 01:00"),
+                Timestamp("2021-01-02 02:00"),
+            ],
+            "V": [1.0, 2.0, None],
+            "B": [10.0, 20.0, 30.0],
+        }
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain, join_keys, full_range=True
+    )
+
+    assert_frame_equal(expected, result)
+
+
+def test_join_offset_dfs_full_range_disabled_truncates_historical():
+    """The default (full_range=False) left join drops the historical 02:00 point."""
+    df = DataFrame(
+        {
+            "A": [Timestamp("2021-01-02 00:00"), Timestamp("2021-01-02 01:00")],
+            "V": [1.0, 2.0],
+        }
+    )
+    offset_df = DataFrame(
+        {
+            "A": [
+                Timestamp("2021-01-01 00:00"),
+                Timestamp("2021-01-01 01:00"),
+                Timestamp("2021-01-01 02:00"),
+            ],
+            "B": [10.0, 20.0, 30.0],
+        }
+    )
+    offset_dfs = {"1 day ago": offset_df}
+
+    expected = DataFrame(
+        {
+            "A": [Timestamp("2021-01-02 00:00"), Timestamp("2021-01-02 01:00")],
+            "V": [1.0, 2.0],
+            "B": [10.0, 20.0],
+        }
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, TimeGrain.HOUR, ["A"], full_range=False
     )
 
     assert_frame_equal(expected, result)

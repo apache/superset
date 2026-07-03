@@ -30,7 +30,7 @@ import {
 } from 'react';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import {
   ChartCustomizationConfiguration,
   ChartCustomizationType,
@@ -38,7 +38,7 @@ import {
   NativeFilterType,
   getLabelsColorMap,
 } from '@superset-ui/core';
-import { ParentSize } from '@visx/responsive';
+import { useParentSize } from '@visx/responsive';
 import Tabs from '@superset-ui/core/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
@@ -374,9 +374,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     [activeKey, childIds, dashboardLayout, handleFocus, renderTabBar, tabIndex],
   );
 
+  // Hook form, not <ParentSize>: @visx 4.0.0's component clips content taller
+  // than the viewport, which breaks dashboard page scrolling.
+  const { parentRef, width } = useParentSize();
+
   return (
-    <div className="grid-container" data-test="grid-container">
-      <ParentSize>{renderParentSizeChildren}</ParentSize>
+    <div className="grid-container" data-test="grid-container" ref={parentRef}>
+      {renderParentSizeChildren({ width })}
     </div>
   );
 };

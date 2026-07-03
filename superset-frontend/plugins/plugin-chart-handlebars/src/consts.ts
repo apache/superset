@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { Constants } from '@superset-ui/core/components';
 
 export const debounceFunc = debounce(

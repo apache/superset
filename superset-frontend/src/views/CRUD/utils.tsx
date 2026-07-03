@@ -27,7 +27,7 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import Chart from 'src/types/Chart';
-import { intersection } from 'lodash';
+import { intersection } from 'lodash-es';
 import rison from 'rison';
 import type {
   ListViewFetchDataConfig as FetchDataConfig,
