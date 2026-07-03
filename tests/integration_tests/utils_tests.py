@@ -358,7 +358,7 @@ class TestUtils(SupersetTestCase):
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Life Expectancy VS Rural %")
+        slc = self.get_slice("% Rural")
         dashboard_id = 1
 
         assert slc.viz is not None
