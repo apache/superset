@@ -304,7 +304,7 @@ describe('legend sorting', () => {
     expect(legendData).toEqual(['series value 2', 'series value 1']);
   });
 
-  test('falls back to scroll for plain legends with an overlong legend item', () => {
+  test('honors an explicit List selection for plain legends with an overlong legend item', () => {
     const props = new ChartProps({
       ...chartPropsConfig,
       width: 320,
@@ -321,7 +321,7 @@ describe('legend sorting', () => {
               'Y Axis': 'first',
               tooltip_column: 'tooltip value 1',
               series:
-                'This is a ridiculously long legend label that should switch to scroll',
+                'This is a ridiculously long legend label that stays a plain List',
             },
             {
               startTime: Date.UTC(2025, 1, 1, 18, 0, 0),
@@ -344,7 +344,7 @@ describe('legend sorting', () => {
 
     const result = transformProps(props as EchartsGanttChartProps);
 
-    expect((result.echartOptions.legend as any).type).toBe(LegendType.Scroll);
+    expect((result.echartOptions.legend as any).type).toBe(LegendType.Plain);
   });
 
   test('keeps legend visibility driven by showLegend for single-series charts', () => {
