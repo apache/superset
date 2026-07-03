@@ -1450,9 +1450,6 @@ class TestRolePermission(SupersetTestCase):
         assert security_manager._is_public_pvm(
             security_manager.find_permission_view_menu("can_dashboard", "Superset")
         )
-        assert security_manager._is_public_pvm(
-            security_manager.find_permission_view_menu("can_explore_json", "Superset")
-        )
 
         # Should NOT include write permissions on core objects
         assert not security_manager._is_public_pvm(
@@ -1479,7 +1476,6 @@ class TestRolePermission(SupersetTestCase):
         assert ("can_read", "Chart") in public_perm_set
         assert ("can_dashboard", "Superset") in public_perm_set
         assert ("can_slice", "Superset") in public_perm_set
-        assert ("can_explore_json", "Superset") in public_perm_set
         assert ("can_dashboard_permalink", "Superset") in public_perm_set
 
         # Filter state for interactive dashboards
@@ -1626,7 +1622,6 @@ class TestRolePermission(SupersetTestCase):
         assert ("can_explore", "Superset") in gamma_perm_set
         assert ("can_share_chart", "Superset") in gamma_perm_set
         assert ("can_share_dashboard", "Superset") in gamma_perm_set
-        assert ("can_explore_json", "Superset") in gamma_perm_set
         assert ("can_userinfo", "UserDBModelView") in gamma_perm_set
         assert ("can_view_chart_as_table", "Dashboard") in gamma_perm_set
         assert ("can_view_query", "Dashboard") in gamma_perm_set

@@ -32,7 +32,6 @@ import type { HandlerFunction } from '../types/Base';
 import { Loading } from '../../components/Loading';
 import ChartClient from '../clients/ChartClient';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
-import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import SuperChart from './SuperChart';
 
