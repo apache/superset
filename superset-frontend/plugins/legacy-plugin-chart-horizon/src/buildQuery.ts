@@ -16,18 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  ensureIsArray,
+  QueryFormData,
+} from '@superset-ui/core';
 
 /**
- * Mirrors the legacy HorizonViz query: a plain timeseries query grouped
- * by the dimensions. Series limiting (the `limit` control) and
- * order_desc are handled by buildQueryObject.
+ * Mirrors the legacy HorizonViz query (via NVD3TimeSeriesViz): a
+ * timeseries query grouped by the dimensions, ordered by the first
+ * metric ascending unless order_desc. Series limiting (the `limit`
+ * control) is handled by buildQueryObject.
  */
 export default function buildQuery(formData: QueryFormData) {
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      is_timeseries: true,
-    },
-  ]);
+  const { order_desc } = formData;
+  return buildQueryContext(formData, baseQueryObject => {
+    const firstMetric = ensureIsArray(baseQueryObject.metrics)[0];
+    return [
+      {
+        ...baseQueryObject,
+        is_timeseries: true,
+        orderby: firstMetric ? [[firstMetric, !order_desc]] : undefined,
+      },
+    ];
+  });
 }
